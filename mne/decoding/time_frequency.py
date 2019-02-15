@@ -6,8 +6,10 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
+from ..utils import fill_doc
 
 
+@fill_doc
 class TimeFrequency(TransformerMixin, BaseEstimator):
     """Time frequency transformer.
 
@@ -15,25 +17,25 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    freqs : array-like of floats, shape (n_freqs,)
+    freqs : array-like of float, shape (n_freqs,)
         The frequencies.
-    sfreq : float | int, defaults to 1.0
+    sfreq : float | int, default 1.0
         Sampling frequency of the data.
-    method : 'multitaper' | 'morlet', defaults to 'morlet'
+    method : 'multitaper' | 'morlet', default 'morlet'
         The time-frequency method. 'morlet' convolves a Morlet wavelet.
         'multitaper' uses Morlet wavelets windowed with multiple DPSS
         multitapers.
-    n_cycles : float | array of float, defaults to 7.0
+    n_cycles : float | array of float, default 7.0
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    time_bandwidth : float, defaults to None
+    time_bandwidth : float, default None
         If None and method=multitaper, will be set to 4.0 (3 tapers).
         Time x (Full) Bandwidth product. Only applies if
         method == 'multitaper'. The number of good tapers (low-bias) is
         chosen automatically based on this to equal floor(time_bandwidth - 1).
-    use_fft : bool, defaults to True
+    use_fft : bool, default True
         Use the FFT for convolutions or not.
-    decim : int | slice, defaults to 1
+    decim : int | slice, default 1
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
         If `int`, returns tfr[..., ::decim].
@@ -42,16 +44,14 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         .. note:: Decimation may create aliasing artifacts, yet decimation
                   is done after the convolutions.
 
-    output : str, defaults to 'complex'
+    output : str, default 'complex'
         * 'complex' : single trial complex.
         * 'power' : single trial power.
         * 'phase' : single trial phase.
-    n_jobs : int, defaults to 1
+    n_jobs : int, default 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
-    verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------

@@ -19,7 +19,9 @@ import numpy as np
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir, md5sum)
+                     verbose, get_subjects_dir, hashfunc)
+from ..utils.docs import docdict
+from ..externals.doccer import docformat
 
 
 _data_path_doc = """Get path to local copy of {name} dataset.
@@ -43,15 +45,14 @@ _data_path_doc = """Get path to local copy of {name} dataset.
         it will not be downloaded and the path will be returned as
         '' (empty string). This is mostly used for debugging purposes
         and can be safely ignored by most users.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(verbose)s
 
     Returns
     -------
     path : str
         Path to {name} dataset directory.
 """
-
+_data_path_doc = docformat(_data_path_doc, docdict)
 
 _version_doc = """Get version of the local {name} dataset.
 
@@ -190,8 +191,9 @@ def _get_path(path, key, name):
 def _do_path_update(path, update_path, key, name):
     """Update path."""
     path = op.abspath(path)
-    if update_path is None:
-        if get_config(key, '') != path:
+    identical = get_config(key, '', use_env=False) == path
+    if not identical:
+        if update_path is None:
             update_path = True
             if '--update-dataset-path' in sys.argv:
                 answer = 'y'
@@ -202,11 +204,9 @@ def _do_path_update(path, update_path, key, name):
                 answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
-        else:
-            update_path = False
 
-    if update_path is True:
-        set_config(key, path, set_env=False)
+        if update_path:
+            set_config(key, path, set_env=False)
     return path
 
 
@@ -310,7 +310,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_phantom_ctf='80819cb7f5b92d1a5289db3fb6acb33c',
             bst_phantom_elekta='1badccbe17998d18cc373526e86a7aaf',
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
-            bst_resting='b0139548e459bcff0e55a7acd85cdc5b'),
+            bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
         misc='d822a720ef94302467cb6ad1d320b669',
         sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
@@ -318,7 +318,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='9f43f67150e3b694b523a21eb929ea75',
         testing='db282fff3ac5eaeade52f9237da181da',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
-        opm='56e4ad38af7f5550fc0a6c6ad655f888',
+        opm='370ad1dcfd5c47e029e692c85358a374',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
                               '203410a98afc9df9ae8ba9f933370e20'],
         kiloword='3a124170795abbd2e48aae8727e719a8',
@@ -416,7 +416,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     return (path, data_version) if return_version else path
 
 
-def _download(path, url, archive_name, hash_):
+def _download(path, url, archive_name, hash_, hash_type='md5'):
     """Download and extract an archive, completing the filename."""
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
@@ -432,9 +432,8 @@ def _download(path, url, archive_name, hash_):
         if op.exists(full_name):
             logger.info('Archive exists (%s), checking hash %s.'
                         % (archive_name, hash_,))
-            md5 = md5sum(full_name)
             fetch_archive = False
-            if md5 != hash_:
+            if hashfunc(full_name, hash_type=hash_type) != hash_:
                 if input('Archive already exists but the hash does not match: '
                          '%s\nOverwrite (y/[n])?'
                          % (archive_name,)).lower() == 'y':
@@ -443,7 +442,7 @@ def _download(path, url, archive_name, hash_):
         if fetch_archive:
             logger.info('Downloading archive %s to %s' % (archive_name, path))
             _fetch_file(url, full_name, print_destination=False,
-                        hash_=hash_)
+                        hash_=hash_, hash_type=hash_type)
     return remove_archive, full_name
 
 
@@ -572,9 +571,7 @@ def _download_all_example_data(verbose=True):
     try:
         brainstorm.bst_raw.data_path()
         brainstorm.bst_auditory.data_path()
-        # not currently used; remember to add entry to .circleci/config.yml if
-        # we ever do use it
-        # brainstorm.bst_resting.data_path()
+        brainstorm.bst_resting.data_path()
         brainstorm.bst_phantom_elekta.data_path()
         brainstorm.bst_phantom_ctf.data_path()
     finally:
@@ -605,8 +602,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     subjects_dir : str | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     References
     ----------
@@ -641,8 +637,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     combine : bool
         If True, also produce the combined/reduced set of 23 labels per
         hemisphere as ``HCPMMP1_combined.annot`` [3]_.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Notes
     -----

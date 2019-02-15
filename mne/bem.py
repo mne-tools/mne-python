@@ -289,9 +289,7 @@ def make_bem_solution(surfs, verbose=None):
     ----------
     surfs : list of dict
         The BEM surfaces to use (`from make_bem_model`)
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -475,7 +473,6 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
                                         len(sigmas)):
         raise ValueError('surfs, ids, and sigmas must all have the same '
                          'number of elements (1 or 3)')
-    surf = list(surfs)
     for si, surf in enumerate(surfs):
         if isinstance(surf, str):
             surfs[si] = read_surface(surf, return_dict=True)[-1]
@@ -529,9 +526,7 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         single-layer model would be ``[0.3]``.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -678,7 +673,11 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     mu_0 = np.zeros(3)
     fun = partial(_one_step, u=u)
     max_ = 1. - 2e-4  # adjust for fmin_cobyla "catol" that not all scipy have
-    cons = [(lambda x: max_ - np.abs(x[ii])) for ii in range(nfit)]
+    cons = list()
+    for ii in range(nfit):
+        def mycon(x, ii=ii):
+            return max_ - np.abs(x[ii])
+        cons.append(mycon)
     mu = fmin_cobyla(fun, mu_0, cons, rhobeg=0.5, rhoend=1e-5, disp=0)
 
     # (6) Do the final step: calculation of the linear parameters
@@ -715,9 +714,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         Relative radii for the spherical shells.
     sigmas : array-like
         Sigma values for the spherical shells.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -809,7 +806,7 @@ _dig_kind_dict = {
     'eeg': FIFF.FIFFV_POINT_EEG,
     'extra': FIFF.FIFFV_POINT_EXTRA,
 }
-_dig_kind_rev = dict((val, key) for key, val in _dig_kind_dict.items())
+_dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
 _dig_kind_ints = tuple(_dig_kind_dict.values())
 
 
@@ -832,9 +829,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
 
         .. versionadded:: 0.12
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -875,8 +870,7 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
         be 'auto' (default), which will use only the 'extra' points if
         enough (more than 10) are available, and if not, uses 'extra' and
         'eeg' points.
-    verbose : bool, str or None
-        If not None, override default verbose level
+    %(verbose)s
 
     Returns
     -------
@@ -1049,8 +1043,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
         .. versionadded:: 0.12
 
-    verbose : bool, str or None
-        If not None, override default verbose level
+    %(verbose)s
 
     Notes
     -----
@@ -1199,9 +1192,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
         If int, only read and return the surface with the given s_id.
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1332,9 +1323,7 @@ def read_bem_solution(fname, verbose=None):
     ----------
     fname : string
         The file containing the BEM solution.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1454,7 +1443,7 @@ def _bem_find_surface(bem, id_):
 
 def _bem_explain_surface(id_):
     """Return a string corresponding to the given surface ID."""
-    _rev_dict = dict((val, key) for key, val in _surf_dict.items())
+    _rev_dict = {val: key for key, val in _surf_dict.items()}
     return _rev_dict[id_]
 
 
@@ -1579,9 +1568,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         installed.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1735,9 +1722,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         within the subject reconstruction is used.
 
         .. versionadded:: 0.13.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----

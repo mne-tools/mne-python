@@ -19,10 +19,8 @@ import sys
 import warnings
 
 import sphinx_gallery
-from sphinx_gallery.sorting import FileNameSortKey
-import sphinx_bootstrap_theme
-from numpydoc import numpydoc, docscrape  # noqa
-import sphinx_fontawesome
+from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
+from numpydoc import docscrape
 import mne
 from mne.utils import linkcode_resolve  # noqa, analysis:ignore
 
@@ -45,9 +43,6 @@ if not os.path.isdir('_images'):
 # If your documentation needs a minimal Sphinx version, state it here.
 needs_sphinx = '1.5'
 
-# XXX This hack defines what extra methods numpydoc will document
-docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
-
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 
@@ -64,6 +59,7 @@ extensions = [
     'sphinx_fontawesome',
     'numpydoc',
     'gen_commands',
+    'sphinx_bootstrap_theme',
 ]
 
 linkcheck_ignore = [
@@ -71,6 +67,7 @@ linkcheck_ignore = [
     'https://sccn.ucsd.edu/wiki/.*',  # HTTPSConnectionPool(host='sccn.ucsd.edu', port=443): Max retries exceeded with url: /wiki/Firfilt_FAQ (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:847)'),))
     'https://docs.python.org/dev/howto/logging.html',  # ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://docs.python.org/3/library/.*',  # ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
+    'https://hal.archives-ouvertes.fr/hal-01848442/',  # Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
 ]
 linkcheck_anchors = False  # saves a bit of time
 
@@ -175,9 +172,6 @@ html_theme_options = {
         ("Contribute", "contributing"),
     ],
     }
-
-# Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -308,6 +302,9 @@ intersphinx_mapping = {
     'dipy': ('http://nipy.org/dipy', None),
 }
 
+##############################################################################
+# sphinx-gallery
+
 examples_dirs = ['../examples', '../tutorials']
 gallery_dirs = ['auto_examples', 'auto_tutorials']
 
@@ -356,11 +353,14 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
         'ignore', '.*will be interpreted as an array index.*', module='scipy')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
+                'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
                 "'U' mode is deprecated",  # sphinx io
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    warnings.filterwarnings(  # deal with other modules having bad imports
+        'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)
@@ -371,6 +371,19 @@ sphinx_gallery_conf = {
     'doc_module': ('mne',),
     'reference_url': dict(mne=None),
     'examples_dirs': examples_dirs,
+    'subsection_order': ExplicitOrder(['../examples/io/',
+                                       '../examples/simulation/',
+                                       '../examples/preprocessing/',
+                                       '../examples/visualization/',
+                                       '../examples/time_frequency/',
+                                       '../examples/stats/',
+                                       '../examples/decoding/',
+                                       '../examples/connectivity/',
+                                       '../examples/forward/',
+                                       '../examples/inverse/',
+                                       '../examples/realtime/',
+                                       '../examples/datasets/',
+                                       '../tutorials/']),
     'gallery_dirs': gallery_dirs,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'backreferences_dir': 'generated',
@@ -386,4 +399,113 @@ sphinx_gallery_conf = {
     'within_subsection_order': FileNameSortKey,
 }
 
+##############################################################################
+# numpydoc
+
+# XXX This hack defines what extra methods numpydoc will document
+docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
+numpydoc_xref_param_type = True
+numpydoc_xref_aliases = {
+    'None': ':data:`python:None`',
+    'bool': ':ref:`bool <python:bltin-boolean-values>`',
+    'boolean': ':ref:`bool <python:bltin-boolean-values>`',
+    'True': ':data:`python:True`',
+    'False': ':data:`python:False`',
+    'list': ':class:`python:list`',
+    'tuple': ':class:`python:tuple`',
+    'str': ':class:`python:str`',
+    'string': ':class:`python:str`',
+    'dict': ':class:`python:dict`',
+    'float': ':class:`python:float`',
+    'int': ':class:`python:int`',
+    'callable': ':func:`callable <python:callable>`',
+    'iterable': ':term:`python:iterable`',
+    'contextmanager': ':func:`python:contextlib.contextmanager`',
+    'namedtuple': ':func:`python:collections.namedtuple`',
+    'generator': ':term:`python:generator`',
+    # NumPy
+    'array': '~numpy.ndarray',
+    'ndarray': '~numpy.ndarray',
+    'np.ndarray': '~numpy.ndarray',
+    'array-like': ':term:`numpy:array_like`',
+    'array_like': ':term:`numpy:array_like`',
+    'scalar': ':ref:`scalar <numpy:arrays.scalars>`',
+    'RandomState': '~numpy.random.RandomState',
+    'np.random.RandomState': '~numpy.random.RandomState',
+    'np.inf': ':data:`~numpy.inf`',
+    # 'numpy': ':mod:`numpy`',
+    # Matplotlib
+    'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
+    'color': ':doc:`color <matplotlib:api/colors_api>`',
+    'collection': ':doc:`collections <matplotlib:api/collections_api>`',
+    'Axes': '~matplotlib.axes.Axes',
+    'Figure': '~matplotlib.figure.Figure',
+    'Axes3D': '~mpl_toolkits.mplot3d.axes3d.Axes3D',
+    # Mayavi
+    'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
+    'mlab.Figure': 'mayavi.core.api.Scene',
+    # sklearn
+    'LeaveOneOut': '~sklearn.model_selection.LeaveOneOut',
+    'sklearn.model_selection': ':mod:`sklearn.model_selection`',
+    # nibabel
+    'Nifti1Image': '~nibabel.nifti1.Nifti1Image',
+    'Nifti2Image': '~nibabel.nifti2.Nifti2Image',
+    # MNE
+    'Label': '~mne.Label', 'Forward': '~mne.Forward', 'Evoked': '~mne.Evoked',
+    'Info': '~mne.Info', 'SourceSpaces': '~mne.SourceSpaces',
+    'Epochs': '~mne.Epochs', 'Layout': '~mne.channels.Layout',
+    'EvokedArray': '~mne.EvokedArray', 'BiHemiLabel': '~mne.BiHemiLabel',
+    'AverageTFR': '~mne.time_frequency.AverageTFR',
+    'EpochsTFR': '~mne.time_frequency.EpochsTFR',
+    'Raw': '~mne.io.Raw', 'ICA': '~mne.preprocessing.ICA',
+    'Covariance': '~mne.Covariance', 'Annotations': '~mne.Annotations',
+    'Montage': '~mne.channels.Montage',
+    'DigMontage': '~mne.channels.DigMontage',
+    'VectorSourceEstimate': '~mne.VectorSourceEstimate',
+    'VolSourceEstimate': '~mne.VolSourceEstimate',
+    'MixedSourceEstimate': '~mne.MixedSourceEstimate',
+    'SourceEstimate': '~mne.SourceEstimate', 'Projection': '~mne.Projection',
+    'ConductorModel': '~mne.bem.ConductorModel',
+    'Dipole': '~mne.Dipole', 'DipoleFixed': '~mne.DipoleFixed',
+    'InverseOperator': '~mne.minimum_norm.InverseOperator',
+    'CrossSpectralDensity': '~mne.time_frequency.CrossSpectralDensity',
+    'RtEpochs': '~mne.realtime.RtEpochs',
+    'SourceMorph': '~mne.SourceMorph',
+    'Xdawn': '~mne.preprocessing.Xdawn',
+    'Report': '~mne.Report', 'Forward': '~mne.Forward',
+    'TimeDelayingRidge': '~mne.decoding.TimeDelayingRidge',
+    'Vectorizer': '~mne.decoding.Vectorizer',
+    'UnsupervisedSpatialFilter': '~mne.decoding.UnsupervisedSpatialFilter',
+    'TemporalFilter': '~mne.decoding.TemporalFilter',
+    'Scaler': '~mne.decoding.Scaler', 'SPoC': '~mne.decoding.SPoC',
+    'PSDEstimator': '~mne.decoding.PSDEstimator',
+    'LinearModel': '~mne.decoding.LinearModel',
+    'FilterEstimator': '~mne.decoding.FilterEstimator',
+    'EMS': '~mne.decoding.EMS', 'CSP': '~mne.decoding.CSP',
+    'Beamformer': '~mne.beamformer.Beamformer',
+}
+numpydoc_xref_ignore = {
+    # words
+    'instance', 'instances', 'of', 'default', 'shape', 'or',
+    'with', 'length', 'pair', 'matplotlib', 'optional', 'kwargs', 'in',
+    'dtype', 'object', 'self.verbose',
+    # shapes
+    'n_vertices', 'n_faces', 'n_channels', 'm', 'n', 'n_events', 'n_colors',
+    'n_times', 'obj', 'n_chan', 'n_epochs', 'n_picks', 'n_ch_groups',
+    'n_dipoles', 'n_ica_components', 'n_pos', 'n_node_names', 'n_tapers',
+    'n_signals', 'n_step', 'n_freqs', 'wsize', 'Tx', 'M', 'N', 'p', 'q',
+    'n_observations', 'n_regressors', 'n_cols', 'n_frequencies', 'n_tests',
+    'n_samples', 'n_permutations', 'nchan', 'n_points', 'n_features',
+    'n_parts', 'n_features_new', 'n_components', 'n_labels', 'n_events_in',
+    'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
+    'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
+    'n_elp', 'n_pts', 'n_tris', 'n_nodes',
+    # Undocumented (on purpose)
+    'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
+    'RawBrainVision',
+    # sklearn subclasses
+    'mapping', 'to', 'any',
+    # unlinkable
+    'mayavi.mlab.pipeline.surface',
+}

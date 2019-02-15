@@ -15,8 +15,8 @@ from scipy import linalg, sparse
 from ..source_estimate import SourceEstimate
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, warn
-from ..io.pick import pick_types, pick_info
+from ..utils import logger, _reject_data_segments, warn, fill_doc
+from ..io.pick import pick_types, pick_info, _picks_to_idx
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -32,7 +32,7 @@ def linear_regression(inst, design_matrix, names=None):
         The regressors to be used. Must be a 2d array with as many rows as
         the first dimension of the data. The first column of this matrix will
         typically consist of ones (intercept column).
-    names : list-like | None
+    names : array-like | None
         Optional parameter to name the regressors. If provided, the length must
         correspond to the number of columns present in regressors
         (including the intercept, if present).
@@ -148,6 +148,7 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
+@fill_doc
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
                           decim=1, picks=None, solver='cholesky'):
@@ -218,10 +219,8 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         Decimate by choosing only a subsample of data points. Highly
         recommended for data recorded at high sampling frequencies, as
         otherwise huge intermediate matrices have to be created and inverted.
-    picks : None | list
-        List of indices of channels to be included. If None, defaults to all
-        MEG and EEG channels.
-    solver : str | function
+    %(picks_good_data)s
+    solver : str | callable
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
         matrix b; or a string.
@@ -245,7 +244,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
     """
     if isinstance(solver, str):
         if solver not in {"cholesky"}:
-            raise ValueError("No such solver: {0}".format(solver))
+            raise ValueError("No such solver: {}".format(solver))
         if solver == 'cholesky':
             def solver(X, y):
                 a = (X.T * X).toarray()  # dot product of sparse matrices
@@ -261,7 +260,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                                             decim=decim)
 
     if event_id is None:
-        event_id = dict((str(v), v) for v in set(events[:, 2]))
+        event_id = {str(v): v for v in set(events[:, 2])}
 
     # build predictors
     X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
@@ -286,8 +285,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
 def _prepare_rerp_data(raw, events, picks=None, decim=1):
     """Prepare events and data, primarily for `linear_regression_raw`."""
-    if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
+    picks = _picks_to_idx(raw.info, picks)
     info = pick_info(raw.info, picks)
     decim = int(decim)
     info["sfreq"] /= decim
@@ -321,16 +319,16 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
     # time windows (per event type) are converted to sample points from times
     # int(round()) to be safe and match Epochs constructor behavior
     if isinstance(tmin, (float, int)):
-        tmin_s = dict((cond, int(round(tmin * sfreq))) for cond in conds)
+        tmin_s = {cond: int(round(tmin * sfreq)) for cond in conds}
     else:
-        tmin_s = dict((cond, int(round(tmin.get(cond, -.1) * sfreq)))
-                      for cond in conds)
+        tmin_s = {cond: int(round(tmin.get(cond, -.1) * sfreq))
+                  for cond in conds}
     if isinstance(tmax, (float, int)):
-        tmax_s = dict(
-            (cond, int(round((tmax * sfreq)) + 1)) for cond in conds)
+        tmax_s = {
+            cond: int(round((tmax * sfreq)) + 1) for cond in conds}
     else:
-        tmax_s = dict((cond, int(round(tmax.get(cond, 1.) * sfreq)) + 1)
-                      for cond in conds)
+        tmax_s = {cond: int(round(tmax.get(cond, 1.) * sfreq)) + 1
+                  for cond in conds}
 
     # Construct predictor matrix
     # We do this by creating one array per event type, shape (lags, samples)

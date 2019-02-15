@@ -56,7 +56,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         solution will not be used in PSF computation.
     labels : list of Label
         Labels for which PSFs shall be computed.
-    method : 'MNE' | 'dSPM' | 'sLORETA' | eLORETA
+    method : 'MNE' | 'dSPM' | 'sLORETA' | 'eLORETA'
         Inverse method for which PSFs shall be computed
         (for :func:`apply_inverse`).
     lambda2 : float
@@ -75,16 +75,14 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         assumed to be more variable.
         "sub-leadfields" are the parts of the forward solutions that belong to
         vertices within individual labels.
-    n_svd_comp : integer
+    n_svd_comp : int
         Number of SVD components for which PSFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-leadfields are shown in screen output.
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -364,9 +362,7 @@ def cross_talk_function(inverse_operator, forward, labels,
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

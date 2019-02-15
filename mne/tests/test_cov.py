@@ -12,23 +12,20 @@ import pytest
 import numpy as np
 from scipy import linalg
 
-from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
-                     _auto_low_rank_model, _apply_scaling_cov,
-                     _undo_scaling_cov, prepare_noise_cov, compute_whitener,
-                     _apply_scaling_array, _undo_scaling_array,
+from mne.cov import (regularize, whiten_evoked,
+                     _auto_low_rank_model,
+                     prepare_noise_cov, compute_whitener,
                      _regularized_covariance)
 
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
-                 pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov,
+                 pick_channels_cov, pick_types, make_ad_hoc_cov,
                  make_fixed_length_events)
 from mne.datasets import testing
 from mne.fixes import _get_args
 from mne.io import read_raw_fif, RawArray, read_raw_ctf
-from mne.io.pick import channel_type, _picks_by_type, _DATA_CH_TYPES_SPLIT
-from mne.io.proc_history import _get_sss_rank
-from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.preprocessing import maxwell_filter
 from mne.tests.common import assert_snr
 from mne.utils import (_TempDir, requires_version, run_tests_if_main,
@@ -392,125 +389,11 @@ def test_whiten_evoked():
     pytest.raises(RuntimeError, whiten_evoked, evoked, cov_bad, picks)
 
 
-@pytest.mark.slowtest
-def test_rank():
-    """Test cov rank estimation."""
-    # Test that our rank estimation works properly on a simple case
-    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
-                          proj=False)
-    cov = read_cov(cov_fname)
-    ch_names = [ch for ch in evoked.info['ch_names'] if '053' not in ch and
-                ch.startswith('EEG')]
-    cov = prepare_noise_cov(cov, evoked.info, ch_names, None)
-    assert_equal(cov['eig'][0], 0.)  # avg projector should set this to zero
-    assert (cov['eig'][1:] > 0).all()  # all else should be > 0
-
-    # Now do some more comprehensive tests
-    raw_sample = read_raw_fif(raw_fname)
-    assert not _has_eeg_average_ref_proj(raw_sample.info['projs'])
-
-    raw_sss = read_raw_fif(hp_fif_fname)
-    assert not _has_eeg_average_ref_proj(raw_sss.info['projs'])
-    raw_sss.add_proj(compute_proj_raw(raw_sss))
-
-    cov_sample = compute_raw_covariance(raw_sample)
-    cov_sample_proj = compute_raw_covariance(
-        raw_sample.copy().apply_proj())
-
-    cov_sss = compute_raw_covariance(raw_sss)
-    cov_sss_proj = compute_raw_covariance(
-        raw_sss.copy().apply_proj())
-
-    picks_all_sample = pick_types(raw_sample.info, meg=True, eeg=True)
-    picks_all_sss = pick_types(raw_sss.info, meg=True, eeg=True)
-
-    info_sample = pick_info(raw_sample.info, picks_all_sample)
-    picks_stack_sample = [('eeg', pick_types(info_sample, meg=False,
-                                             eeg=True))]
-    picks_stack_sample += [('meg', pick_types(info_sample, meg=True))]
-    picks_stack_sample += [('all',
-                            pick_types(info_sample, meg=True, eeg=True))]
-
-    info_sss = pick_info(raw_sss.info, picks_all_sss)
-    picks_stack_somato = [('eeg', pick_types(info_sss, meg=False, eeg=True))]
-    picks_stack_somato += [('meg', pick_types(info_sss, meg=True))]
-    picks_stack_somato += [('all',
-                            pick_types(info_sss, meg=True, eeg=True))]
-
-    iter_tests = list(itt.product(
-        [(cov_sample, picks_stack_sample, info_sample),
-         (cov_sample_proj, picks_stack_sample, info_sample),
-         (cov_sss, picks_stack_somato, info_sss),
-         (cov_sss_proj, picks_stack_somato, info_sss)],  # sss
-        [dict(mag=1e15, grad=1e13, eeg=1e6)]
-    ))
-
-    for (cov, picks_list, this_info), scalings in iter_tests:
-        for ch_type, picks in picks_list:
-
-            this_very_info = pick_info(this_info, picks)
-
-            # compute subset of projs
-            this_projs = [c['active'] and
-                          len(set(c['data']['col_names'])
-                              .intersection(set(this_very_info['ch_names']))) >
-                          0 for c in cov['projs']]
-            n_projs = sum(this_projs)
-
-            # count channel types
-            ch_types = [channel_type(this_very_info, idx)
-                        for idx in range(len(picks))]
-            n_eeg, n_mag, n_grad = [ch_types.count(k) for k in
-                                    ['eeg', 'mag', 'grad']]
-            n_meg = n_mag + n_grad
-
-            # check sss
-            if len(this_very_info['proc_history']) > 0:
-                mf = this_very_info['proc_history'][0]['max_info']
-                n_free = _get_sss_rank(mf)
-                if 'mag' not in ch_types and 'grad' not in ch_types:
-                    n_free = 0
-                # - n_projs XXX clarify
-                expected_rank = n_free + n_eeg
-            else:
-                expected_rank = n_meg + n_eeg - n_projs
-
-            C = cov['data'][np.ix_(picks, picks)]
-            est_rank = _estimate_rank_meeg_cov(C, this_very_info,
-                                               scalings=scalings)
-
-            assert_equal(expected_rank, est_rank)
-
-
-def test_cov_scaling():
-    """Test rescaling covs."""
+def test_regularized_covariance():
+    """Test unchanged data with regularized_covariance."""
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
                           proj=True)
-    cov = read_cov(cov_fname)['data']
-    cov2 = read_cov(cov_fname)['data']
-
-    assert_array_equal(cov, cov2)
-    evoked.pick_channels([evoked.ch_names[k] for k in pick_types(
-        evoked.info, meg=True, eeg=True
-    )])
-    picks_list = _picks_by_type(evoked.info)
-    scalings = dict(mag=1e15, grad=1e13, eeg=1e6)
-
-    _apply_scaling_cov(cov2, picks_list, scalings=scalings)
-    _apply_scaling_cov(cov, picks_list, scalings=scalings)
-    assert_array_equal(cov, cov2)
-    assert cov.max() > 1
-
-    _undo_scaling_cov(cov2, picks_list, scalings=scalings)
-    _undo_scaling_cov(cov, picks_list, scalings=scalings)
-    assert_array_equal(cov, cov2)
-    assert cov.max() < 1
-
     data = evoked.data.copy()
-    _apply_scaling_array(data, picks_list, scalings=scalings)
-    _undo_scaling_array(data, picks_list, scalings=scalings)
-    assert_allclose(data, evoked.data, atol=1e-20)
-
     # check that input data remain unchanged. gh-5698
     _regularized_covariance(data)
     assert_allclose(data, evoked.data, atol=1e-20)
@@ -619,7 +502,7 @@ def test_compute_covariance_auto_reg(rank):
     method_names = [cov['method'] for cov in cov3]
     best_bounds = [-45, -35]
     bounds = [-55, -45] if rank == 'full' else best_bounds
-    for method in set(methods) - set(['empirical', 'shrunk']):
+    for method in set(methods) - {'empirical', 'shrunk'}:
         this_lik = cov3[method_names.index(method)]['loglik']
         assert bounds[0] < this_lik < bounds[1]
     this_lik = cov3[method_names.index('shrunk')]['loglik']
@@ -628,7 +511,7 @@ def test_compute_covariance_auto_reg(rank):
     bounds = [-110, -100] if rank == 'full' else best_bounds
     assert bounds[0] < this_lik < bounds[1]
 
-    assert_equal(set([c['method'] for c in cov3]), set(methods))
+    assert_equal({c['method'] for c in cov3}, set(methods))
 
     cov4 = compute_covariance(epochs, method=methods,
                               method_params=method_params, projs=None,
@@ -644,6 +527,7 @@ def test_compute_covariance_auto_reg(rank):
 
 
 def _cov_rank(cov, info):
+    # XXX : this should use the to appear compute_rank function
     return compute_whitener(cov, info, return_rank=True, verbose='error')[2]
 
 

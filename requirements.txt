@@ -16,6 +16,8 @@ pytest
 pytest-cov
 pytest-sugar
 pytest-timeout
+pytest-faulthandler
+pytest-mock
 joblib
 psutil
 dipy
@@ -23,5 +25,6 @@ numpydoc
 https://api.github.com/repos/nipy/PySurfer/zipball/master
 nilearn
 neo
+xlrd
 pydocstyle
 flake8

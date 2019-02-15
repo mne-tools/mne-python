@@ -6,7 +6,6 @@
 
 from copy import deepcopy
 from functools import partial
-import itertools as itt
 import os.path as op
 import pickle
 import sys
@@ -26,8 +25,7 @@ from mne import (concatenate_events, find_events, equalize_channels,
                  pick_info)
 from mne.utils import (_TempDir, requires_pandas, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
-from mne.io.proc_history import _get_rank_sss
-from mne.io.pick import _picks_by_type
+from mne.utils.testing import assert_and_remove_boundary_annot
 from mne.annotations import Annotations
 
 testing_path = testing.data_path(download=False)
@@ -200,37 +198,6 @@ def test_copy_append():
     raw_full.append(raw)
     data = raw_full[:, :][0]
     assert_equal(data.shape[1], 2 * raw._data.shape[1])
-
-
-@pytest.mark.slowtest
-@testing.requires_testing_data
-def test_rank_estimation():
-    """Test raw rank estimation."""
-    iter_tests = itt.product(
-        [fif_fname, hp_fif_fname],  # sss
-        ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
-    )
-    for fname, scalings in iter_tests:
-        raw = read_raw_fif(fname).crop(0, 4.).load_data()
-        (_, picks_meg), (_, picks_eeg) = _picks_by_type(raw.info,
-                                                        meg_combined=True)
-        n_meg = len(picks_meg)
-        n_eeg = len(picks_eeg)
-
-        if len(raw.info['proc_history']) == 0:
-            expected_rank = n_meg + n_eeg
-        else:
-            expected_rank = _get_rank_sss(raw.info) + n_eeg
-        assert_array_equal(raw.estimate_rank(scalings=scalings), expected_rank)
-        assert_array_equal(raw.estimate_rank(picks=picks_eeg,
-                                             scalings=scalings), n_eeg)
-        if 'sss' in fname:
-            raw.add_proj(compute_proj_raw(raw))
-        raw.apply_proj()
-        n_proj = len(raw.info['projs'])
-        assert_array_equal(raw.estimate_rank(tstart=0, tstop=3.,
-                                             scalings=scalings),
-                           expected_rank - (0 if 'sss' in fname else n_proj))
 
 
 @testing.requires_testing_data
@@ -698,15 +665,14 @@ def test_getitem():
         data1, times1 = raw[[0, 1]]
         assert_array_equal(data, data1)
         assert_array_equal(times, times1)
+        assert_array_equal(raw[raw.ch_names[0]][0][0], raw[0][0][0])
         assert_array_equal(
             raw[-10:-1, :][0],
             raw[len(raw.ch_names) - 10:len(raw.ch_names) - 1, :][0])
-        pytest.raises(ValueError, raw.__getitem__,
-                      (slice(-len(raw.ch_names) - 1), slice(None)))
-        with pytest.raises(ValueError, match='start must be'):
-            raw[-1000:]
-        with pytest.raises(ValueError, match='stop must be'):
-            raw[:-1000]
+        with pytest.raises(ValueError, match='No appropriate channels'):
+            raw[slice(-len(raw.ch_names) - 1), slice(None)]
+        with pytest.raises(ValueError, match='must be'):
+            raw[-1000]
 
 
 @testing.requires_testing_data
@@ -936,7 +902,7 @@ def test_filter_picks():
 
     # -- Filter data channels
     for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr'):
-        picks = dict((ch, ch == ch_type) for ch in ch_types)
+        picks = {ch: ch == ch_type for ch in ch_types}
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         picks['fnirs'] = ch_type if ch_type in ('hbo', 'hbr') else False
         raw_ = raw.copy().pick_types(**picks)
@@ -944,9 +910,9 @@ def test_filter_picks():
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):
-        picks = dict((ch, ch == ch_type) for ch in ch_types)
+        picks = {ch: ch == ch_type for ch in ch_types}
         raw_ = raw.copy().pick_types(**picks)
-        pytest.raises(RuntimeError, raw_.filter, 10, 30)
+        pytest.raises(ValueError, raw_.filter, 10, 30)
 
 
 @testing.requires_testing_data
@@ -1269,6 +1235,7 @@ def test_annotation_crop():
     r2 = raw.copy().crop(12.5, 17.5)
     r3 = raw.copy().crop(10., 12.)
     raw = concatenate_raws([r1, r2, r3])  # segments reordered
+    assert_and_remove_boundary_annot(raw, 2)
     onsets = raw.annotations.onset
     durations = raw.annotations.duration
     # 2*5s clips combined with annotations at 2.5s + 2s clip, annotation at 1s

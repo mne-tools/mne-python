@@ -16,10 +16,11 @@ from .source_estimate import (VolSourceEstimate, SourceEstimate,
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
-                    warn as warn_, deprecated)
+                    warn as warn_, deprecated, fill_doc)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
+@verbose
 def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                          subjects_dir=None, zooms=5,
                          niter_affine=(100, 100, 10), niter_sdr=(5, 5, 3),
@@ -77,10 +78,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         Morph as a sparse source estimate. Works only with (Vector)
         SourceEstimate. If True the only parameters used are subject_to and
         subject_from, and spacing has to be None. Default is sparse=False.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). The default
-        is verbose=None.
+    %(verbose)s
 
     Notes
     -----
@@ -221,9 +219,10 @@ def _compute_sparse_morph(vertices_from, subject_from, subject_to,
 _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
     'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
-    'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data']
+    'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data', 'verbose']
 
 
+@fill_doc
 class SourceMorph(object):
     """Morph source space data from one subject to another.
 
@@ -236,10 +235,11 @@ class SourceMorph(object):
     ----------
     subject_from : str | None
         Name of the subject from which to morph as named in the SUBJECTS_DIR.
-    subject_to : str | array | list of two arrays
+    subject_to : str | array | list of array
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
         The default is 'fsaverage'. If morphing a volume source space,
-        subject_to can be the path to a MRI volume.
+        subject_to can be the path to a MRI volume. Can also be a list of
+        two arrays if morphing to hemisphere surfaces.
     kind : str | None
         Kind of source estimate. E.g. 'volume' or 'surface'.
     zooms : float | tuple
@@ -278,6 +278,7 @@ class SourceMorph(object):
         the symmetric diffeomorphic registration (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
+    %(verbose)s
 
     References
     ----------
@@ -294,7 +295,7 @@ class SourceMorph(object):
     def __init__(self, subject_from, subject_to, kind, zooms,
                  niter_affine, niter_sdr, spacing, smooth, xhemi,
                  morph_mat, vertices_to, shape,
-                 affine, pre_affine, sdr_morph, src_data):
+                 affine, pre_affine, sdr_morph, src_data, verbose=None):
         # universal
         self.subject_from = subject_from
         self.subject_to = subject_to
@@ -317,6 +318,7 @@ class SourceMorph(object):
         self.pre_affine = pre_affine
         # used by both
         self.src_data = src_data
+        self.verbose = verbose
 
     @verbose
     def apply(self, stc_from, output='stc', mri_resolution=False,
@@ -336,10 +338,7 @@ class SourceMorph(object):
         mri_space : bool
             Whether the image to world registration should be in mri space. The
             default is mri_space=mri_resolution.
-        verbose : bool | str | int | None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). The default is verbose=None.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -392,16 +391,12 @@ class SourceMorph(object):
             not end with '.h5'
         overwrite : bool
             If True, overwrite existing file.
-        verbose : bool | str | int | None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
         """
         if not fname.endswith('.h5'):
             fname = '%s-morph.h5' % fname
 
-        out_dict = dict((key, getattr(self, key))
-                        for key in _SOURCE_MORPH_ATTRIBUTES)
+        out_dict = {k: getattr(self, k) for k in _SOURCE_MORPH_ATTRIBUTES}
         for key in ('pre_affine', 'sdr_morph'):  # classes
             if out_dict[key] is not None:
                 out_dict[key] = out_dict[key].__dict__
@@ -783,7 +778,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Name of the original subject as named in the SUBJECTS_DIR.
     subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    vertices_from : list of arrays of int
+    vertices_from : list of array of int
         Vertices for each hemisphere (LH, RH) for subject_from.
     vertices_to : list of arrays of int
         Vertices for each hemisphere (LH, RH) for subject_to.
@@ -800,9 +795,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes below. The default is
         xhemi=False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). The default
+    %(verbose)s The default
         is verbose=None.
 
     Returns
@@ -915,13 +908,11 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         Path to SUBJECTS_DIR if it is not set in the environment
     n_jobs : int
         Number of jobs to run in parallel. The default is n_jobs=1.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    vertices : list of arrays of int
+    vertices : list of array of int
         Vertex numbers for LH and RH
     """
     # add special case for fsaverage for speed
@@ -991,9 +982,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         Morph map from one subject to the other.
     warn : bool
         If True, warn if not all vertices were used.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). The default
+    %(verbose)s The default
         is verbose=None.
 
     Returns

@@ -32,7 +32,8 @@ from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
-                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT)
+                      _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
+                      _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import BaseRaw, ToDataFrameMixin, TimeMixin
 from .bem import _check_origin
@@ -45,12 +46,22 @@ from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
-from .utils import (check_fname, logger, verbose, _check_type_picks,
+from .utils import (check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events)
+from .utils.docs import fill_doc
+
+
+def _pack_reject_params(epochs):
+    reject_params = dict()
+    for key in ('reject', 'flat', 'reject_tmin', 'reject_tmax'):
+        val = getattr(epochs, key, None)
+        if val is not None:
+            reject_params[key] = val
+    return reject_params
 
 
 def _save_split(epochs, fname, part_idx, n_parts, fmt):
@@ -147,6 +158,11 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     write_string(fid, FIFF.FIFF_MNE_EPOCHS_DROP_LOG,
                  json.dumps(epochs.drop_log))
 
+    reject_params = _pack_reject_params(epochs)
+    if reject_params:
+        write_string(fid, FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT,
+                     json.dumps(reject_params))
+
     write_int(fid, FIFF.FIFF_MNE_EPOCHS_SELECTION,
               epochs.selection)
 
@@ -166,6 +182,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     end_file(fid)
 
 
+@fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
                  ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
@@ -193,7 +210,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See `Epochs` docstring.
     raw : Raw object
         An instance of Raw.
-    picks : array-like of int | None (default)
+    %(picks_header)s
         See `Epochs` docstring.
     reject : dict | None
         See `Epochs` docstring.
@@ -227,10 +244,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See :class:`mne.Epochs` docstring.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        raw.verbose.
+    %(verbose)s
 
     Notes
     -----
@@ -239,6 +253,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     used as a constructor for Epochs objects (use instead :class:`mne.Epochs`).
     """
 
+    @verbose
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
@@ -264,7 +279,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  'type %s' % (events.dtype))
             events = events.astype(int)
             if events.ndim != 2 or events.shape[1] != 3:
-                raise ValueError('events must be 2D with 3 columns')
+                raise ValueError('events must be of shape (N, 3), got %s'
+                                 % (events.shape,))
             for key, val in self.event_id.items():
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
@@ -334,18 +350,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.detrend = detrend
         self._raw = raw
         info._check_consistency()
-        self.info = info
+        self.picks = _picks_to_idx(info, picks, none='all', exclude=(),
+                                   allow_empty=False)
+        self.info = pick_info(info, self.picks)
         del info
         self.metadata = metadata
         self._current = 0
-
-        if picks is None:
-            picks = list(range(len(self.info['ch_names'])))
-        else:
-            self.info = pick_info(self.info, picks)
-        self.picks = _check_type_picks(picks)
-        if len(picks) == 0:
-            raise ValueError("Picks cannot be empty.")
 
         if data is None:
             self.preload = False
@@ -452,10 +462,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.12
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -512,10 +519,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             applied by computing mean of the baseline period and subtracting it
             from the data. The baseline (a, b) includes both endpoints, i.e.
             all timepoints t such that a <= t <= b.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -674,9 +678,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._current = 0
 
         while True:
-            out = self.next(True)
-            if out is None:
-                return  # properly signal the end of iteration
+            try:
+                out = self.__next__(True)
+            except StopIteration:
+                break
             data, event_id = out
             tmin = self.times[0]
             info = deepcopy(self.info)
@@ -755,14 +760,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         return self
 
+    @fill_doc
     def average(self, picks=None, method="mean"):
         """Compute an average over epochs.
 
         Parameters
         ----------
-        picks : array-like of int | None
-            If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
-            otherwise the channels indices in picks are kept.
+        %(picks_all_data)s
         method : str | callable
             How to combine the data. If "mean"/"median", the mean/median
             are returned.
@@ -800,14 +804,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return self._compute_aggregate(picks=picks, mode=method)
 
+    @fill_doc
     def standard_error(self, picks=None):
         """Compute standard error over epochs.
 
         Parameters
         ----------
-        picks : array-like of int | None
-            If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
-            otherwise the channels indices in picks are kept.
+        %(picks_all_data)s
 
         Returns
         -------
@@ -852,10 +855,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             data = fun(self._data)
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
-                    raise RuntimeError("You passed a function that resulted "
-                                       "in data of shape {}, but it should be "
-                                       "{}.".format(data.shape,
-                                                    self._data.shape[1:]))
+                raise RuntimeError(
+                    'You passed a function that resulted n data of shape {}, '
+                    'but it should be {}.'.format(
+                        data.shape, self._data.shape[1:]))
         else:
             if mode not in {"mean", "std"}:
                 raise ValueError("If data are not preloaded, can only compute "
@@ -913,9 +916,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         evoked.times = self.times.copy()
 
         # pick channels
-        if picks is None:
-            picks = _pick_data_channels(evoked.info, exclude=[])
-
+        picks = _picks_to_idx(self.info, picks, 'data_or_ica', ())
         ch_names = [evoked.ch_names[p] for p in picks]
         evoked.pick_channels(ch_names)
 
@@ -1007,10 +1008,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             are floats that set the minimum acceptable peak-to-peak amplitude.
             If flat is None then no rejection is done. If 'existing',
             then the flat parameters set at instantiation are used.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1098,17 +1096,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        indices : array of ints or bools
+        indices : array of int or bool
             Set epochs to remove by specifying indices to remove or a boolean
             mask to apply (where True values get removed). Events are
             correspondingly modified.
         reason : str
             Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Default: 'USER'.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1158,10 +1153,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         out : bool
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
         """
         n_events = len(self.events)
         # in case there are no good events
@@ -1231,9 +1223,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._bad_dropped = True
             logger.info("%d bad epochs dropped" % (n_events - len(good_idx)))
 
-            # Now update our properties
-            self._getitem(good_idx, None, copy=False, drop_event_id=False)
-
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
                 if data.flags['OWNDATA'] and data.flags['C_CONTIGUOUS']:
@@ -1242,6 +1231,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     data = data[:n_out]
                     if self.preload:
                         self._data = data
+
+            # Now update our properties (excepd data, which is already fixed)
+            self._getitem(good_idx, None, copy=False, drop_event_id=False,
+                          select_data=False)
 
         return data if out else None
 
@@ -1384,10 +1377,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             will slightly differ due to the reduction in precision.
 
             .. versionadded:: 0.17
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Notes
         -----
@@ -1499,8 +1489,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # 2a. for tags, find all the event_ids matched by the tags
             # 2b. for non-tag ids, just pass them directly
             # 3. do this for every input
-            event_ids = [[k for k in ids if all((tag in k.split("/")
-                         for tag in id_))]  # find ids matching all tags
+            event_ids = [[k for k in ids
+                          if all((tag in k.split("/")
+                                  for tag in id_))]  # ids matching all tags
                          if all(id__ not in ids for id__ in id_)
                          else id_  # straight pass for non-tag inputs
                          for id_ in event_ids]
@@ -1508,7 +1499,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if len(id_) == 0:
                     raise KeyError(orig_ids[ii] + "not found in the "
                                    "epoch object's event_id.")
-                elif len(set([sub_id in ids for sub_id in id_])) != 1:
+                elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
                     raise ValueError(err)
@@ -1596,7 +1587,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
 
     Parameters
     ----------
-    drop_log : list of lists
+    drop_log : list of list
         Epoch drop log from Epochs.drop_log.
     ignore : list
         The drop reasons to ignore.
@@ -1613,6 +1604,7 @@ def _drop_log_stats(drop_log, ignore=('IGNORED',)):
     return perc
 
 
+@fill_doc
 class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.
 
@@ -1645,8 +1637,7 @@ class Epochs(BaseEpochs):
         of the baseline period and subtracting it from the data. The baseline
         (a, b) includes both endpoints, i.e. all timepoints t such that
         a <= t <= b.
-    picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels are used).
+    %(picks_all)s
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -1718,10 +1709,7 @@ class Epochs(BaseEpochs):
         MNE will modify the row indices to match ``epochs.selection``.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        raw.verbose.
+    %(verbose)s
 
     Attributes
     ----------
@@ -1737,7 +1725,7 @@ class Epochs(BaseEpochs):
         has been dropped, this attribute would be np.array([0, 2, 3]).
     preload : bool
         Indicates whether epochs are in memory.
-    drop_log : list of lists
+    drop_log : list of list
         A list of the same length as the event array used to initialize the
         Epochs object. If the i-th original event is still part of the
         selection, drop_log[i] will be an empty list; otherwise it will be
@@ -1754,8 +1742,7 @@ class Epochs(BaseEpochs):
         Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
-    verbose : bool, str, int, or None
-        See above.
+    %(verbose)s
 
     See Also
     --------
@@ -1822,11 +1809,13 @@ class Epochs(BaseEpochs):
         start = int(round(event_samp + self._raw_times[0] * sfreq))
         start -= first_samp
         stop = start + len(self._raw_times)
+        logger.debug('    Getting epoch for %d-%d' % (start, stop))
         data = self._raw._check_bad_segment(start, stop, self.picks,
                                             self.reject_by_annotation)
         return data
 
 
+@fill_doc
 class EpochsArray(BaseEpochs):
     """Epochs object from numpy array.
 
@@ -1898,9 +1887,7 @@ class EpochsArray(BaseEpochs):
         Can be None to use ``np.arange(len(events))``.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1944,7 +1931,7 @@ class EpochsArray(BaseEpochs):
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
         if event_id is None:  # convert to int to make typing-checks happy
-            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+            event_id = {str(e): int(e) for e in np.unique(events[:, 2])}
         super(EpochsArray, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline, reject=reject,
             flat=flat, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
@@ -2205,6 +2192,7 @@ def _read_one_epoch_file(f, tree, preload):
         baseline = None
         selection = None
         drop_log = None
+        reject_params = {}
         for k in range(my_epochs['nent']):
             kind = my_epochs['directory'][k].kind
             pos = my_epochs['directory'][k].pos
@@ -2234,6 +2222,9 @@ def _read_one_epoch_file(f, tree, preload):
             elif kind == FIFF.FIFF_MNE_EPOCHS_DROP_LOG:
                 tag = read_tag(fid, pos)
                 drop_log = json.loads(tag.data)
+            elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
+                tag = read_tag(fid, pos)
+                reject_params = json.loads(tag.data)
 
         if bmin is not None or bmax is not None:
             baseline = (bmin, bmax)
@@ -2283,7 +2274,7 @@ def _read_one_epoch_file(f, tree, preload):
         # Put it all together
         tmin = first / info['sfreq']
         tmax = last / info['sfreq']
-        event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
+        event_id = ({str(e): e for e in np.unique(events[:, 2])}
                     if mappings is None else mappings)
         # In case epochs didn't have a FIFF.FIFF_MNE_EPOCHS_SELECTION tag
         # (version < 0.8):
@@ -2293,7 +2284,7 @@ def _read_one_epoch_file(f, tree, preload):
             drop_log = [[] for _ in range(len(events))]
 
     return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
-            baseline, selection, drop_log, epoch_shape, cals)
+            baseline, selection, drop_log, epoch_shape, cals, reject_params)
 
 
 @verbose
@@ -2318,9 +2309,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2346,6 +2335,7 @@ class _RawContainer(object):
         self.fid.close()
 
 
+@fill_doc
 class EpochsFIF(BaseEpochs):
     """Epochs read from disk.
 
@@ -2367,10 +2357,7 @@ class EpochsFIF(BaseEpochs):
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
         be read on demand.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        raw.verbose.
+    %(verbose)s
 
     See Also
     --------
@@ -2392,7 +2379,8 @@ class EpochsFIF(BaseEpochs):
             fid, tree, _ = fiff_open(fname)
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
-             baseline, selection, drop_log, epoch_shape, cals) = \
+             baseline, selection, drop_log, epoch_shape, cals,
+             reject_params) = \
                 _read_one_epoch_file(fid, tree, preload)
 
             # here we ignore missing events, since users should already be
@@ -2426,8 +2414,8 @@ class EpochsFIF(BaseEpochs):
         for i1, i2 in zip(offsets[:-1], offsets[1:]):
             other_log = drop_log[i1:i2]
             for k, (a, b) in enumerate(zip(drop_log, other_log)):
-                    if a == ['IGNORED'] and b != ['IGNORED']:
-                        drop_log[k] = b
+                if a == ['IGNORED'] and b != ['IGNORED']:
+                    drop_log[k] = b
         drop_log = drop_log[:step]
 
         # call BaseEpochs constructor
@@ -2435,7 +2423,7 @@ class EpochsFIF(BaseEpochs):
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname,
-            metadata=metadata, verbose=verbose)
+            metadata=metadata, verbose=verbose, **reject_params)
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
@@ -2502,13 +2490,13 @@ def bootstrap(epochs, random_state=None):
 
 def _check_merge_epochs(epochs_list):
     """Aux function."""
-    if len(set(tuple(epochs.event_id.items()) for epochs in epochs_list)) != 1:
+    if len({tuple(epochs.event_id.items()) for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for event_id")
-    if len(set(epochs.tmin for epochs in epochs_list)) != 1:
+    if len({epochs.tmin for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for tmin")
-    if len(set(epochs.tmax for epochs in epochs_list)) != 1:
+    if len({epochs.tmax for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for tmax")
-    if len(set(epochs.baseline for epochs in epochs_list)) != 1:
+    if len({epochs.baseline for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for baseline")
 
 
@@ -2520,10 +2508,7 @@ def add_channels_epochs(epochs_list, verbose=None):
     ----------
     epochs_list : list of Epochs
         Epochs object to concatenate.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        True if any of the input epochs have verbose=True.
+    %(verbose)s Defaults to True if any of the input epochs have verbose=True.
 
     Returns
     -------
@@ -2736,9 +2721,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
-    picks : array-like of int | None
-        If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
-        otherwise the channels indices in picks are kept.
+    %(picks_all_data)s
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head
         coords and in meters. The default is ``'auto'``, which means
@@ -2782,9 +2765,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
         .. versionadded:: 0.13
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

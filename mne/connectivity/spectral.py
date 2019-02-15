@@ -649,7 +649,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         or a list/generator of SourceEstimate or VolSourceEstimate objects.
     method : string | list of string
         Connectivity measure(s) to compute.
-    indices : tuple of arrays | None
+    indices : tuple of array | None
         Two arrays with indices of connections for which to compute
         connectivity. If None, all connections are computed.
     sfreq : float
@@ -657,12 +657,12 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     mode : str
         Spectrum estimation mode can be either: 'multitaper', 'fourier', or
         'cwt_morlet'.
-    fmin : float | tuple of floats
+    fmin : float | tuple of float
         The lower frequency of interest. Multiple bands are defined using
         a tuple, e.g., (8., 20.) for two bands with 8Hz and 20Hz lower freq.
         If None the frequency corresponding to an epoch length of 5 cycles
         is used.
-    fmax : float | tuple of floats
+    fmax : float | tuple of float
         The upper frequency of interest. Multiple bands are dedined using
         a tuple, e.g. (13., 30.) for two band with 13Hz and 30Hz upper freq.
     fskip : int
@@ -701,13 +701,11 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         but require more memory).
     n_jobs : int
         How many epochs to process in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    con : array | list of arrays
+    con : array | list of array
         Computed connectivity measure(s). The shape of each array is either
         (n_signals, n_signals, n_freqs) mode: 'multitaper' or 'fourier'
         (n_signals, n_signals, n_freqs, n_times) mode: 'cwt_morlet'

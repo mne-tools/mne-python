@@ -577,14 +577,14 @@ def _serialize_volume_info(volume_info):
             strings.append(np.array(volume_info[key], dtype='>i4').tostring())
         elif key in ('valid', 'filename'):
             val = volume_info[key]
-            strings.append('{0} = {1}\n'.format(key, val).encode('utf-8'))
+            strings.append('{} = {}\n'.format(key, val).encode('utf-8'))
         elif key == 'volume':
             val = volume_info[key]
-            strings.append('{0} = {1} {2} {3}\n'.format(
+            strings.append('{} = {} {} {}\n'.format(
                 key, val[0], val[1], val[2]).encode('utf-8'))
         else:
             val = volume_info[key]
-            strings.append('{0} = {1:0.10g} {2:0.10g} {3:0.10g}\n'.format(
+            strings.append('{} = {:0.10g} {:0.10g} {:0.10g}\n'.format(
                 key.ljust(6), val[0], val[1], val[2]).encode('utf-8'))
     return b''.join(strings)
 
@@ -638,10 +638,6 @@ class BaseEstimator(object):
     @classmethod
     def _get_param_names(cls):
         """Get parameter names for the estimator"""
-        try:
-            from inspect import signature
-        except ImportError:
-            from .externals.funcsigs import signature
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
@@ -651,7 +647,7 @@ class BaseEstimator(object):
 
         # introspect the constructor arguments to find the model parameters
         # to represent
-        init_signature = signature(init)
+        init_signature = inspect.signature(init)
         # Consider the constructor parameters excluding 'self'
         parameters = [p for p in init_signature.parameters.values()
                       if p.name != 'self' and p.kind != p.VAR_KEYWORD]
@@ -1063,6 +1059,66 @@ def _remove_duplicate_rows(arr):
             remove[idx + 1:] = ((arr[idx + 1:, :] == arr[[idx], :]).all(axis=1)
                                 | remove[idx + 1:])
         return arr[~remove, :]
+
+
+###############################################################################
+# csr_matrix.argmax from SciPy 0.19+
+
+def _find_missing_index(ind, n):
+    for k, a in enumerate(ind):
+        if k != a:
+            return k
+
+    k += 1
+    if k < n:
+        return k
+    else:
+        return -1
+
+
+def _sparse_argmax(mat, axis):
+    import scipy
+    if LooseVersion(scipy.__version__) >= '0.19':
+        return mat.argmax(axis)
+    else:
+        op = np.argmax
+        compare = np.greater
+        self = mat
+        if self.shape[axis] == 0:
+            raise ValueError("Can't apply the operation along a zero-sized "
+                             "dimension.")
+
+        if axis < 0:
+            axis += 2
+
+        zero = self.dtype.type(0)
+
+        mat = self.tocsc() if axis == 0 else self.tocsr()
+        mat.sum_duplicates()
+
+        ret_size, line_size = mat._swap(mat.shape)
+        ret = np.zeros(ret_size, dtype=int)
+
+        nz_lines, = np.nonzero(np.diff(mat.indptr))
+        for i in nz_lines:
+            p, q = mat.indptr[i:i + 2]
+            data = mat.data[p:q]
+            indices = mat.indices[p:q]
+            am = op(data)
+            m = data[am]
+            if compare(m, zero) or q - p == line_size:
+                ret[i] = indices[am]
+            else:
+                zero_ind = _find_missing_index(indices, line_size)
+                if m == zero:
+                    ret[i] = min(am, zero_ind)
+                else:
+                    ret[i] = zero_ind
+
+        if axis == 1:
+            ret = ret.reshape(-1, 1)
+
+        return np.asmatrix(ret)
 
 
 ###############################################################################

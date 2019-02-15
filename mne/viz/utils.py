@@ -28,7 +28,7 @@ from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        pick_info, _picks_by_type)
-from ..io.proc_history import _get_rank_sss
+from ..rank import _get_rank_sss
 from ..io.proj import setup_proj
 from ..utils import logger, verbose, set_config, warn, _check_ch_locs
 
@@ -96,9 +96,9 @@ def plt_show(show=True, fig=None, **kwargs):
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
-    import matplotlib
+    from matplotlib import get_backend
     import matplotlib.pyplot as plt
-    if show and matplotlib.get_backend() != 'agg':
+    if show and get_backend() != 'agg':
         (fig or plt).show(**kwargs)
 
 
@@ -155,7 +155,7 @@ def _check_delayed_ssp(container):
 
 def _validate_if_list_of_axes(axes, obligatory_len=None):
     """Validate whether input is a list/array of axes."""
-    import matplotlib as mpl
+    from matplotlib.axes import Axes
     if obligatory_len is not None and not isinstance(obligatory_len, int):
         raise ValueError('obligatory_len must be None or int, got %d',
                          'instead' % type(obligatory_len))
@@ -167,7 +167,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
                          'one-dimensional. The received numpy array has %d '
                          'dimensions however. Try using ravel or flatten '
                          'method of the array.' % axes.ndim)
-    is_correct_type = np.array([isinstance(x, mpl.axes.Axes)
+    is_correct_type = np.array([isinstance(x, Axes)
                                 for x in axes])
     if not np.all(is_correct_type):
         first_bad = np.where(np.logical_not(is_correct_type))[0][0]
@@ -194,7 +194,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     Returns
     -------
-    cmap : instance of matplotlib.pyplot.colormap | array
+    cmap : instance of colormap | array
         A teal->blue->gray->red->yellow colormap.
 
     Notes
@@ -547,9 +547,7 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     max_str : int
         Max number of characters of string representation to print for
         each tag's data.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -833,7 +831,7 @@ def _plot_raw_onkey(event, params):
 
 def _setup_annotation_fig(params):
     """Initialize the annotation figure."""
-    import matplotlib as mpl
+    from matplotlib import __version__
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
@@ -893,7 +891,7 @@ def _setup_annotation_fig(params):
     if len(labels) == 0:
         selector.active = False
     params['ax'].selector = selector
-    if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
+    if LooseVersion(__version__) < LooseVersion('1.5'):
         # XXX: Hover event messes up callback ids in old mpl.
         warn('Modifying existing annotations is not possible for '
              'matplotlib versions < 1.4. Upgrade matplotlib.')
@@ -1131,10 +1129,10 @@ class ClickableImage(object):
 
     def __init__(self, imdata, **kwargs):
         """Display the image for clicking."""
-        from matplotlib.pyplot import figure
+        import matplotlib.pyplot as plt
         self.coords = []
         self.imdata = imdata
-        self.fig = figure()
+        self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111)
         self.ymax = self.imdata.shape[0]
         self.xmax = self.imdata.shape[1]
@@ -1150,7 +1148,7 @@ class ClickableImage(object):
 
         Parameters
         ----------
-        event : matplotlib event object
+        event : matplotlib.backend_bases.Event
             The matplotlib object that we use to get x/y position.
         """
         mouseevent = event.mouseevent
@@ -1164,11 +1162,11 @@ class ClickableImage(object):
         **kwargs : dict
             Arguments are passed to imshow in displaying the bg image.
         """
-        from matplotlib.pyplot import subplots
+        import matplotlib.pyplot as plt
         if len(self.coords) == 0:
             raise ValueError('No coordinates found, make sure you click '
                              'on the image that is first shown.')
-        f, ax = subplots()
+        f, ax = plt.subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
         xcoords, ycoords = zip(*self.coords)
@@ -1227,12 +1225,11 @@ def add_background_image(fig, im, set_ratios=None):
     be done with topo plots, though it could work
     for any plot.
 
-    Note: This modifies the figure and/or axes
-    in place.
+    .. note:: This modifies the figure and/or axes in place.
 
     Parameters
     ----------
-    fig : plt.figure
+    fig : Figure
         The figure you wish to add a bg image to.
     im : array, shape (M, N, {3, 4})
         A background image for the figure. This must be a valid input to
@@ -1244,8 +1241,8 @@ def add_background_image(fig, im, set_ratios=None):
 
     Returns
     -------
-    ax_im : instance of the created matplotlib axis object
-        corresponding to the image you added.
+    ax_im : instance of Axes
+        Axes created corresponding to the image you added.
 
     Notes
     -----
@@ -1324,7 +1321,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     Parameters
     ----------
-    info : Instance of Info
+    info : instance of Info
         Info structure containing the channel locations.
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
@@ -1344,7 +1341,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
-    ch_groups : 'position' | array of shape (ch_groups, picks) | None
+    ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
         Channel groups for coloring the sensors. If None (default), default
         coloring scheme is used. If 'position', the sensors are divided
         into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
@@ -1376,7 +1373,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of Figure
         Figure containing the sensor topography.
     selection : list
         A list of selected channels. Only returned if ``kind=='select'``.
@@ -1612,11 +1609,11 @@ def _compute_scalings(scalings, inst):
         return scalings
 
     ch_types = channel_indices_by_type(inst.info)
-    ch_types = dict([(i_type, i_ixs)
-                     for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0])
+    ch_types = {i_type: i_ixs
+                for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
     if scalings == 'auto':
         # If we want to auto-compute everything
-        scalings = dict((i_type, 'auto') for i_type in ch_types.keys())
+        scalings = {i_type: 'auto' for i_type in ch_types.keys()}
     if not isinstance(scalings, dict):
         raise ValueError('scalings must be a dictionary of ch_type: val pairs,'
                          ' not type %s ' % type(scalings))
@@ -1647,7 +1644,7 @@ def _compute_scalings(scalings, inst):
         if value != 'auto':
             continue
         if key not in ch_types.keys():
-            raise ValueError("Sensor {0} doesn't exist in data".format(key))
+            raise ValueError("Sensor {} doesn't exist in data".format(key))
         this_data = data[ch_types[key]]
         scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
         scale_factor = np.max(np.abs(scale_factor))
@@ -1803,9 +1800,9 @@ class SelectFromCollection(object):
 
     Parameters
     ----------
-    ax : Instance of Axes
+    ax : instance of Axes
         Axes to interact with.
-    collection : Instance of matplotlib collection
+    collection : instance of matplotlib collection
         Collection you want to select from.
     alpha_other : 0 <= float <= 1
         To highlight a selection, this tool sets all selected points to an
@@ -1820,8 +1817,8 @@ class SelectFromCollection(object):
 
     def __init__(self, ax, collection, ch_names,
                  alpha_other=0.3):
-        import matplotlib as mpl
-        if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
+        from matplotlib import __version__
+        if LooseVersion(__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '
                               'matplotlib versions < 1.2.1. Upgrade '
                               'matplotlib.')
@@ -1909,23 +1906,17 @@ def _plot_annotations(raw, params):
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
     segments = list()
-    # sort the segments by start time
-    ann_order = raw.annotations.onset.argsort(axis=0)
-    descriptions = raw.annotations.description[ann_order]
-
     _setup_annotation_colors(params)
-    for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-        annot_start = _sync_onset(raw, onset) + params['first_time']
-        annot_end = annot_start + raw.annotations.duration[ann_order][idx]
+    for idx, annot in enumerate(raw.annotations):
+        annot_start = _sync_onset(raw, annot['onset']) + params['first_time']
+        annot_end = annot_start + annot['duration']
         segments.append([annot_start, annot_end])
-        dscr = descriptions[idx]
         params['ax_hscroll'].fill_betweenx(
             (0., 1.), annot_start, annot_end, alpha=0.3,
-            color=params['segment_colors'][dscr])
+            color=params['segment_colors'][annot['description']])
     # Do not adjust half a sample backward (even though this would make it
     # clearer what is included) because this breaks click-drag functionality
     params['segments'] = np.array(segments)
-    params['annot_description'] = descriptions
 
 
 def _get_color_list(annotations=False):
@@ -1984,7 +1975,7 @@ def _setup_annotation_colors(params):
 
 def _annotations_closed(event, params):
     """Clean up on annotation dialog close."""
-    import matplotlib as mpl
+    from matplotlib import __version__
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
     if params['ax'].selector is not None:
@@ -1994,7 +1985,7 @@ def _annotations_closed(event, params):
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
-    if LooseVersion(mpl.__version__) >= LooseVersion('1.5'):
+    if LooseVersion(__version__) >= LooseVersion('1.5'):
         params['fig'].canvas.mpl_disconnect(params['hover_callback'])
     params['fig_annotation'] = None
     params['fig'].canvas.draw()
@@ -2385,7 +2376,7 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
         # any channels in noise_cov['bads'] but not in info['bads'] get
         # set to nan, which means that they are not plotted.
         data_picks = _pick_data_channels(info, with_ref_meg=False, exclude=())
-        data_names = set(info['ch_names'][pick] for pick in data_picks)
+        data_names = {info['ch_names'][pick] for pick in data_picks}
         # these can be toggled by the user
         bad_names = set(info['bads'])
         # these can't in standard pipelines be enabled (we always take the
@@ -2574,7 +2565,7 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
             combine = combine[0].upper() + combine[1:]
             title = "{} of {} {}".format(
                 combine, len(ch_names), ch_type)
-        elif len(ch_names) > max_chans and combine is not "gfp":
+        elif len(ch_names) > max_chans and combine != "gfp":
             warn("More than {} channels, truncating title ...".format(
                 max_chans))
             title += ", ...\n({} of {} {})".format(
@@ -2586,7 +2577,7 @@ def _check_time_unit(time_unit, times):
     if not isinstance(time_unit, str):
         raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
     if time_unit == 's':
-        times = times
+        pass
     elif time_unit == 'ms':
         times = 1e3 * times
     else:
@@ -2660,7 +2651,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
         warn("With matplotlib version 2.1.0, lines may not show up in "
              "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
 
-    if yscale is "log":  # pcolormesh for log scale
+    if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
         time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
         time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
@@ -2710,10 +2701,10 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
             im = ax.imshow(data, cmap=cmap, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
-                big_mask = np.kron(mask, np.ones((10, 10)))
-                ax.contour(big_mask, colors=["k"], extent=extent,
-                           linewidths=[.75], corner_mask=False,
-                           antialiased=False, levels=[.5])
+            big_mask = np.kron(mask, np.ones((10, 10)))
+            ax.contour(big_mask, colors=["k"], extent=extent,
+                       linewidths=[.75], corner_mask=False,
+                       antialiased=False, levels=[.5])
         time_lims = times[[0, -1]]
         ylim = yvals[0], yvals[-1] + 1
 

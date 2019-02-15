@@ -17,7 +17,7 @@ from ..io.pick import (pick_types, pick_info, pick_channels,
 from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
-from ..io import RawArray, BaseRaw
+from ..io import RawArray, BaseRaw, Info
 from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
                     _get_hpi_initial_fit)
 from ..io.constants import FIFF
@@ -30,7 +30,8 @@ from ..transforms import _get_trans, transform_surface_to
 from ..source_space import (_ensure_src, _points_outside_surface,
                             _adjust_patch_info)
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import logger, verbose, check_random_state, warn, _pl
+from ..utils import (logger, verbose, check_random_state, warn, _pl,
+                     _validate_type)
 from ..parallel import check_n_jobs
 
 
@@ -65,7 +66,8 @@ def _log_ch(start, info, ch):
 def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
-                 random_state=None, use_cps=True, forward=None, verbose=None):
+                 random_state=None, use_cps=True, forward=None,
+                 duration=None, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -73,9 +75,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     Parameters
     ----------
-    raw : instance of Raw
+    raw : instance of Raw | instance of Info
         The raw template to use for simulation. The ``info``, ``times``,
-        and potentially ``first_samp`` properties will be used.
+        and ``first_samp`` properties will be used.
+        Can be ``info`` if ``duration`` is also supplied, in which case
+        ``first_samp`` will be set to zero.
     stc : instance of SourceEstimate
         The source estimate to use to simulate data. Must have the same
         sample rate as the raw data.
@@ -127,7 +131,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     n_jobs : int
         Number of jobs to use.
-    random_state : None | int | np.random.RandomState
+    random_state : None | int | ~numpy.random.RandomState
         The random generator state used for blink, ECG, and sensor
         noise randomization.
     use_cps : None | bool (default True)
@@ -135,10 +139,15 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         orientations. Only used when surf_ori and/or force_fixed are True.
     forward : instance of Forward | None
         The forward operator to use. If None (default) it will be computed
-        using `bem`, `trans`, and `src`.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        using ``bem``, ``trans``, and ``src``.
+
+        .. versionadded:: 0.17
+    duration : float | None
+        The duration to simulate. Can be None to use the duration of ``raw``.
+        Must be supplied if ``raw`` is an instance of :class:`mne.Info`.
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
@@ -203,10 +212,22 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
            subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
     """
-    if not isinstance(raw, BaseRaw):
-        raise TypeError('raw should be an instance of Raw')
-    times, info, first_samp = raw.times, raw.info, raw.first_samp
-    raw_verbose = raw.verbose
+    _validate_type(raw, (BaseRaw, Info), 'raw', 'Raw or Info')
+    if duration is not None:
+        duration = float(duration)
+    if isinstance(raw, Info):
+        if duration is None:
+            raise ValueError('duration cannot be None if raw is an instance '
+                             'of Info')
+        info, first_samp = raw, 0
+        raw_verbose = verbose
+    else:
+        info, first_samp = raw.info, raw.first_samp
+        raw_verbose = raw.verbose
+        if duration is None:
+            duration = raw.times[-1] + 1. / info['sfreq']
+    times = np.arange(int(round(info['sfreq'] * duration))) / info['sfreq']
+    del raw
 
     # Check for common flag errors and try to override
     if not isinstance(stc, _BaseSourceEstimate):
@@ -227,7 +248,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
             raise ValueError('If forward is not None then trans, src, bem, '
                              'and head_pos must all be None')
         if not np.allclose(forward['info']['dev_head_t']['trans'],
-                           raw.info['dev_head_t']['trans'], atol=1e-6):
+                           info['dev_head_t']['trans'], atol=1e-6):
             raise ValueError('The forward meg<->head transform '
                              'forward["info"]["dev_head_t"] does not match '
                              'the one in raw.info["dev_head_t"]')
@@ -241,7 +262,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         head_pos = head_pos_to_trans_rot_t(head_pos)
     if isinstance(head_pos, tuple):  # can be quats converted to trans, rot, t
         transs, rots, ts = head_pos
-        ts -= raw._first_time  # MF files need reref
+        first_time = first_samp / info['sfreq']
+        ts -= first_time  # MF files need reref
         dev_head_ts = [np.r_[np.c_[r, t[:, np.newaxis]], [[0, 0, 0, 1]]]
                        for r, t in zip(rots, transs)]
         del transs, rots
@@ -267,7 +289,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
                     'from': info['dev_head_t']['from']}
                    for d in dev_head_ts]
-    offsets = raw.time_as_index(ts)
+    offsets = np.round(ts * info['sfreq']).astype(int)
     offsets = np.concatenate([offsets, [len(times)]])
     assert offsets[-2] != offsets[-1]
     assert np.array_equal(offsets, np.unique(offsets))

@@ -69,7 +69,7 @@ def test_make_info():
     info = create_info(n_ch, 1000., 'eeg')
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
 
-    coil_types = set([ch['coil_type'] for ch in info['chs']])
+    coil_types = {ch['coil_type'] for ch in info['chs']}
     assert FIFF.FIFFV_COIL_EEG in coil_types
 
     pytest.raises(TypeError, create_info, ch_names='Test Ch', sfreq=1000)
@@ -78,7 +78,7 @@ def test_make_info():
                   ch_types=['eeg', 'eeg'])
     pytest.raises(TypeError, create_info, ch_names=[np.array([1])],
                   sfreq=1000)
-    pytest.raises(TypeError, create_info, ch_names=['Test Ch'], sfreq=1000,
+    pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types=np.array([1]))
     pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types='awesome')
@@ -111,6 +111,17 @@ def test_make_info():
     idents = [p['ident'] for p in info['dig']]
     assert (FIFF.FIFFV_POINT_NASION in idents)
     assert info['meas_date'] is None
+
+
+def test_duplicate_name_correction():
+    """Test duplicate channel names with running number."""
+    # When running number is possible
+    info = create_info(['A', 'A', 'A'], 1000., verbose='error')
+    assert info['ch_names'] == ['A-0', 'A-1', 'A-2']
+
+    # When running number is not possible
+    with pytest.raises(ValueError, match='Adding a running number'):
+        create_info(['A', 'A', 'A-0'], 1000., verbose='error')
 
 
 def test_fiducials_io():

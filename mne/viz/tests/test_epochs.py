@@ -29,7 +29,7 @@ n_chan = 20
 layout = read_layout('Vectorview-all')
 
 
-def _get_epochs():
+def _get_epochs(stop=5):
     """Get epochs."""
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
@@ -38,15 +38,16 @@ def _get_epochs():
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+        epochs = Epochs(raw, events[:stop], event_id, tmin, tmax, picks=picks,
                         proj=False)
     epochs.info.normalize_proj()  # avoid warnings
     return epochs
 
 
-def test_plot_epochs():
+def test_plot_epochs(capsys):
     """Test epoch plotting."""
-    epochs = _get_epochs()
+    epochs = _get_epochs().load_data()
+    assert len(epochs.events) == 1
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
@@ -100,13 +101,13 @@ def test_plot_epochs():
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')
-    pytest.raises(RuntimeError, epochs.plot, picks=[])
+    pytest.raises(ValueError, epochs.plot, picks=[])
     plt.close('all')
     fig = epochs.plot(events=epochs.events)
     # test mouse clicks
-    x = fig.get_axes()[0].get_xlim()[1] / 2
-    y = fig.get_axes()[0].get_ylim()[0] / 2
     data_ax = fig.get_axes()[0]
+    x = data_ax.get_xlim()[1] / 2
+    y = data_ax.get_ylim()[0] / 2
     n_epochs = len(epochs)
     _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
     _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
@@ -119,6 +120,26 @@ def test_plot_epochs():
     assert(n_epochs - 1 == len(epochs))
     plt.close('all')
     epochs.plot_sensors()  # Test plot_sensors
+    plt.close('all')
+    # gh-5906
+    epochs = _get_epochs(None).load_data()
+    epochs.load_data()
+    assert len(epochs) == 7
+    epochs.info['bads'] = [epochs.ch_names[0]]
+    capsys.readouterr()
+    fig = epochs.plot(n_epochs=3)
+    data_ax = fig.get_axes()[0]
+    _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+    fig.canvas.key_press_event('right')  # move right
+    x = fig.get_axes()[0].get_xlim()[1] / 6.
+    y = fig.get_axes()[0].get_ylim()[0] / 2
+    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
+    fig.canvas.key_press_event('left')  # move back
+    out, err = capsys.readouterr()
+    assert 'out of bounds' not in out
+    assert 'out of bounds' not in err
+    fig.canvas.close_event()
+    assert len(epochs) == 6
     plt.close('all')
 
 

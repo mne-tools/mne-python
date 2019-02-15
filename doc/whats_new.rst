@@ -19,26 +19,65 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
+
+- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_sleep.py` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
+
+- Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
+
+- Add envelope correlation code in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
+
+- Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
+
 - :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
 
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
 
 - :func:`mne.io.read_raw_edf` now detects analog stim channels labeled ``'STATUS'`` and sets them as stim channel. :func:`mne.io.read_raw_edf` no longer synthesize TAL annotations into stim channel but stores them in ``raw.annotations`` when reading by `Joan Massich`_
 
+- Add `mne.simulation.add_noise` for ad-hoc noise addition to `io.Raw`, `Epochs`, and `Evoked` instances, by `Eric Larson`_
+
 - Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_.
+
+- Add processing of reference MEG channels to :class:`mne.preprocessing.ICA` by `Jeff Hanna`_
 
 - Add use of :func:`scipy.signal.windows.dpss` for faster multitaper window computations in PSD functions by `Eric Larson`_
 
+- Add :func:`mne.morph_labels` to facilitate morphing label sets obtained from parcellations, by `Eric Larson`_
+
+- Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
+
+- Add support for using :class:`mne.Info` and ``duration`` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
+
+- Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
+
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
+
+- Add option to improve rendering in :ref:`gen_mne_coreg` for modern graphics cards by `Eric Larson`_
 
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
 - Add Epoch selection and metadata functionality to :class:`mne.time_frequency.EpochsTFR` using new mixin class by `Keith Doelling`_
 
+- Add ``reject_by_annotation`` argument to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
+
 - Add ``extrapolate`` argument to :func:`mne.viz.plot_topomap` for better control of extrapolation points placement by `Mikołaj Magnuski`_
+
+- Add ``channel_wise`` argument to :func:`mne.io.Raw.apply_function` to allow applying a function on multiple channels at once by `Hubert Banville`_
 
 Bug
 ~~~
+
+- Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
+  If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
+
+- Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
+
+- Fix :meth:`mne.io.Raw.append` annotations miss-alignment  by `Joan Massich`_
+
+- Fix hash bug in the ``mne.io.edf`` module when installing on Windows by `Eric Larson`_
+
+- Fix :func:`mne.io.read_raw_edf` reading duplicate channel names by `Larry Eisenman`_
 
 - Fix :func:`set_bipolar_reference` in the case of generating all bipolar combinations and also in the case of repeated channels in both lists (anode and cathode) by `Cristóbal Moënne-Loccoz`_
 
@@ -46,12 +85,28 @@ Bug
 
 - Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
 
+- Fix saving of rejection parameters in :meth:`mne.Epochs.save` by `Eric Larson`_
+
 - Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`gen_mne_flash_bem` by `Eric Larson`_
+
+- Fix :meth:`mne.time_frequency.AverageTFR.plot_joint` mishandling bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
+
+- Fix :func:`mne.beamformer.make_lcmv` failing when full rank data is used (i.e., when no projection is done) with ``reg=0.``, by `Eric Larson`_
+
+- Fix issue with bad channels ignored in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Alex Gramfort`_
+
+- Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg <gen_mne_clean_eog_ecg>` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
 API
 ~~~
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
+
+- :class:`Annotations` are now kept sorted (by onset time) during instantiation and :meth:`~Annotations.append` operations, by `Eric Larson`_
+
+- Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
+
+- Reading BDF and GDF files with :func:`mne.io.read_raw_edf` is deprecated and replaced by :func:`mne.io.read_raw_bdf` and :func:`mne.io.read_raw_gdf`, by `Clemens Brunner`_
 
 .. _changes_0_17:
 
@@ -153,6 +208,7 @@ Changelog
 
 - Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv`, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
 
+- Handle different time vectors in topography plots using :func:`mne.viz.plot_evoked_topo` by `Jussi Nurminen`_
 
 Bug
 ~~~
@@ -3118,3 +3174,11 @@ of commits):
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
 
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
+
+.. _David Haslacher: https://github.com/davidhaslacher
+
+.. _Larry Eisenman:  https://github.com/lneisenman
+
+.. _Stanislas Chambon: https://github.com/Slasnista
+
+.. _Jeff Hanna: https://github.com/jshanna100

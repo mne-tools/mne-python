@@ -123,10 +123,11 @@ def _check_proj_match(info, filters):
     """Check whether SSP projections in data and spatial filter match."""
     proj_data, _, _ = make_projector(info['projs'],
                                      filters['ch_names'])
-    if not np.array_equal(proj_data, filters['proj']):
-            raise ValueError('The SSP projections present in the data '
-                             'do not match the projections used when '
-                             'calculating the spatial filter.')
+    if not np.allclose(proj_data, filters['proj'],
+                       atol=np.finfo(float).eps, rtol=1e-13):
+        raise ValueError('The SSP projections present in the data '
+                         'do not match the projections used when '
+                         'calculating the spatial filter.')
 
 
 def _check_src_type(filters):
@@ -170,7 +171,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     ch_names = [info_ch_names[k] for k in picks]
     fwd_ch_names = forward['sol']['row_names']
     # Keep channels in forward present in info:
-    fwd_ch_names = [ch for ch in fwd_ch_names if ch in info_ch_names]
+    fwd_ch_names = [ch for ch in fwd_ch_names if ch in ch_names]
     forward = pick_channels_forward(forward, fwd_ch_names)
     picks_forward = [fwd_ch_names.index(ch) for ch in ch_names]
 
@@ -426,7 +427,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # Estimate noise level based on covariance matrix, taking the
             # first eigenvalue that falls outside the signal subspace or the
             # loading factor used during regularization, whichever is largest.
-            if rank >= len(Cm):
+            if rank > len(Cm):
                 # Covariance matrix is full rank, no noise subspace!
                 # Use the loading factor as noise ceiling.
                 if loading_factor == 0:
@@ -502,10 +503,7 @@ class Beamformer(dict):
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
         overwrite : bool
             If True, overwrite the file (if it exists).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)
         check_fname(fname, self['kind'], (ending,))

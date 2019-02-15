@@ -45,14 +45,14 @@ public_modules = [
 ]
 
 
-def get_name(func):
+def get_name(func, cls=None):
     """Get the name."""
     parts = []
     module = inspect.getmodule(func)
     if module:
         parts.append(module.__name__)
-    if hasattr(func, 'im_class'):
-        parts.append(func.im_class.__name__)
+    if cls is not None:
+        parts.append(cls.__name__)
     parts.append(func.__name__)
     return '.'.join(parts)
 
@@ -69,11 +69,11 @@ _tab_ignores = [
 ]
 
 
-def check_parameters_match(func, doc=None):
+def check_parameters_match(func, doc=None, cls=None):
     """Check docstring, return list of incorrect results."""
     from numpydoc import docscrape
     incorrect = []
-    name_ = get_name(func)
+    name_ = get_name(func, cls=cls)
     if not name_.startswith('mne.') or name_.startswith('mne.externals'):
         return incorrect
     if inspect.isdatadescriptor(func):
@@ -135,16 +135,17 @@ def test_docstring_parameters():
                 continue
             with pytest.warns(None) as w:
                 cdoc = docscrape.ClassDoc(cls)
-            if len(w):
-                raise RuntimeError('Error for __init__ of %s in %s:\n%s'
-                                   % (cls, name, w[0]))
+            for ww in w:
+                if 'Using or importing the ABCs' not in str(ww.message):
+                    raise RuntimeError('Error for __init__ of %s in %s:\n%s'
+                                       % (cls, name, ww))
             if hasattr(cls, '__init__'):
-                incorrect += check_parameters_match(cls.__init__, cdoc)
+                incorrect += check_parameters_match(cls.__init__, cdoc, cls)
             for method_name in cdoc.methods:
                 method = getattr(cls, method_name)
-                incorrect += check_parameters_match(method)
+                incorrect += check_parameters_match(method, cls=cls)
             if hasattr(cls, '__call__'):
-                incorrect += check_parameters_match(cls.__call__)
+                incorrect += check_parameters_match(cls.__call__, cls=cls)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
             if fname.startswith('_'):
@@ -241,7 +242,6 @@ read_fiducials
 read_tag
 requires_sample_data
 rescale
-simulate_noise_evoked
 source_estimate_quantification
 whiten_evoked
 write_fiducials
@@ -289,7 +289,8 @@ def test_documented():
                 from_mod = inspect.getmodule(cf).__name__
                 if (from_mod.startswith('mne') and
                         not from_mod.startswith('mne.externals') and
-                        from_mod not in documented_ignored_mods and
+                        not any(from_mod.startswith(x)
+                                for x in documented_ignored_mods) and
                         name not in documented_ignored_names):
                     missing.append('%s (%s.%s)' % (name, from_mod, name))
     if len(missing) > 0:

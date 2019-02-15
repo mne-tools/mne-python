@@ -25,9 +25,10 @@ from ...annotations import (Annotations, _combine_annotations,
                             _read_annotations_fif)
 
 from ...event import AcqParserFIF
-from ...utils import check_fname, logger, verbose, warn
+from ...utils import check_fname, logger, verbose, warn, fill_doc
 
 
+@fill_doc
 class Raw(BaseRaw):
     """Raw data in FIF format.
 
@@ -50,9 +51,7 @@ class Raw(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -68,9 +67,7 @@ class Raw(BaseRaw):
         inverse of the sampling frequency.
     preload : bool
         Indicates whether raw data are in memory.
-    verbose : bool, str, int, or None
-        See above.
-
+    %(verbose)s
     """
 
     @verbose
@@ -112,7 +109,7 @@ class Raw(BaseRaw):
                     self.annotations, r.annotations,
                     n_samples, self.first_samp, r.first_samp,
                     r.info['sfreq'], self.info['meas_date'])
-                self.set_annotations(annotations, False)
+                self.set_annotations(annotations, emit_warning=False)
                 n_samples += r.last_samp - r.first_samp + 1
 
         # Add annotations for in-data skips
@@ -418,6 +415,7 @@ def _check_entry(first, nent):
         raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
+@fill_doc
 def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
     """Reader function for Raw FIF data.
 
@@ -440,9 +438,7 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

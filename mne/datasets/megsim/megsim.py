@@ -36,8 +36,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
     update_path : bool | None
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(verbose)s
 
     Returns
     -------
@@ -96,7 +95,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         z.close()
         destinations = [op.join(decomp_dir, f) for f in files]
 
-    path = _do_path_update(path, update_path, key, name)
+    _do_path_update(path, update_path, key, name)
     return destinations
 
 
@@ -127,8 +126,7 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
     update_path : bool | None
         If True, set the ``MNE_DATASETS_MEGSIM_PATH`` in mne-python
         config to the given path. If None, the user is prompted.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(verbose)s
 
     Returns
     -------

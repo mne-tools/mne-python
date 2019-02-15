@@ -87,7 +87,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           rotation_angles, Transform, _ensure_trans,
                           rot_to_quat, _angle_between_quats)
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
-from ..viz._3d import _toggle_mlab_render
+from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ..utils import logger, set_config, _pl
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
@@ -391,37 +391,27 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_processed_high_res_mri_points(self):
-        if self.grow_hair:
-            if len(self.mri.bem_high_res.surf.nn):
-                scaled_hair_dist = (1e-3 * self.grow_hair /
-                                    np.array(self.parameters[6:9]))
-                points = self.mri.bem_high_res.surf.rr.copy()
-                hair = points[:, 2] > points[:, 1]
-                points[hair] += (self.mri.bem_high_res.surf.nn[hair] *
-                                 scaled_hair_dist)
-                return points
-            else:
-                error(None, "Norms missing from bem, can't grow hair")
-                self.grow_hair = 0
-        else:
-            return self.mri.bem_high_res.surf.rr
+        return self._get_processed_mri_points('high')
 
     @cached_property
     def _get_processed_low_res_mri_points(self):
+        return self._get_processed_mri_points('low')
+
+    def _get_processed_mri_points(self, res):
+        bem = self.mri.bem_low_res if res == 'low' else self.mri.bem_high_res
         if self.grow_hair:
-            if len(self.mri.bem_low_res.surf.nn):
+            if len(bem.surf.nn):
                 scaled_hair_dist = (1e-3 * self.grow_hair /
                                     np.array(self.parameters[6:9]))
-                points = self.mri.bem_low_res.surf.rr.copy()
+                points = bem.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
-                points[hair] += (self.mri.bem_low_res.surf.nn[hair] *
-                                 scaled_hair_dist)
+                points[hair] += bem.surf.nn[hair] * scaled_hair_dist
                 return points
             else:
                 error(None, "Norms missing from bem, can't grow hair")
                 self.grow_hair = 0
         else:
-            return self.mri.bem_low_res.surf.rr
+            return bem.surf.rr
 
     @cached_property
     def _get_mri_trans(self):
@@ -1632,6 +1622,10 @@ class ViewOptionsPanel(HasTraits):
     bgcolor = RGBColor()
     coord_frame = Enum('mri', 'head', label='Display coordinate frame')
     head_high_res = Bool(True, label='Show high-resolution head')
+    advanced_rendering = Bool(True, label='Use advanced OpenGL',
+                              desc='Enable advanced OpenGL methods that do '
+                              'not work with all renderers (e.g., depth '
+                              'peeling)')
 
     view = View(
         VGroup(
@@ -1643,9 +1637,9 @@ class ViewOptionsPanel(HasTraits):
                        editor=EnumEditor(values={'mri': '1:MRI',
                                                  'head': '2:Head'}, cols=2,
                                          format_func=_pass)),
-                  Spring(),
-                  Item('head_high_res'),
-                  Spring(), columns=2, show_labels=True),
+                  Item('head_high_res'), Spring(),
+                  Item('advanced_rendering'),
+                  Spring(), Spring(), columns=3, show_labels=True),
             Item('hsp_cf_obj', style='custom', label='Head axes'),
             Item('mri_cf_obj', style='custom', label='MRI axes'),
             HGroup(Item('bgcolor', label='Background'), Spring()),
@@ -1727,6 +1721,7 @@ class CoregFrame(HasTraits):
 
     scene = Instance(MlabSceneModel, ())
     head_high_res = Bool(True)
+    advanced_rendering = Bool(True)
 
     data_panel = Instance(DataPanel)
     coreg_panel = Instance(CoregPanel)  # right panel
@@ -1788,10 +1783,12 @@ class CoregFrame(HasTraits):
                  head_high_res=True, trans=None, config=None,
                  project_eeg=False, orient_to_surface=False,
                  scale_by_distance=False, mark_inside=False,
-                 interaction='trackball', scale=0.16):  # noqa: D102
+                 interaction='trackball', scale=0.16,
+                 advanced_rendering=True):  # noqa: D102
         self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject,
-                                         head_high_res=head_high_res)
+                                         head_high_res=head_high_res,
+                                         advanced_rendering=advanced_rendering)
         self._initial_kwargs = dict(project_eeg=project_eeg,
                                     orient_to_surface=orient_to_surface,
                                     scale_by_distance=scale_by_distance,
@@ -1841,8 +1838,7 @@ class CoregFrame(HasTraits):
     @on_trait_change('scene:activated')
     def _init_plot(self):
         _toggle_mlab_render(self, False)
-        if hasattr(getattr(self.scene, 'renderer', None), 'use_fxaa'):
-            self.scene.renderer.use_fxaa = True
+        self._on_advanced_rendering_change()
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
@@ -1969,7 +1965,7 @@ class CoregFrame(HasTraits):
             eeg_obj=self.eeg_obj, hpi_obj=self.hpi_obj,
             hsp_cf_obj=self.hsp_cf_obj, mri_cf_obj=self.mri_cf_obj,
             head_high_res=self.head_high_res,
-            bgcolor=self.bgcolor)
+            bgcolor=self.bgcolor, advanced_rendering=self.advanced_rendering)
         self.data_panel.headview.scale = self._initial_kwargs['scale']
         self.data_panel.headview.interaction = \
             self._initial_kwargs['interaction']
@@ -1977,7 +1973,28 @@ class CoregFrame(HasTraits):
         self.data_panel.view_options_panel.sync_trait(
             'coord_frame', self.model)
         self.data_panel.view_options_panel.sync_trait('head_high_res', self)
+        self.data_panel.view_options_panel.sync_trait('advanced_rendering',
+                                                      self)
         self.data_panel.view_options_panel.sync_trait('bgcolor', self)
+
+    @on_trait_change('advanced_rendering')
+    def _on_advanced_rendering_change(self):
+        renderer = getattr(self.scene, 'renderer', None)
+        if renderer is None:
+            return
+        if self.advanced_rendering:
+            renderer.use_depth_peeling = 1
+            renderer.occlusion_ratio = 0.1
+            renderer.maximum_number_of_peels = 100
+            renderer.vtk_window.multi_samples = 0
+            renderer.vtk_window.alpha_bit_planes = 1
+        else:
+            renderer.use_depth_peeling = 0
+            renderer.vtk_window.multi_samples = 8
+            renderer.vtk_window.alpha_bit_planes = 0
+            if hasattr(renderer, 'use_fxaa'):
+                self.scene.renderer.use_fxaa = True
+        self.scene.render()
 
     @on_trait_change('lock_fiducials')
     def _on_lock_change(self):
@@ -2049,6 +2066,7 @@ class CoregFrame(HasTraits):
 
         s_c('MNE_COREG_GUESS_MRI_SUBJECT', self.model.guess_mri_subject)
         s_c('MNE_COREG_HEAD_HIGH_RES', self.head_high_res)
+        s_c('MNE_COREG_ADVANCED_RENDERING', self.advanced_rendering)
         if self.lock_fiducials:
             opacity = self.mri_obj.opacity
         else:

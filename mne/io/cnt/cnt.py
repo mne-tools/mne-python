@@ -9,15 +9,15 @@ import calendar
 
 import numpy as np
 
-from ...utils import warn, verbose
+from ...utils import warn, verbose, fill_doc
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
-from ..utils import _mult_cal_one, _find_channels, _create_chs
+from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
-from ..utils import read_str
 
 
+@fill_doc
 def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
                  verbose=None):
@@ -39,7 +39,7 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
     ----------
     input_fname : str
         Path to the data file.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         xy sensor locations are read from the header (``x_coord`` and
         ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
@@ -73,9 +73,7 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -292,6 +290,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     return info, cnt_info
 
 
+@fill_doc
 class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
@@ -311,7 +310,7 @@ class RawCNT(BaseRaw):
     ----------
     input_fname : str
         Path to the CNT file.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         xy sensor locations are read from the header (``x_coord`` and
         ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
@@ -344,9 +343,7 @@ class RawCNT(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------

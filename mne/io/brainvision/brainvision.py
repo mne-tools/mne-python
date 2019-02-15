@@ -21,7 +21,7 @@ from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, fill_doc
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
@@ -29,6 +29,7 @@ from ..utils import _read_segments_file, _mult_cal_one, _deprecate_stim_channel
 from ...annotations import Annotations, read_annotations
 
 
+@fill_doc
 class RawBrainVision(BaseRaw):
     """Raw object from Brain Vision EEG file.
 
@@ -61,9 +62,7 @@ class RawBrainVision(BaseRaw):
         :func:`mne.events_from_annotations` instead.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -460,8 +459,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             raise NotImplementedError('BrainVision files with ASCII data in '
                                       'vectorized order (i.e. channels in rows'
                                       ') are not supported yet.')
-        fmt = dict((key, cfg.get('ASCII Infos', key))
-                   for key in cfg.options('ASCII Infos'))
+        fmt = {key: cfg.get('ASCII Infos', key)
+               for key in cfg.options('ASCII Infos')}
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)
@@ -776,6 +775,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             orig_units)
 
 
+@fill_doc
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, stim_channel=False,
@@ -810,9 +810,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         :func:`mne.events_from_annotations` instead.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

@@ -61,9 +61,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
         Whether to return a new instance or modify in place.
     picks : list of int | None
         Data to process along the axis=-2 (None, default, processes all).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

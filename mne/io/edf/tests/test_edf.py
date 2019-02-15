@@ -21,19 +21,23 @@ import pytest
 from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
-from mne.io import read_raw_edf
+from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _read_ch
+from mne.io.edf.edf import find_edf_events
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
+from mne.io.meas_info import _kind_dict as _KIND_DICT
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
+duplicate_channel_labels_path = op.join(data_dir,
+                                        'duplicate_channel_labels.edf')
 edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
@@ -61,17 +65,17 @@ def test_orig_units():
 
     # Test original units
     orig_units = raw._orig_units
-    assert len(orig_units) == 140
+    assert len(orig_units) == len(raw.ch_names)
     assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
 
 
 def test_bdf_data():
     """Test reading raw bdf files."""
-    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
+    raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
                               eog=eog, misc=misc,
                               exclude=['M2', 'IEOG'])
     assert len(raw_py.ch_names) == 71
-    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
+    raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc,
                               exclude=['M2', 'IEOG'])
     assert len(raw_py.ch_names) == 71
@@ -124,6 +128,15 @@ def test_edf_data():
         read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
 
 
+def test_duplicate_channel_labels_edf():
+    """Test reading edf file with duplicate channel names."""
+    EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
+    with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
+        raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
+
+    assert raw.ch_names == EXPECTED_CHANNEL_NAMES
+
+
 def test_parse_annotation(tmpdir):
     """Test parsing the tal channel."""
     # test the parser
@@ -172,32 +185,42 @@ def test_find_events_backward_compatibility():
 
 
 @requires_pandas
-def test_to_data_frame():
-    """Test edf Raw Pandas exporter."""
-    for path in [edf_path, bdf_path]:
-        raw = read_raw_edf(path, preload=True, verbose='error')
-        _, times = raw[0, :10]
-        df = raw.to_data_frame()
-        assert (df.columns == raw.ch_names).all()
-        assert_array_equal(np.round(times * 1e3), df.index.values[:10])
-        df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
-        assert 'time' in df.index.names
-        assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
+@pytest.mark.parametrize('fname', [edf_path, bdf_path])
+def test_to_data_frame(fname):
+    """Test EDF/BDF Raw Pandas exporter."""
+    ext = op.splitext(fname)[1][1:].lower()
+    if ext == 'edf':
+        raw = read_raw_edf(fname, preload=True, verbose='error')
+    elif ext == 'bdf':
+        raw = read_raw_bdf(fname, preload=True, verbose='error')
+    _, times = raw[0, :10]
+    df = raw.to_data_frame()
+    assert (df.columns == raw.ch_names).all()
+    assert_array_equal(np.round(times * 1e3), df.index.values[:10])
+    df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
+    assert 'time' in df.index.names
+    assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
 
-def test_read_raw_edf_deprecation():
+def test_find_edf_events_deprecation():
+    """Test find_edf_events deprecation."""
+    raw = read_raw_edf(edf_path)
+    with pytest.deprecated_call(match="find_edf_events"):
+        raw.find_edf_events()
+
+    with pytest.deprecated_call(match="find_edf_events"):
+        find_edf_events(raw)
+
+
+def test_read_raw_edf_stim_channel_input_parameters():
     """Test edf raw reader deprecation."""
     _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
     with pytest.warns(None) as recwarn:
         read_raw_edf(edf_path)
     assert all([w.category != DeprecationWarning for w in recwarn.list]), _MSG
 
-    with pytest.deprecated_call(match="stim_channel .* removed in 0.19"):
-        read_raw_edf(edf_path, stim_channel=False)
-
-    for invalid_stim_parameter in ['what ever', 'STATUS', 'EDF Annotations',
-                                   'BDF Annotations', 0, -1]:
-        with pytest.raises(RuntimeError,
+    for invalid_stim_parameter in ['EDF Annotations', 'BDF Annotations']:
+        with pytest.raises(ValueError,
                            match="stim channel is not supported"):
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
 
@@ -259,7 +282,11 @@ def test_read_annotations(fname, recwarn):
 @pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
 def test_load_generator(fname, recwarn):
     """Test IO of annotations from edf and bdf files with raw info."""
-    raw = read_raw_edf(fname)
+    ext = op.splitext(fname)[1][1:].lower()
+    if ext == 'edf':
+        raw = read_raw_edf(fname)
+    elif ext == 'bdf':
+        raw = read_raw_bdf(fname)
     assert len(raw.annotations.onset) == 2
     found_types = [k for k, v in
                    channel_indices_by_type(raw.info, picks=None).items()
@@ -273,6 +300,29 @@ def test_load_generator(fname, recwarn):
     assert raw.ch_names == ch_names
     assert event_id == {'RECORD START': 1, 'REC STOP': 2}
     assert_array_equal(events, [[0, 0, 1], [120000, 0, 2]])
+
+
+@pytest.mark.parametrize('EXPECTED, test_input', [
+    pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
+                 'auto', id='auto'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'eeg'},
+                 None, id='None'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 'sine 1 Hz', id='single string'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 2, id='single int'),
+    pytest.param({'stAtUs': 'eeg', 'tRigGer': 'eeg', 'sine 1 Hz': 'stim'},
+                 -1, id='single int (revers indexing)'),
+    pytest.param({'stAtUs': 'stim', 'tRigGer': 'stim', 'sine 1 Hz': 'eeg'},
+                 [0, 1], id='int list')])
+def test_edf_stim_ch_pick_up(test_input, EXPECTED):
+    """Test stim_channel."""
+    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items()}
+    fname = op.join(data_dir, 'test_stim_channel.edf')
+
+    raw = read_raw_edf(fname, stim_channel=test_input)
+    ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
+    assert ch_types == EXPECTED
 
 
 run_tests_if_main()

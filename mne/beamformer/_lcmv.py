@@ -77,9 +77,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         If True, the rank of the leadfield will be reduced by 1 for each
         spatial location. Setting reduce_rank to True is typically necessary
         if you use a single sphere model for MEG.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -275,9 +273,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
         Filter weights returned from :func:`make_lcmv`.
     max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -323,9 +319,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     return_generator : bool
          Return a generator object instead of a list. This allows iterating
          over the stcs without having to keep them all in memory.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
 
     Returns
@@ -377,9 +371,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
         Index of first time sample not to include (index not time is seconds).
     max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -423,16 +415,17 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
             info, forward, label, picks, pick_ori)
 
     # Handle whitening
-    info = pick_info(
-        info, [info['ch_names'].index(k) for k in ch_names
-               if k in info['ch_names']])
+    picks = [info['ch_names'].index(k) for k in ch_names
+             if k in info['ch_names']]
+    info = pick_info(info, picks)
+    del picks  # everything should be picked now
 
     # XXX this could maybe use pca=True to avoid needing to use
     # _reg_pinv(..., rank=rank) later
     if noise_cov is not None:
         whitener_rank = None if rank == 'full' else rank
         whitener, _ = compute_whitener(
-            noise_cov, info, picks, rank=whitener_rank)
+            noise_cov, info, rank=whitener_rank)
 
         # whiten the leadfield
         G = np.dot(whitener, G)
@@ -530,7 +523,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     win_lengths : list of float
         Time window lengths in seconds. One time window length should be
         provided for each frequency bin.
-    freq_bins : list of tuples of float
+    freq_bins : list of tuple of float
         Start and end point of frequency bins of interest.
     subtract_evoked : bool
         If True, subtract the averaged evoked response prior to computing the
@@ -566,9 +559,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         The raw instance used to construct the epochs.
         Must be provided unless epochs are constructed with
         ``preload=False``.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

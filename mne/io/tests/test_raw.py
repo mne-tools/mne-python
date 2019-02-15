@@ -17,7 +17,7 @@ from mne import concatenate_raws, create_info, Annotations
 from mne.annotations import _handle_meas_date
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw
-from mne.utils import _TempDir
+from mne.utils import _TempDir, catch_logging
 from mne.io.meas_info import _get_valid_units
 
 
@@ -55,7 +55,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
     Returns
     -------
-    raw : Instance of Raw
+    raw : instance of Raw
         A preloaded Raw object.
     """
     tempdir = _TempDir()
@@ -257,3 +257,70 @@ def test_meas_date_orig_time():
     assert raw.annotations.orig_time is None
     assert raw.annotations.onset[0] == 0.5
     assert raw.annotations.duration[0] == 0.2
+
+
+def test_get_data_reject():
+    """Test if reject_by_annotation is working correctly."""
+    fs = 256
+    ch_names = ["C3", "Cz", "C4"]
+    info = create_info(ch_names, sfreq=fs)
+    raw = RawArray(np.zeros((len(ch_names), 10 * fs)), info)
+    raw.set_annotations(Annotations(onset=[2, 4], duration=[3, 2],
+                                    description="bad"))
+
+    with catch_logging() as log:
+        data = raw.get_data(reject_by_annotation="omit", verbose=True)
+        msg = ('Omitting 1024 of 2560 (40.00%) samples, retaining 1536' +
+               ' (60.00%) samples.')
+        assert log.getvalue().strip() == msg
+    assert data.shape == (len(ch_names), 1536)
+    with catch_logging() as log:
+        data = raw.get_data(reject_by_annotation="nan", verbose=True)
+        msg = ('Setting 1024 of 2560 (40.00%) samples to NaN, retaining 1536' +
+               ' (60.00%) samples.')
+        assert log.getvalue().strip() == msg
+    assert data.shape == (len(ch_names), 2560)  # shape doesn't change
+    assert np.isnan(data).sum() == 3072  # but NaNs are introduced instead
+
+
+def test_5839():
+    """Test concatenating raw objects with annotations."""
+    # Global Time 0         1         2         3         4
+    #             .
+    #      raw_A  |---------XXXXXXXXXX
+    #      annot  |--------------AA
+    #    latency  .         0    0    1    1    2    2    3
+    #             .              5    0    5    0    5    0
+    #
+    #      raw_B  .                   |---------YYYYYYYYYY
+    #      annot  .                   |--------------AA
+    #    latency  .                             0         1
+    #             .                                  5    0
+    #             .
+    #     output  |---------XXXXXXXXXXYYYYYYYYYY
+    #      annot  |--------------AA---|----AA
+    #    latency  .         0    0    1    1    2    2    3
+    #             .              5    0    5    0    5    0
+    #
+    EXPECTED_ONSET = [1.5, 2., 2., 2.5]
+    EXPECTED_DURATION = [0.2, 0., 0., 0.2]
+    EXPECTED_DESCRIPTION = ['dummy', 'BAD boundary', 'EDGE boundary', 'dummy']
+
+    def raw_factory(meas_date):
+        raw = RawArray(data=np.empty((10, 10)),
+                       info=create_info(ch_names=10, sfreq=10., ),
+                       first_samp=10)
+        raw.info['meas_date'] = meas_date
+        raw.set_annotations(annotations=Annotations(onset=[.5],
+                                                    duration=[.2],
+                                                    description='dummy',
+                                                    orig_time=None))
+        return raw
+
+    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
+    raw_A.append(raw_B)
+
+    assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
+    assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
+    assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
+    assert raw_A.annotations.orig_time == 0.0

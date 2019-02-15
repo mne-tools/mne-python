@@ -13,14 +13,14 @@ import sys
 import numpy as np
 from scipy import sparse
 
-from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
-from ..utils import _check_preload, _validate_type
+from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
+                     _check_preload, _validate_type, fill_doc)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS,
-                       channel_indices_by_type, pick_channels)
+                       channel_indices_by_type, pick_channels, _picks_to_idx)
 
 
 def _get_meg_system(info):
@@ -91,14 +91,16 @@ def _contains_ch_type(info, ch_type):
     return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
 
 
-def _get_ch_type(inst, ch_type):
+def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     """Choose a single channel type (usually for plotting).
 
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
     """
     if ch_type is None:
-        for type_ in ['mag', 'grad', 'planar1', 'planar2', 'eeg']:
+        allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg']
+        allowed_types += ['ref_meg'] if allow_ref_meg else []
+        for type_ in allowed_types:
             if isinstance(inst, Info):
                 if _contains_ch_type(inst, type_):
                     ch_type = type_
@@ -119,9 +121,7 @@ def equalize_channels(candidates, verbose=None):
     ----------
     candidates : list
         list Raw | Epochs | Evoked | AverageTFR
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -304,10 +304,7 @@ class SetChannelsMixin(object):
             ``projection=False``, the average reference is directly applied to
             the data. If ``ref_channels`` is not ``'average'``, ``projection``
             must be set to ``False`` (the default in this case).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -346,16 +343,14 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        picks : array-like of int | None
-            Indices of channels to include. If None (default), all meg and eeg
-            channels that are available are returned (bad channels excluded).
+        picks : str | list | slice | None
+            None gets good data indices.
 
         Notes
         -----
         .. versionadded:: 0.9.0
         """
-        if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True)
+        picks = _picks_to_idx(self.info, picks)
         chs = self.info['chs']
         pos = np.array([chs[k]['loc'][:3] for k in picks])
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
@@ -484,10 +479,7 @@ class SetChannelsMixin(object):
             in addition to the channel positions (``info['chs'][idx]['loc']``).
 
             .. versionadded: 0.15
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Notes
         -----
@@ -524,7 +516,7 @@ class SetChannelsMixin(object):
         show_names : bool | array of str
             Whether to display all channel names. If an array, only the channel
             names in the array are shown. Defaults to False.
-        ch_groups : 'position' | array of shape (ch_groups, picks) | None
+        ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
             Channel groups for coloring the sensors. If None (default), default
             coloring scheme is used. If 'position', the sensors are divided
             into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
@@ -556,7 +548,7 @@ class SetChannelsMixin(object):
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of Figure
             Figure containing the sensor topography.
         selection : list
             A list of selected channels. Only returned if ``kind=='select'``.
@@ -662,10 +654,7 @@ class UpdateChannelsMixin(object):
             in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -717,6 +706,26 @@ class UpdateChannelsMixin(object):
         """
         return self._pick_drop_channels(
             pick_channels(self.info['ch_names'], ch_names))
+
+    @fill_doc
+    def pick(self, picks, exclude=()):
+        """Pick a subset of channels.
+
+        Parameters
+        ----------
+        %(picks_all)s
+        exclude : list | str
+            Set of channels to exclude, only used when picking based on
+            types (e.g., exclude="bads" when picks="meg").
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The modified instance.
+        """
+        picks = _picks_to_idx(self.info, picks, 'all', exclude,
+                              allow_empty=False)
+        return self._pick_drop_channels(picks)
 
     def reorder_channels(self, ch_names):
         """Reorder channels.
@@ -933,10 +942,7 @@ class InterpolationMixin(object):
             fit. Default is ``(0., 0., 0.04)``.
 
             .. versionadded:: 0.17
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1035,6 +1041,7 @@ def _recursive_flatten(cell, dtype):
     return cell
 
 
+@fill_doc
 def read_ch_connectivity(fname, picks=None):
     """Parse FieldTrip neighbors .mat file.
 
@@ -1047,13 +1054,12 @@ def read_ch_connectivity(fname, picks=None):
     fname : str
         The file name. Example: 'neuromag306mag', 'neuromag306planar',
         'ctf275', 'biosemi64', etc.
-    picks : array-like of int, shape (n_channels,)
-        The indices of the channels to include. Must match the template.
-        Defaults to None.
+    %(picks_all)s
+        Picks Must match the template.
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
+    ch_connectivity : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
@@ -1088,20 +1094,14 @@ def read_ch_connectivity(fname, picks=None):
 
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], str)
+    picks = _picks_to_idx(len(ch_names), picks)
     neighbors = [_recursive_flatten(c, str) for c in
                  nb['neighblabel'].flatten()]
     assert len(ch_names) == len(neighbors)
-    if picks is not None:
-        if max(picks) >= len(ch_names):
-            raise ValueError('The picks must be compatible with '
-                             'channels. Found a pick ({}) which exceeds '
-                             'the channel range ({})'
-                             .format(max(picks), len(ch_names)))
     connectivity = _ch_neighbor_connectivity(ch_names, neighbors)
-    if picks is not None:
-        # picking before constructing matrix is buggy
-        connectivity = connectivity[picks][:, picks]
-        ch_names = [ch_names[p] for p in picks]
+    # picking before constructing matrix is buggy
+    connectivity = connectivity[picks][:, picks]
+    ch_names = [ch_names[p] for p in picks]
     return connectivity, ch_names
 
 
@@ -1125,7 +1125,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
     if len(ch_names) != len(neighbors):
         raise ValueError('`ch_names` and `neighbors` must '
                          'have the same length')
-    set_neighbors = set([c for d in neighbors for c in d])
+    set_neighbors = {c for d in neighbors for c in d}
     rest = set_neighbors - set(ch_names)
     if len(rest) > 0:
         raise ValueError('Some of your neighbors are not present in the '
@@ -1161,7 +1161,7 @@ def find_ch_connectivity(info, ch_type):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
+    ch_connectivity : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
@@ -1336,8 +1336,8 @@ def _get_ch_info(info):
     """Get channel info for inferring acquisition device."""
     chs = info['chs']
     # Only take first 16 bits, as higher bits store CTF comp order
-    coil_types = set([ch['coil_type'] & 0xFFFF for ch in chs])
-    channel_types = set([ch['kind'] for ch in chs])
+    coil_types = {ch['coil_type'] & 0xFFFF for ch in chs}
+    channel_types = {ch['kind'] for ch in chs}
 
     has_vv_mag = any(k in coil_types for k in
                      [FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2,
@@ -1388,7 +1388,7 @@ def make_1020_channel_selections(info, midline="z"):
 
     Parameters
     ----------
-    info : instance of info
+    info : instance of Info
         Where to obtain the channel names from. The picks will
         be in relation to the position in `info["ch_names"]`. If possible, this
         lists will be sorted by y value position of the channel locations,

@@ -20,7 +20,8 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw_fif, read_info, _stamp_to_dt
-from .utils import logger, verbose, get_subjects_dir, warn, _import_mlab
+from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
+                    fill_doc)
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -70,7 +71,7 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         # on some systems importing Mayavi raises SystemExit (!)
         except Exception as e:
             warn('Could not import mayavi (%r). Trying to render'
-                 '`mayavi.core.scene.Scene` figure instances'
+                 '`mayavi.core.api.Scene` figure instances'
                  ' will throw an error.' % (e,))
         if fig.scene is not None:
             img = mlab.screenshot(figure=fig)
@@ -327,7 +328,7 @@ def open_report(fname, **params):
         The file containing the report, stored in the HDF5 format. If the file
         does not exist yet, a new report is created that will be saved to the
         specified file.
-    **params : list of parameters
+    **params : kwargs
         When creating a new report, any named parameters other than ``fname``
         are passed to the ``__init__`` function of the `Report` object. When
         reading an existing report, the parameters are checked with the
@@ -822,6 +823,7 @@ def _check_image_format(rep, image_format):
     return image_format
 
 
+@fill_doc
 class Report(object):
     """Object for rendering HTML.
 
@@ -861,9 +863,7 @@ class Report(object):
         :meth:`mne.io.Raw.plot_psd`.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1041,7 +1041,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : figure | list of figures
+        figs : matplotlib.figure.Figure | mlab.Figure | array | list
             A figure or a list of figures to add to the report. Each figure in
             the list can be an instance of :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
@@ -1366,15 +1366,15 @@ class Report(object):
         include = list()
         for inc_fname in inc_fnames:
             logger.info('Embedding : %s' % inc_fname)
-            f = open(op.join(op.dirname(__file__), 'html', inc_fname),
-                     'r')
+            fname = op.join(op.dirname(__file__), 'html', inc_fname)
+            with open(fname, 'rb') as fid:
+                file_content = fid.read().decode('utf-8')
             if inc_fname.endswith('.js'):
                 include.append(u'<script type="text/javascript">' +
-                               f.read() + u'</script>')
+                               file_content + u'</script>')
             elif inc_fname.endswith('.css'):
                 include.append(u'<style type="text/css">' +
-                               f.read() + u'</style>')
-            f.close()
+                               file_content + u'</style>')
 
         self.include = ''.join(include)
 
@@ -1414,10 +1414,7 @@ class Report(object):
             If True (default), try to render the BEM.
 
             .. versionadded:: 0.16
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
         """
         image_format = _check_image_format(self, image_format)
         valid_errors = ['ignore', 'warn', 'raise']

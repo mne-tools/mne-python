@@ -9,7 +9,7 @@
 #
 # License: Simplified BSD
 
-from collections import Iterable
+from collections.abc import Iterable
 import os
 import os.path as op
 
@@ -263,7 +263,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                     break
                 pos.append(list(map(float, line.split())))
             for line in fid:
-                if not line or not set(line) - set([' ']):
+                if not line or not set(line) - {' '}:
                     break
                 ch_names_.append(line.strip(' ').strip('\n'))
         pos = np.array(pos) * scale_factor

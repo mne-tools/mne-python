@@ -4,8 +4,8 @@
 
 .. _contribute_to_mne:
 
-How to contribute to MNE
-========================
+How to contribute to MNE-python
+===============================
 
 .. contents:: Contents
    :local:
@@ -21,10 +21,33 @@ of the users who use the package.
 page as the maintainers about changes or enhancements before too much
 coding is done saves everyone time and effort!
 
+Installing developer version
+----------------------------
+
+The standard installation procedure can be found on
+:ref:`install_python_and_mne_python` but if you want to install a
+developer version directly from the source code in order to contribute,
+you can follow those steps:
+
+  .. code-block:: console
+
+     $ git clone git@github.com:mne-tools/mne-python.git
+     $ cd mne-python
+     $ conda env create -f environment.yml
+     $ conda activate mne
+     $ pip install -e .
+
+To check the installation, you can enter the following commands:
+
+  .. code-block:: console
+
+     $ python -c "import mne; mne.sys_info()"
+     $ python -c "import mne; mne.datasets.testing.data_path(force_update=True)"
+
 Code guidelines
 ---------------
 
-* Standard python style guidelines set by pep8_ and pyflakes_ are followed
+* Standard Python style guidelines set by pep8_ and pyflakes_ are followed
   with very few exceptions. We recommend using an editor that calls out
   style violations automatcally, such as Spyder_. From the MNE code root, you
   can check for violations using flake8_ with:
@@ -56,6 +79,12 @@ Code guidelines
   .. code-block:: console
 
      $ pytest mne/tests/test_evoked.py:test_io_evoked -x --verbose
+
+  Or alternatively:
+  
+  .. code-block:: console
+
+     $ pytest mne/tests/test_evoked.py -k test_io_evoked -x --verbose
 
   Make sure you have the testing dataset, which you can get by doing::
 
@@ -180,7 +209,7 @@ You can use something like this::
 
 Profiling
 ---------
-To learn more about profiling python codes please see `the scikit learn profiling site <https://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
+To learn more about profiling Python codes please see `the scikit learn profiling site <https://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
 
 .. _troubleshooting:
 

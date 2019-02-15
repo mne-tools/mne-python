@@ -51,9 +51,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     subjects_dir : str, or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -124,9 +122,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
         be in head coordinates instead of MRI coordinates.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -326,9 +322,7 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
         If True, add neighbor vertex information.
     copy : bool
         If True (default), make a copy. If False, operate in-place.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -556,9 +550,7 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
 
     return_dict : bool
         If True, a dictionary with surface parameters is returned.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -909,13 +901,11 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes of
         :func:`mne.compute_source_morph`.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    left_map, right_map : sparse matrix
+    left_map, right_map : ~scipy.sparse.csr_matrix
         The morph maps for the 2 hemispheres.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -1285,9 +1275,7 @@ def read_tri(fname_in, swap=False, verbose=None):
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

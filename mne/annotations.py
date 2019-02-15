@@ -8,7 +8,7 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-
+import collections
 
 import numpy as np
 
@@ -21,6 +21,35 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
+
+
+def _check_o_d_s(onset, duration, description):
+    onset = np.atleast_1d(np.array(onset, dtype=float))
+    if onset.ndim != 1:
+        raise ValueError('Onset must be a one dimensional array, got %s '
+                         '(shape %s).'
+                         % (onset.ndim, onset.shape))
+    duration = np.array(duration, dtype=float)
+    if duration.ndim == 0 or duration.shape == (1,):
+        duration = np.repeat(duration, len(onset))
+    if duration.ndim != 1:
+        raise ValueError('Duration must be a one dimensional array, '
+                         'got %d.' % (duration.ndim,))
+
+    description = np.array(description, dtype=str)
+    if description.ndim == 0 or description.shape == (1,):
+        description = np.repeat(description, len(onset))
+    if description.ndim != 1:
+        raise ValueError('Description must be a one dimensional array, '
+                         'got %d.' % (description.ndim,))
+    if any([';' in desc for desc in description]):
+        raise ValueError('Semicolons in descriptions not supported.')
+
+    if not (len(onset) == len(duration) == len(description)):
+        raise ValueError('Onset, duration and description must be '
+                         'equal in sizes, got %s, %s, and %s.'
+                         % (len(onset), len(duration), len(description)))
+    return onset, duration, description
 
 
 class Annotations(object):
@@ -36,7 +65,7 @@ class Annotations(object):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-    orig_time : float | int | instance of datetime | array of int | None | str
+    orig_time : float | int | instance of datetime.datetime | array of int | None | str
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
         starting time of annotation acquisition. If None (default),
@@ -153,34 +182,14 @@ class Annotations(object):
         if orig_time is not None:
             orig_time = _handle_meas_date(orig_time)
         self.orig_time = orig_time
-
-        onset = np.array(onset, dtype=float)
-        if onset.ndim != 1:
-            raise ValueError('Onset must be a one dimensional array, got %s '
-                             '(shape %s).'
-                             % (onset.ndim, onset.shape))
-        duration = np.array(duration, dtype=float)
-        if isinstance(description, str):
-            description = np.repeat(description, len(onset))
-        if duration.ndim != 1:
-            raise ValueError('Duration must be a one dimensional array.')
-        if not (len(onset) == len(duration) == len(description)):
-            raise ValueError('Onset, duration and description must be '
-                             'equal in sizes.')
-        if any([';' in desc for desc in description]):
-            raise ValueError('Semicolons in descriptions not supported.')
-
-        self.onset = onset
-        self.duration = duration
-        self.description = np.array(description, dtype=str)
+        self.onset, self.duration, self.description = _check_o_d_s(
+            onset, duration, description)
+        self._sort()  # ensure we're sorted
 
     def __repr__(self):
         """Show the representation."""
-        kinds = sorted(set('%s' % d.split(' ')[0].lower()
-                           for d in self.description))
-        kinds = ['%s (%s)' % (kind, sum(d.lower().startswith(kind)
-                                        for d in self.description))
-                 for kind in kinds]
+        counter = collections.Counter(self.description)
+        kinds = ['%s (%s)' % k for k in counter.items()]
         kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
         kinds = (': ' if len(kinds) > 0 else '') + kinds
         if self.orig_time is None:
@@ -214,17 +223,36 @@ class Annotations(object):
                                                  other.orig_time))
         return self.append(other.onset, other.duration, other.description)
 
+    def __iter__(self):
+        """Iterate over the annotations."""
+        for idx in range(len(self.onset)):
+            yield self.__getitem__(idx)
+
+    def __getitem__(self, key):
+        """Propagate indexing and slicing to the underlying numpy structure."""
+        if isinstance(key, int):
+            out_keys = ('onset', 'duration', 'description', 'orig_time')
+            out_vals = (self.onset[key], self.duration[key],
+                        self.description[key], self.orig_time)
+            return collections.OrderedDict(zip(out_keys, out_vals))
+        else:
+            key = list(key) if isinstance(key, tuple) else key
+            return Annotations(onset=self.onset[key],
+                               duration=self.duration[key],
+                               description=self.description[key],
+                               orig_time=self.orig_time)
+
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
 
         Parameters
         ----------
-        onset : float
+        onset : float | array-like
             Annotation time onset from the beginning of the recording in
             seconds.
-        duration : float
+        duration : float | array-like
             Duration of the annotation in seconds.
-        description : str
+        description : str | array-like
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'
 
@@ -232,10 +260,19 @@ class Annotations(object):
         -------
         self : mne.Annotations
             The modified Annotations object.
-        """
+
+        Notes
+        -----
+        The array-like support for arguments allows this to be used similarly
+        to not only ``list.append``, but also
+        `list.extend <https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types>`__.
+        """  # noqa: E501
+        onset, duration, description = _check_o_d_s(
+            onset, duration, description)
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
+        self._sort()
         return self
 
     def copy(self):
@@ -247,8 +284,9 @@ class Annotations(object):
 
         Parameters
         ----------
-        idx : int | list of int
-            Index of the annotation to remove.
+        idx : int | array-like of int
+            Index of the annotation to remove. Can be array-like to
+            remove multiple indices.
         """
         self.onset = np.delete(self.onset, idx)
         self.duration = np.delete(self.duration, idx)
@@ -277,6 +315,16 @@ class Annotations(object):
         else:
             with start_file(fname) as fid:
                 _write_annotations(fid, self)
+
+    def _sort(self):
+        """Sort in place."""
+        # instead of argsort here we use sorted so that it gives us
+        # the onset-then-duration hierarchy
+        vals = sorted(zip(self.onset, self.duration, range(len(self))))
+        order = list(list(zip(*vals))[-1]) if len(vals) else []
+        self.onset = self.onset[order]
+        self.duration = self.duration[order]
+        self.description = self.description[order]
 
     def crop(self, tmin=None, tmax=None, emit_warning=False):
         """Remove all annotation that are outside of [tmin, tmax].
@@ -433,22 +481,46 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         idxs = [idx for idx, desc in enumerate(raw.annotations.description)
                 if any(desc.upper().startswith(kind.upper())
                        for kind in kinds)]
+        # onsets are already sorted
         onsets = raw.annotations.onset[idxs]
         onsets = _sync_onset(raw, onsets)
         ends = onsets + raw.annotations.duration[idxs]
-        order = np.argsort(onsets)
-        onsets = raw.time_as_index(onsets[order], use_rounding=True)
-        ends = raw.time_as_index(ends[order], use_rounding=True)
+        onsets = raw.time_as_index(onsets, use_rounding=True)
+        ends = raw.time_as_index(ends, use_rounding=True)
+    assert (onsets <= ends).all()  # all durations >= 0
     if invert:
-        # We invert the relationship (i.e., get segments that do not satisfy)
-        if len(onsets) == 0 or onsets[0] != 0:
-            onsets = np.concatenate([[0], onsets])
-            ends = np.concatenate([[0], ends])
-        if len(ends) == 1 or ends[-1] != len(raw.times):
-            onsets = np.concatenate([onsets, [len(raw.times)]])
-            ends = np.concatenate([ends, [len(raw.times)]])
-        onsets, ends = ends[:-1], onsets[1:]
+        # We need to eliminate overlaps here, otherwise wacky things happen,
+        # so we carefully invert the relationship
+        mask = np.zeros(len(raw.times), bool)
+        for onset, end in zip(onsets, ends):
+            mask[onset:end] = True
+        mask = ~mask
+        extras = (onsets == ends)
+        extra_onsets, extra_ends = onsets[extras], ends[extras]
+        onsets, ends = _mask_to_onsets_offsets(mask)
+        # Keep ones where things were exactly equal
+        del extras
+        # we could do this with a np.insert+np.searchsorted, but our
+        # ordered-ness should get us it for free
+        onsets = np.sort(np.concatenate([onsets, extra_onsets]))
+        ends = np.sort(np.concatenate([ends, extra_ends]))
+        assert (onsets <= ends).all()
     return onsets, ends
+
+
+def _mask_to_onsets_offsets(mask):
+    """Group boolean mask into contiguous onset:offset pairs."""
+    assert mask.dtype == bool and mask.ndim == 1
+    mask = mask.astype(int)
+    diff = np.diff(mask)
+    onsets = np.where(diff > 0)[0] + 1
+    if mask[0]:
+        onsets = np.concatenate([[0], onsets])
+    offsets = np.where(diff < 0)[0] + 1
+    if mask[-1]:
+        offsets = np.concatenate([offsets, [len(mask)]])
+    assert len(onsets) == len(offsets)
+    return onsets, offsets
 
 
 def _write_annotations(fid, annotations):
@@ -632,7 +704,6 @@ def _read_brainstorm_annotations(fname, orig_time=None):
 
 
 def _is_iso8601(candidate_str):
-    import re
     ISO8601 = r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
     return re.compile(ISO8601).match(candidate_str) is not None
 
@@ -747,7 +818,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | Callable | None
+    event_id : dict | callable | None
         Dictionary of string keys and integer values as used in mne.Epochs
         to map annotation descriptions to integer event codes. Only the
         keys present will be mapped and the annotations with other descriptions
@@ -767,10 +838,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         If not, :func:`mne.events_from_annotations` returns as many events as
         they fit within the annotation duration spaced according to
         `chunk_duration`, which is given in seconds.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more). Defaults to self.verbose.
+    %(verbose)s
 
     Returns
     -------
@@ -795,12 +863,9 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         inds = inds[event_sel]
     else:
         inds = values = np.array([]).astype(int)
-        iterator = list(zip(annotations.onset[event_sel],
-                            annotations.duration[event_sel],
-                            annotations.description[event_sel]))
-
-        for onset, duration, description in iterator:
-            _onsets = np.arange(start=onset, stop=(onset + duration),
+        for annot in annotations[event_sel]:
+            _onsets = np.arange(start=annot['onset'],
+                                stop=(annot['onset'] + annot['duration']),
                                 step=chunk_duration)
             _inds = raw.time_as_index(_onsets,
                                       use_rounding=use_rounding,
@@ -808,7 +873,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
             _inds += raw.first_samp
             inds = np.append(inds, _inds)
             _values = np.full(shape=len(_inds),
-                              fill_value=event_id_[description],
+                              fill_value=event_id_[annot['description']],
                               dtype=int)
             values = np.append(values, _values)
 

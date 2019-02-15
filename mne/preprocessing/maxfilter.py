@@ -85,9 +85,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         Additional command line arguments to pass to MaxFilter
     overwrite : bool
         Overwrite output file if it already exists
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -118,7 +116,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         elif frame == 'device':
             origin = o_dev
         else:
-            RuntimeError('invalid frame for origin')
+            raise RuntimeError('invalid frame for origin')
 
     if not isinstance(origin, str):
         origin = '%0.1f %0.1f %0.1f' % (origin[0], origin[1], origin[2])

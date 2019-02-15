@@ -14,20 +14,18 @@ def stft(x, wsize, tstep=None, verbose=None):
 
     Parameters
     ----------
-    x : 2d array of size n_signals x T
+    x : array, shape (n_signals, n_times)
         containing multi-channels signal
     wsize : int
         length of the STFT window in samples (must be a multiple of 4)
     tstep : int
         step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2)
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    X : 3d array of shape [n_signals, wsize / 2 + 1, n_step]
+    X : array, shape (n_signals, wsize // 2 + 1, n_step)
         STFT coefficients for positive frequencies with
         n_step = ceil(T / tstep)
 
@@ -108,7 +106,7 @@ def istft(X, tstep=None, Tx=None):
 
     Parameters
     ----------
-    X : 3d array of shape [n_signals, wsize / 2 + 1,  n_step]
+    X : array, shape (n_signals, wsize / 2 + 1, n_step)
         The STFT coefficients for positive frequencies
     tstep : int
         step between successive windows in samples (must be a multiple of 2,
@@ -118,7 +116,7 @@ def istft(X, tstep=None, Tx=None):
 
     Returns
     -------
-    x : 1d array of length Tx
+    x : array, shape (Tx,)
         vector containing the inverse STFT signal
 
     Examples

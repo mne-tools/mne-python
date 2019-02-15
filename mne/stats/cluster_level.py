@@ -252,7 +252,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
-    connectivity : sparse matrix in COO format, None, or list
+    connectivity : scipy.sparse.coo_matrix, None, or list
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         If connectivity is a list, it is assumed that each entry stores the
@@ -994,7 +994,7 @@ def permutation_cluster_test(
     stat_fun : callable | None
         Function called to calculate statistics, must accept 1d-arrays as
         arguments (default None uses :func:`mne.stats.f_oneway`).
-    connectivity : sparse matrix.
+    connectivity : scipy.sparse.spmatrix
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
@@ -1041,9 +1041,7 @@ def permutation_cluster_test(
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
         for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1104,7 +1102,7 @@ def permutation_cluster_1samp_test(
     stat_fun : callable | None
         Function used to compute the statistical map (default None will use
         :func:`mne.stats.ttest_1samp_no_p`).
-    connectivity : sparse matrix | None | False
+    connectivity : scipy.sparse.spmatrix | None | False
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         This matrix must be square with dimension (n_vertices * n_times) or
@@ -1112,9 +1110,7 @@ def permutation_cluster_1samp_test(
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time. Can also be False
         to assume no connectivity. Can also be False to assume no connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int | instance of RandomState | None
@@ -1244,7 +1240,7 @@ def spatio_temporal_cluster_1samp_test(
     stat_fun : callable | None
         Function used to compute the statistical map (default None will use
         :func:`mne.stats.ttest_1samp_no_p`).
-    connectivity : sparse matrix or None
+    connectivity : scipy.sparse.spmatrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         This matrix must be square with dimension (n_vertices * n_times) or
@@ -1291,9 +1287,7 @@ def spatio_temporal_cluster_1samp_test(
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
         for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1361,13 +1355,11 @@ def spatio_temporal_cluster_test(
     stat_fun : callable | None
         Function called to calculate statistics, must accept 1d-arrays as
         arguments (default None uses :func:`mne.stats.f_oneway`).
-    connectivity : sparse matrix or None
+    connectivity : scipy.sparse.spmatrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int | instance of RandomState | None
@@ -1533,7 +1525,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         The time of the first sample.
     subject : str
         The name of the subject.
-    vertices : list of arrays | None
+    vertices : list of array | None
         The vertex numbers associated with the source space locations. Defaults
         to None. If None, equals ```[np.arange(10242), np.arange(10242)]```.
 

@@ -5,12 +5,11 @@ EEG processing and Event Related Potentials (ERPs)
 ==================================================
 
 For a generic introduction to the computation of ERP and ERF
-see :ref:`tut_epoching_and_averaging`. Here we cover the specifics
-of EEG, namely:
+see :ref:`tut_epoching_and_averaging`.
 
-    - setting the reference
-    - using standard montages :func:`mne.channels.Montage`
-    - Evoked arithmetic (e.g. differences)
+.. contents:: Here we cover the specifics of EEG, namely:
+   :local:
+   :depth: 1
 
 """
 
@@ -65,8 +64,8 @@ raw.plot_sensors()
 raw.plot_sensors('3d')  # in 3D
 
 ###############################################################################
-# Setting EEG montage
-# -------------------
+# Setting EEG Montage (using standard montages)
+# ---------------------------------------------
 #
 # In the case where your data don't have locations you can set them
 # using a :class:`mne.channels.Montage`. MNE comes with a set of default
@@ -132,8 +131,8 @@ evoked_custom.plot(titles=dict(eeg=title), time_unit='s')
 evoked_custom.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
-# Evoked arithmetic
-# -----------------
+# Evoked arithmetic (e.g. differences)
+# ------------------------------------
 #
 # Trial subsets from Epochs can be selected using 'tags' separated by '/'.
 # Evoked objects support basic arithmetic.

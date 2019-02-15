@@ -4,6 +4,7 @@
 
 from datetime import datetime
 from itertools import repeat
+from collections import OrderedDict
 
 import os.path as op
 
@@ -17,7 +18,9 @@ import numpy as np
 import mne
 from mne import create_info, read_annotations, events_from_annotations
 from mne import Epochs, Annotations
-from mne.utils import run_tests_if_main, _TempDir, requires_version
+from mne.utils import (run_tests_if_main, _TempDir, requires_version,
+                       catch_logging)
+from mne.utils.testing import assert_and_remove_boundary_annot
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.io.tests.test_raw import _raw_annot
 from mne.annotations import _sync_onset, _handle_meas_date
@@ -60,9 +63,7 @@ def test_basics():
     assert_array_equal(raw2.annotations.onset, onset + offset)
     assert id(raw2.annotations) != id(annot)
     concatenate_raws([raw, raw2])
-    raw.annotations.delete(-1)  # remove boundary annotations
-    raw.annotations.delete(-1)
-
+    assert_and_remove_boundary_annot(raw)
     assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
@@ -83,23 +84,19 @@ def test_basics():
     raw.set_annotations(Annotations([1.], [.5], 'x', None))
     raws.append(raw)
     raw = concatenate_raws(raws, verbose='debug')
-    boundary_idx = np.where(raw.annotations.description == 'BAD boundary')[0]
-    assert len(boundary_idx) == 3
-    raw.annotations.delete(boundary_idx)
-    boundary_idx = np.where(raw.annotations.description == 'EDGE boundary')[0]
-    assert len(boundary_idx) == 3
-    raw.annotations.delete(boundary_idx)
+    assert_and_remove_boundary_annot(raw, 3)
     assert_array_equal(raw.annotations.onset, [124., 125., 134., 135.,
                                                144., 145., 154.])
     raw.annotations.delete(2)
     assert_array_equal(raw.annotations.onset, [124., 125., 135., 144.,
                                                145., 154.])
     raw.annotations.append(5, 1.5, 'y')
-    assert_array_equal(raw.annotations.onset, [124., 125., 135., 144.,
-                                               145., 154.,   5.])
-    assert_array_equal(raw.annotations.duration, [.5, .5, .5, .5, .5, .5, 1.5])
-    assert_array_equal(raw.annotations.description, ['x', 'x', 'x', 'x', 'x',
-                                                     'x', 'y'])
+    assert_array_equal(raw.annotations.onset,
+                       [5., 124., 125., 135., 144., 145., 154.])
+    assert_array_equal(raw.annotations.duration,
+                       [1.5, .5, .5, .5, .5, .5, .5])
+    assert_array_equal(raw.annotations.description,
+                       ['y', 'x', 'x', 'x', 'x', 'x', 'x'])
 
 
 def test_crop():
@@ -133,9 +130,7 @@ def test_crop():
                                       verbose='debug')
     assert_allclose(raw_concat.times, raw.times)
     assert_allclose(raw_concat[:][0], raw[:][0], atol=1e-20)
-    # Get rid of the boundary events
-    raw_concat.annotations.delete(-1)
-    raw_concat.annotations.delete(-1)
+    assert_and_remove_boundary_annot(raw_concat)
     # Ensure we annotations survive round-trip crop->concat
     assert_array_equal(raw_concat.annotations.description,
                        raw.annotations.description)
@@ -152,8 +147,7 @@ def test_crop():
     raw2.set_annotations(Annotations([2.], [3], 'BAD', None))
     expected_onset = [45., 2. + raw._last_time]
     raw = concatenate_raws([raw, raw2])
-    raw.annotations.delete(-1)  # remove boundary annotations
-    raw.annotations.delete(-1)
+    assert_and_remove_boundary_annot(raw)
     assert_array_almost_equal(raw.annotations.onset, expected_onset, decimal=2)
 
     # Test IO
@@ -224,14 +218,7 @@ def test_crop_more():
     assert_allclose(raw_concat.times, raw.times)
     assert_allclose(raw_concat[:][0], raw[:][0])
     assert raw_concat.first_samp == raw.first_samp
-    boundary_idx = np.where(
-        raw_concat.annotations.description == 'BAD boundary')[0]
-    assert len(boundary_idx) == 2
-    raw_concat.annotations.delete(boundary_idx)
-    boundary_idx = np.where(
-        raw_concat.annotations.description == 'EDGE boundary')[0]
-    assert len(boundary_idx) == 2
-    raw_concat.annotations.delete(boundary_idx)
+    assert_and_remove_boundary_annot(raw_concat, 2)
     assert len(raw_concat.annotations) == 4
     assert_array_equal(raw_concat.annotations.description,
                        raw.annotations.description)
@@ -333,8 +320,17 @@ def test_annotation_filtering():
     # here the 1-3 second window should be skipped
     raw = raws_concat.copy()
     raw.annotations.append(1., 2., 'foo')
-    raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
-               skip_by_annotation='foo')
+    with catch_logging() as log:
+        raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
+                   skip_by_annotation='foo', verbose='info')
+    log = log.getvalue()
+    assert '2 contiguous segments' in log
+    raw.annotations.append(2., 1., 'foo')  # shouldn't change anything
+    with catch_logging() as log:
+        raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
+                   skip_by_annotation='foo', verbose='info')
+    log = log.getvalue()
+    assert '2 contiguous segments' in log
     # our filter will zero out anything not skipped:
     mask = np.concatenate((np.zeros(1000), np.ones(2000), np.zeros(1000)))
     expected_data = raws_concat[0][0][0] * mask
@@ -792,6 +788,92 @@ def test_read_annotation_txt_orig_time(
     assert_array_equal(annot.onset, [3.14, 6.28])
     assert_array_equal(annot.duration, [42., 48])
     assert_array_equal(annot.description, ['AA', 'BB'])
+
+
+def test_annotations_simple_iteration():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    for ii, elements in enumerate(annot[:2]):
+        assert isinstance(elements, OrderedDict)
+        expected_values = (ii, ii, str(ii))
+        for elem, expected_type, expected_value in zip(elements.values(),
+                                                       EXPECTED_ELEMENTS_TYPE,
+                                                       expected_values):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+            assert elem == expected_value
+
+
+@requires_version('numpy', '1.12')
+def test_annotations_slices():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    # Indexing returns a copy. So this has no effect in annot
+    annot[0]['onset'] = 42
+    annot[0]['duration'] = 3.14
+    annot[0]['description'] = 'foobar'
+
+    annot[:1].onset[0] = 42
+    annot[:1].duration[0] = 3.14
+    annot[:1].description[0] = 'foobar'
+
+    # Slicing with single element returns a dictionary
+    for ii in EXPECTED_ONSETS:
+        assert annot[ii] == dict(zip(['onset', 'duration',
+                                      'description', 'orig_time'],
+                                     [ii, ii, str(ii), None]))
+
+    # Slices should give back Annotations
+    for current in (annot[slice(0, None, 2)],
+                    annot[[bool(ii % 2) for ii in range(len(annot))]],
+                    annot[:1],
+                    annot[[0, 2, 2]],
+                    annot[(0, 2, 2)],
+                    annot[np.array([0, 2, 2])],
+                    annot[1::2],
+                    ):
+        assert isinstance(current, Annotations)
+        assert len(current) != len(annot)
+
+    for bad_ii in [len(EXPECTED_ONSETS), 42, 'foo']:
+        with pytest.raises(IndexError):
+            annot[bad_ii]
+
+
+def test_sorting():
+    """Test annotation sorting."""
+    annot = Annotations([10, 20, 30], [1, 2, 3], 'BAD')
+    # assert_array_equal(annot.onset, [0, 5, 10])
+    annot.append([5, 15, 25, 35], 0.5, 'BAD')
+    onset = list(range(5, 36, 5))
+    duration = list(annot.duration)
+    assert_array_equal(annot.onset, onset)
+    assert_array_equal(annot.duration, duration)
+    annot.append([10, 10], [0.1, 9], 'BAD')  # 0.1 should be before, 9 after
+    want_before = onset.index(10)
+    duration.insert(want_before, 0.1)
+    duration.insert(want_before + 2, 9)
+    onset.insert(want_before, 10)
+    onset.insert(want_before, 10)
+    assert_array_equal(annot.onset, onset)
+    assert_array_equal(annot.duration, duration)
 
 
 run_tests_if_main()
