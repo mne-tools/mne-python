@@ -28,17 +28,55 @@ subjects_dir = data_path + '/subjects'
 # check all montages
 #
 
-current_montage = get_builtin_montages()[0]
-# for current_montage in get_builtin_montages():
-montage = mne.channels.read_montage(current_montage)
-info = mne.create_info(ch_names=montage.ch_names,
-                       sfreq=1,
-                       ch_types='eeg',
-                       montage=montage)
+fix_units = {'EGI_256':'cm', 'GSN-HydroCel-128':'cm', 'GSN-HydroCel-129':'cm',
+             'GSN-HydroCel-256':'cm', 'GSN-HydroCel-257':'cm',
+             'GSN-HydroCel-32':'cm', 'GSN-HydroCel-64_1.0':'cm',
+             'GSN-HydroCel-65_1.0':'cm', 'biosemi128':'mm', 'biosemi16':'mm',
+             'biosemi160':'mm', 'biosemi256':'mm', 'biosemi32':'mm',
+             'biosemi64':'mm', 'easycap-M1':'mm', 'easycap-M10':'mm',
+             'mgh60':'m', 'mgh70':'m', 'standard_1005':'m',
+             'standard_1020':'m', 'standard_alphabetic':'m',
+             'standard_postfixed':'m', 'standard_prefixed':'m',
+             'standard_primed':'m'}
 
-plot_alignment(info, trans=None, subject='fsaverage', dig=False,
-               eeg=['projected'], meg=[],
-               coord_frame='head', subjects_dir=subjects_dir)
+# fig = fig if 'fig' in locals() else None
+# current_montage = get_builtin_montages()[0]
+for current_montage in get_builtin_montages():
+    fig = None
+    montage = mne.channels.read_montage(current_montage,
+                                        unit=fix_units[current_montage])
+    info = mne.create_info(ch_names=montage.ch_names,
+                           sfreq=1,
+                           ch_types='eeg',
+                           montage=montage)
+    #
+    fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
+                         eeg=['projected'], meg=[],
+                         coord_frame='head', subjects_dir=subjects_dir,
+                         fig=fig)
+    mlab.view(135, 80)
+    mlab.title(montage.kind, figure=fig)
+
+###############################################################################
+# something weird, when the scale is smaller than it should, the points cluster
+# in a really funky manner instead of getting inside the skull
+#
+
+for current_montage in (_ for _ in get_builtin_montages() if _.startswith('standard')):
+    fig = None
+    montage = mne.channels.read_montage(current_montage, unit='cm')
+    info = mne.create_info(ch_names=montage.ch_names,
+                           sfreq=1,
+                           ch_types='eeg',
+                           montage=montage)
+    #
+    fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
+                         eeg=['projected'], meg=[],
+                         coord_frame='head', subjects_dir=subjects_dir,
+                         fig=fig)
+    mlab.title(montage.kind, figure=fig)
+
+
 
 ###############################################################################
 # Questions I've
