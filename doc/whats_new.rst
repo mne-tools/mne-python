@@ -13,8 +13,8 @@ What's new
 
 .. _current:
 
-Current
--------
+Version 0.17.1
+--------------
 
 Changelog
 ~~~~~~~~~
