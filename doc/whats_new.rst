@@ -61,6 +61,8 @@ Changelog
 
 - Add ``reject_by_annotation`` argument to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
+- Add ``pca`` argument to return the rank-reduced whitener in :func:`mne.cov.compute_whitener` by `Eric Larson`_
+
 - Add ``extrapolate`` argument to :func:`mne.viz.plot_topomap` for better control of extrapolation points placement by `Mikołaj Magnuski`_
 
 - Add ``channel_wise`` argument to :func:`mne.io.Raw.apply_function` to allow applying a function on multiple channels at once by `Hubert Banville`_
@@ -103,6 +105,8 @@ API
 ~~~
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
+
+- ``raw.estimate_rank`` has been deprecated and will be removed in 0.19 in favor of :func:`mne.compute_rank`  by `Eric Larson`_
 
 - :class:`Annotations` are now kept sorted (by onset time) during instantiation and :meth:`~Annotations.append` operations, by `Eric Larson`_
 

@@ -388,3 +388,47 @@ def _check_channels_spatial_filter(ch_names, filters):
     sel = [ii for ii, ch_name in enumerate(ch_names)
            if ch_name in filters['ch_names']]
     return sel
+
+
+def _check_rank(rank):
+    """Check rank parameter and deal with deprecation."""
+    err_msg = ('rank must be None, dict, "full", or int, '
+               'got %s (type %s)' % (rank, type(rank)))
+    if isinstance(rank, str):
+        # XXX we can use rank='' to deprecate to get to None eventually:
+        # if rank == '':
+        #     warn('The rank parameter default in 0.18 of "full" will change '
+        #          'to None in 0.19, set it explicitly to avoid this warning',
+        #          DeprecationWarning)
+        #     rank = 'full'
+        if rank not in ['full', 'info']:
+            raise ValueError('rank, if str, must be "full" or "info", '
+                             'got %s' % (rank,))
+    elif isinstance(rank, bool):
+        raise TypeError(err_msg)
+    elif rank is not None and not isinstance(rank, dict):
+        try:
+            rank = int(operator.index(rank))
+        except TypeError:
+            raise TypeError(err_msg)
+        else:
+            warn('rank as int is deprecated and will be removed in 0.19. '
+                 'use rank=dict(meg=...) instead.', DeprecationWarning)
+            rank = dict(meg=rank)
+    return rank
+
+
+def _check_one_ch_type(info, picks, noise_cov, method):
+    """Check number of sensor types and presence of noise covariance matrix."""
+    from ..io.pick import pick_info
+    from ..channels.channels import _contains_ch_type
+    info_pick = pick_info(info, sel=picks)
+    ch_types =\
+        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
+    if method == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
+        raise ValueError('Source reconstruction with several sensor types '
+                         'requires a noise covariance matrix to be '
+                         'able to apply whitening.')
+    elif method == 'dics' and sum(ch_types) > 1:
+        warn('The use of several sensor types with the DICS beamformer is '
+             'not heavily tested yet.')

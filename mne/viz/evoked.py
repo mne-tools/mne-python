@@ -1013,14 +1013,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
         The noise covariance. Can be a string to load a covariance from disk.
     show : bool
         Show figure if True.
-    rank : dict of int | None
-        Dict of ints where keys are 'eeg', 'meg', mag' or 'grad'. If None,
-        the rank is detected automatically. Defaults to None. 'mag' or
-        'grad' cannot be specified jointly with 'meg'. For SSS'd data,
-        only 'meg' is valid. For non-SSS'd data, 'mag' and/or 'grad' must be
-        specified separately. If only one is specified, the other one gets
-        estimated. Note. The rank estimation will be printed by the logger for
-        each noise covariance estimator that is passed.
+    %(rank_None)s
     time_unit : str
         The units for the time axis, can be "ms" or "s" (default).
 

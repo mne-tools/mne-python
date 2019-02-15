@@ -27,10 +27,10 @@ from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
-                       pick_info, _picks_by_type)
-from ..rank import _get_rank_sss
+                       pick_info, _picks_by_type, pick_channels_cov)
+from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import logger, verbose, set_config, warn, _check_ch_locs
+from ..utils import verbose, set_config, warn, _check_ch_locs
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -2432,7 +2432,6 @@ def _check_sss(info):
 
 
 def _triage_rank_sss(info, covs, rank=None, scalings=None):
-    from ..cov import _estimate_rank_meeg_cov
     rank = dict() if rank is None else rank
     scalings = _handle_default('scalings_cov_rank', scalings)
 
@@ -2474,7 +2473,6 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
         info_proj = info.copy()
         info_proj['projs'] += cov['projs']
         this_rank = {}
-        C = cov['data'].copy()
         # assemble rank dict for this cov, such that we have meg
         for ch_type, this_picks in picks_list2:
             # if we have already estimates / values for mag/grad but not
@@ -2484,47 +2482,17 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                 this_rank['meg'] = this_rank['mag'] + this_rank['grad']
                 # and we're done here
                 break
-
             if rank.get(ch_type) is None:
-                this_info = pick_info(info_proj, this_picks)
-                idx = np.ix_(this_picks, this_picks)
-                projector = setup_proj(this_info, add_eeg_ref=False)[0]
-                this_C = C[idx]
-                if projector is not None:
-                    this_C = np.dot(np.dot(projector, this_C), projector.T)
-                this_estimated_rank = _estimate_rank_meeg_cov(
-                    this_C, this_info, scalings)
-                _check_estimated_rank(
-                    this_estimated_rank, this_picks, this_info, info,
-                    cov, ch_type, has_meg, has_sss)
+                ch_names = [info['ch_names'][pick] for pick in this_picks]
+                this_C = pick_channels_cov(cov, ch_names)
+                this_estimated_rank = compute_rank(
+                    this_C, scalings=scalings, info=info_proj)[ch_type]
                 this_rank[ch_type] = this_estimated_rank
             elif rank.get(ch_type) is not None:
                 this_rank[ch_type] = rank[ch_type]
 
         rank_list.append(this_rank)
     return n_ch_used, rank_list, picks_list, has_sss
-
-
-def _check_estimated_rank(this_estimated_rank, this_picks, this_info, info,
-                          cov, ch_type, has_meg, has_sss):
-    """Compare estimated against expected rank."""
-    expected_rank = len(this_picks)
-    expected_rank_reduction = 0
-    if has_meg and has_sss and ch_type == 'meg':
-        sss_rank = _get_rank_sss(info)
-        expected_rank_reduction += (expected_rank - sss_rank)
-    n_ssp = sum(_match_proj_type(pp, this_info['ch_names'])
-                for pp in cov['projs'])
-    expected_rank_reduction += n_ssp
-    expected_rank -= expected_rank_reduction
-    if this_estimated_rank != expected_rank:
-        logger.debug(
-            'For (%s) the expected and estimated rank diverge '
-            '(%i VS %i). \nThis may lead to surprising reults. '
-            '\nPlease consider using the `rank` parameter to '
-            'manually specify the spatial degrees of freedom.' % (
-                ch_type, expected_rank, this_estimated_rank
-            ))
 
 
 def _match_proj_type(proj, ch_names):

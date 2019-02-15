@@ -8,7 +8,7 @@ from scipy import linalg
 
 from ..defaults import _handle_default
 from ..io.pick import _picks_to_idx, _picks_by_type, pick_info
-from ..utils import verbose
+from ..utils import verbose, _apply_scaling_array
 
 
 def _yule_walker(X, order=1):
@@ -62,7 +62,6 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
     a : ndarray
         Denominator filter coefficients
     """
-    from ..cov import _apply_scaling_array
     start, stop = None, None
     if tmin is not None:
         start = raw.time_as_index(tmin)[0]

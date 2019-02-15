@@ -1370,11 +1370,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         If True, use only grad channels in depth weighting (equivalent to MNE
         C code). If grad channels aren't present, only mag channels will be
         used (if no mag, then eeg). If False, use all channels.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
+    %(rank_None)s
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when converting to surface orientation

@@ -590,7 +590,9 @@ def _simplify_info(info):
     chs = [{key: ch[key]
             for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc')}
            for ch in info['chs']]
-    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
+    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'],
+                    projs=info['projs'],
+                    custom_ref_applied=info['custom_ref_applied'])
     sub_info._update_redundant()
     return sub_info
 

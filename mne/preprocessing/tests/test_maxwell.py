@@ -15,7 +15,6 @@ from mne import compute_raw_covariance, pick_types, concatenate_raws
 from mne.annotations import _annotations_starts_stops
 from mne.chpi import read_head_pos, filter_chpi
 from mne.forward import _prep_meg_channels
-from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.forward import use_coil_def
 from mne.io import read_raw_fif, read_info, read_raw_bti, read_raw_kit, BaseRaw
@@ -23,7 +22,7 @@ from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils)
-from mne.rank import _get_sss_rank
+from mne.rank import _get_rank_sss, _compute_rank_int
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
@@ -438,8 +437,7 @@ def test_basic():
     assert_meg_snr(raw_sss_meg, raw_sss_head, 100., 900.)
 
     # Check against SSS functions from proc_history
-    sss_info = raw_sss.info['proc_history'][0]['max_info']
-    assert_equal(_get_n_moments(int_order), _get_sss_rank(sss_info))
+    assert_equal(_get_n_moments(int_order), _get_rank_sss(raw_sss))
 
     # Degenerate cases
     pytest.raises(ValueError, maxwell_filter, raw, coord_frame='foo')
@@ -491,9 +489,10 @@ def test_maxwell_filter_additional():
     cov_sss = compute_raw_covariance(raw_sss)
 
     scalings = None
-    cov_raw_rank = _estimate_rank_meeg_cov(cov_raw['data'], raw.info, scalings)
-    cov_sss_rank = _estimate_rank_meeg_cov(cov_sss['data'], raw_sss.info,
-                                           scalings)
+    cov_raw_rank = _compute_rank_int(
+        cov_raw, scalings=scalings, info=raw.info)
+    cov_sss_rank = _compute_rank_int(
+        cov_sss, scalings=scalings, info=raw_sss.info)
 
     assert_equal(cov_raw_rank, raw.info['nchan'])
     assert_equal(cov_sss_rank, _get_n_moments(int_order))
@@ -546,7 +545,7 @@ def test_spatiotemporal():
         # as mentioned above.
         raw_tsss = maxwell_filter(
             raw, st_duration=st_duration, **kwargs)
-        assert_equal(raw_tsss.estimate_rank(), 140)
+        assert_equal(_compute_rank_int(raw_tsss), 140)
         assert_meg_snr(raw_tsss, tsss_bench, *tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
         assert (len(py_st) > 0)
@@ -573,18 +572,18 @@ def test_spatiotemporal_only():
     # basics
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True)
     assert_equal(len(raw.info['projs']), len(raw_tsss.info['projs']))
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert_equal(_compute_rank_int(raw_tsss), len(picks))
     _assert_shielding(raw_tsss, power, 9)
     # with movement
     head_pos = read_head_pos(pos_fname)
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                               head_pos=head_pos)
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert_equal(_compute_rank_int(raw_tsss), len(picks))
     _assert_shielding(raw_tsss, power, 9)
     with pytest.warns(RuntimeWarning, match='st_fixed'):
         raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                                   head_pos=head_pos, st_fixed=False)
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert_equal(_compute_rank_int(raw_tsss), len(picks))
     _assert_shielding(raw_tsss, power, 9)
     # should do nothing
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_correlation=1.,
