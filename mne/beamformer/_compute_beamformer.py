@@ -18,7 +18,7 @@ from ..io.proj import make_projector, Projection
 from ..io.pick import pick_channels_forward
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, verbose, check_fname, _reg_pinv
+from ..utils import verbose, check_fname, _reg_pinv
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
