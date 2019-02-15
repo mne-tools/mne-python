@@ -1418,7 +1418,6 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     weighting. Thus slightly different results are to be expected with
     and without this information.
     """  # noqa: E501
-
     is_fixed_ori = is_fixed_orient(forward)
 
     # These gymnastics are necessary due to the redundancy between
