@@ -597,7 +597,7 @@ def _read_edf_header(fname, exclude):
         fid.read(8)  # version (unused here)
 
         # patient ID
-        pid = fid.read(80).decode()
+        pid = fid.read(80).decode('latin-1')
         pid = pid.split(' ', 2)
         patient = {}
         if len(pid) >= 2:
@@ -636,14 +636,14 @@ def _read_edf_header(fname, exclude):
 
         nchan = int(fid.read(4).decode())
         channels = list(range(nchan))
-        ch_names = [fid.read(16).strip().decode() for ch in channels]
+        ch_names = [fid.read(16).strip().decode('latin-1') for ch in channels]
         exclude = _find_exclude_idx(ch_names, exclude)
         tal_idx = _find_tal_idx(ch_names)
         exclude = np.concatenate([exclude, tal_idx])
         sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
         for ch in channels:
             fid.read(80)  # transducer
-        units = [fid.read(8).strip().decode() for ch in channels]
+        units = [fid.read(8).strip().decode('latin-1') for ch in channels]
         edf_info['units'] = list()
         for i, unit in enumerate(units):
             if i in exclude:
