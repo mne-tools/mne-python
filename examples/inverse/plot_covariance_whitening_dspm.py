@@ -118,7 +118,7 @@ for n_train in samples_epochs:
     for cov in noise_covs:
         inverse_operator = make_inverse_operator(evokeds[0].info, forward,
                                                  cov, loose=0.2, depth=0.8,
-                                                 rank=274)
+                                                 rank=dict(meg=274))
         stc_a, stc_b = (apply_inverse(e, inverse_operator, lambda2, "dSPM",
                                       pick_ori=None) for e in evokeds)
         stc = stc_a - stc_b
