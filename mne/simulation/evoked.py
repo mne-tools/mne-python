@@ -7,7 +7,7 @@ import math
 
 import numpy as np
 
-from ..cov import _get_whitener
+from ..cov import _get_whitener, prepare_noise_cov
 from ..io.pick import pick_info
 from ..forward import apply_forward
 from ..utils import (logger, verbose, check_random_state, _check_preload,
@@ -189,6 +189,7 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     """Create spatially colored and temporally IIR-filtered noise."""
     from scipy.signal import lfilter
     rng = check_random_state(random_state)
+    cov = prepare_noise_cov(cov, info)
     _, colorer, _, _ = _get_whitener(cov, info)
     noise = np.dot(colorer, rng.randn(len(colorer), n_samples))
     if iir_filter is not None:

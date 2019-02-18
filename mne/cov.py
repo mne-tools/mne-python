@@ -1365,6 +1365,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
     # reorder C and info to match ch_names order
     noise_cov_idx = list()
     missing = list()
+    ch_names = info['ch_names'] if ch_names is None else ch_names
     for c in ch_names:
         try:
             noise_cov_idx.append(noise_cov.ch_names.index(c))
@@ -1693,7 +1694,6 @@ def compute_whitener(noise_cov, info, picks=None, rank=None, scalings=None,
     picks = _picks_to_idx(info, picks, with_ref_meg=False)
     ch_names = [info['ch_names'][k] for k in picks]
     noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank, scalings)
-    scalings = _handle_default('scalings_cov_rank', scalings)
 
     W, _, noise_cov, n_nzero = _get_whitener(
         noise_cov, info, ch_names, rank, pca=pca)
