@@ -273,7 +273,7 @@ class _Renderer(object):
             quiv.glyph.glyph_source.glyph_source.resolution = glyph_resolution
             quiv.actor.property.backface_culling = backface_culling
 
-    def text(self, x, y, text, width):
+    def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         """Add test in the scene.
 
         Parameters
@@ -286,6 +286,8 @@ class _Renderer(object):
             The content of the text.
         width: float
             The width of the text.
+        color: tuple
+            The color of the text.
         """
         self.mlab.text(x, y, text, width=width, figure=self.fig)
 

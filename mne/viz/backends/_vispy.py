@@ -245,7 +245,7 @@ class _Renderer(object):
                            backface_culling=backface_culling)
         return 0
 
-    def text(self, x, y, text, width):
+    def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         """Add test in the scene.
 
         Parameters
@@ -258,9 +258,16 @@ class _Renderer(object):
             The content of the text.
         width: float
             The width of the text.
+        color: tuple
+            The color of the text.
         """
-        scene.visuals.Text(pos=(x, y), text=text, font_size=width,
-                           parent=self.view.scene)
+        # normalize font size
+        font_size = 100 * width
+        # normalize default placement
+        h = self.canvas.size[0]
+        scene.visuals.Text(pos=(x, h - y), text=text, font_size=font_size,
+                           anchor_x='left', anchor_y='top',
+                           color=color, parent=self.view)
 
     def show(self):
         """Render the scene."""
