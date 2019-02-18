@@ -559,5 +559,30 @@ def _check_roundtrip(montage, fname):
                             getattr(montage_read, kind), err_msg=kind)
     assert_equal(montage_read.coord_frame, 'head')
 
+from mne.channels.montage import Digitization
+def test_foodigmontage():
+    import mne
+    def get_foo_dig():
+        data_path = mne.datasets.sample.data_path()
+        subjects_dir = data_path + '/subjects'
+        # trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
+        raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+        my_ch_names = raw.load_data().pick_types(eeg=True, meg=False).info['ch_names']
+
+        raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+        raw.load_data()
+        print(type(my_ch_names))
+        return my_ch_names, Digitization(dig_list=raw.info['dig'].copy())
+
+
+    my_ch_names, my_montage = get_foo_dig()
+
+    my_info = mne.create_info(ch_names=my_ch_names,
+                            sfreq=1,
+                            ch_types='eeg',
+                            montage=my_montage,
+                            )
+    import pdb; pdb.set_trace()
+
 
 run_tests_if_main()

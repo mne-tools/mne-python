@@ -1919,15 +1919,16 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
     info._update_redundant()
+    # XXX: why do we have all that stuff here if (SetChannelsMixin) set_montage takes care of everything???
     if montage is not None:
         from ..channels.montage import (Montage, DigMontage, _set_montage,
-                                        read_montage)
+                                        read_montage, Digitization)
         if not isinstance(montage, list):
             montage = [montage]
         for montage_ in montage:
-            if isinstance(montage_, (Montage, DigMontage)):
+            if isinstance(montage_, (Montage, DigMontage, Digitization)):
                 _set_montage(info, montage_)
-            elif isinstance(montage_, str):
+            elif isinstance(montage_, str):  # XXX _set_montage already takes a str, why are we doing this?
                 montage_ = read_montage(montage_)
                 _set_montage(info, montage_)
             else:

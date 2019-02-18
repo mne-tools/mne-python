@@ -31,6 +31,11 @@ from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
 from .layout import _pol_to_cart, _cart_to_sph
 
 
+class Digitization(object):
+    def __init__(self, dig_list=None):
+        self.foo = dig_list
+
+
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
@@ -785,6 +790,11 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     -----
     This function will change the info variable in place.
     """
+    VALID_MONTAGE_TYPES = (str, Montage, DigMontage, Digitization)
+    if not isinstance(montage, VALID_MONTAGE_TYPES):
+        TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
+                  "'None' instead of '%s'." % type(montage))
+
     if isinstance(montage, str):  # load builtin montage
         montage = read_montage(montage)
 
@@ -878,11 +888,15 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             if len(did_not_set) > 0:
                 warn('Did not set %s channel positions:\n%s'
                      % (len(did_not_set), ', '.join(did_not_set)))
+
     elif montage is None:
         for ch in info['chs']:
             ch['loc'] = np.full(12, np.nan)
         if set_dig:
             info['dig'] = None
+
+    elif isinstance(montage, Digitization):
+        info['dig'] = montage.foo
+
     else:
-        raise TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
-                        "'None' instead of '%s'." % type(montage))
+        raise RuntimeError("This should never be reached")

@@ -15,66 +15,35 @@ XXX: things to refer properly:
 
 import mne
 from mne.datasets import sample
-from mne.channels.montage import _set_montage, get_builtin_montages
+from mne.channels.montage import _set_montage, get_builtin_montages, Digitization
 from mne.viz import plot_alignment
 from mayavi import mlab
 
 # print(__doc__)
 
+###############################################################################
+# Things that need to go somewhere
+#
 data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path + '/subjects'
+def get_foo_dig():
+    raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+    return Digitization(dig_list=raw.info['dig'].copy())
 
-###############################################################################
-# check all montages
-#
 
-fix_units = {'EGI_256':'cm', 'GSN-HydroCel-128':'cm', 'GSN-HydroCel-129':'cm',
-             'GSN-HydroCel-256':'cm', 'GSN-HydroCel-257':'cm',
-             'GSN-HydroCel-32':'cm', 'GSN-HydroCel-64_1.0':'cm',
-             'GSN-HydroCel-65_1.0':'cm', 'biosemi128':'mm', 'biosemi16':'mm',
-             'biosemi160':'mm', 'biosemi256':'mm', 'biosemi32':'mm',
-             'biosemi64':'mm', 'easycap-M1':'mm', 'easycap-M10':'mm',
-             'mgh60':'m', 'mgh70':'m', 'standard_1005':'m',
-             'standard_1020':'m', 'standard_alphabetic':'m',
-             'standard_postfixed':'m', 'standard_prefixed':'m',
-             'standard_primed':'m'}
 
-# fig = fig if 'fig' in locals() else None
-# current_montage = get_builtin_montages()[2]
-for current_montage in get_builtin_montages():
-    good_fig = None
-    montage = mne.channels.read_montage(current_montage,
-                                        unit=fix_units[current_montage])
-    info = mne.create_info(ch_names=montage.ch_names,
-                            sfreq=1,
-                            ch_types='eeg',
-                            montage=montage)
-    #
-    good_fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
-                            eeg=['projected'], meg=[],
-                            coord_frame='head', subjects_dir=subjects_dir,
-                            fig=good_fig)
-    mlab.view(135, 80)
-    mlab.title(montage.kind, figure=good_fig)
+my_info = mne.create_info(ch_names=[],
+                          sfreq=1,
+                          ch_types='eeg',
+                          montage=get_foo_dig()
+                          )
 
-###############################################################################
-# something weird, when the scale is smaller than it should, the points cluster
-# in a really funky manner instead of getting inside the skull
-#
+trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
+fig = plot_alignment(my_info, trans=trans, subject='sample', dig=True,
+                     eeg=['original'], meg=[],
+                     coord_frame='head', subjects_dir=subjects_dir,
+                     fig=None)
 
-for current_montage in (_ for _ in get_builtin_montages() if _.startswith('standard')):
-    fig = None
-    montage = mne.channels.read_montage(current_montage, unit='cm')
-    info = mne.create_info(ch_names=montage.ch_names,
-                           sfreq=1,
-                           ch_types='eeg',
-                           montage=montage)
-    #
-    fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
-                         eeg=['projected'], meg=[],
-                         coord_frame='head', subjects_dir=subjects_dir,
-                         fig=fig)
-    mlab.title(montage.kind, figure=fig)
 
 
 ###############################################################################
@@ -107,41 +76,7 @@ for current_montage in (_ for _ in get_builtin_montages() if _.startswith('stand
 #
 
 
-trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
-raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
-my_ch_names = raw.load_data().pick_types(eeg=True, meg=False).info['ch_names']
 
-raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
-raw.load_data()
-
-my_info = mne.create_info(ch_names=my_ch_names,
-                          sfreq=1,
-                          ch_types='eeg',
-                          # montage=montage  # no montage 'cos I'll use dig
-                          )
-my_info['dig'] = raw.info['dig'].copy()
-broken_fig = plot_alignment(my_info, trans=trans, subject='sample', dig=True,
-                            eeg=['original'], meg=[],
-                            coord_frame='head', subjects_dir=subjects_dir,
-                            fig=None)
-# print(broken_fig.children[1].data.points)
-
-# Thats what I want
-# EXPECTED_DATA = np.array([_['r'] for _ in my_info['dig']])
-# assert broken_fig.children[1].data.points == EXPECTED_DATA
-
-# # Try to put some values in children[1] and see if I see something in the render.
-# random_points_idx_in_skull = np.random.choice(a=len(broken_fig.children[0].data.points),
-#                                               size=len(broken_fig.children[1].data.points),
-#                                               replace=False)
-
-# for idx in range(len(broken_fig.children[1].data.points)):
-#     new_value = broken_fig.children[0].data.points[int(random_points_idx_in_skull[idx])]
-#     broken_fig.children[1].data.points[idx] = new_value
-
-
-
-# import pdb; pdb.set_trace()
 
 ###############################################################################
 # TODO
