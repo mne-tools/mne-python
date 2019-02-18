@@ -94,15 +94,12 @@ def _estimate_rank_from_s(s, tol='auto'):
         # Passing 'float32' is a hack workaround for test_maxfilter_get_rank :(
         if tol == 'float32':
             eps = np.finfo(np.float32).eps
-            mult = 1
         else:
             eps = np.finfo(np.float64).eps
-            mult = 2
         max_s = np.amax(s)
-        tol = len(s) * max_s * eps * mult
+        tol = len(s) * max_s * eps
         logger.info('Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g max '
-                    ' singular value * %d)'
-                    % (tol, eps, len(s), max_s, mult))
+                    ' singular value)' % (tol, eps, len(s), max_s))
 
     tol = float(tol)
     rank = np.sum(s > tol)
@@ -268,7 +265,7 @@ def _compute_rank_int(inst, *args, **kwargs):
 
 @verbose
 def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
-                 verbose=None):
+                 proj=True, verbose=None):
     """Compute the rank of data or noise covariance.
 
     This function will normalize the rows of the data (typically
@@ -290,6 +287,9 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         not provide ``inst.info``).
     tol : float | str
         Tolerance. See ``estimate_rank``.
+    proj : bool
+        If True, all projs in ``inst`` and ``info`` will be applied or
+        considered when ``rank=None`` or ``rank='info'``.
     %(verbose)s
 
     Returns
@@ -361,11 +361,15 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         if ch_type in rank:
             continue
         ch_names = [info['ch_names'][pick] for pick in picks]
+        if proj:
+            proj_op, n_proj, _ = make_projector(info['projs'], ch_names)
+        else:
+            proj_op, n_proj = None, 0
         if rank_type == 'info':
             # use info
             rank[ch_type] = _info_rank(info, ch_type, picks, info_type)
             if info_type != 'full':
-                rank[ch_type] -= make_projector(info['projs'], ch_names)[1]
+                rank[ch_type] -= n_proj
         else:
             # Use empirical estimation
             use_info = _simplify_info(info)
@@ -377,16 +381,20 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                 else:  # isinstance(inst, BaseEpochs):
                     data = inst.get_data()[:, picks, :]
                     data = np.concatenate(data, axis=1)
+                if proj:
+                    data = np.dot(proj_op, data)
                 rank[ch_type] = _estimate_rank_meeg_signals(
                     data, pick_info(use_info, picks), scalings, tol)
             else:
                 assert isinstance(inst, Covariance)
                 if inst['diag']:
-                    rank[ch_type] = (inst['data'][picks] > 0).sum()
+                    rank[ch_type] = (inst['data'][picks] > 0).sum() - n_proj
                 else:
+                    data = inst['data'][picks][:, picks]
+                    if proj:
+                        data = np.dot(np.dot(proj_op, data), proj_op.T)
                     rank[ch_type] = _estimate_rank_meeg_cov(
-                        inst['data'][picks][:, picks],
-                        pick_info(info, picks), scalings, tol)
+                        data, pick_info(info, picks), scalings, tol)
             this_info_rank = _info_rank(info, ch_type, picks, 'info')
             if rank[ch_type] > this_info_rank:
                 warn('Something went wrong in the data-driven estimation of '

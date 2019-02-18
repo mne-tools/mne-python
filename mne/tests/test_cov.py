@@ -549,26 +549,32 @@ def test_compute_covariance_auto_reg(rank):
                   scalings=dict(misc=123))
 
 
-def _cov_rank(cov, info):
+def _cov_rank(cov, info, proj=True):
     # ignore warnings about rank mismatches: sometimes we will intentionally
     # violate the computed/info assumption, such as when using SSS with
     # `rank='full'`
     with pytest.warns(None):
-        return _compute_rank_int(cov, info=info)
+        return _compute_rank_int(cov, info=info, proj=proj)
 
 
-@requires_version('sklearn', '0.15')
-def test_low_rank():
-    """Test low-rank covariance matrix estimation."""
+@pytest.fixture(scope='module')
+def raw_epochs_events():
     raw = read_raw_fif(raw_fname).set_eeg_reference(projection=True).crop(0, 3)
     raw = maxwell_filter(raw, regularize=None)  # heavily reduce the rank
     assert raw.info['bads'] == []  # no bads
+    events = make_fixed_length_events(raw)
+    epochs = Epochs(raw, events, tmin=-0.2, tmax=0, preload=True)
+    return (raw, epochs, events)
+
+
+@requires_version('sklearn', '0.15')
+@pytest.mark.parametrize('rank', (None, 'full', 'info'))
+def test_low_rank_methods(rank, raw_epochs_events):
+    """Test low-rank covariance matrix estimation."""
+    epochs = raw_epochs_events[1]
     sss_proj_rank = 139  # 80 MEG + 60 EEG - 1 proj
     n_ch = 366
-    proj_rank = 365  # one EEG proj
-    events = make_fixed_length_events(raw)
     methods = ('empirical', 'diagonal_fixed', 'oas')
-    epochs = Epochs(raw, events, tmin=-0.2, tmax=0, preload=True)
     bounds = {
         'None': dict(empirical=(-6000, -5000),
                      diagonal_fixed=(-1500, -500),
@@ -580,23 +586,31 @@ def test_low_rank():
                      diagonal_fixed=(-700, -600),
                      oas=(-700, -600)),
     }
-    for rank in ('full', 'info', None):
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
         covs = compute_covariance(
-            epochs, method=methods, return_estimators=True,
-            verbose='error', rank=rank)
-        for cov in covs:
-            method = cov['method']
-            these_bounds = bounds[str(rank)][method]
-            this_rank = _cov_rank(cov, epochs.info)
-            if rank == 'full' and method != 'empirical':
-                assert this_rank == n_ch
-            else:
-                assert this_rank == sss_proj_rank
-            assert these_bounds[0] < cov['loglik'] < these_bounds[1], \
-                (rank, method)
-            if method == 'empirical':
-                emp_cov = cov  # save for later, rank param does not matter
+            epochs, method=methods, return_estimators=True, rank=rank,
+            verbose=True)
+    for cov in covs:
+        method = cov['method']
+        these_bounds = bounds[str(rank)][method]
+        this_rank = _cov_rank(cov, epochs.info, proj=(rank != 'full'))
+        if rank == 'full' and method != 'empirical':
+            assert this_rank == n_ch
+        else:
+            assert this_rank == sss_proj_rank
+        assert these_bounds[0] < cov['loglik'] < these_bounds[1], \
+            (rank, method)
 
+
+@requires_version('sklearn', '0.15')
+def test_low_rank_cov(raw_epochs_events):
+    """Test additional properties of low rank computations."""
+    raw, epochs, events = raw_epochs_events
+    sss_proj_rank = 139  # 80 MEG + 60 EEG - 1 proj
+    n_ch = 366
+    proj_rank = 365  # one EEG proj
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        emp_cov = compute_covariance(epochs)
     # Test equivalence with mne.cov.regularize subspace
     with pytest.raises(ValueError, match='are dependent.*must equal'):
         regularize(emp_cov, epochs.info, rank=None, mag=0.1, grad=0.2)
@@ -634,7 +648,7 @@ def test_low_rank():
     assert_allclose(cov_full['data'], cov_dict['data'])
 
     # Work with just EEG data to simplify projection / rank reduction
-    raw.pick_types(meg=False, eeg=True)
+    raw = raw.copy().pick_types(meg=False, eeg=True)
     n_proj = 2
     raw.add_proj(compute_proj_raw(raw, n_eeg=n_proj))
     n_ch = len(raw.ch_names)
