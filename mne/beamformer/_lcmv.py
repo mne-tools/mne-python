@@ -133,6 +133,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                                     noise_rank.get(key, None)))
         del noise_rank
     rank = data_rank
+    logger.info('Making LCMV beamformer with rank %s' % (rank,))
     del data_rank
 
     is_free_ori, ch_names, proj, vertno, G, nn = \

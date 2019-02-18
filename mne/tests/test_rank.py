@@ -72,8 +72,11 @@ def test_rank_estimation():
 
 
 @pytest.mark.slowtest
-@pytest.mark.parametrize('rank_method', ['info', None])
-def test_cov_rank_estimation(rank_method):
+@pytest.mark.parametrize('rank_method, proj', [('info', True),
+                                               ('info', False),
+                                               (None, True),
+                                               (None, False)])
+def test_cov_rank_estimation(rank_method, proj):
     """Test cov rank estimation."""
     # Test that our rank estimation works properly on a simple case
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
@@ -126,7 +129,8 @@ def test_cov_rank_estimation(rank_method):
     ))
 
     for (cov, picks_list, iter_info), scalings in iter_tests:
-        rank = compute_rank(cov, rank_method, scalings, iter_info)
+        rank = compute_rank(cov, rank_method, scalings, iter_info,
+                            proj=proj)
         rank['all'] = sum(rank.values())
         for ch_type, picks in picks_list:
 
@@ -154,11 +158,15 @@ def test_cov_rank_estimation(rank_method):
             expected_rank = n_meg + n_eeg
             if rank_method is None:
                 if not has_sss:  # XXX see below and gh-5146
-                    expected_rank -= n_projs_applied
+                    if proj:
+                        expected_rank -= n_projs_info
+                    else:
+                        expected_rank -= n_projs_applied
             else:
                 # XXX for now it just uses the total count
                 assert rank_method == 'info'
-                expected_rank -= n_projs_info
+                if proj:
+                    expected_rank -= n_projs_info
 
             assert rank[ch_type] == expected_rank
 
