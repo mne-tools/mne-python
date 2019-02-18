@@ -559,6 +559,7 @@ def _cov_rank(cov, info, proj=True):
 
 @pytest.fixture(scope='module')
 def raw_epochs_events():
+    """Create raw, epochs, and events for tests."""
     raw = read_raw_fif(raw_fname).set_eeg_reference(projection=True).crop(0, 3)
     raw = maxwell_filter(raw, regularize=None)  # heavily reduce the rank
     assert raw.info['bads'] == []  # no bads
