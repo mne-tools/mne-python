@@ -111,7 +111,7 @@ def test_read_epochs(cur_system, version, use_info):
             assert epoched_ft.metadata is None
             assert_warning_in_record(pandas_not_found_warning_msg, warn_record)
             if pytestwarning['expected_warning'] is not None:
-                assert_warning_in_record(pytestwarning['message'], warn_record)
+                assert_warning_in_record(pytestwarning['match'], warn_record)
 
     mne_data = mne_epoched.get_data()[:, :, :-1]
     ft_data = epoched_ft.get_data()
