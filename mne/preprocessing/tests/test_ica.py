@@ -159,10 +159,11 @@ def test_ica_rank_reduction(method):
                       n_pca_components=n_pca_components,
                       method=method, max_iter=1).fit(raw, picks=picks)
 
-        rank_before = _compute_rank_int(raw.copy().pick(picks))
+        rank_before = _compute_rank_int(raw.copy().pick(picks), proj=False)
         assert_equal(rank_before, len(picks))
         raw_clean = ica.apply(raw.copy())
-        rank_after = _compute_rank_int(raw_clean.copy().pick(picks))
+        rank_after = _compute_rank_int(raw_clean.copy().pick(picks),
+                                       proj=False)
         # interaction between ICA rejection and PCA components difficult
         # to preduct. Rank_after often seems to be 1 higher then
         # n_pca_components
