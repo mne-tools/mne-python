@@ -267,7 +267,8 @@ class _Renderer(object):
         self.canvas.show()
         app.run()
 
-    def set_camera(self, azimuth, elevation, distance, focalpoint):
+    def set_camera(self, azimuth=None, elevation=None, distance=None,
+                   focalpoint=None):
         """Configure the camera of the scene.
 
         Parameters
@@ -281,10 +282,14 @@ class _Renderer(object):
         focalpoint: tuple
             The focal point of the camera: (x, y, z).
         """
-        self.view.camera.azimuth = azimuth
-        self.view.camera.elevation = elevation
-        self.view.camera.distance = distance
-        self.view.camera.center = focalpoint
+        if azimuth is not None:
+            self.view.camera.azimuth = azimuth
+        if elevation is not None:
+            self.view.camera.elevation = elevation
+        if distance is not None:
+            self.view.camera.distance = distance
+        if focalpoint is not None:
+            self.view.camera.center = focalpoint
 
     def screenshot(self):
         """Take a screenshot of the scene."""
@@ -322,14 +327,15 @@ def _create_quiver(mode, source, destination, view, color,
         md = create_cylinder(rows=resolution, cols=resolution, length=length,
                              radius=[radius, radius])
 
-    arr = scene.visuals.Mesh(meshdata=md, color=color,
-                             shading='flat', parent=view.scene)
-    arr.attach(Alpha(opacity))
-    if backface_culling:
-        arr.set_gl_state(cull_face=True)
-    # apply transform
-    mat = MatrixTransform()
-    if cosangle != 1:
-        mat.rotate(np.degrees(np.arccos(cosangle)), axis)
-    mat.translate(source)
-    arr.transform = mat
+    if md is not None:
+        arr = scene.visuals.Mesh(meshdata=md, color=color,
+                                 shading='flat', parent=view.scene)
+        arr.attach(Alpha(opacity))
+        if backface_culling:
+            arr.set_gl_state(cull_face=True)
+        # apply transform
+        mat = MatrixTransform()
+        if cosangle != 1:
+            mat.rotate(np.degrees(np.arccos(cosangle)), axis)
+        mat.translate(source)
+        arr.transform = mat
