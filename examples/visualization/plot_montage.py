@@ -40,42 +40,41 @@ fix_units = {'EGI_256':'cm', 'GSN-HydroCel-128':'cm', 'GSN-HydroCel-129':'cm',
              'standard_primed':'m'}
 
 # fig = fig if 'fig' in locals() else None
-current_montage = get_builtin_montages()[2]
-# for current_montage in get_builtin_montages():
-good_fig = None
-montage = mne.channels.read_montage(current_montage,
-                                    unit=fix_units[current_montage])
-info = mne.create_info(ch_names=montage.ch_names,
-                        sfreq=1,
-                        ch_types='eeg',
-                        montage=montage)
-#
-good_fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
-                        eeg=['projected'], meg=[],
-                        coord_frame='head', subjects_dir=subjects_dir,
-                        fig=good_fig)
-mlab.view(135, 80)
-mlab.title(montage.kind, figure=good_fig)
+# current_montage = get_builtin_montages()[2]
+for current_montage in get_builtin_montages():
+    good_fig = None
+    montage = mne.channels.read_montage(current_montage,
+                                        unit=fix_units[current_montage])
+    info = mne.create_info(ch_names=montage.ch_names,
+                            sfreq=1,
+                            ch_types='eeg',
+                            montage=montage)
+    #
+    good_fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
+                            eeg=['projected'], meg=[],
+                            coord_frame='head', subjects_dir=subjects_dir,
+                            fig=good_fig)
+    mlab.view(135, 80)
+    mlab.title(montage.kind, figure=good_fig)
 
 ###############################################################################
 # something weird, when the scale is smaller than it should, the points cluster
 # in a really funky manner instead of getting inside the skull
 #
 
-# for current_montage in (_ for _ in get_builtin_montages() if _.startswith('standard')):
-#     fig = None
-#     montage = mne.channels.read_montage(current_montage, unit='cm')
-#     info = mne.create_info(ch_names=montage.ch_names,
-#                            sfreq=1,
-#                            ch_types='eeg',
-#                            montage=montage)
-#     #
-#     fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
-#                          eeg=['projected'], meg=[],
-#                          coord_frame='head', subjects_dir=subjects_dir,
-#                          fig=fig)
-#     mlab.title(montage.kind, figure=fig)
-(Pdb) 
+for current_montage in (_ for _ in get_builtin_montages() if _.startswith('standard')):
+    fig = None
+    montage = mne.channels.read_montage(current_montage, unit='cm')
+    info = mne.create_info(ch_names=montage.ch_names,
+                           sfreq=1,
+                           ch_types='eeg',
+                           montage=montage)
+    #
+    fig = plot_alignment(info, trans=None, subject='fsaverage', dig=False,
+                         eeg=['projected'], meg=[],
+                         coord_frame='head', subjects_dir=subjects_dir,
+                         fig=fig)
+    mlab.title(montage.kind, figure=fig)
 
 
 ###############################################################################
@@ -121,28 +120,28 @@ my_info = mne.create_info(ch_names=my_ch_names,
                           # montage=montage  # no montage 'cos I'll use dig
                           )
 my_info['dig'] = raw.info['dig'].copy()
-broken_fig = plot_alignment(my_info, trans=trans, subject='sample', dig=False,
-                         eeg=['original'], meg=[],
-                         coord_frame='head', subjects_dir=subjects_dir,
-                         fig=None)
-print(broken_fig.children[1].data.points)
+broken_fig = plot_alignment(my_info, trans=trans, subject='sample', dig=True,
+                            eeg=['original'], meg=[],
+                            coord_frame='head', subjects_dir=subjects_dir,
+                            fig=None)
+# print(broken_fig.children[1].data.points)
 
 # Thats what I want
 # EXPECTED_DATA = np.array([_['r'] for _ in my_info['dig']])
 # assert broken_fig.children[1].data.points == EXPECTED_DATA
 
-# Try to put some values in children[1] and see if I see something in the render.
-random_points_idx_in_skull = np.random.choice(a=len(broken_fig.children[0].data.points),
-                                              size=len(broken_fig.children[1].data.points),
-                                              replace=False)
+# # Try to put some values in children[1] and see if I see something in the render.
+# random_points_idx_in_skull = np.random.choice(a=len(broken_fig.children[0].data.points),
+#                                               size=len(broken_fig.children[1].data.points),
+#                                               replace=False)
 
-for idx in range(len(broken_fig.children[1].data.points)):
-    new_value = broken_fig.children[0].data.points[int(random_points_idx_in_skull[idx])]
-    broken_fig.children[1].data.points[idx] = new_value
+# for idx in range(len(broken_fig.children[1].data.points)):
+#     new_value = broken_fig.children[0].data.points[int(random_points_idx_in_skull[idx])]
+#     broken_fig.children[1].data.points[idx] = new_value
 
 
 
-import pdb; pdb.set_trace()
+# import pdb; pdb.set_trace()
 
 ###############################################################################
 # TODO
