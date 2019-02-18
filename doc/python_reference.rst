@@ -488,8 +488,9 @@ Covariance computation
    Covariance
    compute_covariance
    compute_raw_covariance
-   cov.regularize
    cov.compute_whitener
+   cov.prepare_noise_cov
+   cov.regularize
    compute_rank
    make_ad_hoc_cov
    read_cov

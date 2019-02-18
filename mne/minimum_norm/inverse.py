@@ -26,7 +26,7 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         write_coord_trans, write_string)
 
 from ..io.pick import channel_type, pick_info, pick_types
-from ..cov import (_get_whitener, _read_cov, _write_cov, Covariance,
+from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
                    prepare_noise_cov)
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
@@ -559,7 +559,8 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #   Create the whitener
     #
 
-    inv['whitener'], inv['colorer'], _, _ = _get_whitener(inv['noise_cov'])
+    inv['whitener'], _, inv['colorer'] = compute_whitener(
+        inv['noise_cov'], pca='white', return_colorer=True)
 
     #
     #   Finally, compute the noise-normalization factors
@@ -1486,8 +1487,9 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     # For now we always have pca=False. It does not seem to affect calculations
     # and is also backward-compatible with MNE-C
     noise_cov = prepare_noise_cov(noise_cov, info, gain_info['ch_names'], rank)
-    whitener, _, noise_cov, n_nzero = _get_whitener(
-        noise_cov, info, gain_info['ch_names'], rank, pca=False)
+    whitener, _ = compute_whitener(
+        noise_cov, info, gain_info['ch_names'], pca='white')
+    n_nzero = (noise_cov['eig'] > 0).sum()
 
     #
     # 5. Compose the depth-weighting matrix

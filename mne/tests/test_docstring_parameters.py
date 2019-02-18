@@ -19,6 +19,7 @@ public_modules = [
     'mne.beamformer',
     'mne.chpi',
     'mne.connectivity',
+    'mne.cov',
     'mne.cuda',
     'mne.datasets',
     'mne.datasets.brainstorm',
@@ -203,6 +204,7 @@ TimeMixin
 ToDataFrameMixin
 TransformerMixin
 UpdateChannelsMixin
+activate_proj
 adjust_axes
 apply_maxfilter
 apply_trans
@@ -238,6 +240,7 @@ plot_epochs_psd_topomap
 plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
+read_bad_channels
 read_fiducials
 read_tag
 requires_sample_data

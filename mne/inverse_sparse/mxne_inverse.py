@@ -10,7 +10,7 @@ from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference, _check_loose_forward)
-from ..cov import prepare_noise_cov, _get_whitener
+from ..cov import compute_whitener
 from ..forward import (compute_orient_prior, is_fixed_orient,
                        convert_forward_solution)
 from ..io.pick import pick_channels_evoked
@@ -57,9 +57,9 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
 def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
                          weights_min, verbose=None):
     gain_info, gain = _prepare_forward(forward, info, noise_cov)
-    noise_cov = prepare_noise_cov(noise_cov, info, gain_info['ch_names'])
-    whitener, _, _, _ = _get_whitener(
-        noise_cov, info, gain_info['ch_names'], rank=None, pca=pca)
+    space = 'pca' if pca else 'white'
+    whitener, _ = compute_whitener(
+        noise_cov, info, gain_info['ch_names'], space=space)
 
     logger.info('Whitening lead field matrix.')
     gain = np.dot(whitener, gain)

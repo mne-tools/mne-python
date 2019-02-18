@@ -80,8 +80,8 @@ def test_simulate_evoked():
     assert_array_equal(evoked_1.data, evoked_2.data)
 
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
-    pytest.raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
-                  cov, nave=nave, iir_filter=None)
+    with pytest.raises(RuntimeError, match='Not all channels present'):
+        simulate_evoked(fwd, stc, evoked_template.info, cov)
 
 
 # We don't use an avg ref here, but let's ignore it. Also we know we have

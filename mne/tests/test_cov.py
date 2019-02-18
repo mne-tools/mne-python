@@ -45,6 +45,38 @@ ctf_fname = op.join(testing.data_path(download=False), 'CTF',
                     'testdata_ctf.ds')
 
 
+@pytest.mark.parametrize('proj', (True, False))
+@pytest.mark.parametrize('pca', (True, 'white', False))
+def test_compute_whitener(proj, pca):
+    """Test properties of compute_whitener."""
+    raw = read_raw_fif(raw_fname).crop(0, 3).load_data()
+    raw.pick_types(eeg=True, exclude=())
+    if proj:
+        raw.apply_proj()
+    else:
+        raw.del_proj()
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        cov = compute_raw_covariance(raw)
+    W, _, C = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
+                               verbose='error')
+    n_channels = len(raw.ch_names)
+    n_reduced = len(raw.ch_names)
+    rank = n_channels - len(raw.info['projs'])
+    n_reduced = rank if pca is True else n_channels
+    assert W.shape == C.shape[::-1] == (n_reduced, n_channels)
+    # round-trip mults
+    round_trip = np.dot(W, C)
+    if pca is True:
+        assert_allclose(round_trip, np.eye(n_reduced), atol=1e-7)
+    elif pca == 'white':
+        # Our first few rows/cols are zeroed out in the white space
+        assert_allclose(round_trip[-rank:, -rank:],
+                        np.eye(rank), atol=1e-7)
+    else:
+        assert pca is False
+        assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
+
+
 def test_cov_mismatch():
     """Test estimation with MEG<->Head mismatch."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
