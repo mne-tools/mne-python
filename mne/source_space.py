@@ -1486,7 +1486,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     which the grid will be defined. There are three ways of specifying this:
     (i) sphere, (ii) bem model, and (iii) surface.
     The default behavior is to use sphere model
-    (``sphere=(0.0, 0.0, 0.0, 90.0)``) if ``bem`` or ``sourface`` is not
+    (``sphere=(0.0, 0.0, 0.0, 90.0)``) if ``bem`` or ``surface`` is not
     ``None`` then ``sphere`` is ignored.
 
     Parameters
@@ -1511,9 +1511,9 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
         are both None. Can also be a spherical ConductorModel, which will
         use the origin and radius.
-    bem : str | None
+    bem : str | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
-        skull surface).
+        skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
     surface : str | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
         also be a dictionary with entries `'rr'` and `'tris'`, such as
@@ -1599,7 +1599,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     # triage bounding argument
     if bem is not None:
-        logger.info('BEM file              : %s', bem)
+        logger.info('BEM              : %s', bem)
     elif surface is not None:
         if isinstance(surface, dict):
             if not all(key in surface for key in ['rr', 'tris']):
@@ -1651,12 +1651,18 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         sp = _make_discrete_source_space(pos)
     else:
         # Load the brain surface as a template
-        if bem is not None:
+        if isinstance(bem, str):
             # read bem surface in the MRI coordinate frame
             surf = read_bem_surfaces(bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN,
                                      verbose=False)
             logger.info('Loaded inner skull from %s (%d nodes)'
                         % (bem, surf['np']))
+        elif bem is not None and bem.get('is_sphere') is False:
+            # read bem surface in the MRI coordinate frame
+            surf = bem['surfs'][0]
+            assert surf['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
+            logger.info('Taking inner skull from %s'
+                        % bem)
         elif surface is not None:
             if isinstance(surface, str):
                 # read the surface in the MRI coordinate frame
