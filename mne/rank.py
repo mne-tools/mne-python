@@ -206,7 +206,9 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     return out
 
 
-def _get_rank_sss(inst):
+@verbose
+def _get_rank_sss(inst, msg='You should use data-based rank estimate instead',
+                  verbose=None):
     """Look up rank from SSS data.
 
     .. note::
@@ -234,9 +236,8 @@ def _get_rank_sss(inst):
         logger.info('Found multiple SSS records. Using the first.')
     if len(proc_info) == 0 or 'max_info' not in proc_info[0] or \
             'in_order' not in proc_info[0]['max_info']['sss_info']:
-        raise ValueError(
-            'Did not find any SSS record. You should use data-based '
-            'rank estimate instead')
+        raise ValueError('Could not find Maxfilter information in '
+                         'info["proc_history"]. %s' % msg)
     proc_info = proc_info[0]
     max_info = proc_info['max_info']
     inside = max_info['sss_info']['in_order']

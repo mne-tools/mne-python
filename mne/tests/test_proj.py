@@ -19,6 +19,7 @@ from mne.io.proj import (make_projector, activate_proj,
 from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
+from mne.rank import _compute_rank_int
 from mne.utils import _TempDir, run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -352,7 +353,7 @@ def test_sss_proj():
                                 verbose='error')
         this_raw = raw_sss.copy().add_proj(proj).apply_proj()
         assert len(this_raw.info['projs']) == n_proj
-        sss_proj_rank = this_raw.estimate_rank()
+        sss_proj_rank = _compute_rank_int(this_raw)
         cov = compute_raw_covariance(this_raw, verbose='error')
         W, ch_names, rank = compute_whitener(cov, this_raw.info,
                                              return_rank=True)
