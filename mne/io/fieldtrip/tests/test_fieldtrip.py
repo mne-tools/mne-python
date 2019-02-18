@@ -35,7 +35,7 @@ all_test_params_epochs = list(itertools.product(all_systems_epochs,
                                                 use_info))
 
 no_info_warning = {'expected_warning': RuntimeWarning,
-                   'message': NOINFO_WARNING}
+                   'match': NOINFO_WARNING}
 
 
 @testing.requires_testing_data
