@@ -8,8 +8,6 @@ import numpy as np
 from vispy import app, scene
 from vispy.visuals.filters import Alpha
 from vispy.visuals.transforms import STTransform
-from vispy.geometry.generation import create_arrow, create_cylinder
-from vispy.visuals.transforms import MatrixTransform
 
 default_sphere_radius = 0.5
 default_mesh_shininess = 0.0
@@ -297,6 +295,9 @@ def _create_quiver(mode, source, destination, view, color,
                    scale, scale_mode='none',
                    resolution=8, opacity=1.0,
                    backface_culling=False):
+    from vispy.geometry.generation import create_arrow, create_cylinder
+    from vispy.visuals.transforms import MatrixTransform
+
     v1 = destination - source
     vn = np.linalg.norm(v1)
     v1 = v1 / vn

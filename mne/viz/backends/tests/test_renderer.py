@@ -26,9 +26,10 @@ def test_backend_setup():
 
 
 @requires_mayavi
-@pytest.mark.parametrize("backend_name",
-                         ["mayavi", "vispy"])
-def test_3d_backend(backend_name):
+@pytest.mark.parametrize("backend_name, to_show",
+                         [("mayavi", True),
+                          ("vispy", False)])
+def test_3d_backend(backend_name, to_show):
     """Test default plot."""
     set_3d_backend(backend_name)
     from mne.viz.backends.renderer import _Renderer
@@ -96,4 +97,5 @@ def test_3d_backend(backend_name):
     renderer.text(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
     renderer.set_camera(azimuth=180.0, elevation=90.0, distance=cam_distance,
                         focalpoint=center)
-    renderer.show()
+    if to_show:
+        renderer.show()
