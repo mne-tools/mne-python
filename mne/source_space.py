@@ -1482,18 +1482,29 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               add_interpolator=True, verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
-    When you work with a volume source space you need to specify the domain in
-    which the grid will be defined. There are three ways of specifying this:
+    Volume source spaces are related to an MRI image such as T1 and allow to
+    visualize source estimates overlaid on MRIs and to morph estimates
+    to a template brain for group analysis. Discrete source spaces
+    don't allow this. If you provide a subject name the T1 mri will be
+    used by default.
+
+    When you work with a source space formed from a grid you need to specify
+    the domain in which the grid will be defined. There are three ways
+    of specifying this:
     (i) sphere, (ii) bem model, and (iii) surface.
     The default behavior is to use sphere model
     (``sphere=(0.0, 0.0, 0.0, 90.0)``) if ``bem`` or ``surface`` is not
     ``None`` then ``sphere`` is ignored.
+    If you're going to use a BEM conductor model for forward model
+    it is recommended to pass it here.
 
     Parameters
     ----------
     subject : str | None
         Subject to process. If None, the path to the mri volume must be
-        absolute. Defaults to None.
+        absolute to get a volume source space. If a subject name
+        is provided the T1.mgz file will be found automatically.
+        Defaults to None.
     pos : float | dict
         Positions to use for sources. If float, a grid will be constructed
         with the spacing given by `pos` in mm, generating a volume source
@@ -1505,7 +1516,9 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
-        using this interpolator. If pos is a dict, this can be None.
+        using this interpolator. If pos is a dict, this cannot be None.
+        If subject name is provided then the mri will default to 'T1.mgz'
+        else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
@@ -1557,6 +1570,10 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
+
+    if mri is None and subject is not None:
+        mri = 'T1.mgz'
+
     if mri is not None:
         if not op.isfile(mri):
             if subject is None:
