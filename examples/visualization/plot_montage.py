@@ -14,6 +14,7 @@ XXX: things to refer properly:
 # License: BSD (3-clause)
 
 import mne
+import numpy as np
 from mne.datasets import sample
 from mne.channels.montage import _set_montage, get_builtin_montages, Digitization
 from mne.viz import plot_alignment
@@ -30,7 +31,20 @@ def get_foo_dig():
     raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
     return Digitization(dig_list=raw.info['dig'].copy())
 
+# This should be a file distributed in MNE with the transformation
+def get_trans():
+    trans = mne.Transform(fro='head', to='mri')
+    trans['trans'] = np.array([[ 0.99981296, -0.00503971,  0.01867181,  0.00255929],
+                               [ 0.00692004,  0.99475515, -0.10205064, -0.02091804],
+                               [-0.01805957,  0.10216076,  0.99460393, -0.04416016],
+                               [ 0.,          0.,          0.,          1.        ]])
+    return trans
 
+
+
+###############################################################################
+# USER CODE
+#
 
 my_info = mne.create_info(ch_names=[],
                           sfreq=1,
@@ -40,6 +54,11 @@ my_info = mne.create_info(ch_names=[],
 
 trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
 fig = plot_alignment(my_info, trans=trans, subject='sample', dig=True,
+                     eeg=['original'], meg=[],
+                     coord_frame='head', subjects_dir=subjects_dir,
+                     fig=None)
+
+fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage', dig=True,
                      eeg=['original'], meg=[],
                      coord_frame='head', subjects_dir=subjects_dir,
                      fig=None)
