@@ -23,6 +23,7 @@ from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
 from ..time_frequency.psd import psd_multitaper
+from ..utils import _reject_data_segments
 
 
 @fill_doc
@@ -129,7 +130,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                          epoch_var, plot_lowpass_edge, epochs_src,
                          set_title_and_labels, plot_std, psd_ylabel,
                          spectrum_std, topomap_args, image_args, fig, axes,
-                         kind):
+                         kind, dropped_indices):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
     from scipy.stats import gaussian_kde
@@ -142,8 +143,19 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     _plot_ica_topomap(ica, pick, show=False, axes=topo_ax, **topomap_args)
 
     # image and erp
+    # we create a new epoch with dropped rows
+    epoch_data = epochs_src.get_data()
+    epoch_data = np.insert(arr=epoch_data,
+                           obj=(dropped_indices -
+                                np.arange(len(dropped_indices))).astype(int),
+                           values=0.0,
+                           axis=0)
+    from ..epochs import EpochsArray
+    epochs_src = EpochsArray(epoch_data, epochs_src.info, verbose=0)
+
     plot_epochs_image(epochs_src, picks=pick, axes=[image_ax, erp_ax],
-                      combine=None, colorbar=False, show=False, **image_args)
+                      combine=None, colorbar=False, show=False,
+                      **image_args)
 
     # spectrum
     spec_ax.plot(freqs, psds_mean, color='k')
@@ -160,6 +172,12 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     hist_ax = var_ax_divider.append_axes("right", size="33%", pad="2.5%")
     var_ax.scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
                    facecolor=[0, 0, 0], lw=0)
+    # rejected epochs in red
+    var_ax.scatter(dropped_indices, epoch_var[dropped_indices],
+                   alpha=1., facecolor=[1, 0, 0], lw=0)
+    # compute percentage of dropped epochs
+    var_percent = float(len(dropped_indices)) / float(len(epoch_var)) * 100.
+
     var_ax.set_yticks([])
 
     # histogram & histogram
@@ -207,8 +225,10 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.axhline(0, color='k', linewidth=.5)
 
     # epoch variance
-    set_title_and_labels(var_ax, kind + ' variance', kind + ' (index)',
-                         'Arbitrary Units (AU)')
+    var_ax_title = 'Dropped segments : %.2f %%' % var_percent
+    set_title_and_labels(var_ax, var_ax_title,
+                         kind + ' (index)',
+                         'Variance (AU)')
 
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
@@ -237,7 +257,7 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
 @fill_doc
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True):
+                        psd_args=None, figsize=None, show=True, reject='auto'):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -277,6 +297,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         defaults to [7., 6.].
     show : bool
         Show figure if True.
+    reject : 'auto' | dict | None
+        Allows to specify rejection parameters used to drop epochs
+        (or segments if continuous signal is passed as inst).
+        If None, no rejection is applied. The default is 'auto',
+        which applies the rejection parameters used when fitting
+        the ICA object.
 
     Returns
     -------
@@ -290,6 +316,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..preprocessing import ICA
+    from ..io import RawArray
 
     # input checks and defaults
     # -------------------------
@@ -329,17 +356,54 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # calculations
     # ------------
+
     if isinstance(inst, BaseRaw):
+        # when auto, delegate reject to the ica
+        if reject == 'auto':
+            reject = getattr(ica, 'reject_', None)
+        else:
+            pass
+
+        if reject is None:
+            inst_rejected = inst
+            drop_inds = None
+        else:
+            data = inst.get_data()
+            data, drop_inds = _reject_data_segments(data, ica.reject_,
+                                                    flat=None, decim=None,
+                                                    info=inst.info,
+                                                    tstep=2.0)
+            inst_rejected = RawArray(data, inst.info)
+
         # break up continuous signal into segments
         from ..epochs import _segment_raw
+        inst_rejected = _segment_raw(inst_rejected,
+                                     segment_length=2.,
+                                     verbose=False,
+                                     preload=True)
         inst = _segment_raw(inst, segment_length=2., verbose=False,
                             preload=True)
         kind = "Segment"
     else:
+        drop_inds = None
+        inst_rejected = inst
         kind = "Epochs"
 
-    epochs_src = ica.get_sources(inst)
-    ica_data = np.swapaxes(epochs_src.get_data()[:, picks, :], 0, 1)
+    epochs_src = ica.get_sources(inst_rejected)
+    data = epochs_src.get_data()
+
+    ica_data = np.swapaxes(data[:, picks, :], 0, 1)
+
+    # getting dropped epochs indexes
+    if drop_inds is not None:
+        dropped_indices = [(d[0] // len(inst.times)) + 1
+                           for d in drop_inds]
+    else:
+        dropped_indices = []
+
+    # getting ica sources from inst
+    dropped_src = ica.get_sources(inst).get_data()
+    dropped_src = np.swapaxes(dropped_src[:, picks, :], 0, 1)
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
@@ -373,12 +437,24 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         if idx > 0:
             fig, axes = _create_properties_layout(figsize=figsize)
 
+        # we reconstruct an epoch_variance with 0 where indexes where dropped
+        epoch_var = np.var(ica_data[idx], axis=1)
+        drop_var = np.var(dropped_src[idx], axis=1)
+        drop_indices_corrected = \
+            (dropped_indices -
+             np.arange(len(dropped_indices))).astype(int)
+        epoch_var = np.insert(arr=epoch_var,
+                              obj=drop_indices_corrected,
+                              values=drop_var[dropped_indices],
+                              axis=0)
+
         # the actual plot
         fig = _plot_ica_properties(
             pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
-            np.var(ica_data[idx], axis=1), plot_lowpass_edge,
+            epoch_var, plot_lowpass_edge,
             epochs_src, set_title_and_labels, plot_std, psd_ylabel,
-            spectrum_std, topomap_args, image_args, fig, axes, kind)
+            spectrum_std, topomap_args, image_args, fig, axes, kind,
+            dropped_indices)
         all_fig.append(fig)
 
     plt_show(show)

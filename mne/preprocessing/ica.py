@@ -479,6 +479,8 @@ class ICA(ContainsMixin):
         del self.pca_mean_
         if hasattr(self, 'drop_inds_'):
             del self.drop_inds_
+        if hasattr(self, 'reject_'):
+            del self.reject_
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  reject_by_annotation, verbose):
@@ -509,6 +511,7 @@ class ICA(ContainsMixin):
 
         # this will make a copy
         if (reject is not None) or (flat is not None):
+            self.reject_ = reject
             data, self.drop_inds_ = _reject_data_segments(data, reject, flat,
                                                           decim, self.info,
                                                           tstep)
@@ -1563,12 +1566,12 @@ class ICA(ContainsMixin):
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
                         plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True):
+                        psd_args=None, figsize=None, show=True, reject='auto'):
         return plot_ica_properties(self, inst, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   figsize=figsize, show=show)
+                                   figsize=figsize, show=show, reject=reject)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
