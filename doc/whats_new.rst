@@ -67,6 +67,8 @@ Changelog
 
 - Add ``channel_wise`` argument to :func:`mne.io.Raw.apply_function` to allow applying a function on multiple channels at once by `Hubert Banville`_
 
+- Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
+
 Bug
 ~~~
 
