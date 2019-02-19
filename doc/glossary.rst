@@ -41,8 +41,8 @@ MNE-Python core terminology and general concepts
         model. Both are related to the forward model computation and more
         specifically the definion of the conductor model. The
         boundary element model consists of surfaces such as the inner skull,
-        outer skull and outer skill that define compartments of tissues
-        of the head. You can compute the BEM surfaces with
+        outer skull and outer skiln (a.k.a. scalp) that define compartments
+        of tissues of the head. You can compute the BEM surfaces with
         :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
         See :ref:`sphx_glr_auto_tutorials_plot_forward.py` for usage demo.
 

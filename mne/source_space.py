@@ -1485,7 +1485,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     Parameters
     ----------
     subject : str | None
-        Subject to process. If None, the path to the mri volume must be
+        Subject to process. If None, the path to the MRI volume must be
         absolute to get a volume source space. If a subject name
         is provided the T1.mgz file will be found automatically.
         Defaults to None.
@@ -1501,8 +1501,8 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
         using this interpolator. If pos is a dict, this cannot be None.
-        If subject name is provided then the mri will default to 'T1.mgz'
-        else it will stay None.
+        If subject name is provided then the `mri` parameter will
+        default to 'T1.mgz' else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
@@ -1545,7 +1545,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     Volume source spaces are related to an MRI image such as T1 and allow to
     visualize source estimates overlaid on MRIs and to morph estimates
     to a template brain for group analysis. Discrete source spaces
-    don't allow this. If you provide a subject name the T1 mri will be
+    don't allow this. If you provide a subject name the T1 MRI will be
     used by default.
 
     When you work with a source space formed from a grid you need to specify

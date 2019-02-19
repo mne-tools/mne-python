@@ -39,8 +39,8 @@ subject = 'sample'
 #
 # The :term:`BEM` surfaces are the triangulations of the interfaces between
 # different tissues needed for forward computation. These surfaces are for
-# example the inner skull surface, the outer skull surface and the outer skill
-# surface.
+# example the inner skull surface, the outer skull surface and the outer skin
+# surface, a.k.a. scalp surface.
 #
 # Computing the BEM surfaces requires FreeSurfer and makes use of either of
 # the two following command line tools:
