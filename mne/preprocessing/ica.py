@@ -982,7 +982,7 @@ class ICA(ContainsMixin):
                                  'number of time slices.')
             # auto target selection
             if isinstance(inst, BaseRaw):
-                sources, target = _band_pass_filter(self, sources, target,
+                sources, target = _band_pass_filter(inst, sources, target,
                                                     l_freq, h_freq)
 
         scores = _find_sources(sources, target, score_func)
@@ -2352,7 +2352,7 @@ def run_ica(raw, n_components, max_pca_components=100,
 
 
 @verbose
-def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
+def _band_pass_filter(inst, sources, target, l_freq, h_freq, verbose=None):
     """Optionally band-pass filter the data."""
     if l_freq is not None and h_freq is not None:
         logger.info('... filtering ICA sources')
@@ -2360,9 +2360,9 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
         kw = dict(phase='zero-double', filter_length='10s', fir_window='hann',
                   l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
                   fir_design='firwin2')
-        sources = filter_data(sources, ica.info['sfreq'], l_freq, h_freq, **kw)
+        sources = filter_data(sources, inst.info['sfreq'], l_freq, h_freq, **kw)
         logger.info('... filtering target')
-        target = filter_data(target, ica.info['sfreq'], l_freq, h_freq, **kw)
+        target = filter_data(target, inst.info['sfreq'], l_freq, h_freq, **kw)
     elif l_freq is not None or h_freq is not None:
         raise ValueError('Must specify both pass bands')
     return sources, target
