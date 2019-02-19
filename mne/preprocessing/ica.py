@@ -2168,7 +2168,12 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
         if isinstance(node.criterion, float):
             found = list(np.where(np.abs(scores) > node.criterion)[0])
         else:
-            found = list(np.atleast_1d(abs(scores).argsort()[node.criterion]))
+            found = list(np.atleast_1d(
+                    (-abs(scores)).argsort()[node.criterion]))
+            # sort in descending order
+            # or: found = list(np.atleast_1d(
+            # abs(scores).argsort()[::-1][node.criterion]))
+            # less overhead but not 100% (order of same values, nans etc.)
 
         case = (len(found), _pl(found), node.name)
         logger.info('    found %s artifact%s by %s' % case)
