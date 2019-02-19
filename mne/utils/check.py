@@ -433,3 +433,40 @@ def _check_one_ch_type(info, picks, noise_cov, method):
     elif method == 'dics' and sum(ch_types) > 1:
         warn('The use of several sensor types with the DICS beamformer is '
              'not heavily tested yet.')
+
+
+def _check_option(parameter, value, allowed_values, error=ValueError):
+    """Check the value of a parameter against a list of valid options.
+
+    Raises an exception with a readable error message if the value was invalid.
+
+    Parameters
+    ----------
+    parameter : str
+        The name of the parameter to check. This is used in the error message.
+    value : str
+        The value of the parameter to check.
+    allowed_values : list of str
+        The list of allowed values for the parameter.
+    error : type of Exception
+        The error type to raise if the value was invalid. Defaults to
+        ``ValueError``.
+
+    Returns
+    -------
+    is_valid : bool
+        Whether the value was valid or not.
+    """
+    if value in allowed_values:
+        return True
+
+    # Prepare a nice error message for the user
+    msg = ("Invalid value for the '{parameter}' parameter. "
+           "{options}, but got '{value}' instead.")
+    if len(allowed_values) == 1:
+        options = "The only allowed value is '%s'" % allowed_values[0]
+    else:
+        options = "Allowed values are "
+        options += ", ".join(["'%s'" % v for v in allowed_values[:-1]])
+        options += " and '%s'" % allowed_values[-1]
+    raise error(msg.format(parameter=parameter, options=options, value=value))
