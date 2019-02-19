@@ -141,7 +141,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 
 ###############################################################################
 # Obviously here, the sphere is not perfect. It is not restricted to the
-# brain and it misses some parts of the cortex.
+# brain and it can miss some parts of the cortex.
 #
 # To compute a volume based source space defined with a grid of candidate
 # dipoles inside the brain (requires the :term:`BEM` surfaces) you can use the
