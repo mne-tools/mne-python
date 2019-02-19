@@ -324,18 +324,20 @@ def _create_quiver(mode, source, destination, view, color,
         length = scale
     radius = length / 20.0
 
+    meshdata = None
     if mode == 'arrow':
         cone_radius = radius * 3.0
         cone_length = length / 4.0
-        md = create_arrow(rows=resolution, cols=resolution, length=length,
-                          radius=radius, cone_radius=cone_radius,
-                          cone_length=cone_length)
+        meshdata = create_arrow(rows=resolution, cols=resolution,
+                                length=length, radius=radius,
+                                cone_radius=cone_radius,
+                                cone_length=cone_length)
     elif mode == 'cylinder':
-        md = create_cylinder(rows=resolution, cols=resolution, length=length,
-                             radius=[radius, radius])
+        meshdata = create_cylinder(rows=resolution, cols=resolution,
+                                   length=length, radius=[radius, radius])
 
-    if md is not None:
-        arr = scene.visuals.Mesh(meshdata=md, color=color,
+    if meshdata is not None:
+        arr = scene.visuals.Mesh(meshdata=meshdata, color=color,
                                  shading='flat', parent=view.scene)
         arr.attach(Alpha(opacity))
         if backface_culling:
