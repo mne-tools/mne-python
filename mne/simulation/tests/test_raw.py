@@ -336,7 +336,7 @@ def test_simulate_raw_chpi():
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
     sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)
-    src = setup_volume_source_space('sample', sphere=sphere_vol, pos=70.)
+    src = setup_volume_source_space(sphere=sphere_vol, pos=70.)
     stc = _make_stc(raw, src)
     # simulate data with cHPI on
     raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=False,
