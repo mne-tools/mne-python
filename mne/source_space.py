@@ -1501,9 +1501,9 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
         using this interpolator. If pos is a dict, this cannot be None.
-        If subject name is provided, `pos` or `volume_label` are not
-        provided then the `mri` parameter will default to 'T1.mgz' else
-        it will stay None.
+        If subject name is provided, `pos` is a float or `volume_label`
+        are not provided then the `mri` parameter will default to 'T1.mgz'
+        else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
@@ -1573,7 +1573,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                          'specified')
 
     if (mri is None and subject is not None and
-            volume_label is None and pos is None):
+            volume_label is None and isinstance(pos, (float, int))):
         mri = 'T1.mgz'
 
     if volume_label is not None and mri == 'T1.mgz':
