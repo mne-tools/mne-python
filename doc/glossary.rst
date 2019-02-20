@@ -36,6 +36,16 @@ MNE-Python core terminology and general concepts
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
 
+    BEM
+        BEM is the acronym for boundary element method or boundary element
+        model. Both are related to the forward model computation and more
+        specifically the definion of the conductor model. The
+        boundary element model consists of surfaces such as the inner skull,
+        outer skull and outer skiln (a.k.a. scalp) that define compartments
+        of tissues of the head. You can compute the BEM surfaces with
+        :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
+        See :ref:`sphx_glr_auto_tutorials_plot_forward.py` for usage demo.
+
     epochs
         Epochs are chunks of data extracted from raw continuous data. Typically,
         they correspond to the trials of an experimental design.

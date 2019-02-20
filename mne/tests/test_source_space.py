@@ -22,6 +22,7 @@ from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
                               get_volume_labels_from_src,
                               _compare_source_spaces)
 from mne.io.constants import FIFF
+from mne.bem import ConductorModel
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -186,7 +187,8 @@ def test_discrete_source_space():
                         '--pos', temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
         pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
-        src_new = setup_volume_source_space(None, pos=pos_dict)
+        src_new = setup_volume_source_space(pos=pos_dict)
+        assert src_new.kind == 'discrete'
         _compare_source_spaces(src_c, src_new, mode='approx')
         assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
                         rtol=1e-3, atol=1e-6)
@@ -218,10 +220,13 @@ def test_volume_source_space():
     temp_name = op.join(tempdir, 'temp-src.fif')
     surf = read_bem_surfaces(fname_bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN)
     surf['rr'] *= 1e3  # convert to mm
+    bem_surfs = read_bem_surfaces(fname_bem)
+    bem = ConductorModel(is_sphere=False, surfs=bem_surfs)
     # The one in the testing dataset (uses bem as bounds)
-    for bem, surf in zip((fname_bem, None), (None, surf)):
+    for this_bem, this_surf in zip((bem, fname_bem, None),
+                                   (None, None, surf)):
         src_new = setup_volume_source_space(
-            'sample', pos=7.0, bem=bem, surface=surf, mri='T1.mgz',
+            'sample', pos=7.0, bem=this_bem, surface=this_surf,
             subjects_dir=subjects_dir)
         write_source_spaces(temp_name, src_new, overwrite=True)
         src[0]['subject_his_id'] = 'sample'  # XXX: to make comparison pass
