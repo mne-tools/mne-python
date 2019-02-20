@@ -252,7 +252,6 @@ class ICA(ContainsMixin):
               especially during preprocessing [5]_. (But see also [6]_ for a
               possibly confounding effect of the different whitening/sphering
               methods used in this paper (ZCA vs. PCA).)
-              sphering is more commonly called ZCA
               On the other hand, for rank-deficient data such as EEG data after
               average reference or interpolation, it is  recommended to reduce
               the dimensionality (by 1 for  average reference and 1 for each
