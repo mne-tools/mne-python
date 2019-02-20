@@ -343,12 +343,12 @@ def test_sss_proj():
     raw.crop(0, 1.0).load_data().pick_types(exclude=())
     raw.pick_channels(raw.ch_names[:51]).del_proj()
     with pytest.raises(ValueError, match='can only be used with Maxfiltered'):
-        compute_proj_raw(raw, meg='joint')
+        compute_proj_raw(raw, meg='combined')
     raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
     sss_rank = 21  # really low due to channel picking
     assert len(raw_sss.info['projs']) == 0
     for meg, n_proj, want_rank in (('separate', 6, sss_rank),
-                                   ('joint', 3, sss_rank - 3)):
+                                   ('combined', 3, sss_rank - 3)):
         proj = compute_proj_raw(raw_sss, n_grad=3, n_mag=3, meg=meg,
                                 verbose='error')
         this_raw = raw_sss.copy().add_proj(proj).apply_proj()
@@ -359,7 +359,7 @@ def test_sss_proj():
                                              return_rank=True)
         assert ch_names == this_raw.ch_names
         assert want_rank == sss_proj_rank == rank  # proper reduction
-        if meg == 'joint':
+        if meg == 'combined':
             assert this_raw.info['projs'][0]['data']['col_names'] == ch_names
         else:
             mag_names = ch_names[2::3]

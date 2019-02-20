@@ -78,14 +78,15 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
                          exclude='bads')
 
-    if meg not in ('separate', 'joint'):
-        raise ValueError('sss must be "separate" or "joint", got %r' % (meg,))
-    if meg == 'joint':
-        _get_rank_sss(info, msg='sss="joint" can only be used with '
+    if meg not in ('separate', 'combined'):
+        raise ValueError('meg must be "separate" or "combined", '
+                         'got %r' % (meg,))
+    if meg == 'combined':
+        _get_rank_sss(info, msg='meg="combined" can only be used with '
                       'Maxfiltered data', verbose=False)
         if n_grad != n_mag:
             raise ValueError('n_grad (%d) must be equal to n_mag (%d) when '
-                             'using sss="joint"')
+                             'using meg="combined"')
         kinds = ['meg', '', 'eeg']
         n_mag = 0
         grad_ind = pick_types(info, meg=True, ref_meg=False, exclude='bads')
@@ -158,9 +159,9 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         The description prefix to use. If None, one will be created based on
         the event_id, tmin, and tmax.
     meg : str
-        Can be 'separate' (default) or 'joint' to compute projectors
+        Can be 'separate' (default) or 'combined' to compute projectors
         for magnetometers and gradiometers separately or jointly.
-        If 'joint', ``n_mag == n_grad`` is required and the number of
+        If 'combined', ``n_mag == n_grad`` is required and the number of
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
@@ -225,9 +226,9 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
 
         .. versionadded:: 0.17
     meg : str
-        Can be 'separate' (default) or 'joint' to compute projectors
+        Can be 'separate' (default) or 'combined' to compute projectors
         for magnetometers and gradiometers separately or jointly.
-        If 'joint', ``n_mag == n_grad`` is required and the number of
+        If 'combined', ``n_mag == n_grad`` is required and the number of
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
@@ -280,9 +281,9 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     n_jobs : int
         Number of jobs to use to compute covariance.
     meg : str
-        Can be 'separate' (default) or 'joint' to compute projectors
+        Can be 'separate' (default) or 'combined' to compute projectors
         for magnetometers and gradiometers separately or jointly.
-        If 'joint', ``n_mag == n_grad`` is required and the number of
+        If 'combined', ``n_mag == n_grad`` is required and the number of
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18

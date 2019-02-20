@@ -72,7 +72,7 @@ def test_rank_estimation():
 
 
 @pytest.mark.slowtest
-@pytest.mark.parametrize('meg', ('separate', 'joint'))
+@pytest.mark.parametrize('meg', ('separate', 'combined'))
 @pytest.mark.parametrize('rank_method, proj', [('info', True),
                                                ('info', False),
                                                (None, True),
@@ -156,7 +156,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 
             expected_rank = n_meg + n_eeg
             if rank_method is None:
-                if meg == 'joint' or not has_sss:
+                if meg == 'combined' or not has_sss:
                     if proj:
                         expected_rank -= n_projs_info
                     else:
@@ -173,8 +173,8 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, rank_orig', ((hp_fif_fname, 120),
                                               (mf_fif_fname, 67)))
-@pytest.mark.parametrize('n_proj, meg', ((0, 'joint'),
-                                         (10, 'joint'),
+@pytest.mark.parametrize('n_proj, meg', ((0, 'combined'),
+                                         (10, 'combined'),
                                          (10, 'separate')))
 def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
     """Test maxfilter rank lookup."""
