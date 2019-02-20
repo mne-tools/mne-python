@@ -126,7 +126,14 @@ class _Renderer(object):
         """
         vertices = surface['rr']
         tris = surface['tris']
-        levels = np.array(contours)
+
+        if isinstance(contours, int):
+            cmin = min(scalars)
+            cmax = max(scalars)
+            levels = np.linspace(cmin, cmax, num=contours)
+        else:
+            levels = np.array(contours)
+
         iso = scene.visuals.Isoline(vertices=vertices, tris=tris,
                                     width=line_width,
                                     levels=levels, color_lev='winter',
