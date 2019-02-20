@@ -294,6 +294,7 @@ def test_find_ch_connectivity():
 
 
 def test_drop_channels():
+    """Test if dropping channels works with various arguments."""
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
     raw.drop_channels(["MEG 0111"])  # list argument
     raw.drop_channels("MEG 0112")  # str argument
