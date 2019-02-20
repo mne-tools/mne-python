@@ -11,8 +11,8 @@ from ..source_estimate import (SourceEstimate, VolSourceEstimate,
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference, _check_loose_forward)
 from ..cov import compute_whitener
-from ..forward import (compute_orient_prior, is_fixed_orient,
-                       convert_forward_solution)
+from ..forward import (compute_orient_prior, compute_depth_prior,
+                       is_fixed_orient, convert_forward_solution)
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose
@@ -54,9 +54,22 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
 
 
 @verbose
-def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
-                         weights_min, verbose=None):
-    gain_info, gain = _prepare_forward(forward, info, noise_cov)
+def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
+                  weights_min, verbose=None):
+    if not isinstance(depth, float):
+        raise ValueError('Invalid depth parameter. '
+                         'A float is required (got %s).'
+                         % type(depth))
+    elif depth < 0.0:
+        raise ValueError('Depth parameter must be positive (got %s).'
+                         % depth)
+
+    # XXX need allow_fixed_depth=True and depth=depth here,
+    # and actually need to use the other outputs (depth, orient priors)
+    forward, gain_info, gain = _prepare_forward(
+        forward, info, noise_cov, 'auto', loose, depth=None,
+        use_cps=True, limit_depth_chs=False, loose_method='sum',
+        limit=None, allow_fixed_depth=False)[:3]
     whitener, _ = compute_whitener(
         noise_cov, info, gain_info['ch_names'], pca=True if pca else 'white')
 
@@ -64,19 +77,12 @@ def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
     gain = np.dot(whitener, gain)
     is_fixed_ori = is_fixed_orient(forward)
 
+    source_weighting = np.ones(gain.shape[1], gain.dtype)
     if depth is not None:
-        depth_prior = np.sum(gain ** 2, axis=0)
-        if not is_fixed_ori:
-            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)
-        # Spherical leadfield can be zero at the center
-        depth_prior[depth_prior == 0.] = np.min(
-            depth_prior[depth_prior != 0.])
-        depth_prior **= depth
-        if not is_fixed_ori:
-            depth_prior = np.repeat(depth_prior, 3)
-        source_weighting = np.sqrt(1. / depth_prior)
-    else:
-        source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
+        depth_prior = compute_depth_prior(
+            gain, gain_info, is_fixed_ori, exp=depth, limit=None,
+            loose_method='sum')
+        source_weighting *= np.sqrt(depth_prior)
 
     assert (is_fixed_ori or (0 <= loose <= 1))
     if loose is not None and loose < 1.:
@@ -90,23 +96,6 @@ def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
         gain, source_weighting, mask = _prepare_weights(forward, gain,
                                                         source_weighting,
                                                         weights, weights_min)
-
-    return gain, gain_info, whitener, source_weighting, mask
-
-
-def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
-                  weights_min, verbose=None):
-    if not isinstance(depth, float):
-        raise ValueError('Invalid depth parameter. '
-                         'A float is required (got %s).'
-                         % type(depth))
-    elif depth < 0.0:
-        raise ValueError('Depth parameter must be positive (got %s).'
-                         % depth)
-
-    gain, gain_info, whitener, source_weighting, mask = \
-        _prepare_gain_column(forward, info, noise_cov, pca, depth,
-                             loose, weights, weights_min)
 
     return gain, gain_info, whitener, source_weighting, mask
 
@@ -213,8 +202,8 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
             i_ori = i_ori.repeat(len(times), axis=0)
         else:
             if forward['surf_ori']:
-                X_ = np.dot(forward['source_nn'][i_dip *
-                            n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
+                X_ = np.dot(forward['source_nn'][
+                    i_dip * n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
 
             amplitude = np.sqrt(np.sum(X_ ** 2, axis=0))
             i_ori = np.zeros((len(times), 3))
@@ -471,7 +460,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
         if return_residual:
             residual.append(_compute_residual(forward, e, Xe, active_set,
-                            gain_info))
+                                              gain_info))
 
     logger.info('[done]')
 

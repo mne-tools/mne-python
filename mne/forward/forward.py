@@ -1003,7 +1003,8 @@ def _restrict_gain_matrix(G, info):
 
 
 def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
-                        patch_areas=None, limit_depth_chs=False):
+                        patch_areas=None, limit_depth_chs=False,
+                        loose_method='svd'):
     """Compute weighting for depth prior."""
     logger.info('Creating the depth weighting matrix...')
 
@@ -1012,8 +1013,10 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         G = _restrict_gain_matrix(G, gain_info)
 
     # Compute the gain matrix
-    if is_fixed_ori:
+    if is_fixed_ori or loose_method == 'sum':
         d = np.sum(G ** 2, axis=0)
+        if not is_fixed_ori:
+            d = d.reshape(-1, 3).sum(axis=1)
     else:
         n_pos = G.shape[1] // 3
         d = np.zeros(n_pos)
@@ -1028,29 +1031,32 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                     'weighting')
 
     w = 1.0 / d
-    ws = np.sort(w)
-    weight_limit = limit ** 2
-    if limit_depth_chs is False:
-        # match old mne-python behavor
-        ind = np.argmin(ws)
-        n_limit = ind
-        limit = ws[ind] * weight_limit
-        wpp = (np.minimum(w / limit, 1)) ** exp
-    else:
-        # match C code behavior
-        limit = ws[-1]
-        n_limit = len(d)
-        if ws[-1] > weight_limit * ws[0]:
-            ind = np.where(ws > weight_limit * ws[0])[0][0]
-            limit = ws[ind]
+    if limit is not None:
+        ws = np.sort(w)
+        weight_limit = limit ** 2
+        if limit_depth_chs is False:
+            # match old mne-python behavor
+            ind = np.argmin(ws)
             n_limit = ind
+            limit = ws[ind] * weight_limit
+            wpp = (np.minimum(w / limit, 1)) ** exp
+        else:
+            # match C code behavior
+            limit = ws[-1]
+            n_limit = len(d)
+            if ws[-1] > weight_limit * ws[0]:
+                ind = np.where(ws > weight_limit * ws[0])[0][0]
+                limit = ws[ind]
+                n_limit = ind
 
-    logger.info('    limit = %d/%d = %f'
-                % (n_limit + 1, len(d),
-                   np.sqrt(limit / ws[0])))
-    scale = 1.0 / limit
-    logger.info('    scale = %g exp = %g' % (scale, exp))
-    wpp = np.minimum(w / limit, 1) ** exp
+        logger.info('    limit = %d/%d = %f'
+                    % (n_limit + 1, len(d),
+                       np.sqrt(limit / ws[0])))
+        scale = 1.0 / limit
+        logger.info('    scale = %g exp = %g' % (scale, exp))
+        wpp = np.minimum(w / limit, 1) ** exp
+    else:
+        wpp = w ** exp
 
     depth_prior = wpp if is_fixed_ori else np.repeat(wpp, 3)
 
