@@ -178,9 +178,9 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
     coil as separate channels in the dataset.
-    HLC001[123]-\\* - nasion
-    HLC002[123]-\\* - lpa
-    HLC003[123]-\\* - rpa
+    HLC001[123]\\* - nasion
+    HLC002[123]\\* - lpa
+    HLC003[123]\\* - rpa
     """
     # Pick channels cooresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
