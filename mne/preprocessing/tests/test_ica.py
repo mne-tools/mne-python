@@ -708,7 +708,6 @@ def test_ica_twice(method):
 def test_fit_params(method):
     """Test fit_params for ICA."""
     _skip_check_picard(method)
-    pytest.raises(ValueError, ICA, fit_params=dict(extended=True))
     fit_params = {}
     ICA(fit_params=fit_params, method=method)  # test no side effects
     assert_equal(fit_params, {})
