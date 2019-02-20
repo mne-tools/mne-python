@@ -293,6 +293,7 @@ def test_plot_compare_evokeds():
                          ylim=dict(mag=(1, 10)), ci=_parametric_ci,
                          truncate_yaxis='max_ticks', show_sensors=False,
                          show_legend=False)
+    plt.close('all')
 
     # sequential colors
     evokeds = (evoked, blue, red)
@@ -318,10 +319,20 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
                          split_legend=None)
     plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    pytest.raises(ValueError, plot_compare_evokeds, [red] * 20)
-    pytest.raises(ValueError, plot_compare_evokeds, contrasts,
-                  cmap='summer')
+    with pytest.raises(ValueError, match='more than [1-9]'):
+        plot_compare_evokeds([red] * 20)
+    with pytest.raises(ValueError, match='must specify the colors'):
+        plot_compare_evokeds(contrasts, cmap='summer')
+    plt.close('all')
 
+    # smoke test for tmin >= 0 (from mailing list)
+    red.crop(0.01, None)
+    assert len(red.times) > 2
+    plot_compare_evokeds(red)
+    # smoke test for one time point (not useful but should not fail)
+    red.crop(0.01, 0.01)
+    assert len(red.times) == 1
+    plot_compare_evokeds(red)
     plt.close('all')
 
 

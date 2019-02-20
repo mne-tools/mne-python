@@ -1862,8 +1862,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     info = one_evoked.info
     tmin, tmax = times[0], times[-1]
 
-    if vlines == "auto" and (tmin < 0 and tmax > 0):
-        vlines = [0.]
+    if vlines == "auto":
+        vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
     picks = [] if picks is None else picks

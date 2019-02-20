@@ -2316,6 +2316,8 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
     axes.set_xticks(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
+    if len(x_extrema) == 0:  # can happen with one time point
+        x_extrema = [tmin, tmax]
     if truncate_xaxis is True:
         axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
     else:
@@ -2328,7 +2330,8 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     if invert_y:
         axes.invert_yaxis()
     axes.spines['right'].set_color('none')
-    axes.set_xlim(tmin, tmax)
+    if tmin != tmax:
+        axes.set_xlim(tmin, tmax)
     if truncate_xaxis is False:
         axes.axis("tight")
         axes.set_autoscale_on(False)
