@@ -1066,7 +1066,7 @@ class ICA(ContainsMixin):
                 idx_unique.remove(i)
         if len(scores) == 1:
             scores = scores[0]
-        labels[prefix] = list(idx)
+        labels = list(idx)
 
         return labels, scores
 
@@ -1174,7 +1174,7 @@ class ICA(ContainsMixin):
         elif method == 'correlation':
             if threshold is None:
                 threshold = 3.0
-            self.labels_, scores = self._find_bads_ch(
+            self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
                 reject_by_annotation=reject_by_annotation)
@@ -1244,7 +1244,7 @@ class ICA(ContainsMixin):
             inds = pick_channels(inst.ch_names, ch_name)
         ref_chs = [inst.ch_names[k] for k in inds]
 
-        self.labels_, scores = self._find_bads_ch(
+        self.labels_['ref_meg'], scores = self._find_bads_ch(
             inst, ref_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="ref_meg",
             reject_by_annotation=reject_by_annotation)
@@ -1306,7 +1306,7 @@ class ICA(ContainsMixin):
             logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
         eog_chs = [inst.ch_names[k] for k in eog_inds]
 
-        self.labels_, scores = self._find_bads_ch(
+        self.labels_['eog'], scores = self._find_bads_ch(
             inst, eog_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="eog",
             reject_by_annotation=reject_by_annotation)
