@@ -319,7 +319,7 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
                          split_legend=None)
     plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    with pytest.raises(ValueError, match='more than 10'):
+    with pytest.raises(ValueError, match='more than [1-9]'):
         plot_compare_evokeds([red] * 20)
     with pytest.raises(ValueError, match='must specify the colors'):
         plot_compare_evokeds(contrasts, cmap='summer')
