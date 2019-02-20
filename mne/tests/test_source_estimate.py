@@ -804,9 +804,9 @@ def test_mixed_stc():
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-@pytest.mark.parametrize('class_',
+@pytest.mark.parametrize('klass',
                          (VectorSourceEstimate, VolVectorSourceEstimate))
-def test_vec_stc(class_):
+def test_vec_stc(klass):
     """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
@@ -821,13 +821,13 @@ def test_vec_stc(class_):
         [3, 0, 0],
         [1, 1, 1],
     ])[:, :, np.newaxis]
-    if class_ is VolVectorSourceEstimate:
+    if klass is VolVectorSourceEstimate:
         src = [dict(nn=nn)]
         verts = np.arange(4)
     else:
         src = [dict(nn=nn[:2]), dict(nn=nn[2:])]
         verts = [np.array([0, 1]), np.array([0, 1])]
-    stc = class_(data, verts, 0, 1, 'foo')
+    stc = klass(data, verts, 0, 1, 'foo')
 
     # Magnitude of the vectors
     assert_array_equal(stc.magnitude().data[:, 0], [1, 2, 3, np.sqrt(3)])
@@ -836,14 +836,14 @@ def test_vec_stc(class_):
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
 
-    stc = class_(data[:, :, 0], verts, 0, 1)  # upbroadcast
+    stc = klass(data[:, :, 0], verts, 0, 1)  # upbroadcast
     assert stc.data.shape == (len(data), 3, 1)
     # Bad data
     with pytest.raises(ValueError, match='of length 3'):
-        class_(data[:, :2], verts, 0, 1)
+        klass(data[:, :2], verts, 0, 1)
     data = data[:, :, np.newaxis]
     with pytest.raises(ValueError, match='3 dimensions for .*VectorSource'):
-        class_(data, verts, 0, 1)
+        klass(data, verts, 0, 1)
 
 
 @testing.requires_testing_data

@@ -408,11 +408,11 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
     elif src_type in ('volume', 'discrete'):
         if vector:
             data = data.reshape((-1, 3, data.shape[-1]))
-            class_ = VolVectorSourceEstimate
+            klass = VolVectorSourceEstimate
         else:
-            class_ = VolSourceEstimate
-        stc = class_(data, vertices=vertices, tmin=tmin, tstep=tstep,
-                     subject=subject)
+            klass = VolSourceEstimate
+        stc = klass(data, vertices=vertices, tmin=tmin, tstep=tstep,
+                    subject=subject)
     elif src_type == 'mixed':
         # make a mixed source estimate
         if vector:
