@@ -73,7 +73,7 @@ times = np.arange(0.05, 0.151, 0.05)
 evoked_r_aud.plot_topomap(times=times, ch_type='mag', time_unit='s')
 
 ###############################################################################
-# Or we can automatically select the peaks.
+# Or we can select automatically the peaks.
 evoked_r_aud.plot_topomap(times='peaks', ch_type='mag', time_unit='s')
 
 ###############################################################################
