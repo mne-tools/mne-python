@@ -472,6 +472,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         The shape of the data. A tuple of int (n_dipoles, n_times).
     """
 
+    _data_ndim = 2
+
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):  # noqa: D102
@@ -484,6 +486,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             if kernel.shape[1] != sens_data.shape[0]:
                 raise ValueError('kernel and sens_data have invalid '
                                  'dimensions')
+            if sens_data.ndim != 2:
+                raise ValueError('The sensor data must have 2 dimensions, got '
+                                 '%s' % (sens_data.ndim,))
 
         if isinstance(vertices, list):
             vertices = [np.asarray(v, int) for v in vertices]
@@ -501,9 +506,16 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             raise ValueError('Vertices must be a list or numpy array')
 
         # safeguard the user against doing something silly
-        if data is not None and data.shape[0] != n_src:
-            raise ValueError('Number of vertices (%i) and stc.shape[0] (%i) '
-                             'must match' % (n_src, data.shape[0]))
+        if data is not None:
+            if data.shape[0] != n_src:
+                raise ValueError('Number of vertices (%i) and stc.shape[0] '
+                                 '(%i) must match' % (n_src, data.shape[0]))
+            if data.ndim == self._data_ndim - 1:  # allow upbroadcasting
+                data = data[..., np.newaxis]
+            if data.ndim != self._data_ndim:
+                raise ValueError('Data (shape %s) must have %s dimensions for '
+                                 '%s' % (data.shape, self._data_ndim,
+                                         self.__class__.__name__))
 
         self._data = data
         self._tmin = tmin
@@ -1866,6 +1878,17 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
     """
+
+    _data_ndim = 3
+
+    @verbose
+    def __init__(self, data, vertices=None, tmin=None, tstep=None,
+                 subject=None, verbose=None):  # noqa: D102
+        super().__init__(data, vertices, tmin, tstep, subject, verbose)
+        if self._data is not None and self._data.shape[1] != 3:
+            raise ValueError('Data for VectorSourceEstimate must have second '
+                             'dimension of length 3, got length %s'
+                             % (self._data.shape[1],))
 
     @verbose
     def save(self, fname, ftype='h5', verbose=None):

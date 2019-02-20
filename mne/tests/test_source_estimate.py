@@ -297,6 +297,14 @@ def test_stc_attributes():
     stc._data = None
     assert_equal(stc.shape, (2, 3))
 
+    # bad size of data
+    stc = _fake_stc()
+    data = stc.data[:, np.newaxis, :]
+    with pytest.raises(ValueError, match='2 dimensions for SourceEstimate'):
+        SourceEstimate(data, stc.vertices)
+    stc = SourceEstimate(data[:, 0, 0], stc.vertices, 0, 1)
+    assert stc.data.shape == (len(data), 1)
+
 
 def test_io_stc():
     """Test IO for STC files."""
@@ -597,6 +605,10 @@ def test_transform_data():
                                             tmin_idx=tmin_idx,
                                             tmax_idx=tmax_idx)
             assert_allclose(data_f, stc_data_t)
+    # bad sens_data
+    sens_data = sens_data[..., np.newaxis]
+    with pytest.raises(ValueError, match='sensor data must have 2'):
+        VolSourceEstimate((kernel, sens_data), vertices)
 
 
 def test_transform():
@@ -817,6 +829,15 @@ def test_vec_stc():
     # Vector components projected onto the vertex normals
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
+
+    stc = VectorSourceEstimate(data[:, :, 0], verts, 0, 1)  # upbroadcast
+    assert stc.data.shape == (len(data), 3, 1)
+    # Bad data
+    with pytest.raises(ValueError, match='of length 3'):
+        VectorSourceEstimate(data[:, :2], verts, 0, 1)
+    data = data[:, :, np.newaxis]
+    with pytest.raises(ValueError, match='3 dimensions for VectorSource'):
+        VectorSourceEstimate(data, verts, 0, 1)
 
 
 @testing.requires_testing_data
