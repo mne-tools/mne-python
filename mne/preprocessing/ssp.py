@@ -31,7 +31,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       average, filter_length, n_jobs, ch_name,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
-                      filter_method, iir_params, return_drop_log, copy):
+                      filter_method, iir_params, return_drop_log, copy,
+                      meg, verbose):
     """Compute SSP/PCA projections for ECG or EOG artifacts."""
     raw = raw.copy() if copy else raw
     del copy
@@ -124,10 +125,10 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     if average:
         evoked = epochs.average()
         ev_projs = compute_proj_evoked(evoked, n_grad=n_grad, n_mag=n_mag,
-                                       n_eeg=n_eeg)
+                                       n_eeg=n_eeg, meg=meg)
     else:
         ev_projs = compute_proj_epochs(epochs, n_grad=n_grad, n_mag=n_mag,
-                                       n_eeg=n_eeg, n_jobs=n_jobs)
+                                       n_eeg=n_eeg, n_jobs=n_jobs, meg=meg)
 
     for p in ev_projs:
         p['desc'] = mode + "-" + p['desc']
@@ -147,7 +148,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold='auto', filter_method='fir',
                      iir_params=None, copy=True, return_drop_log=False,
-                     verbose=None):
+                     meg='separate', verbose=None):
     """Compute SSP/PCA projections for ECG artifacts.
 
     .. note:: raw data will be loaded if it is not already.
@@ -214,6 +215,13 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         If True, return the drop log.
 
         .. versionadded:: 0.15
+    meg : str
+        Can be 'separate' (default) or 'combined' to compute projectors
+        for magnetometers and gradiometers separately or jointly.
+        If 'combined', ``n_mag == n_grad`` is required and the number of
+        projectors computed for MEG will be ``n_mag``.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -241,7 +249,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         'ECG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
         l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart,
-        qrs_threshold, filter_method, iir_params, return_drop_log, copy)
+        qrs_threshold, filter_method, iir_params, return_drop_log, copy,
+        meg, verbose)
 
 
 @verbose
@@ -253,7 +262,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
                      eog_h_freq=10, tstart=0., filter_method='fir',
                      iir_params=None, ch_name=None, copy=True,
-                     return_drop_log=False, verbose=None):
+                     return_drop_log=False, meg='separate', verbose=None):
     """Compute SSP/PCA projections for EOG artifacts.
 
     .. note:: raw data must be preloaded.
@@ -316,6 +325,13 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         If True, return the drop log.
 
         .. versionadded:: 0.15
+    meg : str
+        Can be 'separate' (default) or 'combined' to compute projectors
+        for magnetometers and gradiometers separately or jointly.
+        If 'combined', ``n_mag == n_grad`` is required and the number of
+        projectors computed for MEG will be ``n_mag``.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -343,4 +359,5 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         'EOG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
         l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
-        'auto', filter_method, iir_params, return_drop_log, copy)
+        'auto', filter_method, iir_params, return_drop_log, copy, meg,
+        verbose)

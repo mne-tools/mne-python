@@ -16,6 +16,7 @@ from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
 from .source_estimate import SourceEstimate, VolSourceEstimate
 from .io.proj import make_projector, make_eeg_average_ref_proj
+from .rank import _get_rank_sss
 
 
 def read_proj(fname):
@@ -70,11 +71,31 @@ def write_proj(fname, projs):
 
 
 @verbose
-def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
-    mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
+def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
+                  meg='separate', verbose=None):
     grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
+    mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
                          exclude='bads')
+
+    if meg not in ('separate', 'combined'):
+        raise ValueError('meg must be "separate" or "combined", '
+                         'got %r' % (meg,))
+    if meg == 'combined':
+        _get_rank_sss(info, msg='meg="combined" can only be used with '
+                      'Maxfiltered data', verbose=False)
+        if n_grad != n_mag:
+            raise ValueError('n_grad (%d) must be equal to n_mag (%d) when '
+                             'using meg="combined"')
+        kinds = ['meg', '', 'eeg']
+        n_mag = 0
+        grad_ind = pick_types(info, meg=True, ref_meg=False, exclude='bads')
+        if (n_grad > 0) and len(grad_ind) == 0:
+            logger.info("No MEG channels found for joint estimation. "
+                        "Forcing n_grad=n_mag=0")
+            n_grad = 0
+    else:
+        kinds = ['planar', 'axial', 'eeg']
 
     if (n_grad > 0) and len(grad_ind) == 0:
         logger.info("No gradiometers found. Forcing n_grad to 0")
@@ -95,7 +116,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
     for n, ind, names, desc in zip([n_grad, n_mag, n_eeg],
                                    [grad_ind, mag_ind, eeg_ind],
                                    [grad_names, mag_names, eeg_names],
-                                   ['planar', 'axial', 'eeg']):
+                                   kinds):
         if n == 0:
             continue
         data_ind = data[ind][:, ind]
@@ -119,7 +140,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 
 @verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
-                        desc_prefix=None, verbose=None):
+                        desc_prefix=None, meg='separate', verbose=None):
     """Compute SSP (spatial space projection) vectors on Epochs.
 
     Parameters
@@ -137,6 +158,13 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         the event_id, tmin, and tmax.
+    meg : str
+        Can be 'separate' (default) or 'combined' to compute projectors
+        for magnetometers and gradiometers separately or jointly.
+        If 'combined', ``n_mag == n_grad`` is required and the number of
+        projectors computed for MEG will be ``n_mag``.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -159,7 +187,8 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         event_id = 'Multiple-events'
     if desc_prefix is None:
         desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
-    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
+    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix,
+                         meg=meg)
 
 
 def _compute_cov_epochs(epochs, n_jobs):
@@ -178,7 +207,7 @@ def _compute_cov_epochs(epochs, n_jobs):
 
 @verbose
 def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
-                        verbose=None):
+                        meg='separate', verbose=None):
     """Compute SSP (spatial space projection) vectors on Evoked.
 
     Parameters
@@ -196,6 +225,13 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
         tmin and tmax.
 
         .. versionadded:: 0.17
+    meg : str
+        Can be 'separate' (default) or 'combined' to compute projectors
+        for magnetometers and gradiometers separately or jointly.
+        If 'combined', ``n_mag == n_grad`` is required and the number of
+        projectors computed for MEG will be ``n_mag``.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -210,12 +246,14 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     if desc_prefix is None:
         desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
-    return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix)
+    return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix,
+                         meg=meg)
 
 
 @verbose
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
-                     n_eeg=0, reject=None, flat=None, n_jobs=1, verbose=None):
+                     n_eeg=0, reject=None, flat=None, n_jobs=1, meg='separate',
+                     verbose=None):
     """Compute SSP (spatial space projection) vectors on Raw.
 
     Parameters
@@ -242,6 +280,13 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         Epoch flat configuration (see Epochs).
     n_jobs : int
         Number of jobs to use to compute covariance.
+    meg : str
+        Can be 'separate' (default) or 'combined' to compute projectors
+        for magnetometers and gradiometers separately or jointly.
+        If 'combined', ``n_mag == n_grad`` is required and the number of
+        projectors computed for MEG will be ``n_mag``.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -277,7 +322,8 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         stop = stop / raw.info['sfreq']
 
     desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
-    projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix)
+    projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
+                          meg=meg)
     return projs
 
 
