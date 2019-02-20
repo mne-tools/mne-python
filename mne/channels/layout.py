@@ -20,7 +20,7 @@ from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import _clean_names, warn, _check_ch_locs, fill_doc
+from ..utils import _clean_names, warn, _check_ch_locs, fill_doc, _check_option
 from .channels import _get_ch_info
 
 
@@ -382,10 +382,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
     layout : Layout instance | None
         None if layout not found.
     """
-    our_types = ' or '.join(['`None`', '`mag`', '`grad`', '`meg`'])
-    if ch_type not in (None, 'meg', 'mag', 'grad', 'eeg'):
-        raise ValueError('Invalid channel type (%s) requested '
-                         '`ch_type` must be %s' % (ch_type, our_types))
+    _check_option('ch_type', ch_type, [None, 'mag', 'grad', 'meg', 'eeg'])
 
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
