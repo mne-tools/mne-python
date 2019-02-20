@@ -52,6 +52,13 @@ def test_3d_backend(backend_name, to_show):
     sph_color = (1, 0, 0)
     sph_scale = tet_size / 3.0
 
+    ct_scalars = np.array([0.0, 0.0, 0.0, 1.0])
+    ct_levels = [0.2, 0.4, 0.6, 0.8]
+    ct_surface = {
+        "rr": sph_center,
+        "tris": tet_indices
+    }
+
     qv_mode = "arrow"
     qv_color = (0, 0, 1)
     qv_scale = tet_size / 2.0
@@ -77,6 +84,10 @@ def test_3d_backend(backend_name, to_show):
     renderer.mesh(x=tet_x, y=tet_y, z=tet_z,
                   triangles=tet_indices,
                   color=tet_color)
+
+    # use contour
+    renderer.contour(surface=ct_surface, scalars=ct_scalars,
+                     contours=ct_levels)
 
     # use sphere
     renderer.sphere(center=sph_center, color=sph_color,

@@ -51,7 +51,7 @@ class _Renderer(object):
             self.canvas = fig
         self.view = self.canvas.central_widget.add_view()
         self.view.camera = \
-            scene.cameras.TurntableCamera(interactive=False, fov=60,
+            scene.cameras.TurntableCamera(interactive=True, fov=60,
                                           azimuth=180.0, elevation=0.0,
                                           distance=0.5,
                                           parent=self.view.scene)
@@ -124,7 +124,14 @@ class _Renderer(object):
         colormap:
             The colormap to use.
         """
-        # TODO
+        vertices = surface['rr']
+        tris = surface['tris']
+        levels = np.array(contours)
+        iso = scene.visuals.Isoline(vertices=vertices, tris=tris,
+                                    width=line_width,
+                                    levels=levels, color_lev='winter',
+                                    data=scalars, parent=self.view.scene)
+        iso.attach(Alpha(opacity))
         return 0
 
     def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,
