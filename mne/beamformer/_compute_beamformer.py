@@ -7,116 +7,21 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import operator
 
 import numpy as np
 from scipy import linalg
 
 from ..cov import Covariance
+from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.proj import make_projector, Projection
-from ..io.pick import (pick_channels_forward, pick_info)
+from ..io.pick import pick_channels_forward
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, warn, verbose, check_fname, _reg_pinv
-from ..channels.channels import _contains_ch_type
+from ..utils import verbose, check_fname, _reg_pinv
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
-
-
-def _check_rank(rank):
-    """Check rank parameter and deal with deprecation."""
-    if isinstance(rank, str):
-        # XXX we can use rank='' to deprecate to get to None eventually:
-        # if rank == '':
-        #     warn('The rank parameter default in 0.18 of "full" will change '
-        #          'to None in 0.19, set it explicitly to avoid this warning',
-        #          DeprecationWarning)
-        #     rank = 'full'
-        if rank != 'full':
-            raise ValueError('rank, if str, must be "full", got %s' % (rank,))
-    elif rank is not None and not isinstance(rank, dict):
-        try:
-            rank = int(operator.index(rank))
-        except TypeError:
-            raise TypeError('rank must be None, dict, "full", or int-like, '
-                            'got %s (type %s)' % (rank, type(rank)))
-    return rank
-
-
-def _setup_picks(info, forward, data_cov=None, noise_cov=None):
-    """Return good channels common to forward model and covariance matrices."""
-    # get a list of all channel names:
-    fwd_ch_names = forward['info']['ch_names']
-
-    # handle channels from forward model and info:
-    ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
-
-    # inform about excluding channels:
-    if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
-            (len(set(ch_names).intersection(data_cov['bads'])) > 0)):
-        logger.info('info["bads"] and data_cov["bads"] do not match, '
-                    'excluding bad channels from both.')
-    if (noise_cov is not None and
-            set(info['bads']) != set(noise_cov['bads']) and
-            (len(set(ch_names).intersection(noise_cov['bads'])) > 0)):
-        logger.info('info["bads"] and noise_cov["bads"] do not match, '
-                    'excluding bad channels from both.')
-
-    # handle channels from data cov if data cov is not None
-    # Note: data cov is supposed to be None in tf_lcmv
-    if data_cov is not None:
-        ch_names = _compare_ch_names(ch_names, data_cov.ch_names,
-                                     data_cov['bads'])
-
-    # handle channels from noise cov if noise cov available:
-    if noise_cov is not None:
-        ch_names = _compare_ch_names(ch_names, noise_cov.ch_names,
-                                     noise_cov['bads'])
-
-    picks = [info['ch_names'].index(k) for k in ch_names if k in
-             info['ch_names']]
-    return picks
-
-
-def _compare_ch_names(names1, names2, bads):
-    """Return channel names of common and good channels."""
-    ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
-    return ch_names
-
-
-def _check_one_ch_type(info, picks, noise_cov, method):
-    """Check number of sensor types and presence of noise covariance matrix."""
-    info_pick = pick_info(info, sel=picks)
-    ch_types =\
-        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
-    if method == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
-        raise ValueError('Source reconstruction with several sensor types '
-                         'requires a noise covariance matrix to be '
-                         'able to apply whitening.')
-    elif method == 'dics' and sum(ch_types) > 1:
-        warn('The use of several sensor types with the DICS beamformer is '
-             'not heavily tested yet.')
-
-
-def _pick_channels_spatial_filter(ch_names, filters):
-    """Return data channel indices to be used with spatial filter.
-
-    Unlike ``pick_channels``, this respects the order of ch_names.
-    """
-    sel = []
-    # first check for channel discrepancies between filter and data:
-    for ch_name in filters['ch_names']:
-        if ch_name not in ch_names:
-            raise ValueError('The spatial filter was computed with channel %s '
-                             'which is not present in the data. You should '
-                             'compute a new spatial filter restricted to the '
-                             'good data channels.' % ch_name)
-    # then compare list of channels and get selection based on data:
-    sel = [ii for ii, ch_name in enumerate(ch_names)
-           if ch_name in filters['ch_names']]
-    return sel
 
 
 def _check_proj_match(info, filters):
@@ -166,6 +71,13 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
         raise ValueError('Normal orientation can only be picked when a '
                          'forward operator with a surface-based source space '
                          'is used.')
+    # Check whether data and forward model have same compensation applied
+    data_comp = get_current_comp(info)
+    fwd_comp = get_current_comp(forward['info'])
+    if data_comp != fwd_comp:
+        raise ValueError('Data (%s) and forward model (%s) do not have same '
+                         'compensation applied.' % (data_comp, fwd_comp))
+
     # Restrict forward solution to selected channels
     info_ch_names = [ch['ch_name'] for ch in info['chs']]
     ch_names = [info_ch_names[k] for k in picks]
@@ -323,14 +235,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The source orientation to compute the beamformer in.
     reduce_rank : bool
         Whether to reduce the rank by one during computation of the filter.
-    rank : int | None | 'full'
-        This controls the effective rank of the covariance matrix when
-        computing the inverse. The rank can be set explicitly by specifying an
-        integer value. If ``None``, the rank will be automatically estimated.
-        Since applying regularization will always make the covariance matrix
-        full rank, the rank is estimated before regularization in this case. If
-        'full', the rank will be estimated after regularization and hence
-        will mean using the full rank, unless ``reg=0`` is used.
+    rank : dict | None | 'full' | 'info'
+        See compute_rank.
     inversion : 'matrix' | 'single'
         The inversion scheme to compute the weights.
     nn : ndarray, shape (n_dipoles, 3)
@@ -427,7 +333,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # Estimate noise level based on covariance matrix, taking the
             # first eigenvalue that falls outside the signal subspace or the
             # loading factor used during regularization, whichever is largest.
-            if rank >= len(Cm):
+            if rank > len(Cm):
                 # Covariance matrix is full rank, no noise subspace!
                 # Use the loading factor as noise ceiling.
                 if loading_factor == 0:
@@ -503,10 +409,7 @@ class Beamformer(dict):
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
         overwrite : bool
             If True, overwrite the file (if it exists).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)
         check_fname(fname, self['kind'], (ending,))

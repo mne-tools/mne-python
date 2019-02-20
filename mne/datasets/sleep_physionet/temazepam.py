@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
@@ -6,14 +7,18 @@
 import numpy as np
 
 from ...utils import verbose
-from ._utils import _fetch_one, _data_path, BASE_URL, TEMAZEPAM_SLEEP_RECORDS
+from ._utils import _fetch_one, _data_path, TEMAZEPAM_SLEEP_RECORDS
 from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
+# XXX this BASE_URL does not match the one in _utils.py
+BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/'  # noqa: E501
+
 
 @verbose
-def fetch_data(subjects, path=None, force_update=False,
+def fetch_data(subjects, recording=[b'Placebo', 'temazepam'],
+               path=None, force_update=False,
                update_path=None, base_url=BASE_URL, verbose=None):
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
@@ -22,11 +27,8 @@ def fetch_data(subjects, path=None, force_update=False,
     a set of 22 subjects. Subjects had mild difficulty falling asleep
     but were otherwise healthy.
 
-    Only the data with Placebo injection are available. The data with
-    Temazepam have so far not been made public.
-
-    See more details in
-    `physionet website <https://physionet.org/pn4/sleep-edfx/>`_.
+    See more details in the `physionet website
+    <https://physionet.org/physiobank/database/sleep-edfx/>`_.
 
     Parameters
     ----------
@@ -35,8 +37,8 @@ def fetch_data(subjects, path=None, force_update=False,
     path : None | str
         Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
-        ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the Polysomnography dataset
+        ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist,
+        the "~/mne_data" directory is used. If the Polysomnography dataset
         is not found under the given path, the data
         will be automatically downloaded to the specified folder.
     force_update : bool
@@ -44,9 +46,7 @@ def fetch_data(subjects, path=None, force_update=False,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -90,7 +90,7 @@ def fetch_data(subjects, path=None, force_update=False,
     _check_subjects(subjects, 22)
 
     path = data_path(path=path, update_path=update_path)
-    params = [path, force_update]
+    params = [path, force_update, base_url]
 
     fnames = []
     for subject in subjects:  # all the subjects are present at this point

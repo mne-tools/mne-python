@@ -27,10 +27,10 @@ from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
-                       pick_info, _picks_by_type)
-from ..rank import _get_rank_sss
+                       pick_info, _picks_by_type, pick_channels_cov)
+from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import logger, verbose, set_config, warn, _check_ch_locs
+from ..utils import verbose, set_config, warn, _check_ch_locs
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -96,9 +96,9 @@ def plt_show(show=True, fig=None, **kwargs):
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
-    import matplotlib
+    from matplotlib import get_backend
     import matplotlib.pyplot as plt
-    if show and matplotlib.get_backend() != 'agg':
+    if show and get_backend() != 'agg':
         (fig or plt).show(**kwargs)
 
 
@@ -155,7 +155,7 @@ def _check_delayed_ssp(container):
 
 def _validate_if_list_of_axes(axes, obligatory_len=None):
     """Validate whether input is a list/array of axes."""
-    import matplotlib as mpl
+    from matplotlib.axes import Axes
     if obligatory_len is not None and not isinstance(obligatory_len, int):
         raise ValueError('obligatory_len must be None or int, got %d',
                          'instead' % type(obligatory_len))
@@ -167,7 +167,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
                          'one-dimensional. The received numpy array has %d '
                          'dimensions however. Try using ravel or flatten '
                          'method of the array.' % axes.ndim)
-    is_correct_type = np.array([isinstance(x, mpl.axes.Axes)
+    is_correct_type = np.array([isinstance(x, Axes)
                                 for x in axes])
     if not np.all(is_correct_type):
         first_bad = np.where(np.logical_not(is_correct_type))[0][0]
@@ -547,9 +547,7 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     max_str : int
         Max number of characters of string representation to print for
         each tag's data.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -833,7 +831,7 @@ def _plot_raw_onkey(event, params):
 
 def _setup_annotation_fig(params):
     """Initialize the annotation figure."""
-    import matplotlib as mpl
+    from matplotlib import __version__
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
@@ -893,7 +891,7 @@ def _setup_annotation_fig(params):
     if len(labels) == 0:
         selector.active = False
     params['ax'].selector = selector
-    if LooseVersion(mpl.__version__) < LooseVersion('1.5'):
+    if LooseVersion(__version__) < LooseVersion('1.5'):
         # XXX: Hover event messes up callback ids in old mpl.
         warn('Modifying existing annotations is not possible for '
              'matplotlib versions < 1.4. Upgrade matplotlib.')
@@ -1131,10 +1129,10 @@ class ClickableImage(object):
 
     def __init__(self, imdata, **kwargs):
         """Display the image for clicking."""
-        from matplotlib.pyplot import figure
+        import matplotlib.pyplot as plt
         self.coords = []
         self.imdata = imdata
-        self.fig = figure()
+        self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111)
         self.ymax = self.imdata.shape[0]
         self.xmax = self.imdata.shape[1]
@@ -1164,11 +1162,11 @@ class ClickableImage(object):
         **kwargs : dict
             Arguments are passed to imshow in displaying the bg image.
         """
-        from matplotlib.pyplot import subplots
+        import matplotlib.pyplot as plt
         if len(self.coords) == 0:
             raise ValueError('No coordinates found, make sure you click '
                              'on the image that is first shown.')
-        f, ax = subplots()
+        f, ax = plt.subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
         xcoords, ycoords = zip(*self.coords)
@@ -1611,11 +1609,11 @@ def _compute_scalings(scalings, inst):
         return scalings
 
     ch_types = channel_indices_by_type(inst.info)
-    ch_types = dict([(i_type, i_ixs)
-                     for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0])
+    ch_types = {i_type: i_ixs
+                for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
     if scalings == 'auto':
         # If we want to auto-compute everything
-        scalings = dict((i_type, 'auto') for i_type in ch_types.keys())
+        scalings = {i_type: 'auto' for i_type in ch_types.keys()}
     if not isinstance(scalings, dict):
         raise ValueError('scalings must be a dictionary of ch_type: val pairs,'
                          ' not type %s ' % type(scalings))
@@ -1646,7 +1644,7 @@ def _compute_scalings(scalings, inst):
         if value != 'auto':
             continue
         if key not in ch_types.keys():
-            raise ValueError("Sensor {0} doesn't exist in data".format(key))
+            raise ValueError("Sensor {} doesn't exist in data".format(key))
         this_data = data[ch_types[key]]
         scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
         scale_factor = np.max(np.abs(scale_factor))
@@ -1819,8 +1817,8 @@ class SelectFromCollection(object):
 
     def __init__(self, ax, collection, ch_names,
                  alpha_other=0.3):
-        import matplotlib as mpl
-        if LooseVersion(mpl.__version__) < LooseVersion('1.2.1'):
+        from matplotlib import __version__
+        if LooseVersion(__version__) < LooseVersion('1.2.1'):
             raise ImportError('Interactive selection not possible for '
                               'matplotlib versions < 1.2.1. Upgrade '
                               'matplotlib.')
@@ -1908,23 +1906,17 @@ def _plot_annotations(raw, params):
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
     segments = list()
-    # sort the segments by start time
-    ann_order = raw.annotations.onset.argsort(axis=0)
-    descriptions = raw.annotations.description[ann_order]
-
     _setup_annotation_colors(params)
-    for idx, onset in enumerate(raw.annotations.onset[ann_order]):
-        annot_start = _sync_onset(raw, onset) + params['first_time']
-        annot_end = annot_start + raw.annotations.duration[ann_order][idx]
+    for idx, annot in enumerate(raw.annotations):
+        annot_start = _sync_onset(raw, annot['onset']) + params['first_time']
+        annot_end = annot_start + annot['duration']
         segments.append([annot_start, annot_end])
-        dscr = descriptions[idx]
         params['ax_hscroll'].fill_betweenx(
             (0., 1.), annot_start, annot_end, alpha=0.3,
-            color=params['segment_colors'][dscr])
+            color=params['segment_colors'][annot['description']])
     # Do not adjust half a sample backward (even though this would make it
     # clearer what is included) because this breaks click-drag functionality
     params['segments'] = np.array(segments)
-    params['annot_description'] = descriptions
 
 
 def _get_color_list(annotations=False):
@@ -1983,7 +1975,7 @@ def _setup_annotation_colors(params):
 
 def _annotations_closed(event, params):
     """Clean up on annotation dialog close."""
-    import matplotlib as mpl
+    from matplotlib import __version__
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
     if params['ax'].selector is not None:
@@ -1993,7 +1985,7 @@ def _annotations_closed(event, params):
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
-    if LooseVersion(mpl.__version__) >= LooseVersion('1.5'):
+    if LooseVersion(__version__) >= LooseVersion('1.5'):
         params['fig'].canvas.mpl_disconnect(params['hover_callback'])
     params['fig_annotation'] = None
     params['fig'].canvas.draw()
@@ -2384,7 +2376,7 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
         # any channels in noise_cov['bads'] but not in info['bads'] get
         # set to nan, which means that they are not plotted.
         data_picks = _pick_data_channels(info, with_ref_meg=False, exclude=())
-        data_names = set(info['ch_names'][pick] for pick in data_picks)
+        data_names = {info['ch_names'][pick] for pick in data_picks}
         # these can be toggled by the user
         bad_names = set(info['bads'])
         # these can't in standard pipelines be enabled (we always take the
@@ -2440,7 +2432,6 @@ def _check_sss(info):
 
 
 def _triage_rank_sss(info, covs, rank=None, scalings=None):
-    from ..cov import _estimate_rank_meeg_cov
     rank = dict() if rank is None else rank
     scalings = _handle_default('scalings_cov_rank', scalings)
 
@@ -2482,7 +2473,6 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
         info_proj = info.copy()
         info_proj['projs'] += cov['projs']
         this_rank = {}
-        C = cov['data'].copy()
         # assemble rank dict for this cov, such that we have meg
         for ch_type, this_picks in picks_list2:
             # if we have already estimates / values for mag/grad but not
@@ -2492,47 +2482,17 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                 this_rank['meg'] = this_rank['mag'] + this_rank['grad']
                 # and we're done here
                 break
-
             if rank.get(ch_type) is None:
-                this_info = pick_info(info_proj, this_picks)
-                idx = np.ix_(this_picks, this_picks)
-                projector = setup_proj(this_info, add_eeg_ref=False)[0]
-                this_C = C[idx]
-                if projector is not None:
-                    this_C = np.dot(np.dot(projector, this_C), projector.T)
-                this_estimated_rank = _estimate_rank_meeg_cov(
-                    this_C, this_info, scalings)
-                _check_estimated_rank(
-                    this_estimated_rank, this_picks, this_info, info,
-                    cov, ch_type, has_meg, has_sss)
+                ch_names = [info['ch_names'][pick] for pick in this_picks]
+                this_C = pick_channels_cov(cov, ch_names)
+                this_estimated_rank = compute_rank(
+                    this_C, scalings=scalings, info=info_proj)[ch_type]
                 this_rank[ch_type] = this_estimated_rank
             elif rank.get(ch_type) is not None:
                 this_rank[ch_type] = rank[ch_type]
 
         rank_list.append(this_rank)
     return n_ch_used, rank_list, picks_list, has_sss
-
-
-def _check_estimated_rank(this_estimated_rank, this_picks, this_info, info,
-                          cov, ch_type, has_meg, has_sss):
-    """Compare estimated against expected rank."""
-    expected_rank = len(this_picks)
-    expected_rank_reduction = 0
-    if has_meg and has_sss and ch_type == 'meg':
-        sss_rank = _get_rank_sss(info)
-        expected_rank_reduction += (expected_rank - sss_rank)
-    n_ssp = sum(_match_proj_type(pp, this_info['ch_names'])
-                for pp in cov['projs'])
-    expected_rank_reduction += n_ssp
-    expected_rank -= expected_rank_reduction
-    if this_estimated_rank != expected_rank:
-        logger.debug(
-            'For (%s) the expected and estimated rank diverge '
-            '(%i VS %i). \nThis may lead to surprising reults. '
-            '\nPlease consider using the `rank` parameter to '
-            'manually specify the spatial degrees of freedom.' % (
-                ch_type, expected_rank, this_estimated_rank
-            ))
 
 
 def _match_proj_type(proj, ch_names):
@@ -2585,7 +2545,7 @@ def _check_time_unit(time_unit, times):
     if not isinstance(time_unit, str):
         raise TypeError('time_unit must be str, got %s' % (type(time_unit),))
     if time_unit == 's':
-        times = times
+        pass
     elif time_unit == 'ms':
         times = 1e3 * times
     else:

@@ -82,9 +82,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -364,9 +362,7 @@ def cross_talk_function(inverse_operator, forward, labels,
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

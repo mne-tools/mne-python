@@ -12,7 +12,8 @@ import numpy as np
 
 from ..annotations import _annotations_starts_stops
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels, channel_type)
+                       _PICK_TYPES_KEYS, pick_channels, channel_type,
+                       _picks_to_idx)
 from ..io.meas_info import create_info
 from ..utils import verbose, get_config, _ensure_int, _validate_type
 from ..time_frequency import psd_welch
@@ -368,8 +369,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     if not isinstance(event_color, dict):
         event_color = {-1: event_color}
-    event_color = dict((_ensure_int(key, 'event_color key'), event_color[key])
-                       for key in event_color)
+    event_color = {_ensure_int(key, 'event_color key'): event_color[key]
+                   for key in event_color}
     for key in event_color:
         if key <= 0 and key != -1:
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
@@ -548,6 +549,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     import matplotlib.pyplot as plt
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
+    picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
@@ -566,8 +568,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
                                           _data_types):
         these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
                                  ref_meg=False)
-        if picks is not None:
-            these_picks = np.intersect1d(these_picks, picks)
+        these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
             titles_list.append(titles[name])
@@ -686,8 +687,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Number of points to use in Welch FFT calculations.
         Default is None, which uses the minimum of 2048 and the
         number of time points.
-    picks : array-like of int | None
-        List of channels to use. Cannot be None if `ax` is supplied. If both
+    %(picks_good_data)s
+        Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
         each standard channel type (`mag`, `grad`, and `eeg`).
     ax : instance of matplotlib Axes | None
@@ -740,9 +741,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1079,7 +1078,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 continue
             start = max(segment[0], times[0] + params['first_time'])
             end = min(times[-1] + params['first_time'], segment[1])
-            dscr = params['annot_description'][idx]
+            dscr = params['raw'].annotations.description[idx]
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
                                        alpha=0.3)
@@ -1102,6 +1101,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         params['fig_proj'].canvas.draw()
 
 
+@verbose
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
@@ -1151,9 +1151,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
         Number of jobs to run in parallel. Defaults to 1.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

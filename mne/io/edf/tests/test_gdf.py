@@ -11,7 +11,7 @@ import numpy as np
 import scipy.io as sio
 
 from mne.datasets import testing
-from mne.io import read_raw_edf
+from mne.io import read_raw_gdf
 from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
@@ -26,7 +26,7 @@ gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
-    raw = read_raw_edf(gdf1_path + '.gdf', eog=None, misc=None, preload=True)
+    raw = read_raw_gdf(gdf1_path + '.gdf', eog=None, misc=None, preload=True)
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
@@ -54,7 +54,7 @@ def test_gdf_data():
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
-    raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
+    raw = read_raw_gdf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
 
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
@@ -75,7 +75,7 @@ def test_gdf2_data():
 
     # gh-5604
     assert raw.info['meas_date'] == DATE_NONE
-    _test_raw_reader(read_raw_edf, input_fname=gdf2_path + '.gdf',
+    _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
                      eog=None, misc=None)
 
 

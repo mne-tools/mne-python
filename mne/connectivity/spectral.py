@@ -701,9 +701,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         but require more memory).
     n_jobs : int
         How many epochs to process in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

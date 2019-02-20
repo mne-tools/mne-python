@@ -5,7 +5,7 @@
 import os.path as op
 import numpy as np
 
-from numpy.testing import assert_equal, assert_allclose, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 from scipy import sparse
 from scipy.special import sph_harm
@@ -15,7 +15,6 @@ from mne import compute_raw_covariance, pick_types, concatenate_raws
 from mne.annotations import _annotations_starts_stops
 from mne.chpi import read_head_pos, filter_chpi
 from mne.forward import _prep_meg_channels
-from mne.cov import _estimate_rank_meeg_cov
 from mne.datasets import testing
 from mne.forward import use_coil_def
 from mne.io import read_raw_fif, read_info, read_raw_bti, read_raw_kit, BaseRaw
@@ -23,7 +22,7 @@ from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils)
-from mne.rank import _get_sss_rank
+from mne.rank import _get_rank_sss, _compute_rank_int
 from mne.tests.common import assert_meg_snr
 from mne.utils import (_TempDir, run_tests_if_main, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
@@ -277,7 +276,7 @@ def test_other_systems():
 
     # CTF
     raw_ctf = read_crop(fname_ctf_raw)
-    assert_equal(raw_ctf.compensation_grade, 3)
+    assert raw_ctf.compensation_grade == 3
     pytest.raises(RuntimeError, maxwell_filter, raw_ctf)  # compensated
     raw_ctf.apply_gradient_compensation(0)
     pytest.raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
@@ -394,22 +393,22 @@ def test_basic():
     nbases = n_int_bases + n_ext_bases
 
     # Check number of bases computed correctly
-    assert_equal(_get_n_moments([int_order, ext_order]).sum(), nbases)
+    assert _get_n_moments([int_order, ext_order]).sum() == nbases
 
     # Test SSS computation at the standard head origin
-    assert_equal(len(raw.info['projs']), 12)  # 11 MEG projs + 1 AVG EEG
+    assert len(raw.info['projs']) == 12  # 11 MEG projs + 1 AVG EEG
     with use_coil_def(elekta_def_fname):
         raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None,
                                  bad_condition='ignore')
-    assert_equal(len(raw_sss.info['projs']), 1)  # avg EEG
-    assert_equal(raw_sss.info['projs'][0]['desc'], 'Average EEG reference')
+    assert len(raw_sss.info['projs']) == 1  # avg EEG
+    assert raw_sss.info['projs'][0]['desc'] == 'Average EEG reference'
     assert_meg_snr(raw_sss, read_crop(sss_std_fname), 200., 1000.)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
-    assert_equal(len(py_cal), 0)
+    assert len(py_cal) == 0
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
-    assert_equal(len(py_ctc), 0)
+    assert len(py_ctc) == 0
     py_st = raw_sss.info['proc_history'][0]['max_info']['max_st']
-    assert_equal(len(py_st), 0)
+    assert len(py_st) == 0
     pytest.raises(RuntimeError, maxwell_filter, raw_sss)
 
     # Test SSS computation at non-standard head origin
@@ -427,7 +426,7 @@ def test_basic():
     for key in ('job', 'frame'):
         vals = [x.info['proc_history'][0]['max_info']['sss_info'][key]
                 for x in [raw_sss, sss_erm_std]]
-        assert_equal(vals[0], vals[1])
+        assert vals[0] == vals[1]
 
     # Two equivalent things: at device origin in device coords (0., 0., 0.)
     # and at device origin at head coords info['dev_head_t'][:3, 3]
@@ -438,8 +437,7 @@ def test_basic():
     assert_meg_snr(raw_sss_meg, raw_sss_head, 100., 900.)
 
     # Check against SSS functions from proc_history
-    sss_info = raw_sss.info['proc_history'][0]['max_info']
-    assert_equal(_get_n_moments(int_order), _get_sss_rank(sss_info))
+    assert _get_n_moments(int_order) == _get_rank_sss(raw_sss)
 
     # Degenerate cases
     pytest.raises(ValueError, maxwell_filter, raw, coord_frame='foo')
@@ -491,12 +489,13 @@ def test_maxwell_filter_additional():
     cov_sss = compute_raw_covariance(raw_sss)
 
     scalings = None
-    cov_raw_rank = _estimate_rank_meeg_cov(cov_raw['data'], raw.info, scalings)
-    cov_sss_rank = _estimate_rank_meeg_cov(cov_sss['data'], raw_sss.info,
-                                           scalings)
+    cov_raw_rank = _compute_rank_int(
+        cov_raw, scalings=scalings, info=raw.info, proj=False)
+    cov_sss_rank = _compute_rank_int(
+        cov_sss, scalings=scalings, info=raw_sss.info, proj=False)
 
-    assert_equal(cov_raw_rank, raw.info['nchan'])
-    assert_equal(cov_sss_rank, _get_n_moments(int_order))
+    assert cov_raw_rank == raw.info['nchan']
+    assert cov_sss_rank == _get_n_moments(int_order)
 
 
 @pytest.mark.slowtest
@@ -546,12 +545,12 @@ def test_spatiotemporal():
         # as mentioned above.
         raw_tsss = maxwell_filter(
             raw, st_duration=st_duration, **kwargs)
-        assert_equal(raw_tsss.estimate_rank(), 140)
+        assert _compute_rank_int(raw_tsss, proj=False) == 140
         assert_meg_snr(raw_tsss, tsss_bench, *tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
         assert (len(py_st) > 0)
-        assert_equal(py_st['buflen'], st_duration)
-        assert_equal(py_st['subspcorr'], 0.98)
+        assert py_st['buflen'] == st_duration
+        assert py_st['subspcorr'] == 0.98
 
     # Degenerate cases
     pytest.raises(ValueError, maxwell_filter, raw, st_duration=10.,
@@ -572,19 +571,19 @@ def test_spatiotemporal_only():
     power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
     # basics
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True)
-    assert_equal(len(raw.info['projs']), len(raw_tsss.info['projs']))
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert len(raw.info['projs']) == len(raw_tsss.info['projs'])
+    assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
     _assert_shielding(raw_tsss, power, 9)
     # with movement
     head_pos = read_head_pos(pos_fname)
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                               head_pos=head_pos)
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
     _assert_shielding(raw_tsss, power, 9)
     with pytest.warns(RuntimeWarning, match='st_fixed'):
         raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                                   head_pos=head_pos, st_fixed=False)
-    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
     _assert_shielding(raw_tsss, power, 9)
     # should do nothing
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_correlation=1.,
@@ -598,17 +597,17 @@ def test_spatiotemporal_only():
     raw_tsss_2 = maxwell_filter(raw, st_duration=tmax)
     assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
     # now also with head movement, and a bad MEG channel
-    assert_equal(len(raw.info['bads']), 0)
+    assert len(raw.info['bads']) == 0
     bads = [raw.ch_names[0]]
     raw.info['bads'] = list(bads)
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_only=True,
                               head_pos=head_pos)
-    assert_equal(raw.info['bads'], bads)
-    assert_equal(raw_tsss.info['bads'], bads)  # don't reset
+    assert raw.info['bads'] == bads
+    assert raw_tsss.info['bads'] == bads  # don't reset
     raw_tsss = maxwell_filter(raw_tsss, head_pos=head_pos)
-    assert_equal(raw_tsss.info['bads'], [])  # do reset MEG bads
+    assert raw_tsss.info['bads'] == []  # do reset MEG bads
     raw_tsss_2 = maxwell_filter(raw, st_duration=tmax, head_pos=head_pos)
-    assert_equal(raw_tsss_2.info['bads'], [])
+    assert raw_tsss_2.info['bads'] == []
     assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
 
 
@@ -697,8 +696,8 @@ def _check_reg_match(sss_py, sss_mf, comp_tol):
         if n_in is None:
             n_in = _get_n_moments(inf['in_order'])
         else:
-            assert_equal(n_in, _get_n_moments(inf['in_order']))
-        assert_equal(inf['components'][:n_in].sum(), inf['nfree'])
+            assert n_in == _get_n_moments(inf['in_order'])
+        assert inf['components'][:n_in].sum() == inf['nfree']
     assert_allclose(info_py['nfree'], info_mf['nfree'],
                     atol=comp_tol, err_msg=sss_py._filenames[0])
 
@@ -733,7 +732,7 @@ def test_cross_talk():
     assert isinstance(mf_ctc_read['decoupler'], sparse.csc_matrix)
     assert_array_equal(mf_ctc_read['decoupler'].toarray(),
                        mf_ctc['decoupler'].toarray())
-    assert_equal(object_diff(py_ctc, mf_ctc), '')
+    assert object_diff(py_ctc, mf_ctc) == ''
     raw_ctf = read_crop(fname_ctf_raw).apply_gradient_compensation(0)
     pytest.raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape
     raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))

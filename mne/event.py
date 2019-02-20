@@ -183,7 +183,7 @@ def _read_events_fif(fid, tree):
     if mappings is not None:  # deal with ':' in keys
         m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
               for m in mappings.split(';')]
-        mappings = dict((k, int(v)) for v, k in m_)
+        mappings = {k: int(v) for v, k in m_}
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
@@ -277,8 +277,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn('{0} of {1} events masked'.format(unmasked_len - masked_len,
-                                                   unmasked_len))
+            warn('{} of {} events masked'.format(unmasked_len - masked_len,
+                                                 unmasked_len))
     return event_list
 
 
@@ -577,9 +577,7 @@ def find_events(raw, stim_channel=None, output='onset',
         at t=0s is present.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

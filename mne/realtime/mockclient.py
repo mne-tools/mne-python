@@ -6,9 +6,13 @@
 
 import copy
 import numpy as np
+
 from ..event import find_events
+from ..io.pick import _picks_to_idx
+from ..utils import fill_doc
 
 
+@fill_doc
 class MockRtClient(object):
     """Mock Realtime Client.
 
@@ -16,9 +20,7 @@ class MockRtClient(object):
     ----------
     raw : instance of Raw object
         The raw object which simulates the RtClient
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
 
     def __init__(self, raw, verbose=None):  # noqa: D102
@@ -39,6 +41,7 @@ class MockRtClient(object):
         """
         return self.info
 
+    @fill_doc
     def send_data(self, epochs, picks, tmin, tmax, buffer_size):
         """Read from raw object and send them to RtEpochs for processing.
 
@@ -46,8 +49,7 @@ class MockRtClient(object):
         ----------
         epochs : instance of RtEpochs
             The epochs object.
-        picks : array-like of int
-            Indices of channels.
+        %(picks_all)s
         tmin : float
             Time instant to start receiving buffers.
         tmax : float
@@ -59,6 +61,7 @@ class MockRtClient(object):
         # or constantly sending data, we will invoke this explicitly to send
         # the next buffer
 
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
         sfreq = self.info['sfreq']
         tmin_samp = int(round(sfreq * tmin))
         tmax_samp = int(round(sfreq * tmax))
@@ -87,8 +90,9 @@ class MockRtClient(object):
     # but they need to be present for the emulation to work because
     # RtEpochs expects them to be there.
 
-    def get_event_data(self, event_id, tmin, tmax, picks, stim_channel=None,
-                       min_duration=0):
+    @fill_doc
+    def get_event_data(self, event_id, tmin, tmax, picks=None,
+                       stim_channel=None, min_duration=0):
         """Simulate the data for a particular event-id.
 
         The epochs corresponding to a particular event-id are returned. The
@@ -104,8 +108,7 @@ class MockRtClient(object):
             Start time before event.
         tmax : float
             End time after event.
-        picks : array-like of int
-            Indices of channels.
+        %(picks_all)s
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
@@ -122,6 +125,7 @@ class MockRtClient(object):
             The epochs that are being simulated
         """
         # Get the list of all events
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
         events = find_events(self.raw, stim_channel=stim_channel,
                              verbose=False, output='onset',
                              consecutive='increasing',

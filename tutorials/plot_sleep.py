@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Sleep stage classification from polysomnography (PSG) data
 ==========================================================
@@ -233,6 +234,7 @@ def eeg_power_band(epochs):
 
     return np.concatenate(X, axis=1)
 
+
 ##############################################################################
 # Multiclass classification workflow using scikit-learn
 # -----------------------------------------------------
@@ -304,3 +306,4 @@ print(classification_report(y_test, y_pred, target_names=event_id.keys()))
 #       Classification Using Multivariate and Multimodal Time Series.
 #       IEEE Trans. on Neural Systems and Rehabilitation Engineering 26:
 #       (758-769).
+#

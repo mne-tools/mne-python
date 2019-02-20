@@ -147,9 +147,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         Must be supplied if ``raw`` is an instance of :class:`mne.Info`.
 
         .. versionadded:: 0.18
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

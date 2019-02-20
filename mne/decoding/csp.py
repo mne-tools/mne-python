@@ -15,8 +15,10 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
+from ..utils import fill_doc
 
 
+@fill_doc
 class CSP(TransformerMixin, BaseEstimator):
     u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
@@ -60,8 +62,7 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    rank : None | int | dict | 'full'
-        See :func:`mne.compute_covariance`.
+    %(rank_None)s
 
         .. versionadded:: 0.17
 
@@ -671,6 +672,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     return V, D
 
 
+@fill_doc
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering.
 
@@ -706,8 +708,7 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    rank : None | int | dict | 'full'
-        See :func:`mne.compute_covariance`.
+    %(rank_None)s
 
         .. versionadded:: 0.17
 

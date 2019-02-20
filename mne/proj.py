@@ -137,9 +137,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         the event_id, tmin, and tmax.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -198,9 +196,7 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
         tmin and tmax.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -246,9 +242,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         Epoch flat configuration (see Epochs).
     n_jobs : int
         Number of jobs to use to compute covariance.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -287,6 +281,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     return projs
 
 
+@verbose
 def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
                     verbose=None):
     """Compute sensitivity map.
@@ -310,9 +305,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in fwd['info']['bads'].
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

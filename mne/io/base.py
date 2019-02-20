@@ -17,8 +17,8 @@ import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
-from .pick import pick_types, channel_type, pick_channels, pick_info
-from .pick import _pick_data_channels, _pick_data_or_ica
+from .pick import (pick_types, channel_type, pick_channels, pick_info,
+                   _picks_to_idx)
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -37,8 +37,8 @@ from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _filt_update_info)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
-                     _check_pandas_index_arguments, _pl,
-                     check_fname, _get_stim_channel,
+                     _check_pandas_index_arguments, _pl, fill_doc,
+                     check_fname, _get_stim_channel, deprecated,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
                      _check_preload, _get_argvalues)
@@ -52,16 +52,7 @@ from ..annotations import _ensure_annotation_object
 class ToDataFrameMixin(object):
     """Class to add to_data_frame capabilities to certain classes."""
 
-    def _get_check_picks(self, picks, picks_check):
-        """Get and check picks."""
-        if picks is None:
-            picks = list(range(self.info['nchan']))
-        else:
-            if not np.in1d(picks, np.arange(len(picks_check))).all():
-                raise ValueError('At least one picked channel is not present '
-                                 'in this object instance.')
-        return picks
-
+    @fill_doc
     def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
                       scalings=None, copy=True, start=None, stop=None):
         """Export data in tabular structure as a pandas DataFrame.
@@ -74,9 +65,7 @@ class ToDataFrameMixin(object):
 
         Parameters
         ----------
-        picks : array-like of int | None
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
+        %(picks_all)s
         index : tuple of str | None
             Column to be used as index for the data. Valid string options
             are 'epoch', 'time' and 'condition'. If None, all three info
@@ -125,15 +114,15 @@ class ToDataFrameMixin(object):
             if isinstance(self.vertices, list):
                 # surface source estimates
                 col_names = [i for e in [
-                    ['{0} {1}'.format('LH' if ii < 1 else 'RH', vert)
+                    ['{} {}'.format('LH' if ii < 1 else 'RH', vert)
                      for vert in vertno]
                     for ii, vertno in enumerate(self.vertices)]
                     for i in e]
             else:
                 # volume source estimates
-                col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
+                col_names = ['VOL {}'.format(vert) for vert in self.vertices]
         elif isinstance(self, (BaseEpochs, BaseRaw, Evoked)):
-            picks = self._get_check_picks(picks, self.ch_names)
+            picks = _picks_to_idx(self.info, picks, 'all', exclude=())
             if isinstance(self, BaseEpochs):
                 default_index = ['condition', 'epoch', 'time']
                 data = self.get_data()[:, picks, :]
@@ -143,11 +132,11 @@ class ToDataFrameMixin(object):
 
                 # Multi-index creation
                 times = np.tile(times, n_epochs)
-                id_swapped = dict((v, k) for k, v in self.event_id.items())
+                id_swapped = {v: k for k, v in self.event_id.items()}
                 names = [id_swapped[k] for k in self.events[:, 2]]
                 mindex.append(('condition', np.repeat(names, n_times)))
                 mindex.append(('epoch',
-                              np.repeat(np.arange(n_epochs), n_times)))
+                               np.repeat(np.arange(n_epochs), n_times)))
                 col_names = [self.ch_names[k] for k in picks]
 
             elif isinstance(self, (BaseRaw, Evoked)):
@@ -178,7 +167,7 @@ class ToDataFrameMixin(object):
         else:
             # In case some other object gets this mixin w/o an explicit check
             raise NameError('Object must be one of Raw, Epochs, Evoked,  or ' +
-                            'SourceEstimate. This is {0}'.format(type(self)))
+                            'SourceEstimate. This is {}'.format(type(self)))
 
         # Make sure that the time index is scaled correctly
         times = np.round(times * scaling_time)
@@ -210,7 +199,8 @@ class ToDataFrameMixin(object):
 class TimeMixin(object):
     """Class to add sfreq and time_as_index capabilities to certain classes."""
 
-    def time_as_index(self, times, use_rounding=False):
+    # Overridden method signature does not match call...
+    def time_as_index(self, times, use_rounding=False):  # lgtm
         """Convert time to indices.
 
         Parameters
@@ -249,9 +239,9 @@ def _check_fun(fun, d, *args, **kwargs):
     return d
 
 
-class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-              SetChannelsMixin, InterpolationMixin, ToDataFrameMixin,
-              TimeMixin, SizeMixin):
+@fill_doc
+class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
+              InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin):
     """Base class for Raw data.
 
     Parameters
@@ -292,9 +282,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         the header file. Example: {'FC1': 'nV'}
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -355,7 +343,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         bad = np.where(cals == 0)[0]
         if len(bad) > 0:
             raise ValueError('Bad cals for channels %s'
-                             % dict((ii, self.ch_names[ii]) for ii in bad))
+                             % {ii: self.ch_names[ii] for ii in bad})
         self.verbose = verbose
         self._cals = cals
         self._raw_extras = list(raw_extras)
@@ -390,7 +378,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             ch_correspond = [ch in orig_units_trunc for ch in ch_names]
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
-                raise ValueError('Channel {0} has no associated original '
+                raise ValueError('Channel {} has no associated original '
                                  'unit.'.format(ch_without_orig_unit))
 
             # Final check of orig_units, editing a unit if it is not a valid
@@ -423,10 +411,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         grade : int
             CTF gradient compensation level.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -483,10 +468,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             to store the data.
         projector : array
             SSP operator to apply to the data.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -633,10 +615,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -691,7 +670,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def _last_time(self):
         return self.last_samp / float(self.info['sfreq'])
 
-    def time_as_index(self, times, use_rounding=False, origin=None):
+    # "Overridden method signature does not match call..." in LGTM
+    def time_as_index(self, times, use_rounding=False, origin=None):  # lgtm
         """Convert time to indices.
 
         Parameters
@@ -835,23 +815,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise RuntimeError("Unable to access raw data (need both channels "
                                "and time)")
 
-        if isinstance(item[0], slice):
-            start = item[0].start if item[0].start is not None else 0
-            nchan = self.info['nchan']
-            if start < 0:
-                start += nchan
-                if start < 0:
-                    raise ValueError('start must be >= -%s' % nchan)
-            stop = item[0].stop if item[0].stop is not None else nchan
-            if stop < 0:
-                stop += nchan
-                if stop < 0:
-                    raise ValueError('stop must be >= -%s' % nchan)
-            stop = min(stop, nchan)  # slices can legally exceed max
-            step = item[0].step if item[0].step is not None else 1
-            sel = list(range(start, stop, step))
-        else:
-            sel = item[0]
+        sel = _picks_to_idx(self.info, item[0])
 
         if isinstance(item[1], slice):
             time_slice = item[1]
@@ -940,9 +904,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        picks : array-like of int | None
-            Indices of channels to get data from. If None, data from all
-            channels is returned
+        %(picks_all)s
         start : int
             The first sample to include. Defaults to 0.
         stop : int | None
@@ -954,10 +916,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
             Whether to return times as well. Defaults to False.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -971,8 +930,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -----
         .. versionadded:: 0.14.0
         """
-        if picks is None:
-            picks = np.arange(self.info['nchan'])
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
         start = 0 if start is None else start
@@ -1064,9 +1022,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             operate on an array of shape ``(n_times,)`` if
             ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
             The function must return an ndarray shaped like its input.
-        picks : array-like of int (default: None)
-            Indices of channels to apply the function to. If None, all data
-            channels are used.
+        %(picks_all_data_noref)s
         dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
@@ -1093,9 +1049,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The raw object with transformed data.
         """
         _check_preload(self, 'raw.apply_function')
-        if picks is None:
-            picks = _pick_data_channels(self.info, exclude=[],
-                                        with_ref_meg=False)
+        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -1152,9 +1106,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        picks : array-like of int (default: None)
-            Indices of channels to apply the function to. If None, all data
-            channels are used.
+        %(picks_all_data_noref)s
         envelope : bool (default: False)
             Compute the envelope signal of each channel.
         n_jobs: int
@@ -1164,10 +1116,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             will be padded with zeros before computing Hilbert, then cut back
             to original length. If None, n == self.n_times. If 'auto',
             the next highest fast FFT length will be use.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1248,9 +1197,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        picks : array-like of int | None
-            Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered.
+        %(picks_all_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -1332,10 +1279,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Only used for ``method='fir'``.
 
             .. versionadded:: 0.15
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1406,9 +1350,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             np.arange(60, 241, 60) in the US or np.arange(50, 251, 50) in
             Europe. None can only be used with the mode 'spectrum_fit',
             where an F test is used to find sinusoidal components.
-        picks : array-like of int | None
-            Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered.
+        %(picks_all_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -1477,10 +1419,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Only used for ``method='fir'``.
 
             .. versionadded:: 0.15
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1496,13 +1435,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         For details, see :func:`mne.filter.notch_filter`.
         """
         fs = float(self.info['sfreq'])
-        if picks is None:
-            picks = _pick_data_or_ica(self.info)
-            # let's be safe.
-            if len(picks) < 1:
-                raise RuntimeError('Could not find any valid channels for '
-                                   'your Raw object. Please contact the '
-                                   'MNE-Python developers.')
+        picks = _picks_to_idx(self.info, picks, exclude=(), none='data_or_ica')
         _check_preload(self, 'raw.notch_filter')
         self._data = notch_filter(
             self._data, fs, freqs, filter_length=filter_length,
@@ -1548,7 +1481,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         window : string or tuple
             Frequency-domain window to use in resampling.
             See :func:`scipy.signal.resample`.
-        stim_picks : array of int | None
+        stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
@@ -1568,10 +1501,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             values of the vector, followed by zeros.
 
             .. versionadded:: 0.15
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1745,8 +1675,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             unless data have been preloaded. Filenames should end with
             raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif
             or raw_tsss.fif.gz.
-        picks : array-like of int | None
-            Indices of channels to include. If None all channels are kept.
+        %(picks_all)s
         tmin : float | None
             Time in seconds of first sample to save. If None first sample
             is used.
@@ -1794,10 +1723,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.17
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Notes
         -----
@@ -1924,8 +1850,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  show=show, block=block, n_jobs=n_jobs,
                                  axes=axes, verbose=verbose)
 
+    @deprecated('raw.estimate_rank is deprecated and will be removed in 0.19, '
+                'use mne.compute_rank instead.')
+    @verbose
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
-                      return_singular=False, picks=None, scalings='norm'):
+                      return_singular=False, picks=None, scalings='norm',
+                      verbose=None):
         """Estimate rank of the raw data.
 
         This function is meant to provide a reasonable estimate of the rank.
@@ -1947,10 +1877,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return_singular : bool
             If True, also return the singular values that were used
             to determine the rank.
-        picks : array_like of int, shape (n_selected_channels,)
-            The channels to be considered for rank estimation.
-            If None (default) meg and eeg channels are included.
-        scalings : dict | 'norm'
+        %(picks_good_data)s
+        scalings : dict | 'norm' | None
             To achieve reliable rank estimation on multiple sensors,
             sensors have to be rescaled. This parameter controls the
             rescaling. If dict, it will update the
@@ -1959,8 +1887,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 dict(mag=1e11, grad=1e9, eeg=1e5)
 
             If 'norm' data will be scaled by internally computed
-            channel-wise norms.
+            channel-wise norms. None will perform no scaling.
             Defaults to 'norm'.
+        %(verbose)s
 
         Returns
         -------
@@ -1989,9 +1918,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
-        if picks is None:
-            picks = _pick_data_channels(self.info, exclude='bads',
-                                        with_ref_meg=False)
+        picks = _picks_to_idx(self.info, picks, with_ref_meg=False)
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
@@ -2278,7 +2205,7 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
     return times / sfreq
 
 
-class _RawShell():
+class _RawShell(object):
     """Create a temporary raw object."""
 
     def __init__(self):  # noqa: D102
@@ -2330,9 +2257,9 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         use_fname = fname
     logger.info('Writing %s' % use_fname)
 
+    picks = _picks_to_idx(info, picks, 'all', ())
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
                                    reset_range, raw.annotations)
-    use_picks = slice(None) if picks is None else picks
 
     first_samp = raw.first_samp + start
     if first_samp != 0:
@@ -2392,7 +2319,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                 # write_nop(fid)
                 # write_nop(fid)
                 n_current_skip = 0
-        data, times = raw[use_picks, first:last]
+        data, times = raw[picks, first:last]
         assert len(times) == last - first
 
         if projector is not None:
@@ -2641,9 +2568,7 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
         have or not have data preloaded.
     events_list : None | list
         The events to concatenate. Defaults to None.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -2707,7 +2632,6 @@ def _check_maxshield(allow_maxshield):
         if not (isinstance(allow_maxshield, str) and
                 allow_maxshield == 'yes'):
             warn(msg)
-        allow_maxshield = 'yes'
     else:
         msg += (' Use allow_maxshield=True if you are sure you'
                 ' want to load the data despite this warning.')

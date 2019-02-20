@@ -884,6 +884,7 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 # MNE epochs bookkeeping
 FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
 FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
+FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT   = 3802  # rejection and flat params
 
 # MNE annotations
 FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block

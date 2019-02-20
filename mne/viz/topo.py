@@ -680,19 +680,19 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not merge_grads:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
         chs_in_layout = set(layout.names) & set(ch_names)
-        types_used = set(channel_type(info, ch_names.index(ch))
-                         for ch in chs_in_layout)
+        types_used = {channel_type(info, ch_names.index(ch))
+                      for ch in chs_in_layout}
         # remove possible reference meg channels
         types_used = set.difference(types_used, set('ref_meg'))
         # one check for all vendors
-        meg_types = set(('mag', 'grad'))
+        meg_types = {'mag', 'grad'}
         is_meg = len(set.intersection(types_used, meg_types)) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         else:
-            types_used_kwargs = dict((t, True) for t in types_used)
+            types_used_kwargs = {t: True for t in types_used}
             picks = [pick_types(info, meg=False, exclude=[],
                                 **types_used_kwargs)]
         assert isinstance(picks, list) and len(types_used) == len(picks)

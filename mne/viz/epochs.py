@@ -15,8 +15,10 @@ import copy
 
 import numpy as np
 
-from ..utils import verbose, get_config, set_config, logger, warn, _pl
-from ..io.pick import pick_types, channel_type, _get_channel_types
+from ..utils import (verbose, get_config, set_config, logger, warn, _pl,
+                     fill_doc)
+from ..io.pick import (pick_types, channel_type, _get_channel_types,
+                       _picks_to_idx)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -28,6 +30,7 @@ from .misc import _handle_event_colors
 from ..defaults import _handle_default
 
 
+@fill_doc
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None, fig=None,
@@ -39,9 +42,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     ----------
     epochs : instance of Epochs
         The epochs.
-    picks : int | array-like of int | None
-        The indices of the channels to consider. If None and ``combine`` is
-        also None, the first five good channels are plotted.
+    %(picks_good_data)s
+        If None and ``group_by`` is also None, only the first five good
+        channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
@@ -164,14 +167,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ts_args["show_sensors"] = False
 
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        picks = _picks_to_idx(epochs.info, picks)
         if group_by is None:
             logger.info("No picks and no groupby, showing the first five "
                         "channels ...")
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
-        picks = np.atleast_1d(picks)
+        picks = _picks_to_idx(epochs.info, picks)
 
     if "invert_y" in ts_args:
         raise NotImplementedError("'invert_y' found in 'ts_args'. "
@@ -244,7 +246,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # plot
     figs, axes_list = list(), list()
-    ylims = dict((ch_type, (1., -1.)) for ch_type in all_ch_types)
+    ylims = {ch_type: (1., -1.) for ch_type in all_ch_types}
     for (epochs_, ch_type, ax_name, name, data, overlay_times, vmin, vmax,
          ts_args) in groups:
         vmin, vmax = vmins.get(ch_type, vmin), vmaxs.get(ch_type, vmax)
@@ -316,7 +318,7 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
                      "sensor{}.".format(_pl(n_picks)))))
         all_ch_types = list()
         for picks_, name in zip(all_picks, names):
-            this_ch_type = list(set((ch_types[pick] for pick in picks_)))
+            this_ch_type = list({ch_types[pick] for pick in picks_})
             n_types = len(this_ch_type)
             if n_types > 1:  # we can only scale properly with 1 type
                 raise ValueError(
@@ -486,8 +488,6 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
         axes_dict["image"] = axes[0]
         if evoked:
             axes_dict["evoked"] = axes[1]
-        # if axes were passed - we ignore fig param and get figure from axes
-        fig = axes_dict["image"].get_figure()
         if colorbar:
             axes_dict["colorbar"] = axes[-1]
     return axes_dict
@@ -698,6 +698,7 @@ def _epochs_axes_onclick(event, params):
     ax.get_figure().canvas.draw()
 
 
+@fill_doc
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, show=True,
                 block=False, decim='auto', noise_cov=None):
@@ -712,9 +713,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     ----------
     epochs : instance of Epochs
         The epochs object
-    picks : array-like of int | None
-        Channels to be included. If None only good data channels are used.
-        Defaults to None
+    %(picks_good_data)s
     scalings : dict | 'auto' | None
         Scaling factors for the traces. If any fields in scalings are 'auto',
         the scaling factor is set to match the 99.5th percentile of a subset of
@@ -863,8 +862,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    picks : array-like of int | None
-        List of channels to use.
+    %(picks_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
     color : str | tuple
@@ -882,9 +880,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Number of jobs to run in parallel.
     show : bool
         Show figure if True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -945,11 +941,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     from matplotlib.colors import colorConverter
     epochs = params['epochs']
 
-    if picks is None:
-        picks = _handle_picks(epochs)
-    if len(picks) < 1:
-        raise RuntimeError('No appropriate channels found. Please'
-                           ' check your picks')
+    picks = _picks_to_idx(epochs.info, picks)
     picks = sorted(picks)
     # Reorganize channels
     inds = list()
@@ -1272,7 +1264,7 @@ def _plot_traces(params):
                     ylabels[line_idx].set_color(this_color)
                 this_color = np.tile((params['bad_color']), (num_epochs, 1))
                 for bad_idx in params['bads']:
-                    if bad_idx < start_idx or bad_idx > end_idx:
+                    if bad_idx < start_idx or bad_idx >= end_idx:
                         continue
                     this_color[bad_idx - start_idx] = (1., 0., 0.)
                 lines[line_idx].set_zorder(2)
@@ -1704,8 +1696,7 @@ def _prepare_butterfly(params):
     from matplotlib.collections import LineCollection
     butterfly = not params['butterfly']
     if butterfly:
-        types = set(['grad', 'mag', 'eeg', 'eog',
-                     'ecg']) & set(params['types'])
+        types = {'grad', 'mag', 'eeg', 'eog', 'ecg'} & set(params['types'])
         if len(types) < 1:
             return
         params['ax_vscroll'].set_visible(False)

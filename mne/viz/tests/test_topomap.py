@@ -434,6 +434,7 @@ def test_ctf_plotting():
     evoked.plot_topomap()
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 def test_plot_arrowmap():
     """Test arrowmap plotting."""

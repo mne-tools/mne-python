@@ -130,8 +130,8 @@ def _unique_channel_names(ch_names):
     FIFF_CH_NAME_MAX_LENGTH = 15
     unique_ids = np.unique(ch_names, return_index=True)[1]
     if len(unique_ids) != len(ch_names):
-        dups = set(ch_names[x]
-                   for x in np.setdiff1d(range(len(ch_names)), unique_ids))
+        dups = {ch_names[x]
+                for x in np.setdiff1d(range(len(ch_names)), unique_ids)}
         warn('Channel names are not unique, found duplicates for: '
              '%s. Applying running numbers for duplicates.' % dups)
         for ch_stem in dups:
@@ -590,7 +590,9 @@ def _simplify_info(info):
     chs = [{key: ch[key]
             for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc')}
            for ch in info['chs']]
-    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
+    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'],
+                    projs=info['projs'],
+                    custom_ref_applied=info['custom_ref_applied'])
     sub_info._update_redundant()
     return sub_info
 
@@ -603,9 +605,7 @@ def read_fiducials(fname, verbose=None):
     ----------
     fname : str
         The filename to read.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -653,9 +653,7 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
     coord_frame : int
         The coordinate frame of the points (one of
         mne.io.constants.FIFF.FIFFV_COORD_...).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     write_dig(fname, pts, coord_frame)
 
@@ -677,8 +675,8 @@ def write_dig(fname, pts, coord_frame=None):
     """
     if coord_frame is not None:
         coord_frame = _to_const(coord_frame)
-        pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
-        bad_frames = pts_frames - set((coord_frame,))
+        pts_frames = {pt.get('coord_frame', coord_frame) for pt in pts}
+        bad_frames = pts_frames - {coord_frame}
         if len(bad_frames) > 0:
             raise ValueError(
                 'Points have coord_frame entries that are incompatible with '
@@ -892,9 +890,7 @@ def read_info(fname, verbose=None):
     ----------
     fname : str
         File name.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -948,9 +944,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         If True, clean info['bads'] before running consistency check.
         Should only be needed for old files where we did not check bads
         before saving.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1710,9 +1704,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         If True, force the fields for objects in `info` will be updated
         to match those in the first item. Use at your own risk, as this
         may overwrite important metadata.
-    verbose : bool, str, int, or NonIe
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1729,8 +1721,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     for this_info in infos:
         info['chs'].extend(this_info['chs'])
     info._update_redundant()
-    duplicates = set([ch for ch in info['ch_names']
-                      if info['ch_names'].count(ch) > 1])
+    duplicates = {ch for ch in info['ch_names']
+                  if info['ch_names'].count(ch) > 1}
     if len(duplicates) > 0:
         msg = ("The following channels are present in more than one input "
                "measurement info objects: %s" % list(duplicates))
@@ -1815,9 +1807,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         digitizer information will be updated. A list of unique montages,
         can be specified and applied to the info. See also the documentation of
         :func:`mne.channels.read_montage` for more information.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1858,9 +1848,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         ch_types = ['misc'] * nchan
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
-    if len(ch_types) != nchan:
+    ch_types = np.atleast_1d(np.array(ch_types, np.str))
+    if ch_types.ndim != 1 or len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length '
-                         '(%s != %s)' % (len(ch_types), nchan))
+                         '(%s != %s) for ch_types=%s'
+                         % (len(ch_types), nchan, ch_types))
     info = _empty_info(sfreq)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         _validate_type(name, 'str', "each entry in ch_names")

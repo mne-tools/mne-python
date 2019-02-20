@@ -7,12 +7,11 @@
 # License: BSD (3-clause)
 
 import os
-from os import path as op
+import os.path as op
 import glob
 
 import numpy as np
 from copy import deepcopy
-from numpy import sin, cos
 from scipy import linalg
 
 from .fixes import einsum
@@ -39,7 +38,7 @@ _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
                      ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
                      ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
                      unknown=FIFF.FIFFV_COORD_UNKNOWN)
-_frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
+_frame_to_str = {val: key for key, val in _str_to_frame.items()}
 
 _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
                    FIFF.FIFFV_COORD_DEVICE: 'MEG device',
@@ -191,8 +190,7 @@ def _find_trans(subject, subjects_dir=None):
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
-                                          '*-trans.fif'))
+    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))
@@ -247,12 +245,12 @@ def rotation(x=0, y=0, z=0):
     r : array, shape = (4, 4)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z, 0],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -275,12 +273,12 @@ def rotation3d(x=0, y=0, z=0):
     r : array, shape = (3, 3)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -417,8 +415,8 @@ def _ensure_trans(trans, fro='mri', to='head'):
     for ti, this_trans in enumerate(trans):
         if not isinstance(this_trans, Transform):
             raise ValueError('%s None' % err_str)
-        if set([this_trans['from'],
-                this_trans['to']]) == set([from_const, to_const]):
+        if {this_trans['from'],
+                this_trans['to']} == {from_const, to_const}:
             idx.append(ti)
         else:
             misses = '%s->%s' % (_frame_to_str[this_trans['from']],
@@ -1005,10 +1003,7 @@ class _SphericalSurfaceWarp(object):
             The uniformly-spaced points to match on the two surfaces.
             Can be "ico#" or "oct#" where "#" is an integer.
             The default is "oct5".
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------
@@ -1083,10 +1078,7 @@ class _SphericalSurfaceWarp(object):
             points that were used to generate the model, although ideally
             they will be inside the convex hull formed by the original
             source points.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------

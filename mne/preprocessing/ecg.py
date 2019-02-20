@@ -14,6 +14,7 @@ from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
 from ..evoked import Evoked
 from ..io import RawArray
+from ..io.pick import _picks_to_idx
 from .. import create_info
 
 
@@ -166,9 +167,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Whether to omit data that is annotated as bad.
 
         .. versionadded:: 0.18
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -293,8 +292,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         MEG channels.
     event_id : int
         The index to assign to found events
-    picks : array-like of int | None (default)
-        Indices of channels to include. If None, all channels are used.
+    %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
@@ -340,9 +338,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         rejected. If False, no rejection based on annotations is performed.
 
         .. versionadded:: 0.14.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -369,7 +365,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
         return_ecg=True, reject_by_annotation=reject_by_annotation)
 
-    picks = np.arange(len(raw.ch_names)) if picks is None else picks
+    picks = _picks_to_idx(raw.info, picks, 'all', exclude=())
 
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
@@ -405,7 +401,7 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     for ch in ['mag', 'grad']:
         if ch in inst:
             break
-    logger.info('Reconstructing ECG signal from {0}'
+    logger.info('Reconstructing ECG signal from {}'
                 .format({'mag': 'Magnetometers',
                          'grad': 'Gradiometers'}[ch]))
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
