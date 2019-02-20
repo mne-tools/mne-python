@@ -763,12 +763,12 @@ class UpdateChannelsMixin(object):
         return self._pick_drop_channels(idx)
 
     def drop_channels(self, ch_names):
-        """Drop some channels.
+        """Drop channel(s).
 
         Parameters
         ----------
-        ch_names : list
-            List of the names of the channels to remove.
+        ch_names : list or str
+            List of channel name(s) or channel name to remove.
 
         Returns
         -------
@@ -785,23 +785,23 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        msg = ("'ch_names' should be a list of strings (the name[s] of the "
-               "channel to be dropped), not a {0}.")
-        if isinstance(ch_names, str):
-            raise ValueError(msg.format("string"))
+        if isinstance(ch_names, list):
+            if not all([isinstance(ch, str) for ch in ch_names]):
+                raise ValueError("'ch_names' must be a list of strings, got "
+                                 "{}.".format([type(ch) for ch in ch_names]))
+        elif isinstance(ch_names, str):
+            ch_names = [ch_names]
         else:
-            if not all([isinstance(ch_name, str)
-                        for ch_name in ch_names]):
-                raise ValueError(msg.format(type(ch_names[0])))
+            raise ValueError("'ch_names' must be a list or a string, got "
+                             "{}.".format(type(ch_names)))
 
-        missing = [ch_name for ch_name in ch_names
-                   if ch_name not in self.ch_names]
+        missing = [ch for ch in ch_names if ch not in self.ch_names]
         if len(missing) > 0:
             msg = "Channel(s) {0} not found, nothing dropped."
             raise ValueError(msg.format(", ".join(missing)))
 
-        bad_idx = [self.ch_names.index(ch_name) for ch_name in ch_names
-                   if ch_name in self.ch_names]
+        bad_idx = [self.ch_names.index(ch) for ch in ch_names
+                   if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         return self._pick_drop_channels(idx)
 
