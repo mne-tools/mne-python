@@ -1026,7 +1026,6 @@ class ICA(ContainsMixin):
         See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
         """
         scores, idx = [], []
-        labels = {}
         # some magic we need inevitably ...
         # get targets before equalizing
         targets = [self._check_target(
@@ -1050,7 +1049,7 @@ class ICA(ContainsMixin):
             # pick last scores
             this_idx = find_outliers(scores[-1], threshold=threshold)
             idx += [this_idx]
-            labels['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
+            self.labels_['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # ref channels
