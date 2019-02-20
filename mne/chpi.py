@@ -258,6 +258,7 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
 
     quats = np.array(quats, np.float64)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
+    quats[:, 0] += raw._first_time
     return quats
 
 
