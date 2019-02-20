@@ -244,11 +244,15 @@ class ICA(ContainsMixin):
               ii) additional noise reduction, it is a matter of current debate
               whether pre-ICA dimensionality reduction could decrease the
               reliability and stability of the ICA, at least for EEG data and
-              especially during preprocessing [5]_.
+              especially during preprocessing [5]_. (But see also [6]_ for a
+              possibly confounding effect of the different whitening/sphering
+              methods used in this paper (ZCA vs. PCA).)
+              sphering is more commonly called ZCA
               On the other hand, for rank-deficient data such as EEG data after
-              average reference or interpolation, it is recommended to reduce
-              the dimensionality by 1 for optimal ICA performance
-              (see the `EEGLAB wiki <eeglab_wiki_>`_).
+              average reference or interpolation, it is  recommended to reduce
+              the dimensionality (by 1 for  average reference and 1 for each
+              interpolated channel) for optimal ICA performance (see the
+              `EEGLAB wiki <eeglab_wiki_>`_).
 
     Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
@@ -286,7 +290,7 @@ class ICA(ContainsMixin):
            subgaussian and supergaussian sources. Neural computation, 11(2),
            pp.417-441.
 
-    .. [4] Ablin P, Cardoso J, Gramfort A (2018). Faster Independent Component
+    .. [4] Ablin P, Cardoso J, Gramfort A, 2018. Faster Independent Component
            Analysis by Preconditioning With Hessian Approximations.
            IEEE Transactions on Signal Processing 66:4040–4049
 
@@ -294,6 +298,13 @@ class ICA(ContainsMixin):
            Reduction to EEG Data by Principal Component Analysis Reduces the
            Quality of Its Subsequent Independent Component Decomposition.
            NeuroImage 175, pp.176–187.
+
+    .. [6] Montoya-Martínez, J., Cardoso, J.-F., Gramfort, A, 2017. Caveats
+           with stochastic gradient and maximum likelihood based ICA for EEG.
+           LVA-ICA International Conference, Feb 2017, Grenoble, France.
+           `〈hal-01451432〉 <hal-01451432_>`_
+
+    .. _hal-01451432: https://hal.archives-ouvertes.fr/hal-01451432/document
     """  # noqa: E501
 
     @verbose
