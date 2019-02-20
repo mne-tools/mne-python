@@ -27,7 +27,7 @@ class _Renderer(object):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False):
+                 name="VisPy Scene", show=False):
         """Set up the scene.
 
         Parameters
