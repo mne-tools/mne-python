@@ -559,7 +559,7 @@ def _check_roundtrip(montage, fname):
                             getattr(montage_read, kind), err_msg=kind)
     assert_equal(montage_read.coord_frame, 'head')
 
-from mne.channels.montage import Digitization
+from mne.channels import Digitization
 def test_foodigmontage():
     import mne
     def get_foo_dig():
@@ -582,7 +582,7 @@ def test_foodigmontage():
                             ch_types='eeg',
                             montage=my_montage,
                             )
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
 
 run_tests_if_main()

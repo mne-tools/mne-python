@@ -31,11 +31,6 @@ from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
 from .layout import _pol_to_cart, _cart_to_sph
 
 
-class Digitization(object):
-    def __init__(self, dig_list=None):
-        self.foo = dig_list
-
-
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
@@ -214,6 +209,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     .. versionadded:: 0.9.0
     """
+    # import pdb; pdb.set_trace()
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
@@ -790,6 +786,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     -----
     This function will change the info variable in place.
     """
+    from .digitization import Digitization
     VALID_MONTAGE_TYPES = (str, Montage, DigMontage, Digitization)
     if not isinstance(montage, VALID_MONTAGE_TYPES):
         TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "

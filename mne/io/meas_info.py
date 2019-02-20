@@ -1920,9 +1920,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         info['chs'].append(chan_info)
     info._update_redundant()
     # XXX: why do we have all that stuff here if (SetChannelsMixin) set_montage takes care of everything???
+    # import pdb; pdb.set_trace()
     if montage is not None:
         from ..channels.montage import (Montage, DigMontage, _set_montage,
-                                        read_montage, Digitization)
+                                        read_montage)
+        from ..channels.digitization import Digitization
         if not isinstance(montage, list):
             montage = [montage]
         for montage_ in montage:
