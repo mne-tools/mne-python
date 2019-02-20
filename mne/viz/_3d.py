@@ -390,7 +390,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         # Now show our field pattern
         with warnings.catch_warnings(record=True):  # traits
             renderer.surface(surface=surf, vmin=-vlim, vmax=vlim,
-                             colormap=colormap)
+                             scalars=data, colormap=colormap)
 
         # And the field lines on top
         with warnings.catch_warnings(record=True):  # traits
