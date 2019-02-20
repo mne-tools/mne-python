@@ -70,13 +70,9 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
-def test_plot_topo():
-    """Test plotting of ERP topography."""
-    # Show topography
+def test_plot_joint():
+    """Test joint plot."""
     evoked = _get_epochs().average()
-    # should auto-find layout
-    plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
-    # Test jointplot
     evoked.plot_joint(ts_args=dict(time_unit='s'),
                       topomap_args=dict(time_unit='s'))
 
@@ -92,9 +88,18 @@ def test_plot_topo():
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
     evoked.plot_joint(times=[0], picks=[6, 7, 8],  ts_args=dict(axes=axes[0]),
                       topomap_args={"axes": axes[1:], "time_unit": "s"})
-    plt.close()
-    pytest.raises(ValueError, evoked.plot_joint, picks=[6, 7, 8],
-                  ts_args=dict(axes=axes[0]), topomap_args=dict(axes=axes[2:]))
+    with pytest.raises(ValueError, match='array of length 6'):
+        evoked.plot_joint(picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
+                          topomap_args=dict(axes=axes[2:]))
+    plt.close('all')
+
+
+def test_plot_topo():
+    """Test plotting of ERP topography."""
+    # Show topography
+    evoked = _get_epochs().average()
+    # should auto-find layout
+    plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
 
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
