@@ -48,7 +48,7 @@ from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       make_forward_dipole, use_coil_def)
 from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               SourceEstimate, VectorSourceEstimate,
-                              VolSourceEstimate,
+                              VolSourceEstimate, VolVectorSourceEstimate,
                               grade_to_tris,
                               spatial_src_connectivity,
                               spatial_tris_connectivity,

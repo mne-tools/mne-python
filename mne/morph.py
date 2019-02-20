@@ -12,7 +12,8 @@ from scipy import sparse
 
 from .parallel import parallel_func
 from .source_estimate import (VolSourceEstimate, SourceEstimate,
-                              VectorSourceEstimate, _get_ico_tris)
+                              VolVectorSourceEstimate, VectorSourceEstimate,
+                              _get_ico_tris)
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
@@ -327,10 +328,11 @@ class SourceMorph(object):
 
         Parameters
         ----------
-        stc_from : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
+        stc_from : VolSourceEstimate | VolVectorSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
         output : str
             Can be 'stc' (default), 'nifti1', or 'nifti2'.
+            If a V
         mri_resolution: bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be
@@ -361,6 +363,11 @@ class SourceMorph(object):
                             % (type(output), output))
         out = _apply_morph_data(self, stc)
         if output != 'stc':  # convert to volume
+            if isinstance(stc, VolVectorSourceEstimate):
+                out = out.magnitude()
+            # Should be guaranteed by _apply_morph_data
+            assert isinstance(stc, (VolSourceEstimate,
+                                    VolVectorSourceEstimate))
             out = _morphed_stc_as_volume(
                 self, out, mri_resolution=mri_resolution, mri_space=mri_space,
                 output=output)
@@ -1128,9 +1135,16 @@ def _apply_morph_data(morph, stc_from):
         raise ValueError('stc.subject (%s) != morph.subject_from (%s)'
                          % (stc_from.subject, morph.subject_from))
     if morph.kind == 'volume':
+        if isinstance(stc_from, VolSourceEstimate):
+            klass = VolSourceEstimate
+        elif isinstance(stc_from, VolVectorSourceEstimate):
+            klass = VolVectorSourceEstimate
+        else:
+            raise ValueError('stc_from was type %s but must be a volume '
+                             'source estimate' % (type(stc_from),))
         from dipy.align.reslice import reslice
 
-        n_times = stc_from.data.shape[1]
+        n_times = np.prod(stc_from.data.shape[1:])
 
         def _morph_one(stc_one):
             # prepare data to be morphed
@@ -1152,22 +1166,26 @@ def _apply_morph_data(morph, stc_from):
             return img_to
 
         # First get the vertices (vertices_to) you will need the values for
-        stc_ones = VolSourceEstimate(np.ones_like(stc_from.data[:, :1]),
+        stc_ones = VolSourceEstimate(np.ones((stc_from.data.shape[0], 1),
+                                             stc_from.data.dtype),
                                      stc_from.vertices,
                                      tmin=0., tstep=1.)
         img_to = _morph_one(stc_ones)
         vertices_to = np.where(img_to.sum(axis=1) != 0)[0]
         data = np.empty((len(vertices_to), n_times))
+        data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
         # Loop over time points to save memory
         for k in range(n_times):
-            this_stc = VolSourceEstimate(stc_from.data[:, k:k + 1],
-                                         stc_from.vertices,
-                                         tmin=0., tstep=1.)
+            this_stc = VolSourceEstimate(
+                data_from[:, k:k + 1], stc_from.vertices, tmin=0., tstep=1.)
             this_img_to = _morph_one(this_stc)
             data[:, k] = this_img_to[vertices_to, 0]
-        klass = VolSourceEstimate
+        data.shape = (len(vertices_to),) + stc_from.data.shape[1:]
     else:
         assert morph.kind == 'surface'
+        if not isinstance(stc_from, (SourceEstimate, VectorSourceEstimate)):
+            raise ValueError('stc_from was type %s but must be a surface '
+                             'source estimate' % (type(stc_from),))
         morph_mat = morph.morph_mat
         vertices_to = morph.vertices_to
         for hemi, v1, v2 in zip(('left', 'right'),

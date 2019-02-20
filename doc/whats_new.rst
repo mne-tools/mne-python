@@ -112,6 +112,8 @@ API
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
 
+- A new class :class:`mne.VolVectorSourceEstimate` is returned by :func:`mne.minimum_norm.apply_inverse` (and related functions) when a volume source space and ``pick_ori='vector'`` is used, by `Eric Larson`_
+
 - ``raw.estimate_rank`` has been deprecated and will be removed in 0.19 in favor of :func:`mne.compute_rank`  by `Eric Larson`_
 
 - :class:`Annotations` are now kept sorted (by onset time) during instantiation and :meth:`~Annotations.append` operations, by `Eric Larson`_

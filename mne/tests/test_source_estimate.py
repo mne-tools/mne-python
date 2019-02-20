@@ -17,7 +17,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatio_temporal_src_connectivity,
                  spatial_inter_hemi_connectivity,
                  spatial_src_connectivity, spatial_tris_connectivity,
-                 SourceSpaces)
+                 SourceSpaces, VolVectorSourceEstimate)
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
@@ -804,24 +804,30 @@ def test_mixed_stc():
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-def test_vec_stc():
-    """Test vector source estimate."""
+@pytest.mark.parametrize('class_',
+                         (VectorSourceEstimate, VolVectorSourceEstimate))
+def test_vec_stc(class_):
+    """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
         [0, 1, 0],
         [0, 0, 1],
         [np.sqrt(1 / 3.)] * 3
     ])
-    src = [dict(nn=nn[:2]), dict(nn=nn[2:])]
 
-    verts = [np.array([0, 1]), np.array([0, 1])]
     data = np.array([
         [1, 0, 0],
         [0, 2, 0],
         [3, 0, 0],
         [1, 1, 1],
     ])[:, :, np.newaxis]
-    stc = VectorSourceEstimate(data, verts, 0, 1, 'foo')
+    if class_ is VolVectorSourceEstimate:
+        src = [dict(nn=nn)]
+        verts = np.arange(4)
+    else:
+        src = [dict(nn=nn[:2]), dict(nn=nn[2:])]
+        verts = [np.array([0, 1]), np.array([0, 1])]
+    stc = class_(data, verts, 0, 1, 'foo')
 
     # Magnitude of the vectors
     assert_array_equal(stc.magnitude().data[:, 0], [1, 2, 3, np.sqrt(3)])
@@ -830,14 +836,14 @@ def test_vec_stc():
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
 
-    stc = VectorSourceEstimate(data[:, :, 0], verts, 0, 1)  # upbroadcast
+    stc = class_(data[:, :, 0], verts, 0, 1)  # upbroadcast
     assert stc.data.shape == (len(data), 3, 1)
     # Bad data
     with pytest.raises(ValueError, match='of length 3'):
-        VectorSourceEstimate(data[:, :2], verts, 0, 1)
+        class_(data[:, :2], verts, 0, 1)
     data = data[:, :, np.newaxis]
-    with pytest.raises(ValueError, match='3 dimensions for VectorSource'):
-        VectorSourceEstimate(data, verts, 0, 1)
+    with pytest.raises(ValueError, match='3 dimensions for .*VectorSource'):
+        class_(data, verts, 0, 1)
 
 
 @testing.requires_testing_data
