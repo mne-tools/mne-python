@@ -39,7 +39,7 @@ raw.set_annotations(mne.Annotations([0], [10], 'BAD'))
 
 ###############################################################################
 # 1) Fit ICA model using the FastICA algorithm.
-# Other available choices are ``picard``, ``infomax`` or ``extended-infomax``.
+# Other available choices are ``picard`` or ``infomax``.
 #
 # .. note:: The default method in MNE is FastICA, which along with Infomax is
 #           one of the most widely used ICA algorithm. Picard is a

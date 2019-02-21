@@ -62,4 +62,4 @@ run_ica('infomax')
 
 ###############################################################################
 # Extended Infomax
-run_ica('extended-infomax')
+run_ica('infomax', fit_params=dict(extended=True))
