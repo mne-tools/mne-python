@@ -17,7 +17,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatio_temporal_src_connectivity,
                  spatial_inter_hemi_connectivity,
                  spatial_src_connectivity, spatial_tris_connectivity,
-                 SourceSpaces)
+                 SourceSpaces, VolVectorSourceEstimate)
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
@@ -296,6 +296,14 @@ def test_stc_attributes():
     stc._sens_data = np.zeros((2, 3))
     stc._data = None
     assert_equal(stc.shape, (2, 3))
+
+    # bad size of data
+    stc = _fake_stc()
+    data = stc.data[:, np.newaxis, :]
+    with pytest.raises(ValueError, match='2 dimensions for SourceEstimate'):
+        SourceEstimate(data, stc.vertices)
+    stc = SourceEstimate(data[:, 0, 0], stc.vertices, 0, 1)
+    assert stc.data.shape == (len(data), 1)
 
 
 def test_io_stc():
@@ -597,6 +605,10 @@ def test_transform_data():
                                             tmin_idx=tmin_idx,
                                             tmax_idx=tmax_idx)
             assert_allclose(data_f, stc_data_t)
+    # bad sens_data
+    sens_data = sens_data[..., np.newaxis]
+    with pytest.raises(ValueError, match='sensor data must have 2'):
+        VolSourceEstimate((kernel, sens_data), vertices)
 
 
 def test_transform():
@@ -792,24 +804,30 @@ def test_mixed_stc():
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-def test_vec_stc():
-    """Test vector source estimate."""
+@pytest.mark.parametrize('klass',
+                         (VectorSourceEstimate, VolVectorSourceEstimate))
+def test_vec_stc(klass):
+    """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
         [0, 1, 0],
         [0, 0, 1],
         [np.sqrt(1 / 3.)] * 3
     ])
-    src = [dict(nn=nn[:2]), dict(nn=nn[2:])]
 
-    verts = [np.array([0, 1]), np.array([0, 1])]
     data = np.array([
         [1, 0, 0],
         [0, 2, 0],
         [3, 0, 0],
         [1, 1, 1],
     ])[:, :, np.newaxis]
-    stc = VectorSourceEstimate(data, verts, 0, 1, 'foo')
+    if klass is VolVectorSourceEstimate:
+        src = [dict(nn=nn)]
+        verts = np.arange(4)
+    else:
+        src = [dict(nn=nn[:2]), dict(nn=nn[2:])]
+        verts = [np.array([0, 1]), np.array([0, 1])]
+    stc = klass(data, verts, 0, 1, 'foo')
 
     # Magnitude of the vectors
     assert_array_equal(stc.magnitude().data[:, 0], [1, 2, 3, np.sqrt(3)])
@@ -817,6 +835,15 @@ def test_vec_stc():
     # Vector components projected onto the vertex normals
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
+
+    stc = klass(data[:, :, 0], verts, 0, 1)  # upbroadcast
+    assert stc.data.shape == (len(data), 3, 1)
+    # Bad data
+    with pytest.raises(ValueError, match='of length 3'):
+        klass(data[:, :2], verts, 0, 1)
+    data = data[:, :, np.newaxis]
+    with pytest.raises(ValueError, match='3 dimensions for .*VectorSource'):
+        klass(data, verts, 0, 1)
 
 
 @testing.requires_testing_data

@@ -685,6 +685,7 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
+   VolVectorSourceEstimate
    SourceMorph
    compute_source_morph
    head_to_mni

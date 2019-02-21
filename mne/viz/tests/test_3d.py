@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, make_sphere_model, use_coil_def,
-                 setup_volume_source_space, read_forward_solution)
+                 setup_volume_source_space, read_forward_solution,
+                 VolVectorSourceEstimate)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.io.pick import pick_info
@@ -437,11 +438,14 @@ def test_plot_volume_source_estimates():
     data = np.random.RandomState(0).rand(n_verts, n_time)
     vol_stc = VolSourceEstimate(data, vertices, 1, 1)
 
-    for mode in ['glass_brain', 'stat_map']:
+    vol_vec_stc = VolVectorSourceEstimate(
+        np.tile(vol_stc.data[:, np.newaxis], (1, 3, 1)), vol_stc.vertices,
+        0, 1)
+    for mode, stc in zip(['glass_brain', 'stat_map'], (vol_stc, vol_vec_stc)):
         with pytest.warns(None):  # sometimes get scalars/index warning
-            fig = vol_stc.plot(sample_src, subject='sample',
-                               subjects_dir=subjects_dir,
-                               mode=mode)
+            fig = stc.plot(sample_src, subject='sample',
+                           subjects_dir=subjects_dir,
+                           mode=mode)
         # [ax_time, ax_y, ax_x, ax_z]
         for ax_idx in [0, 2, 3, 4]:
             _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
