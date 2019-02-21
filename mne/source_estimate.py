@@ -1871,6 +1871,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
     """
+
     @verbose
     def save(self, fname, ftype='stc', verbose=None):
         """Save the source estimates to a file.
@@ -2011,7 +2012,7 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
              time_viewer=False, subjects_dir=None, figure=None, views='lat',
              colorbar=True, clim='auto', cortex='classic', size=800,
              background='black', foreground='white', initial_time=None,
-             time_unit='s'):
+             time_unit='s'):  # noqa: D102
 
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
