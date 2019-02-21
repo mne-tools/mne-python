@@ -166,9 +166,12 @@ class ICA(ContainsMixin):
         by PCA.
     random_state : None | int | instance of np.random.RandomState
         Random state to initialize ICA estimation for reproducible results.
-    method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
-        The ICA method to use in the fit() method. Defaults to 'fastica'.
-        For reference, see [1]_, [2]_, [3]_ and [4]_.
+    method : {'fastica', 'infomax', 'picard'}
+        The ICA method to use in the fit method. Use the fit_params argument to
+        set additional parameters. Specifically, if you want Extended Infomax,
+        set method='infomax' and fit_params=dict(extended=True) (this also
+        works for method='picard'). Defaults to 'fastica'. For reference, see
+        [1]_, [2]_, [3]_ and [4]_.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         `method`.
@@ -259,10 +262,10 @@ class ICA(ContainsMixin):
         >> ica.fit(raw)
         >> raw.info['projs'] = projs
 
-    Methods currently implemented are FastICA (default), Infomax,
-    Extended Infomax, and Picard. Infomax can be quite sensitive to differences
-    in floating point arithmetic. Extended Infomax seems to be more stable in
-    this respect enhancing reproducibility and stability of results.
+    Methods currently implemented are FastICA (default), Infomax, and Picard.
+    Standard Infomax can be quite sensitive to differences in floating point
+    arithmetic. Extended Infomax seems to be more stable in this respect,
+    enhancing reproducibility and stability of results.
 
     Reducing the tolerance (set in `fit_params`) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
@@ -305,6 +308,10 @@ class ICA(ContainsMixin):
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
                              ('" or "'.join(methods), method))
+        if method == 'extended-infomax':
+            warn("method='extended-infomax' is deprecated. If you want to use "
+                 "Extended Infomax, specify method='infomax' together with "
+                 "fit_params=dict(extended=True).", DeprecationWarning)
         if not check_version('sklearn', '0.15'):
             raise RuntimeError('the scikit-learn package (version >= 0.15) '
                                'is required for ICA')
@@ -343,10 +350,7 @@ class ICA(ContainsMixin):
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
             fit_params.update({'extended': True})
-        elif method == 'picard':
-            update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
-            fit_params.update({k: v for k, v in update.items() if k
-                               not in fit_params})
+            method = 'infomax'
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
