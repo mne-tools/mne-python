@@ -1018,11 +1018,16 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         if not is_fixed_ori:
             d = d.reshape(-1, 3).sum(axis=1)
     else:
-        n_pos = G.shape[1] // 3
-        d = np.zeros(n_pos)
-        for k in range(n_pos):
-            Gk = G[:, 3 * k:3 * (k + 1)]
-            d[k] = linalg.svdvals(np.dot(Gk.T, Gk))[0]
+        # n_pos = G.shape[1] // 3
+        # The following is equivalent to this, but 4-10x faster
+        # d = np.zeros(n_pos)
+        # for k in range(n_pos):
+        #     Gk = G[:, 3 * k:3 * (k + 1)]
+        #     x = np.dot(Gk.T, Gk)
+        #     d[k] = linalg.svdvals(x)[0]
+        G.shape = (G.shape[0], -1, 3)
+        d = np.linalg.norm(np.einsum('svj,svk->vjk', G, G), 2, (1, 2))
+        G.shape = (G.shape[0], -1)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:
