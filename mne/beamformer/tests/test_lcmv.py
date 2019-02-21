@@ -688,6 +688,31 @@ def test_lcmv_reg_proj(proj):
                         weight_norm='nai', rank=None, verbose=True)
     want_rank = 302  # 305 good channels - 3 MEG projs
     assert filters['rank'] == want_rank
+    # And also with and without noise_cov
+    with pytest.raises(ValueError, match='several sensor types'):
+        make_lcmv(epochs.info, forward, data_cov, reg=0.05,
+                  noise_cov=None)
+    epochs.pick_types('grad')
+    kwargs = dict(reg=0.05, pick_ori=None, weight_norm=None)
+    filters_cov = make_lcmv(epochs.info, forward, data_cov,
+                            noise_cov=noise_cov, **kwargs)
+    filters_nocov = make_lcmv(epochs.info, forward, data_cov,
+                              noise_cov=None, **kwargs)
+    ad_hoc = mne.make_ad_hoc_cov(epochs.info)
+    filters_adhoc = make_lcmv(epochs.info, forward, data_cov,
+                              noise_cov=ad_hoc, **kwargs)
+    evoked = epochs.average()
+    stc_cov = apply_lcmv(evoked, filters_cov)
+    stc_nocov = apply_lcmv(evoked, filters_nocov)
+    stc_adhoc = apply_lcmv(evoked, filters_adhoc)
+    assert_allclose(stc_adhoc.data, stc_nocov.data)
+    assert_allclose(
+        np.dot(filters_nocov['weights'], filters_nocov['whitener']),
+        np.dot(filters_adhoc['weights'], filters_adhoc['whitener']))
+
+    # Locs should not be equivalent, but have the same general profile,
+    # so just look at the mean and be lenient:
+    assert_allclose(stc_nocov.data.mean(0), stc_cov.data.mean(0), rtol=0.2)
 
 
 @pytest.mark.parametrize('reg, weight_norm, use_cov, lower, upper', [
