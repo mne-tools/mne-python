@@ -142,7 +142,7 @@ class _Renderer(object):
         return 0
 
     def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,
-                vmin=None, vmax=None, colormap=None,
+                vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False):
         """Add a surface in the scene.
 
@@ -162,10 +162,12 @@ class _Renderer(object):
             If None, the max of the data will be used
         colormap:
             The colormap to use.
+        scalars: ndarray, shape (n_vertices,)
+            The scalar valued associated to the vertices.
         backface_culling: bool
             If True, enable backface culling on the surface.
         """
-        # TODO: add colormap
+        # TODO: add colormap and scalars
         mesh = scene.visuals.Mesh(vertices=surface['rr'],
                                   faces=surface['tris'],
                                   color=color, parent=self.view.scene,

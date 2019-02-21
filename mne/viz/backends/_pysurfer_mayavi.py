@@ -173,6 +173,8 @@ class _Renderer(object):
             If None, the max of the data will be used
         colormap:
             The colormap to use.
+        scalars: ndarray, shape (n_vertices,)
+            The scalar valued associated to the vertices.
         backface_culling: bool
             If True, enable backface culling on the surface.
         """
