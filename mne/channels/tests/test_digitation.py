@@ -10,21 +10,18 @@ import pytest
 
 from mne import __file__ as mne_init_path
 from mne.channels.digitization import read_pos
-
 from mne.datasets import sample
+
+from mne.channels import Digitization
 from mne.channels.montage import _set_montage, get_builtin_montages
 from mne.viz import plot_alignment
 from mayavi import mlab
 
-data_path = mne.datasets.sample.data_path()
+data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 
 POS_FNAME = op.join(op.dirname(mne_init_path), 'channels', 'data', 'test.pos')
 
-
-def get_foo_dig():
-    raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
-    return Digitization(dig_list=raw.info['dig'].copy())
 
 def get_trans():
     trans = mne.Transform(fro='head', to='mri')
@@ -35,4 +32,4 @@ def get_trans():
     return trans
 
 def test_digitization():
-    pass
+    read_pos(POS_FNAME)

@@ -158,6 +158,10 @@ POS_FNAME = op.join(op.dirname(mne_init_path), 'channels', 'data', 'test.pos')
 
 def read_pos(fname=POS_FNAME):
     HEADER_LENGHT = 8
+    from itertools import islice
+
     with open(fname) as myfile:
-        head = [next(myfile) for x in range(HEADER_LENGHT)]
+        head = [_.split() for _ in list(islice(myfile, 0, HEADER_LENGHT))]
+        points = [_.split() for _ in list(islice(myfile, 0, None))]
+    import pdb; pdb.set_trace()
     print(head)
