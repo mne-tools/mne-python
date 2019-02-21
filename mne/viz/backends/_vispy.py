@@ -6,6 +6,7 @@ Actual implementation of _Renderer and _Projection classes.
 
 import numpy as np
 from vispy import app, scene
+from vispy.color import Colormap
 from vispy.visuals.filters import Alpha
 from vispy.visuals.transforms import STTransform
 
@@ -127,6 +128,8 @@ class _Renderer(object):
         vertices = surface['rr']
         tris = surface['tris']
 
+        cm = Colormap(colormap / 255.0)
+
         if isinstance(contours, int):
             cmin = min(scalars)
             cmax = max(scalars)
@@ -136,7 +139,7 @@ class _Renderer(object):
 
         iso = scene.visuals.Isoline(vertices=vertices, tris=tris,
                                     width=line_width,
-                                    levels=levels, color_lev='winter',
+                                    levels=levels, color_lev=cm,
                                     data=scalars, parent=self.view.scene)
         iso.attach(Alpha(opacity))
         return 0
@@ -167,15 +170,26 @@ class _Renderer(object):
         backface_culling: bool
             If True, enable backface culling on the surface.
         """
-        # TODO: add colormap and scalars
-        mesh = scene.visuals.Mesh(vertices=surface['rr'],
-                                  faces=surface['tris'],
-                                  color=color, parent=self.view.scene,
-                                  shading='smooth')
-        mesh.shininess = default_mesh_shininess
-        mesh.attach(Alpha(opacity))
-        if backface_culling:
-            mesh.set_gl_state(cull_face=True)
+        mesh = None
+        if colormap is not None and scalars is not None:
+            cm = Colormap(colormap / 255.0)
+            nscalars = (scalars - min(scalars)) / (max(scalars) - min(scalars))
+            vcolors = cm.map(nscalars)
+            mesh = scene.visuals.Mesh(vertices=surface['rr'],
+                                      faces=surface['tris'],
+                                      vertex_colors=vcolors,
+                                      shading='smooth',
+                                      parent=self.view.scene)
+        else:
+            mesh = scene.visuals.Mesh(vertices=surface['rr'],
+                                      faces=surface['tris'],
+                                      color=color, parent=self.view.scene,
+                                      shading='smooth')
+        if mesh is not None:
+            mesh.shininess = default_mesh_shininess
+            mesh.attach(Alpha(opacity))
+            if backface_culling:
+                mesh.set_gl_state(cull_face=True)
 
     def sphere(self, center, color, scale, opacity=1.0,
                backface_culling=False):
