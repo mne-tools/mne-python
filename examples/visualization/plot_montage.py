@@ -15,6 +15,8 @@ XXX: things to refer properly:
 
 import mne
 import numpy as np
+import os.path as op
+
 from mne.datasets import sample
 from mne.channels.montage import _set_montage, get_builtin_montages
 from mne.viz import plot_alignment
@@ -66,15 +68,40 @@ def get_trans():
 
 ###############################################################################
 # Exercise, create digitation based on biosemi16
-from mne.channels import Digitization, read_foo
-def test_xx():
-    montage = mne.channels.read_foo('biosemi16', unit='mm')
+# from mne.channels import Digitization, read_foo
+# def test_xx():
+#     montage = mne.channels.read_foo('biosemi16', unit='mm')
 
-    info = mne.create_info(ch_names=montage.ch_names,
-                        sfreq=1,
-                        ch_types='eeg',
-                        montage=montage)
+#     info = mne.create_info(ch_names=montage.ch_names,
+#                         sfreq=1,
+#                         ch_types='eeg',
+#                         montage=montage)
 
+###############################################################################
+# Exercise, create digitation from hsp
+from mne.channels import read_foobar
+
+from mne import __file__ as mne_init_path
+from mne.channels.montage import _read_dig_points
+from mne.io.kit import read_mrk
+from mne.io.kit.kit import _set_dig_kit
+
+KIT_PATH = op.join(op.dirname(mne_init_path), 'io', 'kit', 'tests', 'data')
+KIT_HSP = op.join(KIT_PATH, 'test.hsp')
+KIT_ELP = op.join(KIT_PATH, 'test.elp')
+KIT_SQD = op.join(KIT_PATH, 'test.sqd')
+
+montage = read_foobar(hsp_fname=KIT_HSP, elp_fname=KIT_ELP, sqd_fname=KIT_SQD)
+
+my_info = mne.create_info(ch_names=[],
+                          sfreq=1,
+                          ch_types='eeg',
+                          montage=montage)
+
+fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage', dig=True,
+                     eeg=['original'], meg=[],
+                     coord_frame='head', subjects_dir=subjects_dir,
+                     fig=None)
 
 ###############################################################################
 # Questions I've
