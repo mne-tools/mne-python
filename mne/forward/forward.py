@@ -40,7 +40,7 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose,
-                     _validate_type)
+                     _validate_type, _check_compensation_grade)
 from ..label import Label
 
 
@@ -886,7 +886,21 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
 
 def is_fixed_orient(forward, orig=False):
-    """Check if the forward operator is fixed orientation."""
+    """Check if the forward operator is fixed orientation.
+
+    Parameters
+    ----------
+    forward : instance of Forward
+        The forward.
+    orig : bool
+        If True, consider the original source orientation.
+        If False (default), consider the current source orientation.
+
+    Returns
+    -------
+    fixed_ori : bool
+        Whether or not it is fixed orientation.
+    """
     if orig:  # if we want to know about the original version
         fixed_ori = (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
     else:  # most of the time we want to know about the current version
@@ -937,21 +951,68 @@ def write_forward_meas_info(fid, info):
 
 
 @verbose
+def _select_orient_forward(forward, info, noise_cov=None, verbose=None):
+    """Prepare forward solution for inverse solvers."""
+    # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
+    fwd_sol_ch_names = forward['sol']['row_names']
+    all_ch_names = set(fwd_sol_ch_names)
+    all_bads = set(info['bads'])
+    if noise_cov is not None:
+        all_ch_names &= set(noise_cov['names'])
+        all_bads |= set(noise_cov['bads'])
+    else:
+        noise_cov = dict(bads=info['bads'])
+    ch_names = [c['ch_name'] for c in info['chs']
+                if c['ch_name'] not in all_bads and
+                c['ch_name'] in all_ch_names]
+
+    if not len(info['bads']) == len(noise_cov['bads']) or \
+            not all(b in noise_cov['bads'] for b in info['bads']):
+        logger.info('info["bads"] and noise_cov["bads"] do not match, '
+                    'excluding bad channels from both')
+
+    # check the compensation grade
+    _check_compensation_grade(forward['info'], info, 'forward')
+
+    n_chan = len(ch_names)
+    logger.info("Computing inverse operator with %d channels." % n_chan)
+
+    gain = forward['sol']['data']
+
+    # This actually reorders the gain matrix to conform to the info ch order
+    fwd_idx = [fwd_sol_ch_names.index(name) for name in ch_names]
+    gain = gain[fwd_idx]
+    # Any function calling this helper will be using the returned fwd_info
+    # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
+
+    info_idx = [info['ch_names'].index(name) for name in ch_names]
+    fwd_info = pick_info(info, info_idx)
+    forward['info']._check_consistency()
+    fwd_info._check_consistency()
+
+    return fwd_info, gain
+
+
+@verbose
 def compute_orient_prior(forward, loose=0.2, verbose=None):
     """Compute orientation prior.
 
     Parameters
     ----------
-    forward : dict
+    forward : instance of Forward
         Forward operator.
-    loose : float in [0, 1]
-        The loose orientation parameter.
+    loose : float
+        The loose orientation parameter (between 0 and 1).
     %(verbose)s
 
     Returns
     -------
-    orient_prior : array
+    orient_prior : ndarray, shape (n_vertices,)
         Orientation priors.
+
+    See Also
+    --------
+    compute_depth_prior
     """
     is_fixed_ori = is_fixed_orient(forward)
     n_sources = forward['sol']['data'].shape[1]
@@ -1005,7 +1066,48 @@ def _restrict_gain_matrix(G, info):
 def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                         patch_areas=None, limit_depth_chs=False,
                         loose_method='svd'):
-    """Compute weighting for depth prior."""
+    """Compute weighting for depth prior.
+
+    Parameters
+    ----------
+    G : ndarray, shape (n_channels, n_vertices)
+        The gain matrix.
+    gain_info : instance of Info
+        The info associated with the gain matrix.
+    is_fixed_ori : bool
+        Whether or not ``G`` is fixed orientation.
+    exp : float
+        Exponent for the depth weighting.
+    limit : float | None
+        The upper bound on depth weighting. Can be None to be unbounded.
+    patch_areas : ndarray | None
+        Patch areas of the vertices from the forward solution.
+    limit_depth_chs : bool
+        If True, limit depth weighting computation to gradiometers
+        if present (ignoring magnetometers). This can improve the
+        computations on systems that have both (e.g., Neuromag).
+    loose_method : 'svd' | 'sum'
+        When a loose (or free) orientation is used, how the depth weighting
+        for each triplet should be calculated.
+        If 'svd', use the largest singular value of the 3x3 matrix
+        formed by the dot product ``Gk.T @ Gk`` will be used.
+        If 'sum', then ``np.sum(Gk ** 2)`` will be used.
+
+        .. versionadded:: 0.18
+
+    Returns
+    -------
+    depth_prior : ndarray, shape (n_vertices,)
+        The depth prior.
+
+    See Also
+    --------
+    compute_orient_prior
+    """
+    # XXX this perhaps should just take ``forward`` instead of ``G`` and
+    # ``gain_info``. However, it's not easy to do this given that the
+    # mixed norm code requires that ``G`` is whitened before this chunk
+    # of code executes.
     logger.info('Creating the depth weighting matrix...')
 
     # If possible, pick best depth-weighting channels

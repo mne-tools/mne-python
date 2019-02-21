@@ -1340,9 +1340,10 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
     missing = list()
     ch_names = info['ch_names'] if ch_names is None else ch_names
     for c in ch_names:
-        try:
+        # this could be try/except ValueError, but it is not the preferred way
+        if c in noise_cov.ch_names:
             noise_cov_idx.append(noise_cov.ch_names.index(c))
-        except ValueError:
+        else:
             missing.append(c)
     if len(missing):
         raise RuntimeError('Not all channels present in noise covariance:\n%s'
@@ -1685,7 +1686,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
         raise ValueError('space must be one of %s, got %s'
                          % (_valid_pcas, pca))
     if info is None:
-        if noise_cov.get('eig', None) is None:
+        if 'eig' not in noise_cov:
             raise ValueError('info can only be None if the noise cov has '
                              'already been prepared with prepare_noise_cov')
         ch_names = deepcopy(noise_cov['names'])

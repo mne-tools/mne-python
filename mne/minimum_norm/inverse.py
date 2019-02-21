@@ -12,7 +12,6 @@ from scipy import linalg
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
-from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
@@ -29,14 +28,16 @@ from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
                    prepare_noise_cov)
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
-                       write_forward_meas_info, is_fixed_orient,
-                       compute_orient_prior, convert_forward_solution)
+                       is_fixed_orient, compute_orient_prior,
+                       convert_forward_solution, _select_orient_forward)
+from ..forward.forward import write_forward_meas_info
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
-from ..utils import check_fname, logger, verbose, warn
+from ..utils import (check_fname, logger, verbose, warn,
+                     _check_compensation_grade)
 
 
 class InverseOperator(dict):
@@ -470,7 +471,7 @@ def _check_ch_names(inv, info):
     if n_missing > 0:
         raise ValueError('%d channels in inverse operator ' % n_missing +
                          'are not present in the data (%s)' % missing_ch_names)
-    _check_comps(inv['info'], info, 'inverse')
+    _check_compensation_grade(inv['info'], info, 'inverse')
 
 
 def _check_or_prepare(inv, nave, lambda2, method, method_params, prepared):
@@ -722,17 +723,6 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
 
     return K, noise_norm, vertno, source_nn
-
-
-def _check_comps(info, data_info, kind):
-    """Check for compatibility between compensation grades."""
-    comp = get_current_comp(info)
-    data_comp = get_current_comp(data_info)
-    if comp != data_comp and \
-            any(c not in (None, 0) for c in (comp, data_comp)):
-        raise RuntimeError('compensation grade mismatch between %s (%s) '
-                           'and data (%s), consider recomputing the %s.'
-                           % (kind, comp, data_comp, kind))
 
 
 def _check_method(method):
@@ -1297,52 +1287,13 @@ def _xyz2lf(Lf_xyz, normals):
 ###############################################################################
 # Assemble the inverse operator
 
-@verbose
-def _select_orient_forward(forward, info, noise_cov, verbose=None):
-    """Prepare forward solution for inverse solvers."""
-    # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
-    fwd_sol_ch_names = forward['sol']['row_names']
-    all_ch_names = set(fwd_sol_ch_names)
-    all_bads = set(info['bads'])
-    if noise_cov is not None:
-        all_ch_names &= set(noise_cov['names'])
-        all_bads |= set(noise_cov['bads'])
-    ch_names = [c['ch_name'] for c in info['chs']
-                if c['ch_name'] not in all_bads and
-                c['ch_name'] in all_ch_names]
-
-    if not len(info['bads']) == len(noise_cov['bads']) or \
-            not all(b in noise_cov['bads'] for b in info['bads']):
-        logger.info('info["bads"] and noise_cov["bads"] do not match, '
-                    'excluding bad channels from both')
-
-    # check the compensation grade
-    _check_comps(forward['info'], info, 'forward')
-
-    n_chan = len(ch_names)
-    logger.info("Computing inverse operator with %d channels." % n_chan)
-
-    gain = forward['sol']['data']
-
-    # This actually reorders the gain matrix to conform to the info ch order
-    fwd_idx = [fwd_sol_ch_names.index(name) for name in ch_names]
-    gain = gain[fwd_idx]
-    # Any function calling this helper will be using the returned fwd_info
-    # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
-
-    info_idx = [info['ch_names'].index(name) for name in ch_names]
-    fwd_info = pick_info(info, info_idx)
-    forward['info']._check_consistency()
-    fwd_info._check_consistency()
-
-    return fwd_info, gain
-
-
 def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
                      use_cps=True, limit_depth_chs=True, loose_method='svd',
                      allow_fixed_depth=False, limit=10., whiten='after'):
     """Prepare a gain matrix and noise covariance for localization."""
-    # Steps (according to MNE-C, we change the order):
+    # Steps (according to MNE-C, we change the order of various steps
+    # because our I/O is already done, and we create the objects
+    # on the fly more easily):
     #
     # 1. Read the bad channels
     # 2. Read the necessary data from the forward solution matrix file

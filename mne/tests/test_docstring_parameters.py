@@ -29,6 +29,7 @@ public_modules = [
     'mne.decoding',
     'mne.dipole',
     'mne.filter',
+    'mne.forward',
     'mne.inverse_sparse',
     'mne.io',
     'mne.io.kit',
@@ -225,6 +226,7 @@ get_score_funcs
 get_version
 invert_transform
 is_power2
+is_fixed_orient
 iter_topography
 kit2fiff
 label_src_vertno_sel

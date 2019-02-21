@@ -928,13 +928,13 @@ def test_inverse_ctf_comp():
         pos=dict(rr=[[0., 0., 0.01]], nn=[[0., 1., 0.]]))
     fwd = make_forward_solution(raw.info, None, src, sphere, eeg=False)
     raw.apply_gradient_compensation(0)
-    with pytest.raises(RuntimeError, match='compensation grade mismatch'):
+    with pytest.raises(RuntimeError, match='Compensation grade .* not match'):
         make_inverse_operator(raw.info, fwd, cov, loose=1.)
     raw.apply_gradient_compensation(1)
     inv = make_inverse_operator(raw.info, fwd, cov, loose=1.)
     apply_inverse_raw(raw, inv, 1. / 9.)  # smoke test
     raw.apply_gradient_compensation(0)
-    with pytest.raises(RuntimeError, match='compensation grade mismatch'):
+    with pytest.raises(RuntimeError, match='Compensation grade .* not match'):
         apply_inverse_raw(raw, inv, 1. / 9.)
 
 

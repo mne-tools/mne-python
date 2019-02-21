@@ -201,35 +201,36 @@ def _check_preload(inst, msg):
                 '%s.load_data().' % (name, name))
 
 
-def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
+def _check_compensation_grade(info1, info2, name1,
+                              name2='data', ch_names=None):
     """Ensure that objects have same compensation_grade."""
+    from ..io import Info
     from ..io.pick import pick_channels, pick_info
     from ..io.compensator import get_current_comp
 
-    if None in [inst.info, inst2.info]:
-        return
+    for t_info in (info1, info2):
+        if t_info is None:
+            return
+        assert isinstance(t_info, Info), t_info  # or internal code is wrong
 
-    if ch_names is None:
-        grade = inst.compensation_grade
-        grade2 = inst2.compensation_grade
-    else:
-        info = inst.info.copy()
-        info2 = inst2.info.copy()
+    if ch_names is not None:
+        info1 = info1.copy()
+        info2 = info2.copy()
         # pick channels
-        for t_info in [info, info2]:
+        for t_info in [info1, info2]:
             if t_info['comps']:
                 t_info['comps'] = []
             picks = pick_channels(t_info['ch_names'], ch_names)
             pick_info(t_info, picks, copy=False)
-        # get compensation grades
-        grade = get_current_comp(info)
-        grade2 = get_current_comp(info2)
+    # "or 0" here aliases None -> 0, as they are equivalent
+    grade1 = get_current_comp(info1) or 0
+    grade2 = get_current_comp(info2) or 0
 
     # perform check
-    if grade != grade2:
-        msg = 'Compensation grade of %s (%d) and %s (%d) don\'t match'
-        raise RuntimeError(msg % (name, inst.compensation_grade,
-                                  name2, inst2.compensation_grade))
+    if grade1 != grade2:
+        raise RuntimeError(
+            'Compensation grade of %s (%s) and %s (%s) do not match'
+            % (name1, grade1, name2, grade2))
 
 
 def _check_pandas_installed(strict=True):
