@@ -160,9 +160,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         To disable, provide an empty list.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

@@ -665,15 +665,14 @@ def test_getitem():
         data1, times1 = raw[[0, 1]]
         assert_array_equal(data, data1)
         assert_array_equal(times, times1)
+        assert_array_equal(raw[raw.ch_names[0]][0][0], raw[0][0][0])
         assert_array_equal(
             raw[-10:-1, :][0],
             raw[len(raw.ch_names) - 10:len(raw.ch_names) - 1, :][0])
-        pytest.raises(ValueError, raw.__getitem__,
-                      (slice(-len(raw.ch_names) - 1), slice(None)))
-        with pytest.raises(ValueError, match='start must be'):
-            raw[-1000:]
-        with pytest.raises(ValueError, match='stop must be'):
-            raw[:-1000]
+        with pytest.raises(ValueError, match='No appropriate channels'):
+            raw[slice(-len(raw.ch_names) - 1), slice(None)]
+        with pytest.raises(ValueError, match='must be'):
+            raw[-1000]
 
 
 @testing.requires_testing_data
@@ -913,7 +912,7 @@ def test_filter_picks():
     for ch_type in ('misc', 'stim'):
         picks = {ch: ch == ch_type for ch in ch_types}
         raw_ = raw.copy().pick_types(**picks)
-        pytest.raises(RuntimeError, raw_.filter, 10, 30)
+        pytest.raises(ValueError, raw_.filter, 10, 30)
 
 
 @testing.requires_testing_data

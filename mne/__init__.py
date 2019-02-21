@@ -48,7 +48,7 @@ from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       make_forward_dipole, use_coil_def)
 from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               SourceEstimate, VectorSourceEstimate,
-                              VolSourceEstimate,
+                              VolSourceEstimate, VolVectorSourceEstimate,
                               grade_to_tris,
                               spatial_src_connectivity,
                               spatial_tris_connectivity,
@@ -90,6 +90,7 @@ from .channels import equalize_channels, rename_channels, find_layout
 from .report import Report, open_report
 
 from .io import read_epochs_fieldtrip, read_evoked_fieldtrip
+from .rank import compute_rank
 
 from . import beamformer
 from . import channels

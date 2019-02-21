@@ -8,11 +8,11 @@
 import numpy as np
 from scipy import linalg
 
-from ..io.pick import pick_channels_evoked
+from ..io.pick import pick_channels_evoked, _picks_to_idx
 from ..cov import compute_whitener
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _check_info_inv
 from ..dipole import Dipole
-from ._compute_beamformer import _prepare_beamformer_input, _setup_picks
+from ._compute_beamformer import _prepare_beamformer_input
 
 
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
@@ -33,9 +33,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         The noise covariance.
     n_dipoles : int
         The number of dipoles to estimate. The default value is 2.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
+    picks : list of int
+        Caller ensures this is a list of int.
 
     Returns
     -------
@@ -46,6 +45,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         selected active dipoles and their estimated orientation.
         Computed only if return_explained_data is True.
     """
+    picks = _picks_to_idx(info, picks)
     is_free_ori, ch_names, proj, vertno, G, _ = _prepare_beamformer_input(
         info, forward, label=None, picks=picks, pick_ori=None)
 
@@ -208,9 +208,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -244,7 +242,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     data = evoked.data
     times = evoked.times
 
-    picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
+    picks = _check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
 
     data = data[picks]
 

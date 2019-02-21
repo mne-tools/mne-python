@@ -11,7 +11,7 @@ import os.path as op
 
 import numpy as np
 
-from ._logging import warn
+from ._logging import warn, logger
 
 
 def _ensure_int(x, name='unknown', must_be='an int'):
@@ -157,7 +157,6 @@ def _check_event_id(event_id, events):
 def _check_fname(fname, overwrite=False, must_exist=False):
     """Check for file existence."""
     _validate_type(fname, 'str', 'fname')
-    from mne.utils import logger
     if must_exist and not op.isfile(fname):
         raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
@@ -271,23 +270,6 @@ def _check_ch_locs(chs):
                 np.allclose(locs3d, 0.))
 
 
-def _check_type_picks(picks):
-    """Guarantee type integrity of picks."""
-    err_msg = 'picks must be None, a list or an array of integers'
-    if picks is None:
-        pass
-    elif isinstance(picks, list):
-        for pick in picks:
-            _validate_type(pick, 'int', 'Each pick')
-        picks = np.array(picks)
-    elif isinstance(picks, np.ndarray):
-        if not picks.dtype.kind == 'i':
-            raise TypeError(err_msg)
-    else:
-        raise TypeError(err_msg)
-    return picks
-
-
 def _is_numeric(n):
     return isinstance(n, (np.integer, np.floating, int, float))
 
@@ -316,12 +298,22 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         from mne.io import Info as types
         type_name = "Info" if type_name is None else type_name
         item_name = "Info" if item_name is None else item_name
+    if not isinstance(types, (list, tuple)):
+        types = [types]
 
-    if type_name is None:
-        iter_types = ([types] if not isinstance(types, (list, tuple))
-                      else types)
-        type_name = ', '.join(cls.__name__ for cls in iter_types)
-    if not isinstance(item, types):
+    check_types = tuple(type(None) if type_ is None else type_
+                        for type_ in types)
+    if not isinstance(item, check_types):
+        if type_name is None:
+            type_name = ['None' if cls_ is None else cls_.__name__
+                         for cls_ in types]
+            if len(type_name) == 1:
+                type_name = type_name[0]
+            elif len(type_name) == 2:
+                type_name = ' or '.join(type_name)
+            else:
+                type_name[-1] = 'or ' + type_name[-1]
+                type_name = ', '.join(type_name)
         raise TypeError('%s must be an instance of %s, got %s instead'
                         % (item_name, type_name, type(item),))
 
@@ -330,3 +322,113 @@ def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
         raise ValueError("Some of the values {} are NaN.".format(msg))
+
+
+def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
+    """Return good channels common to forward model and covariance matrices."""
+    from .. import pick_types
+    # get a list of all channel names:
+    fwd_ch_names = forward['info']['ch_names']
+
+    # handle channels from forward model and info:
+    ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
+
+    # make sure that no reference channels are left:
+    ref_chs = pick_types(info, meg=False, ref_meg=True)
+    ref_chs = [info['ch_names'][ch] for ch in ref_chs]
+    ch_names = [ch for ch in ch_names if ch not in ref_chs]
+
+    # inform about excluding channels:
+    if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
+            (len(set(ch_names).intersection(data_cov['bads'])) > 0)):
+        logger.info('info["bads"] and data_cov["bads"] do not match, '
+                    'excluding bad channels from both.')
+    if (noise_cov is not None and
+            set(info['bads']) != set(noise_cov['bads']) and
+            (len(set(ch_names).intersection(noise_cov['bads'])) > 0)):
+        logger.info('info["bads"] and noise_cov["bads"] do not match, '
+                    'excluding bad channels from both.')
+
+    # handle channels from data cov if data cov is not None
+    # Note: data cov is supposed to be None in tf_lcmv
+    if data_cov is not None:
+        ch_names = _compare_ch_names(ch_names, data_cov.ch_names,
+                                     data_cov['bads'])
+
+    # handle channels from noise cov if noise cov available:
+    if noise_cov is not None:
+        ch_names = _compare_ch_names(ch_names, noise_cov.ch_names,
+                                     noise_cov['bads'])
+
+    picks = [info['ch_names'].index(k) for k in ch_names if k in
+             info['ch_names']]
+    return picks
+
+
+def _compare_ch_names(names1, names2, bads):
+    """Return channel names of common and good channels."""
+    ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
+    return ch_names
+
+
+def _check_channels_spatial_filter(ch_names, filters):
+    """Return data channel indices to be used with spatial filter.
+
+    Unlike ``pick_channels``, this respects the order of ch_names.
+    """
+    sel = []
+    # first check for channel discrepancies between filter and data:
+    for ch_name in filters['ch_names']:
+        if ch_name not in ch_names:
+            raise ValueError('The spatial filter was computed with channel %s '
+                             'which is not present in the data. You should '
+                             'compute a new spatial filter restricted to the '
+                             'good data channels.' % ch_name)
+    # then compare list of channels and get selection based on data:
+    sel = [ii for ii, ch_name in enumerate(ch_names)
+           if ch_name in filters['ch_names']]
+    return sel
+
+
+def _check_rank(rank):
+    """Check rank parameter and deal with deprecation."""
+    err_msg = ('rank must be None, dict, "full", or int, '
+               'got %s (type %s)' % (rank, type(rank)))
+    if isinstance(rank, str):
+        # XXX we can use rank='' to deprecate to get to None eventually:
+        # if rank == '':
+        #     warn('The rank parameter default in 0.18 of "full" will change '
+        #          'to None in 0.19, set it explicitly to avoid this warning',
+        #          DeprecationWarning)
+        #     rank = 'full'
+        if rank not in ['full', 'info']:
+            raise ValueError('rank, if str, must be "full" or "info", '
+                             'got %s' % (rank,))
+    elif isinstance(rank, bool):
+        raise TypeError(err_msg)
+    elif rank is not None and not isinstance(rank, dict):
+        try:
+            rank = int(operator.index(rank))
+        except TypeError:
+            raise TypeError(err_msg)
+        else:
+            warn('rank as int is deprecated and will be removed in 0.19. '
+                 'use rank=dict(meg=...) instead.', DeprecationWarning)
+            rank = dict(meg=rank)
+    return rank
+
+
+def _check_one_ch_type(info, picks, noise_cov, method):
+    """Check number of sensor types and presence of noise covariance matrix."""
+    from ..io.pick import pick_info
+    from ..channels.channels import _contains_ch_type
+    info_pick = pick_info(info, sel=picks)
+    ch_types =\
+        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
+    if method == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
+        raise ValueError('Source reconstruction with several sensor types '
+                         'requires a noise covariance matrix to be '
+                         'able to apply whitening.')
+    elif method == 'dics' and sum(ch_types) > 1:
+        warn('The use of several sensor types with the DICS beamformer is '
+             'not heavily tested yet.')

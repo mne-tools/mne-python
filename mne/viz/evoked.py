@@ -10,8 +10,8 @@
 #
 # License: Simplified BSD
 
-from functools import partial
 from copy import deepcopy
+from functools import partial
 from numbers import Integral
 
 import numpy as np
@@ -19,7 +19,7 @@ import numpy as np
 from ..io.pick import (channel_type, _pick_data_channels,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
-                       _PICK_TYPES_DATA_DICT)
+                       _PICK_TYPES_DATA_DICT, _picks_to_idx)
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
@@ -30,7 +30,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
-                     _check_if_nan, _check_ch_locs)
+                     _check_if_nan, _check_ch_locs, fill_doc)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -266,8 +266,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
 
-    if picks is None:
-        picks = list(range(info['nchan']))
+    picks = _picks_to_idx(info, picks, none='all', exclude=())
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
 
@@ -283,8 +282,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             raise ValueError(
                 'exclude has to be a list of channel names or "bads"')
 
-        picks = [pick for pick in picks if pick not in exclude]
-    picks = np.array(picks)
+        picks = np.array([pick for pick in picks if pick not in exclude])
 
     types = np.array([channel_type(info, idx) for idx in picks], np.unicode)
     ch_types_used = list()
@@ -631,8 +629,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     ----------
     evoked : instance of Evoked
         The evoked data
-    picks : array-like of int | None
-        The indices of channels to plot. If None show all.
+    %(picks_all)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded.
@@ -713,9 +710,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -847,6 +842,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              noise_cov=noise_cov)
 
 
+@fill_doc
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       show=True, clim=None, xlim='tight', proj=False,
                       units=None, scalings=None, titles=None, axes=None,
@@ -859,8 +855,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     ----------
     evoked : instance of Evoked
         The evoked data
-    picks : array-like of int | None
-        The indices of channels to plot. If None show all.
+    %(picks_all)s
         This parameter can also be used to set the order the channels
         are shown in, as the channel image is sorted by the order of picks.
     exclude : list of str | 'bads'
@@ -1018,21 +1013,12 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
         The noise covariance. Can be a string to load a covariance from disk.
     show : bool
         Show figure if True.
-    rank : dict of int | None
-        Dict of ints where keys are 'eeg', 'meg', mag' or 'grad'. If None,
-        the rank is detected automatically. Defaults to None. 'mag' or
-        'grad' cannot be specified jointly with 'meg'. For SSS'd data,
-        only 'meg' is valid. For non-SSS'd data, 'mag' and/or 'grad' must be
-        specified separately. If only one is specified, the other one gets
-        estimated. Note. The rank estimation will be printed by the logger for
-        each noise covariance estimator that is passed.
+    %(rank_None)s
     time_unit : str
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1047,7 +1033,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     -----
     If baseline signals match the assumption of Gaussian white noise,
     values should be centered at 0, and be within 2 standard deviations
-    (±1.96) for 95% of the time points. For the global field power (GFP),
+    (±1.96) for 95%% of the time points. For the global field power (GFP),
     we expect it to fluctuate around a value of 1.
 
     If one single covariance object is passed, the GFP panel (bottom)
@@ -1084,7 +1070,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True,
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
-        Note. Theses values were tested on different datests across various
+        Note. These values were tested on different datests across various
         conditions. You should not need to update them.
 
     """
@@ -1233,9 +1219,7 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
         The minimum-norm inverse operator.
     show : bool
         Show figure if True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1268,6 +1252,7 @@ def plot_snr_estimate(evoked, inv, show=True, verbose=None):
     return fig
 
 
+@fill_doc
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       exclude=None, show=True, ts_args=None,
                       topomap_args=None):
@@ -1285,8 +1270,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     title : str | None
         The title. If `None`, suppress printing channel type. If an empty
         string, a default title is created. Defaults to ''.
-    picks : array-like of int | None
-        The indices of channels to plot. If None show all. Defaults to None.
+    %(picks_all)s
     exclude : None | list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded. Defaults to None.
@@ -1682,6 +1666,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
     return styles, the_colors, color_conds, color_order, colors_are_float
 
 
+@fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
                          vlines="auto", ci=0.95, truncate_yaxis="max_ticks",
@@ -1702,14 +1687,15 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         area. All instances must have the same shape - channel numbers, time
         points etc.
         If dict, keys must be of type str.
-    picks : None | int | list of int
-        If int or list of int, the indices of the sensors to average and plot.
-        If multiple channel types are selected, one figure will be returned for
-        each channel type.
-        If the selected channels are gradiometers, the signal from
-        corresponding (gradiometer) pairs will be combined.
-        If None, it defaults to all data channels, in which case the global
-        field power will be plotted for all channel type available.
+    %(picks_all_data)s
+
+        * If picks is None, the global field power will be plotted
+          for all data channels. Otherwise, picks will be averaged.
+        * If multiple channel types are selected, one
+          figure will be returned for each channel type.
+        * If the selected channels are gradiometers, the signal from
+          corresponding (gradiometer) pairs will be combined.
+
     gfp : bool
         If True, the channel type wise GFP is plotted.
         If `picks` is an empty list (default), this is set to True.
@@ -1778,11 +1764,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         confidence interval is drawn around the individual time series. If
         float, a percentile bootstrap method is used to estimate the confidence
         interval and this value determines the CI width. E.g., if this value is
-        .95 (the default), the 95% confidence interval is drawn. If a callable,
-        it must take as its single argument an array (observations x times) and
-        return the upper and lower confidence bands.
+        .95 (the default), the 95%% confidence interval is drawn. If a
+        callable, it must take as its single argument an array
+        (observations x times) and return the upper and lower confidence bands.
         If None or False, no confidence band is plotted.
-        If True, a 95% bootstrapped confidence interval is drawn.
+        If True, a 95%% bootstrapped confidence interval is drawn.
     truncate_yaxis : bool | str
         If not False, the left y axis spine is truncated to reduce visual
         clutter. If 'max_ticks', the spine is truncated at the minimum and
@@ -1876,13 +1862,13 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     info = one_evoked.info
     tmin, tmax = times[0], times[-1]
 
-    if vlines == "auto" and (tmin < 0 and tmax > 0):
-        vlines = [0.]
+    if vlines == "auto":
+        vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
-    if isinstance(picks, Integral):
-        picks = [picks]
-    elif picks is None:
+    picks = [] if picks is None else picks
+    picks = _picks_to_idx(info, picks, allow_empty=True)
+    if len(picks) == 0:
         logger.info("No picks, plotting the GFP ...")
         gfp = True
         picks = _pick_data_channels(info, with_ref_meg=False)

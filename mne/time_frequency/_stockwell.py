@@ -227,9 +227,7 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
         Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
         The number of jobs to run in parallel (over channels).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

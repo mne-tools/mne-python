@@ -7,13 +7,14 @@ from os import path
 import datetime
 import calendar
 
-from ...utils import logger
+from ...utils import logger, fill_doc
 from ..utils import _read_segments_file, _find_channels, _create_chs
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
 
+@fill_doc
 def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
                      emg=(), misc=(), preload=False, verbose=None):
     """Read Nicolet data as raw object.
@@ -54,9 +55,7 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -159,9 +158,7 @@ class RawNicolet(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------

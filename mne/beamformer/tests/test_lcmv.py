@@ -15,6 +15,7 @@ from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv, Beamformer,
                             read_beamformer)
 from mne.beamformer._lcmv import _lcmv_source_power
+from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
 from mne.utils import run_tests_if_main, object_diff, requires_h5py
@@ -41,7 +42,7 @@ def _read_forward_solution_meg(*args, **kwargs):
 
 
 def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
-              epochs_preload=True, data_cov=True):
+              epochs_preload=True, data_cov=True, proj=True):
     """Read in data used in tests."""
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
@@ -75,7 +76,10 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     del picks
 
     raw.info['bads'] = bads  # add more bads
-    raw.info.normalize_proj()  # avoid projection warnings
+    if proj:
+        raw.info.normalize_proj()  # avoid projection warnings
+    else:
+        raw.del_proj()
 
     if epochs:
         # Read epochs
@@ -185,13 +189,15 @@ def test_lcmv_vector():
 @pytest.mark.slowtest
 @requires_h5py
 @testing.requires_testing_data
-def test_make_lcmv(tmpdir):
+@pytest.mark.parametrize('reg', (0.01, 0.))
+@pytest.mark.parametrize('proj', (True, False))
+def test_make_lcmv(tmpdir, reg, proj):
     """Test LCMV with evoked data and single trials."""
     raw, epochs, evoked, data_cov, noise_cov, label, forward,\
-        forward_surf_ori, forward_fixed, forward_vol = _get_data()
+        forward_surf_ori, forward_fixed, forward_vol = _get_data(proj=proj)
 
     for fwd in [forward, forward_vol]:
-        filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
+        filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg,
                             noise_cov=noise_cov)
         stc = apply_lcmv(evoked, filters, max_ori_out='signed')
         stc.crop(0.02, None)
@@ -207,7 +213,7 @@ def test_make_lcmv(tmpdir):
         if fwd is forward:
             # Test picking normal orientation (surface source space only).
             filters = make_lcmv(evoked.info, forward_surf_ori, data_cov,
-                                reg=0.01, noise_cov=noise_cov,
+                                reg=reg, noise_cov=noise_cov,
                                 pick_ori='normal', weight_norm=None)
             stc_normal = apply_lcmv(evoked, filters, max_ori_out='signed')
             stc_normal.crop(0.02, None)
@@ -217,8 +223,10 @@ def test_make_lcmv(tmpdir):
             max_stc = stc_normal.data[idx]
             tmax = stc_normal.times[np.argmax(max_stc)]
 
-            assert 0.04 < tmax < 0.13, tmax
-            assert 3e-7 < np.max(max_stc) < 5e-7, np.max(max_stc)
+            lower = 0.04 if proj else 0.025
+            assert lower < tmax < 0.13, tmax
+            lower = 3e-7 if proj else 2e-7
+            assert lower < np.max(max_stc) < 5e-7, np.max(max_stc)
 
             # No weight normalization was applied, so the amplitude of normal
             # orientation results should always be smaller than free
@@ -226,7 +234,7 @@ def test_make_lcmv(tmpdir):
             assert (np.abs(stc_normal.data) <= stc.data).all()
 
         # Test picking source orientation maximizing output source power
-        filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
+        filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg,
                             noise_cov=noise_cov, pick_ori='max-power')
         stc_max_power = apply_lcmv(evoked, filters, max_ori_out='signed')
         stc_max_power.crop(0.02, None)
@@ -235,7 +243,8 @@ def test_make_lcmv(tmpdir):
         max_stc = np.abs(stc_max_power.data[idx])
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert 0.08 < tmax < 0.12, tmax
+        lower = 0.08 if proj else 0.04
+        assert lower < tmax < 0.12, tmax
         assert 0.8 < np.max(max_stc) < 3., np.max(max_stc)
 
         stc_max_power.data[:, :] = np.abs(stc_max_power.data)
@@ -253,7 +262,7 @@ def test_make_lcmv(tmpdir):
             assert_array_less(np.abs(mean_stc - mean_stc_max_pow), 0.6)
 
         # Test NAI weight normalization:
-        filters = make_lcmv(evoked.info, fwd, data_cov, reg=0.01,
+        filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg,
                             noise_cov=noise_cov, pick_ori='max-power',
                             weight_norm='nai')
         stc_nai = apply_lcmv(evoked, filters, max_ori_out='signed')
@@ -294,18 +303,23 @@ def test_make_lcmv(tmpdir):
     max_stc = stc_sphere.data[idx]
     tmax = stc_sphere.times[np.argmax(max_stc)]
 
-    assert 0.08 < tmax < 0.15, tmax
+    lower = 0.08 if proj else 0.04
+    assert lower < tmax < 0.15, tmax
     assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
 
     # Test if spatial filter contains src_type
     assert 'src_type' in filters
 
     # __repr__
+    assert len(evoked.ch_names) == 22
+    assert len(evoked.info['projs']) == (4 if proj else 0)
+    assert len(evoked.info['bads']) == 2
+    rank = 17 if proj else 20
     assert 'LCMV' in repr(filters)
     assert 'unknown subject' not in repr(filters)
     assert '484' in repr(filters)
     assert '20' in repr(filters)
-    assert 'rank 17' in repr(filters)
+    assert 'rank %s' % rank in repr(filters)
 
     # I/O
     fname = op.join(str(tmpdir), 'filters.h5')
@@ -368,10 +382,11 @@ def test_make_lcmv(tmpdir):
     assert_array_almost_equal(stc.data, stc_ch.data)
 
     # Test if non-matching SSP projection is detected in application of filter
-    raw_proj = deepcopy(raw)
-    raw_proj.del_proj()
-    pytest.raises(ValueError, apply_lcmv_raw, raw_proj, filters,
-                  max_ori_out='signed')
+    if proj:
+        raw_proj = deepcopy(raw)
+        raw_proj.del_proj()
+        with pytest.raises(ValueError, match='do not match the projections'):
+            apply_lcmv_raw(raw_proj, filters, max_ori_out='signed')
 
     # Test if setting reduce_rank to True returns a NotImplementedError
     # when no orientation selection is done or pick_ori='normal'
@@ -647,6 +662,33 @@ def test_lcmv_ctf_comp():
                                     mne.make_sphere_model())
     filters = make_lcmv(evoked.info, fwd, data_cov)
     assert 'weights' in filters
+
+    # test whether different compensations throw error
+    info_comp = evoked.info.copy()
+    set_current_comp(info_comp, 1)
+    with pytest.raises(ValueError,
+                       match='do not have same compensation applied'):
+        make_lcmv(info_comp, fwd, data_cov)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('proj', [False, True])
+def test_lcmv_reg_proj(proj):
+    """Test LCMV with and without proj."""
+    raw = mne.io.read_raw_fif(fname_raw, preload=True)
+    events = mne.find_events(raw)
+    raw.pick_types()
+    assert len(raw.ch_names) == 305
+    epochs = mne.Epochs(raw, events, None, preload=True, proj=proj)
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        noise_cov = mne.compute_covariance(epochs, tmax=0)
+        data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+    forward = mne.read_forward_solution(fname_fwd)
+    filters = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
+                        noise_cov=noise_cov, pick_ori='max-power',
+                        weight_norm='nai', rank=None, verbose=True)
+    want_rank = 302  # 305 good channels - 3 MEG projs
+    assert filters['rank'] == want_rank
 
 
 run_tests_if_main()

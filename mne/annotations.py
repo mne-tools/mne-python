@@ -838,10 +838,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         If not, :func:`mne.events_from_annotations` returns as many events as
         they fit within the annotation duration spaced according to
         `chunk_duration`, which is given in seconds.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more). Defaults to self.verbose.
+    %(verbose)s
 
     Returns
     -------

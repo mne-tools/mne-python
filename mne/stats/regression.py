@@ -15,8 +15,8 @@ from scipy import linalg, sparse
 from ..source_estimate import SourceEstimate
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
-from ..utils import logger, _reject_data_segments, warn
-from ..io.pick import pick_types, pick_info
+from ..utils import logger, _reject_data_segments, warn, fill_doc
+from ..io.pick import pick_types, pick_info, _picks_to_idx
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -148,6 +148,7 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
+@fill_doc
 def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           covariates=None, reject=None, flat=None, tstep=1.,
                           decim=1, picks=None, solver='cholesky'):
@@ -218,9 +219,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         Decimate by choosing only a subsample of data points. Highly
         recommended for data recorded at high sampling frequencies, as
         otherwise huge intermediate matrices have to be created and inverted.
-    picks : None | list
-        List of indices of channels to be included. If None, defaults to all
-        MEG and EEG channels.
+    %(picks_good_data)s
     solver : str | callable
         Either a function which takes as its inputs the sparse predictor
         matrix X and the observation matrix Y, and returns the coefficient
@@ -286,8 +285,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
 
 def _prepare_rerp_data(raw, events, picks=None, decim=1):
     """Prepare events and data, primarily for `linear_regression_raw`."""
-    if picks is None:
-        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True)
+    picks = _picks_to_idx(raw.info, picks)
     info = pick_info(raw.info, picks)
     decim = int(decim)
     info["sfreq"] /= decim

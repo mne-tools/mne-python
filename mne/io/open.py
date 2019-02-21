@@ -85,9 +85,7 @@ def fiff_open(fname, preload=False, verbose=None):
         If True, all data from the file is read into a memory buffer. This
         requires more memory, but can be faster for I/O operations that require
         frequent seeks.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -154,6 +152,7 @@ def fiff_open(fname, preload=False, verbose=None):
     return fid, tree, directory
 
 
+@verbose
 def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
               output=str, tag=None, verbose=None):
     """Show FIFF information.
@@ -177,9 +176,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     tag : int | None
         Provide information about this tag. If None (default), all information
         is shown.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')

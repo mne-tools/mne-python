@@ -313,9 +313,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         the average reference is directly applied to the data.
         If ``ref_channels`` is not ``'average'``, ``projection`` must be set to
         ``False`` (the default in this case).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -435,9 +433,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     copy : bool
         Whether to operate on a copy of the data (True) or modify it in-place
         (False). Defaults to True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -526,7 +522,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Drop remaining channels.
     if drop_refs:
-        drop_channels = (set(anode) | set(cathode)) & set(inst.ch_names)
+        drop_channels = list((set(anode) | set(cathode)) & set(inst.ch_names))
         inst.drop_channels(drop_channels)
 
     return inst

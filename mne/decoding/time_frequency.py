@@ -6,8 +6,10 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
+from ..utils import fill_doc
 
 
+@fill_doc
 class TimeFrequency(TransformerMixin, BaseEstimator):
     """Time frequency transformer.
 
@@ -49,9 +51,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
     n_jobs : int, default 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------

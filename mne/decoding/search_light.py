@@ -8,9 +8,10 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
 from ..utils import (_validate_type, array_split_idx, ProgressBar,
-                     verbose)
+                     verbose, fill_doc)
 
 
+@fill_doc
 class SlidingEstimator(BaseEstimator, TransformerMixin):
     """Search Light.
 
@@ -32,10 +33,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -420,6 +418,7 @@ def _check_method(estimator, method):
     return method
 
 
+@fill_doc
 class GeneralizingEstimator(SlidingEstimator):
     """Generalization Light.
 
@@ -440,10 +439,7 @@ class GeneralizingEstimator(SlidingEstimator):
     n_jobs : int, optional (default=1)
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
     """
 
     def __repr__(self):  # noqa: D105

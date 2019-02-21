@@ -18,7 +18,7 @@ from scipy import linalg
 
 from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, fill_doc
 from ...transforms import (apply_trans, als_ras_trans,
                            get_ras_to_neuromag_trans, Transform)
 from ..base import BaseRaw
@@ -39,6 +39,7 @@ class UnsupportedKITFormat(ValueError):
         ValueError.__init__(self, *args, **kwargs)
 
 
+@fill_doc
 class RawKIT(BaseRaw):
     """Raw object from KIT SQD file.
 
@@ -83,9 +84,7 @@ class RawKIT(BaseRaw):
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -353,9 +352,7 @@ class EpochsKIT(BaseEpochs):
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -794,6 +791,7 @@ def get_kit_info(rawfile, allow_unknown_format):
     return info, sqd
 
 
+@fill_doc
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
                  allow_unknown_format=False, verbose=None):
@@ -837,9 +835,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -861,6 +857,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                   allow_unknown_format=allow_unknown_format, verbose=verbose)
 
 
+@fill_doc
 def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
                     hsp=None, allow_unknown_format=False, verbose=None):
     """Reader function for KIT epochs files.
@@ -895,9 +892,7 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

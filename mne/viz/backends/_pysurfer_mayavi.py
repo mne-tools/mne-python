@@ -152,8 +152,8 @@ class _Renderer(object):
             opacity=opacity, figure=self.fig)
         cont.module_manager.scalar_lut_manager.lut.table = colormap
 
-    def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,
-                vmin=None, vmax=None, colormap=None,
+    def surface(self, surface, color=None, opacity=1.0,
+                vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False):
         """Add a surface in the scene.
 
@@ -177,7 +177,7 @@ class _Renderer(object):
             If True, enable backface culling on the surface.
         """
         # Make a solid surface
-        mesh = _create_mesh_surf(surface, self.fig)
+        mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         surface = self.mlab.pipeline.surface(
             mesh, color=color, opacity=opacity, vmin=vmin, vmax=vmax,
             figure=self.fig)

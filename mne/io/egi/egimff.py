@@ -254,8 +254,7 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
         Channel naming convention for the data channels. Defaults to 'E%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
         prior to 0.14.0 was 'EEG %03d'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Returns
     -------

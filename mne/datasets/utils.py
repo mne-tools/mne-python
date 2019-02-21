@@ -20,6 +20,8 @@ from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
                      verbose, get_subjects_dir, hashfunc)
+from ..utils.docs import docdict
+from ..externals.doccer import docformat
 
 
 _data_path_doc = """Get path to local copy of {name} dataset.
@@ -43,15 +45,14 @@ _data_path_doc = """Get path to local copy of {name} dataset.
         it will not be downloaded and the path will be returned as
         '' (empty string). This is mostly used for debugging purposes
         and can be safely ignored by most users.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(verbose)s
 
     Returns
     -------
     path : str
         Path to {name} dataset directory.
 """
-
+_data_path_doc = docformat(_data_path_doc, docdict)
 
 _version_doc = """Get version of the local {name} dataset.
 
@@ -570,9 +571,7 @@ def _download_all_example_data(verbose=True):
     try:
         brainstorm.bst_raw.data_path()
         brainstorm.bst_auditory.data_path()
-        # not currently used; remember to add entry to .circleci/config.yml if
-        # we ever do use it
-        # brainstorm.bst_resting.data_path()
+        brainstorm.bst_resting.data_path()
         brainstorm.bst_phantom_elekta.data_path()
         brainstorm.bst_phantom_ctf.data_path()
     finally:
@@ -603,8 +602,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     subjects_dir : str | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     References
     ----------
@@ -639,8 +637,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     combine : bool
         If True, also produce the combined/reduced set of 23 labels per
         hemisphere as ``HCPMMP1_combined.annot`` [3]_.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Notes
     -----

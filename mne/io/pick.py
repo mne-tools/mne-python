@@ -11,7 +11,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, verbose, _validate_type
+from ..utils import logger, verbose, _validate_type, fill_doc, _ensure_int
 
 
 def get_channel_types():
@@ -225,10 +225,11 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include ECG channels.
     emg : bool
         If True include EMG channels.
-    ref_meg: bool | str
-        If True include CTF / 4D reference channels. If 'auto', the reference
-        channels are only included if compensations are present. Can also be
-        the string options from `meg`.
+    ref_meg : bool | str
+        If True include CTF / 4D reference channels. If 'auto', the
+        reference channels included if compensations are present
+        and ``meg`` is not False. Can also be the string options allowed
+        for the ``meg`` parameter.
     misc : bool
         If True include miscellaneous analog channels.
     resp : bool
@@ -290,7 +291,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     _check_meg_type(meg)
     if isinstance(ref_meg, str) and ref_meg == 'auto':
         ref_meg = ('comps' in info and info['comps'] is not None and
-                   len(info['comps']) > 0)
+                   len(info['comps']) > 0 and meg is not False)
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
                   ias, syst, seeg, dipole, gof, bio, ecog):
@@ -379,9 +380,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
         are included.
     copy : bool
         If copy is False, info is modified inplace.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -501,9 +500,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     exclude : list of string | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -604,6 +601,7 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     return pick_channels_forward(orig, include_ch_names)
 
 
+@fill_doc
 def channel_indices_by_type(info, picks=None):
     """Get indices of channels by type.
 
@@ -611,8 +609,7 @@ def channel_indices_by_type(info, picks=None):
     ----------
     info : instance of mne.measuerment_info.Info
         The info.
-    picks : None | list of int
-        The indices of channels from which to get the type
+    %(picks_all)s
 
     Returns
     -------
@@ -623,8 +620,8 @@ def channel_indices_by_type(info, picks=None):
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
                    key not in ('meg', 'fnirs')}
     idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list())
-    if picks is None:
-        picks = range(len(info["chs"]))
+    picks = _picks_to_idx(info, picks,
+                          none='all', exclude=(), allow_empty=True)
     for k in picks:
         ch_type = channel_type(info, k)
         for key in idx_by_type.keys():
@@ -768,6 +765,9 @@ _VALID_CHANNEL_TYPES = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
                         'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
                         'misc']
 
+_MEG_CH_TYPES_SPLIT = ['mag', 'grad', 'planar1', 'planar2']
+_FNIRS_CH_TYPES_SPLIT = ['hbo', 'hbr']
+
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
     """Pick only data channels."""
@@ -784,12 +784,156 @@ def _pick_aux_channels(info, exclude='bads'):
                       ref_meg=False, exclude=exclude)
 
 
-def _pick_data_or_ica(info):
+def _pick_data_or_ica(info, exclude=()):
     """Pick only data or ICA channels."""
     if any(ch_name.startswith('ICA') for ch_name in info['ch_names']):
-        picks = pick_types(info, exclude=[], misc=True)
+        picks = pick_types(info, exclude=exclude, misc=True)
     else:
-        picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)
+        picks = _pick_data_channels(info, exclude=exclude, with_ref_meg=True)
+    return picks
+
+
+def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
+                  with_ref_meg=True):
+    """Convert and check pick validity."""
+    from .meas_info import Info
+    #
+    # None -> all, data, or data_or_ica (ndarray of int)
+    #
+    orig_picks = picks
+    if isinstance(info, Info):
+        n_chan = info['nchan']
+    else:
+        info = _ensure_int(info, 'info', 'an int or Info')
+        n_chan = info
+    assert n_chan >= 0
+
+    if picks is None:
+        if isinstance(info, int):  # special wrapper for no real info
+            picks = np.arange(n_chan)
+        else:
+            picks = none  # let _picks_str_to_idx handle it
+
+    #
+    # slice
+    #
+    if isinstance(picks, slice):
+        picks = np.arange(n_chan)[picks]
+
+    #
+    # -> ndarray of int (and make a copy)
+    #
+    picks = np.atleast_1d(picks)  # this works even for picks == 'something'
+    picks = np.array([], dtype=int) if len(picks) == 0 else picks
+    if picks.ndim != 1:
+        raise ValueError('picks must be 1D, got %sD' % (picks.ndim,))
+    if picks.dtype.char in ('S', 'U'):
+        picks = _picks_str_to_idx(info, picks, exclude, with_ref_meg)
+    if picks.dtype != np.int:
+        raise TypeError('picks must be a list of int or list of str, got '
+                        'a data type of %s' % (picks.dtype,))
+
+    #
+    # ensure we have (optionally non-empty) ndarray of valid int
+    #
+    if len(picks) == 0 and not allow_empty:
+        raise ValueError('No appropriate channels found for the given picks '
+                         '(%r)' % (orig_picks,))
+    if (picks < -n_chan).any():
+        raise ValueError('All picks must be >= %d, got %r'
+                         % (-n_chan, orig_picks))
+    if (picks >= n_chan).any():
+        raise ValueError('All picks must be < n_channels (%d), got %r'
+                         % (n_chan, orig_picks))
+    picks %= n_chan  # ensure positive
+    return picks
+
+
+def _picks_str_to_idx(info, picks, exclude, with_ref_meg):
+    """Turn a list of str into ndarray of int."""
+    # special case for _picks_to_idx w/no info: shouldn't really happen
+    if isinstance(info, int):
+        raise ValueError('picks as str can only be used when measurement '
+                         'info is available')
+
+    #
+    # first: check our special cases
+    #
+
+    picks_generic = list()
+    if len(picks) == 1:
+        if picks[0] == 'all':
+            use_exclude = info['bads'] if exclude == 'bads' else exclude
+            picks_generic = pick_channels(info['ch_names'], info['ch_names'],
+                                          exclude=use_exclude)
+        elif picks[0] == 'data':
+            picks_generic = _pick_data_channels(info, exclude=exclude,
+                                                with_ref_meg=with_ref_meg)
+        elif picks[0] == 'data_or_ica':
+            picks_generic = _pick_data_or_ica(info, exclude=exclude)
+
+    #
+    # second: match all to channel names
+    #
+
+    bad_name = None
+    picks_name = list()
+    for pick in picks:
+        try:
+            picks_name.append(info['ch_names'].index(pick))
+        except ValueError:
+            bad_name = pick
+            break
+
+    #
+    # third: match all to types
+    #
+    bad_type = None
+    picks_type = list()
+    kwargs = dict(meg=False)
+    meg, fnirs = set(), set()
+    for pick in picks:
+        if pick in _PICK_TYPES_KEYS:
+            kwargs[pick] = True
+        elif pick in _MEG_CH_TYPES_SPLIT:
+            meg |= {pick}
+        elif pick in _FNIRS_CH_TYPES_SPLIT:
+            fnirs |= {pick}
+        else:
+            bad_type = pick
+            break
+    else:
+        # triage MEG and FNIRS, which are complicated due to non-bool entries
+        extra_picks = set()
+        if len(meg) > 0 and not kwargs.get('meg', False):
+            # easiest just to iterate
+            for use_meg in meg:
+                extra_picks |= set(pick_types(
+                    info, meg=use_meg, ref_meg=False, exclude=exclude))
+        if len(fnirs) > 0 and not kwargs.get('fnirs', False):
+            # if it has two entries, it's both, otherwise it's just one
+            kwargs['fnirs'] = True if len(fnirs) == 2 else list(fnirs)[0]
+        picks_type = pick_types(info, exclude=exclude, **kwargs)
+        if len(extra_picks) > 0:
+            picks_type = sorted(set(picks_type) | set(extra_picks))
+
+    #
+    # finally: ensure we have exactly one usable list
+    #
+    all_picks = (picks_generic, picks_name, picks_type)
+    any_found = [len(p) > 0 for p in all_picks]
+    if sum(any_found) == 0:
+        raise ValueError(
+            'picks (array-like of str) could not be interpreted as '
+            'channel names (no channel "%s"), channel types (no '
+            'type "%s"), or a generic type (just "all" or "data")'
+            % (bad_name, bad_type))
+    elif sum(any_found) > 1:
+        raise RuntimeError('Some channel names are ambiguously equivalent to '
+                           'channel types, cannot use string-based '
+                           'picks for these')
+    else:
+        picks = np.array(all_picks[np.where(any_found)[0][0]])
     return picks
 
 
@@ -797,11 +941,8 @@ def _pick_inst(inst, picks, exclude, copy=True):
     """Return an instance with picked and excluded channels."""
     if copy is True:
         inst = inst.copy()
-    if picks is not None:
-        pick_names = [inst.info['ch_names'][pick] for pick in picks]
-    else:  # only pick channels that are plotted
-        picks = _pick_data_channels(inst.info, exclude=[])
-        pick_names = [inst.info['ch_names'][pick] for pick in picks]
+    picks = _picks_to_idx(inst.info, picks, exclude=[])
+    pick_names = [inst.info['ch_names'][pick] for pick in picks]
     inst.pick_channels(pick_names)
 
     if exclude == 'bads':

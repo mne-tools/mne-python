@@ -16,7 +16,7 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_source_morph, read_source_estimate,
                  read_forward_solution, grade_to_vertices,
                  setup_volume_source_space, make_forward_solution,
-                 make_sphere_model, make_ad_hoc_cov)
+                 make_sphere_model, make_ad_hoc_cov, VolVectorSourceEstimate)
 from mne.datasets import testing
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
@@ -215,6 +215,11 @@ def test_surface_vector_source_morph():
     stc_surf.subject = None
     assert isinstance(source_morph_surf.apply(stc_surf), SourceEstimate)
 
+    # degenerate
+    stc_vol = read_source_estimate(fname_vol, 'sample')
+    with pytest.raises(ValueError, match='stc_from was type'):
+        source_morph_surf.apply(stc_vol)
+
 
 @requires_h5py
 @requires_nibabel()
@@ -295,8 +300,17 @@ def test_volume_source_morph():
     # check morph
     stc_vol_morphed = source_morph_vol.apply(stc_vol)
 
+    # vector
+    stc_vol_vec = VolVectorSourceEstimate(
+        np.tile(stc_vol.data[:, np.newaxis], (1, 3, 1)), stc_vol.vertices,
+        0, 1)
+    stc_vol_vec_morphed = source_morph_vol.apply(stc_vol_vec)
+    assert isinstance(stc_vol_vec_morphed, VolVectorSourceEstimate)
+    for ii in range(3):
+        assert_allclose(stc_vol_vec_morphed.data[:, ii], stc_vol_morphed.data)
+
     # check output as NIfTI
-    assert isinstance(source_morph_vol.apply(stc_vol, output='nifti2'),
+    assert isinstance(source_morph_vol.apply(stc_vol_vec, output='nifti2'),
                       nib.Nifti2Image)
 
     # check for subject_from mismatch
@@ -357,6 +371,10 @@ def test_volume_source_morph():
     # before checking if the actual voxel size error will raise.
     with pytest.raises(ValueError, match='Cannot infer original voxel size'):
         stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
+
+    stc_surf = read_source_estimate(fname_stc, 'sample')
+    with pytest.raises(ValueError, match='stc_from was type'):
+        source_morph_vol.apply(stc_surf)
 
 
 @pytest.mark.slowtest

@@ -38,7 +38,7 @@ def _get_data(ch_decim=1):
 
     noise_cov = mne.read_cov(fname_cov)
     noise_cov['projs'] = []
-    noise_cov = regularize(noise_cov, evoked.info, rank=None)
+    noise_cov = regularize(noise_cov, evoked.info, rank='full', proj=False)
     return evoked, noise_cov
 
 
@@ -128,7 +128,7 @@ def test_rap_music_simulated():
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
-    assert (0.98 < dipoles[0].gof.max() < 1.)
+    assert (0.97 < dipoles[0].gof.max() < 1.)
     assert (dipoles[0].gof.min() >= 0.)
     assert_array_equal(dipoles[0].gof, dipoles[1].gof)
 

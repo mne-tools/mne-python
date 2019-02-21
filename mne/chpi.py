@@ -178,13 +178,13 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
     coil as separate channels in the dataset.
-    HLC001[123]-\\* - nasion
-    HLC002[123]-\\* - lpa
-    HLC003[123]-\\* - rpa
+    HLC001[123]\\* - nasion
+    HLC002[123]\\* - lpa
+    HLC003[123]\\* - rpa
     """
     # Pick channels cooresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
-                                     'HLC00[123][123]-.*')
+                                     'HLC00[123][123].*')
 
     # make sure we get 9 channels
     if len(hpi_picks) != 9:
@@ -625,9 +625,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -707,9 +705,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -935,9 +931,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1062,9 +1056,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
     t_window : float
         Time window to use to estimate the amplitudes, default is
         0.2 (200 ms).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

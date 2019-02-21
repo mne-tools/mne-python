@@ -12,7 +12,7 @@ from mne import __file__ as _root_init_fname
 from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
-                         pick_types_forward, _picks_by_type)
+                         pick_types_forward, _picks_by_type, _picks_to_idx)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging
@@ -313,6 +313,71 @@ def test_clean_info_bads():
     pytest.raises(RuntimeError, info._check_consistency)
     with pytest.raises(ValueError, match='unique'):
         pick_info(raw.info, [0, 0])
+
+
+@testing.requires_testing_data
+def test_picks_to_idx():
+    """Test checking type integrity checks of picks."""
+    info = create_info(12, 1000., 'eeg')
+    picks = np.arange(info['nchan'])
+    # Array and list
+    assert_array_equal(picks, _picks_to_idx(info, picks))
+    assert_array_equal(picks, _picks_to_idx(info, list(picks)))
+    with pytest.raises(TypeError, match='data type of float64'):
+        _picks_to_idx(info, 1.)
+    # None
+    assert_array_equal(picks, _picks_to_idx(info, None))
+    # Type indexing
+    assert_array_equal(picks, _picks_to_idx(info, 'eeg'))
+    assert_array_equal(picks, _picks_to_idx(info, ['eeg']))
+    # Negative indexing
+    assert_array_equal([len(picks) - 1], _picks_to_idx(info, len(picks) - 1))
+    assert_array_equal([len(picks) - 1], _picks_to_idx(info, -1))
+    assert_array_equal([len(picks) - 1], _picks_to_idx(info, [-1]))
+    # Name indexing
+    assert_array_equal([2], _picks_to_idx(info, info['ch_names'][2]))
+    assert_array_equal(np.arange(5, 9),
+                       _picks_to_idx(info, info['ch_names'][5:9]))
+    with pytest.raises(ValueError, match='must be >= '):
+        _picks_to_idx(info, -len(picks) - 1)
+    with pytest.raises(ValueError, match='must be < '):
+        _picks_to_idx(info, len(picks))
+    with pytest.raises(ValueError, match='could not be interpreted'):
+        _picks_to_idx(info, ['a', 'b'])
+    with pytest.raises(ValueError, match='could not be interpreted'):
+        _picks_to_idx(info, 'b')
+    # bads behavior
+    info['bads'] = info['ch_names'][1:2]
+    picks_good = np.array([0] + list(range(2, 12)))
+    assert_array_equal(picks_good, _picks_to_idx(info, None))
+    assert_array_equal(picks_good, _picks_to_idx(info, None,
+                                                 exclude=info['bads']))
+    assert_array_equal(picks, _picks_to_idx(info, None, exclude=()))
+    with pytest.raises(ValueError, match=' 1D, got'):
+        _picks_to_idx(info, [[1]])
+    # MEG types
+    info = read_info(fname_mc)
+    meg_picks = np.arange(306)
+    mag_picks = np.arange(2, 306, 3)
+    grad_picks = np.setdiff1d(meg_picks, mag_picks)
+    assert_array_equal(meg_picks, _picks_to_idx(info, 'meg'))
+    assert_array_equal(meg_picks, _picks_to_idx(info, ('mag', 'grad')))
+    assert_array_equal(mag_picks, _picks_to_idx(info, 'mag'))
+    assert_array_equal(grad_picks, _picks_to_idx(info, 'grad'))
+
+    info = create_info(['eeg', 'foo'], 1000., 'eeg')
+    with pytest.raises(RuntimeError, match='equivalent to channel types'):
+        _picks_to_idx(info, 'eeg')
+    with pytest.raises(ValueError, match='same length'):
+        create_info(['a', 'b'], 1000., dict(hbo=['a'], hbr=['b']))
+    info = create_info(['a', 'b'], 1000., ['hbo', 'hbr'])
+    assert_array_equal(np.arange(2), _picks_to_idx(info, 'fnirs'))
+    assert_array_equal([0], _picks_to_idx(info, 'hbo'))
+    assert_array_equal([1], _picks_to_idx(info, 'hbr'))
+    info = create_info(['a', 'b'], 1000., ['hbo', 'misc'])
+    assert_array_equal(np.arange(len(info['ch_names'])),
+                       _picks_to_idx(info, 'all'))
+    assert_array_equal([0], _picks_to_idx(info, 'data'))
 
 
 run_tests_if_main()

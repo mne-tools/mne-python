@@ -151,9 +151,7 @@ raw.plot()
 ##############################################################################
 # Save a segment of 150s of raw data (MEG only):
 
-picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                       exclude='bads')
-raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks,
+raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks='meg',
          overwrite=True)
 
 ##############################################################################
@@ -189,9 +187,10 @@ tmax = 0.5  # end of each epoch (500ms after the trigger)
 raw.info['bads'] += ['MEG 2443', 'EEG 053']
 
 ##############################################################################
-# The variable raw.info['bads'] is just a python list.
+# The variable ``raw.info['bads']`` is just a Python list.
 #
-# Pick the good channels, excluding raw.info['bads']:
+# You can get indices corresponding to the good channels,
+# excluding ``raw.info['bads']``:
 
 picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False,
                        exclude='bads')
@@ -216,7 +215,8 @@ reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 ##############################################################################
 # Read epochs:
 
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                    picks=('meg', 'eeg', 'eog'),  # or could pass "picks" here
                     baseline=baseline, preload=False, reject=reject)
 print(epochs)
 

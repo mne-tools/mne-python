@@ -10,8 +10,9 @@ import numpy as np
 
 from .mixin import TransformerMixin, EstimatorMixin
 from .base import _set_cv
-from ..utils import logger, verbose
+from ..io.pick import _picks_to_idx
 from ..parallel import parallel_func
+from ..utils import logger, verbose
 from .. import pick_types, pick_info
 
 
@@ -92,8 +93,8 @@ class EMS(TransformerMixin, EstimatorMixin):
 
 
 @verbose
-def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
-                cv=None):
+def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
+                verbose=None):
     """Compute event-matched spatial filter on epochs.
 
     This version of EMS [1]_ operates on the entire time course. No time
@@ -121,15 +122,12 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
         If a list of strings, strings must match the epochs.event_id's key as
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
-    picks : array-like of int | None, default None
-        Channels to be included. If None only good data channels are used.
+    %(picks_good_data)s
     n_jobs : int, default 1
         Number of jobs to run in parallel.
-    verbose : bool, str, int, or None, default self.verbose
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     cv : cross-validation object | str | None, default LeaveOneOut
         The cross-validation scheme.
+    %(verbose)s
 
     Returns
     -------
@@ -150,9 +148,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None,
 
     # Default to leave-one-out cv
     cv = 'LeaveOneOut' if cv is None else cv
-
-    if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True)
+    picks = _picks_to_idx(epochs.info, picks)
 
     if not len(set(Counter(epochs.events[:, 2]).values())) == 1:
         raise ValueError('The same number of epochs is required by '

@@ -9,12 +9,18 @@
 #
 # License: BSD (3-clause)
 
+import os.path as op
 import re
+
 from ...utils import hashfunc
 
 
-def _load_gdf_events_lut(fname, md5):
-    if hashfunc(fname, hash_type='md5') != md5:
+def _load_gdf_events_lut():
+    fname = op.join(op.dirname(__file__), 'gdf_encodes.txt')
+    hash_ = hashfunc(fname, hash_type='md5')
+    # Linux or Windows line endings
+    if hash_ not in ('12134a9be7e0bfa5941e95f8bfd330f7',
+                     '41696b162526f559dd7d139352eae178'):
         raise ValueError("File %s is corrupted. mdf5 hashes don't match." %
                          fname)
 

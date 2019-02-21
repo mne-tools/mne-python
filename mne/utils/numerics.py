@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-
+from contextlib import contextmanager
 import hashlib
 from io import BytesIO, StringIO
 import operator
@@ -14,7 +14,7 @@ import sys
 import numpy as np
 from scipy import linalg, sparse
 
-from ._logging import logger, warn
+from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
 from .docs import deprecated
 
@@ -286,16 +286,19 @@ def random_permutation(n_samples, random_state=None):
     return randperm
 
 
-def _apply_scaling_array(data, picks_list, scalings):
+@verbose
+def _apply_scaling_array(data, picks_list, scalings, verbose=None):
     """Scale data type-dependently for estimation."""
     scalings = _check_scaling_inputs(data, picks_list, scalings)
     if isinstance(scalings, dict):
+        logger.debug('    Scaling using mapping %s.' % (scalings,))
         picks_dict = dict(picks_list)
         scalings = [(picks_dict[k], v) for k, v in scalings.items()
                     if k in picks_dict]
         for idx, scaling in scalings:
             data[idx, :] *= scaling  # F - order
     else:
+        logger.debug('    Scaling using computed norms.')
         data *= scalings[:, np.newaxis]  # F - order
 
 
@@ -310,7 +313,17 @@ def _invert_scalings(scalings):
 def _undo_scaling_array(data, picks_list, scalings):
     scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
                                                       scalings))
-    return _apply_scaling_array(data, picks_list, scalings)
+    return _apply_scaling_array(data, picks_list, scalings, verbose=False)
+
+
+@contextmanager
+def _scaled_array(data, picks_list, scalings):
+    """Scale, use, unscale array."""
+    _apply_scaling_array(data, picks_list=picks_list, scalings=scalings)
+    try:
+        yield
+    finally:
+        _undo_scaling_array(data, picks_list=picks_list, scalings=scalings)
 
 
 def _apply_scaling_cov(data, picks_list, scalings):

@@ -4,29 +4,25 @@
 #
 # License: BSD (3-clause)
 
-from contextlib import contextmanager
 from copy import deepcopy
 import itertools as itt
 from math import log
-import operator
 import os
 
 import numpy as np
 from scipy import linalg, sparse
 
-from .io.meas_info import _simplify_info
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
-                      _has_eeg_average_ref_proj)
+                      _has_eeg_average_ref_proj, _read_proj, _write_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
-                      _picks_by_type, _pick_data_channels,
+                      _picks_by_type, _pick_data_channels, _picks_to_idx,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels, create_info
-from .io.proj import _read_proj, _write_proj
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
@@ -34,13 +30,11 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
-from .utils import (check_fname, logger, verbose,
-                    check_version, _time_mask, warn,
-                    copy_function_doc_to_method_doc, _pl,
-                    _undo_scaling_cov, _undo_scaling_array,
-                    _apply_scaling_array)
+from .rank import compute_rank
+from .utils import (check_fname, logger, verbose, check_version, _time_mask,
+                    warn, copy_function_doc_to_method_doc, _pl,
+                    _undo_scaling_cov, _scaled_array)
 from . import viz
-from .rank import _estimate_rank_meeg_cov
 
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
 
@@ -247,9 +241,7 @@ def read_cov(fname, verbose=None):
     fname : string
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
-    verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -283,9 +275,7 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
         Standard_deviation of the diagonal elements. If dict, keys should be
         `grad` for gradiometers, `mag` for magnetometers and `eeg` for EEG
         channels. If None, default values will be used (see Notes).
-    verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -362,8 +352,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    picks : array-like of int | None (default None)
-        Indices of channels to include (if None, data channels are used).
+    %(picks_good_data_noref)s
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -401,19 +390,13 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         rejected. If False, no rejection based on annotations is performed.
 
         .. versionadded:: 0.14
-    rank : None | int | dict | 'full'
-        Specified rank of the noise covariance matrix. If None(default),
-        the rank is detected automatically.
-        If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg', 'meg' or any other
-        data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality. If 'full',
-        the covariance is assumed to be full-rank when regularizing.
+    %(rank_None)s
 
         .. versionadded:: 0.17
-    verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
+    %(verbose)s
 
     Returns
     -------
@@ -457,6 +440,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
             picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
         pick_mask = slice(None)
+        picks = _picks_to_idx(raw.info, picks)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
                     preload=False, proj=False,
@@ -548,7 +532,13 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
             'Invalid {name} ({method}). Accepted values (individually or '
             'in a list) are any of "{accepted_methods}" or None.'.format(
                 name=name, method=method, accepted_methods=accepted_methods))
-    rank, method = _check_rank(rank, method, was_auto)
+    if not (isinstance(rank, str) and rank == 'full'):
+        if was_auto:
+            method.pop(method.index('factor_analysis'))
+        for method_ in method:
+            if method_ in ('pca', 'factor_analysis'):
+                raise ValueError('%s can so far only be used with rank="full",'
+                                 ' got rank=%r' % (method_, rank))
     if not keep_sample_mean:
         if len(method) != 1 or 'empirical' not in method:
             raise ValueError('`keep_sample_mean=False` is only supported'
@@ -557,32 +547,7 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
             if v.get('assume_centered', None) is False:
                 raise ValueError('`assume_centered` must be True'
                                  ' if `keep_sample_mean` is False')
-    return method, _method_params, rank
-
-
-def _check_rank(rank, methods, was_auto=False):
-    """Check validity of rank input argument."""
-    if isinstance(rank, str) and rank != 'full':
-        raise ValueError('rank, if str, must be "full", got %s' % (rank,))
-    if not (isinstance(rank, str) and rank == 'full'):
-        if was_auto:
-            methods.pop(methods.index('factor_analysis'))
-        for method in methods:
-            if method in ('pca', 'factor_analysis'):
-                raise ValueError('%s can so far only be used with rank="full",'
-                                 ' got rank=%r' % (method, rank))
-        rank = dict() if rank is None else rank
-        orig_rank = rank
-        try:
-            rank = int(operator.index(rank))
-        except Exception:
-            pass
-        else:
-            rank = dict(meg=rank)
-        if not isinstance(rank, dict) or orig_rank is False:
-            raise ValueError('rank must be an int, dict, None, or "full", '
-                             'got %s (type %s)' % (rank, type(rank)))
-    return rank, methods
+    return method, _method_params
 
 
 @verbose
@@ -672,19 +637,13 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         unstable results in covariance calculation, e.g. when data
         have been processed with Maxwell filtering but not transformed
         to the same head position.
-    rank : None | int | dict | 'full'
-        Specified rank of the noise covariance matrix. If None (default),
-        the rank is detected automatically.
-        If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg', 'meg' or any other
-        data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality. If 'full',
-        the covariance is assumed to be full-rank when regularizing.
+    %(rank_None)s
 
         .. versionadded:: 0.17
-    verbose : bool | str | int | or None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
+    %(verbose)s
 
     Returns
     -------
@@ -771,7 +730,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     """
     # scale to natural unit for best stability with MEG/EEG
     scalings = _check_scalings_user(scalings)
-    method, _method_params, rank = _check_method_params(
+    method, _method_params = _check_method_params(
         method, method_params, keep_sample_mean, rank=rank)
     del method_params
 
@@ -942,38 +901,25 @@ def _eigvec_subspace(eig, eigvec, mask):
     return eig, eigvec
 
 
-@contextmanager
-def _scaled_array(data, picks_list, scalings):
-    """Scale, use, unscale array."""
-    _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
-    try:
-        yield
-    finally:
-        _undo_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
-
-
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
-    with _scaled_array(data, picks_list, scalings):
-        if rank != 'full':
-            C = np.dot(data.T, data)
-            # already scaled
-            _, eigvec, mask = _smart_eigh(C, info, rank, scalings=1.,
-                                          proj_subspace=True)
-            eigvec = eigvec[mask]
-            data = np.dot(data, eigvec.T)
-            used = np.where(mask)[0]
-            sub_picks_list = [(key, np.searchsorted(used, picks))
-                              for key, picks in picks_list]
-            sub_info = pick_info(info, used)
-            logger.info('Reducing data rank from %s -> %s'
-                        % (len(mask), eigvec.shape[0]))
-        else:
-            eigvec = None
-            sub_picks_list = picks_list
-            sub_info = info
+    from .io import RawArray
+    raw_temp = RawArray(data.T, info)
+    orig_rank = rank
+    rank = compute_rank(raw_temp, rank, scalings, info)
+    with _scaled_array(data.T, picks_list, scalings):
+        C = np.dot(data.T, data)
+        _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True)
+        eigvec = eigvec[mask]
+        data = np.dot(data, eigvec.T)
+        used = np.where(mask)[0]
+        sub_picks_list = [(key, np.searchsorted(used, picks))
+                          for key, picks in picks_list]
+        sub_info = pick_info(info, used)
+        logger.info('Reducing data rank from %s -> %s'
+                    % (len(mask), eigvec.shape[0]))
         estimator_cov_info = list()
         msg = 'Estimating covariance using %s'
 
@@ -1055,7 +1001,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 del shrinkage, sc
 
             elif method_ == 'pca':
-                assert rank == 'full'  # guaranteed above
+                assert orig_rank == 'full'
                 pca, _info = _auto_low_rank_model(
                     data_, method_, n_jobs=n_jobs, method_params=mp, cv=cv,
                     stop_early=stop_early)
@@ -1064,7 +1010,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 del pca
 
             elif method_ == 'factor_analysis':
-                assert rank == 'full'
+                assert orig_rank == 'full'
                 fa, _info = _auto_low_rank_model(
                     data_, method_, n_jobs=n_jobs, method_params=mp, cv=cv,
                     stop_early=stop_early)
@@ -1086,9 +1032,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 loglik = _cross_val(data, estimator, cv, n_jobs)
             else:
                 loglik = None
-            if eigvec is not None:
-                # project back if necessary
-                cov = np.dot(eigvec.T, np.dot(cov, eigvec))
+            # project back
+            cov = np.dot(eigvec.T, np.dot(cov, eigvec))
             # undo scaling
             _undo_scaling_cov(cov, picks_list, scalings)
             method_ = method[ei]
@@ -1364,7 +1309,8 @@ def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
     #   Handle noise cov
     #
     if not prepared:
-        noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
+        noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank,
+                                      scalings)
     n_chan = len(noise_cov['eig'])
 
     #   Omit the zeroes due to projection
@@ -1388,7 +1334,7 @@ def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
 
 
 @verbose
-def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
+def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
                       scalings=None, verbose=None):
     """Prepare noise covariance matrix.
 
@@ -1398,23 +1344,20 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         The noise covariance to process.
     info : dict
         The measurement info (used to get channel types and bad channels).
-    ch_names : list
-        The channel names to be considered.
-    rank : None | int | dict (default None)
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg', 'meg' or any other
-        data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality.
+    ch_names : list | None
+        The channel names to be considered. Can be None to use
+        ``info['ch_names']``.
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
     scalings : dict | None
         Data will be rescaled before rank estimation to improve accuracy.
         If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1423,47 +1366,51 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         and parameters updated.
     """
     # reorder C and info to match ch_names order
+    ch_names = info['ch_names'] if ch_names is None else ch_names
     noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     if not noise_cov['diag']:
         C = noise_cov.data[np.ix_(noise_cov_idx, noise_cov_idx)]
     else:
         C = np.diag(noise_cov.data[noise_cov_idx])
+    info = pick_info(info, pick_channels(info['ch_names'], ch_names))
     projs = info['projs'] + noise_cov['projs']
-
-    eig, eigvec, _ = _smart_eigh(C, info, rank, scalings, projs, ch_names)
-
     noise_cov = Covariance(
         data=C, names=ch_names, bads=list(noise_cov['bads']),
-        projs=deepcopy(noise_cov['projs']),
-        nfree=noise_cov['nfree'], eig=eig, eigvec=eigvec,
+        projs=deepcopy(noise_cov['projs']), nfree=noise_cov['nfree'],
         method=noise_cov.get('method', None),
         loglik=noise_cov.get('loglik', None))
+
+    eig, eigvec, _ = _smart_eigh(noise_cov, info, rank, scalings, projs,
+                                 ch_names)
+    noise_cov.update(eig=eig, eigvec=eigvec)
     return noise_cov
 
 
-def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None,
-                proj_subspace=False):
+@verbose
+def _smart_eigh(C, info, rank, scalings=None, projs=None,
+                ch_names=None, proj_subspace=False, verbose=None):
     """Compute eigh of C taking into account rank and ch_type scalings."""
+    scalings = _handle_default('scalings_cov_rank', scalings)
     info = info.copy()
     projs = info['projs'] if projs is None else projs
     ch_names = info['ch_names'] if ch_names is None else ch_names
     pick_info(info, [info['ch_names'].index(c) for c in ch_names], copy=False)
     assert info['ch_names'] == ch_names
-    scalings = _handle_default('scalings_cov_rank', scalings)
     n_chan = len(ch_names)
 
     # Create the projection operator
     proj, ncomp, _ = make_projector(projs, ch_names)
 
+    if isinstance(C, Covariance):
+        C = C['data']
     if ncomp > 0:
         logger.info('    Created an SSP operator (subspace dimension = %d)'
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    if rank is None:
-        rank = {}
-    if not isinstance(rank, dict):
-        rank = dict(meg=int(operator.index(rank)))
+    noise_cov = Covariance(C, ch_names, [], projs, 0)
+    rank = compute_rank(noise_cov, rank, scalings, info)
+    assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
     eig = np.zeros(n_chan)
     eigvec = np.zeros((n_chan, n_chan))
@@ -1473,19 +1420,17 @@ def _smart_eigh(C, info, rank, scalings, projs=None, ch_names=None,
         if len(picks) == 0:
             continue
         this_C = C[np.ix_(picks, picks)]
-        this_info = pick_info(_simplify_info(info), picks, copy=False)
-        if rank == 'full':
-            this_rank = len(this_C)
+
+        if ch_type not in rank and ch_type in ('mag', 'grad'):
+            this_rank = rank['meg']  # if there is only one or the other
         else:
-            this_rank = rank.get(ch_type)
-        if this_rank is None:
-            this_rank = _estimate_rank_meeg_cov(this_C, this_info, scalings)
+            this_rank = rank[ch_type]
+
         e, ev, m = _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
         if proj_subspace:
             # Choose the subspace the same way we do for projections
             e, ev = _eigvec_subspace(e, ev, m)
         eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
-
         # XXX : also handle ref for sEEG and ECoG
         if ch_type == 'eeg' and _needs_eeg_average_ref_proj(info) and not \
                 _has_eeg_average_ref_proj(projs):
@@ -1539,24 +1484,18 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for HBO signals.
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
-    rank : None | int | dict | 'full'
-        Specified rank of the noise covariance matrix. If None (default),
-        the rank is detected automatically.
-        If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg', 'meg' or any other
-        data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality. If 'full',
-        the covariance is assumed to be full-rank when regularizing
-        (unless proj=True, in which case projections are accounted for).
+    %(rank_None)s
 
         .. versionadded:: 0.17
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
     scalings : dict | None
         Data will be rescaled before rank estimation to improve accuracy.
         See :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.17
-    verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(verbose)s
 
     Returns
     -------
@@ -1575,7 +1514,6 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')
 
-    rank, _ = _check_rank(rank, ('',), False)
     if exclude == 'bads':
         exclude = info['bads'] + cov['bads']
 
@@ -1592,6 +1530,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         regs['meg'] = mag
     else:
         regs.update(mag=mag, grad=grad)
+    if rank != 'full':
+        rank = compute_rank(cov, rank, scalings, info)
 
     info_ch_names = info['ch_names']
     ch_names_by_type = dict()
@@ -1648,8 +1588,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
             this_info = pick_info(info, this_picks)
             # Here we could use proj_subspace=True, but this should not matter
             # since this is already in a loop over channel types
-            _, eigvec, mask = _smart_eigh(
-                this_C, this_info, rank, scalings=scalings)
+            _, eigvec, mask = _smart_eigh(this_C, this_info, rank)
             U = eigvec[mask].T
         this_C = np.dot(U.T, np.dot(this_C, U))
 
@@ -1693,7 +1632,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     elif not isinstance(reg, str):
         raise ValueError('reg must be a float, str, or None, got %s (%s)'
                          % (reg, type(reg)))
-    method, method_params, rank = _check_method_params(
+    method, method_params = _check_method_params(
         reg, method_params, name='reg', allow_auto=False, rank=rank)
     # use mag instead of eeg here to avoid the cov EEG projection warning
     info = create_info(data.shape[-2], 1000., 'mag') if info is None else info
@@ -1708,9 +1647,8 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
 
 
 @verbose
-def compute_whitener(noise_cov, info, picks=None, rank=None,
-                     scalings=None, return_rank=False,
-                     verbose=None):
+def compute_whitener(noise_cov, info, picks=None, rank=None, scalings=None,
+                     return_rank=False, pca=False, verbose=None):
     """Compute whitening matrix.
 
     Parameters
@@ -1719,14 +1657,11 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         The noise covariance.
     info : dict
         The measurement info.
-    picks : array-like of int | None
-        The channels indices to include. If None the MEG and EEG
-        channels in info, except bad channels, are used.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
+    %(picks_good_data_noref)s
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
     scalings : dict | None
         The rescaling method to be applied. See documentation of
         ``prepare_noise_cov`` for details.
@@ -1734,22 +1669,23 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         If True, return the rank used to compute the whitener.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    pca : bool
+        If True, return the rank-reduced whitener will be returned.
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
-    W : 2d array
-        The whitening matrix.
+    W : ndarray, shape (n_channels, n_channels) or (n_nonzero, n_channels)
+        The whitening matrix, backprojected or not based on whether `pca` is
+        False or True, respectively.
     ch_names : list
         The channel names.
     rank : int
         Rank reduction of the whitener. Returned only if return_rank is True.
     """
-    if picks is None:
-        # If this changes, we will need to change _setup_plot_projector, too:
-        picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')
+    picks = _picks_to_idx(info, picks, with_ref_meg=False)
 
     ch_names = [info['ch_names'][k] for k in picks]
 
@@ -1761,12 +1697,14 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         raise RuntimeError('Not all channels present in noise covariance:\n%s'
                            % missing)
 
-    scalings = _handle_default('scalings_cov_rank', scalings)
     W, _, noise_cov, n_nzero = _get_whitener(
-        noise_cov, info, ch_names, rank, pca=False, scalings=scalings)
+        noise_cov, info, ch_names, rank, pca=pca, scalings=scalings)
 
     # Do the back projection
-    W = np.dot(noise_cov['eigvec'].T, W)
+    if not pca:
+        W = np.dot(noise_cov['eigvec'].T, W)
+    else:
+        assert W.shape[0] == n_nzero
     out = W, ch_names
     if return_rank:
         out += (n_nzero,)
@@ -1784,17 +1722,13 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         The evoked data
     noise_cov : instance of Covariance
         The noise covariance
-    picks : array-like of int | None
-        The channel indices to whiten. Can be None to whiten any data channel
-        such as MEG and EEG data.
+    %(picks_good_data)s
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
-    rank : None | int | dict (default None)
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg', 'meg' or any other
-        data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality.
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
     scalings : dict | None (default None)
         To achieve reliable rank estimation on multiple sensors,
         sensors have to be rescaled. This parameter controls the
@@ -1803,9 +1737,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1813,15 +1745,13 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         The whitened evoked data.
     """
     evoked = evoked.copy()
-    if picks is None:
-        picks = pick_types(evoked.info, meg=True, eeg=True, seeg=True,
-                           ecog=True)
+    picks = _picks_to_idx(evoked.info, picks)
 
     if diag:
         noise_cov = noise_cov.as_diag()
 
-    W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
-                               rank=rank, scalings=scalings)
+    W, _ = compute_whitener(noise_cov, evoked.info, picks=picks,
+                            rank=rank, scalings=scalings)
 
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked

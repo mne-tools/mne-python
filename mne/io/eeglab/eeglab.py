@@ -13,7 +13,7 @@ from ..utils import (_read_segments_file, _find_channels,
 from ..constants import FIFF, Bunch
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
-from ...utils import logger, verbose, warn
+from ...utils import logger, verbose, warn, fill_doc
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -134,6 +134,7 @@ def _get_info(eeg, montage, eog=()):
     return info
 
 
+@fill_doc
 def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
                     uint16_codec=None, stim_channel=False, verbose=None):
     r"""Read an EEGLAB .set file.
@@ -170,9 +171,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
         :func:`mne.events_from_annotations` instead.
 
         .. versionadded:: 0.17
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -192,6 +191,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
                      stim_channel=stim_channel)
 
 
+@fill_doc
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
                        eog=(), verbose=None, uint16_codec=None):
     r"""Reader function for EEGLAB epochs files.
@@ -226,9 +226,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -256,6 +254,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
+@fill_doc
 class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
@@ -289,9 +288,7 @@ class RawEEGLAB(BaseRaw):
         :func:`mne.events_from_annotations` instead.
 
         .. versionadded:: 0.17
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -421,9 +418,7 @@ class EpochsEEGLAB(BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is

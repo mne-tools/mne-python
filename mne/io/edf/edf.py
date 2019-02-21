@@ -16,7 +16,6 @@ import os
 import re
 
 import numpy as np
-import os.path as op
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
@@ -24,14 +23,12 @@ from ..base import BaseRaw, _check_update_montage
 from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
-from ...utils import copy_function_doc_to_method_doc, deprecated
+from ...utils import copy_function_doc_to_method_doc, deprecated, fill_doc
 from ...annotations import Annotations, events_from_annotations
 from ._utils import _load_gdf_events_lut
 
 
-GDF_EVENT_ENCODES_FILE = op.join(op.dirname(__file__), 'gdf_encodes.txt')
-GDF_EVENTS_LUT = _load_gdf_events_lut(fname=GDF_EVENT_ENCODES_FILE,
-                                      md5='12134a9be7e0bfa5941e95f8bfd330f7')
+GDF_EVENTS_LUT = _load_gdf_events_lut()
 
 
 @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
@@ -78,6 +75,7 @@ def find_edf_events(raw):
     return events_from_annotations(raw)
 
 
+@fill_doc
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+ or BDF file.
 
@@ -119,9 +117,7 @@ class RawEDF(BaseRaw):
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -210,6 +206,7 @@ class RawEDF(BaseRaw):
         return events_from_annotations(self)
 
 
+@fill_doc
 class RawGDF(BaseRaw):
     """Raw object from GDF file.
 
@@ -243,9 +240,7 @@ class RawGDF(BaseRaw):
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -602,7 +597,7 @@ def _read_edf_header(fname, exclude):
         fid.read(8)  # version (unused here)
 
         # patient ID
-        pid = fid.read(80).decode()
+        pid = fid.read(80).decode('latin-1')
         pid = pid.split(' ', 2)
         patient = {}
         if len(pid) >= 2:
@@ -641,14 +636,14 @@ def _read_edf_header(fname, exclude):
 
         nchan = int(fid.read(4).decode())
         channels = list(range(nchan))
-        ch_names = [fid.read(16).strip().decode() for ch in channels]
+        ch_names = [fid.read(16).strip().decode('latin-1') for ch in channels]
         exclude = _find_exclude_idx(ch_names, exclude)
         tal_idx = _find_tal_idx(ch_names)
         exclude = np.concatenate([exclude, tal_idx])
         sel = np.setdiff1d(np.arange(len(ch_names)), exclude)
         for ch in channels:
             fid.read(80)  # transducer
-        units = [fid.read(8).strip().decode() for ch in channels]
+        units = [fid.read(8).strip().decode('latin-1') for ch in channels]
         edf_info['units'] = list()
         for i, unit in enumerate(units):
             if i in exclude:
@@ -1163,6 +1158,7 @@ def _find_tal_idx(ch_names):
     return tal_channel_idx
 
 
+@fill_doc
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for EDF or EDF+ files.
@@ -1205,9 +1201,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1250,6 +1244,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                   verbose=verbose)
 
 
+@fill_doc
 def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for BDF files.
@@ -1292,9 +1287,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1347,6 +1340,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
                   verbose=verbose)
 
 
+@fill_doc
 def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for GDF files.
@@ -1381,9 +1375,7 @@ def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
         amount of memory). If preload is a string, preload is the file name of
         a memory-mapped file which is used to store the data on the hard drive
         (slower, but requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----

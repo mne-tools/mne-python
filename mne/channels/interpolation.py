@@ -172,9 +172,7 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'``, which means a head-digitization-based origin
         fit. Default is ``(0., 0., 0.04)``.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     picks_meg = pick_types(inst.info, meg=True, eeg=False,
                            ref_meg=True, exclude=[])

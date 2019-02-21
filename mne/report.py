@@ -20,7 +20,8 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw_fif, read_info, _stamp_to_dt
-from .utils import logger, verbose, get_subjects_dir, warn, _import_mlab
+from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
+                    fill_doc)
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -822,6 +823,7 @@ def _check_image_format(rep, image_format):
     return image_format
 
 
+@fill_doc
 class Report(object):
     """Object for rendering HTML.
 
@@ -861,9 +863,7 @@ class Report(object):
         :meth:`mne.io.Raw.plot_psd`.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1414,10 +1414,7 @@ class Report(object):
             If True (default), try to render the BEM.
 
             .. versionadded:: 0.16
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
         """
         image_format = _check_image_format(self, image_format)
         valid_errors = ['ignore', 'warn', 'raise']

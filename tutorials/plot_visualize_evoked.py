@@ -49,13 +49,14 @@ fig.tight_layout()
 # Now we will make it a bit fancier and only use MEG channels. Many of the
 # MNE-functions include a ``picks`` parameter to include a selection of
 # channels. ``picks`` is simply a list of channel indices that you can easily
-# construct with :func:`mne.pick_types`. See also :func:`mne.pick_channels` and
-# :func:`mne.pick_channels_regexp`.
+# construct with :func:`mne.pick_types`, :func:`mne.pick_channels`,
+# :func:`mne.pick_channels_regexp`, or a list of strings that can be
+# interpreted as channel names or channel types.
+#
 # Using ``spatial_colors=True``, the individual channel lines are color coded
 # to show the sensor positions - specifically, the x, y, and z locations of
 # the sensors are transformed into R, G and B values.
-picks = mne.pick_types(evoked_l_aud.info, meg=True, eeg=False, eog=False)
-evoked_l_aud.plot(spatial_colors=True, gfp=True, picks=picks, time_unit='s')
+evoked_l_aud.plot(spatial_colors=True, gfp=True, picks='meg')
 
 ###############################################################################
 # Notice the legend on the left. The colors would suggest that there may be two
@@ -72,7 +73,7 @@ times = np.arange(0.05, 0.151, 0.05)
 evoked_r_aud.plot_topomap(times=times, ch_type='mag', time_unit='s')
 
 ###############################################################################
-# Or we can automatically select the peaks.
+# Or we can select automatically the peaks.
 evoked_r_aud.plot_topomap(times='peaks', ch_type='mag', time_unit='s')
 
 ###############################################################################
@@ -159,7 +160,7 @@ mne.viz.plot_compare_evokeds(evoked_dict, picks=pick, colors=colors,
 # the amplitudes from negative to positive translates to shift from blue to
 # red. White means zero amplitude. You can use the ``cmap`` parameter to define
 # the color map yourself. The accepted values include all matplotlib colormaps.
-evoked_r_aud.plot_image(picks=picks, time_unit='s')
+evoked_r_aud.plot_image(picks='meg')
 
 ###############################################################################
 # Finally we plot the sensor data as a topographical view. In the simple case

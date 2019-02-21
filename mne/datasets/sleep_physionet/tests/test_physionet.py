@@ -17,7 +17,7 @@ from mne.datasets.sleep_physionet._utils import _update_sleep_temazepam_records
 from mne.datasets.sleep_physionet._utils import _update_sleep_age_records
 from mne.datasets.sleep_physionet._utils import AGE_SLEEP_RECORDS
 from mne.datasets.sleep_physionet._utils import TEMAZEPAM_SLEEP_RECORDS
-from mne.datasets.sleep_physionet._utils import BASE_URL
+# from mne.datasets.sleep_physionet._utils import BASE_URL  # XXX not used
 
 
 @pytest.fixture(scope='session')
@@ -35,7 +35,9 @@ def _keep_basename_only(path_structure):
 
 
 def _get_expected_url(name):
-    return BASE_URL + '/' + name
+    base = 'https://physionet.org/physiobank/database/sleep-edfx/'
+    midle = 'sleep-cassette/' if name.startswith('SC') else 'sleep-telemetry/'
+    return base + midle + '/' + name
 
 
 def _get_expected_path(base, name):

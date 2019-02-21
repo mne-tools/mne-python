@@ -13,8 +13,9 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import _check_type_picks, check_version
-from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
+from ..utils import check_version, fill_doc
+from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
+                       _picks_to_idx)
 from ..cov import _check_scalings_user
 
 
@@ -321,6 +322,7 @@ class Vectorizer(TransformerMixin):
         return X.reshape((len(X),) + self.features_shape_)
 
 
+@fill_doc
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method.
 
@@ -346,9 +348,7 @@ class PSDEstimator(TransformerMixin):
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -413,6 +413,7 @@ class PSDEstimator(TransformerMixin):
         return psd
 
 
+@fill_doc
 class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs.
 
@@ -439,9 +440,7 @@ class FilterEstimator(TransformerMixin):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : array-like of int | None
-        Indices of channels to filter. If None only the data (MEG/EEG)
-        channels will be filtered.
+    %(picks_good_data)s
     filter_length : str (Default: '10s') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
         the filter length used is len(x). Otherwise, if int, overlap-add
@@ -471,10 +470,7 @@ class FilterEstimator(TransformerMixin):
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     See Also
     --------
@@ -495,7 +491,7 @@ class FilterEstimator(TransformerMixin):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
-        self.picks = _check_type_picks(picks)
+        self.picks = _picks_to_idx(info, picks)
         self.filter_length = filter_length
         self.l_trans_bandwidth = l_trans_bandwidth
         self.h_trans_bandwidth = h_trans_bandwidth
@@ -700,6 +696,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         return X
 
 
+@fill_doc
 class TemporalFilter(TransformerMixin):
     """Estimator to filter data array along the last dimension.
 
@@ -774,10 +771,7 @@ class TemporalFilter(TransformerMixin):
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     See Also
     --------

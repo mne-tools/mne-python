@@ -7,10 +7,12 @@
 import numpy as np
 
 from ...utils import verbose
-from ._utils import _fetch_one, _data_path, BASE_URL, AGE_SLEEP_RECORDS
+from ._utils import _fetch_one, _data_path, AGE_SLEEP_RECORDS
 from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
+
+BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/'  # noqa: E501
 
 
 @verbose
@@ -47,9 +49,7 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -92,7 +92,7 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     hyp_records = records[np.where(records['type'] == b'Hypnogram')]
 
     path = data_path(path=path, update_path=update_path)
-    params = [path, force_update]
+    params = [path, force_update, base_url]
 
     _check_subjects(subjects, 20)
 

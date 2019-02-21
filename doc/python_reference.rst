@@ -490,6 +490,7 @@ Covariance computation
    compute_raw_covariance
    cov.regularize
    cov.compute_whitener
+   compute_rank
    make_ad_hoc_cov
    read_cov
    write_cov
@@ -684,6 +685,7 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
+   VolVectorSourceEstimate
    SourceMorph
    compute_source_morph
    head_to_mni
@@ -795,9 +797,11 @@ Connectivity Estimation
 .. autosummary::
    :toctree: generated/
 
+   degree
+   envelope_correlation
+   phase_slope_index
    seed_target_indices
    spectral_connectivity
-   phase_slope_index
 
 
 .. _api_reference_statistics:
