@@ -363,11 +363,6 @@ class SourceMorph(object):
                             % (type(output), output))
         out = _apply_morph_data(self, stc)
         if output != 'stc':  # convert to volume
-            if isinstance(stc, VolVectorSourceEstimate):
-                out = out.magnitude()
-            # Should be guaranteed by _apply_morph_data
-            assert isinstance(stc, (VolSourceEstimate,
-                                    VolVectorSourceEstimate))
             out = _morphed_stc_as_volume(
                 self, out, mri_resolution=mri_resolution, mri_space=mri_space,
                 output=output)
@@ -474,6 +469,8 @@ def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
 def _morphed_stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
                            output='nifti1'):
     """Return volume source space as Nifti1Image and/or save to disk."""
+    if isinstance(stc, VolVectorSourceEstimate):
+        stc = stc.magnitude()
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be converted to '
                          'volumes')
