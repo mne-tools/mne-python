@@ -42,6 +42,7 @@ from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose,
                      _validate_type, _check_compensation_grade)
 from ..label import Label
+from ..fixes import einsum
 
 
 class Forward(dict):
@@ -1128,7 +1129,8 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
         G.shape = (G.shape[0], -1, 3)
-        d = np.linalg.norm(np.einsum('svj,svk->vjk', G, G), 2, (1, 2))
+        d = np.linalg.norm(einsum('svj,svk->vjk', G, G),  # vector dot products
+                           ord=2, axis=(1, 2))  # ord=2 spectral (largest s.v.)
         G.shape = (G.shape[0], -1)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
