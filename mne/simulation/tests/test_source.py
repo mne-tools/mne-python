@@ -149,7 +149,11 @@ def test_simulate_sparse_stc():
     pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels) + 1,
                   times, labels=labels, random_state=random_state,
                   location=location, subjects_dir=subjects_dir)
-
+    err_str = 'Number of labels'
+    with pytest.raises(ValueError, match=err_str):
+        simulate_sparse_stc(fwd['src'], len(labels) + 1, times, labels=labels,
+            random_state=random_state, location=location,
+            subjects_dir=subjects_dir)
 
 @testing.requires_testing_data
 def test_generate_stc_single_hemi():
