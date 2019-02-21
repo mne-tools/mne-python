@@ -152,3 +152,12 @@ def read_foobar(hsp_fname=KIT_HSP, elp_fname=KIT_ELP, sqd_fname=KIT_SQD):
 
     dig, dev_head_t = _set_dig_kit(mrk=sqd_fname, elp=elp_fname, hsp=hsp_fname)
     return Digitization(dig_list=dig)
+
+
+POS_FNAME = op.join(op.dirname(mne_init_path), 'channels', 'data', 'test.pos')
+
+def read_pos(fname=POS_FNAME):
+    HEADER_LENGHT = 8
+    with open(fname) as myfile:
+        head = [next(myfile) for x in range(HEADER_LENGHT)]
+    print(head)

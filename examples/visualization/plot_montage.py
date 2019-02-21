@@ -105,6 +105,11 @@ fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage', dig=True,
                      fig=None)
 
 ###############################################################################
+# Create a montage from POS file
+#
+POS_FNAME = op.join(op.dirname(mne_init_path), 'channels', 'data', 'test.pos')
+
+###############################################################################
 # Questions I've
 #
 # 1 - What happens with `_set_montage` and therefore `create_info` when
