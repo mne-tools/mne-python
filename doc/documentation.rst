@@ -82,7 +82,10 @@ lectures on advanced topics available as well.
 MNE-Python design philosophy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Interactive versus scripted analysis.** MNE-Python has some great interactive
+Interactive versus scripted analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+MNE-Python has some great interactive
 plotting abilities that can help you explore your data, and there are a few
 GUI-like interactive plotting commands (like browsing through the raw data and
 clicking to mark bad channels, or click-and-dragging to annotate bad temporal
@@ -93,7 +96,10 @@ side, your scripts act as a record of everything you did in your analysis,
 making it easy to tweak your analysis later and/or share it with others
 (including your future self).
 
-**Integration with the scientific python stack.** MNE-Python also integrates
+Integration with the scientific python stack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+MNE-Python also integrates
 well with other standard scientific python libraries. For example, MNE-Python
 objects underlyingly store their data in NumPy arrays, making it easy to apply
 custom algorithms or pass your data into one of `scikit-learn`_'s machine
@@ -104,7 +110,10 @@ commands. The intent is that MNE-Python will get most neuroscientists 90% of
 the way to their desired analysis goal, and other packages can get them over
 the finish line.
 
-**Submodule-based organization.** A useful-to-know organizing principle is that
+Submodule-based organization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A useful-to-know organizing principle is that
 MNE-Python objects and functions are separated into submodules. This can help
 you discover related functions if you're using an editor that supports
 tab-completion. For example, you can type ``mne.preprocessing.<TAB>`` to see
@@ -126,7 +135,12 @@ its functions::
     eog.find_eog_events(...)
     eog.create_eog_epochs(...)
 
-**Internal representation** When importing data, MNE-Python will always convert
+.. _`units`:
+
+Internal representation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+When importing data, MNE-Python will always convert
 measurements to the same standard units. Thus the in-memory representation of
 data are always in:
 
@@ -137,7 +151,20 @@ data are always in:
 - Molar (aka mol/L) (fNIRS data: oxyhemoglobin (hbo), deoxyhemoglobin (hbr))
 - Arbitrary units (various derived unitless quantities)
 
-**Floating-point precision** MNE-Python performs all computation in memory
+Note, however, that most MNE-Python plotting functions will scale the data when
+plotted to yield nice-looking axis annotations in a sensible range; for
+example, :meth:`mne.io.Raw.plot_psd` will convert teslas to femtoteslas (fT)
+and volts to microvolts (μV) when plotting MEG and EEG data.
+
+The units used in internal data representation are particularly important to
+remember when extracting data from MNE-Python objects and manipulating it
+outside MNE-Python (e.g., when using other python modules for analysis or
+plotting).
+
+Floating-point precision
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+MNE-Python performs all computation in memory
 using the double-precision 64-bit floating point format. This means that the
 data is typecast into float64 format as soon as it is read into memory. The
 reason for this is that operations such as filtering and preprocessing are
