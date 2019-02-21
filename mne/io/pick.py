@@ -832,6 +832,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     if picks.dtype.kind not in ['i', 'u']:
         raise TypeError('picks must be a list of int or list of str, got '
                         'a data type of %s' % (picks.dtype,))
+    picks = picks.astype(int)
 
     #
     # ensure we have (optionally non-empty) ndarray of valid int
