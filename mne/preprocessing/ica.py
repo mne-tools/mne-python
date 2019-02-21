@@ -309,8 +309,9 @@ class ICA(ContainsMixin):
             raise ValueError('`method` must be "%s". You passed: "%s"' %
                              ('" or "'.join(methods), method))
         if method == 'extended-infomax':
-            warn("method='extended-infomax' is deprecated. If you want to use "
-                 "Extended Infomax, specify method='infomax' together with "
+            warn("method='extended-infomax' is deprecated and will be removed "
+                 "in 0.19. If you want to use Extended Infomax, specify "
+                 "method='infomax' together with "
                  "fit_params=dict(extended=True).", DeprecationWarning)
         if not check_version('sklearn', '0.15'):
             raise RuntimeError('the scikit-learn package (version >= 0.15) '
