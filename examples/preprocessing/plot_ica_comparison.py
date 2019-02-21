@@ -40,7 +40,7 @@ raw.filter(1, 30, fir_design='firwin')
 # Define a function that runs ICA on the raw MEG data and plots the components
 
 
-def run_ica(method, fit_params):
+def run_ica(method, fit_params=None):
     ica = ICA(n_components=20, method=method, fit_params=fit_params,
               random_state=0)
     t0 = time()
