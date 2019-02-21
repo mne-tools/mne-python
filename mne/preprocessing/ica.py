@@ -1237,10 +1237,13 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_eog
         """
+        inds = []
         if not ch_name:
             inds = pick_channels_regexp(inst.ch_names, "REF_ICA*")
         else:
             inds = pick_channels(inst.ch_names, ch_name)
+        if not inds:
+            raise ValueError('No reference components found or selected.')
         ref_chs = [inst.ch_names[k] for k in inds]
 
         self.labels_['ref_meg'], scores = self._find_bads_ch(
