@@ -18,6 +18,7 @@ import numpy as np
 import os.path as op
 
 from mne.datasets import sample
+from mne.channels import Digitization
 from mne.channels.montage import _set_montage, get_builtin_montages
 from mne.viz import plot_alignment
 from mayavi import mlab
@@ -48,22 +49,22 @@ def get_trans():
 # USER CODE
 #
 
-# my_info = mne.create_info(ch_names=[],
-#                           sfreq=1,
-#                           ch_types='eeg',
-#                           montage=get_foo_dig()
-#                           )
+my_info = mne.create_info(ch_names=[],
+                          sfreq=1,
+                          ch_types='eeg',
+                          montage=get_foo_dig()
+                          )
 
-# trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
-# fig = plot_alignment(my_info, trans=trans, subject='sample', dig=True,
-#                      eeg=['original'], meg=[],
-#                      coord_frame='head', subjects_dir=subjects_dir,
-#                      fig=None)
+trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
+fig = plot_alignment(my_info, trans=trans, subject='sample', dig=True,
+                     eeg=['original'], meg=[],
+                     coord_frame='head', subjects_dir=subjects_dir,
+                     fig=None)
 
-# fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage', dig=True,
-#                      eeg=['original'], meg=[],
-#                      coord_frame='head', subjects_dir=subjects_dir,
-#                      fig=None)
+fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage', dig=True,
+                     eeg=['original'], meg=[],
+                     coord_frame='head', subjects_dir=subjects_dir,
+                     fig=None)
 
 
 ###############################################################################
