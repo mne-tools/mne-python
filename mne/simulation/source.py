@@ -176,9 +176,8 @@ def simulate_sparse_stc(src, n_dipoles, times,
               for n, s in zip(n_dipoles_ss, src)]
         datas = data
     elif n_dipoles > len(labels):
-        raise ValueError('labels != None and n_dipoles = %i is larger than'
-            'len(labels) = %i. This is not allowed, make sure than n_dipoles'
-            '<= len(labels)' % (n_dipoles, len(labels)))        
+        raise ValueError('Number of labels (%d) smaller than n_dipoles (%d)'
+                         'is not allowed.' % (len(labels), n_dipoles))        
     else:
         if n_dipoles != len(labels):
             warn('The number of labels is different from the number of '
