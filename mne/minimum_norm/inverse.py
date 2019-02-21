@@ -1338,11 +1338,26 @@ def _select_orient_forward(forward, info, noise_cov, verbose=None):
     return fwd_info, gain
 
 
-def _prepare_forward(forward, info, noise_cov, fixed, loose, depth,
+def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
                      use_cps=True, limit_depth_chs=True, loose_method='svd',
-                     allow_fixed_depth=False, limit=10.):
+                     allow_fixed_depth=False, limit=10., whiten='after'):
+    """Prepare a gain matrix and noise covariance for localization."""
+    # Steps (according to MNE-C, we change the order):
+    #
+    # 1. Read the bad channels
+    # 2. Read the necessary data from the forward solution matrix file
+    # 3. Load the projection data
+    # 4. Load the sensor noise covariance matrix and attach it to the forward
+    # 5. Compose the depth-weighting matrix
+    # 6. Compose the source covariance matrix
+    # 7. Apply fMRI weighting (not done)
+    # 8. Apply the linear projection to the forward solution
+    # 9. Apply whitening to the forward computation matrix
+    # 10. Exclude the source space points within the labels (not done)
+    # 11. Do appropriate source weighting to the forward computation matrix
+    #
+
     is_fixed_ori = is_fixed_orient(forward)
-    assert not allow_fixed_depth  # not implemented yet
 
     # These gymnastics are necessary due to the redundancy between
     # "fixed" and "loose"
@@ -1364,12 +1379,14 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth,
         fixed = True
 
     if fixed:
-        if not is_fixed_ori:
+        if allow_fixed_depth:
+            assert loose == 0.
+        elif not is_fixed_ori:
             # Here we use loose=1. because computation of depth priors is
             # improved by operating on the free orientation forward; see code
             # at the comment "Deal with fixed orientation forward / inverse"
             loose = 1.
-        elif depth is not None:
+        elif depth is not None and not allow_fixed_depth:
             raise ValueError(
                 'For a fixed orientation inverse solution with depth '
                 'weighting, the forward solution must be free-orientation and '
@@ -1384,29 +1401,38 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth,
     if depth is not None:
         if not (0 < depth <= 1):
             raise ValueError('depth should be a scalar between 0 and 1')
-        if is_fixed_ori:
+        if is_fixed_ori and not allow_fixed_depth:
             raise ValueError('You need a free-orientation, surface-oriented '
                              'forward solution to do depth weighting even '
                              'when calculating a fixed-orientation inverse.')
 
     loose, forward = _check_loose_forward(loose, forward)
+    assert isinstance(loose, float) and 0 <= loose <= 1
 
-    if (depth is not None or loose != 1) and not forward['surf_ori']:
+    if (depth is not None or loose < 1) and not (forward['surf_ori'] or
+                                                 allow_fixed_depth):
         logger.info('Forward is not surface oriented, converting.')
-        forward = convert_forward_solution(forward, surf_ori=True,
-                                           use_cps=use_cps)
+        forward = convert_forward_solution(
+            forward, surf_ori=True, use_cps=use_cps)
 
     gain_info, gain = _select_orient_forward(forward, info, noise_cov)
+    noise_cov = prepare_noise_cov(noise_cov, info, gain_info['ch_names'], rank)
+    whitener, _ = compute_whitener(
+        noise_cov, info, gain_info['ch_names'], pca=pca)
+    logger.info("Selected %d channels" % (len(gain_info['ch_names'],)))
+    assert whiten in ('before', 'after')
+    if whiten == 'before':
+        logger.info('Whitening the forward solution.')
+        gain = np.dot(whitener, gain)
 
     if depth is None:
         depth_prior = None
     else:
         patch_areas = forward.get('patch_areas', None)
-        depth_prior = compute_depth_prior(gain, gain_info, is_fixed_ori,
-                                          exp=depth, patch_areas=patch_areas,
-                                          limit_depth_chs=limit_depth_chs,
-                                          loose_method=loose_method,
-                                          limit=limit)
+        depth_prior = compute_depth_prior(
+            gain, gain_info, is_fixed_ori, exp=depth, patch_areas=patch_areas,
+            limit_depth_chs=limit_depth_chs, loose_method=loose_method,
+            limit=limit)
 
     # Deal with fixed orientation forward / inverse
     if fixed:
@@ -1419,14 +1445,39 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth,
                             'depth-weighting prior into the fixed-orientation '
                             'one')
                 depth_prior = depth_prior[2::3]
-        forward = convert_forward_solution(
-            forward, surf_ori=forward['surf_ori'], force_fixed=True,
-            use_cps=use_cps)
-        gain_info, gain = _select_orient_forward(
-            forward, info, noise_cov, verbose=False)
+        if not allow_fixed_depth:
+            forward = convert_forward_solution(
+                forward, surf_ori=forward['surf_ori'], force_fixed=True,
+                use_cps=use_cps)
+            gain_info, gain = _select_orient_forward(
+                forward, info, noise_cov, verbose=False)
     else:
+        # In theory we could have orient_prior=None for loose=1., but
+        # the MNE-C code does not do this
         orient_prior = compute_orient_prior(forward, loose=loose)
-    return forward, gain_info, gain, depth_prior, orient_prior
+    if whiten == 'after':
+        logger.info('Whitening the forward solution.')
+        gain = np.dot(whitener, gain)
+
+    logger.info('Creating the source covariance matrix')
+    source_std = np.ones(gain.shape[1])
+    if depth_prior is not None:
+        source_std *= depth_prior
+    if orient_prior is not None:
+        source_std *= orient_prior
+    np.sqrt(source_std, out=source_std)
+    gain *= source_std
+    # Adjusting Source Covariance matrix to make trace of G*R*G' equal
+    # to number of sensors.
+    logger.info('Adjusting source covariance matrix.')
+    trace_GRGT = linalg.norm(gain, ord='fro') ** 2
+    n_nzero = (noise_cov['eig'] > 0).sum()
+    scale = np.sqrt(n_nzero / trace_GRGT)
+    source_std *= scale
+    gain *= scale
+
+    return (forward, gain_info, gain, depth_prior, orient_prior, source_std,
+            trace_GRGT, noise_cov, whitener)
 
 
 @verbose
@@ -1510,107 +1561,28 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     weighting. Thus slightly different results are to be expected with
     and without this information.
     """  # noqa: E501
-    # Steps (according to MNE-C, we change the order):
-    # 1. Read the bad channels
-    # 2. Read the necessary data from the forward solution matrix file
-    # 3. Load the projection data
-    # 5. Compose the depth-weighting matrix
-    #
-    forward, gain_info, gain, depth_prior, orient_prior = _prepare_forward(
-            forward, info, noise_cov, fixed, loose, depth, use_cps,
-            limit_depth_chs)
+    # For now we always have pca='white'. It does not seem to affect
+    # calculations and is also backward-compatible with MNE-C
+    forward, gain_info, gain, depth_prior, orient_prior, source_std, \
+        trace_GRGT, noise_cov, _ = _prepare_forward(
+            forward, info, noise_cov, fixed, loose, depth, pca='white',
+            rank=rank, use_cps=use_cps, limit_depth_chs=limit_depth_chs)
     del fixed, loose, depth, use_cps, limit_depth_chs
 
-    #
-    # 4. Load the sensor noise covariance matrix and attach it to the forward
-    #
-
-    # For now we always have pca=False. It does not seem to affect calculations
-    # and is also backward-compatible with MNE-C
-    noise_cov = prepare_noise_cov(noise_cov, info, gain_info['ch_names'], rank)
-    whitener, _ = compute_whitener(
-        noise_cov, info, gain_info['ch_names'], pca='white')
-    n_nzero = (noise_cov['eig'] > 0).sum()
-
-    logger.info("Computing inverse operator with %d channels."
-                % len(gain_info['ch_names']))
-
-    #
-    # 6. Compose the source covariance matrix
-    #
-
-    logger.info('Creating the source covariance matrix')
-
-    # apply loose orientations and MNE-ify
-    source_cov = np.ones(gain.shape[1], gain.dtype)
-    if orient_prior is not None:
-        source_cov *= orient_prior
-        orient_prior = dict(data=orient_prior,
-                            kind=FIFF.FIFFV_MNE_ORIENT_PRIOR_COV,
-                            bads=[], diag=True, names=[], eig=None,
-                            eigvec=None, dim=orient_prior.size, nfree=1,
-                            projs=[])
-    # We set this for consistency with mne C code written inverses
-    if depth_prior is not None:
-        source_cov *= depth_prior
-        depth_prior = dict(data=depth_prior,
-                           kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
-                           bads=[], diag=True, names=[], eig=None,
-                           eigvec=None, dim=depth_prior.size, nfree=1,
-                           projs=[])
-
-    # 7. Apply fMRI weighting (not done)
-
-    #
-    # 8. Apply the linear projection to the forward solution
-    # 9. Apply whitening to the forward computation matrix
-    #
-    logger.info('Whitening the forward solution.')
-    gain = np.dot(whitener, gain)
-
-    # 10. Exclude the source space points within the labels (not done)
-
-    #
-    # 11. Do appropriate source weighting to the forward computation matrix
-    #
-
-    # Adjusting Source Covariance matrix to make trace of G*R*G' equal
-    # to number of sensors.
-    logger.info('Adjusting source covariance matrix.')
-    source_std = np.sqrt(source_cov)
-    gain *= source_std[None, :]
-    trace_GRGT = linalg.norm(gain, ord='fro') ** 2
-    scaling_source_cov = n_nzero / trace_GRGT
-    source_cov *= scaling_source_cov
-    gain *= sqrt(scaling_source_cov)
-
-    source_cov = dict(data=source_cov, dim=source_cov.size,
-                      kind=FIFF.FIFFV_MNE_SOURCE_COV, diag=True,
-                      names=[], projs=[], eig=None, eigvec=None,
-                      nfree=1, bads=[])
-
-    # now np.trace(np.dot(gain, gain.T)) == n_nzero
-    # logger.info(np.trace(np.dot(gain, gain.T)), n_nzero)
-
-    #
-    # 12. Decompose the combined matrix
-    #
-
+    # Decompose the combined matrix
     logger.info('Computing SVD of whitened and weighted lead field '
                 'matrix.')
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     logger.info('    largest singular value = %g' % np.max(sing))
     logger.info('    scaling factor to adjust the trace = %g' % trace_GRGT)
 
+    # MNE-ify everything for output
     eigen_fields = dict(data=eigen_fields.T, col_names=gain_info['ch_names'],
                         row_names=[], nrow=eigen_fields.shape[1],
                         ncol=eigen_fields.shape[0])
     eigen_leads = dict(data=eigen_leads.T, nrow=eigen_leads.shape[1],
                        ncol=eigen_leads.shape[0], row_names=[],
                        col_names=[])
-    nave = 1.0
-
-    # Handle methods
     has_meg = False
     has_eeg = False
     for idx in range(gain_info['nchan']):
@@ -1626,8 +1598,24 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     else:
         methods = FIFF.FIFFV_MNE_EEG
 
+    if orient_prior is not None:
+        orient_prior = dict(data=orient_prior,
+                            kind=FIFF.FIFFV_MNE_ORIENT_PRIOR_COV,
+                            bads=[], diag=True, names=[], eig=None,
+                            eigvec=None, dim=orient_prior.size, nfree=1,
+                            projs=[])
+    if depth_prior is not None:
+        depth_prior = dict(data=depth_prior,
+                           kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
+                           bads=[], diag=True, names=[], eig=None,
+                           eigvec=None, dim=depth_prior.size, nfree=1,
+                           projs=[])
+    source_cov = dict(data=source_std * source_std, dim=source_std.size,
+                      kind=FIFF.FIFFV_MNE_SOURCE_COV, diag=True,
+                      names=[], projs=[], eig=None, eigvec=None,
+                      nfree=1, bads=[])
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
-                  sing=sing, nave=nave, depth_prior=depth_prior,
+                  sing=sing, nave=1., depth_prior=depth_prior,
                   source_cov=source_cov, noise_cov=noise_cov,
                   orient_prior=orient_prior,
                   projs=deepcopy(gain_info['projs']),

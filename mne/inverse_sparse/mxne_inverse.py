@@ -10,12 +10,10 @@ from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference, _check_loose_forward)
-from ..cov import compute_whitener
-from ..forward import (compute_orient_prior, compute_depth_prior,
-                       is_fixed_orient, convert_forward_solution)
+from ..forward import is_fixed_orient, convert_forward_solution
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -53,49 +51,19 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     return gain, source_weighting, mask
 
 
-@verbose
 def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
-                  weights_min, verbose=None):
-    if not isinstance(depth, float):
-        raise ValueError('Invalid depth parameter. '
-                         'A float is required (got %s).'
-                         % type(depth))
-    elif depth < 0.0:
-        raise ValueError('Depth parameter must be positive (got %s).'
-                         % depth)
-
-    # XXX need allow_fixed_depth=True and depth=depth here,
-    # and actually need to use the other outputs (depth, orient priors)
-    forward, gain_info, gain = _prepare_forward(
-        forward, info, noise_cov, 'auto', loose, depth=None,
-        use_cps=True, limit_depth_chs=False, loose_method='sum',
-        limit=None, allow_fixed_depth=False)[:3]
-    whitener, _ = compute_whitener(
-        noise_cov, info, gain_info['ch_names'], pca=True if pca else 'white')
-
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
-    is_fixed_ori = is_fixed_orient(forward)
-
-    source_weighting = np.ones(gain.shape[1], gain.dtype)
-    if depth is not None:
-        depth_prior = compute_depth_prior(
-            gain, gain_info, is_fixed_ori, exp=depth, limit=None,
-            loose_method='sum')
-        source_weighting *= np.sqrt(depth_prior)
-
-    assert (is_fixed_ori or (0 <= loose <= 1))
-    if loose is not None and loose < 1.:
-        source_weighting *= np.sqrt(compute_orient_prior(forward, loose))
-
-    gain *= source_weighting[None, :]
+                  weights_min):
+    forward, gain_info, gain, _, _, source_weighting, _, _, whitener = \
+        _prepare_forward(
+            forward, info, noise_cov, 'auto', loose, depth, rank=None,
+            pca=pca, limit_depth_chs=False, loose_method='sum',
+            limit=None, allow_fixed_depth=True, whiten='before')
 
     if weights is None:
         mask = None
     else:
-        gain, source_weighting, mask = _prepare_weights(forward, gain,
-                                                        source_weighting,
-                                                        weights, weights_min)
+        gain, source_weighting, mask = _prepare_weights(
+            forward, gain, source_weighting, weights, weights_min)
 
     return gain, gain_info, whitener, source_weighting, mask
 
@@ -268,7 +236,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
 
 @verbose
 def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
-               maxit=3000, tol=1e-4, active_set_size=10, pca=True,
+               maxit=3000, tol=1e-4, active_set_size=10, pca=None,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, verbose=None):
@@ -368,6 +336,11 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
 
+    if pca is None:
+        pca = True
+    else:
+        warn('pca argument is deprecated and will be removed in 0.19, do '
+             'not set it. It should not affect results.', DeprecationWarning)
     if not isinstance(evoked, list):
         evoked = [evoked]
 
