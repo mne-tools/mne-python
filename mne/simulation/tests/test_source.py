@@ -146,6 +146,9 @@ def test_simulate_sparse_stc():
                   subjects_dir=subjects_dir)  # no subject
     pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
                   times, labels=labels, location='foo')  # bad location
+    pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels) + 1,
+                  times, labels=labels, random_state=random_state,
+                  location=location, subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
