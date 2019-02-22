@@ -87,7 +87,7 @@ Bug
 
 - Fix checking of ``data`` dimensionality in :class:`mne.SourceEstimate` and related constructors by `Eric Larson`_
 
-- Fix depth weighting for sparse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mxne_inverse`) to use the same depth weighting as minimum norm solvers, by `Eric Larson`_
+- Fix depth weighting for sparse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) to use the same depth weighting as minimum norm solvers, by `Eric Larson`_
 
 - Fix :meth:`mne.io.Raw.append` annotations miss-alignment  by `Joan Massich`_
 
