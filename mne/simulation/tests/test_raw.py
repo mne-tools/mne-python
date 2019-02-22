@@ -100,6 +100,7 @@ def test_simulate_raw_sphere():
     raw.info.normalize_proj()
     cov = read_cov(cov_fname)
     cov['projs'] = raw.info['projs']
+    raw.info['bads'] = raw.ch_names[:1]
     raw_sim = simulate_raw(raw, stc, trans, src, sphere, cov,
                            head_pos=head_pos_sim,
                            blink=True, ecg=True, random_state=seed)
@@ -358,7 +359,7 @@ def test_simulate_raw_chpi():
 
         assert_array_equal(freqs_sim, freqs_chpi)
         freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f))
-                           for f in hpi_freqs])
+                            for f in hpi_freqs])
         if picks is picks_meg:
             assert (psd_chpi[:, freq_idx] >
                     100 * psd_sim[:, freq_idx]).all()
