@@ -1317,7 +1317,7 @@ class AverageTFR(_BaseTFR):
         cmap : matplotlib colormap
             The colormap to use.
         dB : bool
-            If True, 20*log10 is applied to the data to get dB.
+            If True, 10*log10 is applied to the data to get dB.
         colorbar : bool
             If true, colorbar will be added to the plot (relating to the
             topomaps). For user defined axes, the colorbar cannot be drawn.
