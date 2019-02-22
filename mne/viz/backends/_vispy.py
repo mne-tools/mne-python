@@ -128,7 +128,10 @@ class _Renderer(object):
         vertices = surface['rr']
         tris = surface['tris']
 
-        cm = Colormap(colormap / 255.0)
+        if colormap is None:
+            cm = "cool"
+        else:
+            cm = Colormap(colormap / 255.0)
 
         if isinstance(contours, int):
             cmin = min(scalars)
