@@ -2589,7 +2589,7 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     else:
         return raws[0], events
 
-
+# XXX: why this again? We are already using _set_montage in set_montage and create_info
 def _check_update_montage(info, montage, path=None, update_ch_names=False,
                           raise_missing=True):
     """Help eeg readers to add montage."""
@@ -2598,7 +2598,7 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False,
             err = ("Montage must be str, None, or instance of Montage. "
                    "%s was provided" % type(montage))
             raise TypeError(err)
-        if montage is not None:
+        if montage is not None:  # montage is already None !!
             if isinstance(montage, str):
                 montage = read_montage(montage, path=path)
             _set_montage(info, montage, update_ch_names=update_ch_names)
