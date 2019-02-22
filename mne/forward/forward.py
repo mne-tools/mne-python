@@ -1064,9 +1064,10 @@ def _restrict_gain_matrix(G, info):
     return G
 
 
+@verbose
 def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                         patch_areas=None, limit_depth_chs=False,
-                        loose_method='svd'):
+                        loose_method='svd', verbose=None):
     """Compute weighting for depth prior.
 
     Parameters
@@ -1083,10 +1084,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         The upper bound on depth weighting. Can be None to be unbounded.
     patch_areas : ndarray | None
         Patch areas of the vertices from the forward solution.
-    limit_depth_chs : bool
-        If True, limit depth weighting computation to gradiometers
-        if present (ignoring magnetometers). This can improve the
-        computations on systems that have both (e.g., Neuromag).
+    %(limit_depth_chs)s Default is False.
     loose_method : 'svd' | 'sum'
         When a loose (or free) orientation is used, how the depth weighting
         for each triplet should be calculated.
@@ -1095,6 +1093,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         If 'sum', then ``np.sum(Gk ** 2)`` will be used.
 
         .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
@@ -1120,6 +1119,8 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         d = np.sum(G ** 2, axis=0)
         if not is_fixed_ori:
             d = d.reshape(-1, 3).sum(axis=1)
+        # Spherical leadfield can be zero at the center
+        d[d == 0.] = np.min(d[d != 0.])
     else:
         # n_pos = G.shape[1] // 3
         # The following is equivalent to this, but 4-10x faster

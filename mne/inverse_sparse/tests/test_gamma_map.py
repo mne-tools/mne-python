@@ -28,14 +28,19 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 subjects_dir = op.join(data_path, 'subjects')
 
 
-def _check_stc(stc, evoked, idx, ratio=50.):
+def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.):
     """Check correctness."""
     assert_array_almost_equal(stc.times, evoked.times, 5)
     amps = np.sum(stc.data ** 2, axis=1)
     order = np.argsort(amps)[::-1]
     amps = amps[order]
     verts = np.concatenate(stc.vertices)[order]
-    assert idx == verts[0], str(list(verts))
+    hemi_idx = int(order[0] >= len(stc.vertices[1]))
+    hemis = ['lh', 'rh']
+    assert hemis[hemi_idx] == hemi
+    dist = np.linalg.norm(np.diff(fwd['src'][hemi_idx]['rr'][[idx, verts[0]]],
+                                  axis=0)[0]) * 1000.
+    assert dist <= dist_limit
     assert amps[0] > ratio * amps[1]
 
 
@@ -68,11 +73,11 @@ def test_gamma_map():
     alpha = 0.5
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=True, update_mode=1)
-    _check_stc(stc, evoked, 68477)
+    _check_stc(stc, evoked, 68477, 'lh', fwd=forward)
 
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=1)
-    _check_stc(stc, evoked, 82010)
+    _check_stc(stc, evoked, 82010, 'lh', dist_limit=9., fwd=forward)
 
     dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                      xyz_same_gamma=False, update_mode=1,
@@ -85,7 +90,7 @@ def test_gamma_map():
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=2,
                     loose=0, return_residual=False)
-    _check_stc(stc, evoked, 85739, 20)
+    _check_stc(stc, evoked, 85739, 'lh', fwd=forward, ratio=20.)
 
 
 @pytest.mark.slowtest

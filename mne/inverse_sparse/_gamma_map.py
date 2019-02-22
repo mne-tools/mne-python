@@ -165,7 +165,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
               gammas=None, pca=True, return_residual=False,
-              return_as_dipoles=False, verbose=None):
+              return_as_dipoles=False, rank=None, limit_depth_chs=True,
+              verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method.
 
     Models each source time course using a zero-mean Gaussian prior with an
@@ -215,6 +216,12 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+    %(limit_depth_chs)s
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -251,7 +258,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         group_size = 3
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked.info, noise_cov, pca, depth, loose, None, None)
+        forward, evoked.info, noise_cov, pca, depth, loose, None, None,
+        rank, limit_depth_chs)
 
     # get the data
     sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]

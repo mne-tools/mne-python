@@ -59,8 +59,16 @@ rank : None | dict | 'info' | 'full'
         of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
-# Finalize
 
+# Inverses
+docdict['limit_depth_chs'] = """
+limit_depth_chs : bool
+    If True (default), use only grad channels in depth weighting
+    (equivalent to MNE C code). If grad channels aren't present, only mag
+    channels will be used (if no mag, then eeg). If False, use all channels.
+"""
+
+# Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
 

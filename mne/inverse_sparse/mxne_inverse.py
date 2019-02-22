@@ -52,12 +52,14 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
 
 
 def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
-                  weights_min):
+                  weights_min, rank=None, limit_depth_chs=True):
+    # XXX This should be loose_method='svd' but it breaks the spherical
+    # conductor MxNE test
     forward, gain_info, gain, _, _, source_weighting, _, _, whitener = \
         _prepare_forward(
-            forward, info, noise_cov, 'auto', loose, depth, rank=None,
-            pca=pca, limit_depth_chs=False, loose_method='sum',
-            limit=None, allow_fixed_depth=True, whiten='before')
+            forward, info, noise_cov, 'auto', loose, depth, rank=rank,
+            pca=pca, limit_depth_chs=limit_depth_chs, loose_method='sum',
+            allow_fixed_depth=True)
 
     if weights is None:
         mask = None
@@ -239,7 +241,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=None,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
-               return_as_dipoles=False, dgap_freq=10, verbose=None):
+               return_as_dipoles=False, dgap_freq=10, rank=None,
+               limit_depth_chs=False, verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution [1]_ or L0.5/L2 [2]_ mixed-norm
@@ -300,6 +303,12 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations. Ignored if
         solver is 'cd'.
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+    %(limit_depth_chs)s
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -360,7 +369,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked[0].info, noise_cov, pca, depth, loose, weights,
-        weights_min)
+        weights_min, rank, limit_depth_chs)
 
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
@@ -475,7 +484,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
                   tol=1e-4, weights=None, weights_min=None, pca=True,
                   debias=True, wsize=64, tstep=4, window=0.02,
                   return_residual=False, return_as_dipoles=False,
-                  alpha=None, l1_ratio=None, dgap_freq=10, verbose=None):
+                  alpha=None, l1_ratio=None, dgap_freq=10, rank=None,
+                  limit_depth_chs=False, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -544,6 +554,12 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         * l1_ratio. 0 means no time regularization aka MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+    %(limit_depth_chs)s
+
+        .. versionadded:: 0.18
     %(verbose)s
 
 
@@ -617,7 +633,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, weights,
-        weights_min)
+        weights_min, rank, limit_depth_chs)
 
     if window is not None:
         evoked = _window_evoked(evoked, window)

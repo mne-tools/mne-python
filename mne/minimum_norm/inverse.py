@@ -1456,10 +1456,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
-    limit_depth_chs : bool
-        If True, use only grad channels in depth weighting (equivalent to MNE
-        C code). If grad channels aren't present, only mag channels will be
-        used (if no mag, then eeg). If False, use all channels.
+    %(limit_depth_chs)s Default is True.
     %(rank_None)s
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
