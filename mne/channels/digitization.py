@@ -121,7 +121,6 @@ def read_foo(kind, ch_names=None, path=None, unit='m', transform=False):
 
 from mne import __file__ as mne_init_path
 from mne.channels.montage import _read_dig_points
-from mne.io.kit.kit import _set_dig_kit
 
 KIT_PATH = op.join(op.dirname(mne_init_path), 'io', 'kit', 'tests', 'data')
 KIT_HSP = op.join(KIT_PATH, 'test.hsp')
@@ -130,6 +129,7 @@ KIT_SQD = op.join(KIT_PATH, 'test.sqd')
 
 
 def read_foobar(hsp_fname=KIT_HSP, elp_fname=KIT_ELP, sqd_fname=KIT_SQD):
+    from mne.io.kit.kit import _set_dig_kit
 
     # If you had to load them, thats how it's done, but kit has some helper
     # functions
