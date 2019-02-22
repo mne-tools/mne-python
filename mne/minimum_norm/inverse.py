@@ -1397,6 +1397,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
                 use_cps=use_cps)
             gain_info, gain = _select_orient_forward(
                 forward, info, noise_cov, verbose=False)
+            if whiten == 'before':
+                gain = np.dot(whitener, gain)
     else:
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this

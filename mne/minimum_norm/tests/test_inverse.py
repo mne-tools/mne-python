@@ -306,10 +306,8 @@ def test_inverse_operator_channel_ordering():
     assert_allclose(stc_1.data, stc_3.data, rtol=1e-5, atol=1e-5)
 
 
-@pytest.mark.timeout(60)  # can sometimes take > 30 sec on Travis
-@testing.requires_testing_data
-def test_localization_bias():
-    """Test inverse localization bias for minimum-norm solvers."""
+@pytest.fixture(scope='module')
+def bias_params():
     # Identity input
     evoked = _get_evoked()
     evoked.pick_types(meg=True, eeg=True, exclude=())
@@ -321,69 +319,78 @@ def test_localization_bias():
     stc = SourceEstimate(np.zeros((sum(len(v) for v in vertices), 1)),
                          vertices, 0., 1.)
     fwd_orig = restrict_forward_to_stc(fwd_orig, stc)
+    return evoked, fwd_orig, noise_cov
 
-    #
-    # Fixed orientation (not very different)
-    #
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('method, lower, upper',
+                         [('MNE', 83, 87),
+                          ('dSPM', 96, 98),
+                          ('sLORETA', 100, 100),
+                          ('eLORETA', 100, 100)])
+def test_localization_bias_fixed(bias_params, method, lower, upper):
+    """Test inverse localization bias for fixed minimum-norm solvers."""
+    evoked, fwd_orig, noise_cov = bias_params
     fwd = fwd_orig.copy()
     inv_fixed = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.,
                                       depth=0.8)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1])
-    for method, lower, upper in (('MNE', 83, 87),
-                                 ('dSPM', 96, 98),
-                                 ('sLORETA', 100, 100),
-                                 ('eLORETA', 100, 100)):
-        inv_op = apply_inverse(evoked, inv_fixed, lambda2, method).data
-        loc = np.abs(np.dot(inv_op, fwd))
-        # Compute the percentage of sources for which there is no localization
-        # bias:
-        perc = (want == np.argmax(loc, axis=0)).mean() * 100
-        assert lower <= perc <= upper, method
+    inv_op = apply_inverse(evoked, inv_fixed, lambda2, method).data
+    loc = np.abs(np.dot(inv_op, fwd))
+    # Compute the percentage of sources for which there is no localization
+    # bias:
+    perc = (want == np.argmax(loc, axis=0)).mean() * 100
+    assert lower <= perc <= upper, method
 
-    #
-    # Loose orientation
-    #
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('method, lower, upper',
+                         [('MNE', 25, 35),
+                          ('dSPM', 25, 35),
+                          ('sLORETA', 35, 40),
+                          ('eLORETA', 40, 45)])
+def test_localization_bias_loose(bias_params, method, lower, upper):
+    """Test inverse localization bias for loose minimum-norm solvers."""
+    evoked, fwd_orig, noise_cov = bias_params
     fwd = fwd_orig.copy()
     inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.2,
                                      depth=0.8)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1]) // 3
-    for method, lower, upper in (('MNE', 25, 35),
-                                 ('dSPM', 25, 35),
-                                 ('sLORETA', 35, 40),
-                                 ('eLORETA', 40, 45)):
-        inv_op = apply_inverse(evoked, inv_free, lambda2, method,
-                               pick_ori='vector').data
-        loc = np.linalg.norm(np.einsum('vos,sx->vxo', inv_op, fwd), axis=-1)
-        # Compute the percentage of sources for which there is no localization
-        # bias:
-        perc = (want == np.argmax(loc, axis=0)).mean() * 100
-        assert lower <= perc <= upper, method
+    inv_op = apply_inverse(evoked, inv_free, lambda2, method,
+                           pick_ori='vector').data
+    loc = np.linalg.norm(np.einsum('vos,sx->vxo', inv_op, fwd), axis=-1)
+    # Compute the percentage of sources for which there is no localization
+    # bias:
+    perc = (want == np.argmax(loc, axis=0)).mean() * 100
+    assert lower <= perc <= upper, method
 
-    #
-    # Free orientation
-    #
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('method, lower, upper, kwargs',
+                         [('MNE', 45, 55, {}),
+                          ('dSPM', 40, 45, {}),
+                          ('sLORETA', 90, 95, {}),
+                          ('eLORETA', 90, 95,
+                           dict(method_params=dict(force_equal=True))),
+                          ('eLORETA', 100, 100, {})])
+def test_localization_bias_free(bias_params, method, lower, upper, kwargs):
+    """Test inverse localization bias for free minimum-norm solvers."""
+    evoked, fwd_orig, noise_cov = bias_params
     fwd = fwd_orig.copy()
     inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
                                      depth=0.8)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1]) // 3
-    force_kwargs = dict(method_params=dict(force_equal=True))
-    for method, lower, upper, kwargs in (('MNE', 45, 55, {}),
-                                         ('dSPM', 40, 45, {}),
-                                         ('sLORETA', 90, 95, {}),
-                                         ('eLORETA', 90, 95, force_kwargs),
-                                         ('eLORETA', 100, 100, {}),
-                                         ):
-        inv_op = apply_inverse(evoked, inv_free, lambda2, method,
-                               pick_ori='vector', **kwargs).data
-        loc = np.linalg.norm(np.einsum('vos,sx->vxo', inv_op, fwd), axis=-1)
-        # Compute the percentage of sources for which there is no localization
-        # bias:
-        perc = (want == np.argmax(loc, axis=0)).mean() * 100
-        assert lower <= perc <= upper, method
+    inv_op = apply_inverse(evoked, inv_free, lambda2, method,
+                           pick_ori='vector', **kwargs).data
+    loc = np.linalg.norm(np.einsum('vos,sx->vxo', inv_op, fwd), axis=-1)
+    # Compute the percentage of sources for which there is no localization
+    # bias:
+    perc = (want == np.argmax(loc, axis=0)).mean() * 100
+    assert lower <= perc <= upper, method
 
 
 @testing.requires_testing_data
