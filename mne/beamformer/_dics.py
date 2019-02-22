@@ -576,7 +576,7 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
         else:
-            # Linear inverse: do not delay compuation due to non-linear abs
+            # Linear inverse: do not delay computation due to non-linear abs
             sol = np.dot(W, M)
 
         tstep = 1.0 / info['sfreq']
