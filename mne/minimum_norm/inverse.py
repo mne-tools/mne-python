@@ -1328,6 +1328,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
             raise ValueError('If loose==0., then fixed must be True or "auto",'
                              'got %s' % (fixed,))
         fixed = True
+    depth = None if depth == 0. else depth  # 0. is an alias for None
 
     if fixed:
         if allow_fixed_depth:
