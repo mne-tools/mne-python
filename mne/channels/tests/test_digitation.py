@@ -31,5 +31,15 @@ def get_trans():
                                [0.,          0.,          0.,          1.        ]])
     return trans
 
+
 def test_digitization():
-    read_pos(POS_FNAME)
+    montage = read_pos(POS_FNAME)
+    my_info = mne.create_info(ch_names=[],
+                              sfreq=1,
+                              ch_types='eeg',
+                              montage=montage)
+
+    fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage',
+                         dig=True, eeg=['original'], meg=[],
+                         coord_frame='head', subjects_dir=subjects_dir,
+                         fig=None)

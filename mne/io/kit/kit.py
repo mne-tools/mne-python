@@ -454,6 +454,7 @@ class EpochsKIT(BaseEpochs):
         return data
 
 
+# XXX: this breaks if mrk is None
 def _set_dig_kit(mrk, elp, hsp):
     """Add landmark points and head shape data to the KIT instance.
 

@@ -109,6 +109,18 @@ fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage', dig=True,
 #
 POS_FNAME = op.join(op.dirname(mne_init_path), 'channels', 'data', 'test.pos')
 
+from mne.channels.digitization import read_pos
+
+montage = read_pos(POS_FNAME)
+my_info = mne.create_info(ch_names=[],
+                          sfreq=1,
+                          ch_types='eeg',
+                          montage=montage)
+
+fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage',
+                     dig=True, eeg=['original'], meg=[],
+                     coord_frame='head', subjects_dir=subjects_dir,
+                     fig=None)
 ###############################################################################
 # Questions I've
 #

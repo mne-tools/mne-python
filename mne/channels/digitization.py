@@ -1,24 +1,12 @@
-
-from collections.abc import Iterable
-import os
 import os.path as op
 
 import numpy as np
-import xml.etree.ElementTree as ElementTree
 
-from ..viz import plot_montage
-from .channels import _contains_ch_type
-from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _str_to_frame, _frame_to_str)
 from ..io.meas_info import (_make_dig_points, _read_dig_points, _read_dig_fif,
                             write_dig)
-from ..io.pick import pick_types
-from ..io.open import fiff_open
-from ..io.constants import FIFF
-from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
-                     _clean_names)
 
 from .layout import _pol_to_cart, _cart_to_sph
+
 
 class Digitization(object):
     def __init__(self, dig_list=None):
@@ -154,14 +142,65 @@ def read_foobar(hsp_fname=KIT_HSP, elp_fname=KIT_ELP, sqd_fname=KIT_SQD):
     return Digitization(dig_list=dig)
 
 
-POS_FNAME = op.join(op.dirname(mne_init_path), 'channels', 'data', 'test.pos')
-
-def read_pos(fname=POS_FNAME):
+def _read_pos_file_reader(fname):
     HEADER_LENGHT = 8
     from itertools import islice
 
-    with open(fname) as myfile:
-        head = [_.split() for _ in list(islice(myfile, 0, HEADER_LENGHT))]
-        points = [_.split() for _ in list(islice(myfile, 0, None))]
-    import pdb; pdb.set_trace()
-    print(head)
+    with open(fname) as my_file:
+        head = [_.split() for _ in list(islice(my_file, 0, HEADER_LENGHT))]
+        points = [_.split() for _ in list(islice(my_file, 0, None))]
+
+    head_idx, head_name, head_xs, head_ys, head_zs = zip(*head)
+
+    # This should not be hard-coded ('cos who grants the order?)
+    fidutials = {'lpa': np.array([head_xs[1], head_ys[1], head_zs[1]], dtype=float),
+                 'nz': np.array([head_xs[0], head_ys[0], head_zs[0]], dtype=float),
+                 'rpa': np.array([head_xs[2], head_ys[2], head_zs[2]], dtype=float)}
+
+    reference_points = np.column_stack([head_xs[3:], head_ys[3:], head_zs[3:]])
+    reference_points = dict(zip(head_name[3:], reference_points.astype(float)))
+
+    points = np.array(points, dtype=float)
+
+    return fidutials, reference_points, points
+
+
+def _my_set_dig_kit(mrk, elp, hsp):
+    """copy-paste of Internal parts of _set_dig_kit but allow for mrk=None"""
+    from mne.transforms import (apply_trans, als_ras_trans,
+                                get_ras_to_neuromag_trans, Transform)
+    from mne.coreg import fit_matched_points
+
+    hsp = apply_trans(als_ras_trans, hsp)
+    elp = apply_trans(als_ras_trans, elp)
+    mrk = None if mrk is None else apply_trans(als_ras_trans, mrk)
+
+    nasion, lpa, rpa = elp[:3]
+    nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+    elp = apply_trans(nmtrans, elp)
+    hsp = apply_trans(nmtrans, hsp)
+
+    # device head transform
+    trans = None if mrk is None else fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
+
+    nasion, lpa, rpa = elp[:3]
+    elp = elp[3:]
+
+    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp)
+    dev_head_t = Transform('meg', 'head', trans)
+
+    return dig_points, dev_head_t
+
+
+POS_FNAME = op.join(op.dirname(mne_init_path), 'channels', 'data', 'test.pos')
+def read_pos(fname=POS_FNAME):
+    fidutials, reference_points, hsp = _read_pos_file_reader(fname)
+
+    # create a valid elp: nz, lpa, rpa, 0-RED, 1-YELLOW, .. , 4-BLACK
+    elp = np.vstack([fidutials[_] for _ in ('nz', 'lpa', 'rpa')] +
+                    list(reference_points.values()))
+
+    # dig, dev_head_t = _set_dig_kit(mrk=None, elp=elp, hsp=hsp)
+    dig, dev_head_t = _my_set_dig_kit(mrk=None, elp=elp, hsp=hsp)
+
+    return Digitization(dig_list=dig)
