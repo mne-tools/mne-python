@@ -19,6 +19,7 @@ public_modules = [
     'mne.beamformer',
     'mne.chpi',
     'mne.connectivity',
+    'mne.cov',
     'mne.cuda',
     'mne.datasets',
     'mne.datasets.brainstorm',
@@ -28,6 +29,7 @@ public_modules = [
     'mne.decoding',
     'mne.dipole',
     'mne.filter',
+    'mne.forward',
     'mne.inverse_sparse',
     'mne.io',
     'mne.io.kit',
@@ -203,6 +205,7 @@ TimeMixin
 ToDataFrameMixin
 TransformerMixin
 UpdateChannelsMixin
+activate_proj
 adjust_axes
 apply_maxfilter
 apply_trans
@@ -223,6 +226,7 @@ get_score_funcs
 get_version
 invert_transform
 is_power2
+is_fixed_orient
 iter_topography
 kit2fiff
 label_src_vertno_sel
@@ -238,6 +242,7 @@ plot_epochs_psd_topomap
 plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
+read_bad_channels
 read_fiducials
 read_tag
 requires_sample_data

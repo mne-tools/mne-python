@@ -488,8 +488,9 @@ Covariance computation
    Covariance
    compute_covariance
    compute_raw_covariance
-   cov.regularize
    cov.compute_whitener
+   cov.prepare_noise_cov
+   cov.regularize
    compute_rank
    make_ad_hoc_cov
    read_cov
@@ -535,6 +536,8 @@ Forward Modeling
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   forward.compute_depth_prior
+   forward.compute_orient_prior
    forward.restrict_forward_to_label
    forward.restrict_forward_to_stc
    make_bem_model

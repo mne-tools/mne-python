@@ -2188,7 +2188,7 @@ Visualization options
     are *lat* (lateral), *med* (medial), *ven* (ventral),
     and *occ* (occipital). You can override these
     defaults by creating the directory .mne under your home directory
-    and copying the eyes file there. Each line of the eyes file contais
+    and copying the eyes file there. Each line of the eyes file contains
     the name of the view, the viewpoint for the left hemisphere, the
     viewpoint for the right hemisphere, left hemisphere up vector, and
     right hemisphere up vector. The entities are separated by semicolons.

@@ -800,15 +800,15 @@ class ICA(ContainsMixin):
             The ICA sources time series.
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Raw',
                                       ch_names=self.ch_names)
             sources = self._sources_as_raw(inst, add_channels, start, stop)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Epochs',
                                       ch_names=self.ch_names)
             sources = self._sources_as_epochs(inst, add_channels, False)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Evoked',
                                       ch_names=self.ch_names)
             sources = self._sources_as_evoked(inst, add_channels)
         else:
@@ -963,16 +963,16 @@ class ICA(ContainsMixin):
             scores for each source as returned from score_func
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Raw',
                                       ch_names=self.ch_names)
             sources = self._transform_raw(inst, start, stop,
                                           reject_by_annotation)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Epochs',
                                       ch_names=self.ch_names)
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Evoked',
                                       ch_names=self.ch_names)
             sources = self._transform_evoked(inst)
         else:
@@ -1367,7 +1367,7 @@ class ICA(ContainsMixin):
         else:  # isinstance(inst, Evoked):
             kind, meth = 'Evoked', self._apply_evoked
             kwargs.update(evoked=inst)
-        _check_compensation_grade(self, inst, 'ICA', kind,
+        _check_compensation_grade(self.info, inst.info, 'ICA', kind,
                                   ch_names=self.ch_names)
         return meth(**kwargs)
 

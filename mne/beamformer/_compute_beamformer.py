@@ -12,13 +12,12 @@ import numpy as np
 from scipy import linalg
 
 from ..cov import Covariance
-from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.proj import make_projector, Projection
 from ..io.pick import pick_channels_forward
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import verbose, check_fname, _reg_pinv
+from ..utils import verbose, check_fname, _reg_pinv, _check_compensation_grade
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -72,11 +71,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
                          'forward operator with a surface-based source space '
                          'is used.')
     # Check whether data and forward model have same compensation applied
-    data_comp = get_current_comp(info)
-    fwd_comp = get_current_comp(forward['info'])
-    if data_comp != fwd_comp:
-        raise ValueError('Data (%s) and forward model (%s) do not have same '
-                         'compensation applied.' % (data_comp, fwd_comp))
+    _check_compensation_grade(forward['info'], info, 'forward')
 
     # Restrict forward solution to selected channels
     info_ch_names = [ch['ch_name'] for ch in info['chs']]
