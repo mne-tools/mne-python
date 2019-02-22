@@ -1103,7 +1103,7 @@ class AverageTFR(_BaseTFR):
                 amount of images.
 
         dB : bool
-            If True, 20*log10 is applied to the data to get dB.
+            If True, 10*log10 is applied to the data to get dB.
         colorbar : bool
             If true, colorbar will be added to the plot. For user defined axes,
             the colorbar cannot be drawn. Defaults to True.
@@ -1694,7 +1694,7 @@ class AverageTFR(_BaseTFR):
         title : str
             Title of the figure.
         dB : bool
-            If True, 20*log10 is applied to the data to get dB.
+            If True, 10*log10 is applied to the data to get dB.
         colorbar : bool
             If true, colorbar will be added to the plot
         layout_scale : float
