@@ -6,7 +6,7 @@ Source localization with a custom inverse solver
 
 The objective of this example is to show how to plug a custom inverse solver
 in MNE in order to facilate empirical comparison with the methods MNE already
-implements (wMNE, dSPM, sLORETA, LCMV, (TF-)MxNE etc.).
+implements (wMNE, dSPM, sLORETA, eLORETA, LCMV, DICS, (TF-)MxNE etc.).
 
 This script is educational and shall be used for methods
 evaluations and new developments. It is not meant to be an example

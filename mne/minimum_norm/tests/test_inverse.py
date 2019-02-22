@@ -554,8 +554,8 @@ def test_make_inverse_operator_fixed():
     # note that the forward solution must not be surface-oriented
     # to get equivalency (surf_ori=True changes the normals)
     with catch_logging() as log:
-        inv_op = make_inverse_operator(
-            evoked.info, fwd, noise_cov, depth=None, fixed=True,
+        inv_op = make_inverse_operator(  # test depth=0. alias for depth=None
+            evoked.info, fwd, noise_cov, depth=0., fixed=True,
             use_cps=False, verbose=True)
     log = log.getvalue()
     assert 'rank 302 (3 small eigenvalues omitted)' in log
