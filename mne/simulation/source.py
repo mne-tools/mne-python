@@ -175,6 +175,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
         vs = [s['vertno'][np.sort(rng.permutation(np.arange(s['nuse']))[:n])]
               for n, s in zip(n_dipoles_ss, src)]
         datas = data
+    elif n_dipoles > len(labels):
+        raise ValueError('Number of labels (%d) smaller than n_dipoles (%d) '
+                         'is not allowed.' % (len(labels), n_dipoles))
     else:
         if n_dipoles != len(labels):
             warn('The number of labels is different from the number of '
