@@ -323,17 +323,19 @@ def bias_params():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('method, lower, upper',
-                         [('MNE', 83, 87),
-                          ('dSPM', 96, 98),
-                          ('sLORETA', 100, 100),
-                          ('eLORETA', 100, 100)])
-def test_localization_bias_fixed(bias_params, method, lower, upper):
+@pytest.mark.parametrize('method, lower, upper, depth', [
+    ('MNE', 75, 80, dict(limit_depth_chs=False)),
+    ('MNE', 83, 87, 0.8),
+    ('MNE', 89, 92, dict(limit_depth_chs='whiten')),
+    ('dSPM', 96, 98, 0.8),
+    ('sLORETA', 100, 100, 0.8),
+    ('eLORETA', 100, 100, 0.8)])
+def test_localization_bias_fixed(bias_params, method, lower, upper, depth):
     """Test inverse localization bias for fixed minimum-norm solvers."""
     evoked, fwd_orig, noise_cov = bias_params
     fwd = fwd_orig.copy()
     inv_fixed = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.,
-                                      depth=0.8)
+                                      depth=depth)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1])
@@ -346,11 +348,11 @@ def test_localization_bias_fixed(bias_params, method, lower, upper):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('method, lower, upper',
-                         [('MNE', 25, 35),
-                          ('dSPM', 25, 35),
-                          ('sLORETA', 35, 40),
-                          ('eLORETA', 40, 45)])
+@pytest.mark.parametrize('method, lower, upper', [
+    ('MNE', 25, 35),
+    ('dSPM', 25, 35),
+    ('sLORETA', 35, 40),
+    ('eLORETA', 40, 45)])
 def test_localization_bias_loose(bias_params, method, lower, upper):
     """Test inverse localization bias for loose minimum-norm solvers."""
     evoked, fwd_orig, noise_cov = bias_params
@@ -369,19 +371,21 @@ def test_localization_bias_loose(bias_params, method, lower, upper):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('method, lower, upper, kwargs',
-                         [('MNE', 45, 55, {}),
-                          ('dSPM', 40, 45, {}),
-                          ('sLORETA', 90, 95, {}),
-                          ('eLORETA', 90, 95,
-                           dict(method_params=dict(force_equal=True))),
-                          ('eLORETA', 100, 100, {})])
-def test_localization_bias_free(bias_params, method, lower, upper, kwargs):
+@pytest.mark.parametrize('method, lower, upper, kwargs, depth', [
+    ('MNE', 35, 40, {}, dict(limit_depth_chs=False)),
+    ('MNE', 45, 55, {}, 0.8),
+    ('MNE', 65, 70, {}, dict(limit_depth_chs='whiten')),
+    ('dSPM', 40, 45, {}, 0.8),
+    ('sLORETA', 90, 95, {}, 0.8),
+    ('eLORETA', 90, 95, dict(method_params=dict(force_equal=True)), 0.8),
+    ('eLORETA', 100, 100, {}, 0.8)])
+def test_localization_bias_free(bias_params, method, lower, upper,
+                                kwargs, depth):
     """Test inverse localization bias for free minimum-norm solvers."""
     evoked, fwd_orig, noise_cov = bias_params
     fwd = fwd_orig.copy()
     inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
-                                     depth=0.8)
+                                     depth=depth)
     fwd = fwd['sol']['data']
     want = np.arange(fwd.shape[1]) // 3
     inv_op = apply_inverse(evoked, inv_free, lambda2, method,

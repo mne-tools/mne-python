@@ -55,9 +55,8 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, rank,
                   weights=None, weights_min=None):
     depth = _check_depth(depth, 'depth_sparse')
     forward, gain_info, gain, _, _, source_weighting, _, _, whitener = \
-        _prepare_forward(
-            forward, info, noise_cov, 'auto', loose, rank, pca, use_cps=True,
-            whiten='before', **depth)
+        _prepare_forward(forward, info, noise_cov, 'auto', loose, rank, pca,
+                         use_cps=True, **depth)
 
     if weights is None:
         mask = None
@@ -479,7 +478,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
                   debias=True, wsize=64, tstep=4, window=0.02,
                   return_residual=False, return_as_dipoles=False,
                   alpha=None, l1_ratio=None, dgap_freq=10, rank=None,
-                  limit_depth_chs=False, verbose=None):
+                  verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency

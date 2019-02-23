@@ -1067,7 +1067,8 @@ def _restrict_gain_matrix(G, info):
 @verbose
 def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                         patch_areas=None, limit_depth_chs=False,
-                        loose_method='svd', verbose=None):
+                        combine_xyz='spectral', noise_cov=None, rank=None,
+                        verbose=None):
     """Compute depth prior for depth weighting.
 
     Parameters
@@ -1093,6 +1094,11 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
             channels will be used (if no mag, then eeg). This makes the depth
             prior dependent only on the sensor geometry (and relationship
             to the sources).
+        ``'whiten'``
+            Compute a whitener and apply it to the channels before computing
+            the depth prior. In this case ``noise_cov`` must not be None.
+
+            .. versionadded:: 0.18
         :data:`python:False`
             Use all channels. Only recommended when the gain matrix has
             already been whitened (otherwise it will be arbitrarily
@@ -1101,12 +1107,19 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
             depend on both sensor geometry and the data of interest captured
             by the noise covariance (e.g., projections, SNR).
 
-    loose_method : 'svd' | 'sum'
+    combine_xyz : 'spectral' | 'L2'
         When a loose (or free) orientation is used, how the depth weighting
         for each triplet should be calculated.
-        If 'svd', use the largest singular value of the 3x3 matrix
-        formed by the dot product ``Gk.T @ Gk`` will be used.
-        If 'sum', then ``np.sum(Gk ** 2)`` will be used.
+        If 'spectral', use the squared spectral norm of Gk.
+        If 'L2', use the squared L2 norm of Gk.
+
+        .. versionadded:: 0.18
+    noise_cov : instance of Covariance | None
+        The noise covariance to use to whiten the gain matrix when
+        ``limit_depth_chs='whiten'``.
+
+        .. versionadded:: 0.18
+    %(rank_None)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1129,20 +1142,38 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     # ``gain_info``. However, it's not easy to do this given that the
     # mixed norm code requires that ``G`` is whitened before this chunk
     # of code executes.
+    from ..cov import Covariance, compute_whitener
     logger.info('Creating the depth weighting matrix...')
+    _validate_type(noise_cov, (Covariance, None), 'noise_cov',
+                   'Covariance or None')
+    _validate_type(limit_depth_chs, (str, bool), 'limit_depth_chs')
+    if isinstance(limit_depth_chs, str):
+        if limit_depth_chs != 'whiten':
+            raise ValueError('limit_depth_chs, if str, must be "whiten", got '
+                             '%s' % (limit_depth_chs,))
+        if not isinstance(noise_cov, Covariance):
+            raise ValueError('With limit_depth_chs="whiten", noise_cov must be'
+                             ' a Covariance, got %s' % (type(noise_cov),))
 
     # If possible, pick best depth-weighting channels
     if limit_depth_chs is True:
         G = _restrict_gain_matrix(G, gain_info)
+    elif limit_depth_chs == 'whiten':
+        whitener, _ = compute_whitener(noise_cov, gain_info, pca=True,
+                                       rank=rank)
+        G = np.dot(whitener, G)
 
     # Compute the gain matrix
-    if is_fixed_ori or loose_method == 'sum':
+    if is_fixed_ori or combine_xyz == 'L2':
         d = np.sum(G ** 2, axis=0)
         if not is_fixed_ori:
             d = d.reshape(-1, 3).sum(axis=1)
         # Spherical leadfield can be zero at the center
         d[d == 0.] = np.min(d[d != 0.])
     else:
+        if combine_xyz != 'spectral':
+            raise ValueError('combine_xyz must be "L2" or "spectral", '
+                             'got %s' % (combine_xyz,))
         # n_pos = G.shape[1] // 3
         # The following is equivalent to this, but 4-10x faster
         # d = np.zeros(n_pos)

@@ -63,9 +63,9 @@ DEFAULTS = dict(
     noise_std=dict(grad=5e-13, mag=20e-15, eeg=0.2e-6),
     eloreta_options=dict(eps=1e-6, max_iter=20, force_equal=None),
     depth_mne=dict(exp=0.8, limit=10., limit_depth_chs=True,
-                   loose_method='svd', allow_fixed_depth=False),
-    depth_sparse=dict(exp=0.8, limit=None, limit_depth_chs=False,
-                      loose_method='sum', allow_fixed_depth=True),
+                   combine_xyz='spectral', allow_fixed_depth=False),
+    depth_sparse=dict(exp=0.8, limit=None, limit_depth_chs='whiten',
+                      combine_xyz='L2', allow_fixed_depth=True),
 )
 
 
