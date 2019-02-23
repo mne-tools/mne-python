@@ -308,6 +308,7 @@ def test_inverse_operator_channel_ordering():
 
 @pytest.fixture(scope='module')
 def bias_params():
+    """Provide inputs for bias functions."""
     # Identity input
     evoked = _get_evoked()
     evoked.pick_types(meg=True, eeg=True, exclude=())
