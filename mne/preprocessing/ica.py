@@ -1557,14 +1557,19 @@ class ICA(ContainsMixin):
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear', head_pos=None,
-                        inst=None):
+                        inst=None, plot_std=True, topomap_args=None,
+                        image_args=None, psd_args=None, reject='auto'):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, title=title, show=show,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   head_pos=head_pos, inst=inst)
+                                   head_pos=head_pos, inst=inst,
+                                   plot_std=plot_std,
+                                   topomap_args=topomap_args,
+                                   image_args=image_args, psd_args=psd_args,
+                                   reject=reject)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
