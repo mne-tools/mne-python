@@ -37,7 +37,8 @@ from ..source_space import (_read_source_spaces_from_tree,
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn,
-                     _check_compensation_grade, _check_option)
+                     _check_compensation_grade, _check_option,
+                     _check_depth)
 
 
 INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
@@ -1281,9 +1282,9 @@ def _xyz2lf(Lf_xyz, normals):
 ###############################################################################
 # Assemble the inverse operator
 
-def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
-                     use_cps=True, limit_depth_chs=True, loose_method='svd',
-                     allow_fixed_depth=False, limit=10., whiten='after'):
+def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
+                     use_cps, exp, limit_depth_chs, loose_method,
+                     allow_fixed_depth, limit, whiten):
     """Prepare a gain matrix and noise covariance for localization."""
     # Steps (according to MNE-C, we change the order of various steps
     # because our I/O is already done, and we create the objects
@@ -1301,6 +1302,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
     # 10. Exclude the source space points within the labels (not done)
     # 11. Do appropriate source weighting to the forward computation matrix
     #
+    assert whiten in ('before', 'after')
+    depth = exp
+    del exp
 
     is_fixed_ori = is_fixed_orient(forward)
 
@@ -1366,7 +1370,6 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
     whitener, _ = compute_whitener(
         noise_cov, info, gain_info['ch_names'], pca=pca)
     logger.info("Selected %d channels" % (len(gain_info['ch_names'],)))
-    assert whiten in ('before', 'after')
     if whiten == 'before':
         logger.info('Whitening the forward solution.')
         gain = np.dot(whitener, gain)
@@ -1430,7 +1433,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
 
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
-                          fixed='auto', limit_depth_chs=True, rank=None,
+                          fixed='auto', limit_depth_chs=None, rank=None,
                           use_cps=True, verbose=None):
     """Assemble inverse operator.
 
@@ -1452,13 +1455,14 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumetric, discrete, or mixed source spaces,
         unless ``fixed is True`` in which case the value 0. is used.
-    depth : None | float in [0, 1]
-        Depth weighting coefficients. If None, no depth weighting is performed.
+    %(depth)s
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
-    %(limit_depth_chs)s Default is True.
+    limit_depth_chs : bool
+        Deprecated and will be removed in 0.19.
+        Use ``depth=dict(limit_depth_chs=...)``.
     %(rank_None)s
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
@@ -1508,10 +1512,16 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     """  # noqa: E501
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C
+    depth = _check_depth(depth, 'depth_mne')
+    if limit_depth_chs is not None:
+        warn('limit_depth_chs is deprecated and will be removed in 0.19, '
+             'use depth=dict(limit_depth_chs=...) instead.',
+             DeprecationWarning)
+        depth['limit_depth_chs'] = limit_depth_chs
     forward, gain_info, gain, depth_prior, orient_prior, source_std, \
         trace_GRGT, noise_cov, _ = _prepare_forward(
-            forward, info, noise_cov, fixed, loose, depth, pca='white',
-            rank=rank, use_cps=use_cps, limit_depth_chs=limit_depth_chs)
+            forward, info, noise_cov, fixed, loose, rank, pca='white',
+            use_cps=use_cps, whiten='after', **depth)
     del fixed, loose, depth, use_cps, limit_depth_chs
 
     # Decompose the combined matrix

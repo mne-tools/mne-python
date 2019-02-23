@@ -203,7 +203,7 @@ def test_mxne_vol_sphere():
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert np.abs(np.dot(dip_fit.ori[0], dip_mxne.ori[0])) > 0.99
     dist = 1000 * np.linalg.norm(dip_fit.pos[0] - dip_mxne.pos[0])
-    assert dist < 2.  # within 2 mm
+    assert dist < 4.  # within 4 mm
 
     # Do with TF-MxNE for test memory savings
     alpha = 60.  # overall regularization parameter

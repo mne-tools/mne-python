@@ -228,9 +228,10 @@ def test_make_inverse_operator():
     fwd_op = convert_forward_solution(read_forward_solution_meg(fname_fwd),
                                       surf_ori=True, copy=False)
     with catch_logging() as log:
-        my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
-                                          loose=0.2, depth=0.8,
-                                          limit_depth_chs=False, verbose=True)
+        with pytest.deprecated_call():  # limit_depth_chs
+            my_inv_op = make_inverse_operator(
+                evoked.info, fwd_op, noise_cov, loose=0.2, depth=0.8,
+                limit_depth_chs=False, verbose=True)
     log = log.getvalue()
     assert 'rank 302 (3 small eigenvalues omitted)' in log
     _compare_io(my_inv_op)
@@ -261,9 +262,9 @@ def test_inverse_operator_channel_ordering():
     fwd_orig = make_forward_solution(evoked.info, fname_trans, src_fname,
                                      fname_bem, eeg=True, mindist=5.0)
     fwd_orig = convert_forward_solution(fwd_orig, surf_ori=True)
+    depth = dict(exp=0.8, limit_depth_chs=False)
     inv_orig = make_inverse_operator(evoked.info, fwd_orig, noise_cov,
-                                     loose=0.2, depth=0.8,
-                                     limit_depth_chs=False)
+                                     loose=0.2, depth=depth)
     stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,
@@ -288,8 +289,7 @@ def test_inverse_operator_channel_ordering():
                                         fname_bem, eeg=True, mindist=5.0)
     fwd_reorder = convert_forward_solution(fwd_reorder, surf_ori=True)
     inv_reorder = make_inverse_operator(evoked.info, fwd_reorder, noise_cov,
-                                        loose=0.2, depth=0.8,
-                                        limit_depth_chs=False)
+                                        loose=0.2, depth=depth)
 
     stc_2 = apply_inverse(evoked, inv_reorder, lambda2, "dSPM")
 

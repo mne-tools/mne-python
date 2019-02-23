@@ -1068,7 +1068,7 @@ def _restrict_gain_matrix(G, info):
 def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                         patch_areas=None, limit_depth_chs=False,
                         loose_method='svd', verbose=None):
-    """Compute weighting for depth prior.
+    """Compute depth prior for depth weighting.
 
     Parameters
     ----------
@@ -1079,12 +1079,28 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     is_fixed_ori : bool
         Whether or not ``G`` is fixed orientation.
     exp : float
-        Exponent for the depth weighting.
+        Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
         The upper bound on depth weighting. Can be None to be unbounded.
     patch_areas : ndarray | None
         Patch areas of the vertices from the forward solution.
-    %(limit_depth_chs)s Default is False.
+    limit_depth_chs : bool | 'whiten'
+        How to deal with multiple channel types in depth weighting. Options:
+
+        :data:`python:True` (default)
+            Use only grad channels in depth weighting (equivalent to MNE C
+            minimum-norm code). If grad channels aren't present, only mag
+            channels will be used (if no mag, then eeg). This makes the depth
+            prior dependent only on the sensor geometry (and relationship
+            to the sources).
+        :data:`python:False`
+            Use all channels. Only recommended when the gain matrix has
+            already been whitened (otherwise it will be arbitrarily
+            biased toward whichever channel type has the largest values in
+            SI units). Whitening the gain matrix makes the depth prior
+            depend on both sensor geometry and the data of interest captured
+            by the noise covariance (e.g., projections, SNR).
+
     loose_method : 'svd' | 'sum'
         When a loose (or free) orientation is used, how the depth weighting
         for each triplet should be calculated.
@@ -1103,6 +1119,11 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     See Also
     --------
     compute_orient_prior
+
+    Notes
+    -----
+    The defaults used by the minimum norm code and sparse solvers differs.
+    XXX explain this
     """
     # XXX this perhaps should just take ``forward`` instead of ``G`` and
     # ``gain_info``. However, it's not easy to do this given that the

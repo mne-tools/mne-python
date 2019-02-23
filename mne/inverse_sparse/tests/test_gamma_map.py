@@ -77,7 +77,7 @@ def test_gamma_map():
 
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=1)
-    _check_stc(stc, evoked, 82010, 'lh', dist_limit=9., fwd=forward)
+    _check_stc(stc, evoked, 82010, 'lh', fwd=forward)
 
     dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                      xyz_same_gamma=False, update_mode=1,

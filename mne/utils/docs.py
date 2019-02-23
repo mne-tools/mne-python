@@ -61,11 +61,13 @@ docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
 
 # Inverses
-docdict['limit_depth_chs'] = """
-limit_depth_chs : bool
-    If True (default), use only grad channels in depth weighting
-    (equivalent to MNE C code). If grad channels aren't present, only mag
-    channels will be used (if no mag, then eeg). If False, use all channels.
+docdict['depth'] = """
+depth : None | float | dict
+    If float (default 0.8), it acts as the depth weighting exponent (``exp``)
+    to use (must be between 0 and 1). None is equivalent to 0, meaning no depth
+    weighting is performed. Can also be a `dict` containing additional keyword
+    arguments to pass to :func:`mne.forward.compute_depth_prior` (see docstring
+    for details and defaults).
 """
 
 # Finalize

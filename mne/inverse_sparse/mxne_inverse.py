@@ -13,7 +13,7 @@ from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
 from ..forward import is_fixed_orient, convert_forward_solution
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, _check_depth
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -51,15 +51,13 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     return gain, source_weighting, mask
 
 
-def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
-                  weights_min, rank=None, limit_depth_chs=True):
-    # XXX This should be loose_method='svd' but it breaks the spherical
-    # conductor MxNE test
+def _prepare_gain(forward, info, noise_cov, pca, depth, loose, rank,
+                  weights=None, weights_min=None):
+    depth = _check_depth(depth, 'depth_sparse')
     forward, gain_info, gain, _, _, source_weighting, _, _, whitener = \
         _prepare_forward(
-            forward, info, noise_cov, 'auto', loose, depth, rank=rank,
-            pca=pca, limit_depth_chs=limit_depth_chs, loose_method='sum',
-            allow_fixed_depth=True)
+            forward, info, noise_cov, 'auto', loose, rank, pca, use_cps=True,
+            whiten='before', **depth)
 
     if weights is None:
         mask = None
@@ -242,7 +240,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, rank=None,
-               limit_depth_chs=False, verbose=None):
+               verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution [1]_ or L0.5/L2 [2]_ mixed-norm
@@ -266,8 +264,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         If loose is 1, it corresponds to free orientations.
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumic or discrete source space.
-    depth: None | float in [0, 1]
-        Depth weighting coefficients. If None, no depth weighting is performed.
+    %(depth)s
     maxit : int
         Maximum number of iterations.
     tol : float
@@ -304,9 +301,6 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         The duality gap is evaluated every dgap_freq iterations. Ignored if
         solver is 'cd'.
     %(rank_None)s
-
-        .. versionadded:: 0.18
-    %(limit_depth_chs)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -368,8 +362,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked[0].info, noise_cov, pca, depth, loose, weights,
-        weights_min, rank, limit_depth_chs)
+        forward, evoked[0].info, noise_cov, pca, depth, loose, rank,
+        weights, weights_min)
 
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
@@ -506,8 +500,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         If loose is 1, it corresponds to free orientations.
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumic or discrete source space.
-    depth: None | float in [0, 1]
-        Depth weighting coefficients. If None, no depth weighting is performed.
+    %(depth)s
     maxit : int
         Maximum number of iterations.
     tol : float
@@ -555,9 +548,6 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
     %(rank_None)s
-
-        .. versionadded:: 0.18
-    %(limit_depth_chs)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -632,8 +622,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked.info, noise_cov, pca, depth, loose, weights,
-        weights_min, rank, limit_depth_chs)
+        forward, evoked.info, noise_cov, pca, depth, loose, rank,
+        weights, weights_min)
 
     if window is not None:
         evoked = _window_evoked(evoked, window)

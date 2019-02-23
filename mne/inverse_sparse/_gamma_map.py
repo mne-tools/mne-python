@@ -165,8 +165,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
               gammas=None, pca=True, return_residual=False,
-              return_as_dipoles=False, rank=None, limit_depth_chs=True,
-              verbose=None):
+              return_as_dipoles=False, rank=None, verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method.
 
     Models each source time course using a zero-mean Gaussian prior with an
@@ -196,8 +195,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         If loose is 1, it corresponds to free orientations.
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumic or discrete source space.
-    depth: None | float in [0, 1]
-        Depth weighting coefficients. If None, no depth weighting is performed.
+    %(depth)s
     xyz_same_gamma : bool
         Use same gamma for xyz current components at each source space point.
         Recommended for free-orientation forward solutions.
@@ -217,9 +215,6 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
     %(rank_None)s
-
-        .. versionadded:: 0.18
-    %(limit_depth_chs)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -258,8 +253,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         group_size = 3
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked.info, noise_cov, pca, depth, loose, None, None,
-        rank, limit_depth_chs)
+        forward, evoked.info, noise_cov, pca, depth, loose, rank)
 
     # get the data
     sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]

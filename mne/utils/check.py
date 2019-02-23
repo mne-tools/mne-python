@@ -435,6 +435,14 @@ def _check_one_ch_type(info, picks, noise_cov, method):
              'not heavily tested yet.')
 
 
+def _check_depth(depth, kind='depth_mne'):
+    """Check depth options."""
+    from ..defaults import _handle_default
+    if not isinstance(depth, dict):
+        depth = dict(exp=None if depth is None else float(depth))
+    return _handle_default(kind, depth)
+
+
 def _check_option(parameter, value, allowed_values):
     """Check the value of a parameter against a list of valid options.
 
