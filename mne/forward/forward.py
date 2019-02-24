@@ -1082,7 +1082,8 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     exp : float
         Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
-        The upper bound on depth weighting. Can be None to be unbounded.
+        The upper bound on depth weighting.
+        Can be None to be bounded by the largest finite prior.
     patch_areas : ndarray | None
         Patch areas of the vertices from the forward solution.
     limit_depth_chs : bool | 'whiten'
@@ -1135,8 +1136,17 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 
     Notes
     -----
-    The defaults used by the minimum norm code and sparse solvers differs.
-    XXX explain this
+    The defaults used by the minimum norm code and sparse solvers differ.
+    In particular, the values for MNE are::
+
+        compute_depth_prior(..., limit=10., limit_depth_chs=True,
+                            combine_xyz='spectral')
+
+    In sparse solvers, the values are::
+
+        compute_depth_prior(..., limit=None, limit_depth_chs='whiten',
+                            combine_xyz='L2')
+
     """
     # XXX this perhaps should just take ``forward`` instead of ``G`` and
     # ``gain_info``. However, it's not easy to do this given that the
