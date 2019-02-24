@@ -442,15 +442,9 @@ def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
                          'got %s instead.' % type(decim))
 
     # Check output
-    allowed_ouput = ('complex', 'power', 'phase',
-                     'avg_power_itc', 'avg_power', 'itc')
-    if output not in allowed_ouput:
-        raise ValueError("Unknown output type. Allowed are %s but "
-                         "got %s." % (allowed_ouput, output))
-
-    if method not in ('multitaper', 'morlet'):
-        raise ValueError('method must be "morlet" or "multitaper", got %s '
-                         'instead.' % type(method))
+    _check_option('output', output, ['complex', 'power', 'phase',
+                                     'avg_power_itc', 'avg_power', 'itc'])
+    _check_option('method', method, ['multitaper', 'morlet'])
 
     return freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
