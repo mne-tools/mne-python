@@ -111,7 +111,7 @@ def test_check_option():
     # Value is allowed
     assert _check_option('option', 'valid', allowed_values)
     assert _check_option('option', 'good', allowed_values)
-    assert _check_option('option', 'ok', allowed_values, error=RuntimeError)
+    assert _check_option('option', 'ok', allowed_values)
     assert _check_option('option', 'valid', ['valid'])
 
     # Check error message for invalid value
@@ -119,9 +119,6 @@ def test_check_option():
            "'valid', 'good' and 'ok', but got 'bad' instead.")
     with pytest.raises(ValueError, match=msg):
         assert _check_option('option', 'bad', allowed_values)
-    with pytest.raises(RuntimeError, match=msg):
-        assert _check_option('option', 'bad', allowed_values,
-                             error=RuntimeError)
 
     # Special error message if only one value is allowed
     msg = ("Invalid value for the 'option' parameter. The only allowed value "
