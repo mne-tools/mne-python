@@ -27,8 +27,8 @@ fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 # turn anything that uses testing data into an auto-skipper by
 # setting params=[testing_param]
-testing_param = pytest.mark.skipif(testing._testing._skip_testing_data(),
-                                   reason='Requires testing dataset')('x')
+testing_param = pytest.param('t', marks=pytest.mark.skipif(
+    testing._testing._skip_testing_data(), reason='Requires testing dataset'))
 
 
 @pytest.fixture(scope='session')
