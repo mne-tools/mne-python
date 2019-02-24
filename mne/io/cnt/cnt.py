@@ -179,7 +179,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         else:
             data_size = event_offset - (data_offset + 75 * n_channels)
 
-        _check_option('data_format', ['auto', 'int16', 'int32'])
+        _check_option('data_format', data_format, ['auto', 'int16', 'int32'])
         if data_format == 'auto':
             if (n_samples == 0 or
                     data_size // (n_samples * n_channels) not in [2, 4]):

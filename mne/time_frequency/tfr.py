@@ -24,7 +24,7 @@ from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
                      GetEpochsMixin, _prepare_read_metadata, fill_doc,
                      _prepare_write_metadata, _check_event_id, _gen_events,
-                     SizeMixin, _is_numeric)
+                     SizeMixin, _is_numeric, _check_option)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -188,9 +188,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
-    if mode not in ['same', 'valid', 'full']:
-        raise ValueError("`mode` must be 'same', 'valid' or 'full', "
-                         "got %s instead." % mode)
+    _check_option('mode', mode, ['same', 'valid', 'full'])
     decim = _check_decim(decim)
     X = np.asarray(X)
 
