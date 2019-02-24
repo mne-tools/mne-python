@@ -9,11 +9,10 @@ import calendar
 
 import numpy as np
 
-from ...utils import warn, verbose, fill_doc
+from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
-from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
-                     _check_option)
+from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 

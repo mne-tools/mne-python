@@ -28,7 +28,7 @@ from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, _get_split_size, _check_option)
+                    write_id, write_string, _get_split_size)
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
@@ -41,7 +41,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      check_fname, _get_stim_channel, deprecated,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
-                     _check_preload, _get_argvalues)
+                     _check_preload, _get_argvalues, _check_option)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..event import find_events, concatenate_events
