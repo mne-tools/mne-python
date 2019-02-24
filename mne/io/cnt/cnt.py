@@ -12,7 +12,8 @@ import numpy as np
 from ...utils import warn, verbose, fill_doc
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
-from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
+from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
+                     _check_option)
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 
@@ -178,6 +179,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             data_size = n_samples * n_channels
         else:
             data_size = event_offset - (data_offset + 75 * n_channels)
+
+        _check_option('data_format', ['auto', 'int16', 'int32'])
         if data_format == 'auto':
             if (n_samples == 0 or
                     data_size // (n_samples * n_channels) not in [2, 4]):
@@ -188,9 +191,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             else:
                 n_bytes = data_size // (n_samples * n_channels)
         else:
-            if data_format not in ['int16', 'int32']:
-                raise ValueError("data_format should be 'auto', 'int16' or "
-                                 "'int32'. Got %s." % data_format)
             n_bytes = 2 if data_format == 'int16' else 4
             n_samples = data_size // (n_bytes * n_channels)
         # Channel offset refers to the size of blocks per channel in the file.

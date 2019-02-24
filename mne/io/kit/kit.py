@@ -18,7 +18,7 @@ from scipy import linalg
 
 from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
-from ...utils import verbose, logger, warn, fill_doc
+from ...utils import verbose, logger, warn, fill_doc, _check_option
 from ...transforms import (apply_trans, als_ras_trans,
                            get_ras_to_neuromag_trans, Transform)
 from ..base import BaseRaw
@@ -188,9 +188,7 @@ class RawKIT(BaseRaw):
         if self.preload:
             raise NotImplementedError("Can't change stim channel after "
                                       "loading data")
-        elif stim_code not in ('binary', 'channel'):
-            raise ValueError("stim_code=%r, needs to be 'binary' or 'channel'"
-                             % (stim_code,))
+        _check_option('stim_code', stim_code, ['binary', 'channel'])
 
         if stim is not None:
             if isinstance(stim, str):

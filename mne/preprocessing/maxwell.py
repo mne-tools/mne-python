@@ -29,7 +29,8 @@ from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..io.pick import pick_types, pick_info
-from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
+from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
+                     _check_option)
 from ..fixes import _get_args, _safe_svd, einsum
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -284,9 +285,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     if st_correlation <= 0. or st_correlation > 1.:
         raise ValueError('Need 0 < st_correlation <= 1., got %s'
                          % st_correlation)
-    if coord_frame not in ('head', 'meg'):
-        raise ValueError('coord_frame must be either "head" or "meg", not "%s"'
-                         % coord_frame)
+    _check_option('coord_frame', coord_frame, ['head', 'meg'])
     head_frame = True if coord_frame == 'head' else False
     recon_trans = _check_destination(destination, raw.info, head_frame)
     onsets, ends = _annotations_starts_stops(
@@ -303,10 +302,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         st_duration = int(round(st_duration * raw.info['sfreq']))
         if not 0. < st_correlation <= 1:
             raise ValueError('st_correlation must be between 0. and 1.')
-    if not isinstance(bad_condition, str) or \
-            bad_condition not in ['error', 'warning', 'ignore', 'info']:
-        raise ValueError('bad_condition must be "error", "warning", "info", or'
-                         ' "ignore", not %s' % bad_condition)
+    _check_option('bad_condition', bad_condition,
+                  ['error', 'warning', 'ignore', 'info'])
     if raw.info['dev_head_t'] is None and coord_frame == 'head':
         raise RuntimeError('coord_frame cannot be "head" because '
                            'info["dev_head_t"] is None; if this is an '

@@ -12,7 +12,7 @@ import numpy as np
 from ...utils import verbose, logger, _clean_names, fill_doc
 
 from ..base import BaseRaw
-from ..utils import _mult_cal_one, _blk_read_lims
+from ..utils import _mult_cal_one, _blk_read_lims, _check_option
 
 from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc
@@ -102,11 +102,7 @@ class RawCTF(BaseRaw):
             raise TypeError('directory must be a directory ending with ".ds"')
         if not op.isdir(directory):
             raise ValueError('directory does not exist: "%s"' % directory)
-        known_types = ['ignore', 'truncate']
-        if not isinstance(system_clock, str) or \
-                system_clock not in known_types:
-            raise ValueError('system_clock must be one of %s, not %s'
-                             % (known_types, system_clock))
+        _check_option('system_clock', system_clock, ['ignore', 'truncate'])
         logger.info('ds directory : %s' % directory)
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations

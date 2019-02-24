@@ -9,7 +9,7 @@ from ..io import BaseRaw
 from ..event import find_events
 
 from ..io.pick import _pick_data_channels
-from ..utils import _check_preload
+from ..utils import _check_preload, _check_option
 
 
 def _get_window(start, end):
@@ -67,8 +67,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     inst : instance of Raw or Evoked or Epochs
         Instance with modified data
     """
-    if mode not in ('linear', 'window'):
-        raise ValueError("mode has to be 'linear' or 'window' (got %s)" % mode)
+    _check_option('mode', mode, ['linear', 'window'])
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (mode == "window") and (s_end - s_start) < 4:
