@@ -84,14 +84,6 @@ def read_forward_solution_eeg(fname, **kwargs):
     return fwd
 
 
-def _get_evoked():
-    """Get evoked data."""
-    evoked = read_evokeds(fname_data, condition='Left Auditory',
-                          baseline=(None, 0))
-    evoked.crop(0, 0.2)
-    return evoked
-
-
 def _compare(a, b):
     """Compare two python objects."""
     global last_keys
@@ -204,25 +196,21 @@ def _compare_io(inv_op, out_file_ext='.fif'):
     _compare(inv_init, inv_op)
 
 
-@testing.requires_testing_data
-def test_warn_inverse_operator():
+def test_warn_inverse_operator(evoked, noise_cov):
     """Test MNE inverse warning without average EEG projection."""
-    bad_info = copy.deepcopy(_get_evoked().info)
+    bad_info = evoked.info
     bad_info['projs'] = list()
     fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
                                       surf_ori=True, copy=False)
-    noise_cov = read_cov(fname_cov)
     noise_cov['projs'].pop(-1)  # get rid of avg EEG ref proj
     with pytest.warns(RuntimeWarning, match='reference'):
         make_inverse_operator(bad_info, fwd_op, noise_cov)
 
 
 @pytest.mark.slowtest
-@testing.requires_testing_data
-def test_make_inverse_operator():
+def test_make_inverse_operator(evoked):
     """Test MNE inverse computation (precomputed and non-precomputed)."""
     # Test old version of inverse computation starting from forward operator
-    evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
     inverse_operator = read_inverse_operator(fname_inv)
     fwd_op = convert_forward_solution(read_forward_solution_meg(fname_fwd),
@@ -252,13 +240,10 @@ def test_make_inverse_operator():
 
 
 @pytest.mark.slowtest
-@testing.requires_testing_data
-def test_inverse_operator_channel_ordering():
+def test_inverse_operator_channel_ordering(evoked, noise_cov):
     """Test MNE inverse computation is immune to channel reorderings."""
     # These are with original ordering
-    evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov)
-
+    evoked_orig = evoked.copy()
     fwd_orig = make_forward_solution(evoked.info, fname_trans, src_fname,
                                      fname_bem, eeg=True, mindist=5.0)
     fwd_orig = convert_forward_solution(fwd_orig, surf_ori=True)
@@ -299,31 +284,13 @@ def test_inverse_operator_channel_ordering():
     assert (inv_orig['units'] == inv_reorder['units'])
 
     # Reload with original ordering & apply reordered inverse
-    evoked = _get_evoked()
+    evoked = evoked_orig
     noise_cov = read_cov(fname_cov)
 
     stc_3 = apply_inverse(evoked, inv_reorder, lambda2, "dSPM")
     assert_allclose(stc_1.data, stc_3.data, rtol=1e-5, atol=1e-5)
 
 
-@pytest.fixture(scope='module')
-def bias_params():
-    """Provide inputs for bias functions."""
-    # Identity input
-    evoked = _get_evoked()
-    evoked.pick_types(meg=True, eeg=True, exclude=())
-    evoked = EvokedArray(np.eye(len(evoked.data)), evoked.info)
-    noise_cov = read_cov(fname_cov)
-    # restrict to limited set of verts (small src here) and one hemi for speed
-    fwd_orig = read_forward_solution(fname_fwd)
-    vertices = [fwd_orig['src'][0]['vertno'].copy(), []]
-    stc = SourceEstimate(np.zeros((sum(len(v) for v in vertices), 1)),
-                         vertices, 0., 1.)
-    fwd_orig = restrict_forward_to_stc(fwd_orig, stc)
-    return evoked, fwd_orig, noise_cov
-
-
-@testing.requires_testing_data
 @pytest.mark.parametrize('method, lower, upper, depth', [
     ('MNE', 75, 80, dict(limit_depth_chs=False)),
     ('MNE', 83, 87, 0.8),
@@ -348,7 +315,6 @@ def test_localization_bias_fixed(bias_params, method, lower, upper, depth):
     assert lower <= perc <= upper, method
 
 
-@testing.requires_testing_data
 @pytest.mark.parametrize('method, lower, upper', [
     ('MNE', 25, 35),
     ('dSPM', 25, 35),
@@ -371,7 +337,6 @@ def test_localization_bias_loose(bias_params, method, lower, upper):
     assert lower <= perc <= upper, method
 
 
-@testing.requires_testing_data
 @pytest.mark.parametrize('method, lower, upper, kwargs, depth', [
     ('MNE', 35, 40, {}, dict(limit_depth_chs=False)),
     ('MNE', 45, 55, {}, 0.8),
@@ -398,10 +363,8 @@ def test_localization_bias_free(bias_params, method, lower, upper,
     assert lower <= perc <= upper, method
 
 
-@testing.requires_testing_data
-def test_apply_inverse_sphere():
+def test_apply_inverse_sphere(evoked):
     """Test applying an inverse with a sphere model (rank-deficient)."""
-    evoked = _get_evoked()
     evoked.pick_channels(evoked.ch_names[:306:8])
     evoked.info['projs'] = []
     cov = make_ad_hoc_cov(evoked.info)
@@ -432,12 +395,10 @@ def test_apply_inverse_sphere():
 
 
 @pytest.mark.slowtest
-@testing.requires_testing_data
-def test_apply_inverse_operator():
+def test_apply_inverse_operator(evoked):
     """Test MNE inverse application."""
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
     inverse_operator = read_inverse_operator(fname_inv)
-    evoked = _get_evoked()
 
     # Inverse has 306 channels - 4 proj = 302
     assert (compute_rank_inverse(inverse_operator) == 302)
@@ -506,11 +467,10 @@ def test_apply_inverse_operator():
     apply_inverse(evoked, inv_op_meg, 1. / 9.)
 
 
-@testing.requires_testing_data
-def test_inverse_residual():
+def test_inverse_residual(evoked):
     """Test MNE inverse application."""
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
-    evoked = _get_evoked().pick_types()
+    evoked = evoked.pick_types()
     inv = read_inverse_operator(fname_inv_fixed_depth)
     fwd = read_forward_solution(fname_fwd)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
@@ -549,12 +509,9 @@ def test_inverse_residual():
         apply_inverse(evoked, inv, method="eLORETA", return_residual=True)
 
 
-@testing.requires_testing_data
-def test_make_inverse_operator_fixed():
+def test_make_inverse_operator_fixed(evoked, noise_cov):
     """Test MNE inverse computation (fixed orientation)."""
     fwd = read_forward_solution_meg(fname_fwd)
-    evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov)
 
     # can't make fixed inv with depth weighting without free ori fwd
     fwd_fixed = convert_forward_solution(fwd, force_fixed=True,
@@ -597,15 +554,12 @@ def test_make_inverse_operator_fixed():
                                  rtol=1e-3, atol=1e-4)
 
 
-@testing.requires_testing_data
-def test_make_inverse_operator_free():
+def test_make_inverse_operator_free(evoked, noise_cov):
     """Test MNE inverse computation (free orientation)."""
     fwd = read_forward_solution_meg(fname_fwd)
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
     fwd_fixed = convert_forward_solution(fwd, force_fixed=True,
                                          use_cps=True)
-    evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov)
 
     # can't make free inv with fixed fwd
     pytest.raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
@@ -620,13 +574,10 @@ def test_make_inverse_operator_free():
                              check_nn=False, check_K=False)
 
 
-@testing.requires_testing_data
-def test_make_inverse_operator_vector():
+def test_make_inverse_operator_vector(evoked, noise_cov):
     """Test MNE inverse computation (vector result)."""
     fwd_surf = read_forward_solution_meg(fname_fwd, surf_ori=True)
     fwd_fixed = read_forward_solution_meg(fname_fwd, surf_ori=False)
-    evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov)
 
     # Make different version of the inverse operator
     inv_1 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov, loose=1)
@@ -669,11 +620,9 @@ def test_make_inverse_operator_vector():
                     atol=1e-20)
 
 
-@testing.requires_testing_data
-def test_make_inverse_operator_diag():
+def test_make_inverse_operator_diag(evoked, noise_cov):
     """Test MNE inverse computation with diagonal noise cov."""
-    evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov).as_diag()
+    noise_cov = noise_cov.as_diag()
     fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
                                       surf_ori=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
@@ -687,12 +636,9 @@ def test_make_inverse_operator_diag():
     assert (compute_rank_inverse(inverse_operator_diag) == 360)
 
 
-@testing.requires_testing_data
-def test_inverse_operator_noise_cov_rank():
+def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     """Test MNE inverse operator with a specified noise cov rank."""
     fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov)
     with pytest.deprecated_call():  # rank int
         inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=64)
     assert (compute_rank_inverse(inv) == 64)
@@ -706,11 +652,9 @@ def test_inverse_operator_noise_cov_rank():
     assert (compute_rank_inverse(inv) == 20)
 
 
-@testing.requires_testing_data
-def test_inverse_operator_volume():
+def test_inverse_operator_volume(evoked):
     """Test MNE inverse computation on volume source space."""
     tempdir = _TempDir()
-    evoked = _get_evoked()
     inv_vol = read_inverse_operator(fname_vol_inv)
     assert (repr(inv_vol))
     stc = apply_inverse(evoked, inv_vol, lambda2, 'dSPM')
@@ -909,12 +853,9 @@ def test_apply_mne_inverse_epochs():
     assert_array_almost_equal(stcs_rh[0].data, label_stc.data)
 
 
-@testing.requires_testing_data
-def test_make_inverse_operator_bads():
+def test_make_inverse_operator_bads(evoked, noise_cov):
     """Test MNE inverse computation given a mismatch of bad channels."""
     fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    evoked = _get_evoked()
-    noise_cov = read_cov(fname_cov)
     assert evoked.info['bads'] == noise_cov['bads']
     assert evoked.info['bads'] == fwd_op['info']['bads'] + ['EEG 053']
 
