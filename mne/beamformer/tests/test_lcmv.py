@@ -690,17 +690,22 @@ def test_lcmv_reg_proj(proj):
     assert filters['rank'] == want_rank
 
 
-@pytest.mark.parametrize('reg, weight_norm, lower, upper', [
-    (0.05, 'unit-noise-gain', 100, 100),
-    (0., 'unit-noise-gain', 45, 55),
-    (0.05, 'nai', 100, 100),
-    (0.05, None, 100, 100),
-    ])
-def test_localization_bias_fixed(bias_params, reg, weight_norm, lower, upper):
+@pytest.mark.parametrize('reg, weight_norm, use_cov, lower, upper', [
+    (0.05, 'unit-noise-gain', True, 100, 100),
+    (0.00, 'unit-noise-gain', True, 45, 55),
+    (0.05, 'nai', True, 100, 100),
+    (0.05, None, True, 100, 100),
+    (0.05, 'unit-noise-gain', False, 100, 100),
+])
+def test_localization_bias_fixed(bias_params, reg, weight_norm, use_cov,
+                                 lower, upper):
     """Test inverse localization bias for loose minimum-norm solvers."""
     evoked, fwd, noise_cov = bias_params
     data_cov = noise_cov.copy()
     data_cov['data'] = np.dot(evoked.data, evoked.data.T)
+    if not use_cov:
+        evoked.pick_types('grad')
+        noise_cov = None
     fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
     inv_op = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
                                           noise_cov)).data
@@ -713,21 +718,26 @@ def test_localization_bias_fixed(bias_params, reg, weight_norm, lower, upper):
     assert lower <= perc <= upper
 
 
-@pytest.mark.parametrize('reg, pick_ori, weight_norm, lower, upper', [
-    (0.05, 'vector', 'unit-noise-gain', 30, 35),
-    (0.05, 'vector', 'nai', 30, 35),
-    (0.05, 'vector', None, 1, 3),
-    (0.00, 'vector', 'unit-noise-gain', 5, 10),
-    (0.05, 'max-power', 'unit-noise-gain', 30, 35),
-    (0.05, 'max-power', 'nai', 30, 35),
-    (0.05, 'max-power', None, 1, 3),
+@pytest.mark.parametrize('reg, pick_ori, weight_norm, use_cov, lower, upper', [
+    (0.05, 'vector', 'unit-noise-gain', True, 30, 35),
+    (0.05, 'vector', 'nai', True, 30, 35),
+    (0.05, 'vector', None, True, 1, 3),
+    (0.00, 'vector', 'unit-noise-gain', True, 5, 10),
+    (0.05, 'max-power', 'unit-noise-gain', True, 30, 35),
+    (0.05, 'max-power', 'nai', True, 30, 35),
+    (0.05, 'max-power', None, True, 1, 3),
     # (0., 'max-power', 5, 10),  # complex eigenspectrum error
-    ])
+    (0.05, 'vector', 'unit-noise-gain', False, 70, 75),
+    # (0.05, 'max-power', 'unit-noise-gain', False, 30, 35),  # complex eig
+])
 def test_localization_bias_free(bias_params, reg, pick_ori, weight_norm,
-                                lower, upper):
+                                use_cov, lower, upper):
     evoked, fwd, noise_cov = bias_params
     data_cov = noise_cov.copy()
     data_cov['data'] = np.dot(evoked.data, evoked.data.T)
+    if not use_cov:
+        evoked.pick_types('grad')
+        noise_cov = None
     inv_op = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
                                           noise_cov, pick_ori=pick_ori,
                                           weight_norm=weight_norm)).data
