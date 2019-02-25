@@ -21,5 +21,3 @@ tutorial are provided below for easy reference.
 #     20_manipulating_raw_time_domain
 #     25_plotting_raw
 #     30_save_export_raw
-#     40_working_with_projectors
-#     50_working_with_sensor_locations
