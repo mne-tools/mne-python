@@ -1,4 +1,6 @@
 """
+.. _`sensor-locations-tutorial`:
+
 Working with sensor locations
 =============================
 

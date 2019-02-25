@@ -5,9 +5,10 @@
 Manipulating the time domain of :class:`~mne.io.Raw` objects
 ============================================================
 
-This tutorial covers two of the main plotting methods for :class:`~mne.io.Raw`
-objects: :meth:`~mne.io.Raw.plot` and :meth:`~mne.io.Raw.plot_psd`. As always
-we'll start by importing the modules we need, and loading some example data:
+This tutorial covers cropping :class:`~mne.io.Raw` objects to restrict the time
+domain, and how to concatenate :class:`~mne.io.Raw` objects (whether selections
+from the same recording or different recordings). As always we'll start by
+importing the modules we need, and loading some example data:
 """
 
 import os
@@ -46,7 +47,8 @@ print(raw_selection.times.min(), raw_selection.times.max())
 ###############################################################################
 # Remember that sample times don't always align exactly with requested ``tmin``
 # or ``tmax`` values (due to sampling frequency), which is why the ``max``
-# values of the cropped files don't exactly match the requested ``tmax``.
+# values of the cropped files don't exactly match the requested ``tmax``. See
+# :ref:`time-as-index` for details.
 #
 # If you need to concatenate selections (or entire :class:`~mne.io.Raw` files)
 # you can use the :meth:`~mne.io.Raw.append` method:

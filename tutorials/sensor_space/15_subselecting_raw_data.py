@@ -24,17 +24,20 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 
 
 ###############################################################################
+# Indexing :class:`~mne.io.Raw` objects
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
 # To select portions of the data, :class:`~mne.io.Raw` objects can be indexed
 # using square brackets. However, indexing :class:`~mne.io.Raw` works
 # differently than indexing a NumPy array in two ways:
 #
-# 1. along with the requested sample value(s) MNE-Python also returns an array
+# 1. Along with the requested sample value(s) MNE-Python also returns an array
 #    of times (in seconds) corresponding to the requested samples. The
 #    data array and the times array are returned together as elements of a
 #    tuple.
 #
-# 2. the data array will always be 2-dimensional even if you request only a
-#    single time sample or a single channel
+# 2. The data array will always be 2-dimensional even if you request only a
+#    single time sample or a single channel.
 #
 # To illustrate this, let's select just a few seconds of data from the first
 # channel:
@@ -57,6 +60,9 @@ y = raw_selection[0].T
 _ = plt.plot(x, y)
 
 ###############################################################################
+# The :meth:`~mne.io.Raw.get_data` method
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
 # If you only want the data (not the corresponding array of times),
 # :class:`~mne.io.Raw` objects have a :meth:`mne.io.Raw.get_data` method. Used
 # with no parameters specified, it will return all data from all channels, in a
@@ -93,7 +99,8 @@ y = two_meg_chans[0].T + y_offset
 _ = plt.plot(x, y)
 
 ###############################################################################
-# The :meth:`~mne.io.Raw.get_data` method can also be used in this way:
+# The :meth:`~mne.io.Raw.get_data` method can also be used in this way, via its
+# ``picks``, ``start``, and ``stop`` parameters:
 
 two_meg_chans = raw.get_data(picks=['MEG 0712', 'MEG 1022'],
                              start=starting_sample, stop=ending_sample)
@@ -148,7 +155,7 @@ _ = plt.plot(x, y.T + y_offset)
 #
 # To conveniently select all channels of a single type, you can use the
 # :meth:`~mne.io.Raw.pick_types` method (there is no corresponding
-# ``drop_types`` method). :meth:`~mne.io.Raw.pick_types` takes boolean or
+# ``drop_types()`` method). :meth:`~mne.io.Raw.pick_types` takes boolean or
 # string parameters for many different channel types (``eeg``, ``eeg``,
 # ``eog``, ``fnirs``, ``chpi``, etc.); you select which channel type(s) to keep
 # by passing ``True`` for that parameter. The ``meg`` parameter defaults to
@@ -174,8 +181,8 @@ eeg_and_eog_data = raw.get_data(picks=['eeg', 'eog'])
 print(eeg_and_eog_data.shape)
 
 ###############################################################################
-# Manipulating channels within the :class:`~mne.io.Raw` object
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Manipulating channel names
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # You may have noticed that the EEG channel names in the sample data are
 # numbered rather than labelled according to a standard nomenclature such as
@@ -189,7 +196,7 @@ print(eeg_and_eog_data.shape)
 raw.rename_channels({'EOG 061': 'blink detector'})
 
 ###############################################################################
-# .. note:
+# .. note::
 #
 #     Due to limitations in the ``.fif`` file format (which MNE-Python uses to
 #     save :class:`~mne.io.Raw` objects), channel names are limited to a

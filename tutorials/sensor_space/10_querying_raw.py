@@ -34,18 +34,17 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 #
 # .. note::
 #
-#     *Attributes* are usually static properties of Python objects — things
+#     ***Attributes*** are usually static properties of Python objects — things
 #     that are pre-computed and stored as part of the object's representation
 #     in memory. Attributes are accessed with the ``.`` operator and do not
-#     require parentheses after the attribute name (examples: ``raw.ch_names``,
-#     or for an example using a NumPy array: ``array.shape``).
+#     require parentheses after the attribute name (example: ``raw.ch_names``).
 #
-#     *Methods* are like specialized functions attached to the object. Usually
-#     they require additional information from the user and/or require some
-#     computation to yield an answer. Methods always have parentheses after
-#     their names; additional arguments (if any) go inside those parentheses.
-#     Examples: ``raw.estimate_rank()``, ``raw.drop_channels(['EEG 030',
-#     'MEG 2242'])``, or for NumPy arrays ``array.mean(axis=1)``.
+#     ***Methods*** are like specialized functions attached to the object.
+#     Usually they require additional information from the user and/or require
+#     some computation to yield an answer. Methods always have parentheses
+#     after their names; additional arguments (if any) go inside those
+#     parentheses (examples: ``raw.estimate_rank()``,
+#     ``raw.drop_channels(['EEG 030', 'MEG 2242'])``).
 #
 # Some useful attributes of :class:`~mne.io.Raw` objects include a list of the
 # channel names (:attr:`~mne.io.Raw.ch_names`), an array of the sample times in
@@ -95,6 +94,7 @@ print(raw.info)
 #     update the :class:`~mne.Info` object safely (such as
 #     :meth:`~mne.io.Raw.add_proj` to update ``raw.info['projs']``).
 #
+# .. _`time-as-index`:
 #
 # Time, sample number, and sample index
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

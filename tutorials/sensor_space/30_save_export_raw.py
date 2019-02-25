@@ -24,14 +24,16 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 # :class:`~mne.io.Raw` objects have a built-in :meth:`~mne.io.Raw.save` method,
 # which can be used to write partially processed :class:`~mne.io.Raw` objects
 # to disk as a ``.fif`` file, such that it can be re-loaded later with its
-# various attributes intact (but see :ref:`precision` for an important note
-# about numerical precision when saving). There are a few other ways to export
-# just the sensor data from a :class:`~mne.io.Raw` object. One is to use
-# indexing or the :meth:`~mne.io.Raw.get_data` method to extract the data, and
-# use NumPy to save the data array:
+# various attributes intact (but see the section on :ref:`precision` for an
+# important note about numerical precision when saving).
+#
+# There are a few other ways to export just the sensor data from a
+# :class:`~mne.io.Raw` object. One is to use indexing or the
+# :meth:`~mne.io.Raw.get_data` method to extract the data, and use NumPy to
+# save the data array:
 
 data = raw.get_data()  # or data, times = raw[:]
-np.save(file='my_data.npy', arr=data)
+np.save(file='my_data.npy', arr=data)  # doctest: +SKIP
 
 ###############################################################################
 # It is also possible to export the data to a Pandas DataFrame object, and use
