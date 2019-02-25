@@ -129,7 +129,7 @@ class _Renderer(object):
         tris = surface['tris']
 
         if colormap is None:
-            cm = "cool"
+            cm = "coolwarm"
         else:
             cm = Colormap(colormap / 255.0)
 
