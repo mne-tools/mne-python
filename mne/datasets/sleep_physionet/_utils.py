@@ -11,7 +11,6 @@ import numpy as np
 from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
 from ..utils import _get_path
 
-BASE_URL = 'https://physionet.org/pn4/sleep-edfx/'
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
 TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__),
                                   'temazepam_records.csv')
@@ -25,7 +24,7 @@ AGE_RECORDS_URL_SHA1 = '0ba6650892c5d33a8e2b3f62ce1cc9f30438c54f'
 sha1sums_fname = op.join(op.dirname(__file__), 'SHA1SUMS')
 
 
-def _fetch_one(fname, hashsum, path, force_update, base_url=BASE_URL):
+def _fetch_one(fname, hashsum, path, force_update, base_url):
     # Fetch the file
     url = base_url + '/' + fname
     destination = op.join(path, fname)
@@ -146,7 +145,6 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     tmp = _TempDir()
 
     # Download subjects info.
-    # subjects_url = BASE_URL + 'SC-subjects.xls'  # XXX not used
     subjects_fname = op.join(tmp, 'SC-subjects.xls')
     _fetch_file(url=AGE_RECORDS_URL,
                 file_name=subjects_fname,
