@@ -15,11 +15,11 @@ tutorial are provided below for easy reference.
 # .. toctree::
 #     :maxdepth: 2
 #
-#     loading_raw_data
-#     querying_raw
-#     subselecting_raw_data
-#     manipulating_raw_time_domain
-#     plotting_raw
-#     save_export_raw
-#     working_with_projectors
-#     working_with_sensor_locations
+#     05_loading_raw_data
+#     10_querying_raw
+#     15_subselecting_raw_data
+#     20_manipulating_raw_time_domain
+#     25_plotting_raw
+#     30_save_export_raw
+#     40_working_with_projectors
+#     50_working_with_sensor_locations
