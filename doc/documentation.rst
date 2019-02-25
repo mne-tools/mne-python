@@ -161,6 +161,8 @@ remember when extracting data from MNE-Python objects and manipulating it
 outside MNE-Python (e.g., when using other python modules for analysis or
 plotting).
 
+.. _`precision`:
+
 Floating-point precision
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -176,7 +178,8 @@ loss in precision. If you would like to ensure 64-bit precision, there are two
 possibilities:
 
 - Chain the operations in memory and avoid saving intermediate results.
-- Save intermediate results but change the dtype used for saving. However, this
+- Save intermediate results but change the dtype used for saving, using the
+  ``fmt`` parameter of the :meth:`mne.io.Raw.save`. However, note that this
   may render the ``.fif`` files unreadable in software packages other than
   MNE-Python.
 

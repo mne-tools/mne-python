@@ -15,7 +15,6 @@
 from datetime import date
 from distutils.version import LooseVersion
 import os
-import os.path as op
 import sys
 import warnings
 
@@ -398,7 +397,8 @@ sphinx_gallery_conf = {
                                        '../examples/inverse/',
                                        '../examples/realtime/',
                                        '../examples/datasets/',
-                                       '../tutorials/']),
+                                       '../tutorials/sensor_space/',
+                                       '../tutorials/miscellaneous/']),
     'gallery_dirs': gallery_dirs,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'backreferences_dir': 'generated',
@@ -413,6 +413,7 @@ sphinx_gallery_conf = {
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
+    'filename_pattern': r'/.*(?<!_)\.py$',  # anything that isn't *_.py
 }
 
 ##############################################################################

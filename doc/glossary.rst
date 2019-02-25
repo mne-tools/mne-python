@@ -106,7 +106,7 @@ MNE-Python core terminology and general concepts
         It allows to obtain the information on a channel in the list of channels
         available in ``info['chs']``.
 
-    projector, (abbr. ``proj``)
+    projector (abbr. ``proj``)
         A projector, also referred to a Signal Suspace Projection (SSP), defines
         a linear operation applied spatially to EEG or MEG data. You can see
         this as a matrix multiplication that reduces the rank of the data by
@@ -147,7 +147,7 @@ MNE-Python core terminology and general concepts
         :class:`VectorSourceEstimate`, :class:`MixedSourceEstimate`,
         for the API of the corresponding object classes.
 
-    selection (abbr. sel)
+    selection (abbr. ``sel``)
         A set of picks. E.g., all sensors included in a Region of Interest.
 
     stim channel
