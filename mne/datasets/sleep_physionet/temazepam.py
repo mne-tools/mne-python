@@ -12,7 +12,6 @@ from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
-# XXX this BASE_URL does not match the one in _utils.py
 BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/'  # noqa: E501
 
 
