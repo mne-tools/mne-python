@@ -24,11 +24,8 @@ AGE_RECORDS_URL_SHA1 = '0ba6650892c5d33a8e2b3f62ce1cc9f30438c54f'
 sha1sums_fname = op.join(op.dirname(__file__), 'SHA1SUMS')
 
 
-def _fetch_one(fname, hashsum, path, force_update, base_url=None):
+def _fetch_one(fname, hashsum, path, force_update, base_url):
     # Fetch the file
-    if not isinstance(base_url, str) and not base_url.startswith('http'):
-        raise ValueError
-
     url = base_url + '/' + fname
     destination = op.join(path, fname)
     if not op.isfile(destination) or force_update:
