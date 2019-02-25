@@ -52,7 +52,7 @@ class _Renderer(object):
             self.canvas = fig
         self.view = self.canvas.central_widget.add_view()
         self.view.camera = \
-            scene.cameras.TurntableCamera(interactive=True, fov=60,
+            scene.cameras.TurntableCamera(interactive=True, fov=50,
                                           azimuth=180.0, elevation=0.0,
                                           distance=0.5,
                                           parent=self.view.scene)
@@ -324,10 +324,14 @@ class _Renderer(object):
             The focal point of the camera: (x, y, z).
         """
         if azimuth is not None:
-            self.view.camera.azimuth = azimuth
+            self.view.camera.azimuth = 360 - azimuth
         if elevation is not None:
-            self.view.camera.elevation = elevation
+            self.view.camera.elevation = 90 - elevation
+            if elevation > 0:
+                self.view.camera.azimuth = \
+                    (self.view.camera.azimuth + 180) % 360
         if distance is not None:
+            self.view.camera.fov = 50
             self.view.camera.distance = distance
         if focalpoint is not None:
             self.view.camera.center = focalpoint
