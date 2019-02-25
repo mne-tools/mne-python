@@ -699,7 +699,7 @@ def test_lcmv_reg_proj(proj):
 ])
 def test_localization_bias_fixed(bias_params, reg, weight_norm, use_cov,
                                  lower, upper):
-    """Test inverse localization bias for loose minimum-norm solvers."""
+    """Test localization bias for fixed-orientation LCMV."""
     evoked, fwd, noise_cov = bias_params
     data_cov = noise_cov.copy()
     data_cov['data'] = np.dot(evoked.data, evoked.data.T)
@@ -732,6 +732,7 @@ def test_localization_bias_fixed(bias_params, reg, weight_norm, use_cov,
 ])
 def test_localization_bias_free(bias_params, reg, pick_ori, weight_norm,
                                 use_cov, lower, upper):
+    """Test localization bias for free-orientation LCMV."""
     evoked, fwd, noise_cov = bias_params
     data_cov = noise_cov.copy()
     data_cov['data'] = np.dot(evoked.data, evoked.data.T)
