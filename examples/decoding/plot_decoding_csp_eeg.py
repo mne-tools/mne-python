@@ -1,4 +1,6 @@
 """
+.. _csp-decoding-example:
+
 ===========================================================================
 Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 ===========================================================================

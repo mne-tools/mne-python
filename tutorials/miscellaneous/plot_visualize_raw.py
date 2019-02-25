@@ -1,4 +1,6 @@
 """
+.. _vis-raw-tutorial:
+
 Visualize Raw data
 ==================
 

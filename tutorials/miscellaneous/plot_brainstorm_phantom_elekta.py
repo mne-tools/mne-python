@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _elekta-phantom-tutorial:
+
 ==========================================
 Brainstorm Elekta phantom dataset tutorial
 ==========================================

@@ -1,4 +1,6 @@
 """
+.. _megsim-evoked-example:
+
 ===========================================
 MEGSIM experimental and simulation datasets
 ===========================================

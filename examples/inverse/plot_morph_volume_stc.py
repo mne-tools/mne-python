@@ -1,4 +1,6 @@
 """
+.. _morph-volume-stc-example:
+
 ================================
 Morph volumetric source estimate
 ================================

@@ -1,4 +1,6 @@
 """
+.. _volume-source-estimation-example:
+
 =======================================================================
 Compute MNE-dSPM inverse solution on evoked data in volume source space
 =======================================================================

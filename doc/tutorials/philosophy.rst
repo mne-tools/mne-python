@@ -87,7 +87,7 @@ Besides ``.ch_names`` another important attribute is ``.info``. It contains
 the channel information and some details about the processing history.
 This is especially relevant if your data cannot be read using the io
 functions listed above. You then need to learn how to create an info.
-See :ref:`sphx_glr_auto_tutorials_plot_info.py`.
+See :ref:`info-class-tutorial`.
 
 4. MNE is modular
 -----------------

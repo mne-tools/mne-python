@@ -1,4 +1,6 @@
 """
+.. _events-and-annotations-tutorial:
+
 The :term:`Events <events>` and :class:`~mne.Annotations` data structures
 =========================================================================
 
@@ -25,9 +27,9 @@ element is therefore in most cases zero.
 The second element of :class:`~mne.Annotations` is a float
 indicating its duration in seconds.
 
-See :ref:`sphx_glr_auto_examples_io_plot_read_events.py`
+See :ref:`ex_read_events`
 for a complete example of how to read, select, and visualize **events**;
-and :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py` to
+and :ref:`rejecting-bad-data-tutorial` to
 learn how :class:`~mne.Annotations` are used to mark bad segments
 of data.
 
@@ -101,7 +103,7 @@ annotated_blink_raw.plot()
 # Where ``meas_date`` is the recording time stored in
 # :class:`Info <mne.Info>`.
 # You can find more information about :class:`Info <mne.Info>` in
-# :ref:`sphx_glr_auto_tutorials_plot_info.py`.
+# :ref:`info-class-tutorial`.
 #
 # We'll now manipulate some simulated annotations.
 # The first annotations has ``orig_time`` set to ``None`` while the

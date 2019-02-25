@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 r"""
+
+.. _filtering-bkgd-tutorial:
+
 ===================================
 Background information on filtering
 ===================================
@@ -11,7 +14,7 @@ filter design can be found in Parks & Burrus [1]_ and
 Ifeachor and Jervis [2]_, and for filtering in an
 M/EEG context we recommend reading Widmann *et al.* 2015 [7]_.
 To see how to use the default filters in MNE-Python on actual data, see
-the :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`
+the :ref:`filtering-resampling-tutorial`
 tutorial.
 
 .. contents::
@@ -853,7 +856,7 @@ baseline_plot(x)
 # For more information on how to use the
 # MNE-Python filtering functions with real data, consult the preprocessing
 # tutorial on
-# :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
+# :ref:`filtering-resampling-tutorial`.
 #
 # Defaults in MNE-C
 # -----------------

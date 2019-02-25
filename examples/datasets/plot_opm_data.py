@@ -1,4 +1,6 @@
 """
+.. _opm-example:
+
 Optically pumped magnetometer (OPM) data
 ========================================
 

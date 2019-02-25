@@ -195,5 +195,5 @@ The suggested pipeline is ``proj=True`` in epochs (it's computationally cheaper 
 
 .. topic:: Examples:
 
-    * :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`: SSP sensitivities in sensor space
-    * :ref:`sphx_glr_auto_examples_forward_plot_forward_sensitivity_maps.py`: SSP sensitivities in source space
+    * :ref:`artifact-correction-ssp-tutorial`: SSP sensitivities in sensor space
+    * :ref:`fwd-sensitivity-map-example`: SSP sensitivities in source space

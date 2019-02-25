@@ -1,4 +1,6 @@
 """
+.. _morph-surface-stc-example:
+
 =============================
 Morph surface source estimate
 =============================
@@ -8,7 +10,7 @@ This example demonstrates how to morph an individual subject's
 :class:`mne.SourceMorph`. Pre-computed data will be morphed based on
 a spherical representation of the cortex computed using the spherical
 registration of
-:ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+:ref:`FreeSurfer <freesurfer-integration-tutorial>`
 (https://surfer.nmr.mgh.harvard.edu/fswiki/SurfaceRegAndTemplates) [1]_. This
 transform will be used to morph the surface vertices of the subject towards the
 reference vertices. Here we will use 'fsaverage' as a reference space (see
@@ -60,7 +62,7 @@ stc = mne.read_source_estimate(fname_stc, subject='sample')
 #
 # In MNE surface source estimates represent the source space simply as
 # lists of vertices (see
-# :ref:`sphx_glr_auto_tutorials_plot_object_source_estimate.py`).
+# :ref:`plot-stc-tutorial`).
 # This list can either be obtained from
 # :class:`mne.SourceSpaces` (src) or from the ``stc`` itself.
 #

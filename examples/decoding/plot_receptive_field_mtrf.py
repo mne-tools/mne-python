@@ -1,4 +1,6 @@
 """
+.. _receptive-field-mtrf-example:
+
 =========================================
 Receptive Field Estimation and Prediction
 =========================================

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _plot-topo-evoked-example:
+
 ========================================
 Plotting topographic maps of evoked data
 ========================================

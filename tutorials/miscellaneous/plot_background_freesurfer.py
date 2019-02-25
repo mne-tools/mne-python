@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 r"""
+.. _freesurfer-integration-tutorial:
+
 ======================================
 FreeSurfer integration with MNE-Python
 ======================================
@@ -10,7 +12,7 @@ from https://surfer.nmr.mgh.harvard.edu/
 
 In MNE, FreeSurfer is used to provide structural information of various
 kinds, for :ref:`source estimation
-<sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py>`. Thereby a
+<source-loc-mne-dspm-tutorial>`. Thereby a
 subject specific structural MRI will be used to obtain various structural
 representations like spherical or inflated brain surfaces. Furthermore features
 like curvature as well as various labels for areas of interest (such as V1) are
@@ -83,7 +85,7 @@ in a left and right hemisphere version. This is often indicated by the
 prefix ``lh`` or ``rh`` to refer to the aforementioned. For that reason
 data representations such as :class:`mne.SourceEstimate` carry two sets of
 spatial locations (vertices) for both hemispheres separately. See also
-:ref:`sphx_glr_auto_tutorials_plot_object_source_estimate.py`.
+:ref:`plot-stc-tutorial`.
 
 'fsaverage'
 ===========

@@ -1,4 +1,6 @@
 """
+.. _fwd-sensitivity-map-example:
+
 ================================================
 Display sensitivity maps for EEG and MEG sensors
 ================================================

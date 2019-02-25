@@ -1,4 +1,6 @@
 """
+.. _mne-objects-from-arrays-tutorial:
+
 =====================================
 Creating MNE objects from data arrays
 =====================================

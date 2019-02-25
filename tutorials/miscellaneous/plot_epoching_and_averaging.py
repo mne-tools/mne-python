@@ -12,7 +12,7 @@ import mne
 ###############################################################################
 # In MNE, `epochs` refers to a collection of `single trials` or short segments
 # of time locked raw data. If you haven't already, you might want to check out
-# :ref:`sphx_glr_auto_tutorials_plot_object_epochs.py`.
+# :ref:`tut_epochs_objects`.
 # In this tutorial we take a deeper look into
 # construction of epochs and averaging the epoch data to evoked instances.
 # First let's read in the raw sample data.
@@ -139,7 +139,7 @@ epochs.plot_drop_log()
 # you might ask. They're different because ``picks`` is simply a list of
 # channel indices and as the epochs were constructed, also a new info structure
 # is created where the channel indices run from 0 to ``epochs.info['nchan']``.
-# See :ref:`sphx_glr_auto_tutorials_plot_info.py` for more information.
+# See :ref:`info-class-tutorial` for more information.
 picks = mne.pick_types(epochs.info, meg=True, eog=True)
 evoked_left = epochs['Auditory/Left'].average(picks=picks)
 evoked_right = epochs['Auditory/Right'].average(picks=picks)
@@ -159,7 +159,7 @@ evoked_left_again = epochs['Left/Auditory'].average(picks=picks)
 #
 #   It is also possible to add metadata to Epochs objects, allowing for
 #   more complex selections on subsets of Epochs. See
-#   :ref:`sphx_glr_auto_tutorials_plot_metadata_epochs.py` for more
+#   :ref:`epochs-metadata-pandas-tutorial` for more
 #   information.
 #
 # Finally, let's plot the evoked responses.

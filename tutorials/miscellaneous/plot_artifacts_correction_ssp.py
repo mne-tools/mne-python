@@ -1,4 +1,6 @@
 """
+.. _artifact-correction-ssp-tutorial:
+
 Artifact Correction with SSP
 ============================
 

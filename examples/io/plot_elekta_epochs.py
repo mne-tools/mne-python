@@ -1,4 +1,6 @@
 """
+.. _elekta-epochs-example:
+
 ======================================
 Getting averaging info from .fif files
 ======================================

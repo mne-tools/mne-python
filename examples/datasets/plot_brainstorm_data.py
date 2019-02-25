@@ -1,4 +1,6 @@
 """
+.. _brainstorm-evoked-example:
+
 =====================================
 Brainstorm raw (median nerve) dataset
 =====================================

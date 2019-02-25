@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _compute-mne-solutions-tutorial:
+
 ===============================
 Computing various MNE solutions
 ===============================

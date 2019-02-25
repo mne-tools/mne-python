@@ -1,4 +1,6 @@
 """
+.. _rejecting-bad-data-tutorial:
+
 Rejecting bad data (channels and segments)
 ==========================================
 
@@ -112,7 +114,7 @@ evoked.plot(exclude=[], time_unit='s')
 # of data. The annotations are automatically synchronized with raw data as
 # long as the timestamps of raw data and annotations are in sync.
 #
-# See :ref:`sphx_glr_auto_tutorials_plot_brainstorm_auditory.py`
+# See :ref:`brainstorm-aud-tutorial`
 # for a long example exploiting the annotations for artifact removal.
 #
 # The instances of annotations are created by providing a list of onsets and
@@ -135,7 +137,7 @@ raw.plot(events=eog_events)  # To see the annotated segments.
 ###############################################################################
 # It is also possible to draw bad segments interactively using
 # :meth:`raw.plot <mne.io.Raw.plot>` (see
-# :ref:`sphx_glr_auto_tutorials_plot_visualize_raw.py`).
+# :ref:`vis-raw-tutorial`).
 #
 # As the data is epoched, all the epochs overlapping with segments whose
 # description starts with 'bad' are rejected by default. To turn rejection off,

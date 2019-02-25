@@ -50,7 +50,7 @@ Details about the data can be found at the Brainstorm `auditory dataset tutorial
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_tutorials_plot_brainstorm_auditory.py`: Partially replicates the original Brainstorm tutorial.
+    * :ref:`Brainstorm auditory dataset tutorial <brainstorm-evoked-example>`: Partially replicates the original Brainstorm tutorial.
 
 Resting state
 ^^^^^^^^^^^^^
@@ -87,7 +87,7 @@ Detailed description of the dataset can be found in the related publication [1]_
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_datasets_plot_megsim_data.py`
+    * :ref:`megsim-evoked-example`
 
 SPM faces
 =========
@@ -97,7 +97,7 @@ The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perceptio
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_datasets_spm_faces_dataset.py` Full pipeline including artifact removal, epochs averaging, forward model computation and source reconstruction using dSPM on the contrast: "faces - scrambled".
+    * :ref:`spm-faces-example` Full pipeline including artifact removal, epochs averaging, forward model computation and source reconstruction using dSPM on the contrast: "faces - scrambled".
 
 EEGBCI motor imagery
 ====================
@@ -115,7 +115,7 @@ The recordings were made using the BCI2000 system. To load a subject, do::
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_csp_eeg.py`
+    * :ref:`csp-decoding-example`
 
 Do not hesitate to contact MNE-Python developers on the
 `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
@@ -135,7 +135,7 @@ This dataset contains somatosensory data with event-related synchronizations
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_tutorials_plot_sensors_time_frequency.py`
+    * :ref:`tut_sensors_time_frequency`
 
 Multimodal
 ==========
@@ -146,7 +146,7 @@ with auditory, visual, and somatosensory stimuli.
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_io_plot_elekta_epochs.py`
+    * :ref:`elekta-epochs-example`
 
 
 High frequency SEF
@@ -173,7 +173,7 @@ Representational Similarity Analysis (RSA).
 
 .. topic:: Examples
 
-    * :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>`: Partially replicates the results from Cichy et al. (2014).
+    * :ref:`Representational Similarity Analysis (RSA) <rsa_noplot>`: Partially replicates the results from Cichy et al. (2014).
 
 
 mTRF Dataset
@@ -190,7 +190,7 @@ More details and a description of the package can be found in [5]_.
 
 .. topic:: Examples
 
-    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field_mtrf.py>`: Partially replicates the results from Crosse et al. (2016).
+    * :ref:`Receptive Field Estimation and Prediction <receptive-field-mtrf-example>`: Partially replicates the results from Crosse et al. (2016).
 
 Miscellaneous Datasets
 ======================
@@ -209,7 +209,7 @@ functions in MNE and does not contain useful metadata for analysis.
 .. topic:: Examples
 
     * :ref:`How to convert 3D electrode positions to a 2D image.
-      <sphx_glr_auto_examples_visualization_plot_3d_to_2d.py>`: Demonstrates
+      <electrode-3d-2d-example>`: Demonstrates
       how to project a 3D electrode location onto a 2D image, a common procedure
       in electrocorticography.
 
@@ -261,8 +261,8 @@ Triggers include:
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_datasets_plot_opm_data.py`
-    * :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`
+    * :ref:`opm-example`
+    * :ref:`opm-resting-state-example`
 
 The Sleep PolySomnoGraphic Database
 ===================================
@@ -278,7 +278,7 @@ data please cite [7]_ and [8]_.
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_tutorials_plot_sleep.py`
+    * :ref:`sleep-classification-tutorial`
 
 References
 ==========

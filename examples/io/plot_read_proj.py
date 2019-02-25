@@ -51,7 +51,7 @@ mne.viz.plot_projs_topomap(empty_room_proj)
 
 ###############################################################################
 # As shown in the tutorial on how to
-# :ref:`sphx_glr_auto_tutorials_plot_visualize_raw.py`
+# :ref:`vis-raw-tutorial`
 # the ECG projections can be loaded from a file and added to the raw object
 
 # read the projections

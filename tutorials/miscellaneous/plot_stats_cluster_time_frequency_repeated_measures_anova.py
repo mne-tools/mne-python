@@ -1,4 +1,6 @@
 """
+.. _timefreq-rmanova-tutorial:
+
 ====================================================================
 Mass-univariate twoway repeated measures ANOVA on single trial power
 ====================================================================

@@ -1,4 +1,6 @@
 """
+.. _plot-stc-tutorial:
+
 The :class:`SourceEstimate <mne.SourceEstimate>` data structure
 ===============================================================
 
@@ -23,7 +25,7 @@ you need to have the :class:`source space <mne.SourceSpaces>`
 :class:`forward operator <mne.Forward>` (often abbreviated `fwd`).
 
 See :ref:`tut_forward` for more details on forward modeling, and
-:ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`
+:ref:`source-loc-mne-dspm-tutorial`
 for an example of source localization with dSPM, sLORETA or eLORETA.
 
 Source estimates come in different forms:
@@ -43,7 +45,7 @@ Source estimates come in different forms:
     :class:`(Vector) <mne.VectorSourceEstimate>`
     :class:`SourceEstimate <mne.SourceEstimate>` are surface representations
     mostly used together with
-    :ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+    :ref:`FreeSurfer <freesurfer-integration-tutorial>`
     surface representations.
 
 .. contents::
@@ -74,7 +76,7 @@ fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
 # This data set contains source estimation data from an audio visual task. It
 # has been mapped onto the inflated cortical surface representation obtained
 # from
-# :ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+# :ref:`FreeSurfer <freesurfer-integration-tutorial>`
 # using the dSPM method. It highlights a noticeable peak in the auditory
 # cortices.
 #

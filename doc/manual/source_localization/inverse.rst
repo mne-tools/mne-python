@@ -9,7 +9,7 @@ computation of the minimum-norm estimates needed
 in order to obtain the linear inverse operator using
 :func:`mne.minimum_norm.make_inverse_operator`.
 Its usage is presented in the tutorial
-:ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
+:ref:`source-loc-mne-dspm-tutorial`.
 
 .. contents:: Contents
    :local:
@@ -345,7 +345,7 @@ of the surface normal data:
   the three columns of the gain matrix G, associated with a given
   source location, are the fields of unit dipoles pointing to the
   directions of the x, y, and z axis of the coordinate system employed
-  in the forward calculation 
+  in the forward calculation
   (usually the :ref:`MEG head coordinate frame <BJEBIBAI>`).
   For LOC the orientation is changed so that the first two source
   components lie in the plane normal to the surface normal at the source
@@ -379,9 +379,9 @@ scaled by a factor
 
 where :math:`g_{1p}`, :math:`g_{2p}`, and :math:`g_{3p}` are the three columns
 of :math:`G` corresponding to source location :math:`p` and :math:`\gamma` is
-the order of the depth weighting. 
+the order of the depth weighting.
 The maximal amount of depth weighting can be adjusted with ``depth`` parameter in
-:func:`mne.minimum_norm.make_inverse_operator`. 
+:func:`mne.minimum_norm.make_inverse_operator`.
 
 .. XXX: is there any example/tutorial showing the influence of this parameter?
 

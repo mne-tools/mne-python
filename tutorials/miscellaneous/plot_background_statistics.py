@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _stats-bkgd-tutorial:
+
 =====================
 Statistical inference
 =====================
@@ -202,7 +204,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # .. warning:: In the case of a true one-sample t-test, i.e. analyzing a single
 #              condition rather than the difference between two conditions,
 #              it is not clear where/how exchangeability applies; see
-#              `this FieldTrip discussion <ft_exch_>`_.
+#              `this FieldTrip discussion <ft_exch>`_.
 #
 # In the case where ``n_permutations`` is large enough (or "all") so
 # that the complete set of unique resampling exchanges can be done
@@ -657,4 +659,4 @@ plt.show()
 #        addressing problems of smoothing, threshold dependence, and
 #        localisation in cluster inference", NeuroImage 44 (2009) 83-98.
 #
-# .. include:: ../tutorial_links.inc
+# .. include:: ../../tutorial_links.inc

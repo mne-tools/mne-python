@@ -1,4 +1,6 @@
 """
+.. _electrode-3d-2d-example:
+
 ====================================================
 How to convert 3D electrode positions to a 2D image.
 ====================================================
