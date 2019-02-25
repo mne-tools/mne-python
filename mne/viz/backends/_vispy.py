@@ -195,7 +195,7 @@ class _Renderer(object):
                 mesh.set_gl_state(cull_face=True)
 
     def sphere(self, center, color, scale, opacity=1.0,
-               backface_culling=False):
+               resolution=8, backface_culling=False):
         """Add sphere in the scene.
 
         Parameters
@@ -213,6 +213,7 @@ class _Renderer(object):
         """
         for c in center:
             sphere = scene.visuals.Sphere(radius=scale * default_sphere_radius,
+                                          cols=resolution, rows=resolution,
                                           color=color, parent=self.view.scene)
             sphere.transform = STTransform(translate=c)
             sphere.attach(Alpha(opacity))

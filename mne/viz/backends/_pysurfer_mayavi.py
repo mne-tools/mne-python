@@ -188,7 +188,7 @@ class _Renderer(object):
         surface.actor.property.backface_culling = backface_culling
 
     def sphere(self, center, color, scale, opacity=1.0,
-               backface_culling=False):
+               resolution=8, backface_culling=False):
         """Add sphere in the scene.
 
         Parameters
@@ -213,6 +213,7 @@ class _Renderer(object):
             y = center[:, 1]
             z = center[:, 2]
         surface = self.mlab.points3d(x, y, z, color=color,
+                                     resolution=resolution,
                                      scale_factor=scale, opacity=opacity,
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
