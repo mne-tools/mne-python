@@ -458,7 +458,7 @@ def _check_option(parameter, value, allowed_values):
         return True
 
     # Prepare a nice error message for the user
-    msg = ('Invalid value for the {parameter} parameter. '
+    msg = ("Invalid value for the '{parameter}' parameter. "
            '{options}, but got {value!r} instead.')
     if len(allowed_values) == 1:
         options = 'The only allowed value is %r' % allowed_values[0]

@@ -361,7 +361,7 @@ def test_volume_source_morph():
         source_morph_vol.apply(stc_vol, output=1)
     with pytest.raises(ValueError, match='subject_from does not match'):
         compute_source_morph(src=src, subject_from='42')
-    with pytest.raises(ValueError, match='output must be one of'):
+    with pytest.raises(ValueError, match='output'):
         source_morph_vol.apply(stc_vol, output='42')
     with pytest.raises(TypeError, match='subject_to must'):
         compute_source_morph(src, 'sample', None,

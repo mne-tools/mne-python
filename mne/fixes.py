@@ -349,6 +349,7 @@ def axis_reverse(a, axis=-1):
 
 def _validate_pad(padtype, padlen, x, axis, ntaps):
     """Helper to validate padding for filtfilt"""
+    from .utils import _check_option  # avoid circular import
     _check_option('padtype', padtype, ['even', 'odd', 'constant', None])
 
     if padtype is None:
