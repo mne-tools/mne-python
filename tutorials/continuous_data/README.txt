@@ -1,6 +1,10 @@
+.. _`working-with-raw-tutorial`:
+
 Working with continuous data
 ============================
 
-This tutorial series assumes no prior experience with MNE-Python, and will walk
-you through loading, querying, subselecting, plotting, and saving continuous
-"raw" data.
+This series of tutorials covers the basics of loading EEG/MEG data into Python,
+querying and manipulating the raw data, some basic plotting, and how to save or
+export continuous data. New users are advised to work through the tutorials in
+sequence, but direct links to each tutorial are provided below for easy
+reference.
