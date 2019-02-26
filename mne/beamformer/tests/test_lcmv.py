@@ -709,8 +709,7 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
     loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
                                        noise_cov)).data
     loc = np.abs(loc)
-    # Compute the percentage of sources for which there is no localization
-    # bias:
+    # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper
 
