@@ -44,7 +44,7 @@ MNE-Python core terminology and general concepts
         outer skull and outer skiln (a.k.a. scalp) that define compartments
         of tissues of the head. You can compute the BEM surfaces with
         :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
-        See :ref:`sphx_glr_auto_tutorials_plot_forward.py` for usage demo.
+        See :ref:`tut_forward` for usage demo.
 
     epochs
         Epochs are chunks of data extracted from raw continuous data. Typically,
