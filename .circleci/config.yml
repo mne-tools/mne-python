@@ -94,7 +94,7 @@ jobs:
                 echo html_stable > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
-                FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
+                FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/master) $CIRCLE_BRANCH);
                 if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
                   FNAMES="tutorials/plot_mne_dspm_source_localization.py tutorials/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/plot_sensors_decoding.py tutorials/plot_stats_cluster_spatio_temporal.py tutorials/plot_visualize_evoked.py "${FNAMES};
                   python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
