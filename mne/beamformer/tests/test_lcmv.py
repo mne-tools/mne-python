@@ -691,22 +691,24 @@ def test_lcmv_reg_proj(proj):
 
 
 @pytest.mark.parametrize('reg, weight_norm, use_cov, lower, upper', [
-    (0.05, 'unit-noise-gain', True, 100, 100),
-    (0.00, 'unit-noise-gain', True, 45, 55),
-    (0.05, 'nai', True, 100, 100),
-    (0.05, None, True, 100, 100),
-    (0.05, 'unit-noise-gain', False, 100, 100),
+    (0.05, 'unit-noise-gain', True, 96, 98),
+    (0.00, 'unit-noise-gain', True, 66, 69),
+    (0.05, 'nai', True, 96, 98),
+    (0.05, None, True, 96, 98),
+    (0.05, 'unit-noise-gain', False, 83, 86),
 ])
 def test_localization_bias_fixed(bias_params, reg, weight_norm, use_cov,
                                  lower, upper):
     """Test localization bias for fixed-orientation LCMV."""
     evoked, fwd, noise_cov = bias_params
+    fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
     data_cov = noise_cov.copy()
-    data_cov['data'] = np.dot(evoked.data, evoked.data.T)
+    fwd_cov = mne.pick_channels_forward(fwd, data_cov['names'])
+    data_cov['data'] = np.dot(fwd_cov['sol']['data'], fwd_cov['sol']['data'].T)
     if not use_cov:
         evoked.pick_types('grad')
         noise_cov = None
-    fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
+    assert data_cov['data'].shape[0] == len(data_cov['names'])
     inv_op = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
                                           noise_cov)).data
     fwd = fwd['sol']['data']
@@ -719,23 +721,24 @@ def test_localization_bias_fixed(bias_params, reg, weight_norm, use_cov,
 
 
 @pytest.mark.parametrize('reg, pick_ori, weight_norm, use_cov, lower, upper', [
-    (0.05, 'vector', 'unit-noise-gain', True, 30, 35),
-    (0.05, 'vector', 'nai', True, 30, 35),
-    (0.05, 'vector', None, True, 1, 3),
-    (0.00, 'vector', 'unit-noise-gain', True, 5, 10),
-    (0.05, 'max-power', 'unit-noise-gain', True, 30, 35),
-    (0.05, 'max-power', 'nai', True, 30, 35),
-    (0.05, 'max-power', None, True, 1, 3),
-    # (0., 'max-power', 5, 10),  # complex eigenspectrum error
-    (0.05, 'vector', 'unit-noise-gain', False, 70, 75),
-    # (0.05, 'max-power', 'unit-noise-gain', False, 30, 35),  # complex eig
+    (0.05, 'vector', 'unit-noise-gain', True, 36, 39),
+    (0.05, 'vector', 'nai', True, 36, 39),
+    (0.05, 'vector', None, True, 12, 14),
+    (0.00, 'vector', 'unit-noise-gain', True, 43, 46),
+    (0.05, 'max-power', 'unit-noise-gain', True, 20, 24),
+    (0.05, 'max-power', 'nai', True, 20, 24),
+    (0.05, 'max-power', None, True, 7, 9),
+    (0., 'max-power', 'unit-noise-gain', True, 37, 40),
+    (0.05, 'vector', 'unit-noise-gain', False, 23, 25),
+    (0.05, 'max-power', 'unit-noise-gain', False, 17, 19),
 ])
 def test_localization_bias_free(bias_params, reg, pick_ori, weight_norm,
                                 use_cov, lower, upper):
     """Test localization bias for free-orientation LCMV."""
     evoked, fwd, noise_cov = bias_params
     data_cov = noise_cov.copy()
-    data_cov['data'] = np.dot(evoked.data, evoked.data.T)
+    fwd_cov = mne.pick_channels_forward(fwd, data_cov['names'])
+    data_cov['data'] = np.dot(fwd_cov['sol']['data'], fwd_cov['sol']['data'].T)
     if not use_cov:
         evoked.pick_types('grad')
         noise_cov = None
