@@ -16,7 +16,7 @@ from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, requires_version
-from mne.viz import plot_drop_log
+from mne.viz import plot_drop_log, plot_compare_evokeds
 from mne.viz.utils import _fake_click
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -142,6 +142,15 @@ def test_plot_epochs(capsys):
     assert len(epochs) == 6
     plt.close('all')
 
+    # test that plot_compare_evokeds can plot epochs objects
+    plot_compare_evokeds({cond: epochs.pick_types(meg='mag')
+                          for cond in epochs.event_id})
+    plot_compare_evokeds({cond: [epochs.pick_types(meg='mag'),
+                                 epochs.pick_types(meg='mag')]
+                          for cond in epochs.event_id})
+    pytest.raises(ValueError, plot_compare_evokeds, {"1": epochs.average(),
+                                                     "2": epochs})
+    plt.close('all')
 
 def test_plot_epochs_image():
     """Test plotting of epochs image."""

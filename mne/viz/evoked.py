@@ -1557,9 +1557,26 @@ def _check_loc_legal(loc, what='your choice', default=1):
     return loc_
 
 
+def _get_evokeds_from_epochs(evokeds, Epochs):
+    """Transform a dict of lists of Epochs into a dict of lists of Evokeds."""
+    if all(isinstance(content, Epochs) for content in evokeds.values()):
+        evokeds = {key: list(epochs[0][key].iter_evoked())
+                   for key, epochs in evokeds.items()}
+    elif all([all(isinstance(content, Epochs) for sublist in evokeds.values()
+              for content in sublist)]):
+        evokeds = {key: [epochs[key].average() for epochs in epochs_list]
+                   for key, epochs_list in evokeds.items()}
+    else:
+        raise ValueError("All entries in `evokeds` must be Epochs (or Evokeds)"
+                         " or lists of Epochs (or Evokeds), got multiple"
+                         " types!")
+    return evokeds
+
+
 def _format_evokeds_colors(evokeds, cmap, colors):
     """Set up to have evokeds as a dict as well as colors."""
     from ..evoked import Evoked, _check_evokeds_ch_names_times
+    from ..epochs import Epochs
 
     if isinstance(evokeds, Evoked):
         evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
@@ -1573,7 +1590,25 @@ def _format_evokeds_colors(evokeds, cmap, colors):
             raise ValueError('If evokeds is a dict and a cmap is passed, '
                              'you must specify the colors.')
     for cond in evokeds.keys():
-        _validate_type(cond, 'str', "Conditions")
+        _validate_type(cond, str, "Conditions")
+
+    all_types = []
+    for condition in evokeds.values():
+        if isinstance(condition, (Epochs, Evoked)):
+            all_types.append(type(condition))
+        else:
+            for item in condition:
+                all_types.append(type(item))
+    all_types = set(all_types)
+    if len(all_types) != 1:
+        raise ValueError("All instances in `evokeds` must be of the same type "
+                         "(Evokeds OR Epochs), got " + str(all_types))
+
+    list_of_values = list(evokeds.values())[0]
+    if isinstance(list_of_values, Epochs) or isinstance(list_of_values[0],
+                                                        Epochs):
+        evokeds = _get_evokeds_from_epochs(evokeds, Epochs)
+
     # Now make sure all values are list of Evoked objects
     evokeds = {condition: [v] if isinstance(v, Evoked) else v
                for condition, v in evokeds.items()}
@@ -1581,7 +1616,8 @@ def _format_evokeds_colors(evokeds, cmap, colors):
     # Check that all elements are of type evoked
     for this_evoked in evokeds.values():
         for ev in this_evoked:
-            _validate_type(ev, Evoked, "All evokeds entries ", "Evoked")
+            _validate_type(ev, (Evoked, Epochs), "All evokeds entries ",
+                           "Evoked or Epochs")
 
     # Check that all evoked objects have the same time axis and channels
     all_evoked = sum(evokeds.values(), [])
@@ -1694,7 +1730,13 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
-        If dict, keys must be of type str.
+        Lastly, can also be a dict/dict of lists of Epochs. In that case, the
+        dict's keys must be present in the associated Epochs. Evokeds will be
+        calculated from each Epochs after selecting only those epochs matching
+        the key. If a dict of Epochs, it will first be converted into a dict
+        of lists of individual trials -- with this, the confidence interval
+        across trials can be plotted.
+        Either way, if dict, keys must be of type str.
     %(picks_all_data)s
 
         * If picks is None, the global field power will be plotted
@@ -1840,9 +1882,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
       conditions),
     - a list or dict of lists of :class:`mne.Evoked` (e.g., for multiple
       subjects in multiple conditions).
+    - a dict or dict of lists of :class:`mne.Epochs`.
 
-    In the last case, it can show a confidence interval (across e.g. subjects)
-    using parametric or bootstrap estimation.
+    In the last two cases, it can show a confidence interval
+    (across e.g. subjects) using parametric or bootstrap estimation.
 
     When ``picks`` includes more than one planar gradiometer, the planar
     gradiometers are combined with RMSE. For example data from a

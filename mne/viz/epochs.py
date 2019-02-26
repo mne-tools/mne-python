@@ -524,9 +524,8 @@ def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
     # draw the evoked
     if evoked:
         from mne.viz import plot_compare_evokeds
-        plot_compare_evokeds(
-            {"cond": list(epochs.iter_evoked())}, axes=axes_dict["evoked"],
-            **ts_args)
+        plot_compare_evokeds({"cond": list(epochs.iter_evoked())},
+                             axes=axes_dict["evoked"], **ts_args)
         axes_dict["evoked"].set_xlim(epochs.times[[0, -1]])
         ax.set_xticks(())
 
