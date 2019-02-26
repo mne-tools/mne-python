@@ -4,14 +4,17 @@
 Working with sensor locations
 =============================
 
-MNE-Python lets you work with sensor locations.
+MNE-Python lets you work with sensor locations. **WIP, this is a placeholder.**
 """
 
-# sources to draw from:
-# https://martinos.org/mne/stable/auto_examples/visualization/plot_meg_sensors.html
-# https://mne-tools.github.io/dev/manual/io.html
+pass
 
 ###############################################################################
+# .. sources to draw from:
+#     https://mne-tools.github.io/dev/auto_examples/visualization/plot_meg_sensors.html
+#     https://mne-tools.github.io/dev/manual/io.html
+#
+#
 # Montages and layout files
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #

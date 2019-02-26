@@ -7,8 +7,8 @@ Working with projectors
 
 This tutorial provides background information on :term:`projectors <projector>`
 and describes some common use cases for projectors: setting an EEG reference,
-XXXX, and YYYY. We'll start by importing the Python modules we need and loading
-some sample data:
+heartbeats, blinks, environmental noise, etc. As usual we'll start by importing
+the modules we need and loading some sample data:
 """
 
 import os
@@ -20,15 +20,62 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 
 ###############################################################################
-# Background: what is a projector?
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Background: projectors and projections
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# TODO: basic concept
+# TODO: basic concepts
 #
 # TODO: orthogonal vs oblique
 #
-# TODO: a figure illustrating the concept?
+# TODO: a figure illustrating the concepts?
 #
+# Loading and saving projectors
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# TODO: some narrative text
+#
+# TODO: discussion of PCA projectors that are part of the raw file
+# (from empty room recording)
+
+ecg_proj_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                             'sample_audvis_ecg-proj.fif')
+ecg_projs = mne.read_proj(ecg_proj_file)
+channel_layouts = [mne.find_layout(raw.info, ch_type=channel_type)
+                   for channel_type in ('grad', 'mag', 'eeg')]
+mne.viz.plot_projs_topomap(ecg_projs, layout=channel_layouts)
+
+###############################################################################
+# Getting and setting projectors
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# TODO: some narrative text
+
+raw2 = raw.copy()
+raw2.add_proj(ecg_projs)
+raw2.plot_projs_topomap()
+
+###############################################################################
+# You can access individual projectors by indexing into the ``projs`` field of
+# ``raw.info`` (it's just a list of :class:`~mne.Projection` objects), and can
+# plot individual projectors using the :meth:`~mne.Projection.plot_topomap`
+# method on the :class:`~mne.Projection` object:
+
+first_projector = raw.info['projs'][0]
+first_projector.plot_topomap()
+
+###############################################################################
+# When to apply projectors
+# ^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# TODO: have they been applied? (:attr:`mne.io.Raw.proj`)
+#
+# TODO: when to apply projectors
+#
+# TODO: when projectors are applied automatically
+#
+# TODO: turning them on/off during `raw.plot()`
+
+###############################################################################
 # Setting the EEG reference
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -72,4 +119,4 @@ raw.set_eeg_reference(ref_channels='average')
 #
 # TODO: the things to watch out for are...
 #
-# TODO: section on other uses of projectors (blinks, heartbeat, etc)
+# TODO: section on blinks.. others?
