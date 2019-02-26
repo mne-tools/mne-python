@@ -95,7 +95,6 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 # object, which we'll store in a variable called ``raw``.
 
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
-print(raw)
 
 ###############################################################################
 # Notice that :func:`~mne.io.read_raw_fif` also takes a ``preload`` parameter,
@@ -103,6 +102,15 @@ print(raw)
 # operations (such as filtering) require that the data be preloaded, but it is
 # possible use ``preload=False`` and then copy raw data into memory later using
 # the :meth:`~mne.io.Raw.load_data` method.
+#
+# You can get a glimpse of the basic details of a :class:`~mne.io.Raw` object
+# by printing it:
+
+print(raw)
+
+###############################################################################
+# To extract more detailed information, see the tutorial on
+# :ref:`querying-raw-tutorial`.
 #
 # .. note::
 #
