@@ -152,6 +152,7 @@ def test_plot_epochs(capsys):
                                                      "2": epochs})
     plt.close('all')
 
+
 def test_plot_epochs_image():
     """Test plotting of epochs image."""
     epochs = _get_epochs()

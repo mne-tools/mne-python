@@ -45,7 +45,8 @@ from .filter import detrend, FilterMixin
 from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
-                  plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
+                  plot_epochs_image, plot_topo_image_epochs, plot_drop_log,
+                  plot_compare_evokeds)
 from .utils import (_check_fname, check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
@@ -968,6 +969,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             layout_scale=layout_scale, title=title, scalings=scalings,
             border=border, fig_facecolor=fig_facecolor,
             fig_background=fig_background, font_color=font_color, show=show)
+
+    @copy_function_doc_to_method_doc(plot_compare_evokeds)
+    def plot_compare_evokeds(self, conditions=None, **kwargs):
+        """TBD"""
+        if conditions is None:
+            conditions = self.event_id.keys()
+        elif isinstance(conditions, str):
+            conditions = [conditions]
+        return plot_compare_evokeds({cond: self for cond in conditions},
+                                    **kwargs)
 
     @verbose
     def drop_bad(self, reject='existing', flat='existing', verbose=None):

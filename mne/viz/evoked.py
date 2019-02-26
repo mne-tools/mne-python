@@ -1560,9 +1560,9 @@ def _check_loc_legal(loc, what='your choice', default=1):
 
 def _get_evokeds_from_epochs(instances, Epochs):
     """Transform a dict of lists of Epochs into a dict of lists of Evokeds."""
-    if all(isinstance(content, Epochs) for content in instances.values()):
-        instances = {key: list(epochs[key].iter_evoked())
-                     for key, epochs in evokeds.items()}
+    if all(isinstance(content[0], Epochs) for content in instances.values()):
+        instances = {key: list(epochs[0][key].iter_evoked())
+                     for key, epochs in instances.items()}
     elif all([all(isinstance(content, Epochs) for sublist in instances.values()
               for content in sublist)]):
         instances = {key: [epochs[key].average() for epochs in epochs_list]
@@ -1588,7 +1588,8 @@ def _format_evokeds_colors(instances, cmap, colors):
                             "(lists of) Evokeds.")
         if (cmap is not None) and (colors is None):
             colors = {str(ii + 1): ii for ii, _ in enumerate(instances)}
-        instances = {str(ii + 1): evoked for ii, evoked in enumerate(instances)}
+        instances = {str(ii + 1): evoked
+                     for ii, evoked in enumerate(instances)}
     else:
         assert isinstance(instances, dict)
         if (colors is None) and cmap is not None:
@@ -1601,7 +1602,7 @@ def _format_evokeds_colors(instances, cmap, colors):
         _validate_type(cond, str, "Conditions")
 
     _check_all_same_type_nested(instances, legal_types=(Epochs, Evoked))
-    
+
     list_of_values = list(instances.values())[0]
     if isinstance(list_of_values, Epochs) or isinstance(list_of_values[0],
                                                         Epochs):
