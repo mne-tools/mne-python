@@ -44,30 +44,37 @@ raw.plot()
 # several useful features:
 #
 # - It spaces the channels equally along the y-axis.
+#
 #   - 20 channels are shown by default; you can scroll through the channels
 #     using the :kbd:`up` and :kbd:`down` arrow keys, or by clicking on the
 #     colored scroll bar on the right edge of the plot.
+#
 #   - The number of visible channels can be adjusted by the ``n_channels``
 #     parameter, or changed interactively using :kbd:`page up` and :kbd:`page
 #     down` keys.
+#
 #   - You can toggle the display to "butterfly" mode (superimposing all
 #     channels of the same type on top of one another) by pressing :kbd:`b`,
 #     or start in butterfly mode by passing the ``butterfly=True`` parameter.
 #
 # - It shows the first 10 seconds of the :class:`~mne.io.Raw` object.
+#
 #   - You can shorten or lengthen the window length using :kbd:`home` and
 #     :kbd:`end` keys, respectively, or start with a specific window duration
 #     by passing the ``duration`` parameter.
+#
 #   - You can scroll in the time domain using the :kbd:`left` and
 #     :kbd:`right` arrow keys, or start at a specific point by passing the
 #     ``start`` parameter.
 #
 # - It allows clicking on channels to mark/unmark as "bad".
+#
 #   - When the plot window is closed, the :class:`~mne.io.Raw` object's
 #     ``info`` attribute will be updated, adding or removing the newly
 #     (un)marked channels to the :class:`~mne.Info` object's ``bads`` field.
 #
 # - It allows interactive :term:`annotation <annotations>` of the raw data.
+#
 #   - This allows you to mark time spans that should be excluded from future
 #     computations due to large movement artifacts, line noise, or other
 #     distortions of the signal. See :ref:`the annotations tutorial
@@ -75,6 +82,7 @@ raw.plot()
 #
 # - It automatically applies any :term:`projectors <projector>` before plotting
 #   the data.
+#
 #   - These can be enabled/disabled interactively by clicking the ``Proj``
 #     button at the lower right corner of the plot window, or disabled by
 #     default by passing the ``proj=False`` parameter.  See
@@ -99,8 +107,8 @@ raw.plot_psd(average=True)
 # indicate filter boundaries. The spectrum for each channel type is drawn in
 # its own subplot; here we've passed the ``average=True`` parameter to get a
 # summary for each channel type, but it is also possible to plot each channel
-# individually, with options for color-coding the channels by location, how the
-# spectrum should be computed, and more. See the documentation of
+# individually, with options for how the spectrum should be computed,
+# color-coding the channels by location, and more. See the documentation of
 # :meth:`~mne.io.Raw.plot_psd` for full details.
 #
 # .. include:: ../../tutorial_links.inc
