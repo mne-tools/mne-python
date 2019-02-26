@@ -73,15 +73,34 @@ def noise_cov():
 
 
 @pytest.fixture(scope='function')
-def bias_params(evoked, noise_cov):
-    """Provide inputs for bias functions."""
-    # Identity input
+def bias_params_free(evoked, noise_cov):
+    """Provide inputs for free bias functions."""
+    fwd = mne.read_forward_solution(fname_fwd)
+    return _bias_params(evoked, noise_cov, fwd)
+
+
+@pytest.fixture(scope='function')
+def bias_params_fixed(evoked, noise_cov):
+    """Provide inputs for fixed bias functions."""
+    fwd = mne.read_forward_solution(fname_fwd)
+    fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
+    return _bias_params(evoked, noise_cov, fwd)
+
+
+def _bias_params(evoked, noise_cov, fwd):
     evoked.pick_types(meg=True, eeg=True, exclude=())
-    evoked = mne.EvokedArray(np.eye(len(evoked.data)), evoked.info)
     # restrict to limited set of verts (small src here) and one hemi for speed
-    fwd_orig = mne.read_forward_solution(fname_fwd)
-    vertices = [fwd_orig['src'][0]['vertno'].copy(), []]
+    vertices = [fwd['src'][0]['vertno'].copy(), []]
     stc = mne.SourceEstimate(np.zeros((sum(len(v) for v in vertices), 1)),
                              vertices, 0., 1.)
-    fwd_orig = mne.forward.restrict_forward_to_stc(fwd_orig, stc)
-    return evoked, fwd_orig, noise_cov
+    fwd = mne.forward.restrict_forward_to_stc(fwd, stc)
+    assert fwd['sol']['row_names'] == noise_cov['names']
+    assert noise_cov['names'] == evoked.ch_names
+    evoked = mne.EvokedArray(fwd['sol']['data'].copy(), evoked.info)
+    data_cov = noise_cov.copy()
+    data_cov['data'] = np.dot(fwd['sol']['data'], fwd['sol']['data'].T)
+    assert data_cov['data'].shape[0] == len(noise_cov['names'])
+    want = np.arange(fwd['sol']['data'].shape[1])
+    if not mne.forward.is_fixed_orient(fwd):
+        want //= 3
+    return evoked, fwd, noise_cov, data_cov, want
