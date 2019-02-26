@@ -31,6 +31,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _plot_masked_image)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc)
+from ..utils.check import _check_all_same_type_nested
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -1557,61 +1558,58 @@ def _check_loc_legal(loc, what='your choice', default=1):
     return loc_
 
 
-def _get_evokeds_from_epochs(evokeds, Epochs):
+def _get_evokeds_from_epochs(instances, Epochs):
     """Transform a dict of lists of Epochs into a dict of lists of Evokeds."""
-    if all(isinstance(content, Epochs) for content in evokeds.values()):
-        evokeds = {key: list(epochs[0][key].iter_evoked())
-                   for key, epochs in evokeds.items()}
-    elif all([all(isinstance(content, Epochs) for sublist in evokeds.values()
+    if all(isinstance(content, Epochs) for content in instances.values()):
+        instances = {key: list(epochs[key].iter_evoked())
+                     for key, epochs in evokeds.items()}
+    elif all([all(isinstance(content, Epochs) for sublist in instances.values()
               for content in sublist)]):
-        evokeds = {key: [epochs[key].average() for epochs in epochs_list]
-                   for key, epochs_list in evokeds.items()}
+        instances = {key: [epochs[key].average() for epochs in epochs_list]
+                     for key, epochs_list in instances.items()}
     else:
         raise ValueError("All entries in `evokeds` must be Epochs (or Evokeds)"
                          " or lists of Epochs (or Evokeds), got multiple"
                          " types!")
-    return evokeds
+    return instances
 
 
-def _format_evokeds_colors(evokeds, cmap, colors):
+def _format_evokeds_colors(instances, cmap, colors):
     """Set up to have evokeds as a dict as well as colors."""
     from ..evoked import Evoked, _check_evokeds_ch_names_times
     from ..epochs import Epochs
 
-    if isinstance(evokeds, Evoked):
-        evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
-    elif not isinstance(evokeds, dict):  # it's assumed to be a list
+    if isinstance(instances, Evoked):
+        instances = dict(Evoked=instances)  # title becomes 'Evoked'
+    elif not isinstance(instances, dict):  # it's assumed to be a list
+        if not (isinstance(instances[0], Evoked) or
+                isinstance(instances[0][0], Evoked)):
+            raise TypeError("If `evokeds` is not a dict, its entries must be "
+                            "(lists of) Evokeds.")
         if (cmap is not None) and (colors is None):
-            colors = {str(ii + 1): ii for ii, _ in enumerate(evokeds)}
-        evokeds = {str(ii + 1): evoked for ii, evoked in enumerate(evokeds)}
+            colors = {str(ii + 1): ii for ii, _ in enumerate(instances)}
+        instances = {str(ii + 1): evoked for ii, evoked in enumerate(instances)}
     else:
-        assert isinstance(evokeds, dict)
+        assert isinstance(instances, dict)
         if (colors is None) and cmap is not None:
             raise ValueError('If evokeds is a dict and a cmap is passed, '
                              'you must specify the colors.')
-    for cond in evokeds.keys():
+    for cond, items in instances.items():
+        if isinstance(items, (Epochs, Evoked)):
+            instances[cond] = [items]
+    for cond in instances.keys():
         _validate_type(cond, str, "Conditions")
 
-    all_types = []
-    for condition in evokeds.values():
-        if isinstance(condition, (Epochs, Evoked)):
-            all_types.append(type(condition))
-        else:
-            for item in condition:
-                all_types.append(type(item))
-    all_types = set(all_types)
-    if len(all_types) != 1:
-        raise ValueError("All instances in `evokeds` must be of the same type "
-                         "(Evokeds OR Epochs), got " + str(all_types))
-
-    list_of_values = list(evokeds.values())[0]
+    _check_all_same_type_nested(instances, legal_types=(Epochs, Evoked))
+    
+    list_of_values = list(instances.values())[0]
     if isinstance(list_of_values, Epochs) or isinstance(list_of_values[0],
                                                         Epochs):
-        evokeds = _get_evokeds_from_epochs(evokeds, Epochs)
+        instances = _get_evokeds_from_epochs(instances, Epochs)
 
     # Now make sure all values are list of Evoked objects
     evokeds = {condition: [v] if isinstance(v, Evoked) else v
-               for condition, v in evokeds.items()}
+               for condition, v in instances.items()}
 
     # Check that all elements are of type evoked
     for this_evoked in evokeds.values():

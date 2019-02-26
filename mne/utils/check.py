@@ -495,3 +495,18 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
                          " or callable, got %s (type %s)." %
                          (mode, type(mode)))
     return fun
+
+
+def _check_all_same_type_nested(instances, legal_types=None):
+    """Check if all (potentially nested) things in a dict are the same type."""
+    all_types = []
+    for items in instances.values():
+        if isinstance(items, legal_types):
+            all_types.append(type(items))
+        else:
+            for item in items:
+                all_types.append(type(item))
+    all_types = set(all_types)
+    if len(all_types) != 1:
+        raise ValueError("All instances in `evokeds` must be of the same type "
+                         "(Evokeds OR Epochs), got " + str(all_types))
