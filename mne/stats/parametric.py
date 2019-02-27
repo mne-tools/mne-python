@@ -7,6 +7,7 @@
 import numpy as np
 from functools import reduce
 from string import ascii_uppercase
+from ..utils import _check_option
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
@@ -56,9 +57,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
        statistical parametric mapping; a new hat avoids a 'haircut'",
        NeuroImage. 2012 Feb 1;59(3):2131-41.
     """
-    if method not in ['absolute', 'relative']:
-        raise ValueError('method must be "absolute" or "relative", not %s'
-                         % method)
+    _check_option('method', method, ['absolute', 'relative'])
     var = np.var(X, axis=0, ddof=1)
     if sigma > 0:
         limit = sigma * np.max(var) if method == 'relative' else sigma

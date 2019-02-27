@@ -31,7 +31,8 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import _to_const
 from ..transforms import invert_transform
-from ..utils import logger, verbose, warn, object_diff, _validate_type
+from ..utils import (logger, verbose, warn, object_diff, _validate_type,
+                     _check_option)
 from .. import __version__
 from .compensator import get_current_comp
 
@@ -733,8 +734,7 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     dig_points : np.ndarray, shape (n_points, 3)
         Array of dig points in [m].
     """
-    if unit not in ('auto', 'm', 'mm', 'cm'):
-        raise ValueError('unit must be one of "auto", "m", "mm", or "cm"')
+    _check_option('unit', unit, ['auto', 'm', 'mm', 'cm'])
 
     _, ext = op.splitext(fname)
     if ext == '.elp' or ext == '.hsp':

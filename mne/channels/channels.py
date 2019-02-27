@@ -14,7 +14,7 @@ import numpy as np
 from scipy import sparse
 
 from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
-                     _check_preload, _validate_type, fill_doc)
+                     _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
@@ -82,9 +82,7 @@ def _contains_ch_type(info, ch_type):
     fnirs_extras = ['hbo', 'hbr']
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
                                   if key != 'meg'] + meg_extras + fnirs_extras)
-    if ch_type not in valid_channel_types:
-        raise ValueError('ch_type must be one of %s, not "%s"'
-                         % (valid_channel_types, ch_type))
+    _check_option('ch_type', ch_type, valid_channel_types)
     if info is None:
         raise ValueError('Cannot check for channels of type "%s" because info '
                          'is None' % (ch_type,))
@@ -1186,9 +1184,8 @@ def find_ch_connectivity(info, ch_type):
             raise ValueError('info must contain only one channel type if '
                              'ch_type is None.')
         ch_type = channel_type(info, 0)
-    elif ch_type not in ['mag', 'grad', 'eeg']:
-        raise ValueError("ch_type must be 'mag', 'grad' or 'eeg'. "
-                         "Got %s." % ch_type)
+    else:
+        _check_option('ch_type', ch_type, ['mag', 'grad', 'eeg'])
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
      has_eeg_coils_and_meg, has_eeg_coils_only,

@@ -13,6 +13,7 @@ import webbrowser
 
 from .config import get_config
 from ..externals.doccer import filldoc, unindent_dict
+from .check import _check_option
 
 
 ##############################################################################
@@ -330,16 +331,11 @@ def open_docs(kind=None, version=None):
         kind = get_config('MNE_DOCS_KIND', 'api')
     help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
                      examples='auto_examples/index.html')
-    if kind not in help_dict:
-        raise ValueError('kind must be one of %s, got %s'
-                         % (sorted(help_dict.keys()), kind))
+    _check_option('kind', kind, sorted(help_dict.keys()))
     kind = help_dict[kind]
     if version is None:
         version = get_config('MNE_DOCS_VERSION', 'stable')
-    versions = ('stable', 'dev')
-    if version not in versions:
-        raise ValueError('version must be one of %s, got %s'
-                         % (version, versions))
+    _check_option('version', version, ['stable', 'dev'])
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
 
 

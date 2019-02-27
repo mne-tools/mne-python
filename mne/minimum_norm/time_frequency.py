@@ -16,10 +16,10 @@ from ..time_frequency.multitaper import (_psd_from_mt, _compute_mt_params,
                                          _psd_from_mt_adaptive, _mt_spectra)
 from ..baseline import rescale, _log_rescale
 from .inverse import (combine_xyz, _check_or_prepare, _assemble_kernel,
-                      _pick_channels_inverse_operator, _check_method,
+                      _pick_channels_inverse_operator, INVERSE_METHODS,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, ProgressBar
+from ..utils import logger, verbose, ProgressBar, _check_option
 
 
 def _prepare_source_params(inst, inverse_operator, label=None,
@@ -131,7 +131,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     stcs : dict of SourceEstimate (or VolSourceEstimate)
         The estimated source space induced power estimates.
     """  # noqa: E501
-    _check_method(method)
+    _check_option('method', method, INVERSE_METHODS)
 
     freqs = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                             for _, band in bands.items()])
@@ -376,7 +376,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
     %(verbose)s
     """  # noqa: E501
-    _check_method(method)
+    _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
     power, plv, vertno = _source_induced_power(

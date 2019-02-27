@@ -17,7 +17,7 @@ from .source_estimate import (VolSourceEstimate, SourceEstimate,
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
-                    warn as warn_, deprecated, fill_doc)
+                    warn as warn_, deprecated, fill_doc, _check_option)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -476,10 +476,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
                          'volumes')
     _check_dep(nibabel='2.1.0', dipy=False)
 
-    known_types = ('nifti', 'nifti1', 'nifti2')
-    if output not in known_types:
-        raise ValueError('output must be one of %s, got %s'
-                         % (known_types, output))
+    _check_option('output', output, ['nifti', 'nifti1', 'nifti2'])
     if output in ('nifti', 'nifti1'):
         from nibabel import (Nifti1Image as NiftiImage,
                              Nifti1Header as NiftiHeader)

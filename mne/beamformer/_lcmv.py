@@ -15,7 +15,8 @@ from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
 from ..utils import (logger, verbose, warn, _validate_type, _reg_pinv,
-                     _check_info_inv, _check_channels_spatial_filter)
+                     _check_info_inv, _check_channels_spatial_filter,
+                     _check_option)
 from ..utils import _check_one_ch_type
 from ..utils import _check_rank
 from .. import Epochs
@@ -410,10 +411,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
                        label=None, picks=None, pick_ori=None, rank=None,
                        weight_norm=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer."""
-    if weight_norm not in [None, 'unit-noise-gain']:
-        raise ValueError('Unrecognized weight normalization option in '
-                         'weight_norm, available choices are None and '
-                         '"unit-noise-gain", got "%s".' % weight_norm)
+    _check_option('weight_norm', weight_norm, [None, 'unit-noise-gain'])
 
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
@@ -585,10 +583,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     """
     _check_reference(epochs)
     rank = _check_rank(rank)
-
-    if pick_ori not in [None, 'normal']:
-        raise ValueError('pick_ori must be one of "normal" and None, '
-                         'got %s' % (pick_ori,))
+    _check_option('pick_ori', pick_ori, [None, 'normal'])
     if noise_covs is not None and len(noise_covs) != len(freq_bins):
         raise ValueError('One noise covariance object expected per frequency '
                          'bin')

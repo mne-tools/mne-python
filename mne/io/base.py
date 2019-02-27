@@ -41,7 +41,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      check_fname, _get_stim_channel, deprecated,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
-                     _check_preload, _get_argvalues)
+                     _check_preload, _get_argvalues, _check_option)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..event import find_events, concatenate_events
@@ -938,9 +938,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if len(self.annotations) == 0 or reject_by_annotation is None:
             data, times = self[picks, start:stop]
             return (data, times) if return_times else data
-        if reject_by_annotation.lower() not in ['omit', 'nan']:
-            raise ValueError("reject_by_annotation must be None, 'omit' or "
-                             "'NaN'. Got %s." % reject_by_annotation)
+        _check_option('reject_by_annotation', reject_by_annotation.lower(),
+                      ['omit', 'nan'])
         onsets, ends = _annotations_starts_stops(self, ['BAD'])
         keep = (onsets < stop) & (ends > start)
         onsets = np.maximum(onsets[keep], start)
@@ -1694,7 +1693,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             .. note:: If ``apply_proj()`` was used to apply the projections,
                       the projectons will be active even if ``proj`` is False.
 
-        fmt : str
+        fmt : 'single' | 'double' | 'int' | 'short'
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
             16-bit integers, respectively. It is **strongly** recommended to
@@ -1754,9 +1753,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                          int=FIFF.FIFFT_INT,
                          single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
-        if fmt not in type_dict:
-            raise ValueError('fmt must be "short", "int", "single", '
-                             'or "double"')
+        _check_option('fmt', fmt, type_dict.keys())
         reset_dict = dict(short=False, int=False, single=True, double=True)
         reset_range = reset_dict[fmt]
         data_type = type_dict[fmt]
@@ -2470,8 +2467,7 @@ def _write_raw_buffer(fid, buf, cals, fmt):
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    if fmt not in ['short', 'int', 'single', 'double']:
-        raise ValueError('fmt must be "short", "single", or "double"')
+    _check_option('fmt', fmt, ['short', 'int', 'single', 'double'])
 
     if np.isrealobj(buf):
         if fmt == 'short':

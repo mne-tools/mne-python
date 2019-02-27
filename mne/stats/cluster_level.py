@@ -16,7 +16,7 @@ from scipy import sparse
 from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
-                     check_random_state)
+                     check_random_state, _check_option)
 from ..source_estimate import SourceEstimate
 
 
@@ -287,8 +287,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         Sum of x values in clusters.
     """
     from scipy import ndimage
-    if tail not in [-1, 0, 1]:
-        raise ValueError('invalid tail parameter')
+    _check_option('tail', tail, [-1, 0, 1])
 
     x = np.asanyarray(x)
 
@@ -489,8 +488,7 @@ def _pval_from_histogram(T, H0, tail):
     For each stat compute a p-value as percentile of its statistics
     within all statistics in surrogate data
     """
-    if tail not in [-1, 0, 1]:
-        raise ValueError('invalid tail parameter')
+    _check_option('tail', tail, [-1, 0, 1])
 
     # from pct to fraction
     if tail == -1:  # up tail
@@ -743,8 +741,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     either a 1 sample t-test or an F test / more sample permutation scheme
     is elicited.
     """
-    if out_type not in ['mask', 'indices']:
-        raise ValueError('out_type must be either \'mask\' or \'indices\'')
+    _check_option('out_type', out_type, ['mask', 'indices'])
     if not isinstance(threshold, dict) and (tail < 0 and threshold > 0 or
                                             tail > 0 and threshold < 0 or
                                             tail == 0 and threshold < 0):

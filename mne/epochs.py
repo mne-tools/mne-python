@@ -51,7 +51,7 @@ from .utils import (check_fname, logger, verbose,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
-                    _check_event_id, _gen_events)
+                    _check_event_id, _gen_events, _check_option)
 from .utils.docs import fill_doc
 
 
@@ -99,8 +99,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     # write events out after getting data to ensure bad events are dropped
     data = epochs.get_data()
 
-    if fmt not in ['single', 'double']:
-        raise ValueError('fmt must be "single" or "double". Got (%s)' % fmt)
+    _check_option('fmt', fmt, ['single', 'double'])
 
     if np.iscomplexobj(data):
         if fmt == 'single':
@@ -262,9 +261,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  filename=None, metadata=None, verbose=None):  # noqa: D102
         self.verbose = verbose
 
-        if on_missing not in ['error', 'warning', 'ignore']:
-            raise ValueError('on_missing must be one of: error, '
-                             'warning, ignore. Got: %s' % on_missing)
+        _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
 
         if events is not None:  # RtEpochs can have events=None
             events = np.asarray(events)
@@ -1387,9 +1384,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                       '_epo.fif', '_epo.fif.gz'))
         split_size = _get_split_size(split_size)
 
-        if fmt not in ('single', 'double'):
-            raise ValueError('fmt must be "single" or "double". Got (%s).' %
-                             fmt)
+        _check_option('fmt', fmt, ['single', 'double'])
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
@@ -2046,9 +2041,7 @@ def _get_drop_indices(event_times, method):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.shape[0] for e in event_times])
     small_e_times = event_times[small_idx]
-    if method not in ['mintime', 'truncate']:
-        raise ValueError('method must be either mintime or truncate, not '
-                         '%s' % method)
+    _check_option('method', method, ['mintime', 'truncate'])
     indices = list()
     for e in event_times:
         if method == 'mintime':

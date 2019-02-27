@@ -13,7 +13,7 @@ from ..decoding import TransformerMixin, BaseEstimator
 from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..io.pick import _pick_data_channels, pick_info
-from ..utils import logger
+from ..utils import logger, _check_option
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -409,8 +409,8 @@ class Xdawn(_XdawnTransformer):
         """Init."""
         super(Xdawn, self).__init__(n_components=n_components,
                                     signal_cov=signal_cov, reg=reg)
-        if correct_overlap not in ['auto', True, False]:
-            raise ValueError('correct_overlap must be a bool or "auto"')
+        _check_option('correct_overlap', correct_overlap,
+                      ['auto', True, False])
         self.correct_overlap = correct_overlap
 
     def fit(self, epochs, y=None):

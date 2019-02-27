@@ -37,7 +37,10 @@ from ..source_space import (_read_source_spaces_from_tree,
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn,
-                     _check_compensation_grade)
+                     _check_compensation_grade, _check_option)
+
+
+INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
 
 
 class InverseOperator(dict):
@@ -725,18 +728,9 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     return K, noise_norm, vertno, source_nn
 
 
-def _check_method(method):
-    """Check the method."""
-    if method not in ['MNE', 'dSPM', 'sLORETA', 'eLORETA']:
-        raise ValueError('method parameter should be "MNE", "dSPM", '
-                         '"sLORETA" or "eLORETA", got %s.' % (method,))
-
-
 def _check_ori(pick_ori, source_ori):
     """Check pick_ori."""
-    if pick_ori not in [None, 'normal', 'vector']:
-        raise RuntimeError('pick_ori must be None, "normal" or "vector", not '
-                           '%s' % pick_ori)
+    _check_option('pick_ori', pick_ori, [None, 'normal', 'vector'])
     if pick_ori == 'vector' and source_ori != FIFF.FIFFV_MNE_FREE_ORI:
         raise RuntimeError('pick_ori="vector" cannot be combined with an '
                            'inverse operator with fixed orientations.')
@@ -904,7 +898,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
            localization. arXiv:0710.3341
     """
     _check_reference(evoked, inverse_operator['info']['ch_names'])
-    _check_method(method)
+    _check_option('method', method, INVERSE_METHODS)
     if method == 'eLORETA' and return_residual:
         raise ValueError('eLORETA does not currently support return_residual')
     _check_ori(pick_ori, inverse_operator['source_ori'])
@@ -1034,7 +1028,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     apply_inverse : Apply inverse operator to evoked object
     """
     _check_reference(raw, inverse_operator['info']['ch_names'])
-    _check_method(method)
+    _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'])
     _check_ch_names(inverse_operator, raw.info)
 
@@ -1111,7 +1105,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               prepared=False, method_params=None,
                               verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
-    _check_method(method)
+    _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'])
     _check_ch_names(inverse_operator, epochs.info)
 
