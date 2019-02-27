@@ -449,10 +449,10 @@ def _check_option(parameter, value, allowed_values):
     allowed_values : list
         The list of allowed values for the parameter.
 
-    Returns
-    -------
-    is_valid : bool
-        Whether the value was valid or not.
+    Raises
+    ------
+    ValueError
+        When the value of the parameter was not one of the valid options.
     """
     if value in allowed_values:
         return True
