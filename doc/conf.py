@@ -464,6 +464,7 @@ numpydoc_xref_aliases = {
     'DigMontage': '~mne.channels.DigMontage',
     'VectorSourceEstimate': '~mne.VectorSourceEstimate',
     'VolSourceEstimate': '~mne.VolSourceEstimate',
+    'VolVectorSourceEstimate': '~mne.VolVectorSourceEstimate',
     'MixedSourceEstimate': '~mne.MixedSourceEstimate',
     'SourceEstimate': '~mne.SourceEstimate', 'Projection': '~mne.Projection',
     'ConductorModel': '~mne.bem.ConductorModel',

@@ -40,7 +40,7 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose,
-                     _validate_type, _check_compensation_grade)
+                     _validate_type, _check_compensation_grade, _check_option)
 from ..label import Label
 from ..fixes import einsum
 
@@ -1064,10 +1064,12 @@ def _restrict_gain_matrix(G, info):
     return G
 
 
+@verbose
 def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                         patch_areas=None, limit_depth_chs=False,
-                        loose_method='svd'):
-    """Compute weighting for depth prior.
+                        combine_xyz='spectral', noise_cov=None, rank=None,
+                        verbose=None):
+    """Compute depth prior for depth weighting.
 
     Parameters
     ----------
@@ -1078,23 +1080,50 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     is_fixed_ori : bool
         Whether or not ``G`` is fixed orientation.
     exp : float
-        Exponent for the depth weighting.
+        Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
-        The upper bound on depth weighting. Can be None to be unbounded.
+        The upper bound on depth weighting.
+        Can be None to be bounded by the largest finite prior.
     patch_areas : ndarray | None
         Patch areas of the vertices from the forward solution.
-    limit_depth_chs : bool
-        If True, limit depth weighting computation to gradiometers
-        if present (ignoring magnetometers). This can improve the
-        computations on systems that have both (e.g., Neuromag).
-    loose_method : 'svd' | 'sum'
+    limit_depth_chs : bool | 'whiten'
+        How to deal with multiple channel types in depth weighting. Options:
+
+        :data:`python:True` (default)
+            Use only grad channels in depth weighting (equivalent to MNE C
+            minimum-norm code). If grad channels aren't present, only mag
+            channels will be used (if no mag, then eeg). This makes the depth
+            prior dependent only on the sensor geometry (and relationship
+            to the sources).
+        ``'whiten'``
+            Compute a whitener and apply it to the channels before computing
+            the depth prior. In this case ``noise_cov`` must not be None.
+
+            .. versionadded:: 0.18
+        :data:`python:False`
+            Use all channels. Only recommended when the gain matrix has
+            already been whitened (otherwise it will be arbitrarily
+            biased toward whichever channel type has the largest values in
+            SI units). Whitening the gain matrix makes the depth prior
+            depend on both sensor geometry and the data of interest captured
+            by the noise covariance (e.g., projections, SNR).
+
+    combine_xyz : 'spectral' | 'fro'
         When a loose (or free) orientation is used, how the depth weighting
         for each triplet should be calculated.
-        If 'svd', use the largest singular value of the 3x3 matrix
-        formed by the dot product ``Gk.T @ Gk`` will be used.
-        If 'sum', then ``np.sum(Gk ** 2)`` will be used.
+        If 'spectral', use the squared spectral norm of Gk.
+        If 'fro', use the squared Frobenius norm of Gk.
 
         .. versionadded:: 0.18
+    noise_cov : instance of Covariance | None
+        The noise covariance to use to whiten the gain matrix when
+        ``limit_depth_chs='whiten'``.
+
+        .. versionadded:: 0.18
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
@@ -1104,23 +1133,55 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     See Also
     --------
     compute_orient_prior
+
+    Notes
+    -----
+    The defaults used by the minimum norm code and sparse solvers differ.
+    In particular, the values for MNE are::
+
+        compute_depth_prior(..., limit=10., limit_depth_chs=True,
+                            combine_xyz='spectral')
+
+    In sparse solvers, the values are::
+
+        compute_depth_prior(..., limit=None, limit_depth_chs='whiten',
+                            combine_xyz='fro')
+
     """
     # XXX this perhaps should just take ``forward`` instead of ``G`` and
     # ``gain_info``. However, it's not easy to do this given that the
     # mixed norm code requires that ``G`` is whitened before this chunk
     # of code executes.
+    from ..cov import Covariance, compute_whitener
     logger.info('Creating the depth weighting matrix...')
+    _validate_type(noise_cov, (Covariance, None), 'noise_cov',
+                   'Covariance or None')
+    _validate_type(limit_depth_chs, (str, bool), 'limit_depth_chs')
+    if isinstance(limit_depth_chs, str):
+        if limit_depth_chs != 'whiten':
+            raise ValueError('limit_depth_chs, if str, must be "whiten", got '
+                             '%s' % (limit_depth_chs,))
+        if not isinstance(noise_cov, Covariance):
+            raise ValueError('With limit_depth_chs="whiten", noise_cov must be'
+                             ' a Covariance, got %s' % (type(noise_cov),))
+    _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
 
     # If possible, pick best depth-weighting channels
     if limit_depth_chs is True:
         G = _restrict_gain_matrix(G, gain_info)
+    elif limit_depth_chs == 'whiten':
+        whitener, _ = compute_whitener(noise_cov, gain_info, pca=True,
+                                       rank=rank)
+        G = np.dot(whitener, G)
 
     # Compute the gain matrix
-    if is_fixed_ori or loose_method == 'sum':
+    if is_fixed_ori or combine_xyz == 'fro':
         d = np.sum(G ** 2, axis=0)
         if not is_fixed_ori:
             d = d.reshape(-1, 3).sum(axis=1)
-    else:
+        # Spherical leadfield can be zero at the center
+        d[d == 0.] = np.min(d[d != 0.])
+    else:  # 'spectral'
         # n_pos = G.shape[1] // 3
         # The following is equivalent to this, but 4-10x faster
         # d = np.zeros(n_pos)

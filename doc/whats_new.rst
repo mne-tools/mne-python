@@ -75,6 +75,8 @@ Changelog
 
 - Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
 
+- Add additional depth weighting options for inverse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) by `Eric Larson`_
+
 Bug
 ~~~
 
@@ -127,6 +129,8 @@ API
 - :class:`Annotations` are now kept sorted (by onset time) during instantiation and :meth:`~Annotations.append` operations, by `Eric Larson`_
 
 - Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
+
+- Deprecate ``limit_depth_chs`` in :func:`mne.minimum_norm.make_inverse_operator` in favor of ``depth=dict(limit_depth_chs=...)`` by `Eric Larson`_
 
 - Reading BDF and GDF files with :func:`mne.io.read_raw_edf` is deprecated and replaced by :func:`mne.io.read_raw_bdf` and :func:`mne.io.read_raw_gdf`, by `Clemens Brunner`_
 

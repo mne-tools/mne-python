@@ -37,7 +37,8 @@ from ..source_space import (_read_source_spaces_from_tree,
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn,
-                     _check_compensation_grade, _check_option)
+                     _check_compensation_grade, _check_option,
+                     _check_depth)
 
 
 INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
@@ -1281,9 +1282,9 @@ def _xyz2lf(Lf_xyz, normals):
 ###############################################################################
 # Assemble the inverse operator
 
-def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
-                     use_cps=True, limit_depth_chs=True, loose_method='svd',
-                     allow_fixed_depth=False, limit=10., whiten='after'):
+def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
+                     use_cps, exp, limit_depth_chs, combine_xyz,
+                     allow_fixed_depth, limit):
     """Prepare a gain matrix and noise covariance for localization."""
     # Steps (according to MNE-C, we change the order of various steps
     # because our I/O is already done, and we create the objects
@@ -1301,8 +1302,10 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
     # 10. Exclude the source space points within the labels (not done)
     # 11. Do appropriate source weighting to the forward computation matrix
     #
+    depth = exp
+    del exp
 
-    is_fixed_ori = is_fixed_orient(forward)
+    input_fixed_ori = is_fixed_orient(forward)
 
     # These gymnastics are necessary due to the redundancy between
     # "fixed" and "loose"
@@ -1327,7 +1330,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
     if fixed:
         if allow_fixed_depth:
             assert loose == 0.
-        elif not is_fixed_ori:
+        elif not input_fixed_ori:
             # Here we use loose=1. because computation of depth priors is
             # improved by operating on the free orientation forward; see code
             # at the comment "Deal with fixed orientation forward / inverse"
@@ -1337,7 +1340,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
                 'For a fixed orientation inverse solution with depth '
                 'weighting, the forward solution must be free-orientation and '
                 'in surface orientation')
-    elif is_fixed_ori:
+    elif input_fixed_ori:
         raise ValueError(
             'Forward operator has fixed orientation and can only '
             'be used to make a fixed-orientation inverse '
@@ -1347,7 +1350,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
     if depth is not None:
         if not (0 < depth <= 1):
             raise ValueError('depth should be a scalar between 0 and 1')
-        if is_fixed_ori and not allow_fixed_depth:
+        if input_fixed_ori and not allow_fixed_depth:
             raise ValueError('You need a free-orientation, surface-oriented '
                              'forward solution to do depth weighting even '
                              'when calculating a fixed-orientation inverse.')
@@ -1362,48 +1365,42 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
             forward, surf_ori=True, use_cps=use_cps)
 
     gain_info, gain = _select_orient_forward(forward, info, noise_cov)
-    noise_cov = prepare_noise_cov(noise_cov, info, gain_info['ch_names'], rank)
-    whitener, _ = compute_whitener(
-        noise_cov, info, gain_info['ch_names'], pca=pca)
     logger.info("Selected %d channels" % (len(gain_info['ch_names'],)))
-    assert whiten in ('before', 'after')
-    if whiten == 'before':
-        logger.info('Whitening the forward solution.')
-        gain = np.dot(whitener, gain)
 
     if depth is None:
         depth_prior = None
     else:
         patch_areas = forward.get('patch_areas', None)
         depth_prior = compute_depth_prior(
-            gain, gain_info, is_fixed_ori, exp=depth, patch_areas=patch_areas,
-            limit_depth_chs=limit_depth_chs, loose_method=loose_method,
-            limit=limit)
+            gain, gain_info, input_fixed_ori, exp=depth,
+            patch_areas=patch_areas,
+            limit_depth_chs=limit_depth_chs, combine_xyz=combine_xyz,
+            limit=limit, noise_cov=noise_cov)
 
     # Deal with fixed orientation forward / inverse
     if fixed:
         orient_prior = None
-        if not is_fixed_ori:
-            # Convert to the fixed orientation forward solution now
-            if depth is not None:
-                # Convert the depth prior into a fixed-orientation one
-                logger.info('    Picked elements from a free-orientation '
-                            'depth-weighting prior into the fixed-orientation '
-                            'one')
-                depth_prior = depth_prior[2::3]
-        if not allow_fixed_depth:
-            forward = convert_forward_solution(
-                forward, surf_ori=forward['surf_ori'], force_fixed=True,
-                use_cps=use_cps)
-            gain_info, gain = _select_orient_forward(
-                forward, info, noise_cov, verbose=False)
+        if not input_fixed_ori and depth is not None:
+            # Convert the depth prior into a fixed-orientation one
+            logger.info('    Picked elements from a free-orientation '
+                        'depth-weighting prior into the fixed-orientation '
+                        'one')
+            depth_prior = depth_prior[2::3]
+        forward = convert_forward_solution(
+            forward, surf_ori=forward['surf_ori'], force_fixed=True,
+            use_cps=use_cps)
+        gain_info, gain = _select_orient_forward(
+            forward, info, noise_cov, verbose=False)
     else:
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this
         orient_prior = compute_orient_prior(forward, loose=loose)
-    if whiten == 'after':
-        logger.info('Whitening the forward solution.')
-        gain = np.dot(whitener, gain)
+
+    logger.info('Whitening the forward solution.')
+    noise_cov = prepare_noise_cov(noise_cov, info, gain_info['ch_names'], rank)
+    whitener, _ = compute_whitener(
+        noise_cov, info, gain_info['ch_names'], pca=pca)
+    gain = np.dot(whitener, gain)
 
     logger.info('Creating the source covariance matrix')
     source_std = np.ones(gain.shape[1])
@@ -1428,7 +1425,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, depth, rank, pca,
 
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
-                          fixed='auto', limit_depth_chs=True, rank=None,
+                          fixed='auto', limit_depth_chs=None, rank=None,
                           use_cps=True, verbose=None):
     """Assemble inverse operator.
 
@@ -1450,16 +1447,14 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumetric, discrete, or mixed source spaces,
         unless ``fixed is True`` in which case the value 0. is used.
-    depth : None | float in [0, 1]
-        Depth weighting coefficients. If None, no depth weighting is performed.
+    %(depth)s
     fixed : bool | 'auto'
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
     limit_depth_chs : bool
-        If True, use only grad channels in depth weighting (equivalent to MNE
-        C code). If grad channels aren't present, only mag channels will be
-        used (if no mag, then eeg). If False, use all channels.
+        Deprecated and will be removed in 0.19.
+        Use ``depth=dict(limit_depth_chs=...)``.
     %(rank_None)s
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
@@ -1509,10 +1504,16 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     """  # noqa: E501
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C
+    depth = _check_depth(depth, 'depth_mne')
+    if limit_depth_chs is not None:
+        warn('limit_depth_chs is deprecated and will be removed in 0.19, '
+             'use depth=dict(limit_depth_chs=...) instead.',
+             DeprecationWarning)
+        depth['limit_depth_chs'] = limit_depth_chs
     forward, gain_info, gain, depth_prior, orient_prior, source_std, \
         trace_GRGT, noise_cov, _ = _prepare_forward(
-            forward, info, noise_cov, fixed, loose, depth, pca='white',
-            rank=rank, use_cps=use_cps, limit_depth_chs=limit_depth_chs)
+            forward, info, noise_cov, fixed, loose, rank, pca='white',
+            use_cps=use_cps, **depth)
     del fixed, loose, depth, use_cps, limit_depth_chs
 
     # Decompose the combined matrix
