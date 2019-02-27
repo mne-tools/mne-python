@@ -59,8 +59,18 @@ rank : None | dict | 'info' | 'full'
         of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
-# Finalize
 
+# Inverses
+docdict['depth'] = """
+depth : None | float | dict
+    If float (default 0.8), it acts as the depth weighting exponent (``exp``)
+    to use (must be between 0 and 1). None is equivalent to 0, meaning no depth
+    weighting is performed. Can also be a `dict` containing additional keyword
+    arguments to pass to :func:`mne.forward.compute_depth_prior` (see docstring
+    for details and defaults).
+"""
+
+# Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
 
