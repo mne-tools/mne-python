@@ -8,7 +8,10 @@ from contextlib import contextmanager
 import hashlib
 from io import BytesIO, StringIO
 import operator
+import os
+import os.path as op
 from math import ceil
+import shutil
 import sys
 
 import numpy as np
@@ -431,6 +434,17 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
                 break
             hasher.update(data)
     return hasher.hexdigest()
+
+
+def _replace_md5(fname):
+    """Replace a file based on MD5sum."""
+    # adapted from sphinx-gallery
+    assert fname.endswith('.new')
+    fname_old = fname[:-4]
+    if op.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+        os.remove(fname)
+    else:
+        shutil.move(fname, fname_old)
 
 
 def create_slices(start, stop, step=None, length=1):

@@ -6,7 +6,7 @@ from os import path as op
 import subprocess
 import sys
 
-from mne.utils import run_subprocess
+from mne.utils import run_subprocess, _replace_md5
 
 
 def setup(app):
@@ -56,7 +56,7 @@ def generate_commands_rst(app):
     out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'generated'))
     if not op.isdir(out_dir):
         os.mkdir(out_dir)
-    out_fname = op.join(out_dir, 'commands.rst')
+    out_fname = op.join(out_dir, 'commands.rst.new')
 
     command_path = op.abspath(
         op.join(os.path.dirname(__file__), '..', '..', 'mne', 'commands'))
@@ -76,6 +76,7 @@ def generate_commands_rst(app):
                                    cmd_name.replace('mne_', 'mne '),
                                    '-' * len(cmd_name),
                                    output))
+    _replace_md5(out_fname)
     print('[Done]')
 
 
