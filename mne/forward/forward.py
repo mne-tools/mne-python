@@ -1021,10 +1021,11 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
                          'with fixed orientation.')
 
     orient_prior = np.ones(n_sources, dtype=np.float)
-    if not is_fixed_ori and loose < 1:
+    if 0 < loose < 1:
         logger.info('Applying loose dipole orientations. Loose value '
                     'of %s.' % loose)
-        orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
+        orient_prior[0::3] *= loose
+        orient_prior[1::3] *= loose
 
     return orient_prior
 
