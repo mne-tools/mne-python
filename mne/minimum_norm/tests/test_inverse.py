@@ -22,7 +22,7 @@ from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  convert_forward_solution, Covariance, combine_evoked,
                  SourceEstimate, make_sphere_model, make_ad_hoc_cov,
                  pick_channels_forward)
-from mne.io import read_raw_fif, Info
+from mne.io import read_raw_fif
 from mne.io.proj import make_projector
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
@@ -88,7 +88,8 @@ def _compare(a, b):
     """Compare two python objects."""
     global last_keys
     skip_types = ['whitener', 'proj', 'reginv', 'noisenorm', 'nchan',
-                  'command_line', 'working_dir', 'mri_file', 'mri_id', 'scanno']
+                  'command_line', 'working_dir', 'mri_file', 'mri_id',
+                  'scanno']
     try:
         if isinstance(a, dict):
             assert isinstance(b, dict)
