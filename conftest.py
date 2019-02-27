@@ -22,7 +22,7 @@ from mne.datasets import testing
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
-fname_data = op.join(s_path, 'sample_audvis_trunc-ave.fif')
+fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 # turn anything that uses testing data into an auto-skipper by
@@ -61,7 +61,7 @@ def matplotlib_config():
 @pytest.fixture(scope='function', params=[testing_param])
 def evoked():
     """Get evoked data."""
-    evoked = mne.read_evokeds(fname_data, condition='Left Auditory',
+    evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
                               baseline=(None, 0))
     evoked.crop(0, 0.2)
     return evoked

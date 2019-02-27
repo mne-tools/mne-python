@@ -1108,11 +1108,11 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
             depend on both sensor geometry and the data of interest captured
             by the noise covariance (e.g., projections, SNR).
 
-    combine_xyz : 'spectral' | 'L2'
+    combine_xyz : 'spectral' | 'fro'
         When a loose (or free) orientation is used, how the depth weighting
         for each triplet should be calculated.
         If 'spectral', use the squared spectral norm of Gk.
-        If 'L2', use the squared L2 norm of Gk.
+        If 'fro', use the squared Frobenius norm of Gk.
 
         .. versionadded:: 0.18
     noise_cov : instance of Covariance | None
@@ -1145,7 +1145,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     In sparse solvers, the values are::
 
         compute_depth_prior(..., limit=None, limit_depth_chs='whiten',
-                            combine_xyz='L2')
+                            combine_xyz='fro')
 
     """
     # XXX this perhaps should just take ``forward`` instead of ``G`` and
@@ -1174,7 +1174,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         G = np.dot(whitener, G)
 
     # Compute the gain matrix
-    if is_fixed_ori or combine_xyz == 'L2':
+    if is_fixed_ori or combine_xyz == 'fro':
         d = np.sum(G ** 2, axis=0)
         if not is_fixed_ori:
             d = d.reshape(-1, 3).sum(axis=1)
@@ -1182,7 +1182,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         d[d == 0.] = np.min(d[d != 0.])
     else:
         if combine_xyz != 'spectral':
-            raise ValueError('combine_xyz must be "L2" or "spectral", '
+            raise ValueError('combine_xyz must be "fro" or "spectral", '
                              'got %s' % (combine_xyz,))
         # n_pos = G.shape[1] // 3
         # The following is equivalent to this, but 4-10x faster

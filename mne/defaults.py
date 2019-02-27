@@ -65,7 +65,7 @@ DEFAULTS = dict(
     depth_mne=dict(exp=0.8, limit=10., limit_depth_chs=True,
                    combine_xyz='spectral', allow_fixed_depth=False),
     depth_sparse=dict(exp=0.8, limit=None, limit_depth_chs='whiten',
-                      combine_xyz='L2', allow_fixed_depth=True),
+                      combine_xyz='fro', allow_fixed_depth=True),
 )
 
 
