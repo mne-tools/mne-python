@@ -90,17 +90,15 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """
     # Import the necessary private functions
     from mne.inverse_sparse.mxne_inverse import \
-        (_prepare_gain, _check_loose_forward, is_fixed_orient,
+        (_prepare_gain, is_fixed_orient,
          _reapply_source_weighting, _make_sparse_stc)
 
     all_ch_names = evoked.ch_names
 
-    loose, forward = _check_loose_forward(loose, forward)
-
     # Handle depth weighting and whitening (here is no weights)
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+    forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca=False, depth=depth,
-        loose=loose, weights=None, weights_min=None)
+        loose=loose, weights=None, weights_min=None, rank=None)
 
     # Select channels of interest
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]

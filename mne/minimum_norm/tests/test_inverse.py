@@ -88,10 +88,10 @@ def _compare(a, b):
     """Compare two python objects."""
     global last_keys
     skip_types = ['whitener', 'proj', 'reginv', 'noisenorm', 'nchan',
-                  'command_line', 'working_dir', 'mri_file', 'mri_id']
+                  'command_line', 'working_dir', 'mri_file', 'mri_id', 'scanno']
     try:
-        if isinstance(a, (dict, Info)):
-            assert (isinstance(b, (dict, Info)))
+        if isinstance(a, dict):
+            assert isinstance(b, dict)
             for k, v in a.items():
                 if k not in b and k not in skip_types:
                     raise ValueError('First one had one second one didn\'t:\n'
@@ -115,7 +115,7 @@ def _compare(a, b):
         elif isinstance(a, np.ndarray):
             assert_array_almost_equal(a, b)
         else:
-            assert_equal(a, b)
+            assert a == b
     except Exception:
         print(last_keys)
         raise

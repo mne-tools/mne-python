@@ -737,41 +737,6 @@ def _check_ori(pick_ori, source_ori):
                            'inverse operator with fixed orientations.')
 
 
-def _check_loose_forward(loose, forward):
-    """Check the compatibility between loose and forward."""
-    src_kind = forward['src'].kind
-    if src_kind != 'surface':
-        if loose == 'auto':
-            loose = 1.
-        if loose != 1:
-            raise ValueError('loose parameter has to be 1 or "auto" for '
-                             'non-surface source space (Got loose=%s for %s '
-                             'source space).' % (loose, src_kind))
-    else:  # surface
-        if loose == 'auto':
-            loose = 0.2
-        # put the forward solution in fixed orientation if it's not already
-        if loose == 0. and not is_fixed_orient(forward):
-            logger.info('Converting forward solution to fixed orietnation')
-            forward = convert_forward_solution(forward, force_fixed=True,
-                                               use_cps=True)
-        elif loose < 1. and not forward['surf_ori']:
-            logger.info('Converting forward solution to surface orientation')
-            forward = convert_forward_solution(forward, surf_ori=True,
-                                               use_cps=True)
-
-    assert loose is not None
-    loose = float(loose)
-    if loose < 0 or loose > 1:
-        raise ValueError('loose must be between 0 and 1, got %s' % loose)
-
-    if loose == 0. and not is_fixed_orient(forward):
-        forward = convert_forward_solution(forward, force_fixed=True,
-                                           use_cps=True)
-
-    return loose, forward
-
-
 def _check_reference(inst, ch_names=None):
     """Check for EEG ref."""
     info = inst.info
@@ -1304,33 +1269,52 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     #
     depth = exp
     del exp
-
-    input_fixed_ori = is_fixed_orient(forward)
+    src_kind = forward['src'].kind
 
     # These gymnastics are necessary due to the redundancy between
     # "fixed" and "loose"
     if fixed == 'auto':
         if loose == 'auto':
-            fixed, loose = False, 0.2
+            fixed = False
+            loose = 0.2 if src_kind == 'surface' else 1.
         else:
             fixed = True if float(loose) == 0 else False
     if fixed:
         if loose not in ['auto', 0.]:
-            raise ValueError('When invoking make_inverse_operator with '
-                             'fixed=True, loose must be 0. or "auto", '
-                             'got %s' % (loose,))
+            raise ValueError('When using fixed=True, loose must be 0. or '
+                             '"auto", got %s' % (loose,))
         loose = 0.
     if loose == 0.:
-        if fixed not in (True, 'auto'):
+        if not fixed:
             raise ValueError('If loose==0., then fixed must be True or "auto",'
                              'got %s' % (fixed,))
         fixed = True
+    if src_kind != 'surface':
+        if loose != 1:
+            raise ValueError('loose parameter has to be 1 or "auto" for '
+                             'non-surface source space (Got loose=%s for %s '
+                             'source space).' % (loose, src_kind))
+    if allow_fixed_depth:
+        # put the forward solution in fixed orientation if it's not already
+        if loose == 0. and not is_fixed_orient(forward):
+            logger.info('Converting forward solution to fixed orietnation')
+            forward = convert_forward_solution(
+                forward, force_fixed=True, use_cps=True)
+        elif loose < 1. and not forward['surf_ori']:
+            logger.info('Converting forward solution to surface orientation')
+            forward = convert_forward_solution(
+                forward, surf_ori=True, use_cps=True)
+
+    loose = float(loose)
+    if not 0 <= loose <= 1:
+        raise ValueError('loose must be between 0 and 1, got %s' % loose)
+
     depth = None if depth == 0. else depth  # 0. is an alias for None
 
     if fixed:
         if allow_fixed_depth:
             assert loose == 0.
-        elif not input_fixed_ori:
+        elif not is_fixed_orient(forward):
             # Here we use loose=1. because computation of depth priors is
             # improved by operating on the free orientation forward; see code
             # at the comment "Deal with fixed orientation forward / inverse"
@@ -1340,7 +1324,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'For a fixed orientation inverse solution with depth '
                 'weighting, the forward solution must be free-orientation and '
                 'in surface orientation')
-    elif input_fixed_ori:
+    elif is_fixed_orient(forward):
         raise ValueError(
             'Forward operator has fixed orientation and can only '
             'be used to make a fixed-orientation inverse '
@@ -1350,57 +1334,54 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     if depth is not None:
         if not (0 < depth <= 1):
             raise ValueError('depth should be a scalar between 0 and 1')
-        if input_fixed_ori and not allow_fixed_depth:
+        if is_fixed_orient(forward) and not allow_fixed_depth:
             raise ValueError('You need a free-orientation, surface-oriented '
                              'forward solution to do depth weighting even '
                              'when calculating a fixed-orientation inverse.')
 
-    loose, forward = _check_loose_forward(loose, forward)
-    assert isinstance(loose, float) and 0 <= loose <= 1
-
-    if (depth is not None or loose < 1) and not (forward['surf_ori'] or
-                                                 allow_fixed_depth):
-        logger.info('Forward is not surface oriented, converting.')
+    if loose == 0. and not is_fixed_orient(forward):
+        logger.info('Converting forward solution to fixed orietnation')
         forward = convert_forward_solution(
-            forward, surf_ori=True, use_cps=use_cps)
+            forward, force_fixed=True, use_cps=True)
+    elif loose < 1. and not forward['surf_ori']:
+        logger.info('Converting forward solution to surface orientation')
+        forward = convert_forward_solution(
+            forward, surf_ori=True, use_cps=True)
 
-    gain_info, gain = _select_orient_forward(forward, info, noise_cov)
-    logger.info("Selected %d channels" % (len(gain_info['ch_names'],)))
+    forward, info_picked = _select_orient_forward(forward, info, noise_cov)
+    logger.info("Selected %d channels" % (len(info_picked['ch_names'],)))
 
     if depth is None:
         depth_prior = None
     else:
-        patch_areas = forward.get('patch_areas', None)
         depth_prior = compute_depth_prior(
-            gain, gain_info, input_fixed_ori, exp=depth,
-            patch_areas=patch_areas,
-            limit_depth_chs=limit_depth_chs, combine_xyz=combine_xyz,
-            limit=limit, noise_cov=noise_cov)
+            forward, info_picked, exp=depth, limit_depth_chs=limit_depth_chs,
+            combine_xyz=combine_xyz, limit=limit, noise_cov=noise_cov)
 
     # Deal with fixed orientation forward / inverse
     if fixed:
         orient_prior = None
-        if not input_fixed_ori and depth is not None:
-            # Convert the depth prior into a fixed-orientation one
-            logger.info('    Picked elements from a free-orientation '
-                        'depth-weighting prior into the fixed-orientation '
-                        'one')
-            depth_prior = depth_prior[2::3]
-        forward = convert_forward_solution(
-            forward, surf_ori=forward['surf_ori'], force_fixed=True,
-            use_cps=use_cps)
-        gain_info, gain = _select_orient_forward(
-            forward, info, noise_cov, verbose=False)
+        if not is_fixed_orient(forward):
+            if depth_prior is not None:
+                # Convert the depth prior into a fixed-orientation one
+                logger.info('    Picked elements from a free-orientation '
+                            'depth-weighting prior into the fixed-orientation '
+                            'one')
+                depth_prior = depth_prior[2::3]
+            forward = convert_forward_solution(
+                forward, surf_ori=True, force_fixed=True,
+                use_cps=use_cps)
     else:
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this
         orient_prior = compute_orient_prior(forward, loose=loose)
 
     logger.info('Whitening the forward solution.')
-    noise_cov = prepare_noise_cov(noise_cov, info, gain_info['ch_names'], rank)
+    noise_cov = prepare_noise_cov(
+        noise_cov, info, info_picked['ch_names'], rank)
     whitener, _ = compute_whitener(
-        noise_cov, info, gain_info['ch_names'], pca=pca)
-    gain = np.dot(whitener, gain)
+        noise_cov, info, info_picked['ch_names'], pca=pca)
+    gain = np.dot(whitener, forward['sol']['data'])
 
     logger.info('Creating the source covariance matrix')
     source_std = np.ones(gain.shape[1])
@@ -1419,7 +1400,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     source_std *= scale
     gain *= scale
 
-    return (forward, gain_info, gain, depth_prior, orient_prior, source_std,
+    return (forward, info_picked, gain, depth_prior, orient_prior, source_std,
             trace_GRGT, noise_cov, whitener)
 
 
