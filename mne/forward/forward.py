@@ -40,7 +40,7 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose,
-                     _validate_type, _check_compensation_grade)
+                     _validate_type, _check_compensation_grade, _check_option)
 from ..label import Label
 from ..fixes import einsum
 
@@ -1164,6 +1164,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         if not isinstance(noise_cov, Covariance):
             raise ValueError('With limit_depth_chs="whiten", noise_cov must be'
                              ' a Covariance, got %s' % (type(noise_cov),))
+    _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
 
     # If possible, pick best depth-weighting channels
     if limit_depth_chs is True:
@@ -1180,10 +1181,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
             d = d.reshape(-1, 3).sum(axis=1)
         # Spherical leadfield can be zero at the center
         d[d == 0.] = np.min(d[d != 0.])
-    else:
-        if combine_xyz != 'spectral':
-            raise ValueError('combine_xyz must be "fro" or "spectral", '
-                             'got %s' % (combine_xyz,))
+    else:  # 'spectral'
         # n_pos = G.shape[1] // 3
         # The following is equivalent to this, but 4-10x faster
         # d = np.zeros(n_pos)
