@@ -26,7 +26,7 @@ from ..surface import read_surface
 from ..io.proj import make_projector
 from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types
 from ..source_space import read_source_spaces, SourceSpaces
-from ..utils import logger, verbose, get_subjects_dir, warn
+from ..utils import logger, verbose, get_subjects_dir, warn, _check_option
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
@@ -717,7 +717,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     from scipy.signal import freqz, group_delay
     import matplotlib.pyplot as plt
     sfreq = float(sfreq)
-    _check_fscale(fscale)
+    _check_option('fscale', fscale, ['log', 'linear'])
     flim = _get_flim(flim, fscale, freq, sfreq)
     if fscale == 'log':
         omega = np.logspace(np.log10(flim[0]), np.log10(flim[1]), 1000)
@@ -852,7 +852,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
                          'Nyquist, but got %s for DC' % (freq[0],))
     freq = np.array(freq)
     # deal with semilogx problems @ x=0
-    _check_fscale(fscale)
+    _check_option('fscale', fscale, ['log', 'linear'])
     if fscale == 'log':
         freq[0] = 0.1 * freq[1] if flim is None else min(flim[0], freq[1])
     flim = _get_flim(flim, fscale, freq)

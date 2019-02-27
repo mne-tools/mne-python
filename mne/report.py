@@ -21,7 +21,7 @@ import numpy as np
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw_fif, read_info, _stamp_to_dt
 from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
-                    fill_doc)
+                    fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -811,15 +811,12 @@ def _check_scale(scale):
 
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
-    if image_format not in ('png', 'svg'):
-        if rep is None:
-            raise ValueError('image_format must be "svg" or "png", got %s'
-                             % (image_format,))
-        elif image_format is not None:
-            raise ValueError('image_format must be one of "svg", "png", or '
-                             'None, got %s' % (image_format,))
-        else:  # rep is not None and image_format is None
-            image_format = rep.image_format
+    if rep is None:
+        _check_option('image_format', image_format, ['png', 'svg'])
+    elif image_format is not None:
+        _check_option('image_format', image_format, ['png', 'svg', None])
+    else:  # rep is not None and image_format is None
+        image_format = rep.image_format
     return image_format
 
 
@@ -1131,9 +1128,7 @@ class Report(object):
             image_format = os.path.splitext(fname)[1][1:]
             image_format = image_format.lower()
 
-            if image_format not in ['png', 'gif', 'svg']:
-                raise ValueError("Unknown image format. Only 'png', 'gif' or "
-                                 "'svg' are supported. Got %s" % image_format)
+            _check_option('image_format', image_format, ['png', 'gif', 'svg'])
 
             # Convert image to binary string.
             with open(fname, 'rb') as f:
@@ -1417,10 +1412,7 @@ class Report(object):
         %(verbose_meth)s
         """
         image_format = _check_image_format(self, image_format)
-        valid_errors = ['ignore', 'warn', 'raise']
-        if on_error not in valid_errors:
-            raise ValueError('on_error must be one of %s, not %s'
-                             % (valid_errors, on_error))
+        _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
         self._sort = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)

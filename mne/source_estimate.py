@@ -19,7 +19,7 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
-                    fill_doc)
+                    fill_doc, _check_option)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
@@ -1398,9 +1398,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             and "h5". The "w" format only supports a single time point.
         %(verbose_meth)s
         """
-        if ftype not in ('stc', 'w', 'h5'):
-            raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
-                             % ftype)
+        _check_option('ftype', ftype, ['stc', 'w', 'h5'])
 
         lh_data = self.data[:len(self.lh_vertno)]
         rh_data = self.data[-len(self.rh_vertno):]
@@ -1622,8 +1620,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             if not len(hemi) == 1:
                 raise ValueError('Could not infer hemisphere')
             hemi = hemi[0]
-        if hemi not in [0, 1]:
-            raise ValueError('hemi must be 0 or 1')
+        _check_option('hemi', hemi, [0, 1])
         vertices = self.vertices[hemi]
         values = values[vert_inds[hemi]]  # left or right
         del vert_inds
@@ -1886,10 +1883,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             and "h5". The "w" format only supports a single time point.
         %(verbose_meth)s
         """
-        if ftype not in ['stc', 'w', 'h5']:
-            raise ValueError('ftype must be "stc", "w" or "h5", not "%s"' %
-                             ftype)
-
+        _check_option('ftype', ftype, ['stc', 'w', 'h5'])
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
             if not (fname.endswith('-vl.stc') or fname.endswith('-vol.stc')):

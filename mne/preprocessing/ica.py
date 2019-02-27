@@ -48,7 +48,8 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn,
-                     _check_preload, _check_compensation_grade, fill_doc)
+                     _check_preload, _check_compensation_grade, fill_doc,
+                     _check_option)
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -304,10 +305,8 @@ class ICA(ContainsMixin):
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
-        methods = ('fastica', 'infomax', 'extended-infomax', 'picard')
-        if method not in methods:
-            raise ValueError('`method` must be "%s". You passed: "%s"' %
-                             ('" or "'.join(methods), method))
+        _check_option('method', method,
+                      ['fastica', 'infomax', 'extended-infomax', 'picard'])
         if method == 'extended-infomax':
             warn("method='extended-infomax' is deprecated and will be removed "
                  "in 0.19. If you want to use Extended Infomax, specify "

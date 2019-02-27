@@ -32,7 +32,7 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
-                    check_fname, _pl, fill_doc)
+                    check_fname, _pl, fill_doc, _check_option)
 
 
 @fill_doc
@@ -1326,10 +1326,7 @@ def get_phantom_dipoles(kind='vectorview'):
     The Elekta phantoms have a radius of 79.5mm, and HPI coil locations
     in the XY-plane at the axis extrema (e.g., (79.5, 0), (0, -79.5), ...).
     """
-    _valid_types = ('vectorview', 'otaniemi')
-    if not isinstance(kind, str) or kind not in _valid_types:
-        raise ValueError('kind must be one of %s, got %s'
-                         % (_valid_types, kind,))
+    _check_option('kind', kind, ['vectorview', 'otaniemi'])
     if kind == 'vectorview':
         # these values were pulled from a scanned image provided by
         # Elekta folks

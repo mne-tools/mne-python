@@ -47,7 +47,8 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
-from .utils import verbose, logger, use_log_level, _check_fname, warn
+from .utils import (verbose, logger, use_log_level, _check_fname, warn,
+                    _check_option)
 
 # Eventually we should add:
 #   hpicons
@@ -633,7 +634,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     coil_dev_rrs : ndarray, shape (n_CHPI, 3)
         Fit locations of each cHPI coil in device coordinates
     """
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
     # 0. determine samples to fit.
     if t_win is None:  # use the whole window
         i_win = [0, len(raw.times)]
@@ -670,13 +671,6 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     coil_g = np.array([o[0] for o in outs])
 
     return coil_dev_rrs, coil_g
-
-
-def _check_too_close(too_close):
-    if not isinstance(too_close, str) or \
-            too_close not in ('raise', 'warning', 'info'):
-        raise ValueError('too_close must be "raise", "warning", or "info", '
-                         'got %s (type %s)' % (too_close, type(too_close)))
 
 
 @verbose
@@ -726,7 +720,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     from scipy.spatial.distance import cdist
     # extract initial geometry from info['hpi_results']
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract hpi system information
     hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])))
@@ -952,7 +946,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
     read_head_pos
     write_head_pos
     """
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract initial geometry from info['hpi_results']
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)

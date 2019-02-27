@@ -33,7 +33,8 @@ from .event import make_fixed_length_events
 from .rank import compute_rank
 from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
-                    _undo_scaling_cov, _scaled_array, _validate_type)
+                    _undo_scaling_cov, _scaled_array, _validate_type,
+                    _check_option)
 from . import viz
 
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
@@ -756,10 +757,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
              'matrix may be inaccurate')
 
     orig = epochs[0].info['dev_head_t']
-    if not isinstance(on_mismatch, str) or \
-            on_mismatch not in ['raise', 'warn', 'ignore']:
-        raise ValueError('on_mismatch must be "raise", "warn", or "ignore", '
-                         'got %s' % on_mismatch)
+    _check_option('on_mismatch', on_mismatch, ['raise', 'warn', 'ignore'])
     for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
         if (orig is None) != (epoch.info['dev_head_t'] is None) or \
@@ -882,9 +880,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 def _check_scalings_user(scalings):
     if isinstance(scalings, dict):
         for k, v in scalings.items():
-            if k not in ('mag', 'grad', 'eeg'):
-                raise ValueError('The keys in `scalings` must be "mag" or'
-                                 '"grad" or "eeg". You gave me: %s' % k)
+            _check_option('the keys in `scalings`', k, ['mag', 'grad', 'eeg'])
     elif scalings is not None and not isinstance(scalings, np.ndarray):
         raise TypeError('scalings must be a dict, ndarray, or None, got %s'
                         % type(scalings))

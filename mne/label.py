@@ -23,7 +23,8 @@ from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
                       read_morph_map)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
-                    check_random_state, _validate_type, fill_doc)
+                    check_random_state, _validate_type, fill_doc,
+                    _check_option)
 
 
 def _blend_colors(color_1, color_2):
@@ -1903,8 +1904,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
         annot_fname = [annot_fname]
     else:
         # construct .annot file names for requested subject, parc, hemi
-        if hemi not in ['lh', 'rh', 'both']:
-            raise ValueError('hemi has to be "lh", "rh", or "both"')
+        _check_option('hemi', hemi, ['lh', 'rh', 'both'])
         if hemi == 'both':
             hemis = ['lh', 'rh']
         else:

@@ -156,7 +156,7 @@ def test_lcmv_vector():
 
     # Now let's do LCMV
     data_cov = mne.make_ad_hoc_cov(info)  # just a stub for later
-    with pytest.raises(ValueError, match='pick_ori must be one of'):
+    with pytest.raises(ValueError, match="pick_ori"):
         make_lcmv(info, forward, data_cov, 0.05, noise_cov, pick_ori='bad')
 
     lcmv_ori = list()
@@ -621,7 +621,7 @@ def test_tf_lcmv():
                   tstep, win_lengths, freq_bins, weight_norm='nai')
 
     # Test unsupported pick_ori (vector not supported here)
-    with pytest.raises(ValueError, match='pick_ori must be one of'):
+    with pytest.raises(ValueError, match='pick_ori'):
         tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                 freq_bins, pick_ori='vector')
     # Test correct detection of preloaded epochs objects that do not contain

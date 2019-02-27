@@ -6,7 +6,7 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
-from ..utils import fill_doc
+from ..utils import fill_doc, _check_option
 
 
 @fill_doc
@@ -74,9 +74,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.use_fft = use_fft
         self.decim = decim
         # Check that output is not an average metric (e.g. ITC)
-        if output not in ['complex', 'power', 'phase']:
-            raise ValueError("output must be 'complex', 'power', 'phase'. "
-                             "Got %s instead." % output)
+        _check_option('output', output, ['complex', 'power', 'phase'])
         self.output = output
         self.n_jobs = n_jobs
         self.verbose = verbose
