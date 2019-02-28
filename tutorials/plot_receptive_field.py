@@ -169,7 +169,7 @@ for ii, iep in enumerate(X_del):
 X_plt = scale(np.hstack(X[:2]).T).T
 y_plt = scale(np.hstack(y[:2]))
 time = np.arange(X_plt.shape[-1]) / sfreq
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)
+_, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)
 ax1.pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap='Reds')
 ax1.set_title('Input auditory features')
 ax1.set(ylim=[freqs.min(), freqs.max()], ylabel='Frequency (Hz)')
@@ -214,7 +214,7 @@ coefs = best_mod.coef_[0]
 best_pred = best_mod.predict(X_test)[:, 0]
 
 # Plot the original STRF, and the one that we recovered with modeling.
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3), sharey=True, sharex=True)
+_, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3), sharey=True, sharex=True)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax2.pcolormesh(times, rf.feature_names, coefs, **kwargs)
 ax1.set_title('Original STRF')
@@ -356,8 +356,8 @@ mne.viz.tight_layout()
 # Plot the original STRF, and the one that we recovered with modeling.
 rf = models[ix_best_alpha]
 rf_lap = models_lap[ix_best_alpha_lap]
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(9, 3),
-                                    sharey=True, sharex=True)
+_, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(9, 3),
+                                  sharey=True, sharex=True)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax2.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
 ax3.pcolormesh(times, rf_lap.feature_names, rf_lap.coef_[0], **kwargs)
@@ -367,4 +367,3 @@ ax3.set_title('Best Laplacian STRF')
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2, ax3]], rotation=45)
 plt.autoscale(tight=True)
 mne.viz.tight_layout()
-plt.show()

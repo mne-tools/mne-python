@@ -67,8 +67,6 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method, label,
 stc_evoked = apply_inverse(evoked, inverse_operator, lambda2, method,
                            pick_ori="normal")
 
-stc_evoked_label = stc_evoked.in_label(label)
-
 # Mean across trials but not across vertices in label
 mean_stc = sum(stcs) / len(stcs)
 

@@ -282,9 +282,9 @@ evoked2 = mne.read_evokeds(
 # ``mne.Evoked.nave`` attribute properly based on the underlying number
 # of trials) using either equivalent call:
 
-contrast = mne.combine_evoked([evoked1, evoked2], weights=[0.5, -0.5])
-contrast = mne.combine_evoked([evoked1, -evoked2], weights='equal')
-print(contrast)
+contrast_a = mne.combine_evoked([evoked1, evoked2], weights=[0.5, -0.5])
+contrast_b = mne.combine_evoked([evoked1, -evoked2], weights='equal')
+print(contrast_b)
 
 ##############################################################################
 # To do a weighted sum based on the number of averages, which will give
@@ -293,7 +293,7 @@ print(contrast)
 # you can use ``weights='nave'``:
 
 average = mne.combine_evoked([evoked1, evoked2], weights='nave')
-print(contrast)
+print(average)
 
 ##############################################################################
 # Instead of dealing with mismatches in the number of averages, we can use

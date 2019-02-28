@@ -157,8 +157,8 @@ stc = apply_inverse(left_auditory, inv, pick_ori='vector')
 
 # Visualize it at the moment of peak activity.
 _, time_max = stc.magnitude().get_peak(hemi='lh')
-brain = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
-                 time_unit='s', size=(600, 400), overlay_alpha=0)
+brain_mag = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
+                     time_unit='s', size=(600, 400), overlay_alpha=0)
 
 ###############################################################################
 # .. _plot_dipole_orientations_vLOC_orientations:
@@ -179,8 +179,8 @@ stc = apply_inverse(left_auditory, inv, pick_ori='vector')
 
 # Visualize it at the moment of peak activity.
 _, time_max = stc.magnitude().get_peak(hemi='lh')
-brain = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
-                 time_unit='s', size=(600, 400), overlay_alpha=0)
+brain_loose = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
+                       time_unit='s', size=(600, 400), overlay_alpha=0)
 
 ###############################################################################
 # Discarding dipole orientation information

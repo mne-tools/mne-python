@@ -362,7 +362,8 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
     out = (megcoils, compcoils, megnames)
     if do_picking:
-        out = out + (pick_info(info, picks) if nmeg > 0 else None,)
+        assert nmeg > 0
+        out = out + (pick_info(info, picks),)
     return out
 
 
@@ -386,7 +387,6 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     eegnames : list of str
         Name of each prepped EEG electrode
     """
-    eegnames, eegels = [], []
     info_extra = 'info'
 
     # Find EEG electrodes

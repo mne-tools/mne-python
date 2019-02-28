@@ -507,7 +507,6 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
                          "scipy sparse matrix.")
     if connectivity.shape[0] == n_vertices:  # use global algorithm
         connectivity = connectivity.tocoo()
-        n_times = None
     else:  # use temporal adjacency algorithm
         if not round(n_vertices / float(connectivity.shape[0])) == n_times:
             raise ValueError('connectivity must be of the correct size')

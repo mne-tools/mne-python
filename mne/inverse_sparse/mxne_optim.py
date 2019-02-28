@@ -228,7 +228,7 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
                             dgap_freq=10):
     """Solve L21 inverse problem with proximal iterations and FISTA."""
     n_sensors, n_times = M.shape
-    n_sensors, n_sources = G.shape
+    _, n_sources = G.shape
 
     if n_sources < n_sensors:
         gram = np.dot(G.T, G)

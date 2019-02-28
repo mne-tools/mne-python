@@ -29,7 +29,6 @@ data_path = sample.data_path()
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_id = 1
 tmin = -0.2
 tmax = 0.5
 
