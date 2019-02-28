@@ -65,7 +65,7 @@ class _Renderer(object):
         """Enable interactive mode."""
         self.view.camera.interactive = True
 
-    def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
+    def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=True,
              backface_culling=False, **kwargs):
         """Add a mesh in the scene.
 
@@ -211,10 +211,13 @@ class _Renderer(object):
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
         """
+        from vispy.geometry.generation import create_sphere
         for c in center:
-            sphere = scene.visuals.Sphere(radius=scale * default_sphere_radius,
-                                          cols=resolution, rows=resolution,
-                                          color=color, parent=self.view.scene)
+            meshdata = create_sphere(radius=scale * default_sphere_radius,
+                                     cols=resolution, rows=resolution)
+            sphere = scene.visuals.Mesh(meshdata=meshdata, color=color,
+                                        shading='smooth',
+                                        parent=self.view.scene)
             sphere.transform = STTransform(translate=c)
             sphere.attach(Alpha(opacity))
             if backface_culling:
