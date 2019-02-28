@@ -36,7 +36,7 @@ class _AbstractConEstBase(object):
     def combine(self, other):
         raise NotImplementedError('combine method not implemented')
 
-    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
+    def compute_con(self, con_idx, n_epochs):
         raise NotImplementedError('compute_con method not implemented')
 
 

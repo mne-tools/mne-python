@@ -64,9 +64,6 @@ evoked = epochs.average()
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method, label,
                             pick_ori="normal", nave=evoked.nave)
 
-stc_evoked = apply_inverse(evoked, inverse_operator, lambda2, method,
-                           pick_ori="normal")
-
 # Mean across trials but not across vertices in label
 mean_stc = sum(stcs) / len(stcs)
 
