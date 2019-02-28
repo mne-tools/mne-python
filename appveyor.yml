@@ -29,3 +29,14 @@ test_script:
 
 on_success:
   - "codecov"
+
+# Adapted from SciPy
+on_finish:
+  - ps: |
+      If (Test-Path .\junit-results.xml) {
+        (new-object net.webclient).UploadFile(
+          "https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)",
+          (Resolve-Path .\junit-results.xml)
+        )
+      }
+      $LastExitCode = 0
