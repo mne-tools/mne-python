@@ -1010,22 +1010,22 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     n_sources = forward['sol']['data'].shape[1]
     loose = float(loose)
     if not (0 <= loose <= 1):
-        raise ValueError('loose value should be smaller than 1 and bigger '
-                         'than 0, got %s.' % (loose,))
-    if loose < 1 and not forward['surf_ori']:
-        raise ValueError('Forward operator is not oriented in surface '
-                         'coordinates. loose parameter should be 1 '
-                         'not %s.' % loose)
-    if is_fixed_ori and loose != 0:
-        raise ValueError('loose must be 0. with forward operator '
-                         'with fixed orientation.')
-
+        raise ValueError('loose value should be between 0 and 1, '
+                         'got %s.' % (loose,))
     orient_prior = np.ones(n_sources, dtype=np.float)
-    if 0 < loose < 1:
-        logger.info('Applying loose dipole orientations. Loose value '
-                    'of %s.' % loose)
-        orient_prior[0::3] *= loose
-        orient_prior[1::3] *= loose
+    if loose > 0.:
+        if is_fixed_ori:
+            raise ValueError('loose must be 0. with forward operator '
+                             'with fixed orientation, got %s' % (loose,))
+        if loose < 1:
+            if not forward['surf_ori']:
+                raise ValueError('Forward operator is not oriented in surface '
+                                 'coordinates. loose parameter should be 1 '
+                                 'not %s.' % (loose,))
+            logger.info('Applying loose dipole orientations. Loose value '
+                        'of %s.' % loose)
+            orient_prior[0::3] *= loose
+            orient_prior[1::3] *= loose
 
     return orient_prior
 
