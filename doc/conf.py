@@ -322,6 +322,16 @@ else:
     push_exception_handler(reraise_exceptions=True)
 
 
+class Resetter(object):
+    """Simple class to make the str(obj) static for Sphinx build env hash."""
+
+    def __repr__(self):
+        return '<%s>' % (self.__class__.__name__,)
+
+    def __call__(self, gallery_conf, fname):
+        reset_warnings(gallery_conf, fname)
+
+
 def reset_warnings(gallery_conf, fname):
     """Ensure we are future compatible and ignore silly warnings."""
     # In principle, our examples should produce no warnings.
@@ -392,7 +402,7 @@ sphinx_gallery_conf = {
     'thumbnail_size': (160, 112),
     'min_reported_time': 1.,
     'abort_on_example_error': False,
-    'reset_modules': ('matplotlib', reset_warnings),  # called w/each script
+    'reset_modules': ('matplotlib', Resetter()),  # called w/each script
     'image_scrapers': scrapers,
     'show_memory': True,
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
