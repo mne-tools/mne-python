@@ -324,15 +324,12 @@ class _Renderer(object):
             The focal point of the camera: (x, y, z).
         """
         if azimuth is not None:
-            self.view.camera.azimuth = 360 - azimuth
+            self.view.camera.azimuth = 90 + azimuth
         if elevation is not None:
             self.view.camera.elevation = 90 - elevation
-            if elevation > 0:
-                self.view.camera.azimuth = \
-                    (self.view.camera.azimuth + 180) % 360
         if distance is not None:
             self.view.camera.fov = 50
-            self.view.camera.distance = distance
+            self.view.camera.distance = distance / 2.0
         if focalpoint is not None:
             self.view.camera.center = focalpoint
 
