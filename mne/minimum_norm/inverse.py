@@ -1281,14 +1281,16 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             raise ValueError('When using fixed=True, loose must be 0. or '
                              '"auto", got %s' % (loose,))
         loose = 0.
-    if loose == 0.:
-        if not fixed:
-            raise ValueError('If loose==0., then fixed must be True or "auto",'
-                             'got %s' % (fixed,))
+    elif loose == 'auto':
+        loose = 0.2 if src_kind == 'surface' else 1.
+    elif loose == 0.:
+        raise ValueError('If loose==0., then fixed must be True or "auto",'
+                         'got %s' % (fixed,))
+    del fixed
+
     loose = float(loose)
     if not 0 <= loose <= 1:
         raise ValueError('loose must be between 0 and 1, got %s' % loose)
-    del fixed
     if src_kind != 'surface':
         if loose != 1:
             raise ValueError('loose parameter has to be 1 or "auto" for '
