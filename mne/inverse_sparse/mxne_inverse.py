@@ -9,8 +9,8 @@ from scipy import linalg, signal
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
-                                    _check_reference, _check_loose_forward)
-from ..forward import is_fixed_orient, convert_forward_solution
+                                    _check_reference)
+from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose, warn, _check_depth
@@ -64,7 +64,7 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, rank,
         gain, source_weighting, mask = _prepare_weights(
             forward, gain, source_weighting, weights, weights_min)
 
-    return gain, gain_info, whitener, source_weighting, mask
+    return forward, gain, gain_info, whitener, source_weighting, mask
 
 
 def _reapply_source_weighting(X, source_weighting, active_set):
@@ -353,14 +353,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
 
-    loose, forward = _check_loose_forward(loose, forward)
-
-    # put the forward solution in fixed orientation if it's not already
-    if loose == 0. and not is_fixed_orient(forward):
-        forward = convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
-
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+    forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked[0].info, noise_cov, pca, depth, loose, rank,
         weights, weights_min)
 
@@ -611,18 +604,10 @@ def tf_mixed_norm(evoked, forward, noise_cov,
                          'passed. Got tstep = %s and wsize = %s' %
                          (tstep, wsize))
 
-    loose, forward = _check_loose_forward(loose, forward)
-
-    # put the forward solution in fixed orientation if it's not already
-    if loose == 0. and not is_fixed_orient(forward):
-        forward = convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
-
-    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
-
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+    forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, rank,
         weights, weights_min)
+    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
 
     if window is not None:
         evoked = _window_evoked(evoked, window)

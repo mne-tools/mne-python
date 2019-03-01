@@ -977,21 +977,12 @@ def _select_orient_forward(forward, info, noise_cov=None, verbose=None):
 
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
-
-    gain = forward['sol']['data']
-
-    # This actually reorders the gain matrix to conform to the info ch order
-    fwd_idx = [fwd_sol_ch_names.index(name) for name in ch_names]
-    gain = gain[fwd_idx]
-    # Any function calling this helper will be using the returned fwd_info
-    # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
-
+    forward = pick_channels_forward(forward, ch_names, ordered=True)
     info_idx = [info['ch_names'].index(name) for name in ch_names]
-    fwd_info = pick_info(info, info_idx)
+    info_picked = pick_info(info, info_idx)
     forward['info']._check_consistency()
-    fwd_info._check_consistency()
-
-    return fwd_info, gain
+    info_picked._check_consistency()
+    return forward, info_picked
 
 
 @verbose
@@ -1019,21 +1010,22 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     n_sources = forward['sol']['data'].shape[1]
     loose = float(loose)
     if not (0 <= loose <= 1):
-        raise ValueError('loose value should be smaller than 1 and bigger '
-                         'than 0, got %s.' % (loose,))
-    if loose < 1 and not forward['surf_ori']:
-        raise ValueError('Forward operator is not oriented in surface '
-                         'coordinates. loose parameter should be 1 '
-                         'not %s.' % loose)
-    if is_fixed_ori and loose != 0:
-        raise ValueError('loose must be 0. with forward operator '
-                         'with fixed orientation.')
-
+        raise ValueError('loose value should be between 0 and 1, '
+                         'got %s.' % (loose,))
     orient_prior = np.ones(n_sources, dtype=np.float)
-    if not is_fixed_ori and loose < 1:
-        logger.info('Applying loose dipole orientations. Loose value '
-                    'of %s.' % loose)
-        orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
+    if loose > 0.:
+        if is_fixed_ori:
+            raise ValueError('loose must be 0. with forward operator '
+                             'with fixed orientation, got %s' % (loose,))
+        if loose < 1:
+            if not forward['surf_ori']:
+                raise ValueError('Forward operator is not oriented in surface '
+                                 'coordinates. loose parameter should be 1 '
+                                 'not %s.' % (loose,))
+            logger.info('Applying loose dipole orientations. Loose value '
+                        'of %s.' % loose)
+            orient_prior[0::3] *= loose
+            orient_prior[1::3] *= loose
 
     return orient_prior
 
@@ -1065,7 +1057,8 @@ def _restrict_gain_matrix(G, info):
 
 
 @verbose
-def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
+def compute_depth_prior(forward, info, is_fixed_ori=None,
+                        exp=0.8, limit=10.0,
                         patch_areas=None, limit_depth_chs=False,
                         combine_xyz='spectral', noise_cov=None, rank=None,
                         verbose=None):
@@ -1073,19 +1066,19 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 
     Parameters
     ----------
-    G : ndarray, shape (n_channels, n_vertices)
-        The gain matrix.
-    gain_info : instance of Info
-        The info associated with the gain matrix.
-    is_fixed_ori : bool
-        Whether or not ``G`` is fixed orientation.
+    forward : instance of Forward
+        The forward solution.
+    info : instance of Info
+        The measurement info.
+    is_fixed_ori : bool | None
+        Deprecated, will be removed in 0.19.
     exp : float
         Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
         The upper bound on depth weighting.
         Can be None to be bounded by the largest finite prior.
     patch_areas : ndarray | None
-        Patch areas of the vertices from the forward solution.
+        Deprecated, will be removed in 0.19.
     limit_depth_chs : bool | 'whiten'
         How to deal with multiple channel types in depth weighting. Options:
 
@@ -1148,11 +1141,17 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                             combine_xyz='fro')
 
     """
-    # XXX this perhaps should just take ``forward`` instead of ``G`` and
-    # ``gain_info``. However, it's not easy to do this given that the
-    # mixed norm code requires that ``G`` is whitened before this chunk
-    # of code executes.
     from ..cov import Covariance, compute_whitener
+    if isinstance(forward, Forward):
+        patch_areas = forward.get('patch_areas', None)
+        is_fixed_ori = is_fixed_orient(forward)
+        G = forward['sol']['data']
+    else:
+        warn('Parameters G, is_fixed_ori, and patch_areas are '
+             'deprecated and will be removed in 0.19, pass in the forward '
+             'solution directly.', DeprecationWarning)
+        G = forward
+    _validate_type(is_fixed_ori, bool, 'is_fixed_ori')
     logger.info('Creating the depth weighting matrix...')
     _validate_type(noise_cov, (Covariance, None), 'noise_cov',
                    'Covariance or None')
@@ -1168,10 +1167,10 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 
     # If possible, pick best depth-weighting channels
     if limit_depth_chs is True:
-        G = _restrict_gain_matrix(G, gain_info)
+        G = _restrict_gain_matrix(G, info)
     elif limit_depth_chs == 'whiten':
-        whitener, _ = compute_whitener(noise_cov, gain_info, pca=True,
-                                       rank=rank)
+        whitener, _ = compute_whitener(noise_cov, info, pca=True, rank=rank,
+                                       verbose=False)
         G = np.dot(whitener, G)
 
     # Compute the gain matrix

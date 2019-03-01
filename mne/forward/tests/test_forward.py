@@ -1,4 +1,3 @@
-import os
 import os.path as op
 import gc
 
@@ -12,11 +11,13 @@ from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution, SourceEstimate, pick_types_forward,
                  read_evokeds)
+from mne.io import read_info
 from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
                        run_tests_if_main)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
-                         Forward, is_fixed_orient)
+                         Forward, is_fixed_orient, compute_orient_prior,
+                         compute_depth_prior)
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -24,15 +25,8 @@ fname_meeg = op.join(data_path, 'MEG', 'sample',
 fname_meeg_grad = op.join(data_path, 'MEG', 'sample',
                           'sample_audvis_trunc-meg-eeg-oct-2-grad-fwd.fif')
 
-fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
-                    'test_raw.fif')
-
 fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                        'data', 'test-ave.fif')
-fname_mri = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-trans.fif')
-subjects_dir = os.path.join(data_path, 'subjects')
-fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
 
 
 def compare_forwards(f1, f2):
@@ -399,6 +393,43 @@ def test_average_forward_solution():
     fwd = read_forward_solution(fname_meeg_grad)
     fwd_ave = average_forward_solutions([fwd, fwd])
     compare_forwards(fwd, fwd_ave)
+
+
+@testing.requires_testing_data
+def test_priors():
+    """Test prior computations."""
+    # Depth prior
+    fwd = read_forward_solution(fname_meeg)
+    assert not is_fixed_orient(fwd)
+    n_sources = fwd['nsource']
+    info = read_info(fname_evoked)
+    depth_prior = compute_depth_prior(fwd, info, exp=0.8)
+    assert depth_prior.shape == (3 * n_sources,)
+    depth_prior = compute_depth_prior(fwd, info, exp=0.)
+    assert_array_equal(depth_prior, 1.)
+    with pytest.raises(ValueError, match='must be "whiten"'):
+        compute_depth_prior(fwd, info, limit_depth_chs='foo')
+    with pytest.raises(ValueError, match='noise_cov must be a Covariance'):
+        compute_depth_prior(fwd, info, limit_depth_chs='whiten')
+    fwd_fixed = convert_forward_solution(fwd, force_fixed=True)
+    with pytest.deprecated_call():
+        depth_prior = compute_depth_prior(
+            fwd_fixed['sol']['data'], info, is_fixed_ori=True)
+    assert depth_prior.shape == (n_sources,)
+    # Orientation prior
+    orient_prior = compute_orient_prior(fwd, 1.)
+    assert_array_equal(orient_prior, 1.)
+    orient_prior = compute_orient_prior(fwd_fixed, 0.)
+    assert_array_equal(orient_prior, 1.)
+    with pytest.raises(ValueError, match='oriented in surface coordinates'):
+        compute_orient_prior(fwd, 0.5)
+    fwd_surf_ori = convert_forward_solution(fwd, surf_ori=True)
+    orient_prior = compute_orient_prior(fwd_surf_ori, 0.5)
+    assert all(np.in1d(orient_prior, (0.5, 1.)))
+    with pytest.raises(ValueError, match='between 0 and 1'):
+        compute_orient_prior(fwd_surf_ori, -0.5)
+    with pytest.raises(ValueError, match='with fixed orientation'):
+        compute_orient_prior(fwd_fixed, 0.5)
 
 
 run_tests_if_main()
