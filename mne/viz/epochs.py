@@ -1951,7 +1951,7 @@ def _plot_histogram(params):
         plt.ylabel('Count')
         color = colors[types[idx]]
         rej = None
-        if epochs.reject is not None and types[idx] in epochs.reject.keys():
+        if epochs.reject is not None and types[idx] in epochs.reject:
             rej = epochs.reject[types[idx]] * scalings[types[idx]]
             rng = [0., rej * 1.1]
         else:
