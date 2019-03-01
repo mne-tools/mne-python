@@ -14,14 +14,17 @@ jobs:
     maxParallel: 4
     matrix:
         Python35-32bit-full:
+          PYTHON: "C:\\conda"
           PYTHON_VERSION: '3.5'
           PYTHON_ARCH: 'x86'
-          TEST_MODE: full
+          TEST_MODE: conda
           BITS: 32
+          CONDA_ENVIRONMENT="environment.yml"
+          PIP_DEPENDENCIES: "codecov pytest-sugar pytest-timeout"
         Python37-64bit-full:
           PYTHON_VERSION: '3.7'
           PYTHON_ARCH: 'x64'
-          TEST_MODE: full
+          TEST_MODE: pip
           BITS: 64
   steps:
   - task: UsePythonVersion@0
@@ -29,22 +32,32 @@ jobs:
       versionSpec: $(PYTHON_VERSION)
       addToPath: true
       architecture: $(PYTHON_ARCH)
-  - script: python -m pip install --upgrade numpy scipy vtk
-    displayName: 'Install first dependencies'
-  - script: python -m pip install --upgrade -r requirements.txt
-    displayName: 'Install second dependencies'
+  - powershell: |
+      $env:MNE_LOGGING_LEVEL = "warning"
+      $env:MNE_FORCE_SERIAL = "true"
+      refreshenv
+    displayName: 'Set env vars'
+  - powershell: |
+      If ($(TEST_MODE) -eq "pip" ) {
+        python -m pip install --upgrade numpy scipy vtk
+        python -m pip install --upgrade -r requirements.txt
+      }
+      Else {
+        git clone git://github.com/astropy/ci-helpers.git
+        powershell ci-helpers/appveyor/install-miniconda.ps1
+        $env:PATH= $env:PYTHON + ";" + $env:PYTHON + "\Scripts" + $env:PATH
+        activate test
+        refreshenv
+        pip uninstall -yq mne
+      }
+    displayName: 'Install dependencies'
   - script: python setup.py develop
     displayName: 'Install MNE-Python'
   - script: python -c "import mne; print(mne.sys_info())"
-    displayName: 'Print install config'
-  - powershell: |
-            $env:MNE_LOGGING_LEVEL = "warning"
-            $env:MNE_FORCE_SERIAL = "true"
-            refreshenv
-    displayName: 'Set env vars'
+    displayName: 'Print config'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: py.test -m "not ultraslowtest" mne --cov=mne --junitxml=junit-results.xml
+  - script: pytest -m "not ultraslowtest" mne --cov=mne --junitxml=junit-results.xml
     displayName: 'Run tests'
   - task: PublishTestResults@2
     inputs:
