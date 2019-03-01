@@ -13,6 +13,7 @@ jobs:
   variables:
     MNE_LOGGING_LEVEL: 'warning'
     PIP_DEPENDENCIES: 'codecov'
+    OPENBLAS_NUM_THREADS: 1
   strategy:
     maxParallel: 4
     matrix:
