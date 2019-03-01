@@ -4,7 +4,7 @@ trigger:
   branches:
     include:
       - master
-      - maintenance/*
+      - maint/*
 
 jobs:
 - job: Windows
@@ -34,7 +34,6 @@ jobs:
     condition: eq(variables['TEST_MODE'], 'pip')
   - powershell: |
       $env:MNE_LOGGING_LEVEL = "warning"
-      $env:MNE_FORCE_SERIAL = "true"
       refreshenv
     displayName: 'Set env vars'
   - powershell: |
@@ -48,7 +47,7 @@ jobs:
       git clone git://github.com/astropy/ci-helpers.git
       powershell ci-helpers/appveyor/install-miniconda.ps1
       $env:PATH= $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
-      conda activate test
+      activate test
       refreshenv
       pip uninstall -yq mne
     condition: eq(variables['TEST_MODE'], 'conda')
