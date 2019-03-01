@@ -5,6 +5,8 @@
 Browsing raw data with mne_browse_raw
 =====================================
 
+.. highlight:: none
+
 .. contents:: Contents
    :local:
    :depth: 2
@@ -1464,7 +1466,6 @@ The general format of the description file is::
         category {
             <category definition parameters>
         }
-        
         ...
     }
 

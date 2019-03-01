@@ -3,6 +3,8 @@
 Getting started with MNE Unix command line tools
 ================================================
 
+.. highlight:: sh
+
 This tutorial is a really short step by step presentation
 of an analysis pipeline using the MNE-C command line tools.
 These tools are UNIX commands and therefore only run on

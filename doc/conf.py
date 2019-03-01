@@ -137,6 +137,9 @@ default_role = "autolink"
 # output. They are ignored by default.
 #show_authors = False
 
+# default highlighting lexer for code blocks with language unspecified
+highlight_language = 'python3'
+
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'default'
 

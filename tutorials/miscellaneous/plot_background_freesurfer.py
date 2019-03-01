@@ -6,6 +6,8 @@ r"""
 FreeSurfer integration with MNE-Python
 ======================================
 
+.. highlight:: console
+
 FreeSurfer is an open source analysis toolbox for MRI data. It contains several
 command line tools and graphical user interfaces. FreeSurfer can be obtained
 from https://surfer.nmr.mgh.harvard.edu/
