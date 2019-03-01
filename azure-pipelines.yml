@@ -10,36 +10,32 @@ jobs:
 - job: Windows
   pool:
     vmIMage: 'VS2017-Win2016'
+  variables:
+    MNE_LOGGING_LEVEL: 'warning'
+    PIP_DEPENDENCIES: 'codecov'
   strategy:
     maxParallel: 4
     matrix:
-        Python35-32bit-full:
-          PYTHON_VERSION: '3.5'
-          PYTHON_ARCH: 'x86'
-          TEST_MODE: 'conda'
-          BITS: 32
-          CONDA_ENVIRONMENT: 'environment.yml'
-          PIP_DEPENDENCIES: 'codecov pytest-sugar pytest-timeout'
-        Python37-64bit-full:
-          PYTHON_VERSION: '3.7'
-          PYTHON_ARCH: 'x64'
-          TEST_MODE: 'pip'
-          BITS: 64
+      Python35-32bit-full:
+        PYTHON_VERSION: '3.5'
+        PLATFORM: 'x86'
+        TEST_MODE: 'conda'
+        CONDA_ENVIRONMENT: 'environment.yml'
+      Python37-64bit-full:
+        PYTHON_VERSION: '3.7'
+        PYTHON_ARCH: 'x64'
+        TEST_MODE: 'pip'
   steps:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
-      addToPath: true
       architecture: $(PYTHON_ARCH)
+      addToPath: true
     condition: eq(variables['TEST_MODE'], 'pip')
-  - powershell: |
-      $env:MNE_LOGGING_LEVEL = "warning"
-      refreshenv
-    displayName: 'Set env vars'
   - powershell: |
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
-      pip install codecov
+      pip install $env:PIP_DEPENDENCIES
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
   - powershell: |
@@ -47,16 +43,10 @@ jobs:
       git clone git://github.com/astropy/ci-helpers.git
       powershell ci-helpers/appveyor/install-miniconda.ps1
       $env:PATH = $env:PYTHON + "\envs\test;" + $env:PYTHON + "\envs\test\Scripts;" + $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
-      refreshenv
       pip uninstall -yq mne
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'
-  - powershell: |
-      Write-Host $env:PATH
-      Write-Host (Get-Command python).definition
-      Write-Host (Get-Command pip).definition
-    displayName: 'Check paths'
   - script: python setup.py develop
     displayName: 'Install MNE-Python dev'
   - script: python -c "import mne; print(mne.sys_info())"

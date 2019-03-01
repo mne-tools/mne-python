@@ -41,7 +41,7 @@ def _check_stcs(stc1, stc2):
     assert_allclose(stc1.tstep, stc2.tstep)
 
 
-@pytest.mark.timeout(60)  # ~30 sec on AppVeyor and Travis Linux
+@pytest.mark.timeout(120)  # ~30 sec on AppVeyor and Travis Linux
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mxne_inverse_standard():
