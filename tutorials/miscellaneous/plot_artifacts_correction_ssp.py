@@ -7,8 +7,8 @@ Artifact Correction with SSP
 This tutorial explains how to estimate Signal Subspace Projectors (SSP)
 for correction of ECG and EOG artifacts.
 
-See :ref:`sphx_glr_auto_examples_io_plot_read_proj.py` for how to read
-and visualize already present SSP projection vectors.
+See :ref:`projectors-basics-tutorial` and :ref:`projectors-topomap-tutorial`
+for how to read and visualize already present SSP projection vectors.
 
 """
 import numpy as np

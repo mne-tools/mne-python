@@ -7,3 +7,6 @@
 .. _ten_oh_five: https://doi.org/10.1016%2FS1388-2457%2800%2900527-7
 .. _dict comprehension: https://docs.python.org/3/tutorial/datastructures.html#dictionaries
 .. _spectral density: https://en.wikipedia.org/wiki/Spectral_density
+.. _argument expansion: https://docs.python.org/3/tutorial/controlflow.html#tut-unpacking-arguments
+.. _list comprehension: https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions
+.. _principal component analysis: https://en.wikipedia.org/wiki/Principal_component_analysis

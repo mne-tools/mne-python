@@ -112,8 +112,7 @@ raw.plot_projs_topomap()
 # :meth:`raw.plot_projs_topomap <mne.io.Raw.plot_projs_topomap>` or calling
 # :func:`proj.plot_topomap <mne.Projection.plot_topomap>`
 #
-# more examples can be found in
-# :ref:`sphx_glr_auto_examples_io_plot_read_proj.py`
+# more examples can be found in :ref:`projectors-topomap-tutorial`.
 projs[0].plot_topomap()
 
 ###############################################################################

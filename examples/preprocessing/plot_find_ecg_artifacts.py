@@ -1,4 +1,6 @@
 """
+.. _ecg-example:
+
 ==================
 Find ECG artifacts
 ==================
