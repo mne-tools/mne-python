@@ -27,7 +27,7 @@ jobs:
         CONDA_ENVIRONMENT: 'environment.yml'
       Python37-64bit-full:
         PYTHON_VERSION: '3.7'
-        PYTHON_ARCH: 'x86-64'
+        PYTHON_ARCH: 'x64'
         TEST_MODE: 'pip'
   steps:
   - task: UsePythonVersion@0
