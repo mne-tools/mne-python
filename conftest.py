@@ -38,7 +38,8 @@ testing_param = pytest.param('t', marks=pytest.mark.skipif(
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
-    matplotlib.use('agg')  # don't pop up windows
+    # "force" should not really be necessary but should not hurt
+    matplotlib.use('agg', force=True)  # don't pop up windows
     import matplotlib.pyplot as plt
     assert plt.get_backend() == 'agg'
     # overwrite some params that can horribly slow down tests that
