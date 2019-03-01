@@ -14,13 +14,13 @@ jobs:
     maxParallel: 4
     matrix:
         Python35-32bit-full:
-          PYTHON: "C:\\conda"
+          PYTHON: 'C:\\conda'
           PYTHON_VERSION: '3.5'
           PYTHON_ARCH: 'x86'
-          TEST_MODE: conda
+          TEST_MODE: 'conda'
           BITS: 32
-          CONDA_ENVIRONMENT="environment.yml"
-          PIP_DEPENDENCIES: "codecov pytest-sugar pytest-timeout"
+          CONDA_ENVIRONMENT: 'environment.yml'
+          PIP_DEPENDENCIES: 'codecov pytest-sugar pytest-timeout'
         Python37-64bit-full:
           PYTHON_VERSION: '3.7'
           PYTHON_ARCH: 'x64'
