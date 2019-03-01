@@ -1,0 +1,52 @@
+trigger:
+  # start a new build for every push
+  batch: False
+  branches:
+    include:
+      - master
+      - maintenance/*
+
+jobs:
+- job: Windows
+  pool:
+    vmIMage: 'VS2017-Win2016'
+  strategy:
+    maxParallel: 4
+    matrix:
+        Python35-32bit-full:
+          PYTHON_VERSION: '3.5'
+          PYTHON_ARCH: 'x86'
+          TEST_MODE: full
+          BITS: 32
+        Python37-64bit-full:
+          PYTHON_VERSION: '3.7'
+          PYTHON_ARCH: 'x64'
+          TEST_MODE: full
+          BITS: 64
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: $(PYTHON_VERSION)
+      addToPath: true
+      architecture: $(PYTHON_ARCH)
+  - script: python -m pip install --upgrade numpy scipy vtk
+    displayName: 'Install first dependencies'
+  - script: python -m pip install --upgrade -r requirements.txt
+    displayName: 'Install second dependencies'
+  - script: python setup.py develop
+    displayName: 'Install MNE-Python'
+  - script: python -c "import mne; print(mne.sys_info())"
+    displayName: 'Print install config'
+  - powershell: |
+            $env:MNE_LOGGING_LEVEL = "warning"
+            $env:MNE_FORCE_SERIAL = "true"
+            refreshenv
+    displayName: 'Set env vars'
+  - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+    displayName: 'Get test data'
+  - script: py.test -m "not ultraslowtest" mne --cov=mne --junitxml=junit-results.xml
+    displayName: 'Run tests'
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: 'junit-*.xml'
+      testRunTitle: 'Publish test results for Python $(python.version)'
