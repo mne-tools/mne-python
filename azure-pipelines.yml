@@ -49,7 +49,7 @@ jobs:
       $env:PATH = $env:PYTHON + "\envs\test;" + $env:PYTHON + "\envs\test\Scripts;" + $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
       refreshenv
       pip uninstall -yq mne
-      Write-Host ("##vso[task.setvariable variable=sauce]crushed" + $env:PATH)
+      Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'
   - powershell: |
