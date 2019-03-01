@@ -46,11 +46,8 @@ jobs:
         $env:PYTHON= '$(System.DefaultWorkingDirectory)' + '\conda'
         git clone git://github.com/astropy/ci-helpers.git
         powershell ci-helpers/appveyor/install-miniconda.ps1
-        $env:PATH= $env:PYTHON + ";" + $env:PYTHON + "\Scripts" + $env:PATH
+        $env:PATH= $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
         refreshenv
-        Write-Host $env:PATH
-        Get-ChildItem -Path $env:PYTHON
-        Get-ChildItem -Path $env:PYTHON + "\Scripts"
         conda activate test
         pip uninstall -yq mne
       }
