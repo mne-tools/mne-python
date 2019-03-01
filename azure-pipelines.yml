@@ -48,7 +48,10 @@ jobs:
         powershell ci-helpers/appveyor/install-miniconda.ps1
         $env:PATH= $env:PYTHON + ";" + $env:PYTHON + "\Scripts" + $env:PATH
         refreshenv
-        activate test
+        Write-Host $env:PATH
+        Get-ChildItem -Path $env:PYTHON
+        Get-ChildItem -Path $env:PYTHON + "\Scripts"
+        conda activate test
         pip uninstall -yq mne
       }
     displayName: 'Install dependencies'
