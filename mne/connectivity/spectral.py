@@ -83,7 +83,7 @@ class _CohEst(_CohEstBase):
 
     name = 'Coherence'
 
-    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
+    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):  # lgtm
         """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
@@ -96,7 +96,7 @@ class _CohyEst(_CohEstBase):
 
     name = 'Coherency'
 
-    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
+    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):  # lgtm
         """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape,
@@ -110,7 +110,7 @@ class _ImCohEst(_CohEstBase):
 
     name = 'Imaginary Coherence'
 
-    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
+    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):  # lgtm
         """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
