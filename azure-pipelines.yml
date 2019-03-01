@@ -43,15 +43,13 @@ jobs:
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
   - powershell: |
-      $env:PYTHON= '$(System.DefaultWorkingDirectory)' + '\conda'
+      $env:PYTHON = '$(System.DefaultWorkingDirectory)' + '\conda'
       git clone git://github.com/astropy/ci-helpers.git
       powershell ci-helpers/appveyor/install-miniconda.ps1
-      $env:PATH= $env:PYTHON + "envs\test;" + $env:PYTHON + "\envs\test\Scripts;" + $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
+      $env:PATH = $env:PYTHON + "\envs\test;" + $env:PYTHON + "\envs\test\Scripts;" + $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
       refreshenv
-      Write-Host $env:PATH
-      Write-Host (Get-Command python).definition
-      Write-Host (Get-Command pip).definition
       pip uninstall -yq mne
+      Write-Host ("##vso[task.setvariable variable=sauce]crushed" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'
   - powershell: |
