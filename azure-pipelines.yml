@@ -50,18 +50,18 @@ jobs:
       Write-Host $env:PATH
       Write-Host (Get-Command python).definition
       Write-Host (Get-Command pip).definition
-    condition: eq(variables['TEST_MODE'], 'conda')
-    displayName: 'Install conda and dependencies'
-  - script: activate test
-    condition: eq(variables['TEST_MODE'], 'conda')
-    displayName: 'Activate conda environment'
-  - powershell: |
-      Write-Host (Get-Command python).definition
-      Write-Host (Get-Command pip).definition
+      [Environment]::SetEnvironmentVariable("PATH", $env:PATH, "Machine")
+      activate test
       Write-Host $env:PATH
+      [Environment]::SetEnvironmentVariable("PATH", $env:PATH, "Machine")
       pip uninstall -yq mne
     condition: eq(variables['TEST_MODE'], 'conda')
-    displayName: 'Uninstall MNE-Python stable'
+    displayName: 'Install dependencies with conda'
+  - powershell: |
+      Write-Host $env:PATH
+      Write-Host (Get-Command python).definition
+      Write-Host (Get-Command pip).definition
+    displayName: 'Check paths'
   - script: python setup.py develop
     displayName: 'Install MNE-Python dev'
   - script: python -c "import mne; print(mne.sys_info())"
