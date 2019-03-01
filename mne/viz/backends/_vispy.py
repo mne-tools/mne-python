@@ -134,9 +134,11 @@ class _Renderer(object):
             cm = Colormap(colormap / 255.0)
 
         if isinstance(contours, int):
-            cmin = min(scalars)
-            cmax = max(scalars)
-            levels = np.linspace(cmin, cmax, num=contours)
+            if vmin is None:
+                vmin = min(scalars)
+            if vmax is None:
+                vmax = max(scalars)
+            levels = np.linspace(vmin, vmax, num=contours)
         else:
             levels = np.array(contours)
 
@@ -176,7 +178,11 @@ class _Renderer(object):
         mesh = None
         if colormap is not None and scalars is not None:
             cm = Colormap(colormap / 255.0)
-            nscalars = (scalars - min(scalars)) / (max(scalars) - min(scalars))
+            if vmin is None:
+                vmin = min(scalars)
+            if vmax is None:
+                vmax = max(scalars)
+            nscalars = (scalars - vmin) / (vmax - vmin)
             vcolors = cm.map(nscalars)
             mesh = scene.visuals.Mesh(vertices=surface['rr'],
                                       faces=surface['tris'],
@@ -270,16 +276,20 @@ class _Renderer(object):
         destination = source + np.column_stack((u, v, w))
         arr_pos = np.array(list(zip(source, destination)))
         arr_pos.reshape(-1, 3)
+
         for i in range(len(source)):
-            _create_quiver(mode=mode,
-                           source=source[i, :],
-                           destination=destination[i, :],
-                           scale=scale,
-                           scale_mode=scale_mode,
-                           view=self.view,
-                           color=color,
-                           opacity=opacity,
-                           backface_culling=backface_culling)
+            scalar = scalars[i] if scalars is not None else None
+            quiver = _create_quiver(mode=mode,
+                                    source=source[i, :],
+                                    destination=destination[i, :],
+                                    scale=scale,
+                                    scale_mode=scale_mode,
+                                    scalar=scalar,
+                                    view=self.view,
+                                    color=color)
+            quiver.attach(Alpha(opacity))
+            if backface_culling:
+                quiver.set_gl_state(cull_face=True)
         return 0
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
@@ -342,9 +352,8 @@ class _Renderer(object):
 
 
 def _create_quiver(mode, source, destination, view, color,
-                   scale, scale_mode='none',
-                   resolution=8, opacity=1.0,
-                   backface_culling=False):
+                   scale, scale_mode='none', scalar=None,
+                   resolution=8):
     from vispy.geometry.generation import create_arrow, create_cylinder
     from vispy.visuals.transforms import MatrixTransform
 
@@ -360,6 +369,9 @@ def _create_quiver(mode, source, destination, view, color,
     length = vn
     if scale_mode == 'none':
         length = scale
+    elif scale_mode == 'scalar' and scalar is not None:
+        length = scale * scalar
+
     radius = length / 20.0
 
     meshdata = None
@@ -375,14 +387,12 @@ def _create_quiver(mode, source, destination, view, color,
                                    length=length, radius=[radius, radius])
 
     if meshdata is not None:
-        arr = scene.visuals.Mesh(meshdata=meshdata, color=color,
-                                 shading='flat', parent=view.scene)
-        arr.attach(Alpha(opacity))
-        if backface_culling:
-            arr.set_gl_state(cull_face=True)
+        quiver = scene.visuals.Mesh(meshdata=meshdata, color=color,
+                                    shading='flat', parent=view.scene)
         # apply transform
         mat = MatrixTransform()
         if cosangle != 1:
             mat.rotate(np.degrees(np.arccos(cosangle)), axis)
         mat.translate(source)
-        arr.transform = mat
+        quiver.transform = mat
+        return quiver

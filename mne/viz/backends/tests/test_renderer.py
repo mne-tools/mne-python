@@ -68,6 +68,8 @@ def test_3d_backend(backend_name, to_show):
                          for (va, vb, vc) in tet_indices])
     center = np.mean(qv_center, axis=0)
     qv_dir = qv_center - center
+    qv_scale_mode = 'scalar'
+    qv_scalars = np.linspace(1.0, 2.0, 4)
 
     txt_x = 0.0
     txt_y = 0.0
@@ -102,6 +104,8 @@ def test_3d_backend(backend_name, to_show):
                       w=qv_dir[:, 2],
                       color=qv_color,
                       scale=qv_scale,
+                      scale_mode=qv_scale_mode,
+                      scalars=qv_scalars,
                       mode=qv_mode)
 
     # use text
