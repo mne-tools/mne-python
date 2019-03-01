@@ -136,6 +136,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     rank = data_rank
     logger.info('Making LCMV beamformer with rank %s' % (rank,))
     del data_rank
+    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
 
     is_free_ori, ch_names, proj, vertno, G, nn = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
