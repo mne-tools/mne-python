@@ -84,7 +84,7 @@ def channel_type(info, idx):
     raise ValueError('Unknown channel type for {}'.format(ch["ch_name"]))
 
 
-def pick_channels(ch_names, include, exclude=[]):
+def pick_channels(ch_names, include, exclude=[], ordered=False):
     """Pick channels by names.
 
     Returns the indices of the good channels in ch_names.
@@ -102,6 +102,12 @@ def pick_channels(ch_names, include, exclude=[]):
     exclude : list of string
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
+    ordered : bool
+        If true (default False), treat ``include`` as an ordered list
+        rather than a set, and any channels from ``include`` are missing
+        in ``ch_names`` an error will be raised.
+
+        .. versionadded:: 0.18
 
     See Also
     --------
@@ -116,15 +122,32 @@ def pick_channels(ch_names, include, exclude=[]):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')
     _check_excludes_includes(include)
     _check_excludes_includes(exclude)
-    if not isinstance(include, set):
-        include = set(include)
-    if not isinstance(exclude, set):
-        exclude = set(exclude)
-
-    sel = []
-    for k, name in enumerate(ch_names):
-        if (len(include) == 0 or name in include) and name not in exclude:
-            sel.append(k)
+    if not ordered:
+        if not isinstance(include, set):
+            include = set(include)
+        if not isinstance(exclude, set):
+            exclude = set(exclude)
+        sel = []
+        for k, name in enumerate(ch_names):
+            if (len(include) == 0 or name in include) and name not in exclude:
+                sel.append(k)
+    else:
+        if not isinstance(include, list):
+            include = list(include)
+        if len(include) == 0:
+            include = list(ch_names)
+        if not isinstance(exclude, list):
+            exclude = list(exclude)
+        sel, missing = list(), list()
+        for name in include:
+            if name in ch_names:
+                if name not in exclude:
+                    sel.append(ch_names.index(name))
+            else:
+                missing.append(name)
+        if len(missing):
+            raise ValueError('Missing channels from ch_names required by '
+                             'include:\n%s' % (missing,))
     return np.array(sel, int)
 
 
@@ -487,7 +510,8 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
 
 
 @verbose
-def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
+def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
+                          verbose=None):
     """Pick channels from forward operator.
 
     Parameters
@@ -500,6 +524,11 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     exclude : list of string | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
+    ordered : bool
+        If true (default False), treat ``include`` as an ordered list
+        rather than a set.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -517,9 +546,9 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     # Allow for possibility of channel ordering in forward solution being
     # different from that of the M/EEG file it is based on.
     sel_sol = pick_channels(orig['sol']['row_names'], include=include,
-                            exclude=exclude)
+                            exclude=exclude, ordered=ordered)
     sel_info = pick_channels(orig['info']['ch_names'], include=include,
-                             exclude=exclude)
+                             exclude=exclude, ordered=ordered)
 
     fwd = deepcopy(orig)
 

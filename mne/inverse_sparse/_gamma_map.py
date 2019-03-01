@@ -5,13 +5,13 @@
 import numpy as np
 from scipy import linalg
 
-from ..forward import is_fixed_orient, convert_forward_solution
+from ..forward import is_fixed_orient
 
 from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose, warn
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
-                           _make_dipoles_sparse, _check_loose_forward)
+                           _make_dipoles_sparse)
 
 
 @verbose
@@ -240,20 +240,10 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     """
     _check_reference(evoked)
 
-    loose, forward = _check_loose_forward(loose, forward)
-
-    # make forward solution in fixed orientation if necessary
-    if loose == 0. and not is_fixed_orient(forward):
-        forward = convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
-
-    if is_fixed_orient(forward) or not xyz_same_gamma:
-        group_size = 1
-    else:
-        group_size = 3
-
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+    forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, rank)
+
+    group_size = 1 if (is_fixed_orient(forward) or not xyz_same_gamma) else 3
 
     # get the data
     sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]
