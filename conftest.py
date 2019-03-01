@@ -14,7 +14,10 @@ import pytest
 # @larsoner has had problems a couple of years ago where a mayavi import
 # seemed to corrupt SciPy linalg function results (!), likely due to the
 # associated VTK import, so this could be another manifestation of that.
-import readline  # noqa
+try:
+    import readline  # noqa
+except Exception:
+    pass
 
 import numpy as np
 import mne
