@@ -47,7 +47,13 @@ jobs:
       git clone git://github.com/astropy/ci-helpers.git
       powershell ci-helpers/appveyor/install-miniconda.ps1
       $env:PATH= $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
+      Write-Host $env:PATH
+      Write-Host (Get-Command python).definition
+      Write-Host (Get-Command pip).definition
       activate test
+      Write-Host (Get-Command python).definition
+      Write-Host (Get-Command pip).definition
+      Write-Host $env:PATH
       refreshenv
       pip uninstall -yq mne
     condition: eq(variables['TEST_MODE'], 'conda')
