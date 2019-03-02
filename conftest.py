@@ -14,7 +14,10 @@ import pytest
 # @larsoner has had problems a couple of years ago where a mayavi import
 # seemed to corrupt SciPy linalg function results (!), likely due to the
 # associated VTK import, so this could be another manifestation of that.
-import readline  # noqa
+try:
+    import readline  # noqa
+except Exception:
+    pass
 
 import numpy as np
 import mne
@@ -35,7 +38,8 @@ testing_param = pytest.param('t', marks=pytest.mark.skipif(
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
-    matplotlib.use('agg')  # don't pop up windows
+    # "force" should not really be necessary but should not hurt
+    matplotlib.use('agg', force=True)  # don't pop up windows
     import matplotlib.pyplot as plt
     assert plt.get_backend() == 'agg'
     # overwrite some params that can horribly slow down tests that

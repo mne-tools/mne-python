@@ -220,7 +220,8 @@ def check_version(library, min_version):
         ok = False
     else:
         if min_version:
-            this_version = LooseVersion(library.__version__.lstrip('v'))
+            this_version = LooseVersion(
+                getattr(library, '__version__', '0.0').lstrip('v'))
             if this_version < min_version:
                 ok = False
     return ok
