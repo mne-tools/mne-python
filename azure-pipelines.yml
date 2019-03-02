@@ -65,8 +65,10 @@ jobs:
     displayName: 'Get test data'
   - script: pytest -m "not ultraslowtest" mne --cov=mne
     displayName: 'Run tests'
-  - script: codecov
+  - script: codecov -t %CODECOV_TOKEN%
     displayName: 'Codecov'
+    env:
+      CODECOV_TOKEN: $(CODECOV_TOKEN)
     condition: always()
   - task: PublishTestResults@2
     inputs:
