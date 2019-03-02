@@ -2136,6 +2136,7 @@ def test_array_epochs(tmpdir):
     assert_array_equal(epochs.events[:, 2], np.ones(len(data_1), int))
 
 
+@pytest.mark.timeout(60)  # can be slow on Azure
 def test_concatenate_epochs():
     """Test concatenate epochs."""
     raw, events, picks = _get_data()

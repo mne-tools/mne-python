@@ -9,7 +9,7 @@ env:
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
     # https://github.com/xianyi/OpenBLAS/issues/731
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
-            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar pytest-timeout nitime"
+            PIP_DEPENDENCIES="codecov nitime"
             TRAVIS_PYTHON_VERSION=3.6 CONDA_VERSION=">=4.3.27"
             OPENBLAS_NUM_THREADS=1
 
@@ -18,8 +18,8 @@ matrix:
         # No data + style testing
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-cov mock pytest-mock"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-faulthandler pytest-sugar pytest-timeout"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-timeout pytest-cov pytest-mock"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-faulthandler"
 
         # Linux
         - os: linux
@@ -42,12 +42,13 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.11 scipy=0.17 matplotlib=1.5 pandas=0.18 scikit-learn=0.18 pytest pytest-cov pytest-mock"
+               CONDA_DEPENDENCIES="numpy=1.11 scipy=0.17 matplotlib=1.5 pandas=0.18 scikit-learn=0.18 pytest pytest-cov pytest-mock pytest-timeout"
 
         # Minimal
         - os: linux
           env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov pytest-faulthandler pytest-timeout pytest-mock"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov pytest-mock pytest-timeout"
+               PIP_DEPENDENCIES="pytest-faulthandler pytest-sugar"
 
 # Setup anaconda
 before_install:
