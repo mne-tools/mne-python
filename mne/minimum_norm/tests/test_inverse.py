@@ -230,7 +230,8 @@ def test_make_inverse_operator(evoked):
     # Test MNE inverse computation starting from forward operator
     with catch_logging() as log:
         my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
-                                          loose=0.2, depth=0.8, verbose=True)
+                                          loose='auto', depth=0.8,
+                                          fixed=False, verbose=True)
     log = log.getvalue()
     assert 'rank 302 (3 small eigenvalues omitted)' in log
     _compare_io(my_inv_op)
