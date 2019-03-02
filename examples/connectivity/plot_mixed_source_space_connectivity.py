@@ -178,7 +178,7 @@ fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
 plot_connectivity_circle(conmat, label_names, n_lines=300,
                          node_angles=node_angles, node_colors=node_colors,
                          title='All-to-All Connectivity left-Auditory '
-                         'Condition (PLI)', fig=fig, interactive=False)
+                         'Condition (PLI)', fig=fig)
 
 ###############################################################################
 # Save the figure (optional)
