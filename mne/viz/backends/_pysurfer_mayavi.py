@@ -239,7 +239,7 @@ class _Renderer(object):
             The color of the quiver: (red, green, blue).
         scale: float
             The scale of the quiver.
-        mode: 'arrow' or 'cylinder'
+        mode: 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
         resolution: float
             The resolution of the arrow.
@@ -263,6 +263,10 @@ class _Renderer(object):
                                color=color, scale_factor=scale,
                                scale_mode=scale_mode,
                                resolution=resolution, scalars=scalars,
+                               opacity=opacity, figure=self.fig)
+        elif mode == 'cone':
+            self.mlab.quiver3d(x, y, z, u, v, w, color=color,
+                               mode=mode, scale_factor=scale,
                                opacity=opacity, figure=self.fig)
         elif mode == 'cylinder':
             quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,

@@ -14,7 +14,7 @@ of good practice to analyse your data.
 
 The example makes use of 2 functions ``apply_solver`` and ``solver``
 so changes can be limited to the ``solver`` function (which only takes three
-parameters: the whitened data, the gain matrix, and the number of orientations)
+parameters: the whitened data, the gain matrix and the number of orientations)
 in order to try out another inverse algorithm.
 """
 
