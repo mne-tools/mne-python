@@ -76,3 +76,4 @@ examples/visualization/foobar.html
 *.rst#
 
 .venv/
+venv/
