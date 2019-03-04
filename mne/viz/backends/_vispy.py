@@ -262,7 +262,7 @@ class _Renderer(object):
             The color of the quiver: (red, green, blue).
         scale: float
             The scale of the quiver.
-        mode: 'arrow' or 'cylinder'
+        mode: 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
         resolution: float
             The resolution of the arrow.
@@ -363,7 +363,8 @@ class _Renderer(object):
 def _create_quiver(mode, source, destination, view, color,
                    scale, scale_mode='none', scalar=None,
                    resolution=8):
-    from vispy.geometry.generation import create_arrow, create_cylinder
+    from vispy.geometry.generation import (create_arrow, create_cylinder,
+                                           create_cone)
     from vispy.visuals.transforms import MatrixTransform
 
     v1 = destination - source
@@ -391,6 +392,9 @@ def _create_quiver(mode, source, destination, view, color,
                                 length=length, radius=radius,
                                 cone_radius=cone_radius,
                                 cone_length=cone_length)
+    elif mode == 'cone':
+        meshdata = create_cone(cols=resolution, length=length,
+                               radius=radius)
     elif mode == 'cylinder':
         meshdata = create_cylinder(rows=resolution, cols=resolution,
                                    length=length, radius=[radius, radius])
