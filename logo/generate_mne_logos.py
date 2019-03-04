@@ -127,9 +127,9 @@ ax = plt.Axes(fig, [0., 0., 1., 1.])
 ax.set_axis_off()
 fig.add_axes(ax)
 # plot rainbow
-im = ax.imshow(X, cmap=mne_field_grad_cols, aspect='equal', zorder=1)
-im = ax.imshow(np.ones_like(X) * 0.5, cmap='Greys', aspect='equal', zorder=0,
-               clim=[0, 1])
+ax.imshow(X, cmap=mne_field_grad_cols, aspect='equal', zorder=1)
+ax.imshow(np.ones_like(X) * 0.5, cmap='Greys', aspect='equal', zorder=0,
+          clim=[0, 1])
 plot_dims = np.r_[np.diff(ax.get_xbound()), np.diff(ax.get_ybound())]
 # MNE text in white
 mne_path = TextPath((0, 0), 'MNE')

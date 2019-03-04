@@ -1045,7 +1045,6 @@ def _gaussian_loglik_scorer(est, X, y=None):
     # compute empirical covariance of the test set
     precision = est.get_precision()
     n_samples, n_features = X.shape
-    log_like = np.zeros(n_samples)
     log_like = -.5 * (X * (np.dot(X, precision))).sum(axis=1)
     log_like -= .5 * (n_features * log(2. * np.pi) - _logdet(precision))
     out = np.mean(log_like)

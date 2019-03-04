@@ -54,7 +54,6 @@ signal_mean = 100
 signal_sd = 100
 noise_sd = 0.01
 gaussian_sd = 5
-alpha = 0.05
 sigma = 1e-3  # sigma for the "hat" method
 n_permutations = 'all'  # run an exact test
 n_src = width * width
@@ -125,7 +124,6 @@ def plot_t_p(t, p, title, mcc, axes=None):
         axes = [fig.add_subplot(121, projection='3d'), fig.add_subplot(122)]
         show = True
     else:
-        fig = axes[0].figure
         show = False
     p_lims = [0.1, 0.001]
     t_lims = -stats.distributions.t.ppf(p_lims, n_subjects - 1)

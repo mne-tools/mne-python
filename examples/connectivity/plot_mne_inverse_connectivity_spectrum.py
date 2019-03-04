@@ -4,7 +4,7 @@ Compute full spectrum source space connectivity between labels
 ==============================================================
 
 The connectivity is computed between 4 labels across the spectrum
-between 7.5 and 40 Hz.
+between 7.5 Hz and 40 Hz.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

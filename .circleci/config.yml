@@ -193,9 +193,9 @@ jobs:
             command: |
               if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
                 make test-doc;
+                mkdir -p doc/_build/test-results/test-doc;
+                cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
               fi;
-              mkdir -p doc/_build/test-results/test-doc;
-              cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
         # Build docs
         - run:
             name: make html

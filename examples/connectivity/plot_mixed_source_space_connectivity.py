@@ -6,7 +6,7 @@ Compute mixed source space connectivity and visualize it using a circular graph
 This example computes the all-to-all connectivity between 75 regions in
 a mixed source space based on dSPM inverse solutions and a FreeSurfer cortical
 parcellation. The connectivity is visualized using a circular graph which
-is ordered based on the locations of the regions.
+is ordered based on the locations of the regions in the axial plane.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
@@ -164,7 +164,6 @@ rh_labels = [label[:-2] + 'rh' for label in lh_labels
              if label != 'Brain-Stem' and label[:-2] + 'rh' in rh_labels]
 
 # Save the plot order
-node_order = list()
 node_order = lh_labels[::-1] + rh_labels
 
 node_angles = circular_layout(label_names, node_order, start_pos=90,

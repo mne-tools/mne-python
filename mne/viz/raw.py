@@ -1207,11 +1207,12 @@ def _setup_browser_selection(raw, kind, selector=True):
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
+    _check_option('group_by', kind, ('position, selection'))
     if kind == 'position':
         order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
         kind = 'position'
-    elif 'selection':
+    else:  # kind == 'selection'
         from ..io import RawFIF, RawArray
         if not isinstance(raw, (RawFIF, RawArray)):
             raise ValueError("order='selection' only works for Neuromag data. "
