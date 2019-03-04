@@ -1105,7 +1105,7 @@ def permutation_cluster_1samp_test(
         (n_vertices). Default is None, i.e, a regular lattice connectivity.
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time. Can also be False
-        to assume no connectivity. Can also be False to assume no connectivity.
+        to assume no connectivity.
     %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
