@@ -75,3 +75,5 @@ examples/visualization/foobar.html
 *.py#
 *.rst#
 
+.venv/
+venv/
