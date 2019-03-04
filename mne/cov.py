@@ -16,7 +16,8 @@ from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj, _read_proj, _write_proj)
-from .io import fiff_open
+from .io import fiff_open, RawArray
+
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _picks_by_type, _pick_data_channels, _picks_to_idx,
                       _DATA_CH_TYPES_SPLIT)
@@ -901,19 +902,19 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
-    from .io import RawArray
-    raw_temp = RawArray(data.T, info)
     orig_rank = rank
-    rank = compute_rank(raw_temp, rank, scalings, info)
+    rank = compute_rank(RawArray(data.T, info, copy=None),
+                        rank, scalings, info)
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)
-        _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True)
+        _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True,
+                                      do_compute_rank=False)
         eigvec = eigvec[mask]
         data = np.dot(data, eigvec.T)
         used = np.where(mask)[0]
         sub_picks_list = [(key, np.searchsorted(used, picks))
                           for key, picks in picks_list]
-        sub_info = pick_info(info, used)
+        sub_info = pick_info(info, used) if len(used) != len(mask) else info
         logger.info('Reducing data rank from %s -> %s'
                     % (len(mask), eigvec.shape[0]))
         estimator_cov_info = list()
@@ -1363,13 +1364,14 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
 
 @verbose
 def _smart_eigh(C, info, rank, scalings=None, projs=None,
-                ch_names=None, proj_subspace=False, verbose=None):
+                ch_names=None, proj_subspace=False, do_compute_rank=True,
+                verbose=None):
     """Compute eigh of C taking into account rank and ch_type scalings."""
     scalings = _handle_default('scalings_cov_rank', scalings)
-    info = info.copy()
     projs = info['projs'] if projs is None else projs
     ch_names = info['ch_names'] if ch_names is None else ch_names
-    pick_info(info, [info['ch_names'].index(c) for c in ch_names], copy=False)
+    if info['ch_names'] != ch_names:
+        info = pick_info(info, [info['ch_names'].index(c) for c in ch_names])
     assert info['ch_names'] == ch_names
     n_chan = len(ch_names)
 
@@ -1384,9 +1386,13 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
         C = np.dot(proj, np.dot(C, proj.T))
 
     noise_cov = Covariance(C, ch_names, [], projs, 0)
-    rank = compute_rank(noise_cov, rank, scalings, info)
+    if do_compute_rank:  # if necessary
+        rank = compute_rank(noise_cov, rank, scalings, info)
     assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
+    # time saving short-circuit
+    if proj_subspace and sum(rank.values()) == C.shape[0]:
+        return np.ones(n_chan), np.eye(n_chan), np.ones(n_chan, bool)
     eig = np.zeros(n_chan)
     eigvec = np.zeros((n_chan, n_chan))
     mask = np.zeros(n_chan, bool)

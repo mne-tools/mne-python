@@ -9,8 +9,8 @@ orthogonal spatial filters that maximally correlate with a continuous target.
 SPoC can be seen as an extension of the CSP for continuous variables.
 
 Here, SPoC is applied to decode the (continuous) fluctuation of an
-electromyogram from MEG beta activity using data from `Cortico-Muscular
-Coherence example of fieldtrip
+electromyogram from MEG beta activity using data from
+`Cortico-Muscular Coherence example of FieldTrip
 <http://www.fieldtriptoolbox.org/tutorial/coherence>`_
 
 References
@@ -26,7 +26,8 @@ References
 # License: BSD (3-clause)
 
 import matplotlib.pyplot as plt
-
+import time
+t0 = time.time()
 import mne
 from mne import Epochs
 from mne.decoding import SPoC
@@ -89,3 +90,4 @@ plt.show()
 spoc.fit(X, y)
 layout = read_layout('CTF151.lay')
 spoc.plot_patterns(meg_epochs.info, layout=layout)
+print(time.time() - t0)

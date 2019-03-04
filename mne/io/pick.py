@@ -11,7 +11,8 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, verbose, _validate_type, fill_doc, _ensure_int
+from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
+                     _check_option)
 
 
 def get_channel_types():
@@ -54,6 +55,45 @@ def get_channel_types():
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBR))
 
 
+_first_rule = {
+    FIFF.FIFFV_MEG_CH: 'meg',
+    FIFF.FIFFV_REF_MEG_CH: 'ref_meg',
+    FIFF.FIFFV_EEG_CH: 'eeg',
+    FIFF.FIFFV_STIM_CH: 'stim',
+    FIFF.FIFFV_EOG_CH: 'eog',
+    FIFF.FIFFV_EMG_CH: 'emg',
+    FIFF.FIFFV_ECG_CH: 'ecg',
+    FIFF.FIFFV_RESP_CH: 'resp',
+    FIFF.FIFFV_MISC_CH: 'misc',
+    FIFF.FIFFV_EXCI_CH: 'exci',
+    FIFF.FIFFV_IAS_CH: 'ias',
+    FIFF.FIFFV_SYST_CH: 'syst',
+    FIFF.FIFFV_SEEG_CH: 'seeg',
+    FIFF.FIFFV_BIO_CH: 'bio',
+    FIFF.FIFFV_QUAT_0: 'chpi',
+    FIFF.FIFFV_QUAT_1: 'chpi',
+    FIFF.FIFFV_QUAT_2: 'chpi',
+    FIFF.FIFFV_QUAT_3: 'chpi',
+    FIFF.FIFFV_QUAT_4: 'chpi',
+    FIFF.FIFFV_QUAT_5: 'chpi',
+    FIFF.FIFFV_QUAT_6: 'chpi',
+    FIFF.FIFFV_HPI_G: 'chpi',
+    FIFF.FIFFV_HPI_ERR: 'chpi',
+    FIFF.FIFFV_HPI_MOV: 'chpi',
+    FIFF.FIFFV_DIPOLE_WAVE: 'dipole',
+    FIFF.FIFFV_GOODNESS_FIT: 'gof',
+    FIFF.FIFFV_ECOG_CH: 'ecog',
+    FIFF.FIFFV_FNIRS_CH: 'fnirs',
+}
+# How to reduce our categories in channel_type (originally)
+_second_rules = {
+    'meg': ('unit', {FIFF.FIFF_UNIT_T_M: 'grad',
+                     FIFF.FIFF_UNIT_T: 'mag'}),
+    'fnirs': ('coil_type', {FIFF.FIFFV_COIL_FNIRS_HBO: 'hbo',
+                            FIFF.FIFFV_COIL_FNIRS_HBR: 'hbr'}),
+}
+
+
 def channel_type(info, idx):
     """Get channel type.
 
@@ -66,22 +106,27 @@ def channel_type(info, idx):
 
     Returns
     -------
-    type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
-           'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst' | 'misc'
-           'seeg' | 'bio' | 'chpi' | 'dipole' | 'gof' | 'ecog' | 'hbo' | 'hbr'
-        Type of channel
+    type : str
+        Type of channel. Will be one of::
+
+            {'grad','mag', 'eeg', 'stim', 'eog', 'emg', 'ecg', 'ref_meg',
+             'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'bio', 'chpi',
+             'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
+
     """
+    # This is faster than the original _channel_type_old now in test_pick.py
+    # because it uses (at most!) two dict lookups plus one conditional
+    # to get the channel type string.
     ch = info['chs'][idx]
-
-    # iterate through all defined channel types until we find a match with ch
-    for t, rules in get_channel_types().items():
-        for key, vals in rules.items():  # all keys must match the values
-            if ch.get(key, None) not in np.array(vals):
-                break  # not channel type t, go to next iteration
-        else:
-            return t
-
-    raise ValueError('Unknown channel type for {}'.format(ch["ch_name"]))
+    try:
+        first_kind = _first_rule[ch['kind']]
+    except KeyError:
+        raise ValueError('Unknown channel type (%s) for channel "%s"'
+                         % (ch['kind'], ch["ch_name"]))
+    if first_kind in _second_rules:
+        key, second_rule = _second_rules[first_kind]
+        first_kind = second_rule[ch[key]]
+    return first_kind
 
 
 def pick_channels(ch_names, include, exclude=[], ordered=False):
@@ -222,6 +267,20 @@ def _check_meg_type(meg, allow_auto=False):
                              % (allowed_types, meg))
 
 
+def _check_info_exclude(info, exclude):
+    _validate_type(info, "info")
+    info._check_consistency()
+    if exclude is None:
+        raise ValueError('exclude must be a list of strings or "bads"')
+    elif exclude == 'bads':
+        exclude = info.get('bads', [])
+    elif not isinstance(exclude, (list, tuple)):
+        raise ValueError('exclude must either be "bads" or a list of strings.'
+                         ' If only one channel is to be excluded, use '
+                         '[ch_name] instead of passing ch_name.')
+    return exclude
+
+
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
@@ -296,19 +355,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     """
     # NOTE: Changes to this function's signature should also be changed in
     # PickChannelsMixin
-    _validate_type(info, "info")
-    info._check_consistency()
+    exclude = _check_info_exclude(info, exclude)
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
-
-    if exclude is None:
-        raise ValueError('exclude must be a list of strings or "bads"')
-    elif exclude == 'bads':
-        exclude = info.get('bads', [])
-    elif not isinstance(exclude, (list, tuple)):
-        raise ValueError('exclude must either be "bads" or a list of strings.'
-                         ' If only one channel is to be excluded, use '
-                         '[ch_name] instead of passing ch_name.')
 
     _check_meg_type(ref_meg, allow_auto=True)
     _check_meg_type(meg)
@@ -324,50 +373,29 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                  'not {0}.')
             raise ValueError(w.format(type(param)))
 
+    param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
+                      misc=misc, resp=resp, chpi=chpi, exci=exci,
+                      ias=ias, syst=syst, seeg=seeg, dipole=dipole,
+                      gof=gof, bio=bio, ecog=ecog)
+    # avoid triage if possible
+    if isinstance(meg, bool):
+        for key in ('grad', 'mag'):
+            param_dict[key] = meg
+    if isinstance(fnirs, bool):
+        for key in ('hbo', 'hbr'):
+            param_dict[key] = fnirs
     for k in range(nchan):
-        kind = info['chs'][k]['kind']
-        # XXX eventually we should de-duplicate this with channel_type!
-        if kind == FIFF.FIFFV_MEG_CH and meg:
-            pick[k] = _triage_meg_pick(info['chs'][k], meg)
-        elif kind == FIFF.FIFFV_EEG_CH and eeg:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_STIM_CH and stim:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_EOG_CH and eog:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_ECG_CH and ecg:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_EMG_CH and emg:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_MISC_CH and misc:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_REF_MEG_CH and ref_meg:
-            pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
-        elif kind == FIFF.FIFFV_RESP_CH and resp:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_SYST_CH and syst:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_SEEG_CH and seeg:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_IAS_CH and ias:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_EXCI_CH and exci:
-            pick[k] = True
-        elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
-                      FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
-                      FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
-                      FIFF.FIFFV_HPI_MOV] and chpi:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_DIPOLE_WAVE and dipole:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_GOODNESS_FIT and gof:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_BIO_CH and bio:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_ECOG_CH and ecog:
-            pick[k] = True
-        elif kind == FIFF.FIFFV_FNIRS_CH:
-            pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs)
+        ch_type = channel_type(info, k)
+        try:
+            pick[k] = param_dict[ch_type]
+        except KeyError:  # not so simple
+            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg')
+            if ch_type in ('grad', 'mag'):
+                pick[k] = _triage_meg_pick(info['chs'][k], meg)
+            elif ch_type == 'ref_meg':
+                pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
+            else:  # ch_type in ('hbo', 'hbr')
+                pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs)
 
     # restrict channels to selection if provided
     if selection is not None:
@@ -449,7 +477,6 @@ def pick_info(info, sel=(), copy=True, verbose=None):
             c['data']['row_names'] = row_names
             c['data']['data'] = c['data']['data'][row_idx]
         info['comps'] = comps
-    info._check_consistency()
     info._check_consistency()
     return info
 
@@ -697,6 +724,35 @@ def _mag_grad_dependent(info):
                for ph in info.get('proc_history', []))
 
 
+def _contains_ch_type(info, ch_type):
+    """Check whether a certain channel type is in an info object.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement information.
+    ch_type : str
+        the channel type to be checked for
+
+    Returns
+    -------
+    has_ch_type : bool
+        Whether the channel type is present or not.
+    """
+    _validate_type(ch_type, 'str', "ch_type")
+
+    meg_extras = ['mag', 'grad', 'planar1', 'planar2']
+    fnirs_extras = ['hbo', 'hbr']
+    valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
+                                  if key != 'meg'] + meg_extras + fnirs_extras)
+    _check_option('ch_type', ch_type, valid_channel_types)
+    if info is None:
+        raise ValueError('Cannot check for channels of type "%s" because info '
+                         'is None' % (ch_type,))
+    return any(ch_type == channel_type(info, ii)
+               for ii in range(info['nchan']))
+
+
 def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     """Get data channel indices as separate list of tuples.
 
@@ -718,35 +774,38 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
     picks_list : list of tuples
         The list of tuples of picks and the type string.
     """
-    from ..channels.channels import _contains_ch_type
+    _validate_type(ref_meg, bool, 'ref_meg')
+    exclude = _check_info_exclude(info, exclude)
     if meg_combined == 'auto':
         meg_combined = _mag_grad_dependent(info)
     picks_list = []
-    has = [_contains_ch_type(info, k) for k in _DATA_CH_TYPES_SPLIT]
-    has = dict(zip(_DATA_CH_TYPES_SPLIT, has))
-    if has['mag'] and (meg_combined is not True or not has['grad']):
-        picks_list.append(
-            ('mag', pick_types(info, meg='mag', eeg=False, stim=False,
-             ref_meg=ref_meg, exclude=exclude))
+    picks_list = {ch_type: list() for ch_type in _DATA_CH_TYPES_SPLIT}
+    for k in range(info['nchan']):
+        if info['chs'][k]['ch_name'] not in exclude:
+            this_type = channel_type(info, k)
+            try:
+                picks_list[this_type].append(k)
+            except KeyError:
+                # This annoyance is due to differences in pick_types
+                # and channel_type behavior
+                if this_type == 'ref_meg':
+                    ch = info['chs'][k]
+                    if _triage_meg_pick(ch, ref_meg):
+                        if ch['unit'] == FIFF.FIFF_UNIT_T:
+                            picks_list['mag'].append(k)
+                        elif ch['unit'] == FIFF.FIFF_UNIT_T_M:
+                            picks_list['grad'].append(k)
+                else:
+                    pass  # not a data channel type
+    picks_list = [(ch_type, np.array(picks_list[ch_type], int))
+                  for ch_type in _DATA_CH_TYPES_SPLIT]
+    assert _DATA_CH_TYPES_SPLIT[:2] == ('mag', 'grad')
+    if meg_combined and len(picks_list[0][1]) and len(picks_list[1][1]):
+        picks_list.insert(
+            0, ('meg', np.unique(np.concatenate([picks_list.pop(0)[1],
+                                                 picks_list.pop(0)[1]])))
         )
-    if has['grad'] and (meg_combined is not True or not has['mag']):
-        picks_list.append(
-            ('grad', pick_types(info, meg='grad', eeg=False, stim=False,
-             ref_meg=ref_meg, exclude=exclude))
-        )
-    if has['mag'] and has['grad'] and meg_combined is True:
-        picks_list.append(
-            ('meg', pick_types(info, meg=True, eeg=False, stim=False,
-             ref_meg=ref_meg, exclude=exclude))
-        )
-    for ch_type in _DATA_CH_TYPES_SPLIT:
-        if ch_type in ['grad', 'mag']:  # exclude just MEG channels
-            continue
-        if has[ch_type]:
-            picks_list.append(
-                (ch_type, pick_types(info, meg=False, stim=False,
-                 ref_meg=ref_meg, exclude=exclude, **{ch_type: True}))
-            )
+    picks_list = [p for p in picks_list if len(p[1])]
     return picks_list
 
 
@@ -787,15 +846,15 @@ _PICK_TYPES_DATA_DICT = dict(
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ['mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr']
+_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr')
 
 # Valid data types, ordered for consistency, used in viz/evoked.
-_VALID_CHANNEL_TYPES = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
+_VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
                         'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
-                        'misc']
+                        'misc')
 
-_MEG_CH_TYPES_SPLIT = ['mag', 'grad', 'planar1', 'planar2']
-_FNIRS_CH_TYPES_SPLIT = ['hbo', 'hbr']
+_MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
+_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr')
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):

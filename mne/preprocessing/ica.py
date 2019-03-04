@@ -102,8 +102,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
-    types = _DATA_CH_TYPES_SPLIT + ['eog']
-    types += ['ref_meg'] if allow_ref_meg else []
+    types = _DATA_CH_TYPES_SPLIT + ('eog',)
+    types += ('ref_meg',) if allow_ref_meg else ()
     chs = list({channel_type(info, j) for j in picks})
     check = all([ch in types for ch in chs])
     if not check:
@@ -570,7 +570,7 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT + ['eog', "ref_meg"]:
+            for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
