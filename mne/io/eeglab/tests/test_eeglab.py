@@ -12,7 +12,7 @@ from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import pytest
 from scipy import io
 
@@ -28,6 +28,7 @@ base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
 raw_fname_mat = op.join(base_dir, 'test_raw.set')
 raw_fname_onefile_mat = op.join(base_dir, 'test_raw_onefile.set')
+raw_fname_event_duration = op.join(base_dir, 'test_raw_event_duration.set')
 epochs_fname_mat = op.join(base_dir, 'test_epochs.set')
 epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
@@ -287,6 +288,11 @@ def test_eeglab_read_annotations():
     assert annotations.orig_time is None
     assert_array_almost_equal(annotations.onset[validation_samples],
                               expected_onset, decimal=2)
+
+    # test if event durations are imported correctly
+    raw = read_raw_eeglab(raw_fname_event_duration, preload=True)
+    # file contains 16 annotations with 1 s (128 samples) duration each
+    assert_allclose(raw.annotations.duration, np.ones(16))
 
 
 @testing.requires_testing_data
