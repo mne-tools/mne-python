@@ -127,7 +127,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         session_date = read_str(fid, 10)
         time = read_str(fid, 12)
         date = session_date.split('/')
-        if len(date) == 3 and len(time) == 3:
+        if len(date) == 3 and len(time) == 8:
             if date[2].startswith('9'):
                 date[2] = '19' + date[2]
             elif len(date[2]) == 2:
