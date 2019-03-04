@@ -105,12 +105,13 @@ def _scale_mpl_figure(fig, scale):
 
     XXX it's unclear why this works, but good to go for most cases
     """
+    scale = float(scale)
     fig.set_size_inches(fig.get_size_inches() * scale)
     fig.set_dpi(fig.get_dpi() * scale)
     import matplotlib as mpl
     if scale >= 1:
         sfactor = scale ** 2
-    elif scale < 1:
+    else:
         sfactor = -((1. / scale) ** 2)
     for text in fig.findobj(mpl.text.Text):
         fs = text.get_fontsize()
@@ -1275,7 +1276,6 @@ class Report(object):
 
         sectionvar = self._sectionvars[section]
         global_id = self._get_id()
-        img_klass = self._sectionvars[section]
         name = 'slider'
 
         html = []
@@ -1302,8 +1302,8 @@ class Report(object):
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
-                          img_klass, caption, first,
-                          image_format=image_format))
+                                            img_klass, caption, first,
+                                            image_format=image_format))
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         # Render the slices
@@ -1328,7 +1328,6 @@ class Report(object):
         """Render one axis of the array."""
         global_id = global_id or name
         html = []
-        slices, slices_range = [], []
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 

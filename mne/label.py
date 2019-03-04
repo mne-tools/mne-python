@@ -1333,10 +1333,6 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
     for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
             zip(['lh', 'rh'], stc.vertices, tris, rr)):
         this_data = stc.data[cnt:cnt + len(this_vertno)]
-        e = mesh_edges(this_tris)
-        e.data[e.data == 2] = 1
-        n_vertices = e.shape[0]
-        e = e + sparse.eye(n_vertices, n_vertices)
 
         if connected:  # we know src *must* be a SourceSpaces now
             vertno = np.where(src[hemi_idx]['inuse'])[0]

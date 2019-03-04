@@ -519,16 +519,6 @@ def assert_true(expr, msg='False is not True'):
         raise AssertionError(msg)
 
 
-def assert_is(expr1, expr2, msg=None):
-    """Fake assert_is without message"""
-    assert_true(expr2 is expr2, msg)
-
-
-def assert_is_not(expr1, expr2, msg=None):
-    """Fake assert_is_not without message"""
-    assert_true(expr1 is not expr2, msg)
-
-
 def _read_volume_info(fobj):
     """An implementation of nibabel.freesurfer.io._read_volume_info, since old
     versions of nibabel (<=2.1.0) don't have it.

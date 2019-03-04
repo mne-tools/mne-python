@@ -292,7 +292,6 @@ def _synthesize_stim_channel(events, n_samples):
         An array containing the whole recording's event marking.
     """
     # select events overlapping buffer
-    onset = events[:, 0]
     events = events.copy()
     events[events[:, 1] < 1, 1] = 1
     # create output buffer

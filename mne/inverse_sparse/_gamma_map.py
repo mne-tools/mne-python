@@ -99,7 +99,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         # Invert CM keeping symmetry
         U, S, V = linalg.svd(CM, full_matrices=False)
         S = S[np.newaxis, :]
-        CM = np.dot(U * S, U.T)
+        del CM
         CMinv = np.dot(U / (S + eps), U.T)
         CMinvG = np.dot(CMinv, G)
         A = np.dot(CMinvG.T, M)  # mult. w. Diag(gamma) in gamma update

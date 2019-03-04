@@ -744,7 +744,6 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     surf['vertno'] = np.where(surf['inuse'])[0]
 
     # set some final params
-    inds = np.arange(surf['np'])
     sizes = _normalize_vectors(surf['nn'])
     surf['inuse'][sizes <= 0] = False
     surf['nuse'] = np.sum(surf['inuse'])
