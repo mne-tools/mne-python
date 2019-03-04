@@ -26,8 +26,7 @@ References
 # License: BSD (3-clause)
 
 import matplotlib.pyplot as plt
-import time
-t0 = time.time()
+
 import mne
 from mne import Epochs
 from mne.decoding import SPoC
@@ -90,4 +89,3 @@ plt.show()
 spoc.fit(X, y)
 layout = read_layout('CTF151.lay')
 spoc.plot_patterns(meg_epochs.info, layout=layout)
-print(time.time() - t0)
