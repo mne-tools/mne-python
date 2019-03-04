@@ -296,9 +296,10 @@ class _Renderer(object):
                                     scalar=scalar,
                                     view=self.view,
                                     color=color)
-            quiver.attach(Alpha(opacity))
-            if backface_culling:
-                quiver.set_gl_state(cull_face=True)
+            if quiver is not None:
+                quiver.attach(Alpha(opacity))
+                if backface_culling:
+                    quiver.set_gl_state(cull_face=True)
         return 0
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
