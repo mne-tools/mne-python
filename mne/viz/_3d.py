@@ -385,7 +385,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         alpha = alphas[ii]
         with warnings.catch_warnings(record=True):  # traits
             renderer.surface(surface=surf, color=colors[ii],
-                             opacity=alpha)
+                             opacity=alpha, offset=1)
 
         # Now show our field pattern
         with warnings.catch_warnings(record=True):  # traits

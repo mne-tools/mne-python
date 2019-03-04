@@ -154,7 +154,7 @@ class _Renderer(object):
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
-                backface_culling=False):
+                backface_culling=False, offset=None):
         """Add a surface in the scene.
 
         Parameters

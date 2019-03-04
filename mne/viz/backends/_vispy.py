@@ -147,11 +147,13 @@ class _Renderer(object):
                                     levels=levels, color_lev=cm,
                                     data=scalars, parent=self.view.scene)
         iso.attach(Alpha(opacity))
+        iso.set_gl_state(depth_test=True,
+                         polygon_offset_fill=False)
         return 0
 
     def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
-                backface_culling=False):
+                backface_culling=False, offset=None):
         """Add a surface in the scene.
 
         Parameters
@@ -199,6 +201,13 @@ class _Renderer(object):
             mesh.attach(Alpha(opacity))
             if backface_culling:
                 mesh.set_gl_state(cull_face=True)
+        if offset is not None:
+            mesh.set_gl_state(depth_test=True,
+                              polygon_offset=(offset, offset),
+                              polygon_offset_fill=True)
+        else:
+            mesh.set_gl_state(depth_test=True,
+                              polygon_offset_fill=False)
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
