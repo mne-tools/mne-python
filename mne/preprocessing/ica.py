@@ -1149,7 +1149,8 @@ class ICA(ContainsMixin):
                 threshold = 0.25
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
-                    inst, ch_name, keep_ecg=False,
+                    inst, ch_name, l_freq=l_freq, h_freq=h_freq,
+                    keep_ecg=False,
                     reject_by_annotation=reject_by_annotation)).get_data()
 
                 if sources.shape[0] == 0:

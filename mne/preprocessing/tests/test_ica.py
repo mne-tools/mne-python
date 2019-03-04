@@ -918,6 +918,48 @@ def test_ica_ctf():
         with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
             ica.get_sources(inst)
 
+    # The CTF data are uniquely well suited to testing the ICA.find_bads_
+    # methods, so do that while we're here.
+
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    # derive reference ICA components and append them to raw
+    icarf = ICA(n_components=2, random_state=0, max_iter=2, allow_ref_meg=True)
+    with pytest.warns(UserWarning, match='did not converge'):
+        icarf.fit(raw.copy().pick_types(meg=False, ref_meg=True))
+    icacomps = icarf.get_sources(raw)
+    # rename components so they are auto-detected by find_bads_ref
+    for c in icacomps.ch_names:
+        icacomps.rename_channels({c: 'REF_' + c})
+    # and add them to raw
+    raw.add_channels([icacomps])
+    # set the appropriate EEG channels to EOG and ECG
+    raw.set_channel_types({'EEG057': 'eog', 'EEG058': 'eog', 'EEG059': 'ecg'})
+    ica = ICA(n_components=4, random_state=0, max_iter=2, method=method)
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw)
+
+    ica.find_bads_eog(raw, l_freq=None, h_freq=None)
+    ica.find_bads_ecg(raw, l_freq=None, h_freq=None, method='correlation')
+    ica.find_bads_ref(raw, l_freq=None, h_freq=None)
+    ica.find_bads_ecg(raw, l_freq=None, h_freq=None)
+
+    # build up list of which entries in ICA.labels_ we expect to see
+    expected_labels = ['eog', 'ecg', 'ref_meg', 'ecg/ECG-MAG']
+    picks = list(pick_types(raw.info, meg=False, eog=True))
+    for idx, ch in enumerate(picks):
+        expected_labels.append('{}/{}/{}'.format('eog', idx, raw.ch_names[ch]))
+    picks = list(pick_types(raw.info, meg=False, ecg=True))
+    for idx, ch in enumerate(picks):
+        expected_labels.append('{}/{}/{}'.format('ecg', idx, raw.ch_names[ch]))
+    picks = pick_channels_regexp(raw.ch_names, 'REF_ICA*')
+    for idx, ch in enumerate(picks):
+        expected_labels.append('{}/{}/{}'.format('ref_meg',
+                                                 idx, raw.ch_names[ch]))
+
+    # check expected list against ICA.labels_
+    for lab in expected_labels:
+        assert lab in list(ica.labels_.keys())
+
 
 @requires_sklearn
 @testing.requires_testing_data
@@ -979,50 +1021,5 @@ def test_ica_eeg():
             for inst in [raw, epochs, evoked]:
                 ica.apply(inst)
                 ica.get_sources(inst)
-
-@requires_sklearn
-@testing.requires_testing_data
-def test_ica_labels():
-    """make sure find_bads functions add labels to ICA.labels_ correctly"""
-    raw = read_raw_ctf(ctf_fname, preload=True)
-    # set the appropriate EEG channels to EOG and ECG
-    raw.set_channel_types({'EEG057': 'eog', 'EEG058': 'eog', 'EEG059': 'ecg'})
-    ica = ICA()
-    with pytest.warns(UserWarning, match='did not converge'):
-        ica.fit(raw)
-
-    ica.find_bads_eog(raw)
-
-    ica.find_bads_ecg(raw)
-    ica.find_bads_ecg(raw, method="correlation")
-
-    icaref = ICA(n_components=4, allow_ref_meg=True)
-    with pytest.warns(UserWarning, match='did not converge'):
-        icaref.fit(raw)
-    icacomps = icaref.get_sources(raw)
-    # rename components so they are auto-detected by find_bads_ref
-    for c in icacomps.ch_names:
-        icacomps.set_channel_types({c: "misc"})
-        icacomps.rename_channels({c: 'REF_' + c})
-    # and add them to raw
-    raw.add_channels([icacomps])
-    ica.find_bads_ref(raw)
-
-    # build up list of which entries in ICA.labels_ we expect to see
-    expected_labels = ["eog", "ecg", "ref_meg"]
-    picks = list(pick_types(raw.info, meg=False, eog=True))
-    for idx, ch in enumerate(picks):
-        expected_labels.append("{}/{}/{}".format("eog", idx, raw.ch_names[ch]))
-    picks = list(pick_types(raw.info, meg=False, ecg=True))
-    for idx, ch in enumerate(picks):
-        expected_labels.append("{}/{}/{}".format("ecg", idx, raw.ch_names[ch]))
-    picks = pick_channels_regexp(raw.ch_names, "REF_ICA*")
-    for idx, ch in enumerate(picks):
-        expected_labels.append("{}/{}/{}".format("ref_meg",
-                                                 idx, raw.ch_names[ch]))
-
-    # check expected list against ICA.labels_
-    for lab in expected_labels:
-        assert lab in list(ica.labels_.keys())
 
 run_tests_if_main()
