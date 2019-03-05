@@ -416,7 +416,7 @@ sphinx_gallery_conf = {
     'show_memory': True,
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
-    'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
+    'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'filename_pattern': r'/.*(?<!_)\.py$',  # anything that isn't *_.py
 }
 
