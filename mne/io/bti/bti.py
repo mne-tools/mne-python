@@ -914,8 +914,8 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
                      in [c_['chan_no'] for c_ in chans]]
 
         # check all pdf channels are present in config
-        match = [c['chan_no'] for c in chans_cfg] == \
-                [c['chan_no'] for c in chans]
+        match = sorted([c['chan_no'] for c in chans_cfg]) == \
+                sorted([c['chan_no'] for c in chans])
 
         if not match:
             raise RuntimeError('Could not match raw data channels with'
