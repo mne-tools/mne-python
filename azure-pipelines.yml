@@ -15,6 +15,7 @@ jobs:
     MNE_FORCE_SERIAL: 'true'
     PIP_DEPENDENCIES: 'codecov'
     OPENBLAS_NUM_THREADS: 1
+    AZURE_CI_WINDOWS: 'true'
   strategy:
     maxParallel: 4
     matrix:
