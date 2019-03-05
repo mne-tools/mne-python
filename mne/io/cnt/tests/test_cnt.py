@@ -26,7 +26,8 @@ def test_data():
     assert len(eog_chs) == 2  # test eog='auto'
     assert raw.info['bads'] == ['LEFT_EAR', 'VEOGR']  # test bads
 
-    assert raw.info['meas_date'] is not None
+    # XXX: the data has "05/10/200 17:35:31" so it is set to None
+    assert raw.info['meas_date'] is None
 
 
 run_tests_if_main()

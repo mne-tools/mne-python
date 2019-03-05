@@ -4,8 +4,7 @@
 #
 # License: BSD (3-clause)
 from os import path
-import datetime
-import calendar
+from datetime import datetime
 
 import numpy as np
 
@@ -64,9 +63,8 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         Defines the data format the data is read in. If 'auto', it is
         determined from the file header using ``numsamples`` field.
         Defaults to 'auto'.
-    date_format : str
-        Format of date in the header. Currently supports 'mm/dd/yy' (default)
-        and 'dd/mm/yy'.
+    date_format : 'mm/dd/yy' | 'dd/mm/yy'
+        Format of date in the header. Defaults to 'mm/dd/yy'.
     preload : bool | str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -124,30 +122,15 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             hand = None
         fid.seek(205)
         session_label = read_str(fid, 20)
-        session_date = read_str(fid, 10)
-        time = read_str(fid, 12)
-        date = session_date.split('/')
-        if len(date) == 3 and len(time) == 8:
-            if date[2].startswith('9'):
-                date[2] = '19' + date[2]
-            elif len(date[2]) == 2:
-                date[2] = '20' + date[2]
-            time = time.split(':')
-            if date_format == 'dd/mm/yy':
-                date[0], date[1] = date[1], date[0]
-            elif date_format != 'mm/dd/yy':
-                raise ValueError("Only date formats 'mm/dd/yy' and "
-                                 "'dd/mm/yy' supported. "
-                                 "Got '%s'." % date_format)
-            # Assuming mm/dd/yy
-            date = datetime.datetime(int(date[2]), int(date[0]),
-                                     int(date[1]), int(time[0]),
-                                     int(time[1]), int(time[2]))
-            meas_date = (calendar.timegm(date.utctimetuple()), 0)
-        else:
+
+        session_date = ('%s %s' % (read_str(fid, 10), read_str(fid, 12)))
+        try:
+            meas_date = datetime.strptime(session_date, date_format)
+        except ValueError:
             warn('  Could not parse meas date from the header. '
                  'Setting to None.')
             meas_date = None
+
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
         fid.seek(376)
@@ -333,9 +316,8 @@ class RawCNT(BaseRaw):
         Defines the data format the data is read in. If 'auto', it is
         determined from the file header using ``numsamples`` field.
         Defaults to 'auto'.
-    date_format : str
-        Format of date in the header. Currently supports 'mm/dd/yy' (default)
-        and 'dd/mm/yy'.
+    date_format : 'mm/dd/yy' | 'dd/mm/yy'
+        Format of date in the header. Defaults to 'mm/dd/yy'.
     preload : bool | str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -352,9 +334,16 @@ class RawCNT(BaseRaw):
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
                  verbose=None):  # noqa: D102
+
+        _check_option('date_format', date_format, ['mm/dd/yy', 'dd/mm/yy'])
+        if date_format == 'dd/mm/yy':
+            _date_format = '%d/%m/%y %H:%M:%S'
+        else:
+            _date_format = '%m/%d/%y %H:%M:%S'
+
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
-                                       data_format, date_format)
+                                       data_format, _date_format)
         last_samps = [cnt_info['n_samples'] - 1]
         _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
