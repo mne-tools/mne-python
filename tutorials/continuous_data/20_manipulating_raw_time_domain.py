@@ -17,7 +17,7 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
+raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 
 ###############################################################################
 # We've already seen how to extract a short section of a :class:`~mne.io.Raw`

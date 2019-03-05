@@ -97,14 +97,23 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 
 ###############################################################################
+# By default, any of the ``read_raw_*`` functions will display some information
+# about the file it's loading; for example, here it tells us that there are
+# three "projection items" in the file along with the recorded data; we'll
+# discuss those in the tutorial :ref:`projectors-basics-tutorial`. You can
+# suppress this output by passing ``verbose=False`` when calling the function,
+# but normally it's a good "sanity check" to read it — if you're storing
+# several intermediate stages of processing in ``.fif`` files, it's
+# surprisingly easy to load the wrong file.
+#
 # Notice that :func:`~mne.io.read_raw_fif` also takes a ``preload`` parameter,
 # which determines whether the data will be copied into RAM or not.  Some
 # operations (such as filtering) require that the data be preloaded, but it is
 # possible use ``preload=False`` and then copy raw data into memory later using
 # the :meth:`~mne.io.Raw.load_data` method.
 #
-# You can get a glimpse of the basic details of a :class:`~mne.io.Raw` object
-# by printing it:
+# In addition to the information displayed during loading, you can get a
+# glimpse of the basic details of a :class:`~mne.io.Raw` object by printing it:
 
 print(raw)
 

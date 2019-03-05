@@ -20,7 +20,7 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
+raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 
 
 ###############################################################################
@@ -107,8 +107,8 @@ two_meg_chans = raw.get_data(picks=['MEG 0712', 'MEG 1022'],
 
 ###############################################################################
 # In addition to indexing and the :meth:`~mne.io.Raw.get_data` method (which
-# both leave the original :class:`~mne.io.Raw` object unchanged, there are also
-# methods :meth:`~mne.io.Raw.pick_channels` and
+# both leave the original :class:`~mne.io.Raw` object unchanged), there are
+# also methods :meth:`~mne.io.Raw.pick_channels` and
 # :meth:`~mne.io.Raw.drop_channels` that will modify the :class:`~mne.io.Raw`
 # object in place. For that reason, during interactive, exploratory analysis it
 # is common to make a copy of the :class:`~mne.io.Raw` object first when using
