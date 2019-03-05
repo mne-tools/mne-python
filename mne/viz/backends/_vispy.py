@@ -101,7 +101,7 @@ class _Renderer(object):
             mesh.set_gl_state(cull_face=True)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
+                vmin=None, vmax=None, colormap=None, offset=None):
         """Add a contour in the scene.
 
         Parameters
@@ -147,8 +147,13 @@ class _Renderer(object):
                                     levels=levels, color_lev=cm,
                                     data=scalars, parent=self.view.scene)
         iso.attach(Alpha(opacity))
-        iso.set_gl_state(depth_test=True,
-                         polygon_offset_fill=False)
+        if offset is not None:
+            iso.set_gl_state(depth_test=True,
+                             polygon_offset=(offset, offset),
+                             polygon_offset_fill=True)
+        else:
+            iso.set_gl_state(depth_test=True,
+                             polygon_offset_fill=False)
         return 0
 
     def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,

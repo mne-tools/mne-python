@@ -385,18 +385,19 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         alpha = alphas[ii]
         with warnings.catch_warnings(record=True):  # traits
             renderer.surface(surface=surf, color=colors[ii],
-                             opacity=alpha, offset=1)
+                             opacity=alpha, offset=3)
 
         # Now show our field pattern
         with warnings.catch_warnings(record=True):  # traits
             renderer.surface(surface=surf, vmin=-vlim, vmax=vlim,
-                             scalars=data, colormap=colormap)
+                             scalars=data, colormap=colormap,
+                             offset=2)
 
         # And the field lines on top
         with warnings.catch_warnings(record=True):  # traits
             renderer.contour(surface=surf, scalars=data, contours=21,
                              vmin=-vlim, vmax=vlim, opacity=alpha,
-                             colormap=colormap_lines)
+                             colormap=colormap_lines, offset=1)
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
