@@ -2123,7 +2123,7 @@ def _setup_butterfly(params):
         types = np.array(params['types'])[params['orig_inds']]
         if params['group_by'] in ['type', 'original']:
             inds = params['inds']
-            labels = [t for t in _DATA_CH_TYPES_SPLIT + ['eog', 'ecg']
+            labels = [t for t in _DATA_CH_TYPES_SPLIT + ('eog', 'ecg')
                       if t in types] + ['misc']
             ticks = np.arange(5, 5 * (len(labels) + 1), 5)
             offs = {l: t for (l, t) in zip(labels, ticks)}

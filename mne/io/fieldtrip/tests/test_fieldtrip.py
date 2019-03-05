@@ -78,6 +78,11 @@ def test_read_evoked(cur_system, version, use_info):
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info',
                          all_test_params_epochs)
+# Strange, non-deterministic Pandas errors:
+# "ValueError: cannot expose native-only dtype 'g' in non-native
+# byte order '<' via buffer interface"
+@pytest.mark.skipif(os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true',
+                    reason='Pandas problem on Azure CI')
 def test_read_epochs(cur_system, version, use_info):
     """Test comparing reading an Epochs object and the FieldTrip version."""
     pandas = _check_pandas_installed(strict=False)

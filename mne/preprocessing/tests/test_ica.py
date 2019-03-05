@@ -728,7 +728,7 @@ def test_bad_channels(method, allow_ref_meg):
     epochs = EpochsArray(data, info)
 
     n_components = 0.9
-    data_chs = _DATA_CH_TYPES_SPLIT + ['eog']
+    data_chs = list(_DATA_CH_TYPES_SPLIT + ('eog',))
     if allow_ref_meg:
         data_chs.append('ref_meg')
     chs_bad = list(set(chs) - set(data_chs))

@@ -71,6 +71,8 @@ Changelog
 
 - Add ``channel_wise`` argument to :func:`mne.io.Raw.apply_function` to allow applying a function on multiple channels at once by `Hubert Banville`_
 
+- Add option ``copy='auto'`` to control data copying in :class:`mne.io.RawArray` by `Eric Larson`_
+
 - The ``mri`` parameter in :func:`mne.setup_volume_source_space` is now automatically set to ``T1.mgz`` if ``subject`` is provided. This allows to get a :class:`mne.SourceSpaces` of kind ``volume`` more automatically. By `Alex Gramfort`_
 
 - Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_

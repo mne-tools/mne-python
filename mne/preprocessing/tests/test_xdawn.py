@@ -49,8 +49,7 @@ def test_xdawn_picks():
     info = create_info(2, 1000., ('eeg', 'misc'))
     epochs = EpochsArray(data, info)
     xd = Xdawn(correct_overlap=False)
-    with pytest.warns(RuntimeWarning, match='No average EEG'):
-        xd.fit(epochs)
+    xd.fit(epochs)
     epochs_out = xd.apply(epochs)['1']
     assert epochs_out.info['ch_names'] == epochs.ch_names
     assert not (epochs_out.get_data()[:, 0] != data[:, 0]).any()
@@ -234,8 +233,7 @@ def test_XdawnTransformer():
 
     # Compare xdawn and _XdawnTransformer
     xd = Xdawn(correct_overlap=False)
-    with pytest.warns(RuntimeWarning, match='No average EEG'):
-        xd.fit(epochs)
+    xd.fit(epochs)
 
     xdt = _XdawnTransformer()
     xdt.fit(X, y)

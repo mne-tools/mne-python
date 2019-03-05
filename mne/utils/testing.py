@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 from ._logging import warn
+from .numerics import object_diff
 
 
 def _memory_usage(*args, **kwargs):
@@ -414,3 +415,9 @@ def assert_and_remove_boundary_annot(annotations, n=1):
         idx = np.where(annotations.description == '%s boundary' % key)[0]
         assert len(idx) == n
         annotations.delete(idx)
+
+
+def assert_object_equal(a, b):
+    """Assert two objects are equal."""
+    d = object_diff(a, b)
+    assert d == '', d
