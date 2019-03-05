@@ -112,14 +112,15 @@ class _Renderer(object):
         kwargs: args
             The arguments to pass to triangular_mesh
         """
-        surface = self.mlab.triangular_mesh(x, y, z, triangles,
-                                            color=color,
-                                            opacity=opacity,
-                                            figure=self.fig,
-                                            **kwargs)
-        surface.actor.property.shading = shading
-        surface.actor.property.backface_culling = backface_culling
-        return surface
+        with warnings.catch_warnings(record=True):  # traits
+            surface = self.mlab.triangular_mesh(x, y, z, triangles,
+                                                color=color,
+                                                opacity=opacity,
+                                                figure=self.fig,
+                                                **kwargs)
+            surface.actor.property.shading = shading
+            surface.actor.property.backface_culling = backface_culling
+            return surface
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
@@ -147,10 +148,11 @@ class _Renderer(object):
             The colormap to use.
         """
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
-        cont = self.mlab.pipeline.contour_surface(
-            mesh, contours=contours, line_width=1.0, vmin=vmin, vmax=vmax,
-            opacity=opacity, figure=self.fig)
-        cont.module_manager.scalar_lut_manager.lut.table = colormap
+        with warnings.catch_warnings(record=True):  # traits
+            cont = self.mlab.pipeline.contour_surface(
+                mesh, contours=contours, line_width=1.0, vmin=vmin, vmax=vmax,
+                opacity=opacity, figure=self.fig)
+            cont.module_manager.scalar_lut_manager.lut.table = colormap
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
@@ -180,12 +182,13 @@ class _Renderer(object):
         """
         # Make a solid surface
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
-        surface = self.mlab.pipeline.surface(
-            mesh, color=color, opacity=opacity, vmin=vmin, vmax=vmax,
-            figure=self.fig)
-        if colormap is not None:
-            surface.module_manager.scalar_lut_manager.lut.table = colormap
-        surface.actor.property.backface_culling = backface_culling
+        with warnings.catch_warnings(record=True):  # traits
+            surface = self.mlab.pipeline.surface(
+                mesh, color=color, opacity=opacity, vmin=vmin, vmax=vmax,
+                figure=self.fig)
+            if colormap is not None:
+                surface.module_manager.scalar_lut_manager.lut.table = colormap
+            surface.actor.property.backface_culling = backface_culling
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
@@ -212,11 +215,12 @@ class _Renderer(object):
             x = center[:, 0]
             y = center[:, 1]
             z = center[:, 2]
-        surface = self.mlab.points3d(x, y, z, color=color,
-                                     resolution=resolution,
-                                     scale_factor=scale, opacity=opacity,
-                                     figure=self.fig)
-        surface.actor.property.backface_culling = backface_culling
+        with warnings.catch_warnings(record=True):  # traits
+            surface = self.mlab.points3d(x, y, z, color=color,
+                                         resolution=resolution,
+                                         scale_factor=scale, opacity=opacity,
+                                         figure=self.fig)
+            surface.actor.property.backface_culling = backface_culling
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -261,24 +265,26 @@ class _Renderer(object):
         backface_culling: bool
             If True, enable backface culling on the quiver.
         """
-        if mode == 'arrow':
-            self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
-                               color=color, scale_factor=scale,
-                               scale_mode=scale_mode,
-                               resolution=resolution, scalars=scalars,
-                               opacity=opacity, figure=self.fig)
-        elif mode == 'cone':
-            self.mlab.quiver3d(x, y, z, u, v, w, color=color,
-                               mode=mode, scale_factor=scale,
-                               opacity=opacity, figure=self.fig)
-        elif mode == 'cylinder':
-            quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
-                                      color=color, scale_factor=scale,
-                                      opacity=opacity, figure=self.fig)
-            quiv.glyph.glyph_source.glyph_source.height = glyph_height
-            quiv.glyph.glyph_source.glyph_source.center = glyph_center
-            quiv.glyph.glyph_source.glyph_source.resolution = glyph_resolution
-            quiv.actor.property.backface_culling = backface_culling
+        with warnings.catch_warnings(record=True):  # traits
+            if mode == 'arrow':
+                self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
+                                   color=color, scale_factor=scale,
+                                   scale_mode=scale_mode,
+                                   resolution=resolution, scalars=scalars,
+                                   opacity=opacity, figure=self.fig)
+            elif mode == 'cone':
+                self.mlab.quiver3d(x, y, z, u, v, w, color=color,
+                                   mode=mode, scale_factor=scale,
+                                   opacity=opacity, figure=self.fig)
+            elif mode == 'cylinder':
+                quiv = self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
+                                          color=color, scale_factor=scale,
+                                          opacity=opacity, figure=self.fig)
+                quiv.glyph.glyph_source.glyph_source.height = glyph_height
+                quiv.glyph.glyph_source.glyph_source.center = glyph_center
+                quiv.glyph.glyph_source.glyph_source.resolution = \
+                    glyph_resolution
+                quiv.actor.property.backface_culling = backface_culling
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         """Add test in the scene.
@@ -296,7 +302,8 @@ class _Renderer(object):
         color: tuple
             The color of the text.
         """
-        self.mlab.text(x, y, text, width=width, figure=self.fig)
+        with warnings.catch_warnings(record=True):  # traits
+            self.mlab.text(x, y, text, width=width, figure=self.fig)
 
     def show(self):
         """Render the scene."""
@@ -317,12 +324,14 @@ class _Renderer(object):
         focalpoint: tuple
             The focal point of the camera: (x, y, z).
         """
-        self.mlab.view(azimuth, elevation, distance,
-                       focalpoint=focalpoint, figure=self.fig)
+        with warnings.catch_warnings(record=True):  # traits
+            self.mlab.view(azimuth, elevation, distance,
+                           focalpoint=focalpoint, figure=self.fig)
 
     def screenshot(self):
         """Take a screenshot of the scene."""
-        return self.mlab.screenshot(self.fig)
+        with warnings.catch_warnings(record=True):  # traits
+            return self.mlab.screenshot(self.fig)
 
     def project(self, xyz, ch_names):
         """Convert 3d points to a 2d perspective.
