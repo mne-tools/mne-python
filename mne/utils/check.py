@@ -408,7 +408,7 @@ def _check_one_ch_type(info, picks, noise_cov, method):
                 'The use of several sensor types with the DICS beamformer is '
                 'not supported yet.')
     if noise_cov is None:
-        noise_cov = make_ad_hoc_cov(info)
+        noise_cov = make_ad_hoc_cov(info, std=1.)
     _validate_type(noise_cov, Covariance, 'noise_cov')
     return noise_cov
 

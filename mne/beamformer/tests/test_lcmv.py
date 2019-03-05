@@ -672,7 +672,8 @@ def test_lcmv_ctf_comp():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('proj', [False, True])
-def test_lcmv_reg_proj(proj):
+@pytest.mark.parametrize('weight_norm', (None, 'nai', 'unit-noise-gain'))
+def test_lcmv_reg_proj(proj, weight_norm):
     """Test LCMV with and without proj."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
@@ -693,7 +694,7 @@ def test_lcmv_reg_proj(proj):
         make_lcmv(epochs.info, forward, data_cov, reg=0.05,
                   noise_cov=None)
     epochs.pick_types('grad')
-    kwargs = dict(reg=0.05, pick_ori=None, weight_norm=None)
+    kwargs = dict(reg=0.05, pick_ori=None, weight_norm=weight_norm)
     filters_cov = make_lcmv(epochs.info, forward, data_cov,
                             noise_cov=noise_cov, **kwargs)
     filters_nocov = make_lcmv(epochs.info, forward, data_cov,
@@ -705,14 +706,44 @@ def test_lcmv_reg_proj(proj):
     stc_cov = apply_lcmv(evoked, filters_cov)
     stc_nocov = apply_lcmv(evoked, filters_nocov)
     stc_adhoc = apply_lcmv(evoked, filters_adhoc)
-    assert_allclose(stc_adhoc.data, stc_nocov.data)
+
+    # Compare adhoc and nocov: scale difference is necessitated by using std=1.
+    if weight_norm == 'unit-noise-gain':
+        scale = np.sqrt(ad_hoc['data'][0])
+    else:
+        scale = 1.
+    assert_allclose(stc_nocov.data, stc_adhoc.data * scale)
     assert_allclose(
         np.dot(filters_nocov['weights'], filters_nocov['whitener']),
-        np.dot(filters_adhoc['weights'], filters_adhoc['whitener']))
+        np.dot(filters_adhoc['weights'], filters_adhoc['whitener']) * scale)
 
-    # Locs should not be equivalent, but have the same general profile,
-    # so just look at the mean and be lenient:
-    assert_allclose(stc_nocov.data.mean(0), stc_cov.data.mean(0), rtol=0.2)
+    # Compare adhoc and cov: locs might not be equivalent, but the same
+    # general profile should persist, so look at the std and be lenient:
+    if weight_norm == 'unit-noise-gain':
+        adhoc_scale = 0.12
+    else:
+        adhoc_scale = 1.
+    assert_allclose(
+        np.linalg.norm(stc_adhoc.data, axis=0) * adhoc_scale,
+        np.linalg.norm(stc_cov.data, axis=0), rtol=0.3)
+    assert_allclose(
+        np.linalg.norm(stc_nocov.data, axis=0) / scale * adhoc_scale,
+        np.linalg.norm(stc_cov.data, axis=0), rtol=0.3)
+
+    if weight_norm == 'nai':
+        # NAI always represents something normalized
+        for stc in (stc_nocov, stc_cov):
+            assert_allclose(stc.data.std(), 0.39, rtol=0.1)
+    elif weight_norm is None:
+        # None always represents something not normalized, reflecting channel
+        # weights
+        for stc in (stc_nocov, stc_cov):
+            assert_allclose(stc.data.std(), 1.4e-8, rtol=0.1)
+    else:
+        assert weight_norm == 'unit-noise-gain'
+        # unit-noise-gain normalization depends on `noise_cov`
+        assert_allclose(stc_nocov.data.std(), 5.3e-13, rtol=0.1)
+        assert_allclose(stc_cov.data.std(), 0.12, rtol=0.1)
 
 
 @pytest.mark.parametrize('reg, weight_norm, use_cov, lower, upper', [

@@ -46,7 +46,7 @@ proj = False  # already applied
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     baseline=(None, 0), preload=True, proj=proj,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
-evoked = epochs.average()
+evoked = epochs.average().pick_types(meg='grad')
 
 # Visualize sensor space data
 evoked.plot_joint(ts_args=dict(time_unit='s'),
@@ -70,8 +70,8 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
 # which computes a vector beamfomer. Note, however, that not all combinations
 # of orientation selection and weight normalization are implemented yet.
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
-                    noise_cov=noise_cov, pick_ori='max-power',
-                    weight_norm='nai', rank=None)
+                    noise_cov=None, pick_ori='max-power',
+                    weight_norm='unit-noise-gain', rank=None)
 print(filters)
 
 # You can save these with:
