@@ -715,7 +715,7 @@ def _read_process(fid):
             fid.seek(32, 1)
         elif ptype in BTI.PROC_BPFILTER:
             this_step['high_freq'] = read_float(fid)
-            this_step['low_frew'] = read_float(fid)
+            this_step['low_freq'] = read_float(fid)
         else:
             jump = this_step['user_space_size'] = read_int32(fid)
             fid.seek(32, 1)
