@@ -34,7 +34,7 @@ from .testing import (_memory_usage, run_tests_if_main, requires_sklearn,
                       _TempDir, has_nibabel, _import_mlab, buggy_mkl_svd,
                       requires_numpydoc, requires_tvtk, requires_freesurfer,
                       requires_nitime, requires_fs_or_nibabel, requires_dipy,
-                      requires_neuromag2ft)
+                      requires_neuromag2ft, assert_object_equal)
 from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,
