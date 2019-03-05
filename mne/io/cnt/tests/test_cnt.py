@@ -23,6 +23,7 @@ if socket.gethostname() == 'toothless':
 else:
     test_files = [fname]
 
+
 @testing.requires_testing_data
 def test_data():
     """Test reading raw cnt files."""
@@ -52,6 +53,21 @@ def test_explore_stuff_for_is5493(fname):
     # char   sortfile[46];   /* Path and name of sort file          */
     # long   NumEvents;      /* Number of events in eventable       */
 
+    from struct import Struct
+    from collections import namedtuple
+
+    My_Struct = namedtuple('My_Struct',
+                           ('mean_age stdev n compfile SpectWinComp '
+                            'MeanAccuracy MeanLatency sortfile NumEvents'))
+
+    my_struct_parser = Struct('ffh38sfff46sl')
+
+    with open(fname, 'rb') as file:
+        file.seek(SETUP_MEAN_AGE_OFFSET)
+        records = My_Struct._make(my_struct_parser.unpack_from(
+            file.read(my_struct_parser.size)))
+
+    print(records)
     assert True
 
 
