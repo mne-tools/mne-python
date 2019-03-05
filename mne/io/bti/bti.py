@@ -627,7 +627,7 @@ def _read_process(fid):
             fid.seek(32, 1)
         elif ptype in BTI.PROC_BPFILTER:
             this_step['high_freq'] = read_float(fid)
-            this_step['low_frew'] = read_float(fid)
+            this_step['low_freq'] = read_float(fid)
         else:
             jump = this_step['user_space_size'] = read_int32(fid)
             fid.seek(32, 1)
@@ -824,6 +824,10 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     if chans is not None:
         chans_cfg = [c for c in cfg['chs'] if c['chan_no']
                      in [c_['chan_no'] for c_ in chans]]
+
+        # sort chans_cfg and chans
+        chans = sorted(chans, key=lambda k: k['chan_no'])
+        chans_cfg = sorted(chans_cfg, key=lambda k: k['chan_no'])
 
         # check all pdf channels are present in config
         match = [c['chan_no'] for c in chans_cfg] == \
