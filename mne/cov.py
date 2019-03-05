@@ -903,7 +903,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
     orig_rank = rank
-    rank = compute_rank(RawArray(data.T, info, copy=None),
+    rank = compute_rank(RawArray(data.T, info, copy=None, verbose=False),
                         rank, scalings, info)
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)
