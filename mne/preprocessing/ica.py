@@ -1031,7 +1031,6 @@ class ICA(ContainsMixin):
         See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
         """
         scores, idx = [], []
-        labels = {}
         # some magic we need inevitably ...
         # get targets before equalizing
         targets = [self._check_target(
@@ -1055,7 +1054,7 @@ class ICA(ContainsMixin):
             # pick last scores
             this_idx = find_outliers(scores[-1], threshold=threshold)
             idx += [this_idx]
-            labels['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
+            self.labels_['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # ref channels
@@ -1071,7 +1070,7 @@ class ICA(ContainsMixin):
                 idx_unique.remove(i)
         if len(scores) == 1:
             scores = scores[0]
-        labels[prefix] = list(idx)
+        labels = list(idx)
 
         return labels, scores
 
@@ -1155,7 +1154,8 @@ class ICA(ContainsMixin):
                 threshold = 0.25
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
-                    inst, ch_name, keep_ecg=False,
+                    inst, ch_name, l_freq=l_freq, h_freq=h_freq,
+                    keep_ecg=False,
                     reject_by_annotation=reject_by_annotation)).get_data()
 
                 if sources.shape[0] == 0:
@@ -1179,7 +1179,7 @@ class ICA(ContainsMixin):
         elif method == 'correlation':
             if threshold is None:
                 threshold = 3.0
-            self.labels_, scores = self._find_bads_ch(
+            self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
                 reject_by_annotation=reject_by_annotation)
@@ -1243,13 +1243,16 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_eog
         """
+        inds = []
         if not ch_name:
             inds = pick_channels_regexp(inst.ch_names, "REF_ICA*")
         else:
             inds = pick_channels(inst.ch_names, ch_name)
+        if not inds:
+            raise ValueError('No reference components found or selected.')
         ref_chs = [inst.ch_names[k] for k in inds]
 
-        self.labels_, scores = self._find_bads_ch(
+        self.labels_['ref_meg'], scores = self._find_bads_ch(
             inst, ref_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="ref_meg",
             reject_by_annotation=reject_by_annotation)
@@ -1311,7 +1314,7 @@ class ICA(ContainsMixin):
             logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
         eog_chs = [inst.ch_names[k] for k in eog_inds]
 
-        self.labels_, scores = self._find_bads_ch(
+        self.labels_['eog'], scores = self._find_bads_ch(
             inst, eog_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="eog",
             reject_by_annotation=reject_by_annotation)
