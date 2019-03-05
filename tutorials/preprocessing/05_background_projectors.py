@@ -15,7 +15,7 @@ several plots that look similar, and define a few colorblind-friendly colors:
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 lgtm[py/unused-import]
 from scipy.linalg import svd
 
 blueish = '#004488'
