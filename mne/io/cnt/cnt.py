@@ -208,12 +208,16 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             fid.seek(event_offset)
             event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
             event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
+            teeg_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+            assert teeg_offset == 0  # documentation say this should be 0
             if event_type == 1:
                 event_bytes = 8
             elif event_type in (2, 3):
                 event_bytes = 19
             else:
                 raise IOError('Unexpected event size.')
+
+            # XXX long NumEvents is available, why are not we using it?
             n_events = event_size // event_bytes
         else:
             n_events = 0
