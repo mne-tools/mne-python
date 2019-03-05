@@ -362,7 +362,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
     out = (megcoils, compcoils, megnames)
     if do_picking:
-        assert nmeg > 0
         out = out + (pick_info(info, picks),)
     return out
 

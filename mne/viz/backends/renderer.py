@@ -20,7 +20,7 @@ except NameError:
     MNE_3D_BACKEND = get_config('MNE_3D_BACKEND', default_3d_backend)
 
 if MNE_3D_BACKEND == 'mayavi':
-    from ._pysurfer_mayavi import _Renderer, _Projection  # noqa: F401
+    from ._pysurfer_mayavi import _Renderer, _Projection  # noqa
 else:
     raise ValueError('MNE_3D_BACKEND should be "mayavi" : '
                      '{} was given.'.format(MNE_3D_BACKEND))

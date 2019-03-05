@@ -69,7 +69,7 @@ try:
     from inspect import isgeneratorfunction
 except ImportError:
     # assume no generator function in old Python versions
-    def isgeneratorfunction():
+    def isgeneratorfunction(caller):
         return False
 
 

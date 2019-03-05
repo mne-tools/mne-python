@@ -1011,7 +1011,6 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
 
-    n_sensors, n_times = M.shape
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
 
