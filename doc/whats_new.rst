@@ -75,6 +75,8 @@ Changelog
 
 - Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
 
+- Add additional depth weighting options for inverse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) by `Eric Larson`_
+
 Bug
 ~~~
 
@@ -128,7 +130,13 @@ API
 
 - Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
 
+- Deprecate ``limit_depth_chs`` in :func:`mne.minimum_norm.make_inverse_operator` in favor of ``depth=dict(limit_depth_chs=...)`` by `Eric Larson`_
+
 - Reading BDF and GDF files with :func:`mne.io.read_raw_edf` is deprecated and replaced by :func:`mne.io.read_raw_bdf` and :func:`mne.io.read_raw_gdf`, by `Clemens Brunner`_
+
+- :func:`mne.forward.compute_depth_prior` has been reworked to operate directly on :class:`Forward` instance as ``forward`` rather than a representation scattered across the parameters ``G, is_fixed_ori, patch_info``, by `Eric Larson`_
+
+- Deprecate ``method='extended-infomax'`` in :class:`mne.preprocessing.ICA`; Extended Infomax can now be computed with ``method='infomax'`` and ``fit_params=dict(extended=True)`` by `Clemens Brunner`_
 
 .. _changes_0_17:
 

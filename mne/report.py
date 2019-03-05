@@ -21,7 +21,7 @@ import numpy as np
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw_fif, read_info, _stamp_to_dt
 from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
-                    fill_doc)
+                    fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -105,12 +105,13 @@ def _scale_mpl_figure(fig, scale):
 
     XXX it's unclear why this works, but good to go for most cases
     """
+    scale = float(scale)
     fig.set_size_inches(fig.get_size_inches() * scale)
     fig.set_dpi(fig.get_dpi() * scale)
     import matplotlib as mpl
     if scale >= 1:
         sfactor = scale ** 2
-    elif scale < 1:
+    else:
         sfactor = -((1. / scale) ** 2)
     for text in fig.findobj(mpl.text.Text):
         fs = text.get_fontsize()
@@ -811,15 +812,12 @@ def _check_scale(scale):
 
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
-    if image_format not in ('png', 'svg'):
-        if rep is None:
-            raise ValueError('image_format must be "svg" or "png", got %s'
-                             % (image_format,))
-        elif image_format is not None:
-            raise ValueError('image_format must be one of "svg", "png", or '
-                             'None, got %s' % (image_format,))
-        else:  # rep is not None and image_format is None
-            image_format = rep.image_format
+    if rep is None:
+        _check_option('image_format', image_format, ['png', 'svg'])
+    elif image_format is not None:
+        _check_option('image_format', image_format, ['png', 'svg', None])
+    else:  # rep is not None and image_format is None
+        image_format = rep.image_format
     return image_format
 
 
@@ -1131,9 +1129,7 @@ class Report(object):
             image_format = os.path.splitext(fname)[1][1:]
             image_format = image_format.lower()
 
-            if image_format not in ['png', 'gif', 'svg']:
-                raise ValueError("Unknown image format. Only 'png', 'gif' or "
-                                 "'svg' are supported. Got %s" % image_format)
+            _check_option('image_format', image_format, ['png', 'gif', 'svg'])
 
             # Convert image to binary string.
             with open(fname, 'rb') as f:
@@ -1280,7 +1276,6 @@ class Report(object):
 
         sectionvar = self._sectionvars[section]
         global_id = self._get_id()
-        img_klass = self._sectionvars[section]
         name = 'slider'
 
         html = []
@@ -1307,8 +1302,8 @@ class Report(object):
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
-                          img_klass, caption, first,
-                          image_format=image_format))
+                                            img_klass, caption, first,
+                                            image_format=image_format))
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         # Render the slices
@@ -1333,7 +1328,6 @@ class Report(object):
         """Render one axis of the array."""
         global_id = global_id or name
         html = []
-        slices, slices_range = [], []
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
@@ -1417,10 +1411,7 @@ class Report(object):
         %(verbose_meth)s
         """
         image_format = _check_image_format(self, image_format)
-        valid_errors = ['ignore', 'warn', 'raise']
-        if on_error not in valid_errors:
-            raise ValueError('on_error must be one of %s, not %s'
-                             % (valid_errors, on_error))
+        _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
         self._sort = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)

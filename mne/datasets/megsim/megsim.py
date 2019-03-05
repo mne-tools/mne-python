@@ -6,7 +6,7 @@ from os import path as op
 import zipfile
 from sys import stdout
 
-from ...utils import _fetch_file, _url_to_local_path, verbose
+from ...utils import _fetch_file, _url_to_local_path, verbose, _check_option
 from ..utils import _get_path, _do_path_update
 from .urls import (url_match, valid_data_types, valid_data_formats,
                    valid_conditions)
@@ -151,12 +151,9 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
            (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
            Realistic Simulated and Empirical Data. Neuroinform 10:141-158
     """  # noqa: E501
-    if not condition.lower() in valid_conditions:
-        raise ValueError('Unknown condition "%s"' % condition)
-    if data_format not in valid_data_formats:
-        raise ValueError('Unknown data_format "%s"' % data_format)
-    if data_type not in valid_data_types:
-        raise ValueError('Unknown data_type "%s"' % data_type)
+    _check_option('condition', condition.lower(), valid_conditions)
+    _check_option('data_format', data_format, valid_data_formats)
+    _check_option('data_type', data_type, valid_data_types)
     urls = url_match(condition, data_format, data_type)
 
     data_paths = list()

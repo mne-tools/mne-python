@@ -38,7 +38,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      SilenceStdout, has_nibabel, check_version,
-                     _ensure_int, _validate_type)
+                     _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
@@ -126,8 +126,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     from ..chpi import head_pos_to_trans_rot_t
     from ..preprocessing.maxwell import _check_destination
     import matplotlib.pyplot as plt
-    if not isinstance(mode, str) or mode not in ('traces', 'field'):
-        raise ValueError('mode must be "traces" or "field", got %s' % (mode,))
+    _check_option('mode', mode, ['traces', 'field'])
     dest_info = dict(dev_head_t=None) if info is None else info
     destination = _check_destination(destination, dest_info, head_frame=True)
     if destination is not None:
@@ -441,9 +440,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     import matplotlib.pyplot as plt
     import nibabel as nib
 
-    if orientation not in ['coronal', 'axial', 'sagittal']:
-        raise ValueError("Orientation must be 'coronal', 'axial' or "
-                         "'sagittal'. Got %s." % orientation)
+    _check_option('orientation', orientation, ['coronal', 'axial', 'sagittal'])
 
     # Load the T1 data
     nim = nib.load(mri_fname)
@@ -660,11 +657,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     if isinstance(eeg, str):
         eeg = [eeg]
 
-    if not isinstance(interaction, str) or \
-            interaction not in ('trackball', 'terrain'):
-        raise ValueError('interaction must be "trackball" or "terrain", '
-                         'got "%s"' % (interaction,))
-
+    _check_option('interaction', interaction, ['trackball', 'terrain'])
     for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
         if not isinstance(var, (list, tuple)) or \
                 not all(isinstance(x, str) for x in var):
@@ -692,9 +685,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              'layers for plotting skull and head.')
         is_sphere = True
 
-    valid_coords = ['head', 'meg', 'mri']
-    if coord_frame not in valid_coords:
-        raise ValueError('coord_frame must be one of %s' % (valid_coords,))
+    _check_option('coord_frame', coord_frame, ['head', 'meg', 'mri'])
     if src is not None:
         if not isinstance(src, SourceSpaces):
             raise TypeError('src must be None or SourceSpaces, got %s'
@@ -1281,13 +1272,11 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         raise ValueError('colormap limits must be monotonically '
                          'increasing, got %s' % (ctrl_pts,))
     clim_kind = clim.get('kind', 'percent')
+    _check_option("clim['kind']", clim_kind, ['value', 'values', 'percent'])
     if clim_kind == 'percent':
         perc_data = np.abs(stc_data) if diverging_lims else stc_data
         ctrl_pts = np.percentile(perc_data, ctrl_pts)
         logger.info('Using control points %s' % (ctrl_pts,))
-    elif clim_kind not in ('value', 'values'):
-        raise ValueError('clim["kind"] must be "value" or "percent", got %s'
-                         % (clim['kind'],))
     if len(set(ctrl_pts)) != 3:
         if len(set(ctrl_pts)) == 1:  # three points match
             if ctrl_pts[0] == 0:  # all are zero
@@ -1449,9 +1438,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                  'fro': {'elev': 16.739, 'azim': 60},
                  'par': {'elev': 30, 'azim': -60}}
     kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
-    if views not in lh_kwargs:
-        raise ValueError("views must be one of ['lat', 'med', 'ros', 'cau', "
-                         "'dor' 'ven', 'fro', 'par']. Got %s." % views)
+    _check_option('views', views, sorted(lh_kwargs.keys()))
     colormap, scale_pts, _, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent, linearize=True)
     del transparent
@@ -1670,9 +1657,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    if backend not in ['auto', 'matplotlib', 'mayavi']:
-        raise ValueError("backend must be 'auto', 'mayavi' or 'matplotlib'. "
-                         "Got %s." % backend)
+    _check_option('backend', backend, ['auto', 'matplotlib', 'mayavi'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         try:
@@ -1694,10 +1679,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
     from surfer import Brain, TimeViewer
-
-    if hemi not in ['lh', 'rh', 'split', 'both']:
-        raise ValueError('hemi has to be either "lh", "rh", "split", '
-                         'or "both"')
+    _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
@@ -2196,15 +2178,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     from ..source_estimate import VectorSourceEstimate
 
     _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
-
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-
-    if hemi not in ['lh', 'rh', 'split', 'both']:
-        raise ValueError('hemi has to be either "lh", "rh", "split", '
-                         'or "both"')
-
+    _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
@@ -2585,9 +2562,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     import nibabel as nib
     from nibabel.processing import resample_from_to
 
-    if coord_frame not in ['head', 'mri']:
-        raise ValueError("coord_frame must be 'head' or 'mri'. "
-                         "Got %s." % coord_frame)
+    _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
     if not isinstance(dipole, Dipole):
         from ..dipole import _concatenate_dipoles

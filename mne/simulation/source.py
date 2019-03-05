@@ -8,7 +8,7 @@ import numpy as np
 
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
-from ..utils import check_random_state, warn
+from ..utils import check_random_state, warn, _check_option
 
 
 def select_source_in_label(src, label, random_state=None, location='random',
@@ -61,10 +61,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
     """
     lh_vertno = list()
     rh_vertno = list()
-    if not isinstance(location, str) or \
-            location not in ('random', 'center'):
-        raise ValueError('location must be "random" or "center", got %s'
-                         % (location,))
+    _check_option('location', location, ['random', 'center'])
 
     rng = check_random_state(random_state)
     if label.hemi == 'lh':
@@ -175,6 +172,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
         vs = [s['vertno'][np.sort(rng.permutation(np.arange(s['nuse']))[:n])]
               for n, s in zip(n_dipoles_ss, src)]
         datas = data
+    elif n_dipoles > len(labels):
+        raise ValueError('Number of labels (%d) smaller than n_dipoles (%d) '
+                         'is not allowed.' % (len(labels), n_dipoles))
     else:
         if n_dipoles != len(labels):
             warn('The number of labels is different from the number of '

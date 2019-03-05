@@ -299,7 +299,7 @@ def _check_mrk_version(header):
             'Brain Vision Data Exchange Marker File, Version 2.0',
             'BrainVision Data Exchange Marker File, Version 1.0']
     if header not in tags:
-        raise ValueError("Currently only support %r, not %r"
+        raise ValueError("Currently, MNE-Python only supports %r, not %r"
                          "Contact MNE-Developers for support."
                          % (str(tags), header))
 

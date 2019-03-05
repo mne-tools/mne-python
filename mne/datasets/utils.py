@@ -466,7 +466,7 @@ def _extract(path, name, folder_path, archive_name, folder_orig, remove_dir):
             if do:
                 func(path)
             else:
-                raise
+                raise exc_info[1]
         shutil.rmtree(folder_path, onerror=onerror)
 
     logger.info('Decompressing the archive: %s' % archive_name)

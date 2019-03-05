@@ -193,6 +193,8 @@ jobs:
             command: |
               if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
                 make test-doc;
+                mkdir -p doc/_build/test-results/test-doc;
+                cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
               fi;
         # Build docs
         - run:
@@ -205,6 +207,12 @@ jobs:
             command: |
               python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
+        # Save the JUnit file
+        - store_test_results:
+            path: doc/_build/test-results
+        - store_artifacts:
+            path: doc/_build/test-results
+            destination: test-results
         # Save the outputs
         - store_artifacts:
             path: doc/_build/html/

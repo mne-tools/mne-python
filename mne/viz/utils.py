@@ -30,7 +30,7 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        pick_info, _picks_by_type, pick_channels_cov)
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import verbose, set_config, warn, _check_ch_locs
+from ..utils import verbose, set_config, warn, _check_ch_locs, _check_option
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -1392,9 +1392,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     """
     from .evoked import _rgb
-    if kind not in ['topomap', '3d', 'select']:
-        raise ValueError("Kind must be 'topomap', '3d' or 'select'. Got %s." %
-                         kind)
+    _check_option('kind', kind, ['topomap', '3d', 'select'])
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
     ch_indices = channel_indices_by_type(info)
@@ -1710,7 +1708,7 @@ class DraggableColorbar(object):
         self.press = None
         self.cycle = sorted([i for i in dir(plt.cm) if
                              hasattr(getattr(plt.cm, i), 'N')])
-        self.index = self.cycle.index(cbar.get_cmap().name)
+        self.index = self.cycle.index(mappable.get_cmap().name)
         self.lims = (self.cbar.norm.vmin, self.cbar.norm.vmax)
         self.connect()
 

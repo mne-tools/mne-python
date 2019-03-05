@@ -1014,7 +1014,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
                         image_interp='bilinear', head_pos=None,
-                        inst=None):
+                        inst=None, plot_std=True, topomap_args=None,
+                        image_args=None, psd_args=None, reject='auto'):
     """Project unmixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1095,6 +1096,27 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         topomap you need to pass relevant data - instances of Raw or Epochs
         (for example the data that ICA was trained on). This takes effect
         only when running matplotlib in interactive mode.
+    plot_std: bool | float
+        Whether to plot standard deviation in ERP/ERF and spectrum plots.
+        Defaults to True, which plots one standard deviation above/below.
+        If set to float allows to control how many standard deviations are
+        plotted. For example 2.5 will plot 2.5 standard deviation above/below.
+    topomap_args : dict | None
+        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
+        additional arguments. Defaults to None.
+    image_args : dict | None
+        Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
+        any additional arguments. Defaults to None.
+    psd_args : dict | None
+        Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
+        any additional arguments. Defaults to None.
+    reject : 'auto' | dict | None
+        Allows to specify rejection parameters used to drop epochs
+        (or segments if continuous signal is passed as inst).
+        If None, no rejection is applied. The default is 'auto',
+        which applies the rejection parameters used when fitting
+        the ICA object.
+
 
     Returns
     -------
@@ -1132,7 +1154,11 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                                       show=show, outlines=outlines,
                                       contours=contours,
                                       image_interp=image_interp,
-                                      head_pos=head_pos, inst=inst)
+                                      head_pos=head_pos, inst=inst,
+                                      plot_std=plot_std,
+                                      topomap_args=topomap_args,
+                                      image_args=image_args,
+                                      psd_args=psd_args, reject=reject)
             figs.append(fig)
         return figs
     else:
@@ -1211,7 +1237,11 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                 label = event.inaxes.get_label()
                 if label.startswith('ICA'):
                     ic = int(label[-3:])
-                    ica.plot_properties(inst, picks=ic, show=True)
+                    ica.plot_properties(inst, picks=ic, show=True,
+                                        plot_std=plot_std,
+                                        topomap_args=topomap_args,
+                                        image_args=image_args,
+                                        psd_args=psd_args, reject=reject)
         fig.canvas.mpl_connect('button_press_event', onclick_topo)
 
     plt_show(show)

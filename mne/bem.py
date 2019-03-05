@@ -333,7 +333,6 @@ def make_bem_solution(surfs, verbose=None):
 def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
     n_tri = len(surf['tris'])
-    found = -1
     bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
                "subdivided icosahedron." % n_tri)
     if n_tri % 20 != 0:
@@ -394,7 +393,6 @@ def _order_surfaces(surfs):
 def _assert_complete_surface(surf, incomplete='raise'):
     """Check the sum of solid angles as seen from inside."""
     # from surface_checks.c
-    tot_angle = 0.
     # Center of mass....
     cm = surf['rr'].mean(axis=0)
     logger.info('%s CM is %6.2f %6.2f %6.2f mm' %
@@ -627,7 +625,6 @@ def _compute_linear_parameters(mu, u):
     y, uu, sing, vv = _compose_linear_fitting_data(mu, u)
 
     # Compute the residuals
-    resi = y.copy()
     vec = np.dot(y, uu)
     resi = y - np.dot(uu, vec)
     vec /= sing

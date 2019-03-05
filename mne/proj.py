@@ -6,7 +6,7 @@ import numpy as np
 from scipy import linalg
 
 from . import io, Epochs
-from .utils import check_fname, logger, verbose
+from .utils import check_fname, logger, verbose, _check_option
 from .io.pick import pick_types, pick_types_forward
 from .io.proj import Projection, _has_eeg_average_ref_proj
 from .event import make_fixed_length_events
@@ -78,9 +78,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
                          exclude='bads')
 
-    if meg not in ('separate', 'combined'):
-        raise ValueError('meg must be "separate" or "combined", '
-                         'got %r' % (meg,))
+    _check_option('meg', meg, ['separate', 'combined'])
     if meg == 'combined':
         _get_rank_sss(info, msg='meg="combined" can only be used with '
                       'Maxfiltered data', verbose=False)
@@ -360,12 +358,9 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         for visualization.
     """
     # check strings
-    if ch_type not in ['eeg', 'grad', 'mag']:
-        raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
-                         % ch_type)
-    if mode not in ['free', 'fixed', 'ratio', 'radiality', 'angle',
-                    'remaining', 'dampening']:
-        raise ValueError('Unknown mode type (got %s)' % mode)
+    _check_option('ch_type', ch_type, ['eeg', 'grad', 'mag'])
+    _check_option('mode', mode, ['free', 'fixed', 'ratio', 'radiality',
+                                 'angle', 'remaining', 'dampening'])
 
     # check forward
     if is_fixed_orient(fwd, orig=True):

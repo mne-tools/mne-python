@@ -349,10 +349,8 @@ def axis_reverse(a, axis=-1):
 
 def _validate_pad(padtype, padlen, x, axis, ntaps):
     """Helper to validate padding for filtfilt"""
-    if padtype not in ['even', 'odd', 'constant', None]:
-        raise ValueError(("Unknown value '%s' given to padtype.  padtype "
-                          "must be 'even', 'odd', 'constant', or None.") %
-                         padtype)
+    from .utils import _check_option  # avoid circular import
+    _check_option('padtype', padtype, ['even', 'odd', 'constant', None])
 
     if padtype is None:
         padlen = 0
@@ -519,16 +517,6 @@ def assert_true(expr, msg='False is not True'):
     """Fake assert_true without message"""
     if not expr:
         raise AssertionError(msg)
-
-
-def assert_is(expr1, expr2, msg=None):
-    """Fake assert_is without message"""
-    assert_true(expr2 is expr2, msg)
-
-
-def assert_is_not(expr1, expr2, msg=None):
-    """Fake assert_is_not without message"""
-    assert_true(expr1 is not expr2, msg)
 
 
 def _read_volume_info(fobj):

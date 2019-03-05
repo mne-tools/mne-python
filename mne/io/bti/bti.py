@@ -1165,8 +1165,6 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         bti_info['processes'] = list()
 
     # browse processing info for filter specs.
-    hp, lp = ((0.0, info['sfreq'] * 0.4) if pdf_fname is not None else
-              (None, None))
     hp, lp = info['highpass'], info['lowpass']
     for proc in bti_info['processes']:
         if 'filt' in proc['process_type']:
@@ -1292,36 +1290,11 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                 ctf_head_t=ctf_head_t)
 
-    if False:  # XXX : reminds us to support this as we go
-        # include digital weights from reference channel
-        comps = info['comps'] = list()
-        weights = bti_info['weights']
-
-        def by_name(x):
-            return x[1]
-        chn = dict(ch_mapping)
-        columns = [chn[k] for k in weights['dsp_ch_names']]
-        rows = [chn[k] for k in weights['ch_names']]
-        col_order, col_names = zip(*sorted(enumerate(columns),
-                                           key=by_name))
-        row_order, row_names = zip(*sorted(enumerate(rows), key=by_name))
-        # for some reason the C code would invert the signs, so we follow.
-        mat = -weights['dsp_wts'][row_order, :][:, col_order]
-        comp_data = dict(data=mat,
-                         col_names=col_names,
-                         row_names=row_names,
-                         nrow=mat.shape[0], ncol=mat.shape[1])
-        comps += [dict(data=comp_data, ctfkind=101,
-                       #  no idea how to calibrate, just ones.
-                       rowcals=np.ones(mat.shape[0], dtype='>f4'),
-                       colcals=np.ones(mat.shape[1], dtype='>f4'),
-                       save_calibrated=0)]
-    else:
-        logger.info(
-            'Currently direct inclusion of 4D weight tables is not supported.'
-            ' For critical use cases please take into account the MNE command'
-            ' "mne_create_comp_data" to include weights as printed out by '
-            'the 4D "print_table" routine.')
+    logger.info(
+        'Currently direct inclusion of 4D weight tables is not supported.'
+        ' For critical use cases please take into account the MNE command'
+        ' "mne_create_comp_data" to include weights as printed out by '
+        'the 4D "print_table" routine.')
 
     # check that the info is complete
     info._update_redundant()

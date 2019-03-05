@@ -10,7 +10,7 @@ import numpy as np
 
 from ..utils import (logger, verbose, warn, _reg_pinv, _check_info_inv,
                      _check_channels_spatial_filter, _check_one_ch_type,
-                     _check_rank)
+                     _check_rank, _check_option)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
@@ -181,10 +181,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
            statistics in Python. bioRxiv, 245530.
            https://doi.org/10.1101/245530
     """  # noqa: E501
-    allowed_ori = [None, 'normal', 'max-power']
     rank = _check_rank(rank)
-    if pick_ori not in allowed_ori:
-        raise ValueError('"pick_ori" should be one of %s.' % allowed_ori)
+    _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
+    _check_option('inversion', inversion, ['single', 'matrix'])
+    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
 
     # Leadfield rank and optional rank reduction
     # (to deal with problems with complex eigenvalues within the computation
@@ -197,11 +197,6 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
             'reduce_rank=True is only implemented with pick_ori=="max-power" '
             'and inversion="matrix".'
         )
-
-    # Inversion mode
-    if inversion not in ['single', 'matrix']:
-        raise ValueError("The inversion parameter should be either 'single' "
-                         "or 'matrix'.")
 
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
@@ -576,7 +571,7 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
         else:
-            # Linear inverse: do not delay compuation due to non-linear abs
+            # Linear inverse: do not delay computation due to non-linear abs
             sol = np.dot(W, M)
 
         tstep = 1.0 / info['sfreq']

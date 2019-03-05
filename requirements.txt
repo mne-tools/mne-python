@@ -14,10 +14,10 @@ python-picard
 statsmodels
 pytest
 pytest-cov
-pytest-sugar
-pytest-timeout
 pytest-faulthandler
 pytest-mock
+pytest-sugar
+pytest-timeout
 joblib
 psutil
 dipy

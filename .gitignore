@@ -1,3 +1,4 @@
+junit-results.xml
 *.pyc
 *.pyo
 *.sh
@@ -74,3 +75,5 @@ examples/visualization/foobar.html
 *.py#
 *.rst#
 
+.venv/
+venv/

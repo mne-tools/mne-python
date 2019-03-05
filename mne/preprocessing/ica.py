@@ -48,7 +48,8 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn,
-                     _check_preload, _check_compensation_grade, fill_doc)
+                     _check_preload, _check_compensation_grade, fill_doc,
+                     _check_option)
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -166,9 +167,12 @@ class ICA(ContainsMixin):
         by PCA.
     random_state : None | int | instance of np.random.RandomState
         Random state to initialize ICA estimation for reproducible results.
-    method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
-        The ICA method to use in the fit() method. Defaults to 'fastica'.
-        For reference, see [1]_, [2]_, [3]_ and [4]_.
+    method : {'fastica', 'infomax', 'picard'}
+        The ICA method to use in the fit method. Use the fit_params argument to
+        set additional parameters. Specifically, if you want Extended Infomax,
+        set method='infomax' and fit_params=dict(extended=True) (this also
+        works for method='picard'). Defaults to 'fastica'. For reference, see
+        [1]_, [2]_, [3]_ and [4]_.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         `method`.
@@ -259,10 +263,10 @@ class ICA(ContainsMixin):
         >> ica.fit(raw)
         >> raw.info['projs'] = projs
 
-    Methods currently implemented are FastICA (default), Infomax,
-    Extended Infomax, and Picard. Infomax can be quite sensitive to differences
-    in floating point arithmetic. Extended Infomax seems to be more stable in
-    this respect enhancing reproducibility and stability of results.
+    Methods currently implemented are FastICA (default), Infomax, and Picard.
+    Standard Infomax can be quite sensitive to differences in floating point
+    arithmetic. Extended Infomax seems to be more stable in this respect,
+    enhancing reproducibility and stability of results.
 
     Reducing the tolerance (set in `fit_params`) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
@@ -301,10 +305,13 @@ class ICA(ContainsMixin):
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
-        methods = ('fastica', 'infomax', 'extended-infomax', 'picard')
-        if method not in methods:
-            raise ValueError('`method` must be "%s". You passed: "%s"' %
-                             ('" or "'.join(methods), method))
+        _check_option('method', method,
+                      ['fastica', 'infomax', 'extended-infomax', 'picard'])
+        if method == 'extended-infomax':
+            warn("method='extended-infomax' is deprecated and will be removed "
+                 "in 0.19. If you want to use Extended Infomax, specify "
+                 "method='infomax' together with "
+                 "fit_params=dict(extended=True).", DeprecationWarning)
         if not check_version('sklearn', '0.15'):
             raise RuntimeError('the scikit-learn package (version >= 0.15) '
                                'is required for ICA')
@@ -333,9 +340,7 @@ class ICA(ContainsMixin):
         if fit_params is None:
             fit_params = {}
         fit_params = deepcopy(fit_params)  # avoid side effects
-        if "extended" in fit_params:
-            raise ValueError("'extended' parameter provided. You should "
-                             "rather use method='extended-infomax'.")
+
         if method == 'fastica':
             update = {'algorithm': 'parallel', 'fun': 'logcosh',
                       'fun_args': None}
@@ -345,10 +350,7 @@ class ICA(ContainsMixin):
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
             fit_params.update({'extended': True})
-        elif method == 'picard':
-            update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
-            fit_params.update({k: v for k, v in update.items() if k
-                               not in fit_params})
+            method = 'infomax'
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
@@ -797,15 +799,15 @@ class ICA(ContainsMixin):
             The ICA sources time series.
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Raw',
                                       ch_names=self.ch_names)
             sources = self._sources_as_raw(inst, add_channels, start, stop)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Epochs',
                                       ch_names=self.ch_names)
             sources = self._sources_as_epochs(inst, add_channels, False)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Evoked',
                                       ch_names=self.ch_names)
             sources = self._sources_as_evoked(inst, add_channels)
         else:
@@ -960,16 +962,16 @@ class ICA(ContainsMixin):
             scores for each source as returned from score_func
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Raw',
                                       ch_names=self.ch_names)
             sources = self._transform_raw(inst, start, stop,
                                           reject_by_annotation)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Epochs',
                                       ch_names=self.ch_names)
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Evoked',
                                       ch_names=self.ch_names)
             sources = self._transform_evoked(inst)
         else:
@@ -1364,7 +1366,7 @@ class ICA(ContainsMixin):
         else:  # isinstance(inst, Evoked):
             kind, meth = 'Evoked', self._apply_evoked
             kwargs.update(evoked=inst)
-        _check_compensation_grade(self, inst, 'ICA', kind,
+        _check_compensation_grade(self.info, inst.info, 'ICA', kind,
                                   ch_names=self.ch_names)
         return meth(**kwargs)
 
@@ -1554,14 +1556,19 @@ class ICA(ContainsMixin):
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear', head_pos=None,
-                        inst=None):
+                        inst=None, plot_std=True, topomap_args=None,
+                        image_args=None, psd_args=None, reject='auto'):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, title=title, show=show,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   head_pos=head_pos, inst=inst)
+                                   head_pos=head_pos, inst=inst,
+                                   plot_std=plot_std,
+                                   topomap_args=topomap_args,
+                                   image_args=image_args, psd_args=psd_args,
+                                   reject=reject)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,

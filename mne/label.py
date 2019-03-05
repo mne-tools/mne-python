@@ -23,7 +23,8 @@ from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
                       read_morph_map)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
-                    check_random_state, _validate_type, fill_doc)
+                    check_random_state, _validate_type, fill_doc,
+                    _check_option)
 
 
 def _blend_colors(color_1, color_2):
@@ -1332,10 +1333,6 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
     for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
             zip(['lh', 'rh'], stc.vertices, tris, rr)):
         this_data = stc.data[cnt:cnt + len(this_vertno)]
-        e = mesh_edges(this_tris)
-        e.data[e.data == 2] = 1
-        n_vertices = e.shape[0]
-        e = e + sparse.eye(n_vertices, n_vertices)
 
         if connected:  # we know src *must* be a SourceSpaces now
             vertno = np.where(src[hemi_idx]['inuse'])[0]
@@ -1903,8 +1900,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
         annot_fname = [annot_fname]
     else:
         # construct .annot file names for requested subject, parc, hemi
-        if hemi not in ['lh', 'rh', 'both']:
-            raise ValueError('hemi has to be "lh", "rh", or "both"')
+        _check_option('hemi', hemi, ['lh', 'rh', 'both'])
         if hemi == 'both':
             hemis = ['lh', 'rh']
         else:

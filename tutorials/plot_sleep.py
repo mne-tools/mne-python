@@ -23,7 +23,7 @@ seconds of data.
 
 .. _Pipeline: https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
 .. _FunctionTransformer: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html
-.. _physionet_labels: https://physionet.org/pn4/sleep-edfx/#sleep-recordings-and-hypnograms-in-european-data-f
+.. _physionet_labels: https://physionet.org/physiobank/database/sleep-edfx/#sleep-cassette-study-and-data
 """  # noqa: E501
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>

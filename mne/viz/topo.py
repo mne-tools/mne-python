@@ -15,7 +15,7 @@ import numpy as np
 
 from ..io.constants import Bunch
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn
+from ..utils import _clean_names, warn, _check_option
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
@@ -291,9 +291,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
-    if yscale not in ['auto', 'linear', 'log']:
-        raise ValueError("yscale should be either 'auto', 'linear', or 'log'"
-                         ", got {}".format(yscale))
+    _check_option('yscale', yscale, ['auto', 'linear', 'log'])
 
     cmap, interactive_cmap = cmap
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])

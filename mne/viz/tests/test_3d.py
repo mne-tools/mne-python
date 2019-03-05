@@ -325,7 +325,7 @@ def test_limits_to_control_points():
         stc.plot(clim=dict(kind='value', pos_lims=[0, 1, 0]), **kwargs)
     with pytest.raises(ValueError, match=r'.*must be \(3,\)'):
         stc.plot(colormap='mne', clim=dict(pos_lims=(5, 10, 15, 20)), **kwargs)
-    with pytest.raises(ValueError, match='must be "value" or "percent"'):
+    with pytest.raises(ValueError, match="'value', 'values' and 'percent'"):
         stc.plot(clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
     with pytest.raises(ValueError, match='must be "auto" or dict'):
         stc.plot(colormap='mne', clim='foo', **kwargs)

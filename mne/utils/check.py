@@ -87,35 +87,6 @@ def _check_mayavi_version(min_version='4.3.0'):
         raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
-def _check_pyface_backend():
-    """Check the currently selected Pyface backend.
-
-    Returns
-    -------
-    backend : str
-        Name of the backend.
-    result : 0 | 1 | 2
-        0: the backend has been tested and works.
-        1: the backend has not been tested.
-        2: the backend not been tested.
-
-    Notes
-    -----
-    See also http://docs.enthought.com/pyface/.
-    """
-    try:
-        from traits.trait_base import ETSConfig
-    except ImportError:
-        return None, 2
-
-    backend = ETSConfig.toolkit
-    if backend == 'qt4':
-        status = 0
-    else:
-        status = 1
-    return backend, status
-
-
 def check_random_state(seed):
     """Turn seed into a np.random.RandomState instance.
 
@@ -201,35 +172,36 @@ def _check_preload(inst, msg):
                 '%s.load_data().' % (name, name))
 
 
-def _check_compensation_grade(inst, inst2, name, name2, ch_names=None):
+def _check_compensation_grade(info1, info2, name1,
+                              name2='data', ch_names=None):
     """Ensure that objects have same compensation_grade."""
+    from ..io import Info
     from ..io.pick import pick_channels, pick_info
     from ..io.compensator import get_current_comp
 
-    if None in [inst.info, inst2.info]:
-        return
+    for t_info in (info1, info2):
+        if t_info is None:
+            return
+        assert isinstance(t_info, Info), t_info  # or internal code is wrong
 
-    if ch_names is None:
-        grade = inst.compensation_grade
-        grade2 = inst2.compensation_grade
-    else:
-        info = inst.info.copy()
-        info2 = inst2.info.copy()
+    if ch_names is not None:
+        info1 = info1.copy()
+        info2 = info2.copy()
         # pick channels
-        for t_info in [info, info2]:
+        for t_info in [info1, info2]:
             if t_info['comps']:
                 t_info['comps'] = []
             picks = pick_channels(t_info['ch_names'], ch_names)
             pick_info(t_info, picks, copy=False)
-        # get compensation grades
-        grade = get_current_comp(info)
-        grade2 = get_current_comp(info2)
+    # "or 0" here aliases None -> 0, as they are equivalent
+    grade1 = get_current_comp(info1) or 0
+    grade2 = get_current_comp(info2) or 0
 
     # perform check
-    if grade != grade2:
-        msg = 'Compensation grade of %s (%d) and %s (%d) don\'t match'
-        raise RuntimeError(msg % (name, inst.compensation_grade,
-                                  name2, inst2.compensation_grade))
+    if grade1 != grade2:
+        raise RuntimeError(
+            'Compensation grade of %s (%s) and %s (%s) do not match'
+            % (name1, grade1, name2, grade2))
 
 
 def _check_pandas_installed(strict=True):
@@ -432,3 +404,46 @@ def _check_one_ch_type(info, picks, noise_cov, method):
     elif method == 'dics' and sum(ch_types) > 1:
         warn('The use of several sensor types with the DICS beamformer is '
              'not heavily tested yet.')
+
+
+def _check_depth(depth, kind='depth_mne'):
+    """Check depth options."""
+    from ..defaults import _handle_default
+    if not isinstance(depth, dict):
+        depth = dict(exp=None if depth is None else float(depth))
+    return _handle_default(kind, depth)
+
+
+def _check_option(parameter, value, allowed_values):
+    """Check the value of a parameter against a list of valid options.
+
+    Raises a ValueError with a readable error message if the value was invalid.
+
+    Parameters
+    ----------
+    parameter : str
+        The name of the parameter to check. This is used in the error message.
+    value : any type
+        The value of the parameter to check.
+    allowed_values : list
+        The list of allowed values for the parameter.
+
+    Raises
+    ------
+    ValueError
+        When the value of the parameter was not one of the valid options.
+    """
+    if value in allowed_values:
+        return True
+
+    # Prepare a nice error message for the user
+    msg = ("Invalid value for the '{parameter}' parameter. "
+           '{options}, but got {value!r} instead.')
+    if len(allowed_values) == 1:
+        options = 'The only allowed value is %r' % allowed_values[0]
+    else:
+        options = 'Allowed values are '
+        options += ', '.join(['%r' % v for v in allowed_values[:-1]])
+        options += ' and %r' % allowed_values[-1]
+    raise ValueError(msg.format(parameter=parameter, options=options,
+                                value=value))

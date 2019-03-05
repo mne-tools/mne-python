@@ -15,7 +15,7 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
-from ..utils import fill_doc
+from ..utils import fill_doc, _check_option
 
 
 @fill_doc
@@ -113,9 +113,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self.cov_est = cov_est
 
         # Init default transform_into
-        if transform_into not in ('average_power', 'csp_space'):
-            raise ValueError('transform_into must be "average_power" or '
-                             '"csp_space".')
+        _check_option('transform_into', transform_into,
+                      ['average_power', 'csp_space'])
         self.transform_into = transform_into
 
         # Init default log

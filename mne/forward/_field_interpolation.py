@@ -17,7 +17,7 @@ from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _check_option
 
 
 def _is_axial_coil(coil):
@@ -181,10 +181,8 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
         The transformed evoked object containing only virtual channels.
     """
     evoked = evoked.copy()
+    _check_option('ch_type', ch_type, ['mag', 'grad'])
 
-    if ch_type not in ['mag', 'grad']:
-        raise ValueError('to_type must be "mag" or "grad", not "%s"'
-                         % ch_type)
     # pick the original and destination channels
     pick_from = pick_types(evoked.info, meg=True, eeg=False,
                            ref_meg=False)
@@ -258,8 +256,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     if 'coord_frame' not in surf:
         raise KeyError('The surface coordinate frame must be specified '
                        'in surf["coord_frame"]')
-    if mode not in ['accurate', 'fast']:
-        raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
+    _check_option('mode', mode, ['accurate', 'fast'])
 
     # deal with coordinate frames here -- always go to "head" (easiest)
     orig_surf = surf
@@ -271,8 +268,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # Step 1. Prepare the coil definitions
     # Do the dot products, assume surf in head coords
     #
-    if ch_type not in ('meg', 'eeg'):
-        raise ValueError('unknown coil type "%s"' % ch_type)
+    _check_option('ch_type', ch_type, ['meg', 'eeg'])
     if ch_type == 'meg':
         picks = pick_types(info, meg=True, eeg=False, ref_meg=False)
         logger.info('Prepare MEG mapping...')
@@ -356,14 +352,14 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     ch_type : None | 'eeg' | 'meg'
         If None, a map for each available channel type will be returned.
         Else only the specified type will be used.
-    mode : str
+    mode : 'accurate' | 'fast'
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
-    meg_surf : str
+    meg_surf : 'helmet' | 'head'
         Should be ``'helmet'`` or ``'head'`` to specify in which surface
         to compute the MEG field map. The default value is ``'helmet'``
-    origin : array-like, shape (3,) | str
+    origin : array-like, shape (3,) | 'auto'
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'``, which means a head-digitization-based origin
         fit. Default is ``(0., 0., 0.04)``.
@@ -384,9 +380,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     if ch_type is None:
         types = [t for t in ['eeg', 'meg'] if t in evoked]
     else:
-        if ch_type not in ['eeg', 'meg']:
-            raise ValueError("ch_type should be 'eeg' or 'meg' (got %s)"
-                             % ch_type)
+        _check_option('ch_type', ch_type, ['eeg', 'meg'])
         types = [ch_type]
 
     if trans == 'auto':
@@ -405,9 +399,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
             trans = read_trans(trans)
         trans = _ensure_trans(trans, 'head', 'mri')
 
-    if meg_surf not in ['helmet', 'head']:
-        raise ValueError('Surface to plot MEG fields must be '
-                         '"helmet" or "head"')
+    _check_option('meg_surf', meg_surf, ['helmet', 'head'])
 
     surfs = []
     for this_type in types:

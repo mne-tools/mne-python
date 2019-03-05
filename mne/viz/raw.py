@@ -15,7 +15,8 @@ from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type,
                        _picks_to_idx)
 from ..io.meas_info import create_info
-from ..utils import verbose, get_config, _ensure_int, _validate_type
+from ..utils import (verbose, get_config, _ensure_int, _validate_type,
+                     _check_option)
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -267,10 +268,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     scalings = _handle_default('scalings_plot_raw', scalings)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     n_channels = min(len(raw.info['chs']), n_channels)
+    _check_option('clipping', clipping, [None, 'clamp', 'transparent'])
 
-    if clipping is not None and clipping not in ('clamp', 'transparent'):
-        raise ValueError('clipping must be None, "clamp", or "transparent", '
-                         'not %s' % clipping)
     # figure out the IIR filtering parameters
     nyq = raw.info['sfreq'] / 2.
     if highpass is None and lowpass is None:
@@ -547,8 +546,7 @@ _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    if area_mode not in [None, 'std', 'range']:
-        raise ValueError('"area_mode" must be "std", "range", or None')
+    _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
@@ -1209,11 +1207,12 @@ def _setup_browser_selection(raw, kind, selector=True):
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
+    _check_option('group_by', kind, ('position, selection'))
     if kind == 'position':
         order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
         kind = 'position'
-    elif 'selection':
+    else:  # kind == 'selection'
         from ..io import RawFIF, RawArray
         if not isinstance(raw, (RawFIF, RawArray)):
             raise ValueError("order='selection' only works for Neuromag data. "

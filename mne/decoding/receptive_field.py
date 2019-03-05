@@ -448,7 +448,6 @@ def _delays_to_slice(delays):
 def _check_delayer_params(tmin, tmax, sfreq):
     """Check delayer input parameters. For future custom delay support."""
     _validate_type(sfreq, 'numeric', '`sfreq`')
-    sfreq = float(sfreq)
 
     for tlim in (tmin, tmax):
         _validate_type(tlim, 'numeric', 'tmin/tmax')

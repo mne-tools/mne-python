@@ -12,7 +12,7 @@ from os.path import splitext
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type)
+                    _validate_type, _check_option)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -713,9 +713,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Mask digital trigger values."""
-    if not isinstance(mask_type, str) or mask_type not in ('not_and', 'and'):
-        raise ValueError('mask_type must be "not_and" or "and", got %s'
-                         % (mask_type,))
+    _check_option('mask_type', mask_type, ['not_and', 'and'])
     if mask is not None:
         _validate_type(mask, "int", "mask", "int or None")
     n_events = len(events)

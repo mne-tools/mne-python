@@ -343,8 +343,6 @@ x += np.sin(2. * np.pi * 60. * np.arange(len(x)) / sfreq) / 2000.
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
-filter_dur = 6.6 / transition_band / 2.  # sec
-n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
@@ -362,11 +360,11 @@ plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.16 default', flim=flim)
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
-filter_dur = 6.6 / transition_band  # sec
-n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
+# filter_dur = 6.6 / transition_band  # sec
+# n = int(sfreq * filter_dur)
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                              fir_design='firwin2')
