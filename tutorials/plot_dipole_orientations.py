@@ -100,8 +100,8 @@ stc = apply_inverse(left_auditory, inv, pick_ori=None)
 
 # Visualize it at the moment of peak activity.
 _, time_max = stc.get_peak(hemi='lh')
-brain = stc.plot(surface='white', subjects_dir=subjects_dir,
-                 initial_time=time_max, time_unit='s', size=(600, 400))
+brain_fixed = stc.plot(surface='white', subjects_dir=subjects_dir,
+                       initial_time=time_max, time_unit='s', size=(600, 400))
 
 ###############################################################################
 # The direction of the estimated current is now restricted to two directions:
