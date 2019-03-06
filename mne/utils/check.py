@@ -447,3 +447,12 @@ def _check_option(parameter, value, allowed_values):
         options += ' and %r' % allowed_values[-1]
     raise ValueError(msg.format(parameter=parameter, options=options,
                                 value=value))
+
+
+def _check_all_same_channel_names(instances):
+    """Check if a collection of instances all have the same channels."""
+    ch_names = instances[0].info["ch_names"]
+    for inst in instances:
+        if ch_names != inst.info["ch_names"]:
+            return False
+    return True
