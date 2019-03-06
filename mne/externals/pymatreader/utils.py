@@ -143,7 +143,7 @@ def _assign_types(values):
 def _handle_ndarray(values):
     """Handle conversion of ndarrays."""
     values = numpy.squeeze(values).T
-    if values.dtype in ("uint8", "uint16", "uint32", "uint64"):
+    if values.dtype in ("uint8", "uint16", "uint32"):
         values = _handle_hdf5_strings(values)
 
     if isinstance(values, numpy.ndarray) and \
