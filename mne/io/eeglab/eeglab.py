@@ -604,7 +604,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
         duration[:] = [event.duration for event in events]
 
     return Annotations(onset=np.array(onset) / eeg.srate,
-                       duration=duration,
+                       duration=duration / eeg.srate,
                        description=description,
                        orig_time=None)
 
