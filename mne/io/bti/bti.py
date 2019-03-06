@@ -916,7 +916,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         # sort chans_cfg and chans
         chans = sorted(chans, key=lambda k: k['chan_no'])
         chans_cfg = sorted(chans_cfg, key=lambda k: k['chan_no'])
-        
+
         # check all pdf channels are present in config
         match = [c['chan_no'] for c in chans_cfg] == \
                 [c['chan_no'] for c in chans]
