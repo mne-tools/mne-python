@@ -291,8 +291,8 @@ def test_eeglab_read_annotations():
 
     # test if event durations are imported correctly
     raw = read_raw_eeglab(raw_fname_event_duration, preload=True)
-    # file contains 16 annotations with 1 s (128 samples) duration each
-    assert_allclose(raw.annotations.duration, np.ones(16))
+    # file contains 3 annotations with 0.5 s (64 samples) duration each
+    assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
 
 
 @testing.requires_testing_data
