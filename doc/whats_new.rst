@@ -119,6 +119,8 @@ Bug
 
 - Fix :func:`mne.io.read_raw_edf` failing when EDF header fields (such as patient name) contained special characters, by `Clemens Brunner`_
 
+- Fix :func:`mne.io.read_raw_eeglab` incorrectly parsing event durations by `Clemens Brunner`_
+
 API
 ~~~
 
