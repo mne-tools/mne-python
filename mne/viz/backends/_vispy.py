@@ -66,7 +66,7 @@ class _Renderer(object):
         self.view.camera.interactive = True
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=True,
-             backface_culling=False, **kwargs):
+             backface_culling=False, offset=None, **kwargs):
         """Add a mesh in the scene.
 
         Parameters
@@ -87,6 +87,8 @@ class _Renderer(object):
             If True, enable the mesh shading.
         backface_culling: bool
             If True, enable backface culling on the mesh.
+        offset: float | None
+            The offset used for surface color blending.
         kwargs: args
             Unused (kept for compatibility).
         """
@@ -99,6 +101,13 @@ class _Renderer(object):
         mesh.attach(Alpha(opacity))
         if backface_culling:
             mesh.set_gl_state(cull_face=True)
+        if offset is not None:
+            mesh.set_gl_state(depth_test=True,
+                              polygon_offset=(offset, offset),
+                              polygon_offset_fill=True)
+        else:
+            mesh.set_gl_state(depth_test=True,
+                              polygon_offset_fill=False)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, offset=None):
@@ -124,6 +133,8 @@ class _Renderer(object):
             If None, the max of the data will be used
         colormap:
             The colormap to use.
+        offset: float | None
+            The offset used for surface color blending.
         """
         vertices = surface['rr']
         tris = surface['tris']
@@ -181,6 +192,8 @@ class _Renderer(object):
             The scalar valued associated to the vertices.
         backface_culling: bool
             If True, enable backface culling on the surface.
+        offset: float | None
+            The offset used for surface color blending.
         """
         mesh = None
         if colormap is not None and scalars is not None:

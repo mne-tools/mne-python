@@ -88,7 +88,7 @@ class _Renderer(object):
                 tvtk.InteractorStyleTerrain()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
+             backface_culling=False, offset=None, **kwargs):
         """Add a mesh in the scene.
 
         Parameters
@@ -109,6 +109,8 @@ class _Renderer(object):
             If True, enable the mesh shading.
         backface_culling: bool
             If True, enable backface culling on the mesh.
+        offset: float | None
+            Not used, for compatibility.
         kwargs: args
             The arguments to pass to triangular_mesh
         """
@@ -123,7 +125,7 @@ class _Renderer(object):
             return surface
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
+                vmin=None, vmax=None, colormap=None, offset=None):
         """Add a contour in the scene.
 
         Parameters
@@ -146,6 +148,8 @@ class _Renderer(object):
             If None, the max of the data will be used
         colormap:
             The colormap to use.
+        offset: float | None
+            Not used, for compatibility.
         """
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
@@ -179,6 +183,8 @@ class _Renderer(object):
             The scalar valued associated to the vertices.
         backface_culling: bool
             If True, enable backface culling on the surface.
+        offset: float | None
+            Not used, for compatibility.
         """
         # Make a solid surface
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
