@@ -383,6 +383,10 @@ def test_ica_additional(method):
 
     plt.close('all')
 
+    ica_different_channels = ICA(n_components=2, random_state=0).fit(
+        raw, picks=[2, 3, 4, 5])
+    pytest.raises(ValueError, corrmap, [ica_different_channels, ica], (0, 0))
+
     # test warnings on bad filenames
     ica_badname = op.join(op.dirname(tempdir), 'test-bad-name.fif.gz')
     with pytest.warns(RuntimeWarning, match='-ica.fif'):

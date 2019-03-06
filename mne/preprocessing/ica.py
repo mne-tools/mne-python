@@ -50,6 +50,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      copy_function_doc_to_method_doc, _pl, warn,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option)
+from ..utils.check import _check_all_same_channel_names
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -2515,6 +2516,13 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     """
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
+
+    same_chans = _check_all_same_channel_names(icas)
+    if same_chans is False:
+        raise ValueError("Not all ICA instances have the same channel names. "
+                         "Corrmap requires all instances to have the same "
+                         "montage. Consider interpolating bad channels before "
+                         "running ICA.")
 
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
