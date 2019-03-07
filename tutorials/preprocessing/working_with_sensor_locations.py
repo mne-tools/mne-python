@@ -71,6 +71,27 @@ midline = np.where([name.endswith('z') for name in biosemi_layout.names])[0]
 biosemi_layout.plot(picks=midline)
 
 ###############################################################################
+# If you're working with a :class:`~mne.io.Raw` object that already has sensor
+# positions incorporated, you can create a :class:`~mne.channels.Layout` object
+# with the :func:`~mne.channels.make_eeg_layout` function.
+
+layout_from_raw = mne.channels.make_eeg_layout(raw.info)
+layout_from_raw.plot()
+
+###############################################################################
+# .. note::
+#
+#     There is no corresponding ``make_meg_layout`` function because sensor
+#     locations are fixed in a MEG system (unlike in EEG, where the sensor caps
+#     deform to fit each subject's head). Thus for MEG layouts you can simply
+#     load them with :func:`~mne.channels.read_layout` as shown above.
+#
+# All :class:`~mne.channels.Layout` objects have a
+# :meth:`~mne.channels.Layout.save` method that allows writing layouts to disk,
+# in either ``.lout`` or ``.lay`` format (which format is inferred from the
+# file extension you pass to the method's ``fname`` parameter).
+#
+#
 # Working with montage files
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -136,10 +157,3 @@ mlab.view(azimuth=50, elevation=90, distance=0.5)
 # object, and can also render MRI surfaces of the scalp, skull, and brain,
 # making it useful for :ref:`assessing coordinate frame transformations
 # <plot_source_alignment>`.
-#
-#
-# TODO
-# ^^^^
-#
-# - mne.channels.make_eeg_layout() ?
-# - mne.channels.make_1020_channel_selections() ?
