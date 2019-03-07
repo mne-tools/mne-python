@@ -105,9 +105,6 @@ class _Renderer(object):
             mesh.set_gl_state(depth_test=True,
                               polygon_offset=(offset, offset),
                               polygon_offset_fill=True)
-        else:
-            mesh.set_gl_state(depth_test=True,
-                              polygon_offset_fill=False)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, offset=None):
@@ -162,9 +159,6 @@ class _Renderer(object):
             iso.set_gl_state(depth_test=True,
                              polygon_offset=(offset, offset),
                              polygon_offset_fill=True)
-        else:
-            iso.set_gl_state(depth_test=True,
-                             polygon_offset_fill=False)
         return 0
 
     def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,
@@ -223,9 +217,6 @@ class _Renderer(object):
             mesh.set_gl_state(depth_test=True,
                               polygon_offset=(offset, offset),
                               polygon_offset_fill=True)
-        else:
-            mesh.set_gl_state(depth_test=True,
-                              polygon_offset_fill=False)
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
