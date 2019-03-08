@@ -17,8 +17,9 @@ from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ...annotations import Annotations
 
-from struct import Struct, unpack, calcsize
-from collections import namedtuple
+from struct import unpack, calcsize
+
+from ._utils import _read_TEEG, _get_event_parser
 
 
 def _read_annotations_cnt(fname):
@@ -45,6 +46,8 @@ def _read_annotations_cnt(fname):
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
     """
+
+    # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
     SETUP_NCHANNELS_OFFSET = 370
     SETUP_RATE_OFFSET = 376
     SETUP_EVENTTABLEPOS_OFFSET = 886
@@ -66,48 +69,16 @@ def _read_annotations_cnt(fname):
         fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
         (event_table_pos,) = unpack('<l', fid.read(calcsize('<l')))
 
-    print(n_channels, sfreq)
-
-    # Read teh TEEG structure
-    teeg_reader = Struct('<Bll')
     with open(fname, 'rb') as fid:
-        fid.seek(event_table_pos)
-        data = teeg_reader.unpack(fid.read(teeg_reader.size))
-    (event_type, total_length, xx) = data
+        teeg = _read_TEEG(fid, teeg_offset=event_table_pos)
 
-    # fid.seek(376)
-    # sfreq = np.fromfile(fid, dtype='<u2', count=1)[0]
-    # print(data)
-    if event_type == 1:
-        event_reader = Struct('<HBcl')  # EVENT type 1
-    elif event_type == 2:
-        event_reader = Struct('<HBclhhfccc')  # EVENT type 2
-    else:
-        raise RuntimeError('Event type can only be 1 or 2')
-    del data
+    event_parser = _get_event_parser(event_type=teeg.event_type)
 
     with open(fname, 'rb') as fid:
         fid.seek(event_table_pos + 9)  # the real table stats at +9
-        buffer = fid.read(total_length)
+        buffer = fid.read(teeg.total_length)
 
-    # unsigned short StimType; /* range 0-65535                           */
-    # unsigned char  KeyBoard; /* range 0-11 corresponding to fcn keys +1 */
-    # char KeyPad_Accept;      /* 0->3 range 0-15 bit coded response pad  */
-    #                          /* 4->7 values 0xd=Accept 0xc=Reject       */
-    # long Offset;             /* file offset of event                    */
-    # short Type;
-    # short Code;
-    # float Latency;
-    # char EpochEvent;
-    # char Accept2;
-    # char Accuracy;
-
-    event_maker = namedtuple('Eevent_Type_2',
-                             ('StimType KeyBoard KeyPad_Accept Offset Type '
-                              'Code Latency EpochEvent Accept2 Accuracy'))
-
-    my_events = [event_maker._make(data)
-                 for data in event_reader.iter_unpack(buffer)]
+    my_events = list(event_parser(buffer))
 
     if not my_events:
         return Annotations(list(), list(), list(), None)
