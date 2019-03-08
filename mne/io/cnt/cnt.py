@@ -1,6 +1,7 @@
 """Conversion tool from Neuroscan CNT to FIF."""
 
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#         Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 from os import path
@@ -14,6 +15,95 @@ from ..constants import FIFF
 from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
+
+from struct import Struct, unpack, calcsize
+from collections import namedtuple
+
+
+def _read_annotations_cnt(fname):
+    """CNT Annotation File Reader.
+
+    This method opens the .cnt, files searches all the metadata to construct
+    the annotations and parses the event table. Notice that CNT files, can
+    point to a different file containing the events. This case when the
+    event table is separated from the main .cnt IS NOT COVER.
+
+    Parameters
+    ----------
+    fname: str
+        path to cnt file containing the annotations.
+
+    Returns
+    -------
+    onset : array of float, shape (n_annotations,)
+        The starting time of annotations in seconds after ``orig_time``.
+    duration : array of float, shape (n_annotations,)
+        Durations of the annotations in seconds.
+    description : array of str, shape (n_annotations,)
+        Array of strings containing description for each annotation. If a
+        string, all the annotations are given the same description. To reject
+        epochs, use description starting with keyword 'bad'. See example above.
+    """
+
+    def _translating_function(offset, n_channels, n_bytes=2):
+        # n_bytes is related to _get_cnt_info's data_format parameter
+        # 'auto', 'int16', and 'int32'
+        event_time = offset - 900 - (75 * n_channels)
+        event_time //= n_channels * n_bytes
+        return event_time - 1
+
+    teeg_reader = Struct('<Bll')
+    with open(fname, 'rb') as fid:
+        SETUP_EVENTTABLEPOS_OFFSET = 886
+        fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
+        (event_table_pos,) = unpack('<l', fid.read(calcsize('<l')))
+
+        print('mine :', event_table_pos)
+        fid.seek(event_table_pos)
+        data = teeg_reader.unpack(fid.read(teeg_reader.size))
+
+    (event_type, total_length, xx) = data
+    # print(data)
+    if event_type == 1:
+        event_reader = Struct('<HBcl')  # EVENT type 1
+    elif event_type == 2:
+        event_reader = Struct('<HBclhhfccc')  # EVENT type 2
+    else:
+        raise RuntimeError('Event type can only be 1 or 2')
+    del data
+
+    with open(fname, 'rb') as fid:
+        fid.seek(event_table_pos + 9)  # the real table stats at +9
+        buffer = fid.read(total_length)
+
+    # unsigned short StimType; /* range 0-65535                           */
+    # unsigned char  KeyBoard; /* range 0-11 corresponding to fcn keys +1 */
+    # char KeyPad_Accept;      /* 0->3 range 0-15 bit coded response pad  */
+    #                          /* 4->7 values 0xd=Accept 0xc=Reject       */
+    # long Offset;             /* file offset of event                    */
+    # short Type;
+    # short Code;
+    # float Latency;
+    # char EpochEvent;
+    # char Accept2;
+    # char Accuracy;
+
+    event_maker = namedtuple('Eevent_Type_2',
+                             ('StimType KeyBoard KeyPad_Accept Offset Type '
+                              'Code Latency EpochEvent Accept2 Accuracy'))
+
+    my_events = [event_maker._make(data)
+                 for data in event_reader.iter_unpack(buffer)]
+
+    if not my_events:
+        return list(), list(), list()
+    else:
+        n_channels = 128  # XXX this should be found somewhere in the file
+        onset = _translating_function(np.array([e.Offset for e in my_events]),
+                                      n_channels=n_channels)
+        duration = np.array([e.Latency for e in my_events])
+        description = np.array([str(e.StimType) for e in my_events])
+        return onset, duration, description
 
 
 @fill_doc
