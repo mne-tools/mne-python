@@ -731,7 +731,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
         np.linalg.norm(stc_cov.data, axis=0), rtol=0.3)
 
     if weight_norm == 'nai':
-        # NAI always represents something normalized
+        # NAI is always normalized by noise-level (based on eigenvalues)
         for stc in (stc_nocov, stc_cov):
             assert_allclose(stc.data.std(), 0.39, rtol=0.1)
     elif weight_norm is None:
@@ -741,7 +741,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
             assert_allclose(stc.data.std(), 1.4e-8, rtol=0.1)
     else:
         assert weight_norm == 'unit-noise-gain'
-        # unit-noise-gain normalization depends on `noise_cov`
+        # Channel scalings depend on presence of noise_cov
         assert_allclose(stc_nocov.data.std(), 5.3e-13, rtol=0.1)
         assert_allclose(stc_cov.data.std(), 0.12, rtol=0.1)
 
