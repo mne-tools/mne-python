@@ -45,7 +45,7 @@ def _check_src_type(filters):
 
 
 def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
-                              fwd_norm=None):
+                              fwd_norm=None, apply_proj=True):
     """Input preparation common for all beamformer functions.
 
     Check input values, prepare channel list and gain matrix. For documentation
@@ -102,17 +102,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     else:
         vertno = _get_vertno(forward['src'])
         G = forward['sol']['data']
-
-    # Apply SSPs
-    proj, ncomp, _ = make_projector(info['projs'], fwd_ch_names)
-
-    if info['projs']:
-        G = np.dot(proj, G)
-
-    # Pick after applying the projections. This makes a copy of G, so further
-    # operations can be safely done in-place.
     G = G[picks_forward]
-    proj = proj[np.ix_(picks_forward, picks_forward)]
 
     # Normalize the leadfield if requested
     if fwd_norm == 'dipole':  # each orientation separately
@@ -132,6 +122,11 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
         raise ValueError('Got invalid value for "fwd_norm". Valid '
                          'values are: "dipole", "vertex" or None.')
 
+    # Apply the projections
+    proj, ncomp, _ = make_projector(info['projs'], fwd_ch_names)
+    proj = proj[np.ix_(picks_forward, picks_forward)]
+    if apply_proj:
+        G = np.dot(proj, G)
     return is_free_ori, ch_names, proj, vertno, G, nn
 
 
