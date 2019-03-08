@@ -36,15 +36,15 @@ raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Set picks
-picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                       stim=False, exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=False,
+                       stim=False, exclude='bads')  # use a single sensor type
 
 # Read epochs
 event_id, tmin, tmax = 1, -0.2, 0.5
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
-                    reject=dict(grad=4000e-13, mag=4e-12))
+                    reject=dict(grad=4000e-13))
 evoked = epochs.average()
 
 # Read forward operator
@@ -54,16 +54,12 @@ forward = mne.read_forward_solution(fname_fwd)
 # Computing the cross-spectral density matrix at 4 evenly spaced frequencies
 # from 6 to 10 Hz. We use a decim value of 20 to speed up the computation in
 # this example at the loss of accuracy.
-#
-# .. warning:: The use of several sensor types with the DICS beamformer is
-#              not heavily tested yet. Here we use verbose='error' to
-#              suppress a warning along these lines.
 csd = csd_morlet(epochs, tmin=0, tmax=0.5, decim=20,
                  frequencies=np.linspace(6, 10, 4),
                  n_cycles=2.5)  # short signals, must live with few cycles
 
 # Compute DICS spatial filter and estimate source power.
-filters = make_dics(epochs.info, forward, csd, reg=0.5, verbose='error')
+filters = make_dics(epochs.info, forward, csd, reg=0.5)
 print(filters)
 stc, freqs = apply_dics_csd(csd, filters)
 
