@@ -15,6 +15,7 @@ from ..constants import FIFF
 from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
+from ...annotations import Annotations
 
 from struct import Struct, unpack, calcsize
 from collections import namedtuple
@@ -44,6 +45,9 @@ def _read_annotations_cnt(fname):
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
     """
+    SETUP_NCHANNELS_OFFSET = 370
+    SETUP_RATE_OFFSET = 376
+    SETUP_EVENTTABLEPOS_OFFSET = 886
 
     def _translating_function(offset, n_channels, n_bytes=2):
         # n_bytes is related to _get_cnt_info's data_format parameter
@@ -52,17 +56,27 @@ def _read_annotations_cnt(fname):
         event_time //= n_channels * n_bytes
         return event_time - 1
 
-    teeg_reader = Struct('<Bll')
     with open(fname, 'rb') as fid:
-        SETUP_EVENTTABLEPOS_OFFSET = 886
+        fid.seek(SETUP_NCHANNELS_OFFSET)
+        (n_channels,) = unpack('<H', fid.read(calcsize('<H')))
+
+        fid.seek(SETUP_RATE_OFFSET)
+        (sfreq,) = unpack('<H', fid.read(calcsize('<H')))
+
         fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
         (event_table_pos,) = unpack('<l', fid.read(calcsize('<l')))
 
-        print('mine :', event_table_pos)
+    print(n_channels, sfreq)
+
+    # Read teh TEEG structure
+    teeg_reader = Struct('<Bll')
+    with open(fname, 'rb') as fid:
         fid.seek(event_table_pos)
         data = teeg_reader.unpack(fid.read(teeg_reader.size))
-
     (event_type, total_length, xx) = data
+
+    # fid.seek(376)
+    # sfreq = np.fromfile(fid, dtype='<u2', count=1)[0]
     # print(data)
     if event_type == 1:
         event_reader = Struct('<HBcl')  # EVENT type 1
@@ -96,14 +110,17 @@ def _read_annotations_cnt(fname):
                  for data in event_reader.iter_unpack(buffer)]
 
     if not my_events:
-        return list(), list(), list()
+        return Annotations(list(), list(), list(), None)
     else:
-        n_channels = 128  # XXX this should be found somewhere in the file
-        onset = _translating_function(np.array([e.Offset for e in my_events]),
+        onset = _translating_function(np.array([e.Offset for e in my_events],
+                                               dtype=float),
                                       n_channels=n_channels)
-        duration = np.array([e.Latency for e in my_events])
+        duration = np.array([e.Latency for e in my_events], dtype=float)
         description = np.array([str(e.StimType) for e in my_events])
-        return onset, duration, description
+        return Annotations(onset=onset / sfreq,
+                           duration=duration,
+                           description=description,
+                           orig_time=None)
 
 
 @fill_doc

@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
+
 - Add ``reject`` parameter to :meth:`mne.preprocessing.ICA.plot_properties` to visualize rejected epochs by `Antoine Gauthier`_
 
 - Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
