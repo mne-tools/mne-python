@@ -52,33 +52,28 @@ CNTEventType2 = namedtuple('CNTEventType2',
 # char Accuracy;
 
 
-CNTEventType3 = CNTEventType2
-
-
-def iter_parse_event_type_1(buffer):
-    event_1_parser = Struct('<HBcl')  # EVENT type 1
-    for chunk in event_1_parser.iter_unpack(buffer):
-        yield CNTEventType1._make(chunk)
-
-
-def iter_parse_event_type_2(buffer):
-    event_2_parser = Struct('<HBclhhfccc')  # EVENT type 2
-    for chunk in event_2_parser.iter_unpack(buffer):
-        yield CNTEventType2._make(chunk)
-
-
-def iter_parse_event_type_3(buffer):
-    event_3_parser = Struct('<HBclhhfccc')  # EVENT type 3 is the same as 2
-    for chunk in event_3_parser.iter_unpack(buffer):
-        yield CNTEventType3._make(chunk)
+# needed for backward compat: EVENT type 3 has the same structure as type 2
+CNTEventType3 = namedtuple('CNTEventType3',
+                           ('StimType KeyBoard KeyPad_Accept Offset Type '
+                            'Code Latency EpochEvent Accept2 Accuracy'))
 
 
 def _get_event_parser(event_type):
     if event_type == 1:
-        return iter_parse_event_type_1
+        event_maker = CNTEventType1
+        struct_pattern = '<HBcl'
     elif event_type == 2:
-        return iter_parse_event_type_2
+        event_maker = CNTEventType2
+        struct_pattern = '<HBclhhfccc'
     elif event_type == 3:
-        return iter_parse_event_type_3
+        event_maker = CNTEventType3
+        struct_pattern = '<HBclhhfccc'  # Same as event type 2
     else:
-        raise ValueError('unknown CNT even type')
+        raise ValueError('unknown CNT even type %s' % event_type)
+
+    def parser(buffer):
+        struct = Struct(struct_pattern)
+        for chunk in struct.iter_unpack(buffer):
+            yield event_maker._make(chunk)
+
+    return parser
