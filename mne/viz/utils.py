@@ -472,6 +472,9 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 def _layout_figure(params):
     """Set figure layout. Shared with raw and epoch plots."""
     size = params['fig'].get_size_inches() * params['fig'].dpi
+    dpi_ratio = getattr(params["fig"].canvas, '_dpi_ratio', 1)
+    size /= dpi_ratio  # account for HiDPI resolutions
+
     scroll_width = 25
     hscroll_dist = 25
     vscroll_dist = 10
