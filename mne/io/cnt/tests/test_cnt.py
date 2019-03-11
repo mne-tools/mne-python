@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import pytest
 
 from mne import pick_types
 from mne.utils import run_tests_if_main
@@ -20,11 +19,19 @@ fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
 
 @testing.requires_testing_data
-def test_data():
+def test_data(recwarn):
     """Test reading raw cnt files."""
-    with pytest.warns(RuntimeWarning, match='number of bytes'):
-        raw = _test_raw_reader(read_raw_cnt, montage=None, input_fname=fname,
-                               eog='auto', misc=['NA1', 'LEFT_EAR'])
+    raw = _test_raw_reader(read_raw_cnt, montage=None, input_fname=fname,
+                           eog='auto', misc=['NA1', 'LEFT_EAR'])
+
+    # inspect the warnings
+    ACCEPTED_WARNING_MSG_ENDINGS = ('Setting to None.', 'Defaulting to 2.')
+    assert recwarn.pop(DeprecationWarning)
+    assert all([issubclass(_.category, RuntimeWarning) for _ in recwarn])
+    assert all([_.message.args[0].endswith(ACCEPTED_WARNING_MSG_ENDINGS)
+                for _ in recwarn])
+    recwarn.clear()
+
     eog_chs = pick_types(raw.info, eog=True, exclude=[])
     assert len(eog_chs) == 2  # test eog='auto'
     assert raw.info['bads'] == ['LEFT_EAR', 'VEOGR']  # test bads
@@ -48,8 +55,6 @@ def test_compare_events_and_annotations(recwarn):
 @testing.requires_testing_data
 def test_read_annotations():
     """Test reading for annotations from a .CNT file."""
-
-    # XXX: scan41_short.cnt is broken for this file so it should warn
     annot = read_annotations(fname)
     assert len(annot) == 6
 

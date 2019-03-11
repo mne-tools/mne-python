@@ -8,7 +8,7 @@ from os import path
 
 import numpy as np
 
-from ...utils import warn, verbose, fill_doc, _check_option
+from ...utils import warn, verbose, fill_doc, _check_option, deprecated
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
@@ -94,6 +94,10 @@ def _read_annotations_cnt(fname):
 
 
 @fill_doc
+@deprecated('read_raw_cnt no longer synthesize the stim channel '
+            'but stores the events as annotations instead. '
+            'Please use `mne.events_from_annotations(raw)` to recover the '
+            'events instead of `mne.find_events`.')
 def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
                  verbose=None):

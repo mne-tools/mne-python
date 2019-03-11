@@ -128,6 +128,8 @@ Bug
 API
 ~~~
 
+- Deprecate stim channel synthesis in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
 
 - A new class :class:`mne.VolVectorSourceEstimate` is returned by :func:`mne.minimum_norm.apply_inverse` (and related functions) when a volume source space and ``pick_ori='vector'`` is used, by `Eric Larson`_
