@@ -342,8 +342,9 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     baselines.append(0)  # For stim channel
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
                     stim_channel=stim_channel, n_bytes=n_bytes)
+    session_label = None if str(session_label) == '' else str(session_label)
     info.update(meas_date=meas_date,
-                description=str(session_label), bads=bads,
+                description=session_label, bads=bads,
                 subject_info=subject_info, chs=chs)
     info._update_redundant()
     return info, cnt_info
