@@ -53,6 +53,8 @@ Changelog
 
 - Add function to check the type of a FIF file using :func:`mne.what` and `mne what <gen_mne_what>` by `Eric Larson`_
 
+- Add support for specifying the initial time and/or position and providing a :class:`mne.SourceMorph` instead of :class:`mne.SourceSpaces` in :func:`mne.viz.plot_volume_source_estimates` by `Eric Larson`_
+
 - Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
 
 - Speed up :func:`mne.setup_volume_source_space`, especially when ``volume_label is not None`` by `Eric Larson`_

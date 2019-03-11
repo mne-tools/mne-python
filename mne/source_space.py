@@ -2326,8 +2326,9 @@ def _adjust_patch_info(s, verbose=None):
 
 
 @verbose
-def _ensure_src(src, kind=None, verbose=None):
+def _ensure_src(src, kind=None, extra='', verbose=None):
     """Ensure we have a source space."""
+    msg = 'src must be a string or instance of SourceSpaces%s' % (extra,)
     if _check_path_like(src):
         src = str(src)
         if not op.isfile(src):
@@ -2335,14 +2336,10 @@ def _ensure_src(src, kind=None, verbose=None):
         logger.info('Reading %s...' % src)
         src = read_source_spaces(src, verbose=False)
     if not isinstance(src, SourceSpaces):
-        raise ValueError('src must be a string or instance of SourceSpaces')
-    if kind is not None:
-        if kind == 'surf':
-            surf = [s for s in src if s['type'] == 'surf']
-            if len(surf) != 2 or len(src) != 2:
-                raise ValueError('Source space must contain exactly two '
-                                 'surfaces.')
-            src = surf
+        raise ValueError('%s, got %s (type %s)' % (msg, src, type(src)))
+    if kind is not None and src.kind != kind:
+        raise ValueError('Source space must be %s type, got '
+                         '%s' % (kind, src.kind))
     return src
 
 

@@ -1331,7 +1331,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         """
         if self.subject is None:
             raise ValueError('stc.subject must be set')
-        src_orig = _ensure_src(src_orig, kind='surf')
+        src_orig = _ensure_src(src_orig, kind='surface')
         subject_orig = _ensure_src_subject(src_orig, subject_orig)
         data_idx, vertices = _get_morph_src_reordering(
             self.vertices, src_orig, subject_orig, self.subject, subjects_dir)
@@ -1709,12 +1709,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
     def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
              bg_img=None, colorbar=True, colormap='auto', clim='auto',
-             transparent='auto', show=True, verbose=None):
+             transparent='auto', show=True, initial_time=None,
+             initial_pos=None, verbose=None):
         data = self.magnitude() if self._data_ndim == 3 else self
         return plot_volume_source_estimates(
             data, src=src, subject=subject, subjects_dir=subjects_dir,
             mode=mode, bg_img=bg_img, colorbar=colorbar, colormap=colormap,
-            clim=clim, transparent=transparent, show=show, verbose=verbose)
+            clim=clim, transparent=transparent, show=show,
+            initial_time=initial_time, initial_pos=initial_pos,
+            verbose=verbose)
 
     def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
                        format='nifti1'):
@@ -2151,7 +2154,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             A instance of `surfer.Brain` from PySurfer.
         """
         # extract surface source spaces
-        surf = _ensure_src(src, kind='surf')
+        surf = _ensure_src(src, kind='surface')
 
         # extract surface source estimate
         data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
@@ -2450,7 +2453,7 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
         using geodesic distances.
     """
     from scipy.spatial.distance import cdist
-    src = _ensure_src(src, kind='surf')
+    src = _ensure_src(src, kind='surface')
     conn = cdist(src[0]['rr'][src[0]['vertno']],
                  src[1]['rr'][src[1]['vertno']])
     conn = sparse.csr_matrix(conn <= dist, dtype=int)

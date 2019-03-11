@@ -19,7 +19,8 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, make_sphere_model, use_coil_def,
                  setup_volume_source_space, read_forward_solution,
-                 VolVectorSourceEstimate, convert_forward_solution)
+                 VolVectorSourceEstimate, convert_forward_solution,
+                 compute_source_morph)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne._digitization._utils import write_dig
 from mne.io.pick import pick_info
@@ -475,41 +476,81 @@ def test_snapshot_brain_montage(renderer):
 @testing.requires_testing_data
 @requires_nibabel()
 @requires_version('nilearn', '0.4')
-def test_plot_volume_source_estimates():
+@pytest.mark.parametrize('mode, stype, init_t, want_t, init_p, want_p', [
+    ('glass_brain', 's', None, 2, None, (-33.3, 16.0, 63.7)),
+    ('stat_map', 'vec', 1, 1, None, (15.7, 16.0, -6.3)),
+    ('glass_brain', 'vec', None, 2, (10, -10, 20), (8.7, -12.0, 21.7)),
+    ('stat_map', 's', 1, 1, (-10, 5, 10), (-12.3, 2.0, 7.7))])
+def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
+                                      init_p, want_p):
     """Test interactive plotting of volume source estimates."""
     forward = read_forward_solution(fwd_fname)
     sample_src = forward['src']
+    if init_p is not None:
+        init_p = np.array(init_p) / 1000.
 
     vertices = [s['vertno'] for s in sample_src]
     n_verts = sum(len(v) for v in vertices)
     n_time = 2
     data = np.random.RandomState(0).rand(n_verts, n_time)
-    vol_stc = VolSourceEstimate(data, vertices, 1, 1)
 
-    vol_vec_stc = VolVectorSourceEstimate(
-        np.tile(vol_stc.data[:, np.newaxis], (1, 3, 1)), vol_stc.vertices,
-        0, 1)
-    for mode, stc in zip(['glass_brain', 'stat_map'], (vol_stc, vol_vec_stc)):
-        with pytest.warns(None):  # sometimes get scalars/index warning
-            fig = stc.plot(sample_src, subject='sample',
-                           subjects_dir=subjects_dir,
-                           mode=mode)
-        # [ax_time, ax_y, ax_x, ax_z]
-        for ax_idx in [0, 2, 3, 4]:
-            _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
-        fig.canvas.key_press_event('left')
-        fig.canvas.key_press_event('shift+right')
+    if stype == 'vec':
+        stc = VolVectorSourceEstimate(
+            np.tile(data[:, np.newaxis], (1, 3, 1)), vertices, 1, 1)
+    else:
+        assert stype == 's'
+        stc = VolSourceEstimate(data, vertices, 1, 1)
+    with pytest.warns(None):  # sometimes get scalars/index warning
+        with catch_logging() as log:
+            fig = stc.plot(
+                sample_src, subject='sample', subjects_dir=subjects_dir,
+                mode=mode, initial_time=init_t, initial_pos=init_p,
+                verbose=True)
+    log = log.getvalue()
+    want_str = 't = %0.3f s' % want_t
+    assert want_str in log, (want_str, init_t)
+    want_str = '(%0.1f, %0.1f, %0.1f) mm' % want_p
+    assert want_str in log, (want_str, init_p)
+    for ax_idx in [0, 2, 3, 4]:
+        _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('shift+right')
 
-    with pytest.raises(ValueError, match='must be one of'):
-        vol_stc.plot(sample_src, 'sample', subjects_dir, mode='abcd')
+
+@pytest.mark.slowtest  # can be slow on OSX
+@testing.requires_testing_data
+@requires_nibabel()
+@requires_version('nilearn', '0.4')
+def test_plot_volume_source_estimates_morph():
+    """Test interactive plotting of volume source estimates with morph."""
+    forward = read_forward_solution(fwd_fname)
+    sample_src = forward['src']
+    vertices = [s['vertno'] for s in sample_src]
+    n_verts = sum(len(v) for v in vertices)
+    n_time = 2
+    data = np.random.RandomState(0).rand(n_verts, n_time)
+    stc = VolSourceEstimate(data, vertices, 1, 1)
+    morph = compute_source_morph(sample_src, 'sample', 'fsaverage', zooms=10,
+                                 subjects_dir=subjects_dir)
+    initial_pos = (-0.05, -0.01, -0.006)
+    with pytest.warns(None):  # sometimes get scalars/index warning
+        with catch_logging() as log:
+            stc.plot(morph, subjects_dir=subjects_dir, mode='glass_brain',
+                     initial_pos=initial_pos, verbose=True)
+    log = log.getvalue()
+    assert 't = 1.000 s' in log
+    assert '(-52.0, -8.0, -2.0) mm' in log
+
+    with pytest.raises(ValueError, match='Allowed values are'):
+        stc.plot(sample_src, 'sample', subjects_dir, mode='abcd')
     vertices.append([])
     surface_stc = SourceEstimate(data, vertices, 1, 1)
-    with pytest.raises(ValueError, match='Only Vol'):
+    with pytest.raises(TypeError, match='an instance of VolSourceEstimate'):
         plot_volume_source_estimates(surface_stc, sample_src, 'sample',
                                      subjects_dir)
     with pytest.raises(ValueError, match='Negative colormap limits'):
-        vol_stc.plot(sample_src, 'sample', subjects_dir,
-                     clim=dict(lims=[-1, 2, 3], kind='value'))
+        stc.plot(sample_src, 'sample', subjects_dir,
+                 clim=dict(lims=[-1, 2, 3], kind='value'))
 
 
 @testing.requires_testing_data

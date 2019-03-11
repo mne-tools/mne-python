@@ -234,14 +234,14 @@ def test_volume_source_morph():
     stc_vol = read_source_estimate(fname_vol, 'sample')
 
     # check for invalid input type
-    with pytest.raises(TypeError, match='src must be an instance of'):
+    with pytest.raises(ValueError, match='src must be a string or instance'):
         compute_source_morph(src=42)
 
     # check for raising an error if neither
     # inverse_operator_vol['src'][0]['subject_his_id'] nor subject_from is set,
     # but attempting to perform a volume morph
     src = inverse_operator_vol['src']
-    src[0]['subject_his_id'] = None
+    assert src[0]['subject_his_id'] is None  # already None on disk (old!)
 
     with pytest.raises(ValueError, match='subject_from could not be inferred'):
         compute_source_morph(src=src, subjects_dir=subjects_dir)
@@ -259,7 +259,8 @@ def test_volume_source_morph():
     zooms = 20
     kwargs = dict(zooms=zooms, niter_sdr=(1,), niter_affine=(1,))
     source_morph_vol = compute_source_morph(
-        subjects_dir=subjects_dir, src=inverse_operator_vol['src'], **kwargs)
+        subjects_dir=subjects_dir, src=fname_inv_vol, subject_from='sample',
+        **kwargs)
     shape = (13,) * 3  # for the given zooms
 
     assert source_morph_vol.subject_from == 'sample'

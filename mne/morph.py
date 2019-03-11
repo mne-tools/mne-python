@@ -14,7 +14,7 @@ from .parallel import parallel_func
 from .source_estimate import (VolSourceEstimate, SourceEstimate,
                               VolVectorSourceEstimate, VectorSourceEstimate,
                               _get_ico_tris)
-from .source_space import SourceSpaces
+from .source_space import SourceSpaces, _ensure_src
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, deprecated, fill_doc, _check_option,
@@ -119,6 +119,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         kind = 'surface'
         subject_from = _check_subject_from(subject_from, src.subject)
     else:
+        src = _ensure_src(src)
         src_data, kind = _get_src_data(src)
         subject_from = _check_subject_from(subject_from, src)
     if not isinstance(subject_to, str):

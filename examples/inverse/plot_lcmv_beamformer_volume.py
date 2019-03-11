@@ -3,7 +3,8 @@
 Compute LCMV inverse solution in volume source space
 ====================================================
 
-Compute LCMV beamformer on an auditory evoked dataset in a volume source space.
+Compute LCMV beamformer on an auditory evoked dataset in a volume source space,
+and show activation on ``fsaverage``.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -22,7 +23,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
 
@@ -35,7 +36,7 @@ forward = mne.read_forward_solution(fname_fwd)
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
-events = mne.read_events(event_fname)
+events = mne.find_events(raw)
 
 # Pick the channels of interest
 raw.pick(['meg', 'eog'])
@@ -89,9 +90,20 @@ stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
          clim=clim)
 
 ###############################################################################
-# We can also visualize the activity on a "glass brain" (shown here with
-# absolute values):
+# Now let's:
+# - visualize the activity on a "glass brain",
+# - show absolute values, and
+# - morph data to ``'fsaverage'`` instead of `sample`
 
+# XXX The morph is still wrong. And even without morph it's wrong because it's
+# not in MNI space.
+
+# morph = mne.compute_source_morph(
+#     forward['src'], 'sample', 'fsaverage', subjects_dir=subjects_dir,
+#     verbose='debug')
 clim = dict(kind='value', lims=[0.3, 0.6, 0.9])
-abs(stc).plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
-              mode='glass_brain', clim=clim)
+abs(stc).crop(0.08, 0.12).plot(
+    # src=morph,
+    src=forward['src'],
+    subject='sample', subjects_dir=subjects_dir,
+    mode='glass_brain', clim=clim)
