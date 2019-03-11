@@ -433,6 +433,8 @@ class RawCNT(BaseRaw):
             last_samps=last_samps, orig_format='int',
             verbose=verbose)
 
+        self.set_annotations(_read_annotations_cnt(input_fname))
+
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store."""
