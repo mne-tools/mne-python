@@ -4,6 +4,10 @@
 
 from struct import Struct
 from collections import namedtuple
+from math import modf
+from datetime import datetime
+
+from ...utils import warn
 
 
 def _read_TEEG(f, teeg_offset):
@@ -77,3 +81,15 @@ def _get_event_parser(event_type):
             yield event_maker._make(chunk)
 
     return parser
+
+
+def _session_date_2_meas_date(session_date, date_format):
+    try:
+        frac_part, int_part = modf(datetime
+                                   .strptime(session_date, date_format)
+                                   .timestamp())
+    except ValueError:
+        warn('  Could not parse meas date from the header. Setting to None.')
+        return None
+    else:
+        return (int_part, frac_part)

@@ -5,7 +5,6 @@
 #
 # License: BSD (3-clause)
 from os import path
-from datetime import datetime
 
 import numpy as np
 
@@ -19,7 +18,7 @@ from ...annotations import Annotations
 
 from struct import unpack, calcsize
 
-from ._utils import _read_TEEG, _get_event_parser
+from ._utils import _read_TEEG, _get_event_parser, _session_date_2_meas_date
 
 
 def _read_annotations_cnt(fname):
@@ -202,12 +201,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         session_label = read_str(fid, 20)
 
         session_date = ('%s %s' % (read_str(fid, 10), read_str(fid, 12)))
-        try:
-            meas_date = datetime.strptime(session_date, date_format)
-        except ValueError:
-            warn('  Could not parse meas date from the header. '
-                 'Setting to None.')
-            meas_date = None
+        print(session_date)
+        meas_date = _session_date_2_meas_date(session_date, date_format)
 
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
