@@ -32,6 +32,10 @@ def test_data(recwarn):
                 for _ in recwarn])
     recwarn.clear()
 
+    # make we use annotations not synthesized stim
+    assert 'STI 014' not in raw.info['ch_names']
+    assert len(raw.annotations) == 6
+
     eog_chs = pick_types(raw.info, eog=True, exclude=[])
     assert len(eog_chs) == 2  # test eog='auto'
     assert raw.info['bads'] == ['LEFT_EAR', 'VEOGR']  # test bads
