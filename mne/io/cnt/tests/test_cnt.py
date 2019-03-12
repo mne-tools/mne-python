@@ -40,6 +40,7 @@ def test_data():
 
 @testing.requires_testing_data
 def test_compare_events_and_annotations(recwarn):
+    """Test comparing annotations and events."""
     from mne import find_events
     from numpy.testing import assert_array_equal
 
@@ -54,6 +55,7 @@ def test_compare_events_and_annotations(recwarn):
 @testing.requires_testing_data
 @pytest.mark.parametrize('stim_channel', [True, False])
 def test_stim_channel(stim_channel):
+    """Test making sure that stim_channel toggle works."""
     with pytest.warns(RuntimeWarning, match='Setting to None.'):
         raw = read_raw_cnt(input_fname=fname, montage=None, preload=False,
                            stim_channel=stim_channel)
