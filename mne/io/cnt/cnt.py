@@ -8,10 +8,11 @@ from os import path
 
 import numpy as np
 
-from ...utils import warn, verbose, fill_doc, _check_option, deprecated
+from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
-from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
+from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
+                     _deprecate_stim_channel)
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ...annotations import Annotations
@@ -94,13 +95,9 @@ def _read_annotations_cnt(fname):
 
 
 @fill_doc
-@deprecated('read_raw_cnt no longer synthesize the stim channel '
-            'but stores the events as annotations instead. '
-            'Please use `mne.events_from_annotations(raw)` to recover the '
-            'events instead of `mne.find_events`.')
 def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
-                 verbose=None):
+                 stim_channel=True, verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
@@ -152,6 +149,15 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
+    stim_channel : bool (default True)
+        Add a stim channel from the events.
+
+        .. warning:: This defaults to True in 0.18 but will change to False in
+                     0.19 (when no stim channel synthesis will be allowed)
+                     and be removed in 0.20; migrate code to use
+                     :func:`mne.events_from_annotations` instead.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -169,11 +175,15 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
     """
     return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
                   emg=emg, data_format=data_format, date_format=date_format,
-                  preload=preload, verbose=verbose)
+                  preload=preload, stim_channel=stim_channel, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
+                  stim_channel_toggle):
     """Read the cnt header."""
+    # XXX stim_channel_toggle is used because stim_channel was in use already
+    _deprecate_stim_channel(stim_channel_toggle, removed_in='0.20')
+
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
@@ -205,7 +215,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         session_label = read_str(fid, 20)
 
         session_date = ('%s %s' % (read_str(fid, 10), read_str(fid, 12)))
-        print(session_date)
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
         fid.seek(370)
@@ -281,35 +290,39 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
-        if event_offset > data_offset:
-            fid.seek(event_offset)
-            event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
-            event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
-            teeg_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-            assert teeg_offset == 0  # documentation say this should be 0
-            if event_type == 1:
-                event_bytes = 8
-            elif event_type in (2, 3):
-                event_bytes = 19
+        if stim_channel_toggle:
+            if event_offset > data_offset:
+                fid.seek(event_offset)
+                event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
+                event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
+                teeg_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+                assert teeg_offset == 0  # documentation say this should be 0
+                if event_type == 1:
+                    event_bytes = 8
+                elif event_type in (2, 3):
+                    event_bytes = 19
+                else:
+                    raise IOError('Unexpected event size.')
+
+                # XXX long NumEvents is available, why are not we using it?
+                n_events = event_size // event_bytes
             else:
-                raise IOError('Unexpected event size.')
+                n_events = 0
 
-            # XXX long NumEvents is available, why are not we using it?
-            n_events = event_size // event_bytes
-        else:
-            n_events = 0
+            stim_channel = np.zeros(n_samples)  # Construct stim channel
+            for i in range(n_events):
+                fid.seek(event_offset + 9 + i * event_bytes)
+                event_id = np.fromfile(fid, dtype='u2', count=1)[0]
+                fid.seek(event_offset + 9 + i * event_bytes + 4)
+                offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+                if event_type == 3:
+                    offset *= n_bytes * n_channels
+                event_time = offset - 900 - 75 * n_channels
+                event_time //= n_channels * n_bytes
+                stim_channel[event_time - 1] = event_id
 
-        stim_channel = np.zeros(n_samples)  # Construct stim channel
-        for i in range(n_events):
-            fid.seek(event_offset + 9 + i * event_bytes)
-            event_id = np.fromfile(fid, dtype='u2', count=1)[0]
-            fid.seek(event_offset + 9 + i * event_bytes + 4)
-            offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-            if event_type == 3:
-                offset *= n_bytes * n_channels
-            event_time = offset - 900 - 75 * n_channels
-            event_time //= n_channels * n_bytes
-            stim_channel[event_time - 1] = event_id
+        else:  # when stim_channel_toggle is False
+            pass
 
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
@@ -336,16 +349,22 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
 
-    # Add the stim channel.
-    chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
-                 'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI 014',
-                 'unit': FIFF.FIFF_UNIT_NONE,
-                 'coord_frame': FIFF.FIFFV_COORD_UNKNOWN, 'loc': np.zeros(12),
-                 'coil_type': FIFF.FIFFV_COIL_NONE, 'kind': FIFF.FIFFV_STIM_CH}
-    chs.append(chan_info)
-    baselines.append(0)  # For stim channel
-    cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
-                    stim_channel=stim_channel, n_bytes=n_bytes)
+    if stim_channel_toggle:
+        chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
+                     'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI 014',
+                     'unit': FIFF.FIFF_UNIT_NONE,
+                     'coord_frame': FIFF.FIFFV_COORD_UNKNOWN,
+                     'loc': np.zeros(12),
+                     'coil_type': FIFF.FIFFV_COIL_NONE,
+                     'kind': FIFF.FIFFV_STIM_CH}
+        chs.append(chan_info)
+        baselines.append(0)  # For stim channel
+        cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
+                        stim_channel=stim_channel, n_bytes=n_bytes)
+    else:
+        cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
+                        n_bytes=n_bytes)
+
     session_label = None if str(session_label) == '' else str(session_label)
     info.update(meas_date=meas_date,
                 description=session_label, bads=bads,
@@ -415,7 +434,7 @@ class RawCNT(BaseRaw):
 
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
-                 verbose=None):  # noqa: D102
+                 stim_channel=True, verbose=None):  # noqa: D102
 
         _check_option('date_format', date_format, ['mm/dd/yy', 'dd/mm/yy'])
         if date_format == 'dd/mm/yy':
@@ -425,26 +444,30 @@ class RawCNT(BaseRaw):
 
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
-                                       data_format, _date_format)
+                                       data_format, _date_format, stim_channel)
         last_samps = [cnt_info['n_samples'] - 1]
         _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
-            last_samps=last_samps, orig_format='int',
-            verbose=verbose)
+            last_samps=last_samps, orig_format='int', verbose=verbose)
 
         self.set_annotations(_read_annotations_cnt(input_fname))
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store."""
-        n_channels = self.info['nchan'] - 1  # Stim channel already read.
+        if 'stim_channel' in self._raw_extras[0]:
+            n_channels = self.info['nchan'] - 1  # Stim channel already read.
+            sel = np.arange(n_channels + 1)[idx]
+            stim_ch = self._raw_extras[0]['stim_channel']
+        else:
+            n_channels = self.info['nchan']
+            sel = np.arange(n_channels)[idx]
+
         channel_offset = self._raw_extras[0]['channel_offset']
         baselines = self._raw_extras[0]['baselines']
-        stim_ch = self._raw_extras[0]['stim_channel']
         n_bytes = self._raw_extras[0]['n_bytes']
         dtype = '<i4' if n_bytes == 4 else '<i2'
-        sel = np.arange(n_channels + 1)[idx]
         chunk_size = channel_offset * n_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
         # channel_offset determines the amount of successive samples.
@@ -463,7 +486,12 @@ class RawCNT(BaseRaw):
                                                   data_left // n_channels -
                                                   sample_start))
                 n_samps = sample_stop - sample_start
-                data_ = np.empty((n_channels + 1, n_samps))
+
+                if 'stim_channel' in self._raw_extras[0]:
+                    data_ = np.empty((n_channels + 1, n_samps))
+                else:
+                    data_ = np.empty((n_channels, n_samps))
+
                 # In case channel offset and start time do not align perfectly,
                 # extra sample sets are read here to cover the desired time
                 # window. The whole (up to 100 MB) block is read at once and
@@ -477,15 +505,30 @@ class RawCNT(BaseRaw):
                 samps = np.fromfile(fid, dtype=dtype, count=count)
                 samps = samps.reshape((n_chunks, n_channels, channel_offset),
                                       order='C')
+
                 # Intermediate shaping to chunk sizes.
-                block = np.zeros((n_channels + 1, channel_offset * n_chunks))
+                if 'stim_channel' in self._raw_extras[0]:
+                    block = np.zeros((n_channels + 1,
+                                      channel_offset * n_chunks))
+                else:
+                    block = np.zeros((n_channels, channel_offset * n_chunks))
+
                 for set_idx, row in enumerate(samps):  # Final shape.
                     block_slice = slice(set_idx * channel_offset,
                                         (set_idx + 1) * channel_offset)
-                    block[:-1, block_slice] = row
+                    if 'stim_channel' in self._raw_extras[0]:
+                        block[:-1, block_slice] = row
+                    else:
+                        block[:, block_slice] = row
+
                 block = block[sel, s_offset:n_samps + s_offset]
                 data_[sel] = block
-                data_[-1] = stim_ch[start + sample_start:start + sample_stop]
+                if 'stim_channel' in self._raw_extras[0]:
+                    _data_start = start + sample_start
+                    _data_stop = start + sample_stop
+                    data_[-1] = stim_ch[_data_start:_data_stop]
+                else:
+                    pass
                 data_[sel] -= baselines[sel][:, None]
                 _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
                               cals, mult=None)

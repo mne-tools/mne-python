@@ -6,6 +6,8 @@
 
 import os.path as op
 
+import pytest
+
 from mne import pick_types
 from mne.utils import run_tests_if_main
 from mne.datasets import testing
@@ -19,21 +21,13 @@ fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
 
 @testing.requires_testing_data
-def test_data(recwarn):
+def test_data():
     """Test reading raw cnt files."""
-    raw = _test_raw_reader(read_raw_cnt, montage=None, input_fname=fname,
-                           eog='auto', misc=['NA1', 'LEFT_EAR'])
+    with pytest.warns(RuntimeWarning, match='number of bytes'):
+        raw = _test_raw_reader(read_raw_cnt, montage=None, input_fname=fname,
+                               eog='auto', misc=['NA1', 'LEFT_EAR'])
 
-    # inspect the warnings
-    ACCEPTED_WARNING_MSG_ENDINGS = ('Setting to None.', 'Defaulting to 2.')
-    assert recwarn.pop(DeprecationWarning)
-    assert all([issubclass(_.category, RuntimeWarning) for _ in recwarn])
-    assert all([_.message.args[0].endswith(ACCEPTED_WARNING_MSG_ENDINGS)
-                for _ in recwarn])
-    recwarn.clear()
-
-    # make we use annotations not synthesized stim
-    assert 'STI 014' not in raw.info['ch_names']
+    # make we use annotations event if we synthesized stim
     assert len(raw.annotations) == 6
 
     eog_chs = pick_types(raw.info, eog=True, exclude=[])
@@ -49,11 +43,21 @@ def test_compare_events_and_annotations(recwarn):
     from mne import find_events
     from numpy.testing import assert_array_equal
 
-    raw = read_raw_cnt(input_fname=fname, montage=None, preload=False)
+    raw = read_raw_cnt(input_fname=fname, montage=None, preload=False,
+                       stim_channel=True)
     events = find_events(raw)
 
     annot = _read_annotations_cnt(fname)
     assert_array_equal(annot.onset[:-1], events[:, 0] / raw.info['sfreq'])
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('stim_channel', [True, False])
+def test_stim_channel(stim_channel):
+    with pytest.warns(RuntimeWarning, match='Setting to None.'):
+        raw = read_raw_cnt(input_fname=fname, montage=None, preload=False,
+                           stim_channel=stim_channel)
+    assert ('STI 014' in raw.info['ch_names']) == stim_channel
 
 
 @testing.requires_testing_data
