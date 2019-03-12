@@ -39,7 +39,8 @@ class _Projection(object):
 
     def visible(self, state):
         """Modify visibility attribute of the source."""
-        self.pts.visible = state
+        if self.pts is not None:
+            self.pts.visible = state
 
 
 class _Renderer(object):

@@ -5,7 +5,7 @@ Actual implementation of _Renderer and _Projection classes.
 """
 
 import numpy as np
-from vispy import app, scene
+from vispy import scene
 from vispy.color import Colormap
 from vispy.visuals.filters import Alpha
 from vispy.visuals.transforms import STTransform
@@ -13,7 +13,30 @@ from vispy.visuals.transforms import STTransform
 default_sphere_radius = 0.5
 default_mesh_shininess = 0.0
 
-# TODO: _Projection
+
+class _Projection(object):
+    """Class storing projection information.
+
+    Attributes
+    ----------
+    xy : array
+        Result of 2d projection of 3d data.
+    pts : None
+        Scene sensors handle.
+    """
+
+    def __init__(self, xy=None, pts=None):
+        """Store input projection information into attributes."""
+        self.xy = xy
+        self.pts = pts
+
+    def visible(self, state):
+        """Modify visibility attribute of the sensors."""
+        if isinstance(self.pts, list):
+            for p in self.pts:
+                p.visible = state
+        else:
+            self.pts.visible = state
 
 
 class _Renderer(object):
@@ -48,14 +71,22 @@ class _Renderer(object):
                                             title=name,
                                             show=show)
             self.canvas.bgcolor = bgcolor
+            self.view = None
         else:
             self.canvas = fig
-        self.view = self.canvas.central_widget.add_view()
-        self.view.camera = \
-            scene.cameras.TurntableCamera(interactive=True, fov=50,
-                                          azimuth=180.0, elevation=0.0,
-                                          distance=0.5,
-                                          parent=self.view.scene)
+            if len(self.canvas.central_widget._widgets) > 0:
+                # by default, the viewbox is the first widget
+                self.view = self.canvas.central_widget._widgets[0]
+            else:
+                self.view = None
+
+        if self.view is None:
+            self.view = self.canvas.central_widget.add_view()
+            self.view.camera = \
+                scene.cameras.TurntableCamera(interactive=True, fov=50,
+                                              azimuth=180.0, elevation=0.0,
+                                              distance=0.5,
+                                              parent=self.view.scene)
 
     def scene(self):
         """Return scene handle."""
@@ -190,6 +221,8 @@ class _Renderer(object):
             The offset used for surface color blending.
         """
         mesh = None
+        vertices = np.array(surface['rr']).astype(np.float32)
+        faces = np.array(surface['tris']).astype(np.uint32)
         if colormap is not None and scalars is not None:
             cm = Colormap(colormap / 255.0)
             if vmin is None:
@@ -198,14 +231,14 @@ class _Renderer(object):
                 vmax = max(scalars)
             nscalars = (scalars - vmin) / (vmax - vmin)
             vcolors = cm.map(nscalars)
-            mesh = scene.visuals.Mesh(vertices=surface['rr'],
-                                      faces=surface['tris'],
+            mesh = scene.visuals.Mesh(vertices=vertices,
+                                      faces=faces,
                                       vertex_colors=vcolors,
                                       shading='smooth',
                                       parent=self.view.scene)
         else:
-            mesh = scene.visuals.Mesh(vertices=surface['rr'],
-                                      faces=surface['tris'],
+            mesh = scene.visuals.Mesh(vertices=vertices,
+                                      faces=faces,
                                       color=color, parent=self.view.scene,
                                       shading='smooth')
         if mesh is not None:
@@ -338,7 +371,7 @@ class _Renderer(object):
     def show(self):
         """Render the scene."""
         self.canvas.show()
-        app.run()
+        self.canvas.app.run()
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
@@ -368,6 +401,66 @@ class _Renderer(object):
     def screenshot(self):
         """Take a screenshot of the scene."""
         return self.canvas.render()
+
+    def project(self, xyz, ch_names):
+        xy = _3d_to_2d(xyz, self.canvas, self.view.camera)
+        xy = dict(zip(ch_names, xy))
+        root = self.canvas.scene.children[0]
+
+        # looking for the SubScene
+        node = root
+        class_name = root.__class__.__name__
+        while class_name != 'SubScene':
+            node = node.children[0]
+            class_name = node.__class__.__name__
+
+        # looking for sensors
+        # NB: for now, implementation of spheres use multiples Meshes
+        # so this is a list. Ideally, only one mesh is necessary.
+        subscene = node
+        isFirst = True
+        pts = list()
+        for node in subscene.children:
+            if node.__class__.__name__ == 'Mesh':
+                if isFirst:
+                    isFirst = False
+                else:
+                    pts.append(node)
+
+        return _Projection(xy=xy, pts=pts)
+
+
+def _3d_to_2d(xyz, canvas, camera):
+    xyz = np.column_stack([xyz, np.ones(xyz.shape[0])])
+
+    # Transform points into 'unnormalized' view coordinates
+    comb_trans_mat = _get_world_to_view_matrix(camera)
+    view_coords = np.dot(comb_trans_mat, xyz.T).T
+
+    # Divide through by the fourth element for normalized view coords
+    norm_view_coords = view_coords / (view_coords[:, 3].reshape(-1, 1))
+
+    # Transform from normalized view coordinates to display coordinates.
+    view_to_disp_mat = _get_view_to_display_matrix(canvas)
+    xy = np.dot(view_to_disp_mat, norm_view_coords.T).T
+
+    # Pull the first two columns since they're meaningful for 2d plotting
+    xy = xy[:, :2]
+    return xy
+
+
+def _get_world_to_view_matrix(camera):
+    return camera.transform.matrix
+
+
+def _get_view_to_display_matrix(canvas):
+    x, y = canvas.size
+    view_to_disp_mat = np.array([[x / 2.0, 0., 0., x / 2.0],
+                                 [0., -y / 2.0, 0., y / 2.0],
+                                 [0., 0., 1., 0.],
+                                 [0., 0., 0., 1.]])
+
+    return view_to_disp_mat
 
 
 def _create_quiver(mode, source, destination, view, color,

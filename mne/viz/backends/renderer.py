@@ -22,7 +22,7 @@ except NameError:
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # noqa: F401
 elif MNE_3D_BACKEND == 'vispy':
-    from ._vispy import _Renderer  # noqa: F401
+    from ._vispy import _Renderer, _Projection  # noqa: F401
 else:
     raise ValueError('MNE_3D_BACKEND should be either "mayavi" or'
                      '"vispy" : {} was given.'.format(MNE_3D_BACKEND))
