@@ -19,16 +19,16 @@ from ...annotations import Annotations
 
 from struct import unpack, calcsize
 
-from ._utils import _read_TEEG, _get_event_parser, _session_date_2_meas_date
+from ._utils import _read_teeg, _get_event_parser, _session_date_2_meas_date
 
 
 def _read_annotations_cnt(fname):
     """CNT Annotation File Reader.
 
-    This method opens the .cnt, files searches all the metadata to construct
+    This method opens the .cnt files, searches all the metadata to construct
     the annotations and parses the event table. Notice that CNT files, can
     point to a different file containing the events. This case when the
-    event table is separated from the main .cnt IS NOT COVER.
+    event table is separated from the main .cnt is not supported.
 
     Parameters
     ----------
@@ -70,7 +70,7 @@ def _read_annotations_cnt(fname):
         (event_table_pos,) = unpack('<l', fid.read(calcsize('<l')))
 
     with open(fname, 'rb') as fid:
-        teeg = _read_TEEG(fid, teeg_offset=event_table_pos)
+        teeg = _read_teeg(fid, teeg_offset=event_table_pos)
 
     event_parser = _get_event_parser(event_type=teeg.event_type)
 

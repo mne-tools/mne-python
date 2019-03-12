@@ -10,7 +10,7 @@ from datetime import datetime
 from ...utils import warn
 
 
-def _read_TEEG(f, teeg_offset):
+def _read_teeg(f, teeg_offset):
     """
     # from TEEG structure in http://paulbourke.net/dataformats/eeg/
     typedef struct {
@@ -26,7 +26,6 @@ def _read_TEEG(f, teeg_offset):
 
     f.seek(teeg_offset)
     return Teeg._make(teeg_parser.unpack(f.read(teeg_parser.size)))
-    # XXX: maybe add the warning if offset is not 0
 
 
 CNTEventType1 = namedtuple('CNTEventType1',

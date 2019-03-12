@@ -27,7 +27,7 @@ def test_data():
         raw = _test_raw_reader(read_raw_cnt, montage=None, input_fname=fname,
                                eog='auto', misc=['NA1', 'LEFT_EAR'])
 
-    # make we use annotations event if we synthesized stim
+    # make sure we use annotations event if we synthesized stim
     assert len(raw.annotations) == 6
 
     eog_chs = pick_types(raw.info, eog=True, exclude=[])
