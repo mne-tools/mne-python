@@ -97,8 +97,14 @@ def _compute_eloreta(inv, lambda2, options):
     for ii in range(n_src):
         sl = slice(n_orient * ii, n_orient * (ii + 1))
         K[sl] = np.dot(W_inv[ii], np.dot(G.T[sl], M))
-    # Avoid the scaling to get to currents
-    K /= np.sqrt(inv['source_cov']['data'])[:, np.newaxis]
+    # Scale to get to currents, but do not re-apply the priors
+    scale = inv['source_cov']['data'].copy()
+    if inv['depth_prior'] is not None:
+        scale /= inv['depth_prior']['data']
+    if inv['orient_prior'] is not None:
+        scale /= inv['orient_prior']['data']
+    scale = np.mean(scale)  # they are all identical, but less err this way
+    K /= np.sqrt(inv['source_cov']['data'])[:, np.newaxis] / np.sqrt(scale)
     # eLORETA seems to break our simple relationships with noisenorm etc.,
     # but we can get around it by making our eventual dots do the right thing
     eigen_leads, reginv, eigen_fields = _safe_svd(K, full_matrices=False)
