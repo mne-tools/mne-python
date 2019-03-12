@@ -19,7 +19,8 @@ from ...annotations import Annotations
 
 from struct import unpack, calcsize
 
-from ._utils import _read_teeg, _get_event_parser, _session_date_2_meas_date
+from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
+                     CNTEventType3)
 
 
 def _read_annotations_cnt(fname):
@@ -52,9 +53,11 @@ def _read_annotations_cnt(fname):
     SETUP_RATE_OFFSET = 376
     SETUP_EVENTTABLEPOS_OFFSET = 886
 
-    def _translating_function(offset, n_channels, n_bytes=2):
+    def _translating_function(offset, n_channels, event_type, n_bytes=2):
         # n_bytes is related to _get_cnt_info's data_format parameter
         # 'auto', 'int16', and 'int32'
+        if event_type == CNTEventType3:
+            offset *= n_bytes * n_channels
         event_time = offset - 900 - (75 * n_channels)
         event_time //= n_channels * n_bytes
         return event_time - 1
@@ -85,7 +88,8 @@ def _read_annotations_cnt(fname):
     else:
         onset = _translating_function(np.array([e.Offset for e in my_events],
                                                dtype=float),
-                                      n_channels=n_channels)
+                                      n_channels=n_channels,
+                                      event_type=type(my_events[0]))
         duration = np.array([e.Latency for e in my_events], dtype=float)
         description = np.array([str(e.StimType) for e in my_events])
         return Annotations(onset=onset / sfreq,
