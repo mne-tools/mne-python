@@ -450,25 +450,33 @@ class EpochsEEGLAB(BaseEpochs):
         if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict
             event_name, event_latencies, unique_ev = list(), list(), list()
-            ev_idx = 0
             warn_multiple_events = False
             epochs = _bunchify(eeg.epoch)
             events = _bunchify(eeg.event)
+
+            # construct urevent idx -> event idx mapping
+            ur2ev = {evnt.urevent: idx for idx, evnt in enumerate(events)}
+
             for ep in epochs:
                 if isinstance(ep.eventtype, int):
                     ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, str):
                     event_type = '/'.join([str(et) for et in ep.eventtype])
                     event_name.append(event_type)
-                    # store latency of only first event
+
+                    # store latency of the event closest to zero
+                    event_closer_to_zero_idx = np.abs(np.array(
+                            ep.eventlatency) - 0).argmin()
+                    event_ur = ep.eventurevent[event_closer_to_zero_idx]
+                    ev_idx = ur2ev[event_ur]
                     event_latencies.append(events[ev_idx].latency)
-                    ev_idx += len(ep.eventtype)
+
                     warn_multiple_events = True
                 else:
                     event_type = ep.eventtype
-                    event_name.append(ep.eventtype)
+                    event_name.append(event_type)
+                    ev_idx = ur2ev[ep.eventurevent]
                     event_latencies.append(events[ev_idx].latency)
-                    ev_idx += 1
 
                 if event_type not in unique_ev:
                     unique_ev.append(event_type)
