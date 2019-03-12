@@ -398,9 +398,9 @@ def test_apply_inverse_operator(evoked):
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
     assert stc.subject == 'sample'
-    assert stc.data.min() > 0
-    assert stc.data.max() < 13e-9
-    assert stc.data.mean() > 1e-11
+    assert 0.00e-9 < stc.data.min() > 0.02e-9
+    assert 0.02e-9 < stc.data.mean() < 2.00e-9
+    assert 11.00e-9 < stc.data.max() < 13.00e-9
 
     # test if using prepared and not prepared inverse operator give the same
     # result
@@ -413,21 +413,21 @@ def test_apply_inverse_operator(evoked):
     # This is little more than a smoke test...
     stc = apply_inverse(evoked, inverse_operator, lambda2, "sLORETA")
     assert stc.subject == 'sample'
-    assert stc.data.min() > 0
-    assert stc.data.max() < 10.0
-    assert stc.data.mean() > 0.1
+    assert 0.0 < stc.data.min() < 0.1
+    assert 0.1 < stc.data.mean() < 1.0
+    assert 1.0 < stc.data.max() < 5.0
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "eLORETA")
     assert stc.subject == 'sample'
-    assert stc.data.min() > 0
-    assert stc.data.max() < 3.0
-    assert stc.data.mean() > 0.1
+    assert 0.00e-9 < stc.data.min() > 0.02e-9
+    assert 0.02e-9 < stc.data.mean() < 2.00e-9
+    assert 4.00e-9 < stc.data.max() < 7.00e-9
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
     assert stc.subject == 'sample'
-    assert stc.data.min() > 0
-    assert stc.data.max() < 35
-    assert stc.data.mean() > 0.1
+    assert 0.0 < stc.data.min() < 1.0
+    assert 1.0 < stc.data.mean() < 3.0
+    assert 3.0 < stc.data.max() < 35.0
 
     # test without using a label (so delayed computation is used)
     label = read_label(fname_label % 'Aud-lh')

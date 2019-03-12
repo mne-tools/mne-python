@@ -68,16 +68,13 @@ def _compute_eloreta(inv, lambda2, options):
         W_last = W.copy()
         if n_orient == 1:
             W[:] = np.sqrt((np.dot(M, G) * G).sum(0))
-            W /= W.sum() / n_src
         else:
-            norm = 0.
             for ii in range(n_src):
                 sl = slice(n_orient * ii, n_orient * (ii + 1))
                 this_w, this_s = _sqrtm_sym(
                     np.dot(np.dot(G[:, sl].T, M), G[:, sl]))
                 W[ii] = np.mean(this_s) if force_equal else this_w
-                norm += np.mean(this_s)
-            W /= norm / n_src
+        W /= np.linalg.norm(W) ** 2 / n_src
 
         # Check for weight convergence
         delta = (linalg.norm(W.ravel() - W_last.ravel()) /
