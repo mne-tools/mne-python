@@ -466,7 +466,7 @@ class EpochsEEGLAB(BaseEpochs):
 
                     # store latency of the event closest to zero
                     event_closer_to_zero_idx = np.abs(np.array(
-                            ep.eventlatency) - 0).argmin()
+                        ep.eventlatency) - 0).argmin()
                     event_ur = ep.eventurevent[event_closer_to_zero_idx]
                     ev_idx = ur2ev[event_ur]
                     event_latencies.append(events[ev_idx].latency)
