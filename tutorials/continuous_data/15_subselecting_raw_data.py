@@ -5,6 +5,8 @@
 Subselecting data from :class:`~mne.io.Raw` objects
 ===================================================
 
+.. include:: ../../tutorial_links.inc
+
 This tutorial covers how to select portions of data the :class:`~mne.io.Raw`
 (both channels and time spans), how to reorder and rename channels, and also
 illustrates some basic plotting of :class:`mne.io.Raw` data using matplotlib.
@@ -96,7 +98,7 @@ two_meg_chans = raw[['MEG 0712', 'MEG 1022'], starting_sample:ending_sample]
 y_offset = np.array([0, 5e-11])
 x = two_meg_chans[1]
 y = two_meg_chans[0].T + y_offset
-_ = plt.plot(x, y)
+plt.plot(x, y)
 
 ###############################################################################
 # The :meth:`~mne.io.Raw.get_data` method can also be used in this way, via its
@@ -135,7 +137,7 @@ eog_and_eeg = raw.copy().reorder_channels(chans)
 start, stop = eog_and_eeg.time_as_index([42, 45])
 y, x = eog_and_eeg[:, start:stop]
 y_offset = np.linspace(0, -1e-3, 5)
-_ = plt.plot(x, y.T + y_offset)
+plt.plot(x, y.T + y_offset)
 
 ###############################################################################
 # .. note::
@@ -149,6 +151,8 @@ _ = plt.plot(x, y.T + y_offset)
 # conserve memory by not storing lots of intermediate copies as you step
 # through an analysis pipeline.
 #
+#
+# .. _raw-pick-types:
 #
 # Selecting channels by type
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -209,6 +213,3 @@ print(raw.ch_names[-3:])
 chan_renaming_dict = {name: name.replace(' ', '_') for name in raw.ch_names}
 raw.rename_channels(chan_renaming_dict)
 print(raw.ch_names[-3:])
-
-###############################################################################
-# .. include:: ../../tutorial_links.inc
