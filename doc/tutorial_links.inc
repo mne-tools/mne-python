@@ -12,3 +12,4 @@
 .. _principal component analysis: https://en.wikipedia.org/wiki/Principal_component_analysis
 .. _ISO 8601: https://en.wikipedia.org/wiki/ISO_8601
 .. _FieldTrip FAQ on average referencing: http://www.fieldtriptoolbox.org/faq/why_should_i_use_an_average_reference_for_eeg_source_reconstruction/
+.. _spherical harmonics: https://en.wikipedia.org/wiki/Spherical_harmonics
