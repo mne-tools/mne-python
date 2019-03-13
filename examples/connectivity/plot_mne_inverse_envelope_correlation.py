@@ -71,10 +71,11 @@ del fwd, src
 
 labels = mne.read_labels_from_annot(subject, 'aparc_sub',
                                     subjects_dir=subjects_dir)
-stcs = apply_inverse_epochs(epochs, inv, lambda2=1. / 9., pick_ori='normal')
+stcs = apply_inverse_epochs(epochs, inv, lambda2=1. / 9., pick_ori='normal',
+                            return_generator=True)
 label_ts = mne.extract_label_time_course(
     stcs, labels, inv['src'], return_generator=True)
-corr = envelope_correlation(label_ts)
+corr = envelope_correlation(label_ts, verbose=True)
 
 # let's plot this matrix
 fig, ax = plt.subplots(figsize=(4, 4))
