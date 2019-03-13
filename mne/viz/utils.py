@@ -315,8 +315,8 @@ def _get_help_text(params):
     """Customize help dialogs text."""
     text, text2 = list(), list()
 
-    text.append(u'\u2190 : \n')  # left arrow
-    text.append(u'\u2192 : \n')  # right arrow
+    text.append(u'(Shift +) \u2190 : \n')  # left arrow
+    text.append(u'(Shift +) \u2192 : \n')  # right arrow
     text.append(u'\u2193 : \n')  # down arrow
     text.append(u'\u2191 : \n')  # up arrow
     text.append(u'- : \n')
@@ -363,9 +363,11 @@ def _get_help_text(params):
             text2.insert(6, 'Toggle annotation mode\n')
             text.insert(7, u'b : \n')
             text2.insert(7, 'Toggle butterfly plot on/off\n')
+            text.insert(8, u'd : \n')
+            text2.insert(8, 'Toggle remove DC on/off\n')
             if 'fig_selection' not in params:
-                text2.insert(10, 'Reduce the number of channels per view\n')
-                text2.insert(11, 'Increase the number of channels per view\n')
+                text2.insert(11, 'Reduce the number of channels per view\n')
+                text2.insert(12, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -830,6 +832,10 @@ def _plot_raw_onkey(event, params):
     elif event.key == 'w':
         params['use_noise_cov'] = not params['use_noise_cov']
         params['plot_update_proj_callback'](params, None)
+    elif event.key == 'd':
+        params['remove_dc'] = not params['remove_dc']
+        params['update_fun']()
+        params['plot_fun']()
 
 
 def _setup_annotation_fig(params):
