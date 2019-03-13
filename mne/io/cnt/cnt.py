@@ -22,7 +22,7 @@ from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
                      CNTEventType3)
 
 
-def _read_annotations_cnt(fname):
+def _read_annotations_cnt(fname, data_format='int16'):
     """CNT Annotation File Reader.
 
     This method opens the .cnt files, searches all the metadata to construct
@@ -34,6 +34,8 @@ def _read_annotations_cnt(fname):
     ----------
     fname: str
         path to cnt file containing the annotations.
+    data_format : 'int16' | 'int32'
+        Defines the data format the data is read in.
 
     Returns
     -------
@@ -45,12 +47,13 @@ def _read_annotations_cnt(fname):
     SETUP_RATE_OFFSET = 376
     SETUP_EVENTTABLEPOS_OFFSET = 886
 
-    def _translating_function(offset, n_channels, event_type, n_bytes=2):
-        # n_bytes is related to _get_cnt_info's data_format parameter
-        # 'auto', 'int16', and 'int32'
+    def _translating_function(offset, n_channels, event_type,
+                              data_format=data_format):
+        n_bytes = 2 if data_format == 'int16' else 4
         if event_type == CNTEventType3:
             offset *= n_bytes * n_channels
         event_time = offset - 900 - (75 * n_channels)
+        print(event_time.dtype)
         event_time //= n_channels * n_bytes
         return event_time - 1
 
@@ -81,7 +84,8 @@ def _read_annotations_cnt(fname):
         onset = _translating_function(np.array([e.Offset for e in my_events],
                                                dtype=float),
                                       n_channels=n_channels,
-                                      event_type=type(my_events[0]))
+                                      event_type=type(my_events[0]),
+                                      data_format=data_format)
         duration = np.array([e.Latency for e in my_events], dtype=float)
         description = np.array([str(e.StimType) for e in my_events])
         return Annotations(onset=onset / sfreq,
@@ -454,7 +458,9 @@ class RawCNT(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
 
-        self.set_annotations(_read_annotations_cnt(input_fname))
+        data_format = 'int32' if cnt_info['n_bytes'] == 4 else 'int16'
+        self.set_annotations(
+            _read_annotations_cnt(input_fname, data_format=data_format))
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
