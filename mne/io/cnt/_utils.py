@@ -12,6 +12,8 @@ from ...utils import warn
 
 def _read_teeg(f, teeg_offset):
     """
+    Read TEEG structure from an open CNT file.
+
     # from TEEG structure in http://paulbourke.net/dataformats/eeg/
     typedef struct {
        char Teeg;       /* Either 1 or 2                    */
@@ -19,7 +21,6 @@ def _read_teeg(f, teeg_offset):
        long Offset;     /* Hopefully always 0               */
     } TEEG;
     """
-
     # we use a more descriptive names based on TEEG doc comments
     Teeg = namedtuple('Teeg', 'event_type total_length offset')
     teeg_parser = Struct('<Bll')

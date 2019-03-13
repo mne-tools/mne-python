@@ -47,7 +47,6 @@ def _read_annotations_cnt(fname):
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
     """
-
     # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
     SETUP_NCHANNELS_OFFSET = 370
     SETUP_RATE_OFFSET = 376

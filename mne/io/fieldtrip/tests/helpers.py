@@ -153,24 +153,17 @@ def get_epochs(system):
 
     if system == 'CNT':
         events, event_id = mne.events_from_annotations(raw_data)
+        events[:, 0] = events[:, 0] + 1
     else:
         events = mne.find_events(raw_data, stim_channel=stim_channel,
                                  shortest_event=1)
 
-    if system == 'CNT':
-        events[:, 0] = events[:, 0] + 1
-
-    if 'event_id' not in locals():
         if isinstance(cfg_local['eventvalue'], np.ndarray):
             event_id = list(cfg_local['eventvalue'].astype('int'))
         else:
             event_id = [int(cfg_local['eventvalue'])]
 
         event_id = [id for id in event_id if id in events[:, 2]]
-    else:
-        # this is CNT and event_id is recovered from events_from_annotations
-        # no need to hack around.
-        pass
 
     epochs = mne.Epochs(raw_data, events=events,
                         event_id=event_id,

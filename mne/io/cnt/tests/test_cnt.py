@@ -13,7 +13,6 @@ from mne.utils import run_tests_if_main
 from mne.datasets import testing
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.cnt import read_raw_cnt
-from mne.io.cnt.cnt import _read_annotations_cnt
 from mne.annotations import read_annotations
 
 data_path = testing.data_path(download=False)
@@ -48,7 +47,8 @@ def test_compare_events_and_annotations(recwarn):
                        stim_channel=True)
     events = find_events(raw)
 
-    annot = _read_annotations_cnt(fname)
+    annot = read_annotations(fname)
+    assert len(annot) == 6
     assert_array_equal(annot.onset[:-1], events[:, 0] / raw.info['sfreq'])
 
 
@@ -60,13 +60,6 @@ def test_stim_channel(stim_channel):
         raw = read_raw_cnt(input_fname=fname, montage=None, preload=False,
                            stim_channel=stim_channel)
     assert ('STI 014' in raw.info['ch_names']) == stim_channel
-
-
-@testing.requires_testing_data
-def test_read_annotations():
-    """Test reading for annotations from a .CNT file."""
-    annot = read_annotations(fname)
-    assert len(annot) == 6
 
 
 run_tests_if_main()
