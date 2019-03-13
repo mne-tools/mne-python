@@ -324,9 +324,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
                 event_time //= n_channels * n_bytes
                 stim_channel[event_time - 1] = event_id
 
-        else:  # when stim_channel_toggle is False
-            pass
-
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
         info['lowpass'] = highcutoff
@@ -362,11 +359,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
                      'kind': FIFF.FIFFV_STIM_CH}
         chs.append(chan_info)
         baselines.append(0)  # For stim channel
-        cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
-                        stim_channel=stim_channel, n_bytes=n_bytes)
-    else:
-        cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
-                        n_bytes=n_bytes)
+        cnt_info.update(stim_channel=stim_channel)
+
+    cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
+                    n_bytes=n_bytes)
 
     session_label = None if str(session_label) == '' else str(session_label)
     info.update(meas_date=meas_date,
@@ -530,8 +526,7 @@ class RawCNT(BaseRaw):
                     _data_start = start + sample_start
                     _data_stop = start + sample_stop
                     data_[-1] = stim_ch[_data_start:_data_stop]
-                else:
-                    pass
+
                 data_[sel] -= baselines[sel][:, None]
                 _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
                               cals, mult=None)
