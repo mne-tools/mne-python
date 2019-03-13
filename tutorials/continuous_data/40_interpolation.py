@@ -137,13 +137,14 @@ axs[1, 1].plot(times, good_eeg_data.T, **good_kwargs)
 axs[1, 1].plot(times, interp_eeg_data.T, **bad_kwargs)
 
 # label axes and zoom in MEG a little
-axs[0, 0].set_ylim(-3e5, 3e5)
 axs[0, 0].set_title('Original')
 axs[0, 1].set_title('Interpolated')
 axs[0, 0].set_ylabel('Gradiometers (fT/m)')
 axs[1, 0].set_ylabel('EEG (μV)')
 axs[1, 0].set_xlabel('time (s)')
 axs[1, 1].set_xlabel('time (s)')
+axs[0, 0].set_ylim(-3e5, 3e5)
+fig.tight_layout()
 
 ###############################################################################
 # By default, when bad channels are interpolated they are removed from
