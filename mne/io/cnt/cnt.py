@@ -17,7 +17,6 @@ from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ...annotations import Annotations
 
-from struct import unpack, calcsize
 
 from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
                      CNTEventType3)
@@ -63,13 +62,13 @@ def _read_annotations_cnt(fname):
 
     with open(fname, 'rb') as fid:
         fid.seek(SETUP_NCHANNELS_OFFSET)
-        (n_channels,) = unpack('<H', fid.read(calcsize('<H')))
+        (n_channels,) = np.frombuffer(fid.read(2), dtype='<u2')
 
         fid.seek(SETUP_RATE_OFFSET)
-        (sfreq,) = unpack('<H', fid.read(calcsize('<H')))
+        (sfreq,) = np.frombuffer(fid.read(2), dtype='<u2')
 
         fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
-        (event_table_pos,) = unpack('<l', fid.read(calcsize('<l')))
+        (event_table_pos,) = np.frombuffer(fid.read(4), dtype='<i4')
 
     with open(fname, 'rb') as fid:
         teeg = _read_teeg(fid, teeg_offset=event_table_pos)
