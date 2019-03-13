@@ -26,7 +26,7 @@ def _read_teeg(f, teeg_offset):
     teeg_parser = Struct('<Bll')
 
     f.seek(teeg_offset)
-    return Teeg._make(teeg_parser.unpack(f.read(teeg_parser.size)))
+    return Teeg(*teeg_parser.unpack(f.read(teeg_parser.size)))
 
 
 CNTEventType1 = namedtuple('CNTEventType1',
@@ -78,7 +78,7 @@ def _get_event_parser(event_type):
     def parser(buffer):
         struct = Struct(struct_pattern)
         for chunk in struct.iter_unpack(buffer):
-            yield event_maker._make(chunk)
+            yield event_maker(*chunk)
 
     return parser
 
