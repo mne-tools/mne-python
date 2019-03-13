@@ -65,9 +65,10 @@ print('Created %s channel positions' % len(ch_names))
 fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                      surfaces=['pial'], meg=False)
 
-ren = _Renderer(fig)
-ren.set_camera(azimuth=200, elevation=70)
-xy, im = snapshot_brain_montage(ren.scene(), mon)
+renderer = _Renderer(fig)
+renderer.set_camera(azimuth=200, elevation=70, distance=0.33,
+                    focalpoint=[-0.00191906, -0.00504927, 0.04476188])
+xy, im = snapshot_brain_montage(renderer.scene(), mon)
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])

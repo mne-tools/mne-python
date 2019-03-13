@@ -411,21 +411,22 @@ class _Renderer(object):
         node = root
         class_name = root.__class__.__name__
         while class_name != 'SubScene':
-            node = node.children[0]
-            class_name = node.__class__.__name__
+            if node.children:
+                node = node.children[0]
+                class_name = node.__class__.__name__
+            else:
+                raise RuntimeError('No SubScene object have been found '
+                                   'in the SceneGraph.')
+        subscene = node
 
         # looking for sensors
         # NB: for now, implementation of spheres use multiples Meshes
         # so this is a list. Ideally, only one mesh is necessary.
-        subscene = node
-        isFirst = True
-        pts = list()
-        for node in subscene.children:
-            if node.__class__.__name__ == 'Mesh':
-                if isFirst:
-                    isFirst = False
-                else:
-                    pts.append(node)
+        pts = [node for node in subscene.children
+               if node.__class__.__name__ == 'Mesh']
+
+        # Do not pick the first Mesh, it's not a sensor
+        pts = pts[1:]
 
         return _Projection(xy=xy, pts=pts)
 
