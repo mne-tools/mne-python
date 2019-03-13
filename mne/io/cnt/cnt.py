@@ -37,14 +37,8 @@ def _read_annotations_cnt(fname):
 
     Returns
     -------
-    onset : array of float, shape (n_annotations,)
-        The starting time of annotations in seconds after ``orig_time``.
-    duration : array of float, shape (n_annotations,)
-        Durations of the annotations in seconds.
-    description : array of str, shape (n_annotations,)
-        Array of strings containing description for each annotation. If a
-        string, all the annotations are given the same description. To reject
-        epochs, use description starting with keyword 'bad'. See example above.
+    annot : instance of Annotations
+        The annotations.
     """
     # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
     SETUP_NCHANNELS_OFFSET = 370
@@ -151,8 +145,9 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    stim_channel : bool (default True)
-        Add a stim channel from the events.
+    stim_channel : bool | None
+        Add a stim channel from the events. Defaults to None to trigger a
+        future warning.
 
         .. warning:: This defaults to True in 0.18 but will change to False in
                      0.19 (when no stim channel synthesis will be allowed)
@@ -423,8 +418,9 @@ class RawCNT(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    stim_channel : bool (default True)
-        Add a stim channel from the events.
+    stim_channel : bool | None
+        Add a stim channel from the events. Defaults to None to trigger a
+        future warning.
 
         .. warning:: This defaults to True in 0.18 but will change to False in
                      0.19 (when no stim channel synthesis will be allowed)
