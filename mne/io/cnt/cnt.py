@@ -100,7 +100,7 @@ def _read_annotations_cnt(fname):
 @fill_doc
 def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
-                 stim_channel=True, verbose=None):
+                 stim_channel=None, verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
@@ -424,6 +424,15 @@ class RawCNT(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
+    stim_channel : bool (default True)
+        Add a stim channel from the events.
+
+        .. warning:: This defaults to True in 0.18 but will change to False in
+                     0.19 (when no stim channel synthesis will be allowed)
+                     and be removed in 0.20; migrate code to use
+                     :func:`mne.events_from_annotations` instead.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     See Also
@@ -433,7 +442,7 @@ class RawCNT(BaseRaw):
 
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
-                 stim_channel=True, verbose=None):  # noqa: D102
+                 stim_channel=None, verbose=None):  # noqa: D102
 
         _check_option('date_format', date_format, ['mm/dd/yy', 'dd/mm/yy'])
         if date_format == 'dd/mm/yy':
