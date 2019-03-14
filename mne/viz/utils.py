@@ -1022,14 +1022,11 @@ def _select_bads(event, params, bads):
         _draw_vert_line(event.xdata, params)
         return bads
 
-    def f(x, y):
-        return y(np.mean(x), x.std() * 2)
     lines = event.inaxes.lines
     for line in lines:
         ydata = line.get_ydata()
         if not isinstance(ydata, list) and not np.isnan(ydata).any():
-            ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
-            if ymin <= event.ydata <= ymax:
+            if line.contains(event)[0]:  # click on a signal: toggle bad
                 this_chan = vars(line)['ch_name']
                 if this_chan in params['info']['ch_names']:
                     if 'fig_selection' in params:
@@ -1051,7 +1048,7 @@ def _select_bads(event, params, bads):
                     for idx in ch_idx:
                         params['ax_vscroll'].patches[idx].set_color(color)
                     break
-    else:
+    else:  # click in the background (not on a signal): set green line
         _draw_vert_line(event.xdata, params)
 
     return bads
