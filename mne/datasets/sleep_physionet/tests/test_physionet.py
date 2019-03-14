@@ -124,7 +124,7 @@ def test_sleep_physionet_age(physionet_tmpdir, mocker):
                                  base_path=base_path)
 
 
-@pytest.mark.xfail(strict=False)
+@pytest.mark.xfail(strict=True)
 @requires_good_network
 @requires_pandas
 @requires_version('xlrd', '0.9')
@@ -136,7 +136,6 @@ def test_run_update_temazepam_records(tmpdir):
     _update_sleep_temazepam_records(fname)
     data = pd.read_csv(fname)
     pd.testing.assert_frame_equal(data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
-    raise RuntimeError('Just an error to see xfail strict=False')
 
 
 def test_sleep_physionet_temazepam(physionet_tmpdir, mocker):
