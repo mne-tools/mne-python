@@ -184,8 +184,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Filtering order. 0 will use FIR filtering with MNE defaults.
         Other values will construct an IIR filter of the given order
         and apply it with :func:`~scipy.signal.filtfilt` (making the effective
-        order will be twice ``filtorder``). Filtering may produce some edge
-        artifacts (at the left and right edges) of the signals during display.
+        order twice ``filtorder``). Filtering may produce some edge artifacts
+        (at the left and right edges) of the signals during display.
 
         .. versionchanged:: 0.18
            Support for ``filtorder=0`` to use FIR filtering.
