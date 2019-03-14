@@ -595,6 +595,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.brainvision.brainvision import _read_annotations_brainvision
     from .io.eeglab.eeglab import _read_annotations_eeglab
     from .io.edf.edf import _read_annotations_edf
+    from .io.cnt.cnt import _read_annotations_cnt
 
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
@@ -614,6 +615,9 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     elif name.endswith('csv'):
         annotations = _read_annotations_csv(fname)
+
+    elif name.endswith('cnt'):
+        annotations = _read_annotations_cnt(fname)
 
     elif name.endswith('set'):
         annotations = _read_annotations_eeglab(fname,

@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
+
 - Add ``reject`` parameter to :meth:`mne.preprocessing.ICA.plot_properties` to visualize rejected epochs by `Antoine Gauthier`_
 
 - Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
@@ -82,6 +84,8 @@ Changelog
 Bug
 ~~~
 
+- Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
 - Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
   If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
@@ -125,6 +129,8 @@ Bug
 
 API
 ~~~
+
+- Add ``stim_channel`` parameter in :func:`mne.io.read_raw_cnt` to toggle stim channel synthesis by `Joan Massich`_
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
 

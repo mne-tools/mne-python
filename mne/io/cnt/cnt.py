@@ -1,26 +1,99 @@
 """Conversion tool from Neuroscan CNT to FIF."""
 
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#         Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 from os import path
-import datetime
-import calendar
 
 import numpy as np
 
 from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
-from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
+from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
+                     _deprecate_stim_channel)
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
+from ...annotations import Annotations
+
+
+from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
+                     CNTEventType3)
+
+
+def _read_annotations_cnt(fname):
+    """CNT Annotation File Reader.
+
+    This method opens the .cnt files, searches all the metadata to construct
+    the annotations and parses the event table. Notice that CNT files, can
+    point to a different file containing the events. This case when the
+    event table is separated from the main .cnt is not supported.
+
+    Parameters
+    ----------
+    fname: str
+        path to cnt file containing the annotations.
+
+    Returns
+    -------
+    annot : instance of Annotations
+        The annotations.
+    """
+    # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
+    SETUP_NCHANNELS_OFFSET = 370
+    SETUP_RATE_OFFSET = 376
+    SETUP_EVENTTABLEPOS_OFFSET = 886
+
+    def _translating_function(offset, n_channels, event_type, n_bytes=2):
+        # n_bytes is related to _get_cnt_info's data_format parameter
+        # 'auto', 'int16', and 'int32'
+        if event_type == CNTEventType3:
+            offset *= n_bytes * n_channels
+        event_time = offset - 900 - (75 * n_channels)
+        event_time //= n_channels * n_bytes
+        return event_time - 1
+
+    with open(fname, 'rb') as fid:
+        fid.seek(SETUP_NCHANNELS_OFFSET)
+        (n_channels,) = np.frombuffer(fid.read(2), dtype='<u2')
+
+        fid.seek(SETUP_RATE_OFFSET)
+        (sfreq,) = np.frombuffer(fid.read(2), dtype='<u2')
+
+        fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
+        (event_table_pos,) = np.frombuffer(fid.read(4), dtype='<i4')
+
+    with open(fname, 'rb') as fid:
+        teeg = _read_teeg(fid, teeg_offset=event_table_pos)
+
+    event_parser = _get_event_parser(event_type=teeg.event_type)
+
+    with open(fname, 'rb') as fid:
+        fid.seek(event_table_pos + 9)  # the real table stats at +9
+        buffer = fid.read(teeg.total_length)
+
+    my_events = list(event_parser(buffer))
+
+    if not my_events:
+        return Annotations(list(), list(), list(), None)
+    else:
+        onset = _translating_function(np.array([e.Offset for e in my_events],
+                                               dtype=float),
+                                      n_channels=n_channels,
+                                      event_type=type(my_events[0]))
+        duration = np.array([e.Latency for e in my_events], dtype=float)
+        description = np.array([str(e.StimType) for e in my_events])
+        return Annotations(onset=onset / sfreq,
+                           duration=duration,
+                           description=description,
+                           orig_time=None)
 
 
 @fill_doc
 def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
-                 verbose=None):
+                 stim_channel=None, verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
@@ -64,15 +137,24 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
         Defines the data format the data is read in. If 'auto', it is
         determined from the file header using ``numsamples`` field.
         Defaults to 'auto'.
-    date_format : str
-        Format of date in the header. Currently supports 'mm/dd/yy' (default)
-        and 'dd/mm/yy'.
+    date_format : 'mm/dd/yy' | 'dd/mm/yy'
+        Format of date in the header. Defaults to 'mm/dd/yy'.
     preload : bool | str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
+    stim_channel : bool | None
+        Add a stim channel from the events. Defaults to None to trigger a
+        future warning.
+
+        .. warning:: This defaults to True in 0.18 but will change to False in
+                     0.19 (when no stim channel synthesis will be allowed)
+                     and be removed in 0.20; migrate code to use
+                     :func:`mne.events_from_annotations` instead.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -90,11 +172,15 @@ def read_raw_cnt(input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
     """
     return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
                   emg=emg, data_format=data_format, date_format=date_format,
-                  preload=preload, verbose=verbose)
+                  preload=preload, stim_channel=stim_channel, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
+                  stim_channel_toggle):
     """Read the cnt header."""
+    # XXX stim_channel_toggle is used because stim_channel was in use already
+    _deprecate_stim_channel(stim_channel_toggle, removed_in='0.20')
+
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
@@ -124,30 +210,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             hand = None
         fid.seek(205)
         session_label = read_str(fid, 20)
-        session_date = read_str(fid, 10)
-        time = read_str(fid, 12)
-        date = session_date.split('/')
-        if len(date) == 3 and len(time) == 3:
-            if date[2].startswith('9'):
-                date[2] = '19' + date[2]
-            elif len(date[2]) == 2:
-                date[2] = '20' + date[2]
-            time = time.split(':')
-            if date_format == 'dd/mm/yy':
-                date[0], date[1] = date[1], date[0]
-            elif date_format != 'mm/dd/yy':
-                raise ValueError("Only date formats 'mm/dd/yy' and "
-                                 "'dd/mm/yy' supported. "
-                                 "Got '%s'." % date_format)
-            # Assuming mm/dd/yy
-            date = datetime.datetime(int(date[2]), int(date[0]),
-                                     int(date[1]), int(time[0]),
-                                     int(time[1]), int(time[2]))
-            meas_date = (calendar.timegm(date.utctimetuple()), 0)
-        else:
-            warn('  Could not parse meas date from the header. '
-                 'Setting to None.')
-            meas_date = None
+
+        session_date = ('%s %s' % (read_str(fid, 10), read_str(fid, 12)))
+        meas_date = _session_date_2_meas_date(session_date, date_format)
+
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
         fid.seek(376)
@@ -221,31 +287,36 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
-        if event_offset > data_offset:
-            fid.seek(event_offset)
-            event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
-            event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
-            if event_type == 1:
-                event_bytes = 8
-            elif event_type in (2, 3):
-                event_bytes = 19
-            else:
-                raise IOError('Unexpected event size.')
-            n_events = event_size // event_bytes
-        else:
-            n_events = 0
+        if stim_channel_toggle:
+            if event_offset > data_offset:
+                fid.seek(event_offset)
+                event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
+                event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
+                teeg_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+                assert teeg_offset == 0  # documentation say this should be 0
+                if event_type == 1:
+                    event_bytes = 8
+                elif event_type in (2, 3):
+                    event_bytes = 19
+                else:
+                    raise IOError('Unexpected event size.')
 
-        stim_channel = np.zeros(n_samples)  # Construct stim channel
-        for i in range(n_events):
-            fid.seek(event_offset + 9 + i * event_bytes)
-            event_id = np.fromfile(fid, dtype='u2', count=1)[0]
-            fid.seek(event_offset + 9 + i * event_bytes + 4)
-            offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-            if event_type == 3:
-                offset *= n_bytes * n_channels
-            event_time = offset - 900 - 75 * n_channels
-            event_time //= n_channels * n_bytes
-            stim_channel[event_time - 1] = event_id
+                # XXX long NumEvents is available, why are not we using it?
+                n_events = event_size // event_bytes
+            else:
+                n_events = 0
+
+            stim_channel = np.zeros(n_samples)  # Construct stim channel
+            for i in range(n_events):
+                fid.seek(event_offset + 9 + i * event_bytes)
+                event_id = np.fromfile(fid, dtype='u2', count=1)[0]
+                fid.seek(event_offset + 9 + i * event_bytes + 4)
+                offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+                if event_type == 3:
+                    offset *= n_bytes * n_channels
+                event_time = offset - 900 - 75 * n_channels
+                event_time //= n_channels * n_bytes
+                stim_channel[event_time - 1] = event_id
 
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
@@ -272,18 +343,24 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
 
-    # Add the stim channel.
-    chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
-                 'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI 014',
-                 'unit': FIFF.FIFF_UNIT_NONE,
-                 'coord_frame': FIFF.FIFFV_COORD_UNKNOWN, 'loc': np.zeros(12),
-                 'coil_type': FIFF.FIFFV_COIL_NONE, 'kind': FIFF.FIFFV_STIM_CH}
-    chs.append(chan_info)
-    baselines.append(0)  # For stim channel
+    if stim_channel_toggle:
+        chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
+                     'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI 014',
+                     'unit': FIFF.FIFF_UNIT_NONE,
+                     'coord_frame': FIFF.FIFFV_COORD_UNKNOWN,
+                     'loc': np.zeros(12),
+                     'coil_type': FIFF.FIFFV_COIL_NONE,
+                     'kind': FIFF.FIFFV_STIM_CH}
+        chs.append(chan_info)
+        baselines.append(0)  # For stim channel
+        cnt_info.update(stim_channel=stim_channel)
+
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
-                    stim_channel=stim_channel, n_bytes=n_bytes)
+                    n_bytes=n_bytes)
+
+    session_label = None if str(session_label) == '' else str(session_label)
     info.update(meas_date=meas_date,
-                description=str(session_label), bads=bads,
+                description=session_label, bads=bads,
                 subject_info=subject_info, chs=chs)
     info._update_redundant()
     return info, cnt_info
@@ -333,15 +410,24 @@ class RawCNT(BaseRaw):
         Defines the data format the data is read in. If 'auto', it is
         determined from the file header using ``numsamples`` field.
         Defaults to 'auto'.
-    date_format : str
-        Format of date in the header. Currently supports 'mm/dd/yy' (default)
-        and 'dd/mm/yy'.
+    date_format : 'mm/dd/yy' | 'dd/mm/yy'
+        Format of date in the header. Defaults to 'mm/dd/yy'.
     preload : bool | str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
+    stim_channel : bool | None
+        Add a stim channel from the events. Defaults to None to trigger a
+        future warning.
+
+        .. warning:: This defaults to True in 0.18 but will change to False in
+                     0.19 (when no stim channel synthesis will be allowed)
+                     and be removed in 0.20; migrate code to use
+                     :func:`mne.events_from_annotations` instead.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     See Also
@@ -351,27 +437,40 @@ class RawCNT(BaseRaw):
 
     def __init__(self, input_fname, montage, eog=(), misc=(), ecg=(), emg=(),
                  data_format='auto', date_format='mm/dd/yy', preload=False,
-                 verbose=None):  # noqa: D102
+                 stim_channel=None, verbose=None):  # noqa: D102
+
+        _check_option('date_format', date_format, ['mm/dd/yy', 'dd/mm/yy'])
+        if date_format == 'dd/mm/yy':
+            _date_format = '%d/%m/%y %H:%M:%S'
+        else:
+            _date_format = '%m/%d/%y %H:%M:%S'
+
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
-                                       data_format, date_format)
+                                       data_format, _date_format, stim_channel)
         last_samps = [cnt_info['n_samples'] - 1]
         _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
-            last_samps=last_samps, orig_format='int',
-            verbose=verbose)
+            last_samps=last_samps, orig_format='int', verbose=verbose)
+
+        self.set_annotations(_read_annotations_cnt(input_fname))
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store."""
-        n_channels = self.info['nchan'] - 1  # Stim channel already read.
+        if 'stim_channel' in self._raw_extras[0]:
+            n_channels = self.info['nchan'] - 1  # Stim channel already read.
+            sel = np.arange(n_channels + 1)[idx]
+            stim_ch = self._raw_extras[0]['stim_channel']
+        else:
+            n_channels = self.info['nchan']
+            sel = np.arange(n_channels)[idx]
+
         channel_offset = self._raw_extras[0]['channel_offset']
         baselines = self._raw_extras[0]['baselines']
-        stim_ch = self._raw_extras[0]['stim_channel']
         n_bytes = self._raw_extras[0]['n_bytes']
         dtype = '<i4' if n_bytes == 4 else '<i2'
-        sel = np.arange(n_channels + 1)[idx]
         chunk_size = channel_offset * n_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
         # channel_offset determines the amount of successive samples.
@@ -390,7 +489,12 @@ class RawCNT(BaseRaw):
                                                   data_left // n_channels -
                                                   sample_start))
                 n_samps = sample_stop - sample_start
-                data_ = np.empty((n_channels + 1, n_samps))
+
+                if 'stim_channel' in self._raw_extras[0]:
+                    data_ = np.empty((n_channels + 1, n_samps))
+                else:
+                    data_ = np.empty((n_channels, n_samps))
+
                 # In case channel offset and start time do not align perfectly,
                 # extra sample sets are read here to cover the desired time
                 # window. The whole (up to 100 MB) block is read at once and
@@ -404,15 +508,29 @@ class RawCNT(BaseRaw):
                 samps = np.fromfile(fid, dtype=dtype, count=count)
                 samps = samps.reshape((n_chunks, n_channels, channel_offset),
                                       order='C')
+
                 # Intermediate shaping to chunk sizes.
-                block = np.zeros((n_channels + 1, channel_offset * n_chunks))
+                if 'stim_channel' in self._raw_extras[0]:
+                    block = np.zeros((n_channels + 1,
+                                      channel_offset * n_chunks))
+                else:
+                    block = np.zeros((n_channels, channel_offset * n_chunks))
+
                 for set_idx, row in enumerate(samps):  # Final shape.
                     block_slice = slice(set_idx * channel_offset,
                                         (set_idx + 1) * channel_offset)
-                    block[:-1, block_slice] = row
+                    if 'stim_channel' in self._raw_extras[0]:
+                        block[:-1, block_slice] = row
+                    else:
+                        block[:, block_slice] = row
+
                 block = block[sel, s_offset:n_samps + s_offset]
                 data_[sel] = block
-                data_[-1] = stim_ch[start + sample_start:start + sample_stop]
+                if 'stim_channel' in self._raw_extras[0]:
+                    _data_start = start + sample_start
+                    _data_stop = start + sample_stop
+                    data_[-1] = stim_ch[_data_start:_data_stop]
+
                 data_[sel] -= baselines[sel][:, None]
                 _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
                               cals, mult=None)
