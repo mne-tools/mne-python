@@ -11,6 +11,7 @@ from functools import partial
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
+from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type,
                        _picks_to_idx)
@@ -60,14 +61,19 @@ def _update_raw_data(params):
     if params['remove_dc'] is True:
         data -= np.mean(data, axis=1)[:, np.newaxis]
     if params['ba'] is not None:
-        # filter with the same defaults as `raw.filter`, except
-        # we might as well actually filter the bad segments, too
-        these_bounds = np.unique(
-            np.maximum(np.minimum(params['filt_bounds'], start), stop))
-        for start_, stop_ in zip(these_bounds[:-1], these_bounds[1:]):
-            data[data_picks, start_:stop:] = \
-                filtfilt(params['ba'][0], params['ba'][1],
-                         data[data_picks, start_:stop_], axis=1, padlen=0)
+        # filter with the same defaults as `raw.filter`
+        starts, stops = params['filt_bounds']
+        mask = (starts < stop) & (stops > start)
+        starts = np.maximum(starts[mask], start) - start
+        stops = np.minimum(stops[mask], stop) - start
+        for start_, stop_ in zip(starts, stops):
+            if isinstance(params['ba'], np.ndarray):
+                data[data_picks, start_:stop_] = _overlap_add_filter(
+                    data[data_picks, start_:stop_], params['ba'], copy=False)
+            else:
+                data[data_picks, start_:stop_] = filtfilt(
+                    params['ba'][0], params['ba'][1],
+                    data[data_picks, start_:stop_], axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
         ch_name = params['info']['ch_names'][di]
@@ -175,12 +181,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     lowpass : float | None
         Lowpass to apply when displaying data.
     filtorder : int
-        Filtering order. Note that for efficiency and simplicity,
-        filtering during plotting uses forward-backward IIR filtering,
-        so the effective filter order will be twice ``filtorder``.
-        Filtering the lines for display may also produce some edge
-        artifacts (at the left and right edges) of the signals
-        during display. Filtering requires scipy >= 0.10.
+        Filtering order. 0 will use FIR filtering with MNE defaults.
+        Other values will construct an IIR filter of the given order
+        and apply it with :func:`~scipy.signal.filtfilt` (making the effective
+        order will be twice ``filtorder``). Filtering may produce some edge
+        artifacts (at the left and right edges) of the signals during display.
+
+        .. versionchanged:: 0.18
+           Support for ``filtorder=0`` to use FIR filtering.
     clipping : str | None
         If None, channels are allowed to exceed their designated bounds in
         the plot. If "clamp", then values are clamped to the appropriate
@@ -271,33 +279,39 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     n_channels = min(len(raw.info['chs']), n_channels)
     _check_option('clipping', clipping, [None, 'clamp', 'transparent'])
+    duration = min(raw.times[-1], float(duration))
 
     # figure out the IIR filtering parameters
-    nyq = raw.info['sfreq'] / 2.
+    sfreq = raw.info['sfreq']
+    nyq = sfreq / 2.
     if highpass is None and lowpass is None:
         ba = filt_bounds = None
     else:
         filtorder = int(filtorder)
-        if filtorder <= 0:
-            raise ValueError('filtorder (%s) must be >= 1' % filtorder)
         if highpass is not None and highpass <= 0:
             raise ValueError('highpass must be > 0, not %s' % highpass)
         if lowpass is not None and lowpass >= nyq:
-            raise ValueError('lowpass must be < nyquist (%s), not %s'
+            raise ValueError('lowpass must be < Nyquist (%s), not %s'
                              % (nyq, lowpass))
-        if highpass is None:
-            ba = butter(filtorder, lowpass / nyq, 'lowpass', analog=False)
-        elif lowpass is None:
-            ba = butter(filtorder, highpass / nyq, 'highpass', analog=False)
+        if highpass is not None and lowpass is not None and \
+                lowpass <= highpass:
+            raise ValueError('lowpass (%s) must be > highpass (%s)'
+                             % (lowpass, highpass))
+        if filtorder == 0:
+            ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
+                               sfreq, highpass, lowpass)
+        elif filtorder < 0:
+            raise ValueError('filtorder (%s) must be >= 0' % filtorder)
         else:
-            if lowpass <= highpass:
-                raise ValueError('lowpass (%s) must be > highpass (%s)'
-                                 % (lowpass, highpass))
-            ba = butter(filtorder, [highpass / nyq, lowpass / nyq], 'bandpass',
-                        analog=False)
-        sr, sp = _annotations_starts_stops(raw, ('edge', 'bad_acq_skip'),
-                                           invert=True)
-        filt_bounds = np.unique(np.concatenate([sr, sp]))
+            if highpass is None:
+                Wn, btype = lowpass / nyq, 'lowpass'
+            elif lowpass is None:
+                Wn, btype = highpass / nyq, 'highpass'
+            else:
+                Wn, btype = [highpass / nyq, lowpass / nyq], 'bandpass'
+            ba = butter(filtorder, Wn, btype, analog=False)
+        filt_bounds = _annotations_starts_stops(
+            raw, ('edge', 'bad_acq_skip'), invert=True)
 
     # make a copy of info, remove projection (for now)
     info = raw.info.copy()
@@ -380,7 +394,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     noise_cov = _check_cov(noise_cov, info)
 
     # set up projection and data parameters
-    duration = min(raw.times[-1], float(duration))
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
     event_id_rev = {val: key for key, val in (event_id or {}).items()}
