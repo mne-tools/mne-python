@@ -258,6 +258,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     Annotation mode is toggled by pressing 'a', butterfly mode by pressing
     'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
+    By default, the channel means are removed when ``remove_dc`` is set to
+    ``True``. This flag can be toggled by pressing 'd'.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
