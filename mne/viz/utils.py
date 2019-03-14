@@ -944,33 +944,33 @@ def _mouse_click(event, params):
             params['plot_fun']()
         else:  # right click in browse mode does nothing
             return
+    else:
+        if event.inaxes is None:  # check if channel label is clicked
+            if params['n_channels'] > 100:
+                return
+            ax = params['ax']
+            ylim = ax.get_ylim()
+            pos = ax.transData.inverted().transform((event.x, event.y))
+            if pos[0] > params['t_start'] or pos[1] < 0 or pos[1] > ylim[0]:
+                return
+            params['label_click_fun'](pos)
+        # vertical scrollbar changed
+        elif event.inaxes == params['ax_vscroll']:
+            if 'fig_selection' in params.keys():
+                _handle_change_selection(event, params)
+            else:
+                ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+                if params['ch_start'] != ch_start:
+                    params['ch_start'] = ch_start
+                    params['plot_fun']()
+        # horizontal scrollbar changed
+        elif event.inaxes == params['ax_hscroll']:
+            _plot_raw_time(event.xdata - params['duration'] / 2, params)
+            params['update_fun']()
+            params['plot_fun']()
 
-    if event.inaxes is None:  # check if channel label is clicked
-        if params['n_channels'] > 100:
-            return
-        ax = params['ax']
-        ylim = ax.get_ylim()
-        pos = ax.transData.inverted().transform((event.x, event.y))
-        if pos[0] > params['t_start'] or pos[1] < 0 or pos[1] > ylim[0]:
-            return
-        params['label_click_fun'](pos)
-    # vertical scrollbar changed
-    elif event.inaxes == params['ax_vscroll']:
-        if 'fig_selection' in params.keys():
-            _handle_change_selection(event, params)
-        else:
-            ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
-            if params['ch_start'] != ch_start:
-                params['ch_start'] = ch_start
-                params['plot_fun']()
-    # horizontal scrollbar changed
-    elif event.inaxes == params['ax_hscroll']:
-        _plot_raw_time(event.xdata - params['duration'] / 2, params)
-        params['update_fun']()
-        params['plot_fun']()
-
-    elif event.inaxes == params['ax']:
-        params['pick_bads_fun'](event)
+        elif event.inaxes == params['ax']:
+            params['pick_bads_fun'](event)
 
 
 def _handle_topomap_bads(ch_name, params):
