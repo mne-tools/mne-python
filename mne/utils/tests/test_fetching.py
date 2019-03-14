@@ -10,7 +10,7 @@ from mne.utils import _fetch_file, requires_good_network, catch_logging
 @requires_good_network
 @pytest.mark.parametrize('url', (
     'https://raw.githubusercontent.com/mne-tools/mne-python/master/README.rst',
-    ))
+))
 def test_fetch_file(url, tmpdir):
     """Test URL retrieval."""
     tempdir = str(tmpdir)

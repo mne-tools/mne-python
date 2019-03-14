@@ -16,6 +16,9 @@ from .misc import sizeof_fmt
 from ._logging import warn, logger, verbose
 
 
+# Adapted from nilearn
+
+
 def _get_http(url, temp_file_name, initial_size, file_size, timeout,
               verbose_bool):
     """Safely (resume a) download to a file from http(s)."""
@@ -23,8 +26,21 @@ def _get_http(url, temp_file_name, initial_size, file_size, timeout,
     req = request.Request(url)
     if initial_size > 0:
         logger.debug('  Resuming at %s' % (initial_size,))
-        req.headers['Range'] = 'bytes=%s-' % (initial_size,)
-    response = request.urlopen(req, timeout=timeout)
+        req.add_header('Range', "bytes=%s-" % (initial_size,))
+        try:
+            response = request.urlopen(req, timeout=timeout)
+            content_range = response.info().get('Content-Range')
+            if (content_range is None or not content_range.startswith(
+                    'bytes %s-' % (initial_size,))):
+                raise IOError('Server does not support resuming')
+        except Exception:
+            # A wide number of errors can be raised here. HTTPError,
+            # URLError... I prefer to catch them all and rerun without
+            # resuming.
+            return _get_http(
+                url, temp_file_name, 0, file_size, timeout, verbose_bool)
+    else:
+        response = request.urlopen(req, timeout=timeout)
     total_size = int(response.headers.get('Content-Length', '1').strip())
     if initial_size > 0 and file_size == total_size:
         logger.info('Resuming download failed (resume file size '
