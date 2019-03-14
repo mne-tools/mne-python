@@ -171,6 +171,7 @@ def test_plot_raw():
     fig.canvas.button_press_event(1, 1, 1)  # outside any axes
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+
     # sadly these fail when no renderer is used (i.e., when using Agg):
     # ssp_fig = set(plt.get_fignums()) - set([fig.number])
     # assert_equal(len(ssp_fig), 1)
@@ -181,15 +182,20 @@ def test_plot_raw():
     # pos = np.array(t[0].get_position()) + 0.01
     # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
     # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
-    #  test keypresses
-    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
+
+    # test keypresses
+    # test for group_by='original'
+    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd', 'd',
                 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
         fig.canvas.key_press_event(key)
+
+    # test for group_by='selection'
     fig = plot_raw(raw, events=events, group_by='selection')
-    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=',
-                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd',
+                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
                 'escape']:
         fig.canvas.key_press_event(key)
+
     # Color setting
     pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
     pytest.raises(TypeError, raw.plot, event_color={'foo': 'r'})
