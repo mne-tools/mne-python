@@ -22,18 +22,9 @@ def _get_http(url, temp_file_name, initial_size, file_size, timeout,
     # Actually do the reading
     req = request.Request(url)
     if initial_size > 0:
+        logger.debug('  Resuming at %s' % (initial_size,))
         req.headers['Range'] = 'bytes=%s-' % (initial_size,)
-    try:
-        response = request.urlopen(req, timeout=timeout)
-    except Exception:
-        # There is a problem that may be due to resuming, some
-        # servers may not support the "Range" header. Switch
-        # back to complete download method
-        logger.info('Resuming download failed (server '
-                    'rejected the request). Attempting to '
-                    'restart downloading the entire file.')
-        del req.headers['Range']
-        response = request.urlopen(req, timeout=timeout)
+    response = request.urlopen(req, timeout=timeout)
     total_size = int(response.headers.get('Content-Length', '1').strip())
     if initial_size > 0 and file_size == total_size:
         logger.info('Resuming download failed (resume file size '
