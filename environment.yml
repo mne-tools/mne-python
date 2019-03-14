@@ -45,4 +45,4 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
-  - vispy
+  - https://api.github.com/repos/vispy/vispy/zipball/47f3cd0cf179286774b8ec5d1fbe063a28b8e56b
