@@ -1087,8 +1087,12 @@ def _onclick_help(event, params):
     table.auto_set_font_size(False)
     table.set_fontsize(12)
     ax.set_axis_off()
-    for _, cell in table.get_celld().items():
+    for (row, col), cell in table.get_celld().items():
         cell.set_edgecolor(None)  # remove cell borders
+        # right justify, following:
+        # https://stackoverflow.com/questions/48210749/matplotlib-table-assign-different-text-alignments-to-different-columns?rq=1  # noqa: E501
+        if col == 0:
+            cell._loc = 'right'
 
     fig_help.canvas.mpl_connect('key_press_event', _key_press)
 
