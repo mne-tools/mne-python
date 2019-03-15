@@ -571,10 +571,10 @@ def _read_channel(fid):
                 'ymax': read_double(fid),
                 'index': read_int32(fid),
                 'checksum': read_int32(fid),
-                'off_flag': read_str(fid, 16),
+                'off_flag': read_str(fid, 4),
                 'offset': read_float(fid)})
 
-    fid.seek(12, 1)
+    fid.seek(24, 1)
 
     return out
 
