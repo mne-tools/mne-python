@@ -8,26 +8,20 @@
 # License: Simplified BSD
 
 import importlib
-from ...utils import logger, get_config, _validate_type
+from ._utils import _get_backend_based_on_env_and_defaults, VALID_3D_BACKENDS
+from ...utils import logger
+from ...utils.check import _check_option
 
-default_3d_backend = 'mayavi'
-
-
-try:
-    if MNE_3D_BACKEND is None:
-        MNE_3D_BACKEND = get_config('MNE_3D_BACKEND', default_3d_backend)
-except NameError:
-    MNE_3D_BACKEND = get_config('MNE_3D_BACKEND', default_3d_backend)
+MNE_3D_BACKEND = _get_backend_based_on_env_and_defaults()
+logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # noqa: F401
 elif MNE_3D_BACKEND == 'vispy':
     from ._vispy import _Renderer, _Projection  # noqa: F401
 else:
-    raise ValueError('MNE_3D_BACKEND should be either "mayavi" or'
-                     '"vispy" : {} was given.'.format(MNE_3D_BACKEND))
-
-logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
+    raise RuntimeError('This should never happen, there was some issue with'
+                       ' MNE_3D_BACKEND check %s' % __file__)
 
 
 def set_3d_backend(backend_name):
@@ -38,16 +32,11 @@ def set_3d_backend(backend_name):
 
     Parameters
     ----------
-    backend_name : {'mlab'}, default is 'mlab'
+    backend_name : str
     """
-    _validate_type(backend_name, "str")
-
+    _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
     global MNE_3D_BACKEND
-    if backend_name in {'mayavi', 'vispy'}:
-        MNE_3D_BACKEND = backend_name
-    else:
-        raise ValueError('backend_name should be either "mayavi" or'
-                         '"vispy" : {} was given.'.format(MNE_3D_BACKEND))
+    MNE_3D_BACKEND = backend_name
     from . import renderer
     importlib.reload(renderer)
 
