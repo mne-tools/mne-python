@@ -145,6 +145,13 @@ if version < required_version:
     raise ImportError
 """
 
+_vispy_call = """
+import vispy
+version = LooseVersion(vispy.__version__)
+if version < '0.6':
+    raise ImportError
+"""
+
 _mayavi_call = """
 with warnings.catch_warnings(record=True):  # traits
     from mayavi import mlab
@@ -173,6 +180,7 @@ if not has_nibabel() and not has_freesurfer():
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
+requires_vispy = partial(requires_module, name='vispy', call=_vispy_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
 requires_freesurfer = partial(requires_module, name='Freesurfer',
                               call=_fs_call)

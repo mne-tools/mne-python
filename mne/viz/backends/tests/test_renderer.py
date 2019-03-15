@@ -7,9 +7,25 @@
 
 import pytest
 import numpy as np
-from mne.utils import requires_mayavi
+import os
+from mne.utils import requires_mayavi, requires_vispy
 from mne.viz.backends.renderer import (set_3d_backend,
                                        get_3d_backend)
+
+
+# def test_no_env_variable():
+#     print(get_config().keys())
+#     assert 'MNE_3D_BACKEND' not in get_config(use_env=True)
+
+@requires_vispy
+@requires_mayavi
+@pytest.mark.parametrize('backend', ['mayavi', 'vispy', 'not_here'])
+def test_backend_enviroment_setup(backend, monkeypatch):
+    """Test set up 3d backend based on env."""
+    monkeypatch.setenv("MNE_3D_BACKEND", backend)
+    assert 'MNE_3D_BACKEND' in os.environ
+    assert os.environ['MNE_3D_BACKEND']
+    assert get_3d_backend() == backend
 
 
 @requires_mayavi
@@ -26,6 +42,7 @@ def test_backend_setup():
 
 
 @requires_mayavi
+@requires_vispy
 @pytest.mark.parametrize("backend_name, to_show",
                          [("mayavi", True),
                           ("vispy", False)])
