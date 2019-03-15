@@ -277,19 +277,26 @@ def test_plot_annotations():
     with pytest.warns(RuntimeWarning, match='expanding outside'):
         raw.set_annotations(annot)
     _annotation_helper(raw)
+    plt.close('all')
 
 
 def test_plot_raw_filtered():
     """Test filtering of raw plots."""
     raw = _get_raw()
-    pytest.raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
-    pytest.raises(ValueError, raw.plot, highpass=0)
-    pytest.raises(ValueError, raw.plot, lowpass=1, highpass=1)
-    pytest.raises(ValueError, raw.plot, lowpass=1, filtorder=0)
-    pytest.raises(ValueError, raw.plot, clipping='foo')
+    with pytest.raises(ValueError, match='lowpass must be < Nyquist'):
+        raw.plot(lowpass=raw.info['sfreq'] / 2.)
+    with pytest.raises(ValueError, match='highpass must be > 0'):
+        raw.plot(highpass=0)
+    with pytest.raises(ValueError, match=r'lowpass \(1\) must be > highpass'):
+        raw.plot(lowpass=1, highpass=1)
+    with pytest.raises(ValueError, match=r'filtorder \(-1\) must be >= 0'):
+        raw.plot(lowpass=1, filtorder=-1)
+    with pytest.raises(ValueError, match="Invalid value for the 'clipping'"):
+        raw.plot(clipping='foo')
     raw.plot(lowpass=1, clipping='transparent')
     raw.plot(highpass=1, clipping='clamp')
-    raw.plot(highpass=1, lowpass=2, butterfly=True)
+    raw.plot(lowpass=40, butterfly=True, filtorder=0)
+    plt.close('all')
 
 
 def test_plot_raw_psd():
