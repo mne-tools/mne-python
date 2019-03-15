@@ -122,10 +122,14 @@ def test_ica_full_data_recovery(method):
     pytest.raises(ValueError, ICA, method='pizza-decomposision')
 
 
-@requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_simple(method):
     """Test that ICA recovers the unmixing matrix in a simple case."""
+    if method == "fastica":
+        try:
+            import sklearn
+        except ImportError:
+            raise SkipTest("scikit-learn not installed")
     _skip_check_picard(method)
     n_components = 3
     n_samples = 1000
