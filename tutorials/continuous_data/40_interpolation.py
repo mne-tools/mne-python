@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-.. _annotations-tutorial:
+.. _interpolating-bads-tutorial:
 
 Interpolating bad channels
 ==========================
@@ -31,7 +31,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # locations. Mathematical details are presented in
 # :ref:`channel_interpolation`. Interpolation of MEG channels uses the field
 # mapping algorithms used in computing the :ref:`forward solution
-# <_tut_forward>`.
+# <tut_forward>`.
 #
 #
 # Interpolation in MNE-Python
