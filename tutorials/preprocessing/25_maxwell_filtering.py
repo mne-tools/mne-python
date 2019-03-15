@@ -2,12 +2,12 @@
 """
 .. _sss-tutorial:
 
-Signal-space separation
-=======================
+Signal-space separation and Maxwell filtering
+=============================================
 
 .. include:: ../../tutorial_links.inc
 
-This tutorial describes how to use Singnal-space separation (SSS), and the
+This tutorial describes how to use signal-space separation (SSS), and the
 related operation called Maxwell filtering, to both reduce environmental noise
 and compensate for subject movement in MEG data. As usual we'll start by
 importing the modules we need, and loading some example data:
@@ -70,7 +70,7 @@ raw_sss = mne.preprocessing.maxwell_filter(raw, cross_talk=crosstalk_file,
 # To see the effect, we can plot the data before and after SSS / Maxwell
 # filtering.
 
-start, stop = raw.time_as_index([0, 3])
+start, stop = raw.time_as_index([0, 2])
 ylabels = dict(mag='Magnetometers (fT)', grad='Gradiometers (fT/m)')
 raw_objs = dict(RAW=raw, SSS=raw_sss)
 
@@ -87,15 +87,18 @@ for column, (title, raw_obj) in enumerate(raw_objs.items()):
     axs[0, column].set_title(f'{title} DATA')
     axs[1, column].set_xlabel('time (s)')
 # zoom in on gradiometers
-axs[1, 0].set_ylim(-3e5, 3e5)
+axs[1, 0].set_ylim(-2e5, 2e5)
 fig.tight_layout()
 
 ###############################################################################
+# Notice that bad channels have been effectively repaired by SSS, eliminating
+# the need to perform :ref:`interpolation <interpolating-bads-tutorial>`.
+#
 # Interactive plots are possible with MNE-Python's built-in plotting methods,
 # so you can easily scroll through the rest of the datafile or look at
 # individual channels:
 
-kwargs = dict(butterfly=True, duration=3, color='#00000022', bad_color='r')
+kwargs = dict(duration=2, color='#00000033', bad_color='r')
 raw.pick_types().plot(**kwargs)
 raw_sss.pick_types().plot(**kwargs)
 
@@ -105,11 +108,27 @@ raw_sss.pick_types().plot(**kwargs)
 #
 # If you have information about subject head position relative to the sensors
 # (i.e., continuous head position indicator coils, or "cHPI") SSS can take that
-# into account when projecting sensor data onto the internal subspace. Not only
-# does this account for movement within a given recording session, but also
-# effectively normalizes head position across different measurement sessions
-# and subjects. See :ref:`here <movement-compensation-example>` for an example
-# of applying movement compensation during Maxwell filtering / SSS.
+# into account when projecting sensor data onto the internal subspace. Head
+# position data is loaded with the :func:`~mne.chpi.read_head_pos` function:
+#
+# .. code-block: python3
+#
+#     head_pos_file = mne.chpi.read_head_pos('path_to_chpi_file.pos')
+#
+# The cHPI data file is then passed as the ``head_pos`` parameter of
+# :func:`~mne.preprocessing.maxwell_filter`:
+#
+# .. code-block: python3
+#
+#     raw_sss = mne.preprocessing.maxwell_filter(raw, head_pos=head_pos_file,
+#                                                cross_talk=crosstalk_file,
+#                                                calibration=fine_cal_file)
+#
+# Not only does this account for movement within a given recording session, but
+# also effectively normalizes head position across different measurement
+# sessions and subjects. See :ref:`here <movement-compensation-example>` for an
+# extended example of applying movement compensation during Maxwell filtering /
+# SSS.
 #
 #
 # Caveats to using SSS / Maxwell filtering
