@@ -9,22 +9,11 @@ import pytest
 import numpy as np
 import os
 from mne.utils import requires_mayavi, requires_vispy
-from mne.viz.backends.renderer import (set_3d_backend,
-                                       get_3d_backend)
 
 
 # def test_no_env_variable():
 #     print(get_config().keys())
 #     assert 'MNE_3D_BACKEND' not in get_config(use_env=True)
-
-def test_backend_enviroment_may_setup(monkeypatch):
-    """Test set up 3d backend based on env."""
-    backend = 'mayavi'
-    monkeypatch.setenv("MNE_3D_BACKEND", backend)
-    assert 'MNE_3D_BACKEND' in os.environ
-    assert os.environ['MNE_3D_BACKEND']
-    assert get_3d_backend() == backend
-
 
 def test_backend_enviroment_vis_setup(monkeypatch):
     """Test set up 3d backend based on env."""
@@ -32,12 +21,27 @@ def test_backend_enviroment_vis_setup(monkeypatch):
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     assert 'MNE_3D_BACKEND' in os.environ
     assert os.environ['MNE_3D_BACKEND']
+    assert os.environ['MNE_3D_BACKEND'] == backend
+    from mne.viz.backends.renderer import get_3d_backend
+    assert get_3d_backend() == backend
+
+
+def test_backend_enviroment_may_setup(monkeypatch):
+    """Test set up 3d backend based on env."""
+    backend = 'mayavi'
+    monkeypatch.setenv("MNE_3D_BACKEND", backend)
+    assert 'MNE_3D_BACKEND' in os.environ
+    assert os.environ['MNE_3D_BACKEND']
+    assert os.environ['MNE_3D_BACKEND'] == backend
+    from mne.viz.backends.renderer import get_3d_backend
     assert get_3d_backend() == backend
 
 
 @requires_mayavi
 def test_backend_setup():
     """Test 3d backend degenerate scenarios."""
+    from mne.viz.backends.renderer import (set_3d_backend,
+                                           get_3d_backend)
     pytest.raises(ValueError, set_3d_backend, "unknown_backend")
     pytest.raises(ValueError, set_3d_backend, 1)
 
@@ -55,6 +59,7 @@ def test_backend_setup():
                           ("vispy", False)])
 def test_3d_backend(backend_name, to_show):
     """Test default plot."""
+    from mne.viz.backends.renderer import set_3d_backend
     set_3d_backend(backend_name)
     from mne.viz.backends.renderer import _Renderer
 
