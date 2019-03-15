@@ -16,6 +16,7 @@ import difflib
 import webbrowser
 import tempfile
 import numpy as np
+import platform
 from copy import deepcopy
 from distutils.version import LooseVersion
 from itertools import cycle
@@ -313,6 +314,7 @@ def _toggle_proj(event, params):
 
 def _get_help_text(params):
     """Customize help dialogs text."""
+    is_mac = platform.system() == 'Darwin'
     text, text2 = list(), list()
 
     text.append(u'(Shift +) \u2190 : \n')  # left arrow
@@ -321,11 +323,18 @@ def _get_help_text(params):
     text.append(u'\u2191 : \n')  # up arrow
     text.append(u'- : \n')
     text.append(u'+ or = : \n')
-    text.append(u'Home : \n')
-    text.append(u'End : \n')
-    if 'fig_selection' not in params:
-        text.append(u'Page down : \n')
-        text.append(u'Page up : \n')
+    if is_mac:
+        text.append(u'fn + \u2190 : \n')
+        text.append(u'fn + \u2192 : \n')
+        if 'fig_selection' not in params:
+            text.append(u'fn + \u2193 : \n')
+            text.append(u'fn + \u2191 : \n')
+    else:
+        text.append(u'Home : \n')
+        text.append(u'End : \n')
+        if 'fig_selection' not in params:
+            text.append(u'Page down : \n')
+            text.append(u'Page up : \n')
 
     text.append(u'F11 : \n')
     text.append(u'? : \n')
