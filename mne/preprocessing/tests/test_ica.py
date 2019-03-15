@@ -127,7 +127,7 @@ def test_ica_simple(method):
     """Test that ICA recovers the unmixing matrix in a simple case."""
     if method == "fastica":
         try:
-            import sklearn
+            import sklearn  # noqa: F401
         except ImportError:
             raise SkipTest("scikit-learn not installed")
     _skip_check_picard(method)
