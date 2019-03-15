@@ -942,7 +942,9 @@ def _mouse_click(event, params):
             _remove_segment_line(params)
             _plot_annotations(raw, params)
             params['plot_fun']()
-        else:  # right click in browse mode does nothing
+        elif event.inaxes == params['ax']:  # hide green line
+            _draw_vert_line(None, params, hide=True)
+        else:  # do nothing
             return
     else:
         if event.inaxes is None:  # check if channel label is clicked
@@ -1007,11 +1009,15 @@ def _find_channel_idx(ch_name, params):
     return indices
 
 
-def _draw_vert_line(xdata, params):
+def _draw_vert_line(xdata, params, hide=False):
     """Draw vertical line."""
-    params['ax_vertline'].set_xdata(xdata)
-    params['ax_hscroll_vertline'].set_xdata(xdata)
-    params['vertline_t'].set_text('%0.2f  ' % xdata)
+    if not hide:
+        params['ax_vertline'].set_xdata(xdata)
+        params['ax_hscroll_vertline'].set_xdata(xdata)
+        params['vertline_t'].set_text('%0.2f  ' % xdata)
+    params['ax_vertline'].set_visible(not hide)
+    params['ax_hscroll_vertline'].set_visible(not hide)
+    params['vertline_t'].set_visible(not hide)
 
 
 def _select_bads(event, params, bads):
