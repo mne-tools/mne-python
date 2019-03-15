@@ -490,7 +490,7 @@ def sys_info(fid=None, show_paths=False):
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'nibabel', 'mayavi', 'cupy', 'pandas', 'dipy'):
+                     'nibabel', 'mayavi', 'cupy', 'pandas', 'dipy', 'vispy'):
         if mod_name == '':
             out += '\n'
             continue
