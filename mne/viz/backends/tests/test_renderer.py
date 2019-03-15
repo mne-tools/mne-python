@@ -17,11 +17,18 @@ from mne.viz.backends.renderer import (set_3d_backend,
 #     print(get_config().keys())
 #     assert 'MNE_3D_BACKEND' not in get_config(use_env=True)
 
-@requires_vispy
-@requires_mayavi
-@pytest.mark.parametrize('backend', ['mayavi', 'vispy', 'not_here'])
-def test_backend_enviroment_setup(backend, monkeypatch):
+def test_backend_enviroment_may_setup(monkeypatch):
     """Test set up 3d backend based on env."""
+    backend = 'mayavi'
+    monkeypatch.setenv("MNE_3D_BACKEND", backend)
+    assert 'MNE_3D_BACKEND' in os.environ
+    assert os.environ['MNE_3D_BACKEND']
+    assert get_3d_backend() == backend
+
+
+def test_backend_enviroment_vis_setup(monkeypatch):
+    """Test set up 3d backend based on env."""
+    backend = 'vispy'
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     assert 'MNE_3D_BACKEND' in os.environ
     assert os.environ['MNE_3D_BACKEND']
@@ -32,7 +39,7 @@ def test_backend_enviroment_setup(backend, monkeypatch):
 def test_backend_setup():
     """Test 3d backend degenerate scenarios."""
     pytest.raises(ValueError, set_3d_backend, "unknown_backend")
-    pytest.raises(TypeError, set_3d_backend, 1)
+    pytest.raises(ValueError, set_3d_backend, 1)
 
     # smoke test
     set_3d_backend('mayavi')
