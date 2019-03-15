@@ -1071,31 +1071,26 @@ def _select_bads(event, params, bads):
 
 def _onclick_help(event, params):
     """Draw help window."""
-    import matplotlib.pyplot as plt
     text, text2 = _get_help_text(params)
 
-    width = 6
-    height = 5
+    width, height = 9, 5
 
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
     params['fig_help'] = fig_help
-    ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
-    ax.set_title('Keyboard shortcuts')
-    plt.axis('off')
-    ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
-    ax1.set_yticklabels(list())
-    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', ha='right')
-    plt.axis('off')
 
-    ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
-    ax2.set_yticklabels(list())
-    plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
-    plt.axis('off')
+    ax = fig_help.add_subplot(111)
+    celltext = [[c1, c2] for c1, c2 in zip(text.strip().split("\n"),
+                                           text2.strip().split("\n"))]
+    table = ax.table(cellText=celltext, loc="center", cellLoc="left")
+    table.auto_set_font_size(False)
+    table.set_fontsize(12)
+    ax.set_axis_off()
+    for _, cell in table.get_celld().items():
+        cell.set_edgecolor(None)  # remove cell borders
 
     fig_help.canvas.mpl_connect('key_press_event', _key_press)
 
-    tight_layout(fig=fig_help)
     # this should work for non-test cases
     try:
         fig_help.canvas.draw()
