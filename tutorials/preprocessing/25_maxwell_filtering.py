@@ -98,7 +98,7 @@ fig.tight_layout()
 # so you can easily scroll through the rest of the datafile or look at
 # individual channels:
 
-kwargs = dict(duration=2, color='#00000033', bad_color='r')
+kwargs = dict(duration=2, proj=False)
 raw.pick_types().plot(**kwargs)
 raw_sss.pick_types().plot(**kwargs)
 
@@ -111,14 +111,14 @@ raw_sss.pick_types().plot(**kwargs)
 # into account when projecting sensor data onto the internal subspace. Head
 # position data is loaded with the :func:`~mne.chpi.read_head_pos` function:
 #
-# .. code-block: python3
+# .. code-block:: python3
 #
 #     head_pos_file = mne.chpi.read_head_pos('path_to_chpi_file.pos')
 #
 # The cHPI data file is then passed as the ``head_pos`` parameter of
 # :func:`~mne.preprocessing.maxwell_filter`:
 #
-# .. code-block: python3
+# .. code-block:: python3
 #
 #     raw_sss = mne.preprocessing.maxwell_filter(raw, head_pos=head_pos_file,
 #                                                cross_talk=crosstalk_file,
@@ -148,7 +148,7 @@ raw_sss.pick_types().plot(**kwargs)
 # ^^^^^^^^^^
 #
 # .. [1] Taulu S and Kajola M. (2005). Presentation of electromagnetic
-#        multichannel data:The signal space separation method. *J Appl Phys*
+#        multichannel data: The signal space separation method. *J Appl Phys*
 #        97, 124905 1-10. doi:10.1063/1.1935742
 #
 # .. [2] Taulu S and Simola J. (2006). Spatiotemporal signal space separation
