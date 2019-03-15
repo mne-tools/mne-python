@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Utility functions for plotting M/EEG data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -317,18 +318,18 @@ def _get_help_text(params):
     is_mac = platform.system() == 'Darwin'
     text, text2 = list(), list()
 
-    text.append(u'(Shift +) \u2190 : \n')  # left arrow
-    text.append(u'(Shift +) \u2192 : \n')  # right arrow
-    text.append(u'\u2193 : \n')  # down arrow
-    text.append(u'\u2191 : \n')  # up arrow
+    text.append(u'(Shift +) ← : \n')
+    text.append(u'(Shift +) → : \n')
+    text.append(u'↓ : \n')
+    text.append(u'↑ : \n')
     text.append(u'- : \n')
     text.append(u'+ or = : \n')
     if is_mac:
-        text.append(u'fn + \u2190 : \n')
-        text.append(u'fn + \u2192 : \n')
+        text.append(u'fn + ← : \n')
+        text.append(u'fn + → : \n')
         if 'fig_selection' not in params:
-            text.append(u'fn + \u2193 : \n')
-            text.append(u'fn + \u2191 : \n')
+            text.append(u'fn + ↓ : \n')
+            text.append(u'fn + ↑ : \n')
     else:
         text.append(u'Home : \n')
         text.append(u'End : \n')
