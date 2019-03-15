@@ -156,7 +156,7 @@ fig.tight_layout()
 (raw.
  pick_types(meg=False, eeg=True, exclude=[]).
  interpolate_bads(reset_bads=False).
- plot(butterfly=True, color='#00000011', bad_color='r'))
+ plot(butterfly=True, color='#00000022', bad_color='r'))
 
 
 ###############################################################################
