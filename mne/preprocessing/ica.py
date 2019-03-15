@@ -313,7 +313,7 @@ class ICA(ContainsMixin):
                  "in 0.19. If you want to use Extended Infomax, specify "
                  "method='infomax' together with "
                  "fit_params=dict(extended=True).", DeprecationWarning)
-        if method == 'infomax' and not check_version('sklearn', '0.15'):
+        if method == 'fastica' and not check_version('sklearn', '0.15'):
             raise RuntimeError('The scikit-learn package (version >= 0.15) '
                                'is required for FastICA.')
 
