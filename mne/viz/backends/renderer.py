@@ -12,8 +12,12 @@ from ._utils import _get_backend_based_on_env_and_defaults, VALID_3D_BACKENDS
 from ...utils import logger
 from ...utils.check import _check_option
 
-MNE_3D_BACKEND = _get_backend_based_on_env_and_defaults()
-logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
+try:
+    MNE_3D_BACKEND
+except NameError:
+    MNE_3D_BACKEND = _get_backend_based_on_env_and_defaults()
+finally:
+    logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # noqa: F401
