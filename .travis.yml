@@ -170,7 +170,8 @@ script:
         done;
       fi;
     - echo pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
-    - pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
+    # - pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
+    - pytest mne/viz -vv
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;
