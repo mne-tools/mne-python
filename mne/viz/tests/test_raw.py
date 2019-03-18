@@ -171,6 +171,7 @@ def test_plot_raw():
     fig.canvas.button_press_event(1, 1, 1)  # outside any axes
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+
     # sadly these fail when no renderer is used (i.e., when using Agg):
     # ssp_fig = set(plt.get_fignums()) - set([fig.number])
     # assert_equal(len(ssp_fig), 1)
@@ -181,15 +182,20 @@ def test_plot_raw():
     # pos = np.array(t[0].get_position()) + 0.01
     # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
     # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
-    #  test keypresses
-    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
+
+    # test keypresses
+    # test for group_by='original'
+    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd', 'd',
                 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
         fig.canvas.key_press_event(key)
+
+    # test for group_by='selection'
     fig = plot_raw(raw, events=events, group_by='selection')
-    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=',
-                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd',
+                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
                 'escape']:
         fig.canvas.key_press_event(key)
+
     # Color setting
     pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
     pytest.raises(TypeError, raw.plot, event_color={'foo': 'r'})
@@ -271,19 +277,26 @@ def test_plot_annotations():
     with pytest.warns(RuntimeWarning, match='expanding outside'):
         raw.set_annotations(annot)
     _annotation_helper(raw)
+    plt.close('all')
 
 
 def test_plot_raw_filtered():
     """Test filtering of raw plots."""
     raw = _get_raw()
-    pytest.raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
-    pytest.raises(ValueError, raw.plot, highpass=0)
-    pytest.raises(ValueError, raw.plot, lowpass=1, highpass=1)
-    pytest.raises(ValueError, raw.plot, lowpass=1, filtorder=0)
-    pytest.raises(ValueError, raw.plot, clipping='foo')
+    with pytest.raises(ValueError, match='lowpass must be < Nyquist'):
+        raw.plot(lowpass=raw.info['sfreq'] / 2.)
+    with pytest.raises(ValueError, match='highpass must be > 0'):
+        raw.plot(highpass=0)
+    with pytest.raises(ValueError, match=r'lowpass \(1\) must be > highpass'):
+        raw.plot(lowpass=1, highpass=1)
+    with pytest.raises(ValueError, match=r'filtorder \(-1\) must be >= 0'):
+        raw.plot(lowpass=1, filtorder=-1)
+    with pytest.raises(ValueError, match="Invalid value for the 'clipping'"):
+        raw.plot(clipping='foo')
     raw.plot(lowpass=1, clipping='transparent')
     raw.plot(highpass=1, clipping='clamp')
-    raw.plot(highpass=1, lowpass=2, butterfly=True)
+    raw.plot(lowpass=40, butterfly=True, filtorder=0)
+    plt.close('all')
 
 
 def test_plot_raw_psd():

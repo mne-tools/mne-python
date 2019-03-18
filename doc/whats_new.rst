@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
+
 - Add ``reject`` parameter to :meth:`mne.preprocessing.ICA.plot_properties` to visualize rejected epochs by `Antoine Gauthier`_
 
 - Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
@@ -32,6 +34,8 @@ Changelog
 - Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
 
 - :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
+
+- Add support for FIR filtering in :meth:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` by passing ``filtorder=0`` or ``--filtorder 0``, respectively, by `Eric Larson`_
 
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
 
@@ -71,19 +75,33 @@ Changelog
 
 - Add ``channel_wise`` argument to :func:`mne.io.Raw.apply_function` to allow applying a function on multiple channels at once by `Hubert Banville`_
 
+- Add option ``copy='auto'`` to control data copying in :class:`mne.io.RawArray` by `Eric Larson`_
+
 - The ``mri`` parameter in :func:`mne.setup_volume_source_space` is now automatically set to ``T1.mgz`` if ``subject`` is provided. This allows to get a :class:`mne.SourceSpaces` of kind ``volume`` more automatically. By `Alex Gramfort`_
 
 - Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
 
 - Add additional depth weighting options for inverse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) by `Eric Larson`_
 
+- Allow toggling of DC removal in :meth:`mne.io.Raw.plot` by pressing the 'd' key by `Clemens Brunner`_
+
+- Improved clicking in :meth:`mne.io.Raw.plot` (left click on trace toggles bad, left click on background sets green line, right click anywhere removes green line) by `Clemens Brunner`_
+
 Bug
 ~~~
+
+- Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
 - Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
   If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
+- Fix :ref:`gen_mne_flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used by `Eric Larson`_
+  
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
+
+- Fix boundaries during plotting of raw data with :func:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` on scaled displays (e.g., macOS with HiDPI/Retina screens) by `Clemens Brunner`_
+
+- Fix bug where filtering was not performed with ``lowpass`` or ``highpass`` in :meth:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` by `Eric Larson`_
 
 - Fix :func:`mne.simulation.simulate_evoked` that was failing to simulate the noise with heterogeneous sensor types due to poor conditioning of the noise covariance and make sure the projections from the noise covariance are taken into account `Alex Gramfort`_
 
@@ -117,8 +135,12 @@ Bug
 
 - Fix :func:`mne.io.read_raw_edf` failing when EDF header fields (such as patient name) contained special characters, by `Clemens Brunner`_
 
+- Fix :func:`mne.io.read_raw_eeglab` incorrectly parsing event durations by `Clemens Brunner`_
+
 API
 ~~~
+
+- Add ``stim_channel`` parameter in :func:`mne.io.read_raw_cnt` to toggle stim channel synthesis by `Joan Massich`_
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
 

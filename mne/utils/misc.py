@@ -183,11 +183,18 @@ def _get_argvalues():
     """Return all arguments (except self) and values of read_raw_xxx."""
     # call stack
     # read_raw_xxx -> EOF -> verbose() -> BaseRaw.__init__ -> get_argvalues
-    frame = inspect.stack()[4][0]
-    fname = frame.f_code.co_filename
-    if not fnmatch.fnmatch(fname, '*/mne/io/*'):
-        return None
-    args, _, _, values = inspect.getargvalues(frame)
+
+    # This is equivalent to `frame = inspect.stack(0)[4][0]` but faster
+    frame = inspect.currentframe()
+    try:
+        for _ in range(4):
+            frame = frame.f_back
+        fname = frame.f_code.co_filename
+        if not fnmatch.fnmatch(fname, '*/mne/io/*'):
+            return None
+        args, _, _, values = inspect.getargvalues(frame)
+    finally:
+        del frame
     params = dict()
     for arg in args:
         params[arg] = values[arg]

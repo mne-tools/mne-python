@@ -1093,8 +1093,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
 
-    is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
+    is_free_ori = not (is_fixed_orient(inverse_operator) or
+                       pick_ori == 'normal')
 
     if pick_ori == 'vector' and noise_norm is not None:
         noise_norm = noise_norm.repeat(3, axis=0)
@@ -1104,8 +1104,12 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
         K *= noise_norm
 
     subject = _subject_from_inverse(inverse_operator)
+    try:
+        total = ' / %d' % (len(epochs),)  # len not always defined
+    except RuntimeError:
+        total = ' / %d (at most)' % (len(epochs.events),)
     for k, e in enumerate(epochs):
-        logger.info('Processing epoch : %d' % (k + 1))
+        logger.info('Processing epoch : %d%s' % (k + 1, total))
         if is_free_ori:
             # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel

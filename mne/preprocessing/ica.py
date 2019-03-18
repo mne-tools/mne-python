@@ -50,6 +50,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      copy_function_doc_to_method_doc, _pl, warn,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option)
+from ..utils.check import _check_all_same_channel_names
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -102,8 +103,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
-    types = _DATA_CH_TYPES_SPLIT + ['eog']
-    types += ['ref_meg'] if allow_ref_meg else []
+    types = _DATA_CH_TYPES_SPLIT + ('eog',)
+    types += ('ref_meg',) if allow_ref_meg else ()
     chs = list({channel_type(info, j) for j in picks})
     check = all([ch in types for ch in chs])
     if not check:
@@ -312,9 +313,9 @@ class ICA(ContainsMixin):
                  "in 0.19. If you want to use Extended Infomax, specify "
                  "method='infomax' together with "
                  "fit_params=dict(extended=True).", DeprecationWarning)
-        if not check_version('sklearn', '0.15'):
-            raise RuntimeError('the scikit-learn package (version >= 0.15) '
-                               'is required for ICA')
+        if method == 'fastica' and not check_version('sklearn', '0.15'):
+            raise RuntimeError('The scikit-learn package (version >= 0.15) '
+                               'is required for FastICA.')
 
         self.noise_cov = noise_cov
 
@@ -570,7 +571,7 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT + ['eog', "ref_meg"]:
+            for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
@@ -1031,7 +1032,6 @@ class ICA(ContainsMixin):
         See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
         """
         scores, idx = [], []
-        labels = {}
         # some magic we need inevitably ...
         # get targets before equalizing
         targets = [self._check_target(
@@ -1055,7 +1055,7 @@ class ICA(ContainsMixin):
             # pick last scores
             this_idx = find_outliers(scores[-1], threshold=threshold)
             idx += [this_idx]
-            labels['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
+            self.labels_['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # ref channels
@@ -1071,7 +1071,7 @@ class ICA(ContainsMixin):
                 idx_unique.remove(i)
         if len(scores) == 1:
             scores = scores[0]
-        labels[prefix] = list(idx)
+        labels = list(idx)
 
         return labels, scores
 
@@ -1155,7 +1155,8 @@ class ICA(ContainsMixin):
                 threshold = 0.25
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
-                    inst, ch_name, keep_ecg=False,
+                    inst, ch_name, l_freq=l_freq, h_freq=h_freq,
+                    keep_ecg=False,
                     reject_by_annotation=reject_by_annotation)).get_data()
 
                 if sources.shape[0] == 0:
@@ -1179,7 +1180,7 @@ class ICA(ContainsMixin):
         elif method == 'correlation':
             if threshold is None:
                 threshold = 3.0
-            self.labels_, scores = self._find_bads_ch(
+            self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
                 reject_by_annotation=reject_by_annotation)
@@ -1243,13 +1244,16 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_eog
         """
+        inds = []
         if not ch_name:
             inds = pick_channels_regexp(inst.ch_names, "REF_ICA*")
         else:
             inds = pick_channels(inst.ch_names, ch_name)
+        if not inds:
+            raise ValueError('No reference components found or selected.')
         ref_chs = [inst.ch_names[k] for k in inds]
 
-        self.labels_, scores = self._find_bads_ch(
+        self.labels_['ref_meg'], scores = self._find_bads_ch(
             inst, ref_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="ref_meg",
             reject_by_annotation=reject_by_annotation)
@@ -1311,7 +1315,7 @@ class ICA(ContainsMixin):
             logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
         eog_chs = [inst.ch_names[k] for k in eog_inds]
 
-        self.labels_, scores = self._find_bads_ch(
+        self.labels_['eog'], scores = self._find_bads_ch(
             inst, eog_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="eog",
             reject_by_annotation=reject_by_annotation)
@@ -2512,6 +2516,13 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     """
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
+
+    same_chans = _check_all_same_channel_names(icas)
+    if same_chans is False:
+        raise ValueError("Not all ICA instances have the same channel names. "
+                         "Corrmap requires all instances to have the same "
+                         "montage. Consider interpolating bad channels before "
+                         "running ICA.")
 
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.

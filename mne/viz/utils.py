@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Utility functions for plotting M/EEG data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -16,6 +17,7 @@ import difflib
 import webbrowser
 import tempfile
 import numpy as np
+import platform
 from copy import deepcopy
 from distutils.version import LooseVersion
 from itertools import cycle
@@ -313,19 +315,27 @@ def _toggle_proj(event, params):
 
 def _get_help_text(params):
     """Customize help dialogs text."""
+    is_mac = platform.system() == 'Darwin'
     text, text2 = list(), list()
 
-    text.append(u'\u2190 : \n')  # left arrow
-    text.append(u'\u2192 : \n')  # right arrow
-    text.append(u'\u2193 : \n')  # down arrow
-    text.append(u'\u2191 : \n')  # up arrow
+    text.append(u'(Shift +) ← : \n')
+    text.append(u'(Shift +) → : \n')
+    text.append(u'↓ : \n')
+    text.append(u'↑ : \n')
     text.append(u'- : \n')
     text.append(u'+ or = : \n')
-    text.append(u'Home : \n')
-    text.append(u'End : \n')
-    if 'fig_selection' not in params:
-        text.append(u'Page down : \n')
-        text.append(u'Page up : \n')
+    if is_mac:
+        text.append(u'fn + ← : \n')
+        text.append(u'fn + → : \n')
+        if 'fig_selection' not in params:
+            text.append(u'fn + ↓ : \n')
+            text.append(u'fn + ↑ : \n')
+    else:
+        text.append(u'Home : \n')
+        text.append(u'End : \n')
+        if 'fig_selection' not in params:
+            text.append(u'Page down : \n')
+            text.append(u'Page up : \n')
 
     text.append(u'F11 : \n')
     text.append(u'? : \n')
@@ -363,9 +373,11 @@ def _get_help_text(params):
             text2.insert(6, 'Toggle annotation mode\n')
             text.insert(7, u'b : \n')
             text2.insert(7, 'Toggle butterfly plot on/off\n')
+            text.insert(8, u'd : \n')
+            text2.insert(8, 'Toggle remove DC on/off\n')
             if 'fig_selection' not in params:
-                text2.insert(10, 'Reduce the number of channels per view\n')
-                text2.insert(11, 'Increase the number of channels per view\n')
+                text2.insert(11, 'Reduce the number of channels per view\n')
+                text2.insert(12, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -472,6 +484,9 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 def _layout_figure(params):
     """Set figure layout. Shared with raw and epoch plots."""
     size = params['fig'].get_size_inches() * params['fig'].dpi
+    dpi_ratio = getattr(params["fig"].canvas, '_dpi_ratio', 1)
+    size /= dpi_ratio  # account for HiDPI resolutions
+
     scroll_width = 25
     hscroll_dist = 25
     vscroll_dist = 10
@@ -827,6 +842,10 @@ def _plot_raw_onkey(event, params):
     elif event.key == 'w':
         params['use_noise_cov'] = not params['use_noise_cov']
         params['plot_update_proj_callback'](params, None)
+    elif event.key == 'd':
+        params['remove_dc'] = not params['remove_dc']
+        params['update_fun']()
+        params['plot_fun']()
 
 
 def _setup_annotation_fig(params):
@@ -933,35 +952,37 @@ def _mouse_click(event, params):
             _remove_segment_line(params)
             _plot_annotations(raw, params)
             params['plot_fun']()
-        else:  # right click in browse mode does nothing
+        elif event.inaxes == params['ax']:  # hide green line
+            _draw_vert_line(None, params, hide=True)
+        else:  # do nothing
             return
+    else:
+        if event.inaxes is None:  # check if channel label is clicked
+            if params['n_channels'] > 100:
+                return
+            ax = params['ax']
+            ylim = ax.get_ylim()
+            pos = ax.transData.inverted().transform((event.x, event.y))
+            if pos[0] > params['t_start'] or pos[1] < 0 or pos[1] > ylim[0]:
+                return
+            params['label_click_fun'](pos)
+        # vertical scrollbar changed
+        elif event.inaxes == params['ax_vscroll']:
+            if 'fig_selection' in params.keys():
+                _handle_change_selection(event, params)
+            else:
+                ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+                if params['ch_start'] != ch_start:
+                    params['ch_start'] = ch_start
+                    params['plot_fun']()
+        # horizontal scrollbar changed
+        elif event.inaxes == params['ax_hscroll']:
+            _plot_raw_time(event.xdata - params['duration'] / 2, params)
+            params['update_fun']()
+            params['plot_fun']()
 
-    if event.inaxes is None:  # check if channel label is clicked
-        if params['n_channels'] > 100:
-            return
-        ax = params['ax']
-        ylim = ax.get_ylim()
-        pos = ax.transData.inverted().transform((event.x, event.y))
-        if pos[0] > params['t_start'] or pos[1] < 0 or pos[1] > ylim[0]:
-            return
-        params['label_click_fun'](pos)
-    # vertical scrollbar changed
-    elif event.inaxes == params['ax_vscroll']:
-        if 'fig_selection' in params.keys():
-            _handle_change_selection(event, params)
-        else:
-            ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
-            if params['ch_start'] != ch_start:
-                params['ch_start'] = ch_start
-                params['plot_fun']()
-    # horizontal scrollbar changed
-    elif event.inaxes == params['ax_hscroll']:
-        _plot_raw_time(event.xdata - params['duration'] / 2, params)
-        params['update_fun']()
-        params['plot_fun']()
-
-    elif event.inaxes == params['ax']:
-        params['pick_bads_fun'](event)
+        elif event.inaxes == params['ax']:
+            params['pick_bads_fun'](event)
 
 
 def _handle_topomap_bads(ch_name, params):
@@ -998,11 +1019,15 @@ def _find_channel_idx(ch_name, params):
     return indices
 
 
-def _draw_vert_line(xdata, params):
+def _draw_vert_line(xdata, params, hide=False):
     """Draw vertical line."""
-    params['ax_vertline'].set_xdata(xdata)
-    params['ax_hscroll_vertline'].set_xdata(xdata)
-    params['vertline_t'].set_text('%0.2f  ' % xdata)
+    if not hide:
+        params['ax_vertline'].set_xdata(xdata)
+        params['ax_hscroll_vertline'].set_xdata(xdata)
+        params['vertline_t'].set_text('%0.2f  ' % xdata)
+    params['ax_vertline'].set_visible(not hide)
+    params['ax_hscroll_vertline'].set_visible(not hide)
+    params['vertline_t'].set_visible(not hide)
 
 
 def _select_bads(event, params, bads):
@@ -1013,14 +1038,11 @@ def _select_bads(event, params, bads):
         _draw_vert_line(event.xdata, params)
         return bads
 
-    def f(x, y):
-        return y(np.mean(x), x.std() * 2)
     lines = event.inaxes.lines
     for line in lines:
         ydata = line.get_ydata()
         if not isinstance(ydata, list) and not np.isnan(ydata).any():
-            ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
-            if ymin <= event.ydata <= ymax:
+            if line.contains(event)[0]:  # click on a signal: toggle bad
                 this_chan = vars(line)['ch_name']
                 if this_chan in params['info']['ch_names']:
                     if 'fig_selection' in params:
@@ -1042,7 +1064,7 @@ def _select_bads(event, params, bads):
                     for idx in ch_idx:
                         params['ax_vscroll'].patches[idx].set_color(color)
                     break
-    else:
+    else:  # click in the background (not on a signal): set green line
         _draw_vert_line(event.xdata, params)
 
     return bads
@@ -1050,31 +1072,30 @@ def _select_bads(event, params, bads):
 
 def _onclick_help(event, params):
     """Draw help window."""
-    import matplotlib.pyplot as plt
     text, text2 = _get_help_text(params)
 
-    width = 6
-    height = 5
+    width, height = 9, 5
 
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
     params['fig_help'] = fig_help
-    ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
-    ax.set_title('Keyboard shortcuts')
-    plt.axis('off')
-    ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
-    ax1.set_yticklabels(list())
-    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', ha='right')
-    plt.axis('off')
 
-    ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
-    ax2.set_yticklabels(list())
-    plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
-    plt.axis('off')
+    ax = fig_help.add_subplot(111)
+    celltext = [[c1, c2] for c1, c2 in zip(text.strip().split("\n"),
+                                           text2.strip().split("\n"))]
+    table = ax.table(cellText=celltext, loc="center", cellLoc="left")
+    table.auto_set_font_size(False)
+    table.set_fontsize(12)
+    ax.set_axis_off()
+    for (row, col), cell in table.get_celld().items():
+        cell.set_edgecolor(None)  # remove cell borders
+        # right justify, following:
+        # https://stackoverflow.com/questions/48210749/matplotlib-table-assign-different-text-alignments-to-different-columns?rq=1  # noqa: E501
+        if col == 0:
+            cell._loc = 'right'
 
     fig_help.canvas.mpl_connect('key_press_event', _key_press)
 
-    tight_layout(fig=fig_help)
     # this should work for non-test cases
     try:
         fig_help.canvas.draw()
@@ -2123,7 +2144,7 @@ def _setup_butterfly(params):
         types = np.array(params['types'])[params['orig_inds']]
         if params['group_by'] in ['type', 'original']:
             inds = params['inds']
-            labels = [t for t in _DATA_CH_TYPES_SPLIT + ['eog', 'ecg']
+            labels = [t for t in _DATA_CH_TYPES_SPLIT + ('eog', 'ecg')
                       if t in types] + ['misc']
             ticks = np.arange(5, 5 * (len(labels) + 1), 5)
             offs = {l: t for (l, t) in zip(labels, ticks)}

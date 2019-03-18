@@ -1606,9 +1606,9 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         logger.info("\n---- Converting Flash images ----")
         echos = ['001', '002', '003', '004', '005', '006', '007', '008']
         if flash30:
-            flashes = ['05']
-        else:
             flashes = ['05', '30']
+        else:
+            flashes = ['05']
         #
         missing = False
         for flash in flashes:

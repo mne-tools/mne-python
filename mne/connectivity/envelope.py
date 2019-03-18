@@ -7,10 +7,11 @@
 import numpy as np
 
 from ..filter import next_fast_len
-from ..utils import _validate_type
+from ..utils import _validate_type, verbose
 
 
-def envelope_correlation(data, combine='median'):
+@verbose
+def envelope_correlation(data, combine='median', verbose=None):
     """Compute the envelope correlation.
 
     Parameters
@@ -24,6 +25,7 @@ def envelope_correlation(data, combine='median'):
     combine : 'median' | None
         How to combine correlation estimates across epochs.
         Default is 'median'. Can be None to return without combining.
+    %(verbose)s
 
     Returns
     -------

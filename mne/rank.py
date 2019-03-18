@@ -14,10 +14,9 @@ from .io.meas_info import _simplify_info
 from .io.pick import (_picks_by_type, pick_info, pick_channels_cov,
                       _picks_to_idx)
 from .io.proj import make_projector
-from .utils import (logger, _compute_row_norms,
+from .utils import (logger, _compute_row_norms, _pl,
                     _apply_scaling_cov, _undo_scaling_cov,
-                    _scaled_array,
-                    warn, _check_rank, verbose)
+                    _scaled_array, warn, _check_rank, verbose)
 
 
 @verbose
@@ -106,9 +105,11 @@ def _estimate_rank_from_s(s, tol='auto'):
     return rank
 
 
-def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm'):
+def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
+                       with_ref_meg=False):
     """Aid the deprecation of raw.estimate_rank."""
-    picks = _picks_to_idx(raw.info, picks, with_ref_meg=False)
+    if picks is None:
+        picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options
     return _estimate_rank_meeg_signals(
         raw[picks][0], pick_info(raw.info, picks), scalings, tol)
@@ -334,14 +335,18 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     scalings = _handle_default('scalings_cov_rank', scalings)
 
     if isinstance(inst, Covariance):
+        inst_type = 'covariance'
         if info is None:
             raise ValueError('info cannot be None if inst is a Covariance.')
         inst = pick_channels_cov(
             inst, set(inst['names']) & set(info['ch_names']))
-        info = pick_info(info, [info['ch_names'].index(name)
-                                for name in inst['names']])
+        if info['ch_names'] != inst['names']:
+            info = pick_info(info, [info['ch_names'].index(name)
+                                    for name in inst['names']])
     else:
         info = inst.info
+        inst_type = 'raw' if isinstance(inst, BaseRaw) else 'epochs'
+    logger.info('Computing data rank from %s with rank=%r' % (inst_type, rank))
 
     if isinstance(rank, str):  # string, either 'info' or 'full'
         rank_type = 'info'
@@ -356,12 +361,14 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                 rank = dict()
     assert isinstance(rank, dict)  # should be guaranteed by _check_rank
 
+    simple_info = _simplify_info(info)
     picks_list = _picks_by_type(info, meg_combined=True, ref_meg=False,
                                 exclude='bads')
     for ch_type, picks in picks_list:
         if ch_type in rank:
             continue
         ch_names = [info['ch_names'][pick] for pick in picks]
+        n_chan = len(ch_names)
         if proj:
             proj_op, n_proj, _ = make_projector(info['projs'], ch_names)
         else:
@@ -371,9 +378,15 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
             rank[ch_type] = _info_rank(info, ch_type, picks, info_type)
             if info_type != 'full':
                 rank[ch_type] -= n_proj
+                logger.info('    %s: rank %d after %d projector%s applied to '
+                            '%d channel%s'
+                            % (ch_type.upper(), rank[ch_type],
+                               n_proj, _pl(n_proj), n_chan, _pl(n_chan)))
+            else:
+                logger.info('    %s: rank %d from info'
+                            % (ch_type.upper(), rank[ch_type]))
         else:
             # Use empirical estimation
-            use_info = _simplify_info(info)
             assert rank_type == 'estimated'
             if isinstance(inst, (BaseRaw, BaseEpochs)):
                 if isinstance(inst, BaseRaw):
@@ -385,7 +398,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                 if proj:
                     data = np.dot(proj_op, data)
                 rank[ch_type] = _estimate_rank_meeg_signals(
-                    data, pick_info(use_info, picks), scalings, tol)
+                    data, pick_info(simple_info, picks), scalings, tol)
             else:
                 assert isinstance(inst, Covariance)
                 if inst['diag']:
@@ -395,8 +408,12 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                     if proj:
                         data = np.dot(np.dot(proj_op, data), proj_op.T)
                     rank[ch_type] = _estimate_rank_meeg_cov(
-                        data, pick_info(info, picks), scalings, tol)
+                        data, pick_info(simple_info, picks), scalings, tol)
             this_info_rank = _info_rank(info, ch_type, picks, 'info')
+            logger.info('    %s: rank %d computed from %d%s data channels '
+                        'with %d projector%s'
+                        % (ch_type.upper(), rank[ch_type], n_proj, _pl(n_proj),
+                           n_chan, _pl(n_chan)))
             if rank[ch_type] > this_info_rank:
                 warn('Something went wrong in the data-driven estimation of '
                      'the data rank as it exceeds the theoretical rank from '

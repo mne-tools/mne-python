@@ -19,7 +19,7 @@ from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
-                       _check_excludes_includes, _PICK_TYPES_KEYS,
+                       _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
 
 
@@ -59,34 +59,6 @@ def _get_meg_system(info):
         system = 'unknown'
         have_helmet = False
     return system, have_helmet
-
-
-def _contains_ch_type(info, ch_type):
-    """Check whether a certain channel type is in an info object.
-
-    Parameters
-    ----------
-    info : instance of Info
-        The measurement information.
-    ch_type : str
-        the channel type to be checked for
-
-    Returns
-    -------
-    has_ch_type : bool
-        Whether the channel type is present or not.
-    """
-    _validate_type(ch_type, 'str', "ch_type")
-
-    meg_extras = ['mag', 'grad', 'planar1', 'planar2']
-    fnirs_extras = ['hbo', 'hbr']
-    valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
-                                  if key != 'meg'] + meg_extras + fnirs_extras)
-    _check_option('ch_type', ch_type, valid_channel_types)
-    if info is None:
-        raise ValueError('Cannot check for channels of type "%s" because info '
-                         'is None' % (ch_type,))
-    return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
 
 
 def _get_ch_type(inst, ch_type, allow_ref_meg=False):
