@@ -6,34 +6,48 @@
 # License: Simplified BSD
 
 import pytest
+import importlib
 import numpy as np
 import os
 from mne.utils import requires_mayavi, requires_vispy
+from mne.viz.backends.renderer import (set_3d_backend, get_3d_backend)
 
+# from .._utils import DEFAULT_3D_BACKEND
+DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
+
+print(DEFAULT_3D_BACKEND)
 
 # def test_no_env_variable():
 #     print(get_config().keys())
 #     assert 'MNE_3D_BACKEND' not in get_config(use_env=True)
 
-def test_backend_enviroment_vis_setup(monkeypatch):
-    """Test set up 3d backend based on env."""
-    backend = 'vispy'
-    monkeypatch.setenv("MNE_3D_BACKEND", backend)
-    assert 'MNE_3D_BACKEND' in os.environ
-    assert os.environ['MNE_3D_BACKEND']
-    assert os.environ['MNE_3D_BACKEND'] == backend
-    from mne.viz.backends.renderer import get_3d_backend
-    assert get_3d_backend() == backend
+
+@pytest.fixture
+def backend_mocker():
+    from mne.viz.backends import renderer
+    assert renderer.MNE_3D_BACKEND == DEFAULT_3D_BACKEND  # just double-check
+    del renderer.MNE_3D_BACKEND
+    yield
+    renderer.MNE_3D_BACKEND = DEFAULT_3D_BACKEND
 
 
-def test_backend_enviroment_may_setup(monkeypatch):
+@requires_mayavi
+@requires_vispy
+@pytest.mark.parametrize(
+    'backend', [
+        'mayavi',
+        'vispy',
+        pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
+    ]
+)
+def test_backend_enviroment_setup(backend, backend_mocker, monkeypatch):
     """Test set up 3d backend based on env."""
-    backend = 'mayavi'
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
-    assert 'MNE_3D_BACKEND' in os.environ
-    assert os.environ['MNE_3D_BACKEND']
-    assert os.environ['MNE_3D_BACKEND'] == backend
-    from mne.viz.backends.renderer import get_3d_backend
+    assert os.environ['MNE_3D_BACKEND'] == backend  # just double-check
+
+    from mne.viz.backends import renderer
+    importlib.reload(renderer)
+    assert renderer.MNE_3D_BACKEND == backend
     assert get_3d_backend() == backend
 
 
