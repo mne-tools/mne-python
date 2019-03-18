@@ -53,7 +53,6 @@ def _read_annotations_cnt(fname, data_format='int16'):
         if event_type == CNTEventType3:
             offset *= n_bytes * n_channels
         event_time = offset - 900 - (75 * n_channels)
-        print(event_time.dtype)
         event_time //= n_channels * n_bytes
         return event_time - 1
 
