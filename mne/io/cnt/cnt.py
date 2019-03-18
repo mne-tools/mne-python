@@ -291,7 +291,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
         if stim_channel_toggle:
-            annot = _read_annotations_cnt(input_fname)
+            data_format = 'int32' if n_bytes == 4 else 'int16'
+            annot = _read_annotations_cnt(input_fname, data_format=data_format)
             events = (np.stack((annot.onset * sfreq,
                                 annot.duration * sfreq,
                                 annot.description.astype(int)))
