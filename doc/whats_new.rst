@@ -90,6 +90,8 @@ Changelog
 Bug
 ~~~
 
+- Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
 - Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
