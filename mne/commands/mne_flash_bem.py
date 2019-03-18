@@ -89,9 +89,11 @@ def run():
         raise RuntimeError('The subject argument must be set')
 
     convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
-                       flash30=flash30, convert=convert, unwarp=unwarp)
+                       flash30=flash30, convert=convert, unwarp=unwarp,
+                       verbose=True)
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
-                   overwrite=overwrite, show=show, flash_path=flash_path)
+                   overwrite=overwrite, show=show, flash_path=flash_path,
+                   verbose=True)
 
 
 is_main = (__name__ == '__main__')
