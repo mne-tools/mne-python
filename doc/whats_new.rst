@@ -90,6 +90,8 @@ Changelog
 Bug
 ~~~
 
+- Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
+
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
@@ -98,7 +100,7 @@ Bug
   If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
 - Fix :ref:`gen_mne_flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used by `Eric Larson`_
-  
+
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
 - Fix boundaries during plotting of raw data with :func:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` on scaled displays (e.g., macOS with HiDPI/Retina screens) by `Clemens Brunner`_

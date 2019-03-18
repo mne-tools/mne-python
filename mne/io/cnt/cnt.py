@@ -12,7 +12,7 @@ from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
-                     _deprecate_stim_channel)
+                     _deprecate_stim_channel, _synthesize_stim_channel)
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ...annotations import Annotations
@@ -291,35 +291,14 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
         if stim_channel_toggle:
-            if event_offset > data_offset:
-                fid.seek(event_offset)
-                event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
-                event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
-                teeg_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-                assert teeg_offset == 0  # documentation say this should be 0
-                if event_type == 1:
-                    event_bytes = 8
-                elif event_type in (2, 3):
-                    event_bytes = 19
-                else:
-                    raise IOError('Unexpected event size.')
-
-                # XXX long NumEvents is available, why are not we using it?
-                n_events = event_size // event_bytes
-            else:
-                n_events = 0
-
-            stim_channel = np.zeros(n_samples)  # Construct stim channel
-            for i in range(n_events):
-                fid.seek(event_offset + 9 + i * event_bytes)
-                event_id = np.fromfile(fid, dtype='u2', count=1)[0]
-                fid.seek(event_offset + 9 + i * event_bytes + 4)
-                offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-                if event_type == 3:
-                    offset *= n_bytes * n_channels
-                event_time = offset - 900 - 75 * n_channels
-                event_time //= n_channels * n_bytes
-                stim_channel[event_time - 1] = event_id
+            data_format = 'int32' if n_bytes == 4 else 'int16'
+            annot = _read_annotations_cnt(input_fname, data_format=data_format)
+            events = (np.stack((annot.onset * sfreq,
+                                annot.duration * sfreq,
+                                annot.description.astype(int)))
+                      .astype(int)
+                      .transpose())
+            stim_channel = _synthesize_stim_channel(events, n_samples)
 
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
