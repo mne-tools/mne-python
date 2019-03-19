@@ -10,7 +10,7 @@ import importlib
 import numpy as np
 import os
 from mne.utils import requires_mayavi, requires_vispy
-from mne.viz.backends.renderer import (set_3d_backend, get_3d_backend)
+from mne.viz.backends.renderer import get_3d_backend
 
 # from .._utils import DEFAULT_3D_BACKEND
 DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
@@ -24,6 +24,7 @@ print(DEFAULT_3D_BACKEND)
 
 @pytest.fixture
 def backend_mocker():
+    """Help to test set up 3d backend."""
     from mne.viz.backends import renderer
     assert renderer.MNE_3D_BACKEND == DEFAULT_3D_BACKEND  # just double-check
     del renderer.MNE_3D_BACKEND
