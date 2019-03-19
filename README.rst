@@ -1,15 +1,15 @@
 .. -*- mode: rst -*-
 
 
-|Travis|_ |Appveyor|_ |Circle|_ |Codecov|_ |Zenodo|_
+|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |Zenodo|_
 
 |MNE|_
 
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
 
-.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/jg8ncqql9wayo8mg/branch/master?svg=true
-.. _Appveyor: https://ci.appveyor.com/project/mne-tools/mne-python/branch/master
+.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
+.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 
 .. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
 .. _Circle: https://circleci.com/gh/mne-tools/mne-python
@@ -151,4 +151,3 @@ MNE-Python is **BSD-licenced** (3 clause):
 .. _MNE documentation: http://martinos.org/mne/documentation.html
 .. _getting started page: https://martinos.org/mne/getting_started.html
 .. _pip: https://pip.pypa.io/en/stable/
-
