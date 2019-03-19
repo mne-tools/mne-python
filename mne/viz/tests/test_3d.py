@@ -193,7 +193,7 @@ def test_plot_alignment(tmpdir):
     info = infos['Neuromag']
     pytest.raises(TypeError, plot_alignment, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
-    pytest.raises(TypeError, plot_alignment, info, trans_fname,
+    pytest.raises(OSError, plot_alignment, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir, src='foo')
     pytest.raises(ValueError, plot_alignment, info, trans_fname,
                   subject='fsaverage', subjects_dir=subjects_dir,
@@ -210,7 +210,7 @@ def test_plot_alignment(tmpdir):
         plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                        coord_frame=coord_frame, trans=trans_fname,
                        subject='sample', mri_fiducials=fiducials_path,
-                       subjects_dir=subjects_dir, src=sample_src)
+                       subjects_dir=subjects_dir, src=src_fname)
         mlab.close(all=True)
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -254,7 +254,8 @@ def test_plot_alignment(tmpdir):
                    src=src, dig=True, surfaces=['brain', 'inner_skull',
                                                 'outer_skull', 'outer_skin'])
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
-    fig = plot_alignment(info, trans_fname, subject='sample', meg=False,
+    # no info is permitted
+    fig = plot_alignment(trans=trans_fname, subject='sample', meg=False,
                          coord_frame='mri', subjects_dir=subjects_dir,
                          surfaces=['brain'], bem=sphere, show_axes=True)
     assert isinstance(fig, mayavi.core.scene.Scene)

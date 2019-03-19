@@ -1823,14 +1823,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         out_fname = op.join(flash_bem_dir, surf + '.tri')
         shutil.move(op.join(bem_dir, surf + '.tri'), out_fname)
         nodes, tris = read_tri(out_fname, swap=True)
-        vol_info = _extract_volume_info(flash5_reg)
-        if vol_info is None:
-            warn('nibabel is required to update the volume info. Volume info '
-                 'omitted from the written surface.')
-        else:
-            vol_info['head'] = np.array([20])
-        write_surface(op.splitext(out_fname)[0] + '.surf', nodes, tris,
-                      volume_info=vol_info)
+        # Do not write volume info here because the tris are already in
+        # standard Freesurfer coords
+        write_surface(op.splitext(out_fname)[0] + '.surf', nodes, tris)
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
