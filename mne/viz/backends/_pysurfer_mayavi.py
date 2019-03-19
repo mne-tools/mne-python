@@ -314,7 +314,8 @@ class _Renderer(object):
 
     def show(self):
         """Render the scene."""
-        _toggle_mlab_render(self.fig, True)
+        if self.fig is not None:
+            _toggle_mlab_render(self.fig, True)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
