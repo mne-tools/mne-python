@@ -1075,7 +1075,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             for ev_time, ev_num in zip(event_times, event_nums):
                 if -1 in event_color or ev_num in event_color:
                     text = params['event_id_rev'].get(ev_num, ev_num)
-                    params['ax'].text(ev_time, -0.05, text, fontsize=8,
+                    params['ax'].text(ev_time, -0.1, text, fontsize=8,
                                       ha='center')
 
     if 'segments' in params:
@@ -1095,7 +1095,8 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
                                        alpha=0.3)
-            params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
+            params['ax'].text((start + end) / 2., ylim[1] - 0.1, dscr,
+                              ha='center', color=segment_color)
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0] + params['first_time'],
