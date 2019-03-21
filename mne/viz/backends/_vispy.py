@@ -6,12 +6,12 @@ Actual implementation of _Renderer and _Projection classes.
 
 import numpy as np
 import warnings
-from vispy.color import Colormap
-from vispy.visuals.transforms import STTransform
 with warnings.catch_warnings():  # catch the VisPy warnings
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from vispy import scene
+    from vispy.color import Colormap
     from vispy.visuals.filters import Alpha
+    from vispy.visuals.transforms import STTransform
 
 default_sphere_radius = 0.5
 default_mesh_shininess = 0.0
