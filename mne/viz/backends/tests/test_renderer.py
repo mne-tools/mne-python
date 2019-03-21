@@ -183,3 +183,6 @@ def test_3d_backend(backend_name, to_show):
                         focalpoint=center)
     if to_show:
         renderer.show()
+
+    # put the default value back
+    set_3d_backend(DEFAULT_3D_BACKEND)
