@@ -33,6 +33,7 @@ matrix:
         - os: linux
           env: MNE_STIM_CHANNEL=STI101
                PYTHON_VERSION=3.7
+               CONDA_DEPENDENCIES="cython"
           language: python
           python: "3.7"
           addons:
