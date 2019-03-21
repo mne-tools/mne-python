@@ -28,4 +28,4 @@ neo
 xlrd
 pydocstyle
 flake8
-vispy
+https://api.github.com/repos/vispy/vispy/zipball/master
