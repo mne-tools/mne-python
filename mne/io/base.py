@@ -1862,27 +1862,30 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def plot_psd(self, tmin=0.0, tmax=np.inf, fmin=0, fmax=np.inf,
                  proj=False, n_fft=None, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, estimate='auto', average=None,
-                 show=True, n_jobs=1, line_alpha=None, spatial_colors=None,
-                 xscale='linear', reject_by_annotation=True, verbose=None):
+                 n_overlap=0, n_per_seg=None, dB=True, estimate='auto',
+                 average=None, show=True, n_jobs=1, line_alpha=None,
+                 spatial_colors=None, xscale='linear',
+                 reject_by_annotation=True, verbose=None):
         return plot_raw_psd(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
             n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
-            area_alpha=area_alpha, n_overlap=n_overlap, dB=dB,
-            estimate=estimate, average=average, show=show, n_jobs=n_jobs,
-            line_alpha=line_alpha, spatial_colors=spatial_colors,
-            xscale=xscale, reject_by_annotation=reject_by_annotation)
+            area_alpha=area_alpha, n_overlap=n_overlap, n_per_seg=n_per_seg,
+            dB=dB, estimate=estimate, average=average, show=show,
+            n_jobs=n_jobs, line_alpha=line_alpha,
+            spatial_colors=spatial_colors, xscale=xscale,
+            reject_by_annotation=reject_by_annotation)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
-                      n_fft=2048, n_overlap=0, layout=None, color='w',
-                      fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, axes=None,
+                      n_fft=2048, n_overlap=0, n_per_seg=None, layout=None,
+                      color='w', fig_facecolor='k', axis_facecolor='k',
+                      dB=True, show=True, block=False, n_jobs=1, axes=None,
                       verbose=None):
         return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                  fmax=fmax, proj=proj, n_fft=n_fft,
-                                 n_overlap=n_overlap, layout=layout,
-                                 color=color, fig_facecolor=fig_facecolor,
+                                 n_overlap=n_overlap, n_per_seg=n_per_seg,
+                                 layout=layout, color=color,
+                                 fig_facecolor=fig_facecolor,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, block=block, n_jobs=n_jobs,
                                  axes=axes, verbose=verbose)

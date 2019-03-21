@@ -672,7 +672,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=None, picks=None, ax=None, color='black',
-                 area_mode='std', area_alpha=0.33, n_overlap=0,
+                 area_mode='std', area_alpha=0.33, n_overlap=0, n_per_seg=None,
                  dB=True, estimate='auto', average=False, show=True, n_jobs=1,
                  line_alpha=None, spatial_colors=None, xscale='linear',
                  reject_by_annotation=True, verbose=None):
@@ -701,6 +701,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Number of points to use in Welch FFT calculations.
         Default is None, which uses the minimum of 2048 and the
         number of time points.
+        The segments will be zero-padded if ``n_fft > n_per_seg``.
+        If n_per_seg is None, n_fft must be <= number of time points
+        in the data.
     %(picks_good_data)s
         Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
@@ -720,6 +723,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
+    n_per_seg : int | None
+        Length of each Welch segment (windowed with a Hamming window). Defaults
+        to None, which sets n_per_seg equal to n_fft.
     dB : bool
         Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
         ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
@@ -786,8 +792,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         ax = ax_list[ii]
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
                                 fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
-                                n_overlap=n_overlap, n_jobs=n_jobs,
-                                reject_by_annotation=reject_by_annotation)
+                                n_overlap=n_overlap, n_per_seg=n_per_seg,
+                                n_jobs=n_jobs,
+                                reject_by_annotation=reject_by_annotation,
+                                verbose=verbose)
 
         ylabel = _convert_psds(psds, dB, estimate, scalings_list[ii],
                                units_list[ii],
@@ -1118,9 +1126,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
 
 @verbose
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
-                      n_fft=2048, n_overlap=0, layout=None, color='w',
-                      fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, axes=None,
+                      n_fft=2048, n_overlap=0, n_per_seg=None, layout=None,
+                      color='w', fig_facecolor='k', axis_facecolor='k',
+                      dB=True, show=True, block=False, n_jobs=1, axes=None,
                       verbose=None):
     """Plot channel-wise frequency spectra as topography.
 
@@ -1140,9 +1148,15 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
         Apply projection. Defaults to False.
     n_fft : int
         Number of points to use in Welch FFT calculations. Defaults to 2048.
+        The segments will be zero-padded if ``n_fft > n_per_seg``.
+        If n_per_seg is None, n_fft must be <= number of time points
+        in the data.
     n_overlap : int
         The number of points of overlap between blocks. Defaults to 0
         (no overlap).
+    n_per_seg : int | None
+        Length of each Welch segment (windowed with a Hamming window). Defaults
+        to None, which sets n_per_seg equal to n_fft.
     layout : instance of Layout | None
         Layout instance specifying sensor positions (does not need to be
         specified for Neuromag data). If None (default), the correct layout is
@@ -1179,7 +1193,8 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
     psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
                             fmax=fmax, proj=proj, n_fft=n_fft,
-                            n_overlap=n_overlap, n_jobs=n_jobs)
+                            n_overlap=n_overlap, n_per_seg=n_per_seg,
+                            n_jobs=n_jobs)
     if dB:
         psds = 10 * np.log10(psds)
         y_label = 'dB'
