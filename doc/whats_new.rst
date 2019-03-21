@@ -166,6 +166,9 @@ API
 
 - Deprecate ``method='extended-infomax'`` in :class:`mne.preprocessing.ICA`; Extended Infomax can now be computed with ``method='infomax'`` and ``fit_params=dict(extended=True)`` by `Clemens Brunner`_
 
+- Fix support for supplying ``extrapolate`` via :meth:`ica.plot_properties(..., topomap_args=dict(extrapolate=...)) <mne.preprocessing.ICA.plot_properties>` by `Sebastian Castano`_
+
+
 .. _changes_0_17:
 
 Version 0.17
@@ -3242,3 +3245,5 @@ of commits):
 .. _Jeff Hanna: https://github.com/jshanna100
 
 .. _Antoine Gauthier: https://github.com/Okamille
+
+.. _Sebastian Castano: https://github.com/jscastanoc
