@@ -322,7 +322,7 @@ FIFF.FIFFV_MNE_SURF_LEFT_HEMI     = 101
 FIFF.FIFFV_MNE_SURF_RIGHT_HEMI    = 102
 FIFF.FIFFV_MNE_SURF_MEG_HELMET    = 201               # Use this irrespective of the system
 #
-#   These relate to the Isotrak data
+#   These relate to the Isotrak data (enum(point))
 #
 FIFF.FIFFV_POINT_CARDINAL = 1
 FIFF.FIFFV_POINT_HPI      = 2
@@ -330,10 +330,13 @@ FIFF.FIFFV_POINT_EEG      = 3
 FIFF.FIFFV_POINT_ECG      = FIFF.FIFFV_POINT_EEG
 FIFF.FIFFV_POINT_EXTRA    = 4
 FIFF.FIFFV_POINT_HEAD     = 5  # Point on the surface of the head
-
+#
+# Cardinal point types (enum(cardinal_point))
+#
 FIFF.FIFFV_POINT_LPA = 1
 FIFF.FIFFV_POINT_NASION = 2
 FIFF.FIFFV_POINT_RPA = 3
+FIFF.FIFFV_POINT_INION = 4
 #
 #   SSP
 #
