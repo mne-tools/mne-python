@@ -5,12 +5,13 @@
 #
 # License: Simplified BSD
 
+import os
 import pytest
 import importlib
+import warnings
 import numpy as np
-import os
-from mne.utils import requires_mayavi, requires_vispy
 from mne.viz.backends.renderer import get_3d_backend
+from distutils.version import LooseVersion
 
 # from .._utils import DEFAULT_3D_BACKEND
 DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
@@ -32,15 +33,39 @@ def backend_mocker():
     renderer.MNE_3D_BACKEND = DEFAULT_3D_BACKEND
 
 
-@requires_mayavi
-@requires_vispy
-@pytest.mark.parametrize(
-    'backend', [
-        'mayavi',
-        'vispy',
-        pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
-    ]
-)
+def has_not_vispy():
+    """Check that vispy is not installed."""
+    try:
+        import vispy
+        version = LooseVersion(vispy.__version__)
+        if version < '0.6':
+            raise ImportError
+        return False
+    except ImportError:
+        return True
+
+
+def has_not_mayavi():
+    """Check that mayavi is not installed."""
+    try:
+        with warnings.catch_warnings(record=True):  # traits
+            from mayavi import mlab # noqa F401
+        return False
+    except ImportError:
+        return True
+
+
+requires_mayavi = pytest.mark.skipif(has_not_mayavi(),
+                                     reason='requires mayavi')
+requires_vispy = pytest.mark.skipif(has_not_vispy(),
+                                    reason='requires vispy 0.6')
+
+
+@pytest.mark.parametrize('backend', [
+    pytest.param('mayavi', marks=requires_mayavi),
+    pytest.param('vispy', marks=requires_vispy),
+    pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
+])
 def test_backend_enviroment_setup(backend, backend_mocker, monkeypatch):
     """Test set up 3d backend based on env."""
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
