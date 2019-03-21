@@ -14,7 +14,7 @@ from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
-commit = '4da59a8ed8b84e9941e739c9994a7348c13d3a48'  # mne-tools/fiff-constants
+commit = 'a3feddb3011335586d50bc40d1c4e36cea20913f'  # mne-tools/fiff-constants
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -246,7 +246,7 @@ def test_constants(tmpdir):
             elif name.startswith('FIFFV_SUBJ_'):
                 check = name.split('_')[2].lower()
             elif name in ('FIFFV_POINT_LPA', 'FIFFV_POINT_NASION',
-                          'FIFFV_POINT_RPA'):
+                          'FIFFV_POINT_RPA', 'FIFFV_POINT_INION'):
                 check = 'cardinal_point'
             else:
                 for check in used_enums:
