@@ -271,13 +271,12 @@ class _Renderer(object):
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
         """
-        from vispy.geometry.generation import create_sphere
         for c in center:
-            meshdata = create_sphere(radius=scale * default_sphere_radius,
-                                     cols=resolution, rows=resolution)
-            sphere = scene.visuals.Mesh(meshdata=meshdata, color=color,
-                                        shading='smooth',
-                                        parent=self.view.scene)
+            sphere = scene.visuals.Sphere(color=color,
+                                          radius=scale * default_sphere_radius,
+                                          cols=resolution,
+                                          rows=resolution,
+                                          parent=self.view.scene)
             sphere.transform = STTransform(translate=c)
             sphere.attach(Alpha(opacity))
             if backface_culling:
