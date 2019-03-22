@@ -282,10 +282,10 @@ class _Renderer(object):
             if backface_culling:
                 sphere.set_gl_state(cull_face=True)
 
-    def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
-                 glyph_height=None, glyph_center=None, glyph_resolution=None,
-                 opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False):
+    def quiver3d(self, x, y, z, u, v, w, color, scale, mode='arrow',
+                 resolution=8, glyph_height=None, glyph_center=None,
+                 glyph_resolution=None, opacity=1.0, scale_mode='none',
+                 scalars=None, backface_culling=False):
         """Add quiver3d in the scene.
 
         Parameters
@@ -403,6 +403,22 @@ class _Renderer(object):
     def screenshot(self):
         """Take a screenshot of the scene."""
         return self.canvas.render()
+
+    def title(self, text, height, color=(1.0, 1.0, 1.0)):
+        """Add a title to the scene.
+
+        Parameters
+        ----------
+        title: str
+            The title of the scene.
+        height: float
+            The Y component to use as position of the text.
+        """
+        # normalize font size
+        font_size = 100 * height
+        scene.visuals.Text(pos=(0, 0), text=text, font_size=font_size,
+                           anchor_x='center', anchor_y='top',
+                           color=color, parent=self.view)
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(xyz, self.canvas, self.view.camera)
