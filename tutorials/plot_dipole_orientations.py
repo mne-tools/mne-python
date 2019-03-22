@@ -18,9 +18,10 @@ See :ref:`inverse_orientation_constrains`
 # ------------
 # Load everything we need to perform source localization on the sample dataset.
 
-from mayavi import mlab
 import mne
+import numpy as np
 from mne.datasets import sample
+from mne.viz.backends.renderer import _Renderer
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
 data_path = sample.data_path()
@@ -48,16 +49,17 @@ white = (1.0, 1.0, 1.0)  # RGB values for a white color
 gray = (0.5, 0.5, 0.5)  # RGB values for a gray color
 red = (1.0, 0.0, 0.0)  # RGB valued for a red color
 
-mlab.figure(size=(600, 400), bgcolor=white)
+renderer = _Renderer(size=(600, 400), bgcolor=white)
 
 # Plot the cortex
-mlab.triangular_mesh(verts[:, 0], verts[:, 1], verts[:, 2], tris, color=gray)
+renderer.mesh(x=verts[:, 0], y=verts[:, 1], z=verts[:, 2],
+              triangles=tris, color=gray)
 
 # Mark the position of the dipoles with small red dots
-mlab.points3d(dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2], color=red,
-              scale_factor=1E-3)
+renderer.sphere(np.column_stack((dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2])),
+                color=red, scale=1E-3)
 
-mlab.view(azimuth=180, distance=0.25)
+renderer.set_camera(azimuth=180, distance=0.25)
 
 ###############################################################################
 # .. _plot_dipole_orientations_fixed_orientations:
@@ -76,18 +78,19 @@ mlab.view(azimuth=180, distance=0.25)
 # fixed to be orthogonal to the surface of the cortex, pointing outwards. Let's
 # visualize this:
 
-mlab.figure(size=(600, 400), bgcolor=white)
+renderer = _Renderer(size=(600, 400), bgcolor=white)
 
 # Plot the cortex
-mlab.triangular_mesh(verts[:, 0], verts[:, 1], verts[:, 2], tris, color=gray)
+renderer.mesh(x=verts[:, 0], y=verts[:, 1], z=verts[:, 2],
+              triangles=tris, color=gray)
 
 # Show the dipoles as arrows pointing along the surface normal
 normals = lh['nn'][lh['vertno']]
-mlab.quiver3d(dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2],
-              normals[:, 0], normals[:, 1], normals[:, 2],
-              color=red, scale_factor=1E-3)
+renderer.quiver3d(x=dip_pos[:, 0], y=dip_pos[:, 1], z=dip_pos[:, 2],
+                  u=normals[:, 0], v=normals[:, 1], w=normals[:, 2],
+                  color=red, scale=1E-3)
 
-mlab.view(azimuth=180, distance=0.1)
+renderer.set_camera(azimuth=180, distance=0.1)
 
 ###############################################################################
 # Restricting the dipole orientations in this manner leads to the following
@@ -124,14 +127,16 @@ brain_fixed = stc.plot(surface='white', subjects_dir=subjects_dir,
 # operator has the ability to place not one, but three dipoles at each
 # location defined by the source space. These three dipoles are placed
 # orthogonally to form a Cartesian coordinate system. Let's visualize this:
-mlab.figure(size=(600, 400), bgcolor=white)
+renderer = _Renderer(size=(600, 400), bgcolor=white)
+
 
 # Define some more colors
 green = (0.0, 1.0, 0.0)
 blue = (0.0, 0.0, 1.0)
 
 # Plot the cortex
-mlab.triangular_mesh(verts[:, 0], verts[:, 1], verts[:, 2], tris, color=gray)
+renderer.mesh(x=verts[:, 0], y=verts[:, 1], z=verts[:, 2], triangles=tris,
+              color=gray)
 
 # Make an inverse operator with loose dipole orientations
 inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=False,
@@ -141,11 +146,11 @@ inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=False,
 dip_dir = inv['source_nn'].reshape(-1, 3, 3)
 dip_dir = dip_dir[:len(dip_pos)]  # Only select left hemisphere
 for ori, color in zip((0, 1, 2), (red, green, blue)):
-    mlab.quiver3d(dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2],
-                  dip_dir[:, ori, 0], dip_dir[:, ori, 1], dip_dir[:, ori, 2],
-                  color=color, scale_factor=1E-3)
+    renderer.quiver3d(x=dip_pos[:, 0], y=dip_pos[:, 1], z=dip_pos[:, 2],
+                      u=dip_dir[:, ori, 0], v=dip_dir[:, ori, 1],
+                      w=dip_dir[:, ori, 2], color=color, scale=1E-3)
 
-mlab.view(azimuth=180, distance=0.1)
+renderer.set_camera(azimuth=180, distance=0.1)
 
 ###############################################################################
 # When computing the source estimate, the activity at each of the three dipoles

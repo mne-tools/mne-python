@@ -215,7 +215,7 @@ class _Renderer(object):
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
 
-    def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
+    def quiver3d(self, x, y, z, u, v, w, color, scale, mode='arrow', resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
