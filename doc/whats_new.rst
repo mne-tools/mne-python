@@ -96,6 +96,8 @@ Bug
 
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
+- Fix default HTML language of :class:`mne.Report` to be ``"en-us"`` instead of ``"fr"`` and allow setting via ``report.lang`` property by `Eric Larson`_
+
 - Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
   If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
