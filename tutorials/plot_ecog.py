@@ -15,10 +15,10 @@ electrocorticography (ECoG) data.
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
-from mayavi import mlab
 
 import mne
 from mne.viz import plot_alignment, snapshot_brain_montage
+from mne.viz.backends.renderer import _Renderer
 
 print(__doc__)
 
@@ -48,7 +48,8 @@ info = mne.create_info(ch_names, 1000., 'ecog', montage=mon)
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
 fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                      surfaces=['pial'])
-mlab.view(200, 70)
+renderer = _Renderer(fig=fig)
+renderer.set_camera(azimuth=200, elevation=70)
 
 ###############################################################################
 # Sometimes it is useful to make a scatterplot for the current figure view.
@@ -59,7 +60,8 @@ mlab.view(200, 70)
 # We'll once again plot the surface, then take a snapshot.
 fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                              surfaces='pial')
-mlab.view(200, 70)
+renderer = _Renderer(fig=fig_scatter)
+renderer.set_camera(azimuth=200, elevation=70)
 xy, im = snapshot_brain_montage(fig_scatter, mon)
 
 # Convert from a dictionary to array to plot
