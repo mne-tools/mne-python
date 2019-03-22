@@ -17,9 +17,9 @@ Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
 
 import os.path as op
 import numpy as np
-from mayavi import mlab
 from mne.datasets import phantom_4dbti
 import mne
+from mne.viz.backends.renderer import _Renderer
 
 ###############################################################################
 # Read data and compute a dipole fit at the peak of the evoked response
@@ -64,13 +64,14 @@ print("errors (mm) : %s" % errors)
 # Plot the dipoles in 3D
 
 
-def plot_pos(pos, color=(0., 0., 0.)):
-    mlab.points3d(pos[:, 0], pos[:, 1], pos[:, 2], scale_factor=0.005,
-                  color=color)
+def plot_pos(fig, pos, color=(0., 0., 0.)):
+    renderer = _Renderer(fig=fig)
+    renderer.sphere(np.column_stack((pos[:, 0], pos[:, 1], pos[:, 2])),
+                    scale=0.005, color=color)
 
 
-mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
+fig = mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
 # Plot the position of the actual dipole
-plot_pos(actual_pos, color=(1., 0., 0.))
+plot_pos(fig, actual_pos, color=(1., 0., 0.))
 # Plot the position of the estimated dipole
-plot_pos(pos, color=(1., 1., 0.))
+plot_pos(fig, pos, color=(1., 1., 0.))
