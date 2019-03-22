@@ -23,7 +23,6 @@ sources.
 import os.path as op
 import numpy as np
 from scipy.signal import welch, coherence
-from mayavi import mlab
 from matplotlib import pyplot as plt
 
 import mne
@@ -32,6 +31,7 @@ from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.time_frequency import csd_morlet
 from mne.beamformer import make_dics, apply_dics_csd
+from mne.viz.backends.renderer import _Renderer
 
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
@@ -237,8 +237,9 @@ brain.add_foci(source_vert1, coords_as_verts=True, hemi='lh')
 brain.add_foci(source_vert2, coords_as_verts=True, hemi='rh')
 
 # Rotate the view and add a title.
-mlab.view(0, 0, 550, [0, 0, 0])
-mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
+renderer = _Renderer(fig=brain._figures[0][0])
+renderer.set_camera(azimuth=0, elevation=0, distance=550, focalpoint=[0, 0, 0])
+renderer.title('MNE-dSPM inverse (RMS)', height=0.9)
 
 ###############################################################################
 # We will now compute the cortical power map at 10 Hz. using a DICS beamformer.
@@ -289,8 +290,10 @@ for approach, power in enumerate([power_approach1, power_approach2], 1):
     brain.add_foci(source_vert2, coords_as_verts=True, hemi='rh')
 
     # Rotate the view and add a title.
-    mlab.view(0, 0, 550, [0, 0, 0])
-    mlab.title('DICS power map, approach %d' % approach, height=0.9)
+    renderer = _Renderer(fig=brain._figures[0][0])
+    renderer.set_camera(azimuth=0, elevation=0, distance=550,
+                        focalpoint=[0, 0, 0])
+    renderer.title('DICS power map, approach %d' % approach, height=0.9)
 
 ###############################################################################
 # Excellent! All methods found our two simulated sources. Of course, with a

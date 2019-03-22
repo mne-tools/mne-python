@@ -319,6 +319,10 @@ class _Renderer(object):
         """Take a screenshot of the scene."""
         return self.mlab.screenshot(self.fig)
 
+    def title(self, title, height):
+        """Create a title for the scene."""
+        self.mlab.title(title, height=height)
+
     def project(self, xyz, ch_names):
         """Convert 3d points to a 2d perspective.
 
