@@ -30,8 +30,8 @@ import mne
 from mne import find_events, fit_dipole
 from mne.datasets.brainstorm import bst_phantom_elekta
 from mne.io import read_raw_fif
+from mne.viz.backends.renderer import _Renderer
 
-from mayavi import mlab
 print(__doc__)
 
 ###############################################################################
@@ -161,23 +161,24 @@ plt.show()
 ###############################################################################
 # Let's plot the positions and the orientations of the actual and the estimated
 # dipoles
-def plot_pos_ori(pos, ori, color=(0., 0., 0.), opacity=1.):
+def plot_pos_ori(figure, pos, ori, color=(0., 0., 0.), opacity=1.):
     x, y, z = pos.T
     u, v, w = ori.T
-    mlab.points3d(x, y, z, scale_factor=0.005, opacity=opacity, color=color)
-    q = mlab.quiver3d(x, y, z, u, v, w,
-                      scale_factor=0.03, opacity=opacity,
+    renderer = _Renderer(fig=figure)
+    renderer.set_camera(azimuth=70, elevation=80, distance=0.5)
+    renderer.sphere(np.column_stack((x, y, z)), scale=0.005, opacity=opacity,
+                    color=color)
+    renderer.quiver3d(x=x, y=y, z=z, u=u, v=v, w=w,
+                      scale=0.03, opacity=opacity,
                       color=color, mode='arrow')
-    q.glyph.glyph_source.glyph_source.shaft_radius = 0.02
-    q.glyph.glyph_source.glyph_source.tip_length = 0.1
-    q.glyph.glyph_source.glyph_source.tip_radius = 0.05
 
 
-mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces='inner_skull',
-                       coord_frame='head', meg='helmet', show_axes=True)
+figure = mne.viz.plot_alignment(evoked.info, bem=sphere,
+                                surfaces='inner_skull',
+                                coord_frame='head', meg='helmet',
+                                show_axes=True)
 
 # Plot the position and the orientation of the actual dipole
-plot_pos_ori(actual_pos, actual_ori, color=(0., 0., 0.), opacity=0.5)
+plot_pos_ori(figure, actual_pos, actual_ori, color=(0., 0., 0.), opacity=0.5)
 # Plot the position and the orientation of the estimated dipole
-plot_pos_ori(dip.pos, dip.ori, color=(0.2, 1., 0.5))
-mlab.view(70, 80, distance=0.5)
+plot_pos_ori(figure, dip.pos, dip.ori, color=(0.2, 1., 0.5))
