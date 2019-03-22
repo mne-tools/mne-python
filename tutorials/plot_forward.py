@@ -15,6 +15,7 @@ concepts for forward modeling. See :ref:`ch_forward`.
 import os.path as op
 import mne
 from mne.datasets import sample
+from mne.viz.backends.renderer import _Renderer
 data_path = sample.data_path()
 
 # the raw file containing the channel location + types
@@ -159,7 +160,6 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # slices are shown. Let's write a few lines of mayavi to see all sources in 3D.
 
 import numpy as np  # noqa
-from mayavi import mlab  # noqa
 from surfer import Brain  # noqa
 
 brain = Brain('sample', 'lh', 'inflated', subjects_dir=subjects_dir)
@@ -167,8 +167,11 @@ surf = brain.geo['lh']
 
 vertidx = np.where(src[0]['inuse'])[0]
 
-mlab.points3d(surf.x[vertidx], surf.y[vertidx],
-              surf.z[vertidx], color=(1, 1, 0), scale_factor=1.5)
+renderer = _Renderer(fig=brain._figures[0][0])
+renderer.sphere(np.column_stack((surf.x[vertidx],
+                                 surf.y[vertidx],
+                                 surf.z[vertidx])),
+                color=(1, 1, 0), scale=1.5)
 
 
 ###############################################################################
