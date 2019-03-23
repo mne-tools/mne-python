@@ -39,9 +39,9 @@ from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,
                        sum_squared, split_list, _gen_events, create_slices,
-                       _time_mask, grand_average, object_diff, object_hash,
-                       object_size, _apply_scaling_cov, _undo_scaling_cov,
-                       _apply_scaling_array, _undo_scaling_array,
-                       _scaled_array, _replace_md5)
+                       _time_mask, _freq_mask, grand_average, object_diff,
+                       object_hash, object_size, _apply_scaling_cov,
+                       _undo_scaling_cov, _apply_scaling_array,
+                       _undo_scaling_array, _scaled_array, _replace_md5)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas)
