@@ -2756,3 +2756,28 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
         for color, name in zip(cmap(old), colors):
             cdict[name].append((new, color, color))
     return LinearSegmentedColormap(name, cdict)
+
+
+def plot_image(data, ax=None, xvals=None, yvals=None, mask=None, picks=None,
+               cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
+               mask_style="both", mask_alpha=.25, mask_cmap="Greys",
+               yscale="linear", title=None, xlabel=None, ylabel=None,
+               cbar=False):
+    """Docstring"""
+
+    if ax is None:
+        import matplotlib.pyplot as plt
+        ax = plt.axes()
+
+    im, t_end = _plot_masked_image(
+        ax, data, xvals, mask=mask, picks=picks, yvals=yvals, cmap=cmap,
+        vmin=vmin, vmax=vmax, ylim=ylim, mask_style=mask_style,
+        mask_alpha=mask_alpha, mask_cmap=mask_cmap, yscale=yscale)
+
+    for param in ("title", "ylabel", "xlabel"):
+        value = locals()[param]
+        if value is not None:
+            getattr(ax, "set_" + param)(value)
+
+    if cbar:
+        plt.colorbar(im)

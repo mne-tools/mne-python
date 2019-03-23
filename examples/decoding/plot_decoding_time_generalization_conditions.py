@@ -30,6 +30,7 @@ from sklearn.linear_model import LogisticRegression
 import mne
 from mne.datasets import sample
 from mne.decoding import GeneralizingEstimator
+from mne.viz.utils import plot_image
 
 print(__doc__)
 
@@ -70,14 +71,14 @@ scores = time_gen.score(X=epochs['Right'].get_data(),
 
 ###############################################################################
 # Plot
-fig, ax = plt.subplots(1)
-im = ax.matshow(scores, vmin=0, vmax=1., cmap='RdBu_r', origin='lower',
-                extent=epochs.times[[0, -1, 0, -1]])
+
+ax = plt.axes()
+plot_image(scores, ax=ax, vmin=0, vmax=1, xvals=epochs.times,
+           yvals=epochs.times, ylabel="Training Time (s)",
+           xlabel="Testing Time (s)",
+           title="Generalization across time and condition")
 ax.axhline(0., color='k')
 ax.axvline(0., color='k')
 ax.xaxis.set_ticks_position('bottom')
-ax.set_xlabel('Testing Time (s)')
-ax.set_ylabel('Training Time (s)')
-ax.set_title('Generalization across time and condition')
-plt.colorbar(im, ax=ax)
+
 plt.show()
