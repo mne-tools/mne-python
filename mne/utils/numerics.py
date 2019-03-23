@@ -504,6 +504,27 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     return mask
 
 
+def _freq_mask(freqs, fmin=None, fmax=None, raise_error=True):
+    """Safely find frequency boundaries."""
+    orig_fmin = fmin
+    orig_fmax = fmax
+    fmin = -np.inf if fmin is None else fmin
+    fmax = np.inf if fmax is None else fmax
+    if not np.isfinite(fmin):
+        fmin = freqs[0]
+    if not np.isfinite(fmax):
+        fmax = freqs[-1]
+    if raise_error and fmin > fmax:
+        raise ValueError('fmin (%s) must be less than or equal to fmax (%s)'
+                         % (orig_fmin, orig_fmax))
+    mask = (freqs >= fmin)
+    mask &= (freqs <= fmax)
+    if raise_error and not mask.any():
+        raise ValueError('No samples remain when using fmin=%s and fmax=%s '
+                         '(original frequency bounds are [%s, %s])'
+                         % (orig_fmin, orig_fmax, freqs[0], freqs[-1]))
+    return mask
+
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     """Make grand average of a list evoked or AverageTFR data.
 
