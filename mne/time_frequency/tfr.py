@@ -21,8 +21,8 @@ from .multitaper import dpss_windows
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
-                     GetEpochsMixin, _prepare_read_metadata, fill_doc,
+from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
+                     sizeof_fmt, GetEpochsMixin, _prepare_read_metadata, fill_doc,
                      _prepare_write_metadata, _check_event_id, _gen_events,
                      SizeMixin, _is_numeric, _check_option)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
@@ -869,7 +869,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         """Channel names."""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None):
+    def crop(self, tmin=None, tmax=None, fmin=None, fmax=None):
         """Crop data to a given time interval in place.
 
         Parameters
@@ -884,9 +884,14 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         inst : instance of AverageTFR
             The modified instance.
         """
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-        self.times = self.times[mask]
-        self.data = self.data[..., mask]
+        time_mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        self.times = self.times[time_mask]
+        self.data = self.data[..., time_mask]
+
+        freq_mask = _freq_mask(self.freqs, fmin, fmax)
+        self.freqs = self.freqs[freq_mask]
+        self.data = self.data[..., freq_mask, :]
+
         return self
 
     def copy(self):
