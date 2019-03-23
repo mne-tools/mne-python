@@ -14,7 +14,7 @@ from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (_get_inst_data, md5sum, hashfunc,
                        sum_squared, compute_corr, create_slices, _time_mask,
-                       random_permutation, _reg_pinv, object_size,
+                        _freq_mask, random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array)
@@ -172,6 +172,31 @@ def test_time_mask():
     # degenerate cases
     pytest.raises(ValueError, _time_mask, x[:1], tmin=11, tmax=12)
     pytest.raises(ValueError, _time_mask, x[:1], tmin=10, sfreq=1)
+
+
+def test_freq_mask():
+    """Test frequency masking."""
+    N = 10
+    x = np.arange(N).astype(float)
+    assert _freq_mask(x, 0, N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 0, N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, None, N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, None, None).sum() == N
+    assert _freq_mask(x - 1e-10, -np.inf, None).sum() == N
+    assert _freq_mask(x - 1e-10, None, np.inf).sum() == N
+    # non-uniformly spaced inputs
+    x = np.array([4, 10])
+    assert _freq_mask(x[:1], fmin=10, raise_error=False).sum() == 0
+    assert _freq_mask(x[:1], fmin=11, fmax=12, raise_error=False).sum() == 0
+    assert _freq_mask(x, fmin=10).sum() == 1
+    assert _freq_mask(x, fmin=6).sum() == 1
+    assert _freq_mask(x, fmin=5).sum() == 1
+    assert _freq_mask(x, fmin=4.5001).sum() == 1
+    assert _freq_mask(x, fmin=4.4999).sum() == 2
+    assert _freq_mask(x, fmin=4).sum() == 2
+    # degenerate cases
+    pytest.raises(ValueError, _freq_mask, x[:1], fmin=11, fmax=12)
+    pytest.raises(ValueError, _freq_mask, x[:1], fmin=10)
 
 
 def test_random_permutation():
