@@ -2679,7 +2679,9 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
     else:
         # imshow for linear because the y ticks are nicer
         # and the masked areas look better
-        extent = [times[0], times[-1], yvals[0], yvals[-1] + 1]
+        top_bound = yvals[-1] + (yvals[-1] - yvals[-2])
+        top_bound = yvals[-1]  # ?
+        extent = [times[0], times[-1], yvals[0], top_bound]
         im_args = dict(interpolation='nearest', origin='lower',
                        extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
@@ -2696,7 +2698,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
                        linewidths=[.75], corner_mask=False,
                        antialiased=False, levels=[.5])
         time_lims = times[[0, -1]]
-        ylim = yvals[0], yvals[-1] + 1
+        ylim = yvals[0], top_bound
 
     ax.set_xlim(time_lims[0], time_lims[-1])
     ax.set_ylim(ylim)
@@ -2764,9 +2766,9 @@ def plot_image(data, ax=None, xvals=None, yvals=None, mask=None, picks=None,
                yscale="linear", title=None, xlabel=None, ylabel=None,
                cbar=False):
     """Docstring"""
+    import matplotlib.pyplot as plt
 
     if ax is None:
-        import matplotlib.pyplot as plt
         ax = plt.axes()
 
     im, t_end = _plot_masked_image(

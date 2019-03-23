@@ -75,7 +75,7 @@ scores = time_gen.score(X=epochs['Right'].get_data(),
 ax = plt.axes()
 plot_image(scores, ax=ax, vmin=0, vmax=1, xvals=epochs.times,
            yvals=epochs.times, ylabel="Training Time (s)",
-           xlabel="Testing Time (s)",
+           xlabel="Testing Time (s)", cbar=True,
            title="Generalization across time and condition")
 ax.axhline(0., color='k')
 ax.axvline(0., color='k')
