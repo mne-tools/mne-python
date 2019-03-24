@@ -2760,7 +2760,7 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     return LinearSegmentedColormap(name, cdict)
 
 
-def plot_image(data, ax=None, xvals=None, yvals=None, mask=None, picks=None,
+def plot_image(data, ax=None, xvals=None, yvals=None, mask=False, picks=None,
                cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                mask_style="both", mask_alpha=.25, mask_cmap="Greys",
                yscale="linear", title=None, xlabel=None, ylabel=None,
