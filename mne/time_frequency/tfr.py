@@ -878,6 +878,10 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        fmin : float | None
+            Lowest frequency of selection in Hz.
+        fmax : float | None
+            Highest frequency of selection in Hz.
 
         Returns
         -------
@@ -888,7 +892,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         self.times = self.times[time_mask]
         self.data = self.data[..., time_mask]
 
-        freq_mask = _freq_mask(self.freqs, fmin, fmax)
+        freq_mask = _freq_mask(self.freqs, fmin, fmax, sfreq=self.info['sfreq'])
         self.freqs = self.freqs[freq_mask]
         self.data = self.data[..., freq_mask, :]
 
