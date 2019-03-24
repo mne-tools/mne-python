@@ -31,7 +31,7 @@ However, you can also directly go to the `GitHub help pages
 <https://help.github.com/>`_ which offer a great introduction to git and
 GitHub.
 
-In the present document, we refer to the ``mne-python/master`` branch, as the
+In the present document, we refer to the ``mne-python/master`` branch as
 *master*.
 
 .. _forking:
@@ -113,7 +113,7 @@ These steps can be broken out to be more explicit as:
    see the URLs for the remote.  They will point to your GitHub fork.
 
    Now you want to connect to the mne-python repository, so you can
-   merge in changes from the master:
+   merge in changes from master:
 
    .. code-block:: console
 
@@ -180,7 +180,8 @@ sections.
 * If you can possibly avoid it, avoid merging master or any other branches into
   your feature branch while you are working.
 
-* If you do find yourself merging from the master, consider :ref:`rebase-on-master`
+* If you do find yourself merging from the master branch, consider
+  :ref:`rebase-on-master`
 
 * **Ensure all tests still pass**. Make `travis`_ happy.
 
