@@ -2680,7 +2680,6 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
         # imshow for linear because the y ticks are nicer
         # and the masked areas look better
         top_bound = yvals[-1] + (yvals[-1] - yvals[-2])
-        top_bound = yvals[-1]  # ?
         extent = [times[0], times[-1], yvals[0], top_bound]
         im_args = dict(interpolation='nearest', origin='lower',
                        extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
@@ -2771,15 +2770,16 @@ def plot_image(data, ax=None, xvals=None, yvals=None, mask=None, picks=None,
     if ax is None:
         ax = plt.axes()
 
-    im, t_end = _plot_masked_image(
+    im, _ = _plot_masked_image(
         ax, data, xvals, mask=mask, picks=picks, yvals=yvals, cmap=cmap,
         vmin=vmin, vmax=vmax, ylim=ylim, mask_style=mask_style,
         mask_alpha=mask_alpha, mask_cmap=mask_cmap, yscale=yscale)
 
     for param in ("title", "ylabel", "xlabel"):
-        value = locals()[param]
-        if value is not None:
-            getattr(ax, "set_" + param)(value)
+        getattr(ax, "set_" + param)(locals()[param])
 
     if cbar:
         plt.colorbar(im)
+
+    return ax
+
