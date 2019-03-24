@@ -880,8 +880,10 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             End time of selection in seconds.
         fmin : float | None
             Lowest frequency of selection in Hz.
+            .. versionadded:: 0.18
         fmax : float | None
-            Highest frequency of selection in Hz.
+            Highest frequency of selection in Hz.            
+            .. versionadded:: 0.18
 
         Returns
         -------
