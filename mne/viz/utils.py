@@ -2680,7 +2680,8 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
         # imshow for linear because the y ticks are nicer
         # and the masked areas look better
         top_bound = yvals[-1] + (yvals[-1] - yvals[-2])
-        extent = [times[0], times[-1], yvals[0], top_bound]
+        right_bound = times[-1] + (times[-1] - times[-2])
+        extent = [times[0], right_bound, yvals[0], top_bound]
         im_args = dict(interpolation='nearest', origin='lower',
                        extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
@@ -2696,7 +2697,7 @@ def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
             ax.contour(big_mask, colors=["k"], extent=extent,
                        linewidths=[.75], corner_mask=False,
                        antialiased=False, levels=[.5])
-        time_lims = times[[0, -1]]
+        time_lims = (times[0], right_bound)
         ylim = yvals[0], top_bound
 
     ax.set_xlim(time_lims[0], time_lims[-1])
