@@ -202,7 +202,7 @@ details.
 .. _update-mirror-master:
 
 Updating the mirror of master
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 From time to time you should fetch the upstream (master) changes from GitHub:
 
@@ -365,7 +365,7 @@ on the mne-python_ GitHub site to discuss potential changes.
 .. _rebase-on-master:
 
 Rebasing on master
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 Let's say you thought of some work you'd like to do. You
 :ref:`update-mirror-master` and :ref:`make-feature-branch` called
