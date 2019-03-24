@@ -388,13 +388,13 @@ def test_pca(n_components, whiten):
     assert_array_equal(X, X_orig)
     old_sklearn = LooseVersion(sklearn.__version__) < LooseVersion('0.19')
     if whiten and old_sklearn:
-        X_skl *= (n_samples - 1) / float(n_samples)
+        X_skl *= np.sqrt((n_samples - 1.) / n_samples)
     assert_allclose(X_skl, X_mne)
     for key in ('mean_', 'components_',
                 'explained_variance_', 'explained_variance_ratio_'):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
         if key == 'explained_variance_' and old_sklearn:
-            val_skl *= n_samples / float(n_samples - 1)  # old bug
+            val_skl *= n_samples / (n_samples - 1.)  # old bug
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
         assert 1 < pca_mne.n_components_ < n_dim
