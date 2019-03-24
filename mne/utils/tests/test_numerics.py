@@ -1,4 +1,5 @@
 from copy import deepcopy
+from distutils.version import LooseVersion
 from io import StringIO
 import os.path as op
 
@@ -373,6 +374,7 @@ def test_hash():
 @pytest.mark.parametrize('whiten', (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
+    import sklearn
     from sklearn.decomposition import PCA
     n_samples, n_dim = 1000, 10
     X = np.random.RandomState(0).randn(n_samples, n_dim)
@@ -388,6 +390,9 @@ def test_pca(n_components, whiten):
     for key in ('mean_', 'components_',
                 'explained_variance_', 'explained_variance_ratio_'):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
+        if key == 'explained_variance_' and \
+                LooseVersion(sklearn.__version__) < LooseVersion('0.19'):
+            val_skl *= (n_samples - 1) / float(n_samples)  # old bug
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
         assert 1 < pca_mne.n_components_ < n_dim
