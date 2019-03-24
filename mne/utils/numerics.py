@@ -745,6 +745,7 @@ def object_diff(a, b, pre=''):
 
 class _PCA(object):
     """Principal component analysis (PCA)."""
+
     # Adapted from sklearn and stripped down to just use linalg.svd
     # and make it easier to later provide a "center" option if we want
 
