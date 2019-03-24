@@ -377,10 +377,6 @@ def test_crop():
     assert_equal(tfr.freqs, [0.1, 0.2])
     assert_equal(tfr.data.shape[-2], 2)
 
-    print(tfr.freqs)
-    print(tfr.data)
-    print(tfr.data.shape )
-
 
 @requires_h5py
 @requires_pandas
