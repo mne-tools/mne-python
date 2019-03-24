@@ -504,7 +504,7 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     return mask
 
 
-def _freq_mask(freqs, fmin=None, fmax=None, raise_error=True):
+def _freq_mask(freqs, fmin=None, fmax=None, sfreq=None, raise_error=True):
     """Safely find frequency boundaries."""
     orig_fmin = fmin
     orig_fmax = fmax
@@ -514,6 +514,11 @@ def _freq_mask(freqs, fmin=None, fmax=None, raise_error=True):
         fmin = freqs[0]
     if not np.isfinite(fmax):
         fmax = freqs[-1]
+    if sfreq is not None:
+        # Push 0.5/sfreq (= 0.25/nyquist) past the nearest frequency boundary first
+        sfreq = float(sfreq)
+        fmin = int(round(fmin * sfreq)) / sfreq - 0.5 / sfreq
+        fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq
     if raise_error and fmin > fmax:
         raise ValueError('fmin (%s) must be less than or equal to fmax (%s)'
                          % (orig_fmin, orig_fmax))
