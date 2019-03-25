@@ -530,6 +530,7 @@ def _freq_mask(freqs, fmin=None, fmax=None, sfreq=None, raise_error=True):
                          % (orig_fmin, orig_fmax, freqs[0], freqs[-1]))
     return mask
 
+
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     """Make grand average of a list evoked or AverageTFR data.
 
