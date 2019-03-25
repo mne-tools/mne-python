@@ -270,41 +270,39 @@ class _Renderer(object):
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
         """
-        from vispy.geometry import create_sphere, MeshData
+        from vispy.geometry import create_sphere
         from vispy.util.transforms import translate
 
         # fetch original data
-        acc_vertices = np.array([])
-        acc_faces = np.array([])
-        voffset = 0
         meshdata = create_sphere(radius=scale * default_sphere_radius,
                                  cols=resolution, rows=resolution)
-        # accumulate mesh data
         orig_vertices = meshdata.get_vertices()
         orig_faces = meshdata.get_faces()
         nvertices = len(orig_vertices)
-        for c in center:
-            # accumulate faces
-            current_faces = orig_faces + voffset
-            if len(acc_faces) == 0:
-                acc_faces = current_faces
-            else:
-                acc_faces = np.concatenate((acc_faces, current_faces), axis=0)
-            voffset += nvertices
+        nfaces = len(orig_faces)
+        ncenter = len(center)
+        voffset = 0
+        foffset = 0
 
-            # accumulate vertices
+        # accumulate mesh data
+        acc_vertices = np.empty((ncenter * nvertices, 3), dtype=np.float32)
+        acc_faces = np.empty((ncenter * nfaces, 3), dtype=np.uint32)
+        for c in center:
+            # apply index shifting and accumulate faces
+            current_faces = orig_faces + voffset
+            acc_faces[foffset:foffset + nfaces, :] = current_faces
+            foffset += nfaces
+
+            # apply translation and accumulate vertices
             mat = translate(c).T
             current_vertices = np.c_[orig_vertices, np.ones(nvertices)]
             current_vertices = mat.dot(current_vertices.T)
-            current_vertices = current_vertices.T[:, 0:3]
-            if len(acc_vertices) == 0:
-                acc_vertices = current_vertices
-            else:
-                acc_vertices = np.concatenate((acc_vertices, current_vertices),
-                                              axis=0)
-        meshdata = MeshData(vertices=acc_vertices, faces=acc_faces)
+            acc_vertices[voffset:voffset + nvertices, :] = \
+                current_vertices.T[:, 0:3]
+            voffset += nvertices
 
-        sphere = scene.visuals.Mesh(meshdata=meshdata,
+        sphere = scene.visuals.Mesh(vertices=acc_vertices,
+                                    faces=acc_faces,
                                     color=color,
                                     parent=self.view.scene)
         sphere.attach(Alpha(opacity))
