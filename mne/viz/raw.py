@@ -14,7 +14,8 @@ from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type,
-                       _picks_to_idx)
+                       _picks_to_idx, _MEG_CH_TYPES_SPLIT,
+                       _FNIRS_CH_TYPES_SPLIT)
 from ..io.meas_info import create_info
 from ..utils import (verbose, get_config, _ensure_int, _validate_type,
                      _check_option)
@@ -565,8 +566,6 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode,
     import matplotlib.pyplot as plt
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
-    # _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
-    #               with_ref_meg=True)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
@@ -574,6 +573,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode,
         these_data_types = _data_types
     else:  # restrict to all channels, for which we have any kind of scaling
         scalings_fallback = _handle_default('scalings_plot_raw', None)
+        scalings_fallback.pop('whitened')
         these_data_types = tuple(scalings_fallback.keys())
 
     titles = _handle_default('titles', None)
@@ -584,7 +584,15 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode,
     units_list = list()
     scalings_list = list()
     for pick in these_data_types:
-        these_picks = _picks_to_idx(info, pick)
+        these_types = dict(meg=False, ref_meg=False)
+        if pick in _MEG_CH_TYPES_SPLIT:
+            these_types['meg'] = pick
+        elif pick in _FNIRS_CH_TYPES_SPLIT:
+            these_types['fnirs'] = pick
+        else:
+            these_types[pick] = True
+        these_picks = pick_types(info, **these_types)
+        # _picks_to_idx complains if type not present in info
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
