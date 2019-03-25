@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.tfr._BaseTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
+- Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
 
 - Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
 
