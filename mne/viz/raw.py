@@ -559,18 +559,23 @@ def _label_clicked(pos, params):
 _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
 
 
-def _set_psd_plot_params(info, proj, picks, ax, area_mode):
+def _set_psd_plot_params(info, proj, picks, ax, area_mode,
+                         restrict_to_data_channels=True):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
+    # _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
+    #               with_ref_meg=True)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False]
-    eegs = [False, False, True, False, False]
-    seegs = [False, False, False, True, False]
-    ecogs = [False, False, False, False, True]
+    if restrict_to_data_channels:
+        these_data_types = _data_types
+    else:  # restrict to all channels, for which we have any kind of scaling
+        scalings_fallback = _handle_default('scalings_plot_raw', None)
+        these_data_types = tuple(scalings_fallback.keys())
+
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -578,16 +583,23 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
-                                          _data_types):
-        these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False)
+    for pick in these_data_types:
+        these_picks = _picks_to_idx(info, pick)
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
-            titles_list.append(titles[name])
-            units_list.append(units[name])
-            scalings_list.append(scalings[name])
+            try:
+                titles_list.append(titles[pick])
+            except KeyError:
+                titles_list.append(pick.upper())
+            try:
+                units_list.append(units[pick])
+            except KeyError:
+                units_list.append('AU')
+            try:
+                scalings_list.append(scalings[pick])
+            except KeyError:
+                scalings_list.append(scalings_fallback[pick])*1000  # like misc
     if len(picks_list) == 0:
         raise RuntimeError('No data channels found')
     if ax is not None:
@@ -675,7 +687,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  area_mode='std', area_alpha=0.33, n_overlap=0,
                  dB=True, estimate='auto', average=False, show=True, n_jobs=1,
                  line_alpha=None, spatial_colors=None, xscale='linear',
-                 reject_by_annotation=True, verbose=None):
+                 reject_by_annotation=True, restrict_to_data_channels=True,
+                 verbose=None):
     """Plot the power spectral density across channels.
 
     Different channel types are drawn in sub-plots. When the data has been
@@ -755,6 +768,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
+    restrict_to_data_channels : bool
+        Whether to restrict the channels to plot to data channels only ('mag',
+        'grad', 'eeg', 'seeg', 'ecog') or to plot the psd for all picked
+        channels. Defaults to True.
     %(verbose)s
 
     Returns
@@ -771,7 +788,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         spatial_colors = False if average else True
 
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label = _set_psd_plot_params(raw.info, proj, picks, ax, area_mode)
+        make_label = _set_psd_plot_params(raw.info, proj, picks, ax, area_mode,
+                                          restrict_to_data_channels=
+                                          restrict_to_data_channels)
     del ax
     if line_alpha is None:
         line_alpha = 1.0 if average else 0.75
