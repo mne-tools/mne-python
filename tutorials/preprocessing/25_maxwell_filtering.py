@@ -98,7 +98,7 @@ fig.tight_layout()
 # so you can easily scroll through the rest of the datafile or look at
 # individual channels:
 
-kwargs = dict(duration=2, proj=False)
+kwargs = dict(duration=2, proj=False, n_channels=5)
 raw.pick_types().plot(**kwargs)
 raw_sss.pick_types().plot(**kwargs)
 
@@ -136,7 +136,8 @@ raw_sss.pick_types().plot(**kwargs)
 #
 # 1. There are patents related to the Maxwell filtering algorithm, which may
 #    legally preclude using it in commercial applications. More details are
-#    provided in the documetation of :func:`~mne.preprocessing.maxwell_filter`.
+#    provided in the documentation of
+#    :func:`~mne.preprocessing.maxwell_filter`.
 #
 # 2. SSS works best when both magnetometers and gradiometers are present, and
 #    is most effective when gradiometers are planar (due to the need for very

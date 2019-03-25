@@ -21,7 +21,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 
 ###############################################################################
-# You can plot the sensor distribution individual projectors using the
+# You can plot the sensor distribution of individual projectors using the
 # :meth:`~mne.Projection.plot_topomap` method on the :class:`~mne.Projection`
 # object, to see the spatial pattern of what's being projected out:
 
@@ -64,7 +64,9 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 # layouts for some channel types and inferring layouts for others is not
 # possible in a single call to :func:`~mne.viz.plot_projs_topomap`. Luckily
 # :func:`~mne.viz.plot_projs_topomap` accepts a list of layouts, and we can use
-# a `list comprehension`_ to extract layouts for all three channel types:
+# a `list comprehension`_ to extract layouts for all three channel types. You
+# can visualize the layouts with the :meth:`~mne.channels.Layout.plot()`
+# method:
 
 all_channel_layouts = [mne.find_layout(raw.info, ch_type=channel_type)
                        for channel_type in ('grad', 'mag', 'eeg')]

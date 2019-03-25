@@ -41,11 +41,11 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # 2. The data array will always be 2-dimensional even if you request only a
 #    single time sample or a single channel.
 #
-# To illustrate this, let's select just a few seconds of data from the first
+# To illustrate this, let's select just a couple seconds of data from the first
 # channel:
 
 sampling_frequency = raw.info['sfreq']
-starting_sample = int(10 * sampling_frequency)
+starting_sample = int(11 * sampling_frequency)
 ending_sample = int(13 * sampling_frequency)
 raw_selection = raw[0, starting_sample:ending_sample]
 print(raw_selection)
@@ -59,7 +59,7 @@ print(raw_selection)
 
 x = raw_selection[1]
 y = raw_selection[0].T
-_ = plt.plot(x, y)
+plt.plot(x, y)
 
 ###############################################################################
 # The :meth:`~mne.io.Raw.get_data` method

@@ -33,7 +33,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # save the data array:
 
 data = raw.get_data()  # or data, times = raw[:]
-np.save(file='my_data.npy', arr=data)  # doctest: +SKIP
+np.save(file='my_data.npy', arr=data)
 
 ###############################################################################
 # It is also possible to export the data to a Pandas DataFrame object, and use

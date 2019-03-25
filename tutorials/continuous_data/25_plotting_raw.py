@@ -39,7 +39,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 raw.plot()
 
 ###############################################################################
-# It may not be obvious when viewing this tutorials online, but by default, the
+# It may not be obvious when viewing this tutorial online, but by default, the
 # :meth:`~mne.io.Raw.plot` method generates an *interactive* plot window with
 # several useful features:
 #
@@ -60,12 +60,13 @@ raw.plot()
 # - It shows the first 10 seconds of the :class:`~mne.io.Raw` object.
 #
 #   - You can shorten or lengthen the window length using :kbd:`home` and
-#     :kbd:`end` keys, respectively, or start with a specific window duration
-#     by passing the ``duration`` parameter.
+#     :kbd:`end` keys, or start with a specific window duration by passing the
+#     ``duration`` parameter.
 #
 #   - You can scroll in the time domain using the :kbd:`left` and
 #     :kbd:`right` arrow keys, or start at a specific point by passing the
-#     ``start`` parameter.
+#     ``start`` parameter. Scrolling using :kbd:`shift`:kbd:`right` or
+#     :kbd:`shift`:kbd:`left` scrolls a full window width at a time.
 #
 # - It allows clicking on channels to mark/unmark as "bad".
 #
@@ -77,8 +78,8 @@ raw.plot()
 #
 #   - This allows you to mark time spans that should be excluded from future
 #     computations due to large movement artifacts, line noise, or other
-#     distortions of the signal. See :ref:`the annotations tutorial
-#     <events-and-annotations-tutorial>` for details.
+#     distortions of the signal. Annotation mode is entered by pressing
+#     :kbd:`a`. See :ref:`annotations-tutorial` for details.
 #
 # - It automatically applies any :term:`projectors <projector>` before plotting
 #   the data.

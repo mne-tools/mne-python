@@ -8,11 +8,10 @@ Working with projectors in MNE-Python
 .. include:: ../../tutorial_links.inc
 
 This tutorial describes how to work with :term:`projectors <projector>` in
-MNE-Python. It covers loading and saving projectors, addin
-and describes some common use cases for projectors: reduction of environmental
-noise, artifact removal for heartbeats or blinks, and setting an EEG reference.
-As usual we'll start by importing the modules we need, and loading some example
-data:
+MNE-Python. It covers loading and saving projectors, adding and removing
+projectors from :class:`~mne.io.Raw` objects, and the difference between
+"applied" and "unapplied" projectors. As usual we'll start by importing the
+modules we need, and loading some example data:
 """
 
 import os
@@ -28,11 +27,18 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 # In our example data, :ref:`SSP <ssp-tutorial>` has already been performed
 # using empty room recordings, but the projectors are stored alongside the raw
 # data (they have not been *applied* yet). You can see the projectors in the
+# output of :func:`~mne.io.read_raw_fif` above, and also in the
 # ``projs`` field of ``raw.info``:
 
 print(raw.info['projs'])
 
 ###############################################################################
+# .. note::
+#
+#     In MNE-Python, the environmental noise vectors are computed using
+#     `principal component analysis`_, usually abbreviated "PCA", which is why
+#     the SSP projectors usually have names like "PCA-v1".
+#
 # ``raw.info['projs']`` is an ordinary Python list of :class:`~mne.Projection`
 # objects, so you can access individual projectors by indexing into it:
 
@@ -68,19 +74,16 @@ fig.tight_layout(rect=(0.04, 0, 1, 1))
 # default, ``raw.plot()`` will apply the projectors in the background before
 # plotting (without modifying the :class:`~mne.io.Raw` object); you can control
 # this with the boolean ``proj`` parameter as shown below, or you can turn them
-# on and off interactively with the ``Proj`` button in the lower right corner
-# of the plot window. Here are the equivalent MNE-Python commands to create
-# plots similar to the one shown above:
-#
-# .. NOTE: we purposely don't run the following code block due to bug in
-#    butterfly mode (it plots an empty "misc" channel row)
-#
-# .. code-block:: python3
-#
-#     mags = raw.copy().pick_types(meg='mag')
-#     mags.plot(duration=2, butterfly=True, proj=False)  # or proj=True
-#
-#
+# on and off interactively with the projectors interface, accessed via the
+# ``Proj`` button in the lower right corner of the plot window. Here are the
+# equivalent MNE-Python commands to create plots similar to the one shown
+# above:
+
+mags = raw.copy().pick_types(meg='mag')
+mags.plot(duration=2, butterfly=True, proj=False)
+mags.plot(duration=2, butterfly=True, proj=True)
+
+###############################################################################
 # Loading and saving projectors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -154,6 +157,7 @@ fig.tight_layout(rect=(0.04, 0, 1, 1))
 #
 # When to "apply" projectors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
 #
 # TODO: have they been applied? (:attr:`mne.io.Raw.proj`)
 #

@@ -202,14 +202,14 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 #
 # We mentioned above that the projection matrix will vary depending on what
 # kind of noise you are trying to project away. Signal-space projection (SSP)
-# is a way of estimating what that projection matrix should be, by comparing
-# measurements with and without the signal of interest. For example, you can
-# take additional "empty room" measurements that record activity at the sensors
-# when no subject is present. By looking at the spatial pattern of activity
-# across MEG sensors in an empty room measurement, you can create one or more
-# :math:`N`-dimensional vector(s) giving the "direction(s)" of environmental
-# noise in sensor space (analogous to the vector for "effect of the trigger" in
-# our example above).
+# [1]_ is a way of estimating what that projection matrix should be, by
+# comparing measurements with and without the signal of interest. For example,
+# you can take additional "empty room" measurements that record activity at the
+# sensors when no subject is present. By looking at the spatial pattern of
+# activity across MEG sensors in an empty room measurement, you can create one
+# or more :math:`N`-dimensional vector(s) giving the "direction(s)" of
+# environmental noise in sensor space (analogous to the vector for "effect of
+# the trigger" in our example above).
 #
 # Once you know those vectors, you can create a hyperplane that is orthogonal
 # to them, and construct a projection matrix to project your experimental
@@ -221,8 +221,14 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # and the noise subspace that you are eliminating has only 3-5 dimensions, so
 # the loss of degrees of freedom is usually not problematic.
 #
-# .. note::
+# The next few tutorials will describe how to work with projectors in
+# MNE-Python, how to compute projectors yourself, and how to visualize the
+# effects that projectors are having on your data.
 #
-#     In MNE-Python, the environmental noise vectors are computed using
-#     `principal component analysis`_, usually abbreviated "PCA", which is why
-#     the SSP projectors usually have names like "PCA-v1".
+#
+# References
+# ^^^^^^^^^^
+#
+# .. [1] Uusitalo MA and Ilmoniemi RJ. (1997). Signal-space projection method
+#        for separating MEG or EEG into components. *Med Biol Eng Comput*
+#        35(2), 135–140. doi:10.1007/BF02534144

@@ -40,7 +40,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # Interpolating bad channels in MNE-Python is done with the
 # :meth:`~mne.io.Raw.interpolate_bads` method, which automatically applies the
 # correct method (spherical splines or field interpolation) to EEG and MEG
-# channels, respectively. We'll start by cropping the raw object to just ten
+# channels, respectively. We'll start by cropping the raw object to just three
 # seconds for easier plotting, then create ``interp_raw`` with interpolated
 # channels:
 
@@ -48,18 +48,28 @@ raw.crop(tmin=0, tmax=3)
 interp_raw = raw.copy().interpolate_bads()
 
 ###############################################################################
+# To see the effect of interpolation, we'll plot the good channels in gray and
+# the bad or interpolated channels in red, separately for EEG channels and for
+# gradiometers. To do that, we'll need to find the channel indices of the good
+# and bad channels of each type.
+#
 # Since there are only two entries in bads, we can unpack them into two
-# variables on one line by assigning to a tuple:
+# variables on one line by assigning to a tuple. This will give us channel
+# *names* rather than indices, but we've already seen that we can pick channels
+# by name:
 
 print(raw.info['bads'])
 bad_meg_channel, bad_eeg_channel = raw.info['bads']
 
+bad_meg_data = raw.get_data(picks=bad_meg_channel)
+bad_eeg_data = raw.get_data(picks=bad_eeg_channel)
+
 ###############################################################################
-# In this dataset, EEG channels would be easy to pick out from their channel
-# names, using a list comprehension and the Python string ``.startswith``
-# method:
+# In this dataset, good EEG channels would be easy to pick out from their
+# channel names, using a list comprehension and the Python string
+# ``.startswith`` method:
 #
-# .. code-block: python3
+# .. code-block:: python3
 #
 #     good_eeg_channels = [ch for ch in raw.ch_names if ch.startswith('EEG')
 #                          and ch not in raw.info['bads']]
@@ -86,13 +96,11 @@ good_meg_data = raw.get_data(picks=good_meg_indices)
 good_eeg_data, times = raw.get_data(picks=good_eeg_indices, return_times=True)
 
 ###############################################################################
-# Now we'll get the data from the bad channels before and after interpolation,
-# again using the ``picks`` parameter of the :meth:`~mne.io.Raw.get_data`
-# method:
-
-# get the original bad channels
-bad_meg_data = raw.get_data(picks=bad_meg_channel)
-bad_eeg_data = raw.get_data(picks=bad_eeg_channel)
+# Now we've got the good data from EEG and magnetometer channels, and we've got
+# the bad channel data *before* interpolation, so now we just need the bad
+# channels *after* interpolation. We can again use the ``picks`` parameter of
+# the :meth:`~mne.io.Raw.get_data` method, but this time on the ``interp_raw``
+# variable:
 
 # get the interpolated bad channels
 interp_meg_data = interp_raw.get_data(picks=bad_meg_channel)
@@ -153,10 +161,10 @@ fig.tight_layout()
 # ``reset_bads`` parameter. Setting this to ``False`` makes it easy to
 # highlight interpolated channels using MNE-Python's built-in plotting methods:
 
-(raw.
- pick_types(meg=False, eeg=True, exclude=[]).
- interpolate_bads(reset_bads=False).
- plot(butterfly=True, color='#00000022', bad_color='r'))
+(raw
+ .pick_types(meg=False, eeg=True, exclude=[])
+ .interpolate_bads(reset_bads=False)
+ .plot(butterfly=True, color='#00000011', bad_color='r'))
 
 
 ###############################################################################

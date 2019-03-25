@@ -93,7 +93,7 @@ raw.plot(start=2, duration=6)
 
 ###############################################################################
 # The three annotations appear as differently colored rectangles because they
-# have different ``description`` values (which are printed along the bottom
+# have different ``description`` values (which are printed along the top
 # edge of the plot area). Notice also that colored spans appear in the small
 # scroll bar at the bottom of the plot window, making it easy to quickly view
 # where in a :class:`~mne.io.Raw` object the annotations are so you can easily
@@ -164,9 +164,9 @@ raw.plot(start=2, duration=6)
 ###############################################################################
 # Notice that it is possible to create overlapping annotations, even when they
 # share the same description. This is *not* possible when annotating
-# interactively; creating a new annotation that ovelaps with an existing
-# annotation with the same description will cause the old and new annotations
-# to be merged.
+# interactively; click-and-dragging to create a new annotation that overlaps
+# with an existing annotation with the same description will cause the old and
+# new annotations to be merged.
 #
 # Individual annotations can be accessed by indexing an
 # :class:`~mne.Annotations` object, and subsets of the annotations can be
