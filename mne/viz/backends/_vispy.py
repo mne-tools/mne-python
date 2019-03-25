@@ -11,7 +11,6 @@ with warnings.catch_warnings():  # catch the VisPy warnings
     from vispy import scene
     from vispy.color import Colormap
     from vispy.visuals.filters import Alpha
-    from vispy.visuals.transforms import STTransform
 
 default_sphere_radius = 0.5
 default_mesh_shininess = 0.0
@@ -271,16 +270,46 @@ class _Renderer(object):
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
         """
+        from vispy.geometry import create_sphere, MeshData
+        from vispy.util.transforms import translate
+
+        # fetch original data
+        acc_vertices = np.array([])
+        acc_faces = np.array([])
+        voffset = 0
+        meshdata = create_sphere(radius=scale * default_sphere_radius,
+                                 cols=resolution, rows=resolution)
+        # accumulate mesh data
+        orig_vertices = meshdata.get_vertices()
+        orig_faces = meshdata.get_faces()
+        nvertices = len(orig_vertices)
         for c in center:
-            sphere = scene.visuals.Sphere(color=color,
-                                          radius=scale * default_sphere_radius,
-                                          cols=resolution,
-                                          rows=resolution,
-                                          parent=self.view.scene)
-            sphere.transform = STTransform(translate=c)
-            sphere.attach(Alpha(opacity))
-            if backface_culling:
-                sphere.set_gl_state(cull_face=True)
+            # accumulate faces
+            current_faces = orig_faces + voffset
+            if len(acc_faces) == 0:
+                acc_faces = current_faces
+            else:
+                acc_faces = np.concatenate((acc_faces, current_faces), axis=0)
+            voffset += nvertices
+
+            # accumulate vertices
+            mat = translate(c).T
+            current_vertices = np.c_[orig_vertices, np.ones(nvertices)]
+            current_vertices = mat.dot(current_vertices.T)
+            current_vertices = current_vertices.T[:, 0:3]
+            if len(acc_vertices) == 0:
+                acc_vertices = current_vertices
+            else:
+                acc_vertices = np.concatenate((acc_vertices, current_vertices),
+                                              axis=0)
+        meshdata = MeshData(vertices=acc_vertices, faces=acc_faces)
+
+        sphere = scene.visuals.Mesh(meshdata=meshdata,
+                                    color=color,
+                                    parent=self.view.scene)
+        sphere.attach(Alpha(opacity))
+        if backface_culling:
+            sphere.set_gl_state(cull_face=True)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode='arrow',
                  resolution=8, glyph_height=None, glyph_center=None,
