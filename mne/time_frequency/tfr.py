@@ -22,9 +22,9 @@ from .multitaper import dpss_windows
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
-                     sizeof_fmt, GetEpochsMixin, _prepare_read_metadata, fill_doc,
-                     _prepare_write_metadata, _check_event_id, _gen_events,
-                     SizeMixin, _is_numeric, _check_option)
+                     sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
+                     fill_doc, _prepare_write_metadata, _check_event_id,
+                     _gen_events, SizeMixin, _is_numeric, _check_option)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -880,21 +880,27 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             End time of selection in seconds.
         fmin : float | None
             Lowest frequency of selection in Hz.
-            .. versionadded:: 0.18
+
+            .. versionadded:: 0.18.0
         fmax : float | None
-            Highest frequency of selection in Hz.            
-            .. versionadded:: 0.18
+            Highest frequency of selection in Hz.
+
+            .. versionadded:: 0.18.0
 
         Returns
         -------
         inst : instance of AverageTFR
             The modified instance.
         """
-        time_mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        time_mask = _time_mask(self.times, tmin, tmax,
+                               sfreq=self.info['sfreq'])
+
         self.times = self.times[time_mask]
         self.data = self.data[..., time_mask]
 
-        freq_mask = _freq_mask(self.freqs, fmin, fmax, sfreq=self.info['sfreq'])
+        freq_mask = _freq_mask(self.freqs, fmin, fmax,
+                               sfreq=self.info['sfreq'])
+
         self.freqs = self.freqs[freq_mask]
         self.data = self.data[..., freq_mask, :]
 

@@ -368,7 +368,7 @@ def test_crop():
     assert_equal(tfr.data.shape[-1], 4)
 
     tfr.crop(fmax=0.3)
-    assert_equal(tfr.freqs,[0.1, 0.2, 0.3])
+    assert_equal(tfr.freqs, [0.1, 0.2, 0.3])
     assert_equal(tfr.data.shape[-2], 3)
 
     tfr.crop(tmin=0.3, tmax=0.4, fmin=0.1, fmax=0.2)

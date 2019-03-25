@@ -515,7 +515,7 @@ def _freq_mask(freqs, fmin=None, fmax=None, sfreq=None, raise_error=True):
     if not np.isfinite(fmax):
         fmax = freqs[-1]
     if sfreq is not None:
-        # Push 0.5/sfreq (= 0.25/nyquist) past the nearest frequency boundary first
+        # Push 0.5/sfreq past the nearest frequency boundary first
         sfreq = float(sfreq)
         fmin = int(round(fmin * sfreq)) / sfreq - 0.5 / sfreq
         fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq

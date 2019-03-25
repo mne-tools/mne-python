@@ -14,7 +14,7 @@ from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (_get_inst_data, md5sum, hashfunc,
                        sum_squared, compute_corr, create_slices, _time_mask,
-                        _freq_mask, random_permutation, _reg_pinv, object_size,
+                       _freq_mask, random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array)
@@ -175,7 +175,7 @@ def test_time_mask():
 
 
 def test_freq_mask():
-    """Test frequency masking."""
+    """Test safe frequency masking."""
     N = 10
     x = np.arange(N).astype(float)
     assert _freq_mask(x, 0, N - 1, sfreq=1000.).sum() == N
