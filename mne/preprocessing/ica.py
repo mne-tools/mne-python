@@ -49,7 +49,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn,
                      _check_preload, _check_compensation_grade, fill_doc,
-                     _check_option)
+                     _check_option, _PCA)
 from ..utils.check import _check_all_same_channel_names
 
 from ..fixes import _get_args
@@ -609,14 +609,7 @@ class ICA(ContainsMixin):
     def _fit(self, data, max_pca_components, fit_type):
         """Aux function."""
         random_state = check_random_state(self.random_state)
-
-        from sklearn.decomposition import PCA
-        if not check_version('sklearn', '0.18'):
-            pca = PCA(n_components=max_pca_components, whiten=True, copy=True)
-        else:
-            pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
-                      svd_solver='full')
-
+        pca = _PCA(n_components=max_pca_components, whiten=True)
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
@@ -644,10 +637,6 @@ class ICA(ContainsMixin):
         self.pca_mean_ = pca.mean_
         self.pca_components_ = pca.components_
         self.pca_explained_variance_ = exp_var = pca.explained_variance_
-        if not check_version('sklearn', '0.16'):
-            # sklearn < 0.16 did not apply whitening to the components, so we
-            # need to do this manually
-            self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components
         self.n_components_ = sel.stop

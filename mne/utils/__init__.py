@@ -26,15 +26,16 @@ from ._logging import (verbose, logger, set_log_level, set_log_file,
 from .misc import (run_subprocess, _pl, _clean_names, _Counter, pformat,
                    _explain_exception, _get_argvalues, sizeof_fmt)
 from .progressbar import ProgressBar
-from .testing import (_memory_usage, run_tests_if_main, requires_sklearn,
-                      requires_version, requires_nibabel, requires_mayavi,
-                      requires_good_network, requires_mne, requires_pandas,
-                      requires_h5py, traits_test, requires_pysurfer,
-                      ArgvSetter, SilenceStdout, has_freesurfer, has_mne_c,
-                      _TempDir, has_nibabel, _import_mlab, buggy_mkl_svd,
-                      requires_numpydoc, requires_tvtk, requires_freesurfer,
-                      requires_nitime, requires_fs_or_nibabel, requires_dipy,
-                      requires_neuromag2ft, assert_object_equal)
+from ._testing import (_memory_usage, run_tests_if_main, requires_sklearn,
+                       requires_version, requires_nibabel, requires_mayavi,
+                       requires_good_network, requires_mne, requires_pandas,
+                       requires_h5py, traits_test, requires_pysurfer,
+                       ArgvSetter, SilenceStdout, has_freesurfer, has_mne_c,
+                       _TempDir, has_nibabel, _import_mlab, buggy_mkl_svd,
+                       requires_numpydoc, requires_tvtk, requires_freesurfer,
+                       requires_nitime, requires_fs_or_nibabel, requires_dipy,
+                       requires_neuromag2ft, assert_object_equal,
+                       assert_and_remove_boundary_annot, _raw_annot)
 from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,
@@ -42,6 +43,6 @@ from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _time_mask, grand_average, object_diff, object_hash,
                        object_size, _apply_scaling_cov, _undo_scaling_cov,
                        _apply_scaling_array, _undo_scaling_array,
-                       _scaled_array, _replace_md5)
+                       _scaled_array, _replace_md5, _PCA)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas)
