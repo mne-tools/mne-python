@@ -171,8 +171,10 @@ def test_time_mask():
     assert _time_mask(x, tmin=4.4999, sfreq=1).sum() == 2
     assert _time_mask(x, tmin=4, sfreq=1).sum() == 2
     # degenerate cases
-    pytest.raises(ValueError, _time_mask, x[:1], tmin=11, tmax=12)
-    pytest.raises(ValueError, _time_mask, x[:1], tmin=10, sfreq=1)
+    with pytest.raises(ValueError, match='No samples remain'):
+        _time_mask(x[:1], tmin=11, tmax=12)
+    with pytest.raises(ValueError, match='must be less than or equal to tmax'):
+        _time_mask(x[:1], tmin=10, sfreq=1)
 
 
 def test_freq_mask():
@@ -197,8 +199,11 @@ def test_freq_mask():
     assert _freq_mask(x, fmin=4.4999, sfreq=1).sum() == 2
     assert _freq_mask(x, fmin=4, sfreq=1).sum() == 2
     # degenerate cases
-    pytest.raises(ValueError, _freq_mask, x[:1], fmin=11, fmax=12)
-    pytest.raises(ValueError, _freq_mask, x[:1], fmin=10, sfreq=1)
+    with pytest.raises(ValueError, match='No samples remain'):
+        _freq_mask(x[:1], fmin=11, fmax=12)
+    with pytest.raises(ValueError, match='must be less than or equal to fmax'):
+        _freq_mask(x[:1], fmin=10, sfreq=1)
+
 
 
 def test_random_permutation():
