@@ -199,7 +199,7 @@ def test_freq_mask():
     assert _freq_mask(x, fmin=4.4999, sfreq=1).sum() == 2
     assert _freq_mask(x, fmin=4, sfreq=1).sum() == 2
     # degenerate cases
-    with pytest.raises(ValueError, match='No samples remain'):
+    with pytest.raises(ValueError, match='No frequencies remain'):
         _freq_mask(x[:1], fmin=11, fmax=12)
     with pytest.raises(ValueError, match='must be less than or equal to fmax'):
         _freq_mask(x[:1], fmin=10, sfreq=1)
