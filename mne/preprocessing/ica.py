@@ -609,7 +609,7 @@ class ICA(ContainsMixin):
     def _fit(self, data, max_pca_components, fit_type):
         """Aux function."""
         random_state = check_random_state(self.random_state)
-        pca = _PCA(n_components=max_pca_components, whiten=True, copy=True)
+        pca = _PCA(n_components=max_pca_components, whiten=True)
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):

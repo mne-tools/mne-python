@@ -749,14 +749,12 @@ class _PCA(object):
     # Adapted from sklearn and stripped down to just use linalg.svd
     # and make it easier to later provide a "center" option if we want
 
-    def __init__(self, n_components=None, copy=True, whiten=False):
+    def __init__(self, n_components=None, whiten=False):
         self.n_components = n_components
-        self.copy = copy
         self.whiten = whiten
 
     def fit_transform(self, X, y=None):
-        if self.copy:
-            X = X.copy()
+        X = X.copy()
         U, S, _ = self._fit(X)
         U = U[:, :self.n_components_]
 
