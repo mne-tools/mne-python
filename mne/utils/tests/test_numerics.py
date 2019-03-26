@@ -205,7 +205,6 @@ def test_freq_mask():
         _freq_mask(x[:1], fmin=10, sfreq=1)
 
 
-
 def test_random_permutation():
     """Test random permutation function."""
     n_samples = 10
