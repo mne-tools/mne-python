@@ -24,8 +24,8 @@ from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
                  pick_info)
 from mne.utils import (_TempDir, requires_pandas, object_diff,
-                       requires_mne, run_subprocess, run_tests_if_main)
-from mne.utils.testing import assert_and_remove_boundary_annot
+                       requires_mne, run_subprocess, run_tests_if_main,
+                       assert_and_remove_boundary_annot)
 from mne.annotations import Annotations
 
 testing_path = testing.data_path(download=False)

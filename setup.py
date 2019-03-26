@@ -69,6 +69,7 @@ if __name__ == "__main__":
                        'Programming Language :: Python :: 3',
                        ],
           platforms='any',
+          install_requires=['numpy>=1.11.3', 'scipy>=0.17.1'],
           packages=package_tree('mne'),
           package_data={'mne': [
               op.join('data', '*.sel'),

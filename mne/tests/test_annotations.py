@@ -20,9 +20,8 @@ from mne import create_info, read_annotations, events_from_annotations
 from mne import Epochs, Annotations
 from mne.utils import (run_tests_if_main, _TempDir, requires_version,
                        catch_logging)
-from mne.utils.testing import assert_and_remove_boundary_annot
+from mne.utils import assert_and_remove_boundary_annot, _raw_annot
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.io.tests.test_raw import _raw_annot
 from mne.annotations import _sync_onset, _handle_meas_date
 from mne.annotations import _read_annotations_txt_parse_header
 from mne.datasets import testing

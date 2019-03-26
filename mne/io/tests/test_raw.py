@@ -17,7 +17,7 @@ from mne import concatenate_raws, create_info, Annotations
 from mne.annotations import _handle_meas_date
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw
-from mne.utils import _TempDir, catch_logging
+from mne.utils import _TempDir, catch_logging, _raw_annot
 from mne.io.meas_info import _get_valid_units
 
 
@@ -217,15 +217,6 @@ def test_time_as_index_ref(offset, origin):
                              use_rounding=True,
                              origin=origin)
     assert_array_equal(inds, np.arange(raw.n_times))
-
-
-def _raw_annot(meas_date, orig_time):
-    info = create_info(ch_names=10, sfreq=10.)
-    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
-    annot = Annotations([.5], [.2], ['dummy'], orig_time)
-    raw.set_annotations(annotations=annot)
-    return raw
 
 
 def test_meas_date_orig_time():
