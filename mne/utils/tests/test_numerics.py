@@ -1,4 +1,5 @@
 from copy import deepcopy
+from distutils.version import LooseVersion
 from io import StringIO
 import os.path as op
 
@@ -17,7 +18,7 @@ from mne.utils import (_get_inst_data, md5sum, hashfunc,
                        random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
-                       _undo_scaling_array)
+                       _undo_scaling_array, _PCA, requires_sklearn)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -366,3 +367,41 @@ def test_hash():
     # smoke test for gh-4796
     assert object_hash(np.int64(1)) != 0
     assert object_hash(np.bool_(True)) != 0
+
+
+@requires_sklearn
+@pytest.mark.parametrize('n_components', (None, 0.8, 8, 'mle'))
+@pytest.mark.parametrize('whiten', (True, False))
+def test_pca(n_components, whiten):
+    """Test PCA equivalence."""
+    import sklearn
+    from sklearn.decomposition import PCA
+    n_samples, n_dim = 1000, 10
+    X = np.random.RandomState(0).randn(n_samples, n_dim)
+    X[:, -1] = np.mean(X[:, :-1], axis=-1)  # true X dim is ndim - 1
+    X_orig = X.copy()
+    pca_skl = PCA(n_components, whiten=whiten, svd_solver='full')
+    pca_mne = _PCA(n_components, whiten=whiten)
+    X_skl = pca_skl.fit_transform(X)
+    assert_array_equal(X, X_orig)
+    X_mne = pca_mne.fit_transform(X)
+    assert_array_equal(X, X_orig)
+    old_sklearn = LooseVersion(sklearn.__version__) < LooseVersion('0.19')
+    if whiten and old_sklearn:
+        X_skl *= np.sqrt((n_samples - 1.) / n_samples)
+    assert_allclose(X_skl, X_mne)
+    for key in ('mean_', 'components_',
+                'explained_variance_', 'explained_variance_ratio_'):
+        val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
+        if key == 'explained_variance_' and old_sklearn:
+            val_skl *= n_samples / (n_samples - 1.)  # old bug
+        assert_allclose(val_skl, val_mne)
+    if isinstance(n_components, float):
+        assert 1 < pca_mne.n_components_ < n_dim
+    elif isinstance(n_components, int):
+        assert pca_mne.n_components_ == n_components
+    elif n_components == 'mle':
+        assert pca_mne.n_components_ == n_dim - 1
+    else:
+        assert n_components is None
+        assert pca_mne.n_components_ == n_dim
