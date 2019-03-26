@@ -7,6 +7,7 @@
 #
 # License: BSD (3-clause)
 
+from .flat import mark_flat
 from .maxfilter import apply_maxfilter
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .eog import find_eog_events, create_eog_epochs
