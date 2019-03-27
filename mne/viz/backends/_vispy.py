@@ -278,28 +278,28 @@ class _Renderer(object):
                                  cols=resolution, rows=resolution)
         orig_vertices = meshdata.get_vertices()
         orig_faces = meshdata.get_faces()
-        nvertices = len(orig_vertices)
-        nfaces = len(orig_faces)
-        ncenter = len(center)
+        n_vertices = len(orig_vertices)
+        n_faces = len(orig_faces)
+        n_center = len(center)
         voffset = 0
         foffset = 0
 
         # accumulate mesh data
-        acc_vertices = np.empty((ncenter * nvertices, 3), dtype=np.float32)
-        acc_faces = np.empty((ncenter * nfaces, 3), dtype=np.uint32)
+        acc_vertices = np.empty((n_center * n_vertices, 3), dtype=np.float32)
+        acc_faces = np.empty((n_center * n_faces, 3), dtype=np.uint32)
         for c in center:
             # apply index shifting and accumulate faces
             current_faces = orig_faces + voffset
-            acc_faces[foffset:foffset + nfaces, :] = current_faces
-            foffset += nfaces
+            acc_faces[foffset:foffset + n_faces, :] = current_faces
+            foffset += n_faces
 
             # apply translation and accumulate vertices
             mat = translate(c).T
-            current_vertices = np.c_[orig_vertices, np.ones(nvertices)]
+            current_vertices = np.c_[orig_vertices, np.ones(n_vertices)]
             current_vertices = mat.dot(current_vertices.T)
-            acc_vertices[voffset:voffset + nvertices, :] = \
+            acc_vertices[voffset:voffset + n_vertices, :] = \
                 current_vertices.T[:, 0:3]
-            voffset += nvertices
+            voffset += n_vertices
 
         sphere = scene.visuals.Mesh(vertices=acc_vertices,
                                     faces=acc_faces,
@@ -357,8 +357,9 @@ class _Renderer(object):
         arr_pos = np.array(list(zip(source, destination)))
         arr_pos.reshape(-1, 3)
 
-        acc_vertices = np.array([])
-        acc_faces = np.array([])
+        acc_vertices = list()
+        acc_faces = list()
+        foffset = 0
         voffset = 0
         for i in range(len(source)):
             scalar = scalars[i] if scalars is not None else None
@@ -371,31 +372,38 @@ class _Renderer(object):
             if meshdata is not None:
                 orig_vertices = meshdata.get_vertices()
                 orig_faces = meshdata.get_faces()
-                nvertices = len(orig_vertices)
+                n_faces = len(orig_faces)
+                n_vertices = len(orig_vertices)
 
                 # accumulate faces
                 current_faces = orig_faces + voffset
-                if len(acc_faces) == 0:
-                    acc_faces = current_faces
-                else:
-                    acc_faces = np.concatenate((acc_faces, current_faces),
-                                               axis=0)
-                voffset += nvertices
+                acc_faces.append(current_faces)
+                foffset += n_faces
 
                 # accumulate vertices
                 mat = mat.T
-                current_vertices = np.c_[orig_vertices, np.ones(nvertices)]
+                current_vertices = np.c_[orig_vertices, np.ones(n_vertices)]
                 current_vertices = mat.dot(current_vertices.T)
                 current_vertices = current_vertices.T[:, 0:3]
-                if len(acc_vertices) == 0:
-                    acc_vertices = current_vertices
-                else:
-                    acc_vertices = np.concatenate((acc_vertices,
-                                                   current_vertices),
-                                                  axis=0)
+                acc_vertices.append(current_vertices)
+                voffset += n_vertices
 
-        quiver = scene.visuals.Mesh(vertices=acc_vertices,
-                                    faces=acc_faces,
+        # concatenate
+        faces = np.empty((foffset, 3), dtype=np.uint32)
+        foffset = 0
+        for f in acc_faces:
+            n_faces = len(f)
+            faces[foffset:foffset + n_faces, :] = f
+            foffset += n_faces
+        vertices = np.empty((voffset, 3), dtype=np.float32)
+        voffset = 0
+        for v in acc_vertices:
+            n_vertices = len(v)
+            vertices[voffset:voffset + n_vertices, :] = v
+            voffset += n_vertices
+
+        quiver = scene.visuals.Mesh(vertices=vertices,
+                                    faces=faces,
                                     color=color,
                                     shading='flat',
                                     parent=self.view.scene)
