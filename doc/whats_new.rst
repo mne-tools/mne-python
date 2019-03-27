@@ -90,6 +90,8 @@ Changelog
 Bug
 ~~~
 
+- Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
+
 - Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
 
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
