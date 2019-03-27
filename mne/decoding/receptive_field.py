@@ -127,11 +127,12 @@ class ReceptiveField(BaseEstimator):
             estimator = type(self.estimator)
         s += "estimator : %s, " % (estimator,)
         if hasattr(self, 'coef_'):
-            feats = self.feature_names
-            if len(feats) == 1:
-                s += "feature: %s, " % feats[0]
-            else:
-                s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
+            if self.feature_names is not None:
+                feats = self.feature_names
+                if len(feats) == 1:
+                    s += "feature: %s, " % feats[0]
+                else:
+                    s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
             s += "fit: True"
         else:
             s += "fit: False"
