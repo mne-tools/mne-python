@@ -103,8 +103,7 @@ def test_basics():
     for empty_annot in (
             Annotations([], [], [], expected_orig_time),
             Annotations([], [], [], None),
-            None,
-            ):
+            None):
         raw.set_annotations(empty_annot)
         assert isinstance(raw.annotations, Annotations)
         assert len(raw.annotations) == 0
