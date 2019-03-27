@@ -357,20 +357,51 @@ class _Renderer(object):
         arr_pos = np.array(list(zip(source, destination)))
         arr_pos.reshape(-1, 3)
 
+        acc_vertices = np.array([])
+        acc_faces = np.array([])
+        voffset = 0
         for i in range(len(source)):
             scalar = scalars[i] if scalars is not None else None
-            quiver = _create_quiver(mode=mode,
-                                    source=source[i, :],
-                                    destination=destination[i, :],
-                                    scale=scale,
-                                    scale_mode=scale_mode,
-                                    scalar=scalar,
-                                    view=self.view,
-                                    color=color)
-            if quiver is not None:
-                quiver.attach(Alpha(opacity))
-                if backface_culling:
-                    quiver.set_gl_state(cull_face=True)
+            meshdata, mat = _create_quiver(mode=mode,
+                                           source=source[i, :],
+                                           destination=destination[i, :],
+                                           scale=scale,
+                                           scale_mode=scale_mode,
+                                           scalar=scalar)
+            if meshdata is not None:
+                orig_vertices = meshdata.get_vertices()
+                orig_faces = meshdata.get_faces()
+                nvertices = len(orig_vertices)
+
+                # accumulate faces
+                current_faces = orig_faces + voffset
+                if len(acc_faces) == 0:
+                    acc_faces = current_faces
+                else:
+                    acc_faces = np.concatenate((acc_faces, current_faces),
+                                               axis=0)
+                voffset += nvertices
+
+                # accumulate vertices
+                mat = mat.T
+                current_vertices = np.c_[orig_vertices, np.ones(nvertices)]
+                current_vertices = mat.dot(current_vertices.T)
+                current_vertices = current_vertices.T[:, 0:3]
+                if len(acc_vertices) == 0:
+                    acc_vertices = current_vertices
+                else:
+                    acc_vertices = np.concatenate((acc_vertices,
+                                                   current_vertices),
+                                                  axis=0)
+
+        quiver = scene.visuals.Mesh(vertices=acc_vertices,
+                                    faces=acc_faces,
+                                    color=color,
+                                    shading='flat',
+                                    parent=self.view.scene)
+        quiver.attach(Alpha(opacity))
+        if backface_culling:
+            quiver.set_gl_state(cull_face=True)
         return 0
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
@@ -509,9 +540,8 @@ def _get_view_to_display_matrix(canvas):
     return view_to_disp_mat
 
 
-def _create_quiver(mode, source, destination, view, color,
-                   scale, scale_mode='none', scalar=None,
-                   resolution=8):
+def _create_quiver(mode, source, destination, scale, scale_mode='none',
+                   scalar=None, resolution=8):
     from vispy.geometry.generation import (create_arrow, create_cylinder,
                                            create_cone)
     from vispy.visuals.transforms import MatrixTransform
@@ -548,13 +578,9 @@ def _create_quiver(mode, source, destination, view, color,
         meshdata = create_cylinder(rows=resolution, cols=resolution,
                                    length=length, radius=[radius, radius])
 
-    if meshdata is not None:
-        quiver = scene.visuals.Mesh(meshdata=meshdata, color=color,
-                                    shading='flat', parent=view.scene)
-        # apply transform
-        mat = MatrixTransform()
-        if cosangle != 1:
-            mat.rotate(np.degrees(np.arccos(cosangle)), axis)
-        mat.translate(source)
-        quiver.transform = mat
-        return quiver
+    # apply transform
+    mat = MatrixTransform()
+    if cosangle != 1:
+        mat.rotate(np.degrees(np.arccos(cosangle)), axis)
+    mat.translate(source)
+    return meshdata, mat.matrix
