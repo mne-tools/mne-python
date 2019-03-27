@@ -90,13 +90,19 @@ Changelog
 Bug
 ~~~
 
+- Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
+
+- Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
+- Fix default HTML language of :class:`mne.Report` to be ``"en-us"`` instead of ``"fr"`` and allow setting via ``report.lang`` property by `Eric Larson`_
 
 - Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
   If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
-- Fix :ref:`gen_mne_flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used by `Eric Larson`_
-  
+- Fix :ref:`gen_mne_flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used, and to properly deal with non-standard acquisition affines by `Eric Larson`_
+
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
 - Fix boundaries during plotting of raw data with :func:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` on scaled displays (e.g., macOS with HiDPI/Retina screens) by `Clemens Brunner`_
@@ -137,6 +143,8 @@ Bug
 
 - Fix :func:`mne.io.read_raw_eeglab` incorrectly parsing event durations by `Clemens Brunner`_
 
+- Fix :func:`mne.io.read_raw_egi` when cropping non-preloaded EGI MFF data by `Alex Gramfort`_
+
 API
 ~~~
 
@@ -159,6 +167,9 @@ API
 - :func:`mne.forward.compute_depth_prior` has been reworked to operate directly on :class:`Forward` instance as ``forward`` rather than a representation scattered across the parameters ``G, is_fixed_ori, patch_info``, by `Eric Larson`_
 
 - Deprecate ``method='extended-infomax'`` in :class:`mne.preprocessing.ICA`; Extended Infomax can now be computed with ``method='infomax'`` and ``fit_params=dict(extended=True)`` by `Clemens Brunner`_
+
+- Fix support for supplying ``extrapolate`` via :meth:`ica.plot_properties(..., topomap_args=dict(extrapolate=...)) <mne.preprocessing.ICA.plot_properties>` by `Sebastian Castano`_
+
 
 .. _changes_0_17:
 
@@ -3236,3 +3247,5 @@ of commits):
 .. _Jeff Hanna: https://github.com/jshanna100
 
 .. _Antoine Gauthier: https://github.com/Okamille
+
+.. _Sebastian Castano: https://github.com/jscastanoc

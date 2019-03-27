@@ -510,7 +510,7 @@ def _build_html_slider(slices_range, slides_klass, slider_id,
 
 header_template = Template(u"""
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{lang}}">
 <head>
 {{include}}
 <script type="text/javascript">
@@ -886,6 +886,7 @@ class Report(object):
         self.html = []
         self.fnames = []  # List of file names rendered
         self.sections = []  # List of sections
+        self.lang = 'en-us'  # language setting for the HTML file
         self._sectionlabels = []  # Section labels
         self._sectionvars = {}  # Section variable names in js
         # boolean to specify if sections should be ordered in natural
@@ -1498,7 +1499,7 @@ class Report(object):
                  '_sectionlabels', 'sections', '_sectionvars',
                  '_sort_sections', 'subjects_dir', 'subject', 'title',
                  'verbose'],
-                ['data_path', '_sort'])
+                ['data_path', 'lang', '_sort'])
 
     def __getstate__(self):
         """Get the state of the report as a dictionary."""
@@ -1681,10 +1682,10 @@ class Report(object):
         self.fnames = fnames
         self._sectionlabels = sectionlabels
 
-        html_header = header_template.substitute(title=self.title,
-                                                 include=self.include,
-                                                 sections=self.sections,
-                                                 sectionvars=self._sectionvars)
+        lang = getattr(self, 'lang', 'en-us')
+        html_header = header_template.substitute(
+            title=self.title, include=self.include, lang=lang,
+            sections=self.sections, sectionvars=self._sectionvars)
         self.html.insert(0, html_header)  # Insert header at position 0
         self.html.insert(1, html_toc)  # insert TOC
 

@@ -522,6 +522,7 @@ class RawMff(BaseRaw):
                     # First block read, skip to the offset:
                     block_data = block_data[:, offset_samples:]
                     samples_read = samples_read - offset_samples
+                    offset_samples = 0
                 if samples_to_read < samples_read:
                     # Last block to read, skip the last samples
                     block_data = block_data[:, :samples_to_read]
@@ -532,7 +533,7 @@ class RawMff(BaseRaw):
 
                 # take into account events
                 if len(egi_events) > 0:
-                    e_chs = egi_events[:, s_start:s_end]
+                    e_chs = egi_events[:, start + s_start:start + s_end]
                     block_data = np.vstack([block_data, e_chs])
 
                 data_view = data[:n_data1_channels, s_start:s_end]
@@ -602,6 +603,7 @@ class RawMff(BaseRaw):
                         # First block read, skip to the offset:
                         block_data = block_data[:, offset_samples:]
                         samples_read = samples_read - offset_samples
+                        offset_samples = 0
 
                     if samples_to_read < samples_read:
                         # Last block to read, skip the last samples

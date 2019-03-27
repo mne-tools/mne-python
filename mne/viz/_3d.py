@@ -26,8 +26,8 @@ from ..fixes import einsum, _crop_colorbar
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types
 from ..io.constants import FIFF
-from ..io.meas_info import read_fiducials
-from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
+from ..io.meas_info import read_fiducials, create_info
+from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
 
 from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
@@ -521,7 +521,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 
 @verbose
-def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
+def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
@@ -531,8 +531,9 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     Parameters
     ----------
-    info : dict
+    info : dict | None
         The measurement info.
+        If None (default), no sensor information will be shown.
     trans : str | 'auto' | dict | None
         The full path to the head<->MRI transform ``*-trans.fif`` file
         produced during coregistration. If trans is None, an identity matrix
@@ -666,6 +667,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         raise ValueError('eeg must only contain "original" and '
                          '"projected", got %s' % (eeg,))
 
+    info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
 
     if isinstance(surfaces, str):
@@ -683,9 +685,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     _check_option('coord_frame', coord_frame, ['head', 'meg', 'mri'])
     if src is not None:
-        if not isinstance(src, SourceSpaces):
-            raise TypeError('src must be None or SourceSpaces, got %s'
-                            % (type(src),))
+        src = _ensure_src(src)
         src_subject = src[0].get('subject_his_id', None)
         subject = src_subject if subject is None else subject
         if src_subject is not None and subject != src_subject:

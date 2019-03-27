@@ -965,7 +965,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None,
-                      sensors=True, allow_ref_meg=False):
+                      sensors=True, allow_ref_meg=False, extrapolate='box'):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
     from ..channels import _get_ch_type
@@ -999,7 +999,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     im = plot_topomap(
         data.ravel(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=axes,
         cmap=cmap, outlines=outlines, contours=contours, sensors=sensors,
-        image_interp=image_interp, show=show)[0]
+        image_interp=image_interp, show=show, extrapolate=extrapolate)[0]
     if colorbar:
         cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
                                   format='%3.2f')

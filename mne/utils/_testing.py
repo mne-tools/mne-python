@@ -429,3 +429,14 @@ def assert_object_equal(a, b):
     """Assert two objects are equal."""
     d = object_diff(a, b)
     assert d == '', d
+
+
+def _raw_annot(meas_date, orig_time):
+    from .. import Annotations, create_info
+    from ..io import RawArray
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+    annot = Annotations([.5], [.2], ['dummy'], orig_time)
+    raw.set_annotations(annotations=annot)
+    return raw

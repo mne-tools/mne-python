@@ -12,7 +12,7 @@ from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
-                     _deprecate_stim_channel)
+                     _deprecate_stim_channel, _synthesize_stim_channel)
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
 from ...annotations import Annotations
@@ -22,7 +22,7 @@ from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
                      CNTEventType3)
 
 
-def _read_annotations_cnt(fname):
+def _read_annotations_cnt(fname, data_format='int16'):
     """CNT Annotation File Reader.
 
     This method opens the .cnt files, searches all the metadata to construct
@@ -34,6 +34,8 @@ def _read_annotations_cnt(fname):
     ----------
     fname: str
         path to cnt file containing the annotations.
+    data_format : 'int16' | 'int32'
+        Defines the data format the data is read in.
 
     Returns
     -------
@@ -45,9 +47,9 @@ def _read_annotations_cnt(fname):
     SETUP_RATE_OFFSET = 376
     SETUP_EVENTTABLEPOS_OFFSET = 886
 
-    def _translating_function(offset, n_channels, event_type, n_bytes=2):
-        # n_bytes is related to _get_cnt_info's data_format parameter
-        # 'auto', 'int16', and 'int32'
+    def _translating_function(offset, n_channels, event_type,
+                              data_format=data_format):
+        n_bytes = 2 if data_format == 'int16' else 4
         if event_type == CNTEventType3:
             offset *= n_bytes * n_channels
         event_time = offset - 900 - (75 * n_channels)
@@ -81,7 +83,8 @@ def _read_annotations_cnt(fname):
         onset = _translating_function(np.array([e.Offset for e in my_events],
                                                dtype=float),
                                       n_channels=n_channels,
-                                      event_type=type(my_events[0]))
+                                      event_type=type(my_events[0]),
+                                      data_format=data_format)
         duration = np.array([e.Latency for e in my_events], dtype=float)
         description = np.array([str(e.StimType) for e in my_events])
         return Annotations(onset=onset / sfreq,
@@ -288,35 +291,14 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
         if stim_channel_toggle:
-            if event_offset > data_offset:
-                fid.seek(event_offset)
-                event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
-                event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
-                teeg_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-                assert teeg_offset == 0  # documentation say this should be 0
-                if event_type == 1:
-                    event_bytes = 8
-                elif event_type in (2, 3):
-                    event_bytes = 19
-                else:
-                    raise IOError('Unexpected event size.')
-
-                # XXX long NumEvents is available, why are not we using it?
-                n_events = event_size // event_bytes
-            else:
-                n_events = 0
-
-            stim_channel = np.zeros(n_samples)  # Construct stim channel
-            for i in range(n_events):
-                fid.seek(event_offset + 9 + i * event_bytes)
-                event_id = np.fromfile(fid, dtype='u2', count=1)[0]
-                fid.seek(event_offset + 9 + i * event_bytes + 4)
-                offset = np.fromfile(fid, dtype='<i4', count=1)[0]
-                if event_type == 3:
-                    offset *= n_bytes * n_channels
-                event_time = offset - 900 - 75 * n_channels
-                event_time //= n_channels * n_bytes
-                stim_channel[event_time - 1] = event_id
+            data_format = 'int32' if n_bytes == 4 else 'int16'
+            annot = _read_annotations_cnt(input_fname, data_format=data_format)
+            events = (np.stack((annot.onset * sfreq,
+                                annot.duration * sfreq,
+                                annot.description.astype(int)))
+                      .astype(int)
+                      .transpose())
+            stim_channel = _synthesize_stim_channel(events, n_samples)
 
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
@@ -454,7 +436,9 @@ class RawCNT(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
 
-        self.set_annotations(_read_annotations_cnt(input_fname))
+        data_format = 'int32' if cnt_info['n_bytes'] == 4 else 'int16'
+        self.set_annotations(
+            _read_annotations_cnt(input_fname, data_format=data_format))
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
