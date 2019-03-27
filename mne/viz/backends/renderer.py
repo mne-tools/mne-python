@@ -8,6 +8,7 @@
 # License: Simplified BSD
 
 import importlib
+from contextlib import contextmanager
 from ._utils import _get_backend_based_on_env_and_defaults, VALID_3D_BACKENDS
 from ...utils import logger
 from ...utils.check import _check_option
@@ -56,3 +57,11 @@ def get_3d_backend():
     """
     global MNE_3D_BACKEND
     return MNE_3D_BACKEND
+
+
+@contextmanager
+def use_3d_backend(backend):
+    old_backend = get_3d_backend()
+    set_3d_backend(backend)
+    yield
+    set_3d_backend(old_backend)
