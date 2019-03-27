@@ -277,8 +277,9 @@ class _Renderer(object):
         meshdata = create_sphere(radius=scale * default_sphere_radius,
                                  cols=resolution, rows=resolution)
         orig_vertices = meshdata.get_vertices()
-        orig_faces = meshdata.get_faces()
         n_vertices = len(orig_vertices)
+        orig_vertices = np.c_[orig_vertices, np.ones(n_vertices)].T
+        orig_faces = meshdata.get_faces()
         n_faces = len(orig_faces)
         n_center = len(center)
         voffset = 0
@@ -295,8 +296,7 @@ class _Renderer(object):
 
             # apply translation and accumulate vertices
             mat = translate(c).T
-            current_vertices = np.c_[orig_vertices, np.ones(n_vertices)]
-            current_vertices = mat.dot(current_vertices.T)
+            current_vertices = mat.dot(orig_vertices)
             acc_vertices[voffset:voffset + n_vertices, :] = \
                 current_vertices.T[:, 0:3]
             voffset += n_vertices
@@ -389,18 +389,8 @@ class _Renderer(object):
                 voffset += n_vertices
 
         # concatenate
-        faces = np.empty((foffset, 3), dtype=np.uint32)
-        foffset = 0
-        for f in acc_faces:
-            n_faces = len(f)
-            faces[foffset:foffset + n_faces, :] = f
-            foffset += n_faces
-        vertices = np.empty((voffset, 3), dtype=np.float32)
-        voffset = 0
-        for v in acc_vertices:
-            n_vertices = len(v)
-            vertices[voffset:voffset + n_vertices, :] = v
-            voffset += n_vertices
+        faces = np.concatenate(acc_faces, axis=0)
+        vertices = np.concatenate(acc_vertices, axis=0)
 
         quiver = scene.visuals.Mesh(vertices=vertices,
                                     faces=faces,
