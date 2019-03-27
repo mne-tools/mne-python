@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _config-tutorial:
+
 ======================
 Configuring MNE python
 ======================
