@@ -19,7 +19,6 @@ def test_mark_flat():
     info = create_info(n_ch, 1000., 'eeg')
     raw = RawArray(data, info)
     raw.info['bads'] = [raw.ch_names[-1]]
-    n_good = n_ch - 1
 
     #
     # First make a channel flat the whole time
@@ -27,15 +26,10 @@ def test_mark_flat():
     raw_0 = raw.copy()
     raw_0._data[0] = 0.
     for kwargs, bads, want_times in [
-            # These will all mark spatially
-            (dict(ratio='inf'), [raw.ch_names[0]], n_times),
-            (dict(ratio=n_good), [raw.ch_names[0]], n_times),
-            (dict(), [raw.ch_names[0]], n_times),  # default (1)
-            # right at this limit is the same
-            (dict(ratio=1. / (n_good - 0.1)), [raw.ch_names[0]], n_times),
-            # then it switches
-            (dict(ratio=1. / n_good), [], 0),  # same
-            (dict(ratio=0), [], 0)]:  # ratio=0 will mark all times
+            # Anything < 1 will mark spatially
+            (dict(threshold=1.), [], 0),
+            (dict(threshold=0.999), [raw.ch_names[0]], n_times),
+            (dict(), [raw.ch_names[0]], n_times)]:  # default (1)
         raw_time = mark_flat(raw_0.copy(), verbose='debug', **kwargs)
         want_bads = raw.info['bads'] + bads
         assert raw_time.info['bads'] == want_bads
@@ -46,22 +40,15 @@ def test_mark_flat():
     # Now make a channel flat for 20% of the time points
     #
     raw_0 = raw.copy()
-    bad_t_div = 5
-    above_thresh = float(bad_t_div + 0.1) / n_good
-    below_thresh = float(bad_t_div) / n_good
-    assert n_times % bad_t_div == 0
-    raw_0._data[0, :n_times // bad_t_div] = 0.
-    n_good_times = n_times - n_times // bad_t_div
+    n_good_times = int(round(0.8 * n_times))
+    raw_0._data[0, n_good_times:] = 0.
+    threshold = (n_times - n_good_times) / n_times
     for kwargs, bads, want_times in [
-            # These will all mark spatially
-            (dict(ratio='inf'), [raw.ch_names[0]], n_times),
-            (dict(ratio=n_good), [raw.ch_names[0]], n_times),
-            (dict(), [raw.ch_names[0]], n_times),  # default (1)
-            # right at this limit is the same
-            (dict(ratio=above_thresh), [raw.ch_names[0]], n_times),
-            # then it switches
-            (dict(ratio=below_thresh), [], n_good_times),  # same
-            (dict(ratio=0), [], n_good_times)]:  # ratio=0 will mark all times
+            # Should change behavior at threshold=0.2
+            (dict(threshold=1), [], n_good_times),
+            (dict(threshold=threshold), [], n_good_times),
+            (dict(threshold=threshold - 1e-5), [raw.ch_names[0]], n_times),
+            (dict(), [raw.ch_names[0]], n_times)]:
         raw_time = mark_flat(raw_0.copy(), verbose='debug', **kwargs)
         want_bads = raw.info['bads'] + bads
         assert raw_time.info['bads'] == want_bads

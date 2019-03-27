@@ -11,23 +11,25 @@ from ..utils import (_validate_type, verbose, logger, _pl,
 
 
 @verbose
-def mark_flat(raw, ratio=1., min_duration=0.005, picks=None, verbose=None):
+def mark_flat(raw, threshold=0.05, min_duration=0.005, picks=None,
+              verbose=None):
     r"""Mark flat segments of raw data using annotations or in info['bads'].
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data.
-    ratio : float
-        The ratio of the temporal proportion (time spent flat) to spatial
-        proportion (the reciprocal of the number of channels in picks)
-        below which temporal bad marking (:class:`~mne.Annotations`) will be
-        used instead of spatial bad marking (:class:`info['bads'] <mne.Info>`).
-        See Notes.
+    threshold : float in [0, 1]
+        The proportion of the time a channel can be bad.
+        Below this threshold, temporal bad marking (:class:`~mne.Annotations`)
+        will be used. Above this threshold, spatial bad marking
+        (:class:`info['bads'] <mne.Info>`) will be used.
+        Defaults to 0.05 (5%%).
     min_duration : float
         The minimum duration (sec) to consider as actually flat.
         For some systems with low bit data representations, adjacent
         channels with exactly the same value are not totally uncommon.
+        Defaults to 0.005 (5 ms).
     %(picks_good_data)s
     %(verbose)s
 
@@ -38,39 +40,20 @@ def mark_flat(raw, ratio=1., min_duration=0.005, picks=None, verbose=None):
 
     Notes
     -----
-    For a given channel :math:`i` in `picks` that is flat (considering only
-    flat segments of at least `min_duration`)
-    for :math:`p_{i,t}` proportion of time points, given the spatial fraction
-    of picks that the channel represents (constant
-    :math:`p_{i,s} = 1 / N_\mathrm{picks}`), the `ratio`
-    parameter sets the ratio :math:`\frac{p_{i,t}}{p_{i,s}}` below which
-    temporal marking (:class:`~mne.Annotations`) will be used instead of
-    spatial marking (:clasS:`~mne.Info`). Or more simply:
+    This function is useful both for removing short segments of data where
+    the acquisition system clipped (i.e., hit the ADC limit of the hardware)
+    and for automatically identifying channels that were flat for a large
+    proportion of a given recording.
 
-    - ``ratio < 1. / len(picks)`` always marks temporally.
-        - This risks the entire recording being marked bad if there is
-          (at least) one channel that is flat at all times.
-    - ``1. / len(picks) <= ratio < len(picks)`` marks spatially or temporally.
-        - Values in the range ``0 < ratio < 1`` prefer temporal marking to
-          spatial marking.
-        - The default value ``ratio = 1.`` uses the temporal method
-          if and only if the proportion of time a given channel is flat is
-          less than the reciprocal of the number of channels in ``picks``.
-        - Values in the range ``1 < ratio < len(picks)`` prefer spatial
-          marking to temporal marking.
-    - ``ratio >= len(picks)`` always marks spatially.
-        - This risks a channel being marked as bad for the entire recording if
-          it is flat for a contiguous `min_duration` chunk of time.
-
-    .. note:: This function may perform much faster if data are loaded
-              in memory, as it loads data one channel at a time (across all
-              time points), which is typically not an efficient way to read
-              raw data from disk.
+    This function may perform much faster if data are loaded
+    in memory, as it loads data one channel at a time (across all
+    time points), which is typically not an efficient way to read
+    raw data from disk.
 
     .. versionadded:: 0.18
     """
     _validate_type(raw, BaseRaw, 'raw')
-    ratio = float(ratio)
+    threshold = float(threshold)
     min_duration = float(min_duration)
     picks = _picks_to_idx(raw.info, picks, 'data_or_ica', exclude='bads')
     # This will not be so efficient for most readers, but we can optimize
@@ -90,17 +73,16 @@ def mark_flat(raw, ratio=1., min_duration=0.005, picks=None, verbose=None):
                 if stop - start < time_thresh:
                     flat[start:stop] = False
             flat_mean = flat.mean()
-            with np.errstate(divide='ignore'):
-                bad_ratio = np.divide(1., flat_mean * len(picks))
             if flat_mean:  # only do something if there are actually flat parts
-                if bad_ratio < ratio:
-                    kind, comp = 'bads', '<'
+                if flat_mean > threshold:
+                    kind, comp = 'bads', '>'
                     bads.append(raw.ch_names[pick])
                 else:
-                    kind, comp = 'BAD_', '≥'
+                    kind, comp = 'BAD_', '≤'
                     any_flat |= flat
-                logger.debug('%s: %s (%s %s %s)' % (kind, raw.ch_names[pick],
-                                                    bad_ratio, comp, ratio))
+                logger.debug('%s: %s (%s %s %s)'
+                             % (kind, raw.ch_names[pick],
+                                flat_mean, comp, threshold))
     starts, stops = _mask_to_onsets_offsets(any_flat)
     logger.info('Marking %0.2f%% of time points (%d segment%s) and '
                 '%d/%d channel%s bad: %s'
