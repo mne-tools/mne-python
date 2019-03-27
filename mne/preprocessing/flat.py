@@ -11,7 +11,7 @@ from ..utils import (_validate_type, verbose, logger, _pl,
 
 
 @verbose
-def mark_flat(raw, threshold=0.05, min_duration=0.005, picks=None,
+def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
               verbose=None):
     r"""Mark flat segments of raw data using annotations or in info['bads'].
 
@@ -19,12 +19,12 @@ def mark_flat(raw, threshold=0.05, min_duration=0.005, picks=None,
     ----------
     raw : instance of Raw
         The raw data.
-    threshold : float in [0, 1]
-        The proportion of the time a channel can be bad.
-        Below this threshold, temporal bad marking (:class:`~mne.Annotations`)
-        will be used. Above this threshold, spatial bad marking
+    bad_percent : float
+        The percentage of the time a channel can be bad.
+        Below this percentage, temporal bad marking (:class:`~mne.Annotations`)
+        will be used. Above this percentage, spatial bad marking
         (:class:`info['bads'] <mne.Info>`) will be used.
-        Defaults to 0.05 (5%%).
+        Defaults to 5 (5%%).
     min_duration : float
         The minimum duration (sec) to consider as actually flat.
         For some systems with low bit data representations, adjacent
@@ -53,7 +53,7 @@ def mark_flat(raw, threshold=0.05, min_duration=0.005, picks=None,
     .. versionadded:: 0.18
     """
     _validate_type(raw, BaseRaw, 'raw')
-    threshold = float(threshold)
+    bad_percent = float(bad_percent)
     min_duration = float(min_duration)
     picks = _picks_to_idx(raw.info, picks, 'data_or_ica', exclude='bads')
     # This will not be so efficient for most readers, but we can optimize
@@ -74,7 +74,8 @@ def mark_flat(raw, threshold=0.05, min_duration=0.005, picks=None,
                     flat[start:stop] = False
             flat_mean = flat.mean()
             if flat_mean:  # only do something if there are actually flat parts
-                if flat_mean > threshold:
+                flat_mean *= 100
+                if flat_mean > bad_percent:
                     kind, comp = 'bads', '>'
                     bads.append(raw.ch_names[pick])
                 else:
@@ -82,7 +83,7 @@ def mark_flat(raw, threshold=0.05, min_duration=0.005, picks=None,
                     any_flat |= flat
                 logger.debug('%s: %s (%s %s %s)'
                              % (kind, raw.ch_names[pick],
-                                flat_mean, comp, threshold))
+                                flat_mean, comp, bad_percent))
     starts, stops = _mask_to_onsets_offsets(any_flat)
     logger.info('Marking %0.2f%% of time points (%d segment%s) and '
                 '%d/%d channel%s bad: %s'

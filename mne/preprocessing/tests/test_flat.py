@@ -27,8 +27,8 @@ def test_mark_flat():
     raw_0._data[0] = 0.
     for kwargs, bads, want_times in [
             # Anything < 1 will mark spatially
-            (dict(threshold=1.), [], 0),
-            (dict(threshold=0.999), [raw.ch_names[0]], n_times),
+            (dict(bad_percent=100.), [], 0),
+            (dict(bad_percent=99.9), [raw.ch_names[0]], n_times),
             (dict(), [raw.ch_names[0]], n_times)]:  # default (1)
         raw_time = mark_flat(raw_0.copy(), verbose='debug', **kwargs)
         want_bads = raw.info['bads'] + bads
@@ -42,12 +42,12 @@ def test_mark_flat():
     raw_0 = raw.copy()
     n_good_times = int(round(0.8 * n_times))
     raw_0._data[0, n_good_times:] = 0.
-    threshold = (n_times - n_good_times) / n_times
+    threshold = 100 * (n_times - n_good_times) / n_times
     for kwargs, bads, want_times in [
-            # Should change behavior at threshold=0.2
-            (dict(threshold=1), [], n_good_times),
-            (dict(threshold=threshold), [], n_good_times),
-            (dict(threshold=threshold - 1e-5), [raw.ch_names[0]], n_times),
+            # Should change behavior at bad_percent=20
+            (dict(bad_percent=100), [], n_good_times),
+            (dict(bad_percent=threshold), [], n_good_times),
+            (dict(bad_percent=threshold - 1e-5), [raw.ch_names[0]], n_times),
             (dict(), [raw.ch_names[0]], n_times)]:
         raw_time = mark_flat(raw_0.copy(), verbose='debug', **kwargs)
         want_bads = raw.info['bads'] + bads
