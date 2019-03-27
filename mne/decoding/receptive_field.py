@@ -211,9 +211,8 @@ class ReceptiveField(BaseEstimator):
         n_delays = len(self.delays_)
 
         # Update feature names if we have none
-        if self.feature_names is None:
-            self.feature_names = ['feature_%s' % ii for ii in range(n_feats)]
-        if len(self.feature_names) != n_feats:
+        if ((self.feature_names is not None) and
+                (len(self.feature_names) != n_feats)):
             raise ValueError('n_features in X does not match feature names '
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
