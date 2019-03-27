@@ -5,11 +5,13 @@
 Exporting and saving data from :class:`~mne.io.Raw` objects
 ===========================================================
 
-This tutorial covers how to save :class:`~mne.io.Raw` objects, and how to
-extract data from :class:`~mne.io.Raw` objects and save it as a NumPy array or
-Pandas DataFrame. As always we'll start by importing the modules we need, and
-loading some example data:
+This tutorial covers saving Raw objects, and exporting data from Raw objects to
+NumPy arrays or Pandas DataFrames.
 """
+
+###############################################################################
+# As always we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import numpy as np

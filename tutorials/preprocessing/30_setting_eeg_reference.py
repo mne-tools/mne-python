@@ -8,9 +8,11 @@ Setting the EEG reference
 .. include:: ../../tutorial_links.inc
 
 This tutorial describes how to set an EEG reference in MNE-Python.
-As usual we'll start by importing the modules we need, and loading some example
-data:
 """
+
+###############################################################################
+# As usual we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import mne

@@ -5,10 +5,13 @@
 Built-in plotting methods for :class:`~mne.io.Raw` objects
 ==========================================================
 
-This tutorial covers two of the main plotting methods for :class:`~mne.io.Raw`
-objects: :meth:`~mne.io.Raw.plot` and :meth:`~mne.io.Raw.plot_psd`. As always
-we'll start by importing the modules we need, and loading some example data:
+This tutorial covers two plotting methods for Raw objects: Raw.plot() and
+Raw.plot_psd().
 """
+
+###############################################################################
+# As always we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import mne

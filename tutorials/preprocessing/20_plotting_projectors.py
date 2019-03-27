@@ -8,9 +8,12 @@ Plotting the spatial pattern of projectors
 .. include:: ../../tutorial_links.inc
 
 This tutorial describes how to plot the topography (spatial pattern) of a
-projector. As usual we'll start by importing the modules we need, and loading
-some example data:
+projector.
 """
+
+###############################################################################
+# As usual we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import mne

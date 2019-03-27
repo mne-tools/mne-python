@@ -7,12 +7,14 @@ Working with projectors in MNE-Python
 
 .. include:: ../../tutorial_links.inc
 
-This tutorial describes how to work with :term:`projectors <projector>` in
-MNE-Python. It covers loading and saving projectors, adding and removing
-projectors from :class:`~mne.io.Raw` objects, and the difference between
-"applied" and "unapplied" projectors. As usual we'll start by importing the
-modules we need, and loading some example data:
+This tutorial covers loading and saving projectors, adding and removing
+projectors from Raw objects, and the difference between "applied" and
+"unapplied" projectors.
 """
+
+###############################################################################
+# As usual we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import matplotlib.pyplot as plt
@@ -25,10 +27,10 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 
 ###############################################################################
 # In our example data, :ref:`SSP <ssp-tutorial>` has already been performed
-# using empty room recordings, but the projectors are stored alongside the raw
-# data (they have not been *applied* yet). You can see the projectors in the
-# output of :func:`~mne.io.read_raw_fif` above, and also in the
-# ``projs`` field of ``raw.info``:
+# using empty room recordings, but the :term:`projectors <projector>` are
+# stored alongside the raw data (they have not been *applied* yet). You can see
+# the projectors in the output of :func:`~mne.io.read_raw_fif` above, and also
+# in the ``projs`` field of ``raw.info``:
 
 print(raw.info['projs'])
 

@@ -5,15 +5,16 @@
 Loading raw data
 ================
 
-This tutorial covers the basics of loading EEG/MEG data into Python. We'll
-start by importing the Python modules we need:
+This tutorial covers the basics of loading EEG/MEG data into Python.
 """
+
+###############################################################################
+# We'll start by importing the Python modules we need:
 
 import os
 import mne
 
 ###############################################################################
-#
 # Supported data formats
 # ^^^^^^^^^^^^^^^^^^^^^^
 #

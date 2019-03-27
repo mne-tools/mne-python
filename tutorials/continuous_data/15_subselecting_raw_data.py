@@ -7,12 +7,13 @@ Subselecting data from :class:`~mne.io.Raw` objects
 
 .. include:: ../../tutorial_links.inc
 
-This tutorial covers how to select portions of data the :class:`~mne.io.Raw`
-(both channels and time spans), how to reorder and rename channels, and also
-illustrates some basic plotting of :class:`mne.io.Raw` data using matplotlib.
-As before, we'll start by importing the Python modules we need, and repeating
-the commands to load the raw data:
+This tutorial covers selecting channels or time spans from Raw objects,
+reordering and renaming channels, and plotting raw data with matplotlib.
 """
+
+###############################################################################
+# As before, we'll start by importing the Python modules we need, and repeating
+# the commands to load the raw data:
 
 import os
 import numpy as np
@@ -23,7 +24,6 @@ sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
-
 
 ###############################################################################
 # Indexing :class:`~mne.io.Raw` objects

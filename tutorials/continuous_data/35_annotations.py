@@ -7,11 +7,13 @@ Annotating continuous data
 
 .. include:: ../../tutorial_links.inc
 
-This tutorial describes how to add annotations interactively to a
-:class:`~mne.io.Raw` object, and how annotations can be used in later stages of
-data processing. As usual we'll start by importing the modules we need, and
-loading some example data:
+This tutorial describes adding annotations to a Raw object, and how annotations
+are used in later stages of data processing.
 """
+
+###############################################################################
+# As usual we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import mne

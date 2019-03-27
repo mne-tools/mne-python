@@ -4,11 +4,13 @@
 Working with sensor locations
 =============================
 
-This tutorial describes how information about the physical location of sensors
-is handled in MNE-Python, and the ways of visualizing sensor locations. As
-always, we start by importing the Python modules we need, and loading some
-example data:
+This tutorial describes how to plot sensor locations, and how the physical
+location of sensors is handled in MNE-Python.
 """
+
+###############################################################################
+# As always, we start by importing the Python modules we need, and loading some
+# example data:
 
 import os
 import numpy as np

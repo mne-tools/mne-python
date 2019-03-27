@@ -7,11 +7,13 @@ Signal-space separation and Maxwell filtering
 
 .. include:: ../../tutorial_links.inc
 
-This tutorial describes how to use signal-space separation (SSS), and the
-related operation called Maxwell filtering, to both reduce environmental noise
-and compensate for subject movement in MEG data. As usual we'll start by
-importing the modules we need, and loading some example data:
+This tutorial covers reducing environmental noise and compensating for head
+movement with SSS and Maxwell filtering.
 """
+
+###############################################################################
+# As usual we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import matplotlib.pyplot as plt

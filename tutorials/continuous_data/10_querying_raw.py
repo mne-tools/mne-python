@@ -5,10 +5,11 @@
 Querying the :class:`~mne.io.Raw` object
 ========================================
 
-This tutorial covers how to query the :class:`mne.io.Raw` object once it's
-loaded into memory. As before, we'll start by importing the Python modules we
-need:
+This tutorial covers how to query the Raw object once it's loaded into memory.
 """
+
+###############################################################################
+# As before, we'll start by importing the Python modules we need:
 
 import os
 import numpy as np

@@ -7,10 +7,13 @@ Interpolating bad channels
 
 .. include:: ../../tutorial_links.inc
 
-This tutorial describes how to reconstruct bad channels by *interpolating*
-their signal based on good signals at other sensors. As usual we'll start by
-importing the modules we need, and loading some example data:
+This tutorial covers reconstructing bad channels based on good signals at other
+sensors.
 """
+
+###############################################################################
+# As usual we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import matplotlib.pyplot as plt

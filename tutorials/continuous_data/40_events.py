@@ -7,10 +7,13 @@ Working with events
 
 .. include:: ../../tutorial_links.inc
 
-This tutorial describes how events are represented in MNE-Python, and how event
-arrays are used to subselect data. As usual we'll start by importing the
-modules we need, and loading some example data:
+This tutorial describes event representation and how event arrays are used to
+subselect data.
 """
+
+###############################################################################
+# As usual we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import numpy as np

@@ -7,18 +7,20 @@ Computing projectors
 
 .. include:: ../../tutorial_links.inc
 
-So far we've worked with projectors that were already included in the
-:class:`~mne.io.Raw` object, and projectors loaded from a separate ``.fif``
-file. Here we'll go through the steps to compute those projectors yourself.
-This tutorial covers three examples for creating projectors using SSP:
-
-- Environmental noise projectors from empty room data
-- Heartbeat projectors (from MEG or ECG channels)
-- Blink projectors (from EEG or EOG channels)
-
-As usual we'll start by importing the modules we need, and loading some example
-data:
+This tutorial covers computing SSP projectors to reduce heartbeat and eye
+movement artifacts or environmental noise.
 """
+
+###############################################################################
+# So far we've worked with projectors that were already included in the
+# :class:`~mne.io.Raw` object (the "empty room" projectors), and projectors
+# loaded from a separate ``.fif`` file (ECG projectors). Here we'll go through
+# the steps to compute those projectors ourselves. We'll go through the process
+# of computing environmental noise projectors from empty room recordings, show
+# how to use dedicated ECG or EOG sensors for heartbeat and eyeblink artifact
+# removal, and see how to use regular EEG/MEG sensor channels when ECG or EOG
+# sensors are not available. As usual we'll start by importing the modules we
+# need, and loading some example data:
 
 import os
 import numpy as np

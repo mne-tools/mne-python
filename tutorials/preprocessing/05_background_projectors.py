@@ -7,11 +7,14 @@ Background: projectors and projections
 
 .. include:: ../../tutorial_links.inc
 
-This tutorial provides background information on :term:`projectors <projector>`
-and Signal Space Projection (SSP). As usual we'll start by importing the
-modules we need; we'll also define a short function to make it easier to make
-several plots that look similar, and define a few colorblind-friendly colors:
+This tutorial provides background information on projectors
+and Signal Space Projection (SSP).
 """
+
+###############################################################################
+# As usual we'll start by importing the modules we need; we'll also define a
+# short function to make it easier to make several plots that look similar, and
+# define a few colorblind-friendly colors:
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -191,8 +194,8 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # .. note::
 #
 #     In MNE-Python, the matrix used to project a raw signal into a subspace is
-#     usually called a *projector* or a *projection operator* — these terms are
-#     interchangeable with the term *projection matrix* used above.
+#     usually called a *:term:`projector`* or a *projection operator* — these
+#     terms are interchangeable with the term *projection matrix* used above.
 #
 #
 # .. _ssp-tutorial:

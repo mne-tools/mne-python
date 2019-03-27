@@ -5,11 +5,14 @@
 Manipulating the time domain of :class:`~mne.io.Raw` objects
 ============================================================
 
-This tutorial covers cropping :class:`~mne.io.Raw` objects to restrict the time
-domain, and how to concatenate :class:`~mne.io.Raw` objects (whether selections
-from the same recording or different recordings). As always we'll start by
-importing the modules we need, and loading some example data:
+This tutorial covers cropping Raw objects to restrict the time domain and
+concatenating Raw objects (whether selections from the same recording or
+different recordings).
 """
+
+###############################################################################
+# As always we'll start by importing the modules we need, and loading some
+# example data:
 
 import os
 import mne
