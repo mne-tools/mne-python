@@ -39,6 +39,7 @@ def set_3d_backend(backend_name):
     Parameters
     ----------
     backend_name : str
+        The 3d backend to select.
     """
     _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
     global MNE_3D_BACKEND
@@ -53,15 +54,22 @@ def get_3d_backend():
     Returns
     -------
     backend_used : str
-        the backend currently in use
+        The 3d backend currently in use.
     """
     global MNE_3D_BACKEND
     return MNE_3D_BACKEND
 
 
 @contextmanager
-def use_3d_backend(backend):
+def use_3d_backend(backend_name):
+    """Create a viz context.
+
+    Parameters
+    ----------
+    backend_name : str
+        The 3d backend to use in the context.
+    """
     old_backend = get_3d_backend()
-    set_3d_backend(backend)
+    set_3d_backend(backend_name)
     yield
     set_3d_backend(old_backend)
