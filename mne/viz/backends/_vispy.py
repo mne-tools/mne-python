@@ -236,13 +236,13 @@ class _Renderer(object):
             mesh = scene.visuals.Mesh(vertices=vertices,
                                       faces=faces,
                                       vertex_colors=vcolors,
-                                      shading='smooth',
+                                      shading='flat',
                                       parent=self.view.scene)
         else:
             mesh = scene.visuals.Mesh(vertices=vertices,
                                       faces=faces,
                                       color=color, parent=self.view.scene,
-                                      shading='smooth')
+                                      shading='flat')
         if mesh is not None:
             mesh.shininess = default_mesh_shininess
             mesh.attach(Alpha(opacity))
