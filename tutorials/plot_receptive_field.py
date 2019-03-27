@@ -34,10 +34,6 @@ modeling with continuous inputs is described in:
        enhance speech intelligibility. Nature Communications, 7, 13654 (2016).
        doi:10.1038/ncomms13654
 
-.. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
-       The Multivariate Temporal Response Function (mTRF) Toolbox:
-       A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-       Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -285,7 +281,7 @@ mne.viz.tight_layout()
 #           & & &    & -1 & 1\end{matrix}\right]
 #
 # This imposes a smoothness constraint of nearby time samples and/or features.
-# Quoting [5]_:
+# Quoting [3]_:
 #
 #    Tikhonov [identity] regularization (Equation 5) reduces overfitting by
 #    smoothing the TRF estimate in a way that is insensitive to
