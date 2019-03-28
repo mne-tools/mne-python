@@ -40,7 +40,6 @@ dependencies:
   - nibabel
   - nilearn
   - neo
-  - pyglet
   - pytest-faulthandler
   - pytest-sugar
   - pydocstyle

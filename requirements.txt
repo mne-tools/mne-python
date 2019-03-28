@@ -3,7 +3,6 @@ scipy
 matplotlib
 mayavi
 pyqt5
-pyglet
 pyqt5-sip
 sip
 scikit-learn

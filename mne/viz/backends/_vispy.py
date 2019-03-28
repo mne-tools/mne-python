@@ -5,7 +5,6 @@ Actual implementation of _Renderer and _Projection classes.
 """
 
 import numpy as np
-import vispy
 import warnings
 with warnings.catch_warnings():  # catch the VisPy warnings
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -15,7 +14,6 @@ with warnings.catch_warnings():  # catch the VisPy warnings
 
 default_sphere_radius = 0.5
 default_mesh_shininess = 0.0
-vispy.use('pyglet')
 
 
 class _Projection(object):
@@ -238,13 +236,13 @@ class _Renderer(object):
             mesh = scene.visuals.Mesh(vertices=vertices,
                                       faces=faces,
                                       vertex_colors=vcolors,
-                                      shading='smooth',
+                                      shading='flat',
                                       parent=self.view.scene)
         else:
             mesh = scene.visuals.Mesh(vertices=vertices,
                                       faces=faces,
                                       color=color, parent=self.view.scene,
-                                      shading='smooth')
+                                      shading='flat')
         if mesh is not None:
             mesh.shininess = default_mesh_shininess
             mesh.attach(Alpha(opacity))
@@ -397,7 +395,7 @@ class _Renderer(object):
         quiver = scene.visuals.Mesh(vertices=vertices,
                                     faces=faces,
                                     color=color,
-                                    shading='smooth',
+                                    shading='flat',
                                     parent=self.view.scene)
         quiver.attach(Alpha(opacity))
         if backface_culling:
