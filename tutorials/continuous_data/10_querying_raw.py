@@ -49,8 +49,8 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 #
 # Some useful attributes of :class:`~mne.io.Raw` objects include a list of the
 # channel names (:attr:`~mne.io.Raw.ch_names`), an array of the sample times in
-# seconds (:attr:`~mne.io.Raw.times`, in seconds), and the total number of
-# samples (:attr:`~mne.io.Raw.n_times`).
+# seconds (:attr:`~mne.io.Raw.times`), and the total number of samples
+# (:attr:`~mne.io.Raw.n_times`).
 
 n_time_samps = raw.n_times
 time_secs = raw.times
