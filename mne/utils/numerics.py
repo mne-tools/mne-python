@@ -506,7 +506,7 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     return mask
 
 
-def _freq_mask(freqs, fmin=None, fmax=None, sfreq=None, raise_error=True):
+def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
     """Safely find frequency boundaries."""
     orig_fmin = fmin
     orig_fmax = fmax

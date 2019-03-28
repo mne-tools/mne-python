@@ -898,8 +898,8 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         self.times = self.times[time_mask]
         self.data = self.data[..., time_mask]
 
-        freq_mask = _freq_mask(self.freqs, fmin, fmax,
-                               sfreq=self.info['sfreq'])
+        freq_mask = _freq_mask(self.freqs, sfreq=self.info['sfreq'],
+                               fmin=fmin, fmax=fmax)
 
         self.freqs = self.freqs[freq_mask]
         self.data = self.data[..., freq_mask, :]

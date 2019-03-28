@@ -181,28 +181,28 @@ def test_freq_mask():
     """Test safe frequency masking."""
     N = 10
     x = np.arange(N).astype(float)
-    assert _freq_mask(x, 0, N - 1, sfreq=1000.).sum() == N
-    assert _freq_mask(x - 1e-10, 0, N - 1, sfreq=1000.).sum() == N
-    assert _freq_mask(x - 1e-10, None, N - 1, sfreq=1000.).sum() == N
-    assert _freq_mask(x - 1e-10, None, None, sfreq=1000.).sum() == N
-    assert _freq_mask(x - 1e-10, -np.inf, None, sfreq=1000.).sum() == N
-    assert _freq_mask(x - 1e-10, None, np.inf, sfreq=1000.).sum() == N
+    assert _freq_mask(x, 1000., fmin=0, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=0, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=None).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=-np.inf, fmax=None).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=np.inf).sum() == N
     # non-uniformly spaced inputs
     x = np.array([4, 10])
-    assert _freq_mask(x[:1], fmin=10, sfreq=1, raise_error=False).sum() == 0
-    assert _freq_mask(x[:1], fmin=11, fmax=12, sfreq=1,
+    assert _freq_mask(x[:1], 1, fmin=10, raise_error=False).sum() == 0
+    assert _freq_mask(x[:1], 1, fmin=11, fmax=12,
                       raise_error=False).sum() == 0
-    assert _freq_mask(x, fmin=10, sfreq=1).sum() == 1
-    assert _freq_mask(x, fmin=6, sfreq=1).sum() == 1
-    assert _freq_mask(x, fmin=5, sfreq=1).sum() == 1
-    assert _freq_mask(x, fmin=4.5001, sfreq=1).sum() == 1
-    assert _freq_mask(x, fmin=4.4999, sfreq=1).sum() == 2
-    assert _freq_mask(x, fmin=4, sfreq=1).sum() == 2
+    assert _freq_mask(x, sfreq=1, fmin=10).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=6).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=5).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=4.5001).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=4.4999).sum() == 2
+    assert _freq_mask(x, sfreq=1, fmin=4).sum() == 2
     # degenerate cases
     with pytest.raises(ValueError, match='No frequencies remain'):
-        _freq_mask(x[:1], fmin=11, fmax=12)
+        _freq_mask(x[:1], sfreq=1, fmin=11, fmax=12)
     with pytest.raises(ValueError, match='must be less than or equal to fmax'):
-        _freq_mask(x[:1], fmin=10, sfreq=1)
+        _freq_mask(x[:1], sfreq=1, fmin=10)
 
 
 def test_random_permutation():
