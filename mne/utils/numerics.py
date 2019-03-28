@@ -516,11 +516,12 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
         fmin = freqs[0]
     if not np.isfinite(fmax):
         fmax = freqs[-1]
-    if sfreq is not None:
-        # Push 0.5/sfreq past the nearest frequency boundary first
-        sfreq = float(sfreq)
-        fmin = int(round(fmin * sfreq)) / sfreq - 0.5 / sfreq
-        fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq
+    if sfreq is None:
+        raise ValueError('sfreq can not be None')
+    # Push 0.5/sfreq past the nearest frequency boundary first
+    sfreq = float(sfreq)
+    fmin = int(round(fmin * sfreq)) / sfreq - 0.5 / sfreq
+    fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq
     if raise_error and fmin > fmax:
         raise ValueError('fmin (%s) must be less than or equal to fmax (%s)'
                          % (orig_fmin, orig_fmax))
