@@ -71,12 +71,11 @@ bad_eeg_data = raw.get_data(picks=bad_eeg_channel)
 # In this dataset, good EEG channels would be easy to pick out from their
 # channel names, using a list comprehension and the Python string
 # ``.startswith`` method:
-#
-# .. code-block:: python3
-#
-#     good_eeg_channels = [ch for ch in raw.ch_names if ch.startswith('EEG')
-#                          and ch not in raw.info['bads']]
-#
+
+good_eeg_channels = [ch for ch in raw.ch_names if ch.startswith('EEG') and
+                     ch not in raw.info['bads']]
+
+###############################################################################
 # However, magnetometer and gradiometer channel names all start with "MEG" so
 # they are not so easy to separate out by name. We've seen in
 # :ref:`raw-pick-types` how to pick channels from a :class:`~mne.io.Raw` object
