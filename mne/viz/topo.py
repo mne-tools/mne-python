@@ -13,9 +13,8 @@ from itertools import cycle
 
 import numpy as np
 
-from ..io.constants import Bunch
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn, _check_option
+from ..utils import _clean_names, warn, _check_option, Bunch
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
