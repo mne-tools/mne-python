@@ -47,8 +47,8 @@ class ProgressBar(object):
     max_total_width : int | str
         Maximum total message width. Can use "auto" (default) to try to set
         a sane value based on the current terminal width.
-    verbose_bool : bool
-        If True, show progress.
+    verbose_bool : bool | 'auto'
+        If True, show progress. 'auto' will use the current MNE verbose level.
 
     Example
     -------

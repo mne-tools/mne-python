@@ -97,6 +97,18 @@ def test_basics():
     assert_array_equal(raw.annotations.description,
                        ['y', 'x', 'x', 'x', 'x', 'x', 'x'])
 
+    # These three things should be equivalent
+    expected_orig_time = (raw.info['meas_date'][0] +
+                          raw.info['meas_date'][1] / 1000000)
+    for empty_annot in (
+            Annotations([], [], [], expected_orig_time),
+            Annotations([], [], [], None),
+            None):
+        raw.set_annotations(empty_annot)
+        assert isinstance(raw.annotations, Annotations)
+        assert len(raw.annotations) == 0
+        assert raw.annotations.orig_time == expected_orig_time
+
 
 def test_crop():
     """Test cropping with annotations."""

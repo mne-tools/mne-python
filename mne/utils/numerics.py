@@ -859,3 +859,18 @@ class _PCA(object):
         self.singular_values_ = singular_values_[:n_components]
 
         return U, S, V
+
+
+def _mask_to_onsets_offsets(mask):
+    """Group boolean mask into contiguous onset:offset pairs."""
+    assert mask.dtype == bool and mask.ndim == 1
+    mask = mask.astype(int)
+    diff = np.diff(mask)
+    onsets = np.where(diff > 0)[0] + 1
+    if mask[0]:
+        onsets = np.concatenate([[0], onsets])
+    offsets = np.where(diff < 0)[0] + 1
+    if mask[-1]:
+        offsets = np.concatenate([offsets, [len(mask)]])
+    assert len(onsets) == len(offsets)
+    return onsets, offsets
