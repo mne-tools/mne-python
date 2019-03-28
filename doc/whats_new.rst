@@ -105,6 +105,8 @@ Bug
 
 - Fix :ref:`gen_mne_flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used, and to properly deal with non-standard acquisition affines by `Eric Larson`_
 
+- Fix :meth:`mne.io.Raw.set_annotations` with ``annotations=None`` to create an empty annotations object with ``orig_time`` that matches the :class:`mne.io.Raw` instance by `Eric Larson`_
+
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
 - Fix boundaries during plotting of raw data with :func:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` on scaled displays (e.g., macOS with HiDPI/Retina screens) by `Clemens Brunner`_

@@ -735,8 +735,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self : instance of Raw
             The raw object with annotations.
         """
+        meas_date = _handle_meas_date(self.info['meas_date'])
         if annotations is None:
-            self._annotations = Annotations([], [], [])
+            if self.info['meas_date'] is not None:
+                orig_time = meas_date
+            else:
+                orig_time = None
+            self._annotations = Annotations([], [], [], orig_time)
         else:
             _ensure_annotation_object(annotations)
 
@@ -752,10 +757,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                    ' taken in reference to the first sample of'
                                    ' the raw object.')
 
-            meas_date = _handle_meas_date(self.info['meas_date'])
             delta = 1. / self.info['sfreq']
             time_of_first_sample = meas_date + self.first_samp * delta
-
             new_annotations = annotations.copy()
             if annotations.orig_time is None:
                 # Assume annotations to be relative to the data
