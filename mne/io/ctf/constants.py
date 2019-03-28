@@ -4,10 +4,10 @@
 #
 # License: BSD (3-clause)
 
-from ...utils import BunchConstNamed
+from ...utils import BunchConst
 
 
-CTF = BunchConstNamed()
+CTF = BunchConst()
 
 # ctf_types.h
 CTF.CTFV_MAX_AVERAGE_BINS = 8

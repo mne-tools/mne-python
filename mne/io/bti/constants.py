@@ -2,9 +2,9 @@
 #
 # License: BSD (3-clause)
 
-from ..constants import BunchConstNamed
+from ...utils import BunchConst
 
-BTI = BunchConstNamed()
+BTI = BunchConst()
 
 BTI.ELEC_STATE_NOT_COLLECTED           = 0
 BTI.ELEC_STATE_COLLECTED               = 1

@@ -35,14 +35,15 @@ class BunchConst(Bunch):
 # A version that tweaks the __repr__ of its values based on keys
 
 class BunchConstNamed(BunchConst):
-    """Class to provide nice __repr__ for our integer constants."""
+    """Class to provide nice __repr__ for our integer constants.
+
+    Only supports string keys and int or float values.
+    """
 
     def __setattr__(self, attr, val):
         assert isinstance(attr, str)
         if isinstance(val, int):
             val = NamedInt(attr, val)
-        elif isinstance(val, str):
-            val = NamedStr(attr, val)
         elif isinstance(val, float):
             val = NamedFloat(attr, val)
         else:
@@ -88,14 +89,3 @@ class NamedFloat(Named, float):
         out = float.__new__(cls, val)
         out._name = name
         return out
-
-
-class NamedStr(Named, str):
-
-    def __new__(cls, name, val):
-        out = str.__new__(cls, val)
-        out._name = name
-        return out
-
-    def __repr__(self):
-        return "'%s'" % (self,)

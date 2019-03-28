@@ -79,7 +79,7 @@ def _read_comp_coeff(fid, d):
         ('sensor_name', 'S32'),
         ('coeff_type', '>i4'), ('d0', '>i4'),
         ('ncoeff', '>i2'),
-        ('sensors', 'S%d' % CTF.CTFV_SENSOR_LABEL, CTF.CTFV_MAX_BALANCING),
+        ('sensors', 'S%s' % CTF.CTFV_SENSOR_LABEL, CTF.CTFV_MAX_BALANCING),
         ('coeffs', '>f8', CTF.CTFV_MAX_BALANCING)])
     comps = np.fromfile(fid, dt, d['ncomp'])
     for k in range(d['ncomp']):
