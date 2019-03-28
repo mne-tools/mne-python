@@ -35,7 +35,7 @@ from ..fixes import _get_args, _safe_svd, einsum
 from ..channels.channels import _get_T1T2_mag_inds
 
 
-# Note: Elekta uses single precision and some algorithms might use
+# Note: MF uses single precision and some algorithms might use
 # truncated versions of constants (e.g., μ0), which could lead to small
 # differences between algorithms
 
@@ -78,7 +78,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Path to the FIF file with cross-talk correction information.
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
-        (in seconds). Elekta's default is 10.0 seconds in MaxFilter™ v2.2.
+        (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
         Spatiotemporal SSS acts as implicitly as a high-pass filter where the
         cut-off frequency is 1/st_dur Hz. For this (and other) reasons, longer
         buffers are generally better as long as your system can handle the
@@ -184,7 +184,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     .. warning:: Maxwell filtering in MNE is not designed or certified
                  for clinical use.
 
-    Compared to Elekta's MaxFilter™ software, the MNE Maxwell filtering
+    Compared to the MEGIN MaxFilter™ software, the MNE Maxwell filtering
     routines currently provide the following features:
 
     +-----------------------------------------------------------------------------+-----+-----------+
@@ -225,20 +225,20 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Epoch-based movement compensation is described in [1]_.
 
-    Use of Maxwell filtering routines with non-Elekta systems is currently
-    **experimental**. Worse results for non-Elekta systems are expected due
+    Use of Maxwell filtering routines with non-Neuromag systems is currently
+    **experimental**. Worse results for non-Neuromag systems are expected due
     to (at least):
 
-        * Missing fine-calibration and cross-talk cancellation data for
-          other systems.
-        * Processing with reference sensors has not been vetted.
-        * Regularization of components may not work well for all systems.
-        * Coil integration has not been optimized using Abramowitz/Stegun
-          definitions.
+    * Missing fine-calibration and cross-talk cancellation data for
+      other systems.
+    * Processing with reference sensors has not been vetted.
+    * Regularization of components may not work well for all systems.
+    * Coil integration has not been optimized using Abramowitz/Stegun
+      definitions.
 
     .. note:: Various Maxwell filtering algorithm components are covered by
-              patents owned by Elekta Oy, Helsinki, Finland.
-              These patents include, but may not be limited to:
+              patents owned by MEGIN. These patents include, but may not be
+              limited to:
 
               - US2006031038 (Signal Space Separation)
               - US6876196 (Head position determination)
@@ -1223,7 +1223,7 @@ def _sss_basis(exp, all_coils):
             sin_order = np.sin(ord_phi)
             cos_order = np.cos(ord_phi)
             mult /= np.sqrt((degree - order + 1) * (degree + order))
-            factor = mult * np.sqrt(2)  # equivalence fix (Elekta uses 2.)
+            factor = mult * np.sqrt(2)  # equivalence fix (MF uses 2.)
 
             # Real
             idx = _deg_ord_idx(degree, order)
@@ -1506,7 +1506,7 @@ def _overlap_projector(data_int, data_res, corr):
     # directions in the subspace. See the end of the Results section in [2]_
 
     # Note that the procedure here is an updated version of [2]_ (and used in
-    # Elekta's tSSS) that uses residuals instead of internal/external spaces
+    # MF's tSSS) that uses residuals instead of internal/external spaces
     # directly. This provides more degrees of freedom when analyzing for
     # intersections between internal and external spaces.
 
@@ -1751,7 +1751,7 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
         eta_lm_sq = eta_lm_sq.sum(axis=1)
         eta_lm_sq *= noise_lev
 
-        # Mysterious scale factors to match Elekta, likely due to differences
+        # Mysterious scale factors to match MF, likely due to differences
         # in the basis normalizations...
         eta_lm_sq[orders[in_keepers] == 0] *= 2
         eta_lm_sq *= 0.0025
