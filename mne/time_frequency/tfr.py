@@ -892,17 +892,19 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         inst : instance of AverageTFR
             The modified instance.
         """
-        time_mask = _time_mask(self.times, tmin, tmax,
-                               sfreq=self.info['sfreq'])
+        if any((tmin, tmax)):
+            time_mask = _time_mask(self.times, tmin, tmax,
+                                   sfreq=self.info['sfreq'])
 
-        self.times = self.times[time_mask]
-        self.data = self.data[..., time_mask]
+            self.times = self.times[time_mask]
+            self.data = self.data[..., time_mask]
 
-        freq_mask = _freq_mask(self.freqs, sfreq=self.info['sfreq'],
-                               fmin=fmin, fmax=fmax)
+        if any((fmin, fmax)):
+            freq_mask = _freq_mask(self.freqs, sfreq=self.info['sfreq'],
+                                   fmin=fmin, fmax=fmax)
 
-        self.freqs = self.freqs[freq_mask]
-        self.data = self.data[..., freq_mask, :]
+            self.freqs = self.freqs[freq_mask]
+            self.data = self.data[..., freq_mask, :]
 
         return self
 

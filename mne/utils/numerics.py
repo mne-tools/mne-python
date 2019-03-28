@@ -498,7 +498,8 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     if raise_error and tmin > tmax:
         raise ValueError('tmin (%s) must be less than or equal to tmax (%s)'
                          % (orig_tmin, orig_tmax))
-    mask = (times >= tmin) & (times <= tmax)
+    mask = (times >= tmin)
+    mask &= (times <= tmax)
     if raise_error and not mask.any():
         raise ValueError('No samples remain when using tmin=%s and tmax=%s '
                          '(original time bounds are [%s, %s])'
@@ -525,7 +526,8 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
     if raise_error and fmin > fmax:
         raise ValueError('fmin (%s) must be less than or equal to fmax (%s)'
                          % (orig_fmin, orig_fmax))
-    mask = (freqs >= fmin) & (freqs <= fmax)
+    mask = (freqs >= fmin)
+    mask &= (freqs <= fmax)
     if raise_error and not mask.any():
         raise ValueError('No frequencies remain when using fmin=%s and '
                          'fmax=%s (original frequency bounds are [%s, %s])'
