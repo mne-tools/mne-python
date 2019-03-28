@@ -63,7 +63,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         The default is ``'auto'``, which means ``(0., 0., 0.)`` when
         ``coord_frame='meg'``, and a head-digitization-based
         origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
-        when ``coord_frame='head'``. If automatic fitting fails,
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
         consider separately calling the fitting function with different
         options or specifying the origin manually.
     int_order : int
