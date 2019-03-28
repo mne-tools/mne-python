@@ -47,24 +47,22 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    regularize='in', ignore_ref=False, bad_condition='error',
                    head_pos=None, st_fixed=True, st_only=False, mag_scale=100.,
                    skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
-    u"""Apply Maxwell filter to data using multipole moments.
-
-    .. warning:: Automatic bad channel detection is not currently implemented.
-                 It is critical to mark bad channels before running Maxwell
-                 filtering to prevent artifact spreading.
-
-    .. warning:: Maxwell filtering in MNE is not designed or certified
-                 for clinical use.
+    u"""Maxwell filter data using multipole moments.
 
     Parameters
     ----------
     raw : instance of mne.io.Raw
-        Data to be filtered
+        Data to be filtered.
+
+        .. warning:: Automatic bad channel detection is not currently
+                     implemented. It is critical to mark bad channels in
+                     ``raw.info['bads']`` prior to processing in orider
+                     to prevent artifact spreading.
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in meters.
         The default is ``'auto'``, which means ``(0., 0., 0.)`` when
         ``coord_frame='meg'``, and a head-digitization-based
-        origin fit using :func;`~mne.bem.fit_sphere_to_headshape`
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
         when ``coord_frame='head'``. If automatic fitting fails,
         consider separately calling the fitting function with different
         options or specifying the origin manually.
@@ -121,14 +119,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         parameters as returned by e.g. `read_head_pos`.
 
         .. versionadded:: 0.12
-
     st_fixed : bool
         If True (default), do tSSS using the median head position during the
         ``st_duration`` window. This is the default behavior of MaxFilter
         and has been most extensively tested.
 
         .. versionadded:: 0.12
-
     st_only : bool
         If True, only tSSS (temporal) projection of MEG data will be
         performed on the output data. The non-tSSS parameters (e.g.,
@@ -139,10 +135,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         cross-talk cancellation, movement compensation, and so forth
         will not be applied to the data. This is useful, for example, when
         evoked movement compensation will be performed with
-        :func:`mne.epochs.average_movements`.
+        :func:`~mne.epochs.average_movements`.
 
         .. versionadded:: 0.12
-
     mag_scale : float | str
         The magenetometer scale-factor used to bring the magnetometers
         to approximately the same order of magnitude as the gradiometers
@@ -152,13 +147,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         59.5 for VectorView).
 
         .. versionadded:: 0.13
-
     skip_by_annotation : str | list of str
         If a string (or list of str), any annotation segment that begins
         with the given string will not be included in filtering, and
         segments on either side of the given excluded annotated segment
         will be filtered separately (i.e., as independent signals).
-        The default (``('edge', 'bad_acq_skip')`` will separately filter
+        The default ``('edge', 'bad_acq_skip')`` will separately filter
         any segments that were concatenated by :func:`mne.concatenate_raws`
         or :meth:`mne.io.Raw.append`, or separated during acquisition.
         To disable, provide an empty list.
@@ -173,6 +167,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     See Also
     --------
+    mne.preprocessing.mark_flat
     mne.chpi.filter_chpi
     mne.chpi.read_head_pos
     mne.epochs.average_movements
@@ -183,10 +178,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
-    from [1]_ and [2]_.
+    from [1]_ and [2]_. It will likely use multiple CPU cores, see the
+    :ref:`FAQ <faq_cpu>` for more information.
 
-    .. note:: This code may use multiple CPU cores, see the
-              :ref:`FAQ <faq_cpu>` for more information.
+    .. warning:: Maxwell filtering in MNE is not designed or certified
+                 for clinical use.
 
     Compared to Elekta's MaxFilter™ software, the MNE Maxwell filtering
     routines currently provide the following features:
@@ -244,11 +240,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
               patents owned by Elekta Oy, Helsinki, Finland.
               These patents include, but may not be limited to:
 
-                  - US2006031038 (Signal Space Separation)
-                  - US6876196 (Head position determination)
-                  - WO2005067789 (DC fields)
-                  - WO2005078467 (MaxShield)
-                  - WO2006114473 (Temporal Signal Space Separation)
+              - US2006031038 (Signal Space Separation)
+              - US6876196 (Head position determination)
+              - WO2005067789 (DC fields)
+              - WO2005078467 (MaxShield)
+              - WO2006114473 (Temporal Signal Space Separation)
 
               These patents likely preclude the use of Maxwell filtering code
               in commercial applications. Consult a lawyer if necessary.
@@ -263,13 +259,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
            multichannel data: The signal space separation method,"
            Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
-
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article2.pdf
 
     .. [2] Taulu S. and Simola J. "Spatiotemporal signal space separation
            method for rejecting nearby interference in MEG measurements,"
            Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
-
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article3.pdf
     """  # noqa: E501
     # There are an absurd number of different possible notations for spherical
