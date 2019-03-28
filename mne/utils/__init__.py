@@ -43,6 +43,7 @@ from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _time_mask, grand_average, object_diff, object_hash,
                        object_size, _apply_scaling_cov, _undo_scaling_cov,
                        _apply_scaling_array, _undo_scaling_array,
-                       _scaled_array, _replace_md5, _PCA)
+                       _scaled_array, _replace_md5, _PCA,
+                       _mask_to_onsets_offsets)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas)
