@@ -64,10 +64,10 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Origin of internal and external multipolar moment space in meters.
         The default is ``'auto'``, which means ``(0., 0., 0.)`` when
         ``coord_frame='meg'``, and a head-digitization-based
-        origin fit when ``coord_frame='head'`` based on
-        :func;`~mne.bem.fit_sphere_to_headshape`. If automatic fitting fails,
-        consider separately calling the fitting function with different options
-        or specifying the origin manually here.
+        origin fit using :func;`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails,
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
     int_order : int
         Order of internal component of spherical expansion.
     ext_order : int
