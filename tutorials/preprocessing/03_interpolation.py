@@ -110,12 +110,12 @@ interp_eeg_data = interp_raw.get_data(picks=bad_eeg_channel)
 
 ###############################################################################
 # Finally, we'll convert MEG units from teslas to femtoteslas and EEG units
-# from volts to microvolts:
+# from volts to microvolts, for nicer plot axes:
 
-# convert gradiometers to fT/m
-good_meg_data /= 1e-15
-bad_meg_data /= 1e-15
-interp_meg_data /= 1e-15
+# convert gradiometers to fT/mm
+good_meg_data /= 1e-12
+bad_meg_data /= 1e-12
+interp_meg_data /= 1e-12
 
 # convert EEG to μV
 good_eeg_data /= 1e-6
@@ -149,11 +149,11 @@ axs[1, 1].plot(times, interp_eeg_data.T, **bad_kwargs)
 # label axes and zoom in MEG a little
 axs[0, 0].set_title('Original')
 axs[0, 1].set_title('Interpolated')
-axs[0, 0].set_ylabel('Gradiometers (fT/m)')
+axs[0, 0].set_ylabel('Gradiometers (fT/mm)')
 axs[1, 0].set_ylabel('EEG (μV)')
 axs[1, 0].set_xlabel('time (s)')
 axs[1, 1].set_xlabel('time (s)')
-axs[0, 0].set_ylim(-3e5, 3e5)
+axs[0, 0].set_ylim(-300, 300)
 fig.tight_layout()
 
 ###############################################################################
