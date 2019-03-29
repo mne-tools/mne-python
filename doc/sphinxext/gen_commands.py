@@ -82,7 +82,7 @@ def generate_commands_rst(app=None):
             for idx in (1, 0):
                 output.insert(idx, '-' * len(output[0]))
 
-            # Add "callout" styling for the "Usage: " line
+            # Add code styling for the "Usage: " line
             for li, line in enumerate(output):
                 if line.startswith('Usage: mne '):
                     output[li] = 'Usage: ``%s``' % line[7:]
