@@ -40,7 +40,7 @@ class BunchConstNamed(BunchConst):
     Only supports string keys and int or float values.
     """
 
-    def __setattr__(self, attr, val):
+    def __setattr__(self, attr, val):  # noqa: D105
         assert isinstance(attr, str)
         if isinstance(val, int):
             val = NamedInt(attr, val)
@@ -54,19 +54,19 @@ class BunchConstNamed(BunchConst):
 class Named(object):
     """Provide shared methods for giving named-representation subclasses."""
 
-    def __str__(self):
+    def __str__(self):  # noqa: D105
         return '%s (%s)' % (super().__str__(), self._name)
 
     __repr__ = __str__
 
     # see https://stackoverflow.com/a/15774013/2175965
-    def __copy__(self):
+    def __copy__(self):  # noqa: D105
         cls = self.__class__
         result = cls.__new__(cls)
         result.__dict__.update(self.__dict__)
         return result
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo):  # noqa: D105
         cls = self.__class__
         result = cls.__new__(cls, self._name, self)
         memo[id(self)] = result
@@ -76,16 +76,18 @@ class Named(object):
 
 
 class NamedInt(Named, int):
+    """Int with a name in __repr__."""
 
-    def __new__(cls, name, val):
+    def __new__(cls, name, val):  # noqa: D102,D105
         out = int.__new__(cls, val)
         out._name = name
         return out
 
 
 class NamedFloat(Named, float):
+    """Float with a name in __repr__."""
 
-    def __new__(cls, name, val):
+    def __new__(cls, name, val):  # noqa: D102,D105
         out = float.__new__(cls, val)
         out._name = name
         return out

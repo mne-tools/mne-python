@@ -726,7 +726,7 @@ class DigPoint(dict):
         Coordinate frame, e.g. ``FIFFV_COORD_HEAD``.
     """
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         if self['kind'] == FIFF.FIFFV_POINT_CARDINAL:
             id_ = _cardinal_kind_rev.get(
                 self.get('ident', -1), 'Unknown cardinal')
