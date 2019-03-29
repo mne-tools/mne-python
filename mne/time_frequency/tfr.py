@@ -892,20 +892,22 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         inst : instance of AverageTFR
             The modified instance.
         """
-        if any((tmin, tmax)):
+        if tmin is not None or tmax is not None:
             time_mask = _time_mask(self.times, tmin, tmax,
                                    sfreq=self.info['sfreq'])
 
-            self.times = self.times[time_mask]
-            self.data = self.data[..., time_mask]
+        else:
+            time_mask = slice(None)
 
-        if any((fmin, fmax)):
+        if fmin is not None or fmax is not None:
             freq_mask = _freq_mask(self.freqs, sfreq=self.info['sfreq'],
                                    fmin=fmin, fmax=fmax)
+        else:
+            freq_mask = slice(None)
 
-            self.freqs = self.freqs[freq_mask]
-            self.data = self.data[..., freq_mask, :]
-
+        self.times = self.times[time_mask]
+        self.freqs = self.freqs[freq_mask]
+        self.data = self.data[..., freq_mask, :][..., time_mask]
         return self
 
     def copy(self):
