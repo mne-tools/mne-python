@@ -13,12 +13,11 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 import pytest
 
 from mne import pick_types
-# from mne.tests.common import assert_dig_allclose
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.compensator import get_current_comp
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import _TempDir, run_tests_if_main, _clean_names, catch_logging
+from mne.utils import run_tests_if_main, _clean_names, catch_logging
 from mne.datasets import testing, spm_face
 from mne.io.constants import FIFF
 
@@ -48,9 +47,9 @@ ctf_fnames = tuple(sorted(block_sizes.keys()))
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_read_ctf():
+def test_read_ctf(tmpdir):
     """Test CTF reader."""
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
 
     # Create a dummy .eeg file so we can test our reading/application of it
@@ -271,9 +270,9 @@ def test_read_spm_ctf():
 
 
 @testing.requires_testing_data
-def test_saving_picked():
+def test_saving_picked(tmpdir):
     """Test saving picked CTF instances."""
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
     raw.crop(0, 1).load_data()

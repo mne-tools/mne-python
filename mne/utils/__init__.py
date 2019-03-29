@@ -36,7 +36,8 @@ from ._testing import (_memory_usage, run_tests_if_main, requires_sklearn,
                        requires_numpydoc, requires_tvtk, requires_freesurfer,
                        requires_nitime, requires_fs_or_nibabel, requires_dipy,
                        requires_neuromag2ft, assert_object_equal,
-                       assert_and_remove_boundary_annot, _raw_annot)
+                       assert_and_remove_boundary_annot, _raw_annot,
+                       assert_dig_allclose, assert_meg_snr, assert_snr)
 from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,
