@@ -1027,10 +1027,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
-    for key, surf in surfs.items():
-        renderer.surface(surface=surf, color=colors[key],
-                         opacity=alphas[key],
-                         backface_culling=(key != 'helmet'))
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
@@ -1052,6 +1048,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                               scale=2e-2, color=ax[1],
                               scale_mode='scalar', resolution=20,
                               scalars=[0.33, 0.66, 1.0])
+    for key, surf in surfs.items():
+        renderer.surface(surface=surf, color=colors[key],
+                         opacity=alphas[key],
+                         backface_culling=(key != 'helmet'))
 
     # plot points
     defaults = DEFAULTS['coreg']

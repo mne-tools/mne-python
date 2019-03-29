@@ -132,6 +132,8 @@ class _Renderer(object):
                                   shading=so)
         mesh.shininess = default_mesh_shininess
         mesh.attach(Alpha(opacity))
+        if opacity < 1.0:
+            mesh.set_gl_state('translucent', depth_test=False)
         if backface_culling:
             mesh.set_gl_state(cull_face=True)
         if offset is not None:
@@ -246,6 +248,8 @@ class _Renderer(object):
         if mesh is not None:
             mesh.shininess = default_mesh_shininess
             mesh.attach(Alpha(opacity))
+            if opacity < 1.0:
+                mesh.set_gl_state('translucent', depth_test=False)
             if backface_culling:
                 mesh.set_gl_state(cull_face=True)
         if offset is not None:
@@ -306,6 +310,8 @@ class _Renderer(object):
                                     color=color,
                                     parent=self.view.scene)
         sphere.attach(Alpha(opacity))
+        if opacity < 1.0:
+            sphere.set_gl_state('translucent', depth_test=False)
         if backface_culling:
             sphere.set_gl_state(cull_face=True)
 
@@ -398,6 +404,8 @@ class _Renderer(object):
                                     shading='flat',
                                     parent=self.view.scene)
         quiver.attach(Alpha(opacity))
+        if opacity < 1.0:
+            quiver.set_gl_state('translucent', depth_test=False)
         if backface_culling:
             quiver.set_gl_state(cull_face=True)
         return 0
