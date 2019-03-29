@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 """View the 3-Layers BEM model using Freeview.
 
-You can do for example:
+Examples
+--------
 
-$ mne freeview_bem_surfaces -s sample
+.. code-block:: console
+
+    $ mne freeview_bem_surfaces -s sample
+
 """
 # Authors:  Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 

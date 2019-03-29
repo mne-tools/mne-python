@@ -1,13 +1,20 @@
 #!/usr/bin/env python
 """Show the contents of a FIFF file.
 
-You can do for example:
+Examples
+--------
 
-$ mne show_fiff test_raw.fif
+.. code-block:: console
+
+    $ mne show_fiff test_raw.fif
+
 
 To see only tag 102:
 
-$ mne show_fiff test_raw.fif --tag=102
+.. code-block:: console
+
+    $ mne show_fiff test_raw.fif --tag=102
+
 """
 
 # Authors : Eric Larson, PhD

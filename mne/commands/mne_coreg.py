@@ -3,7 +3,13 @@
 
 """Open the coregistration GUI.
 
-example usage:  $ mne coreg
+Examples
+--------
+
+.. code-block:: console
+
+    $ mne coreg
+
 """
 
 import os.path as op

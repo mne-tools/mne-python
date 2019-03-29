@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 """Compare FIFF files.
 
-You can do for example:
+Examples
+--------
 
-$ mne compare_fiff test_raw.fif test_raw_sss.fif
+.. code-block:: console
+
+    $ mne compare_fiff test_raw.fif test_raw_sss.fif
+
 """
 
 # Authors : Eric Larson, PhD

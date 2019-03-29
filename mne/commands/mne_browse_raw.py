@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 r"""Browse raw data.
 
-You can do for example:
+Examples
+--------
 
-$ mne browse_raw --raw sample_audvis_raw.fif \
-                 --proj sample_audvis_ecg-proj.fif \
-                 --eve sample_audvis_raw-eve.fif
+.. code-block:: console
+
+    $ mne browse_raw --raw sample_audvis_raw.fif \
+                     --proj sample_audvis_ecg-proj.fif \
+                     --eve sample_audvis_raw-eve.fif
 """
 
 # Authors : Eric Larson, PhD

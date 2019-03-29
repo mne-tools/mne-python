@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 """Show measurement info from .fif file.
 
-You can do for example:
+Examples
+--------
 
-$ mne show_info sample_audvis_raw.fif
+.. code-block:: console
+
+    $ mne show_info sample_audvis_raw.fif
+
 """
 
 # Authors : Alexandre Gramfort, Ph.D.

@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 r"""Create mne report for a folder.
 
-Example usage
+Examples
+--------
 
-mne report -p MNE-sample-data/ -i \
-MNE-sample-data/MEG/sample/sample_audvis-ave.fif -d MNE-sample-data/subjects/ \
--s sample
+.. code-block:: console
+
+    $ mne report -p MNE-sample-data/ \
+        -i MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
+        -d MNE-sample-data/subjects/ \
+        -s sample
 
 """
 
