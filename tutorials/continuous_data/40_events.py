@@ -197,9 +197,8 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # continuous data, and the resulting :class:`~mne.Epochs` object allows pooling
 # by requesting partial trial descriptors (i.e., requesting ``'auditory'`` will
 # select all epochs with Event IDs 1 and 2; requesting ``'left'`` will select
-# all epochs with Event IDs 1 and 3).
-#
-# *TODO add cross-ref to tutorial that shows pooling using event dict*
+# all epochs with Event IDs 1 and 3). An example of this is shown later, in the
+# :ref:`epoch-pooling` section of the :ref:`epochs-intro-tutorial` tutorial.
 #
 #
 # Plotting events

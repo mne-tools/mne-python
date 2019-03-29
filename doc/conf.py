@@ -402,6 +402,7 @@ sphinx_gallery_conf = {
                                        '../examples/datasets/',
                                        '../tutorials/continuous_data/',
                                        '../tutorials/preprocessing/',
+                                       '../tutorials/epoching/',
                                        '../tutorials/miscellaneous/']),
     'gallery_dirs': gallery_dirs,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
