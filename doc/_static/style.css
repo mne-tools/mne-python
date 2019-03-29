@@ -340,15 +340,14 @@ div.highlight-console div.highlight span.gp {
 dl.cmd-list span.option {
     white-space: nowrap;
 }
-dl.cmd-list dt {
-    margin-top: 15px;
+dl.cmd-list dt, dl.cmd-list dd {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding-top: 0px;
+    padding-bottom: 5px;
     text-align: left;
     border-bottom: 1px solid #ddd;
 }
 dl.cmd-list dt::after {
     visibility: hidden;
-}
-dl.cmd-list dd {
-    margin-top: 15px;
-    border-bottom: 1px solid #ddd;
 }
