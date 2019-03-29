@@ -9,7 +9,7 @@ import shutil
 
 import numpy as np
 from numpy import array_equal
-from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
 from mne import pick_types
@@ -104,8 +104,8 @@ def test_read_ctf(tmpdir):
         assert_array_equal(raw.ch_names, raw_c.ch_names)
         assert_allclose(raw.times, raw_c.times)
         assert_allclose(raw._cals, raw_c._cals)
-        assert_equal(raw.info['meas_id']['version'],
-                     raw_c.info['meas_id']['version'] + 1)
+        assert (raw.info['meas_id']['version'] ==
+                raw_c.info['meas_id']['version'] + 1)
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)
@@ -114,15 +114,15 @@ def test_read_ctf(tmpdir):
                     'events', 'experimenter', 'highpass', 'line_freq',
                     'lowpass', 'nchan', 'proj_id', 'proj_name',
                     'projs', 'sfreq', 'subject_info'):
-            assert_equal(raw.info[key], raw_c.info[key], key)
+            assert raw.info[key] == raw_c.info[key], key
         if op.basename(fname) not in single_trials:
             # We don't force buffer size to be smaller like MNE-C
             assert raw.buffer_size_sec == raw_c.buffer_size_sec
-        assert_equal(len(raw.info['comps']), len(raw_c.info['comps']))
+        assert len(raw.info['comps']) == len(raw_c.info['comps'])
         for c1, c2 in zip(raw.info['comps'], raw_c.info['comps']):
             for key in ('colcals', 'rowcals'):
                 assert_allclose(c1[key], c2[key])
-            assert_equal(c1['save_calibrated'], c2['save_calibrated'])
+            assert c1['save_calibrated'] == c2['save_calibrated']
             for key in ('row_names', 'col_names', 'nrow', 'ncol'):
                 assert_array_equal(c1['data'][key], c2['data'][key])
             assert_allclose(c1['data']['data'], c2['data']['data'], atol=1e-7,
@@ -130,7 +130,7 @@ def test_read_ctf(tmpdir):
         assert_allclose(raw.info['hpi_results'][0]['coord_trans']['trans'],
                         raw_c.info['hpi_results'][0]['coord_trans']['trans'],
                         rtol=1e-5, atol=1e-7)
-        assert_equal(len(raw.info['chs']), len(raw_c.info['chs']))
+        assert len(raw.info['chs']) == len(raw_c.info['chs'])
         for ii, (c1, c2) in enumerate(zip(raw.info['chs'], raw_c.info['chs'])):
             for key in ('kind', 'scanno', 'unit', 'ch_name', 'unit_mul',
                         'range', 'coord_frame', 'coil_type', 'logno'):
@@ -139,7 +139,7 @@ def test_read_ctf(tmpdir):
                         key in ('kind', 'unit', 'coord_frame', 'coil_type',
                                 'logno'):
                     continue  # XXX see below...
-                assert_equal(c1[key], c2[key], err_msg=key)
+                assert c1[key] == c2[key], key
             for key in ('cal',):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
@@ -165,8 +165,8 @@ def test_read_ctf(tmpdir):
 
         # Make sure all digitization points are in the MNE head coord frame
         for p in raw.info['dig']:
-            assert_equal(p['coord_frame'], FIFF.FIFFV_COORD_HEAD,
-                         err_msg='dig points must be in FIFF.FIFFV_COORD_HEAD')
+            assert p['coord_frame'] == FIFF.FIFFV_COORD_HEAD, \
+                'dig points must be in FIFF.FIFFV_COORD_HEAD'
 
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
             raw.info['dig'] = raw.info['dig'][:-10]
@@ -183,8 +183,8 @@ def test_read_ctf(tmpdir):
         rng = np.random.RandomState(0)
         pick_ch = rng.permutation(np.arange(len(raw.ch_names)))[:10]
         bnd = int(round(raw.info['sfreq'] * raw.buffer_size_sec))
-        assert_equal(bnd, raw._raw_extras[0]['block_size'])
-        assert_equal(bnd, block_sizes[op.basename(fname)])
+        assert bnd == raw._raw_extras[0]['block_size']
+        assert bnd == block_sizes[op.basename(fname)]
         slices = (slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
                   slice(3, 300), slice(None))
         if len(raw.times) >= 2 * bnd:  # at least two complete blocks
@@ -255,7 +255,7 @@ def test_read_spm_ctf():
                         'SPM_CTF_MEG_example_faces1_3D.ds')
     raw = read_raw_ctf(raw_fname)
     extras = raw._raw_extras[0]
-    assert_equal(extras['n_samp'], raw.n_times)
+    assert extras['n_samp'] == raw.n_times
     assert extras['n_samp'] != extras['n_samp_tot']
 
     # Test that LPA, nasion and RPA are correct.
@@ -270,7 +270,8 @@ def test_read_spm_ctf():
 
 
 @testing.requires_testing_data
-def test_saving_picked(tmpdir):
+@pytest.mark.parametrize('comp_grade', [0, 1])
+def test_saving_picked(tmpdir, comp_grade):
     """Test saving picked CTF instances."""
     temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
@@ -279,26 +280,26 @@ def test_saving_picked(tmpdir):
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info['comps']) == 5
     pick_kwargs = dict(meg=True, ref_meg=False, verbose=True)
-    for comp_grade in [0, 1]:
-        raw.apply_gradient_compensation(comp_grade)
-        with catch_logging() as log:
-            raw_pick = raw.copy().pick_types(**pick_kwargs)
-        assert len(raw.info['comps']) == 5
-        assert len(raw_pick.info['comps']) == 0
-        log = log.getvalue()
-        assert 'Removing 5 compensators' in log
-        raw_pick.save(out_fname, overwrite=True)  # should work
-        raw2 = read_raw_fif(out_fname)
-        assert (raw_pick.ch_names == raw2.ch_names)
-        assert_array_equal(raw_pick.times, raw2.times)
-        assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
-                        atol=1e-20)  # atol is very small but > 0
 
-        raw2 = read_raw_fif(out_fname, preload=True)
-        assert (raw_pick.ch_names == raw2.ch_names)
-        assert_array_equal(raw_pick.times, raw2.times)
-        assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
-                        atol=1e-20)  # atol is very small but > 0
+    raw.apply_gradient_compensation(comp_grade)
+    with catch_logging() as log:
+        raw_pick = raw.copy().pick_types(**pick_kwargs)
+    assert len(raw.info['comps']) == 5
+    assert len(raw_pick.info['comps']) == 0
+    log = log.getvalue()
+    assert 'Removing 5 compensators' in log
+    raw_pick.save(out_fname, overwrite=True)  # should work
+    raw2 = read_raw_fif(out_fname)
+    assert (raw_pick.ch_names == raw2.ch_names)
+    assert_array_equal(raw_pick.times, raw2.times)
+    assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
+                    atol=1e-20)  # atol is very small but > 0
+
+    raw2 = read_raw_fif(out_fname, preload=True)
+    assert (raw_pick.ch_names == raw2.ch_names)
+    assert_array_equal(raw_pick.times, raw2.times)
+    assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
+                    atol=1e-20)  # atol is very small but > 0
 
 
 run_tests_if_main()

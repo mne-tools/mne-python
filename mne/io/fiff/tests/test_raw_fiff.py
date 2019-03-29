@@ -531,7 +531,7 @@ def test_io_raw(tmpdir):
 
 
 @pytest.mark.parametrize('fname_in, fname_out', [
-    (fif_fname, 'raw.fif'),
+    (test_fif_fname, 'raw.fif'),
     (test_fif_gz_fname, 'raw.fif.gz'),
     (ctf_fname, 'raw.fif')])
 def test_io_raw_additional(fname_in, fname_out, tmpdir):
