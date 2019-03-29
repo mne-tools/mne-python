@@ -408,7 +408,7 @@ class DipoleFixed(object):
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
-        self.kind = _aspect_rev.get(str(aspect_kind), 'Unknown')
+        self.kind = _aspect_rev.get(aspect_kind, 'unknown')
         self.first = first
         self.last = last
         self.comment = comment

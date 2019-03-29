@@ -27,7 +27,8 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
-                       requires_version, catch_logging, _FakeNoPandas)
+                       requires_version, catch_logging, _FakeNoPandas,
+                       assert_meg_snr)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -35,7 +36,6 @@ from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.datasets import testing
-from mne.tests.common import assert_meg_snr
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
@@ -1061,11 +1061,11 @@ def test_evoked_standard_error(tmpdir):
         for ave, ave2 in zip(evoked, evoked_new):
             assert_array_almost_equal(ave.data, ave2.data)
             assert_array_almost_equal(ave.times, ave2.times)
-            assert_equal(ave.nave, ave2.nave)
-            assert_equal(ave._aspect_kind, ave2._aspect_kind)
-            assert_equal(ave.kind, ave2.kind)
-            assert_equal(ave.last, ave2.last)
-            assert_equal(ave.first, ave2.first)
+            assert ave.nave == ave2.nave
+            assert ave._aspect_kind == ave2._aspect_kind
+            assert ave.kind == ave2.kind
+            assert ave.last == ave2.last
+            assert ave.first == ave2.first
 
 
 def test_reject_epochs():
