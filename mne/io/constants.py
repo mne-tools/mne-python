@@ -3,24 +3,9 @@
 #
 # License: BSD (3-clause)
 
+from ..utils._bunch import BunchConstNamed
 
-class Bunch(dict):
-    """Dictionnary-like object thatexposes its keys as attributes."""
-
-    def __init__(self, **kwargs):  # noqa: D102
-        dict.__init__(self, kwargs)
-        self.__dict__ = self
-
-
-class BunchConst(Bunch):
-    """Class to prevent us from re-defining constants (DRY)."""
-
-    def __setattr__(self, attr, val):  # noqa: D105
-        if attr != '__dict__' and hasattr(self, attr):
-            raise AttributeError('Attribute "%s" already set' % attr)
-        super(BunchConst, self).__setattr__(attr, val)
-
-FIFF = BunchConst()
+FIFF = BunchConstNamed()
 
 #
 # FIFF version number in use
@@ -676,7 +661,7 @@ FIFF.FIFFV_MNE_COORD_KIT_HEAD    = FIFF.FIFFV_MNE_COORD_CTF_HEAD
 #   FWD Types
 #
 
-FWD = BunchConst()
+FWD = BunchConstNamed()
 
 FWD.COIL_UNKNOWN                 = 0
 FWD.COILC_UNKNOWN                = 0

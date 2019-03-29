@@ -141,6 +141,7 @@ File I/O
    write_trans
    io.read_info
    io.show_fiff
+   io.DigPoint
 
 Base class:
 
@@ -336,6 +337,7 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
+   mark_flat
    maxwell_filter
    oversampled_temporal_projection
    read_ica

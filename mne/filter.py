@@ -1932,7 +1932,7 @@ class FilterMixin(object):
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        %(picks_good_data)s
+        %(picks_all_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -2161,6 +2161,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
 def _filt_check_picks(info, picks, h_freq, l_freq):
     from .io.pick import _picks_to_idx
     update_info = False
+    # This will pick *all* data channels
     picks = _picks_to_idx(info, picks, 'data_or_ica', exclude=())
     if h_freq is not None or l_freq is not None:
         data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=())

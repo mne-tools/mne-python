@@ -370,6 +370,9 @@ def reset_warnings(gallery_conf, fname):
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    warnings.filterwarnings(  # deal with bootstrap-theme bug
+        'ignore', message=".*modify script_files in the theme.*",
+        category=Warning)
     warnings.filterwarnings(  # deal with other modules having bad imports
         'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
     # allow this ImportWarning, but don't show it

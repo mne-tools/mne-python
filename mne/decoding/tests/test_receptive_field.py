@@ -188,9 +188,13 @@ def test_receptive_field():
     # stim features must match length of input data
     pytest.raises(ValueError, rf.fit, X[:, :1], y)
     # auto-naming features
+    feature_names = ['feature_%s' % ii for ii in [0, 1, 2]]
+    rf = ReceptiveField(tmin, tmax, 1, estimator=mod,
+                        feature_names=feature_names)
+    assert_equal(rf.feature_names, feature_names)
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod)
     rf.fit(X, y)
-    assert_equal(rf.feature_names, ['feature_%s' % ii for ii in [0, 1, 2]])
+    assert_equal(rf.feature_names, None)
     # X/y same n timepoints
     pytest.raises(ValueError, rf.fit, X, y[:-2])
     # Float becomes ridge

@@ -28,9 +28,8 @@ from mne.io import read_raw_fif, RawArray, read_raw_ctf
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.tests.common import assert_snr
-from mne.utils import (_TempDir, requires_version, run_tests_if_main,
-                       catch_logging)
+from mne.utils import (requires_version, run_tests_if_main,
+                       catch_logging, assert_snr)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -172,10 +171,9 @@ def _assert_reorder(cov_new, cov_orig, order):
                     cov_orig['data'], atol=1e-20)
 
 
-def test_ad_hoc_cov():
+def test_ad_hoc_cov(tmpdir):
     """Test ad hoc cov creation and I/O."""
-    tempdir = _TempDir()
-    out_fname = op.join(tempdir, 'test-cov.fif')
+    out_fname = op.join(str(tmpdir), 'test-cov.fif')
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
@@ -190,9 +188,9 @@ def test_ad_hoc_cov():
     assert_array_almost_equal(cov['data'], cov2['data'])
 
 
-def test_io_cov():
+def test_io_cov(tmpdir):
     """Test IO for noise covariance matrices."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['loglik'] = -np.inf
@@ -230,9 +228,9 @@ def test_io_cov():
 
 
 @pytest.mark.parametrize('method', (None, ['empirical']))
-def test_cov_estimation_on_raw(method):
+def test_cov_estimation_on_raw(method, tmpdir):
     """Test estimation from raw (typically empty room)."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
 
@@ -308,9 +306,9 @@ def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('rank', ('full', None))
-def test_cov_estimation_with_triggers(rank):
+def test_cov_estimation_with_triggers(rank, tmpdir):
     """Test estimation from raw with triggers."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname)
     raw.set_eeg_reference(projection=True).load_data()
     events = find_events(raw, stim_channel='STI 014')

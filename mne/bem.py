@@ -16,6 +16,7 @@ import numpy as np
 from scipy import linalg
 
 from .io.constants import FIFF, FWD
+from .io.meas_info import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
                        end_file)
@@ -796,16 +797,6 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 
 # #############################################################################
 # Sphere fitting
-
-_dig_kind_dict = {
-    'cardinal': FIFF.FIFFV_POINT_CARDINAL,
-    'hpi': FIFF.FIFFV_POINT_HPI,
-    'eeg': FIFF.FIFFV_POINT_EEG,
-    'extra': FIFF.FIFFV_POINT_EXTRA,
-}
-_dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
-_dig_kind_ints = tuple(_dig_kind_dict.values())
-
 
 @verbose
 def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):

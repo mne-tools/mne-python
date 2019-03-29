@@ -61,6 +61,8 @@ Changelog
 
 - Add option to improve rendering in :ref:`gen_mne_coreg` for modern graphics cards by `Eric Larson`_
 
+- Add :func:`mne.preprocessing.mark_flat` to automate marking of flat channels and segments of raw data by `Eric Larson`_
+
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
 - Add option to SSP preprocessing functions (e.g., :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.compute_proj_epochs`) to process MEG channels jointly with ``meg='combined'`` by `Eric Larson`_
@@ -79,6 +81,8 @@ Changelog
 
 - The ``mri`` parameter in :func:`mne.setup_volume_source_space` is now automatically set to ``T1.mgz`` if ``subject`` is provided. This allows to get a :class:`mne.SourceSpaces` of kind ``volume`` more automatically. By `Alex Gramfort`_
 
+- Add better ``__repr__`` for constants, and :class:`info['dig'] <mne.Info>` entries via :class:`mne.io.DigPoint` by `Eric Larson`_
+
 - Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
 
 - Add additional depth weighting options for inverse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) by `Eric Larson`_
@@ -89,6 +93,8 @@ Changelog
 
 Bug
 ~~~
+
+- Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
 
 - Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
 
@@ -102,6 +108,8 @@ Bug
   If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
 - Fix :ref:`gen_mne_flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used, and to properly deal with non-standard acquisition affines by `Eric Larson`_
+
+- Fix :meth:`mne.io.Raw.set_annotations` with ``annotations=None`` to create an empty annotations object with ``orig_time`` that matches the :class:`mne.io.Raw` instance by `Eric Larson`_
 
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
