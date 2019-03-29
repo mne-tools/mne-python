@@ -5,10 +5,11 @@
 #
 # License: BSD (3-clause)
 
-from ..constants import Bunch, FIFF
+from ..constants import FIFF
+from ...utils import BunchConst
 
 
-KIT = Bunch()
+KIT = BunchConst()
 
 # byte values
 KIT.SHORT = 2
@@ -162,7 +163,7 @@ KIT_LAYOUT = {
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
-    KIT.SYSTEM_MQ_ADULT: 'Macquarie Dept of Cognitive Science, 2006-',    
+    KIT.SYSTEM_MQ_ADULT: 'Macquarie Dept of Cognitive Science, 2006-',
     KIT.SYSTEM_AS: 'Academia Sinica, -2008',
     KIT.SYSTEM_AS_2008: 'Academia Sinica, 2008-',
     KIT.SYSTEM_NYU_2008: 'NYU New York, 2008-9',

@@ -17,7 +17,8 @@ from .source_estimate import (VolSourceEstimate, SourceEstimate,
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
-                    warn as warn_, deprecated, fill_doc, _check_option)
+                    warn as warn_, deprecated, fill_doc, _check_option,
+                    BunchConst)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -610,7 +611,6 @@ def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
             raise ValueError(
                 "Cannot infer original voxel size for reslicing... "
                 "set mri_resolution to boolean value or apply morph first.")
-        from mne.io.constants import BunchConst
         # Now deal with the fact that we may have multiple sub-volumes
         inuse = [morph[k]['inuse'] for k in range(len(morph))]
         src_shape = [morph[k]['shape'] for k in range(len(morph))]

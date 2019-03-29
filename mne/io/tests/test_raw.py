@@ -11,7 +11,7 @@ import math
 import pytest
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
-                           assert_equal, assert_array_equal)
+                           assert_array_equal)
 
 from mne import concatenate_raws, create_info, Annotations
 from mne.annotations import _handle_meas_date
@@ -117,9 +117,9 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     first_samp = raw.first_samp
     last_samp = raw.last_samp
     concat_raw = concatenate_raws([raw.copy(), raw])
-    assert_equal(concat_raw.n_times, 2 * raw.n_times)
-    assert_equal(concat_raw.first_samp, first_samp)
-    assert_equal(concat_raw.last_samp - last_samp + first_samp, last_samp + 1)
+    assert concat_raw.n_times == 2 * raw.n_times
+    assert concat_raw.first_samp == first_samp
+    assert concat_raw.last_samp - last_samp + first_samp == last_samp + 1
     idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
 
     if concat_raw.info['meas_date'] is None:
@@ -134,7 +134,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
     if raw.info['meas_id'] is not None:
         for key in ['secs', 'usecs', 'version']:
-            assert_equal(raw.info['meas_id'][key], raw3.info['meas_id'][key])
+            assert raw.info['meas_id'][key] == raw3.info['meas_id'][key]
         assert_array_equal(raw.info['meas_id']['machid'],
                            raw3.info['meas_id']['machid'])
 

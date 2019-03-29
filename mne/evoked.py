@@ -40,8 +40,7 @@ from .io.base import ToDataFrameMixin, TimeMixin, _check_maxshield
 
 _aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                 'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
-_aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
-               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
+_aspect_rev = {val: key for key, val in _aspect_dict.items()}
 
 
 @fill_doc
@@ -111,7 +110,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.info, self.nave, self._aspect_kind, self.first, self.last, \
             self.comment, self.times, self.data = _read_evoked(
                 fname, condition, kind, allow_maxshield)
-        self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
+        self.kind = _aspect_rev.get(self._aspect_kind, 'unknown')
         self.verbose = verbose
         self.preload = True
         # project and baseline correct
@@ -735,7 +734,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
         fid.close()
         raise ValueError('Dataset names in FIF file '
                          'could not be found.')
-    t = [_aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
+    t = [_aspect_rev.get(a, 'unknown') for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
     t = '\n'.join(t)
     return comments, aspect_kinds, t

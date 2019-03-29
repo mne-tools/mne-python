@@ -34,7 +34,7 @@ from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
 from ..io.meas_info import write_meas_info, read_meas_info
-from ..io.constants import Bunch, FIFF
+from ..io.constants import FIFF
 from ..io.base import BaseRaw
 from ..epochs import BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
@@ -47,7 +47,7 @@ from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
                      compute_corr, _get_inst_data, _ensure_int,
-                     copy_function_doc_to_method_doc, _pl, warn,
+                     copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA)
 from ..utils.check import _check_all_same_channel_names
