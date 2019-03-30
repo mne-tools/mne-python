@@ -3,7 +3,6 @@
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne freeview_bem_surfaces -s sample

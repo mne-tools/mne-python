@@ -3,7 +3,6 @@
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne show_fiff test_raw.fif

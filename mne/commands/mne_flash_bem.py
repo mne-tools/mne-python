@@ -3,7 +3,6 @@
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne flash_bem --subject=sample

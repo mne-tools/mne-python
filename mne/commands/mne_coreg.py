@@ -5,7 +5,6 @@
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne coreg

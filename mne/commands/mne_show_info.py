@@ -3,7 +3,6 @@
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne show_info sample_audvis_raw.fif
@@ -33,6 +32,7 @@ def run():
     info = mne.io.read_info(fname)
     print("File : %s" % fname)
     print(info)
+
 
 is_main = (__name__ == '__main__')
 if is_main:

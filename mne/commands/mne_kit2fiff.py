@@ -5,7 +5,6 @@
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne kit2fiff --input input.sqd --output output.fif

@@ -3,7 +3,6 @@ r"""Browse raw data.
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne browse_raw --raw sample_audvis_raw.fif \

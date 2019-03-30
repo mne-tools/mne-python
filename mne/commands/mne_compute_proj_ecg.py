@@ -3,7 +3,6 @@ r"""Compute SSP/PCA projections for ECG artifacts.
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" \

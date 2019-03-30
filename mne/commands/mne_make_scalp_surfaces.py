@@ -10,7 +10,6 @@
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne make_scalp_surfaces --overwrite --subject sample

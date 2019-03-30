@@ -3,7 +3,6 @@ r"""Convert surface to BEM FIF file.
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead \

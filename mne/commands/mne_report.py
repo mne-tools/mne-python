@@ -3,7 +3,6 @@ r"""Create mne report for a folder.
 
 Examples
 --------
-
 .. code-block:: console
 
     $ mne report -p MNE-sample-data/ \
