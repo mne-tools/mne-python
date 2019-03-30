@@ -769,7 +769,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD.
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,

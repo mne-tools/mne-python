@@ -76,7 +76,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         Use adaptive weights to combine the tapered spectra into PSD.
         Only used in 'multitaper' mode.
     mt_low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
     cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
