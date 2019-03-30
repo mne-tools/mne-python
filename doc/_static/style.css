@@ -322,3 +322,32 @@ div.highlight-console div.highlight span.gp {
     max-width: unset !important;
     min-width: unset !important;
 }
+/* Callout */
+.callout {
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid #eee;
+    border-left-width: 5px;
+    border-left-color: #ddd;
+    /* background-color: #eee; */
+}
+.callout h3:first-child {
+    margin-top: 0;
+}
+.callout p:last-child {
+    margin-bottom: 0;
+}
+dl.cmd-list span.option {
+    white-space: nowrap;
+}
+dl.cmd-list dt, dl.cmd-list dd {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding-top: 0px;
+    padding-bottom: 5px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+dl.cmd-list dt::after {
+    visibility: hidden;
+}

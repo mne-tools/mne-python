@@ -2,9 +2,12 @@
 # Authors: Lorenzo De Santis
 """Create BEM surfaces using the watershed algorithm included with FreeSurfer.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne watershed_bem -s sample
+    $ mne watershed_bem -s sample
+
 """
 
 import sys
