@@ -347,8 +347,9 @@ def test_annot_io():
     shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
 
     # read original labels
-    pytest.raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
-                  subjects_dir=tempdir)
+    with pytest.raises(IOError, match='\nPALS_B12_Lobes$'):
+        read_labels_from_annot(subject, 'PALS_B12_Lobesey',
+                               subjects_dir=tempdir)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
 

@@ -1835,13 +1835,15 @@ def _read_annot(fname):
             raise IOError('Directory for annotation does not exist: %s',
                           fname)
         cands = os.listdir(dir_name)
-        cands = [c for c in cands if '.annot' in c]
+        cands = sorted(set(c.lstrip('lh.').lstrip('rh.').rstrip('.annot')
+                           for c in cands if '.annot' in c),
+                       key=lambda x: x.lower())
         if len(cands) == 0:
             raise IOError('No such file %s, no candidate parcellations '
                           'found in directory' % fname)
         else:
             raise IOError('No such file %s, candidate parcellations in '
-                          'that directory: %s' % (fname, ', '.join(cands)))
+                          'that directory:\n%s' % (fname, '\n'.join(cands)))
     with open(fname, "rb") as fid:
         n_verts = np.fromfile(fid, '>i4', 1)[0]
         data = np.fromfile(fid, '>i4', n_verts * 2).reshape(n_verts, 2)
