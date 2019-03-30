@@ -54,9 +54,9 @@ picks : list | slice | None
 # Rank
 docdict['rank'] = """
 rank : None | dict | 'info' | 'full'
-        This controls the rank computation that can be read from the
-        measurement info or estimated from the data. See ``Notes``
-        of :func:`mne.compute_rank` for details."""
+    This controls the rank computation that can be read from the
+    measurement info or estimated from the data. See ``Notes``
+    of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
 

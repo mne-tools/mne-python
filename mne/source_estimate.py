@@ -1012,16 +1012,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             The transform to be applied, including parameters (see, e.g.,
             :func:`functools.partial`). The first parameter of the function is
             the input data. The first two dimensions of the transformed data
-            should be (i) vertices and (ii) time.  Transforms which yield 3D
-            output (e.g. time-frequency transforms) are valid, so long as the
-            first two dimensions are vertices and time.  In this case, the
-            copy parameter (see below) must be True and a list of
-            SourceEstimates, rather than a single instance of SourceEstimate,
-            will be returned, one for each index of the 3rd dimension of the
-            transformed data.  In the case of transforms yielding 2D output
-            (e.g. filtering), the user has the option of modifying the input
-            inplace (copy = False) or returning a new instance of
-            SourceEstimate (copy = True) with the transformed data.
+            should be (i) vertices and (ii) time.  See Notes for details.
         idx : array | None
             Indices of source time courses for which to compute transform.
             If None, all time courses are used.
@@ -1042,6 +1033,17 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
         Notes
         -----
+        Transforms which yield 3D
+        output (e.g. time-frequency transforms) are valid, so long as the
+        first two dimensions are vertices and time.  In this case, the
+        copy parameter must be True and a list of
+        SourceEstimates, rather than a single instance of SourceEstimate,
+        will be returned, one for each index of the 3rd dimension of the
+        transformed data.  In the case of transforms yielding 2D output
+        (e.g. filtering), the user has the option of modifying the input
+        inplace (copy = False) or returning a new instance of
+        SourceEstimate (copy = True) with the transformed data.
+
         Applying transforms can be significantly faster if the
         SourceEstimate object was created using "(kernel, sens_data)", for
         the "data" parameter as the transform is applied in sensor space.

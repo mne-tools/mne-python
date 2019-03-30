@@ -650,7 +650,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         Use adaptive weights to combine the tapered spectra into CSD. Only used
         in 'multitaper' mode. Defaults to False.
     mt_low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth. Only used in 'multitaper' mode. Defaults to True.
     cwt_n_cycles: float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
