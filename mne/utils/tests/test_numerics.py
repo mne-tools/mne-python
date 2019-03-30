@@ -15,7 +15,7 @@ from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (_get_inst_data, md5sum, hashfunc,
                        sum_squared, compute_corr, create_slices, _time_mask,
-                       random_permutation, _reg_pinv, object_size,
+                       _freq_mask, random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _PCA, requires_sklearn)
@@ -171,8 +171,40 @@ def test_time_mask():
     assert _time_mask(x, tmin=4.4999, sfreq=1).sum() == 2
     assert _time_mask(x, tmin=4, sfreq=1).sum() == 2
     # degenerate cases
-    pytest.raises(ValueError, _time_mask, x[:1], tmin=11, tmax=12)
-    pytest.raises(ValueError, _time_mask, x[:1], tmin=10, sfreq=1)
+    with pytest.raises(ValueError, match='No samples remain'):
+        _time_mask(x[:1], tmin=11, tmax=12)
+    with pytest.raises(ValueError, match='must be less than or equal to tmax'):
+        _time_mask(x[:1], tmin=10, sfreq=1)
+
+
+def test_freq_mask():
+    """Test safe frequency masking."""
+    N = 10
+    x = np.arange(N).astype(float)
+    assert _freq_mask(x, 1000., fmin=0, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=0, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=None).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=-np.inf, fmax=None).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=np.inf).sum() == N
+    # non-uniformly spaced inputs
+    x = np.array([4, 10])
+    assert _freq_mask(x[:1], 1, fmin=10, raise_error=False).sum() == 0
+    assert _freq_mask(x[:1], 1, fmin=11, fmax=12,
+                      raise_error=False).sum() == 0
+    assert _freq_mask(x, sfreq=1, fmin=10).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=6).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=5).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=4.5001).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=4.4999).sum() == 2
+    assert _freq_mask(x, sfreq=1, fmin=4).sum() == 2
+    # degenerate cases
+    with pytest.raises(ValueError, match='sfreq can not be None'):
+        _freq_mask(x[:1], sfreq=None, fmin=3, fmax=5)
+    with pytest.raises(ValueError, match='No frequencies remain'):
+        _freq_mask(x[:1], sfreq=1, fmin=11, fmax=12)
+    with pytest.raises(ValueError, match='must be less than or equal to fmax'):
+        _freq_mask(x[:1], sfreq=1, fmin=10)
 
 
 def test_random_permutation():

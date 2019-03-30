@@ -355,16 +355,27 @@ def test_tfr_multitaper():
 
 def test_crop():
     """Test TFR cropping."""
-    data = np.zeros((3, 2, 3))
-    times = np.array([.1, .2, .3])
-    freqs = np.array([.10, .20])
+    data = np.zeros((3, 4, 5))
+    times = np.array([.1, .2, .3, .4, .5])
+    freqs = np.array([.10, .20, .30, .40])
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
                            ['mag', 'mag', 'mag'])
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
-    tfr.crop(0.2, 0.3)
-    assert_array_equal(tfr.times, [0.2, 0.3])
+
+    tfr.crop(tmin=0.2)
+    assert_array_equal(tfr.times, [0.2, 0.3, 0.4, 0.5])
+    assert_equal(tfr.data.shape[-1], 4)
+
+    tfr.crop(fmax=0.3)
+    assert_equal(tfr.freqs, [0.1, 0.2, 0.3])
+    assert_equal(tfr.data.shape[-2], 3)
+
+    tfr.crop(tmin=0.3, tmax=0.4, fmin=0.1, fmax=0.2)
+    assert_array_equal(tfr.times, [0.3, 0.4])
     assert_equal(tfr.data.shape[-1], 2)
+    assert_equal(tfr.freqs, [0.1, 0.2])
+    assert_equal(tfr.data.shape[-2], 2)
 
 
 @requires_h5py
