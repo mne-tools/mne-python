@@ -313,8 +313,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         ch_names_ = data['name'].astype(str).tolist()
         pos = np.vstack((data['x'], data['y'], data['z'])).T
     elif ext in ('.loc', '.locs', '.eloc'):
-        ch_names_ = np.loadtxt(fname, dtype='S4',
-                               usecols=[3]).astype(str).tolist()
+        ch_names_ = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
         topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
         sph = _topo_to_sph(topo)
         pos = _sph_to_cart(sph)
