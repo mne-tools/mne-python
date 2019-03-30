@@ -8,7 +8,12 @@
 
 """Create high-resolution head surfaces for coordinate alignment.
 
-example usage: mne make_scalp_surfaces --overwrite --subject sample
+Examples
+--------
+.. code-block:: console
+
+    $ mne make_scalp_surfaces --overwrite --subject sample
+
 """
 import os
 import copy
