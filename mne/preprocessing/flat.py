@@ -28,7 +28,7 @@ def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
     min_duration : float
         The minimum duration (sec) to consider as actually flat.
         For some systems with low bit data representations, adjacent
-        channels with exactly the same value are not totally uncommon.
+        time samples with exactly the same value are not totally uncommon.
         Defaults to 0.005 (5 ms).
     %(picks_good_data)s
     %(verbose)s

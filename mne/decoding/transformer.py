@@ -338,7 +338,7 @@ class PSDEstimator(TransformerMixin):
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
