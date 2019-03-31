@@ -99,7 +99,7 @@
 .. _NVIDIA proprietary drivers: https://www.nvidia.com/Download/index.aspx
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
-.. _sphinx gallery documentation: https://sphinx-gallery.readthedocs.io/en/latest/configuration.html
+.. _sphinx gallery documentation: https://sphinx-gallery.github.io
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _Stack Overflow: https://stackoverflow.com/
 
