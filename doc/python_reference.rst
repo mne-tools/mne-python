@@ -337,6 +337,7 @@ Projections:
    mark_flat
    maxwell_filter
    oversampled_temporal_projection
+   peak_finder
    read_ica
    run_ica
    corrmap

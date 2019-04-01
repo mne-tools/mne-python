@@ -27,8 +27,8 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     peak_mag : array
         The magnitude of the identified peaks
 
-    Note
-    ----
+    Notes
+    -----
     If repeated values are found the first is identified as the peak.
     Conversion from initial Matlab code from:
     Nathanael C. Yoder (ncyoder@purdue.edu)
