@@ -907,7 +907,12 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
 
         self.times = self.times[time_mask]
         self.freqs = self.freqs[freq_mask]
-        self.data = self.data[..., freq_mask, :][..., time_mask]
+        # Deal with broadcasting (boolean arrays do not broadcast, but indices
+        # do, so we need to convert freq_mask to make use of broadcasting)
+        if isinstance(time_mask, np.ndarray) and \
+                isinstance(freq_mask, np.ndarray):
+            freq_mask = np.where(freq_mask)[0][:, np.newaxis]
+        self.data = self.data[..., freq_mask, time_mask]
         return self
 
     def copy(self):
