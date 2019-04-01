@@ -2332,6 +2332,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
                                     if invert_y else ylabel_height)
 
+    vlines = [] if vlines is None else vlines
     xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
     axes.set_xticks(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
