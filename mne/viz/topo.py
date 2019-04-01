@@ -348,15 +348,6 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.plot(times_, data_[ch_idx], color=color_)
 
-    if x_label is not None:
-        ax.set_xlabel(x_label)
-
-    if y_label is not None:
-        if isinstance(y_label, list):
-            ax.set_ylabel(y_label[ch_idx])
-        else:
-            ax.set_ylabel(y_label)
-
     def _format_coord(x, y, labels, ax):
         """Create status string based on cursor coordinates."""
         # find indices for datasets near cursor (if any)
@@ -425,6 +416,15 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     ax.title.set_color(hvline_color)
     ax.xaxis.label.set_color(hvline_color)
     ax.yaxis.label.set_color(hvline_color)
+
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+
+    if y_label is not None:
+        if isinstance(y_label, list):
+            ax.set_ylabel(y_label[ch_idx])
+        else:
+            ax.set_ylabel(y_label)
 
     if vline:
         plt.axvline(vline, color=hvline_color, linewidth=1.0,
