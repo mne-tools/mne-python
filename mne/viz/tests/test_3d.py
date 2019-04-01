@@ -187,7 +187,8 @@ def test_plot_alignment(tmpdir, backend_name):
                 'r': [0.08436285, -0.02850276, -0.04127743]}]
         write_dig(fiducials_path, fid, 5)
 
-        mlab = _import_mlab()
+        if backend_name == 'mayavi':
+            mlab = _import_mlab()
         evoked = read_evokeds(evoked_fname)[0]
         sample_src = read_source_spaces(src_fname)
         bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
@@ -204,9 +205,11 @@ def test_plot_alignment(tmpdir, backend_name):
                 meg.append('ref')
             plot_alignment(info, trans_fname, subject='sample',
                            subjects_dir=subjects_dir, meg=meg)
-            mlab.close(all=True)
+            if backend_name == 'mayavi':
+                mlab.close(all=True)
         # KIT ref sensor coil def is defined
-        mlab.close(all=True)
+        if backend_name == 'mayavi':
+            mlab.close(all=True)
         info = infos['Neuromag']
         pytest.raises(TypeError, plot_alignment, 'foo', trans_fname,
                       subject='sample', subjects_dir=subjects_dir)
@@ -217,9 +220,11 @@ def test_plot_alignment(tmpdir, backend_name):
                       src=sample_src)
         sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
                         brain='white')
-        mlab.close(all=True)
+        if backend_name == 'mayavi':
+            mlab.close(all=True)
         # no-head version
-        mlab.close(all=True)
+        if backend_name == 'mayavi':
+            mlab.close(all=True)
         # all coord frames
         pytest.raises(ValueError, plot_alignment, info)
         plot_alignment(info, surfaces=[])
@@ -228,7 +233,8 @@ def test_plot_alignment(tmpdir, backend_name):
                            coord_frame=coord_frame, trans=trans_fname,
                            subject='sample', mri_fiducials=fiducials_path,
                            subjects_dir=subjects_dir, src=src_fname)
-            mlab.close(all=True)
+            if backend_name == 'mayavi':
+                mlab.close(all=True)
         # EEG only with strange options
         evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
         evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
@@ -240,7 +246,8 @@ def test_plot_alignment(tmpdir, backend_name):
                            surfaces=['white', 'outer_skin', 'outer_skull'],
                            meg=['helmet', 'sensors'],
                            eeg=['original', 'projected'], ecog=True, seeg=True)
-        mlab.close(all=True)
+        if backend_name == 'mayavi':
+            mlab.close(all=True)
 
         sphere = make_sphere_model(info=evoked.info, r0='auto',
                                    head_radius='auto')
@@ -315,7 +322,8 @@ def test_plot_alignment(tmpdir, backend_name):
         pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                       subject='sample', subjects_dir=subjects_dir,
                       surfaces=['foo'])
-        mlab.close(all=True)
+        if backend_name == 'mayavi':
+            mlab.close(all=True)
 
 
 @testing.requires_testing_data
