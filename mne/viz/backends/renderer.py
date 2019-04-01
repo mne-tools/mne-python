@@ -15,8 +15,10 @@ from ...utils.check import _check_option
 
 try:
     MNE_3D_BACKEND
+    TEST_MNE_3D_BACKEND
 except NameError:
     MNE_3D_BACKEND = _get_backend_based_on_env_and_defaults()
+    TEST_MNE_3D_BACKEND = False
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
@@ -71,5 +73,22 @@ def use_3d_backend(backend_name):
     """
     old_backend = get_3d_backend()
     set_3d_backend(backend_name)
+    yield
+    set_3d_backend(old_backend)
+
+
+@contextmanager
+def use_test_3d_backend(backend_name):
+    """Create a testing viz context.
+
+    Parameters
+    ----------
+    backend_name : str
+        The 3d backend to use in the context.
+    """
+    old_backend = get_3d_backend()
+    set_3d_backend(backend_name)
+    global TEST_MNE_3D_BACKEND
+    TEST_MNE_3D_BACKEND = True
     yield
     set_3d_backend(old_backend)

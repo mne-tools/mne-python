@@ -436,8 +436,10 @@ class _Renderer(object):
 
     def show(self):
         """Render the scene."""
-        self.canvas.show()
-        self.canvas.app.run()
+        from .renderer import TEST_MNE_3D_BACKEND
+        if not TEST_MNE_3D_BACKEND:
+            self.canvas.show()
+            self.canvas.app.run()
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):

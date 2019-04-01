@@ -25,7 +25,7 @@ from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_volume_source_estimates,
-                     use_3d_backend)
+                     use_test_3d_backend)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, requires_nibabel, check_version,
@@ -104,7 +104,7 @@ def test_plot_head_positions():
 ])
 def test_plot_sparse_source_estimates(backend_name):
     """Test plotting of (sparse) source estimates."""
-    with use_3d_backend(backend_name):
+    with use_test_3d_backend(backend_name):
         sample_src = read_source_spaces(src_fname)
 
         # dense version
@@ -151,7 +151,7 @@ def test_plot_sparse_source_estimates(backend_name):
 ])
 def test_plot_evoked_field(backend_name):
     """Test plotting evoked field."""
-    with use_3d_backend(backend_name):
+    with use_test_3d_backend(backend_name):
         evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                               baseline=(-0.2, 0.0))
         evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
@@ -175,7 +175,7 @@ def test_plot_evoked_field(backend_name):
 ])
 def test_plot_alignment(tmpdir, backend_name):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
-    with use_3d_backend(backend_name):
+    with use_test_3d_backend(backend_name):
         # generate fiducials file for testing
         tempdir = str(tmpdir)
         fiducials_path = op.join(tempdir, 'fiducials.fif')
@@ -432,7 +432,7 @@ def test_plot_dipole_mri_orthoview():
 ])
 def test_snapshot_brain_montage(backend_name):
     """Test snapshot brain montage."""
-    with use_3d_backend(backend_name):
+    with use_test_3d_backend(backend_name):
         info = read_info(evoked_fname)
         fig = plot_alignment(
             info, trans=None, subject='sample', subjects_dir=subjects_dir)
