@@ -180,6 +180,7 @@ API
 
 - Fix support for supplying ``extrapolate`` via :meth:`ica.plot_properties(..., topomap_args=dict(extrapolate=...)) <mne.preprocessing.ICA.plot_properties>` by `Sebastian Castano`_
 
+- The peak finder that was formerly accessible via ``from mne.preprocessing.peak_finder import peak_finder`` should now be imported directly from the enclosing namespace as ``from mne.preprocessing import peak_finder`` by `Eric Larson`_
 
 .. _changes_0_17:
 
