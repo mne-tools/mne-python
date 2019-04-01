@@ -2511,6 +2511,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     # Update the backend
     from .backends.renderer import _Renderer
 
+    if fig is None:
+        raise TypeError('The figure must have a scene')
     if isinstance(montage, (Montage, DigMontage)):
         chs = montage.dig_ch_pos
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in chs.items()])

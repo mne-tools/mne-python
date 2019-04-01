@@ -11,7 +11,7 @@ import importlib
 import warnings
 import numpy as np
 from mne.viz.backends.renderer import get_3d_backend
-from distutils.version import LooseVersion
+from mne.utils import skips_if_not_vispy
 
 # from .._utils import DEFAULT_3D_BACKEND
 DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
@@ -33,18 +33,6 @@ def backend_mocker():
     renderer.MNE_3D_BACKEND = DEFAULT_3D_BACKEND
 
 
-def has_not_vispy():
-    """Check that vispy is not installed."""
-    try:
-        import vispy
-        version = LooseVersion(vispy.__version__)
-        if version < '0.6':
-            raise ImportError
-        return False
-    except ImportError:
-        return True
-
-
 def has_not_mayavi():
     """Check that mayavi is not installed."""
     try:
@@ -57,13 +45,11 @@ def has_not_mayavi():
 
 requires_mayavi = pytest.mark.skipif(has_not_mayavi(),
                                      reason='requires mayavi')
-requires_vispy = pytest.mark.skipif(has_not_vispy(),
-                                    reason='requires vispy 0.6')
 
 
 @pytest.mark.parametrize('backend', [
     pytest.param('mayavi', marks=requires_mayavi),
-    pytest.param('vispy', marks=requires_vispy),
+    pytest.param('vispy', marks=skips_if_not_vispy),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
 def test_backend_enviroment_setup(backend, backend_mocker, monkeypatch):
@@ -93,11 +79,11 @@ def test_backend_setup():
 
 
 @requires_mayavi
-@requires_vispy
-@pytest.mark.parametrize("backend_name, to_show",
-                         [("mayavi", True),
-                          ("vispy", False)])
-def test_3d_backend(backend_name, to_show):
+@pytest.mark.parametrize('backend_name', [
+    pytest.param('mayavi'),
+    pytest.param('vispy', marks=skips_if_not_vispy),
+])
+def test_3d_backend(backend_name):
     """Test default plot."""
     from mne.viz.backends.renderer import set_3d_backend
     set_3d_backend(backend_name)
@@ -181,8 +167,7 @@ def test_3d_backend(backend_name, to_show):
     renderer.text(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
     renderer.set_camera(azimuth=180.0, elevation=90.0, distance=cam_distance,
                         focalpoint=center)
-    if to_show:
-        renderer.show()
+    renderer.show()
 
     # put the default value back
     set_3d_backend(DEFAULT_3D_BACKEND)

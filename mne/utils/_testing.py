@@ -17,6 +17,7 @@ import time
 import traceback
 from unittest import SkipTest
 import warnings
+import pytest
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -78,6 +79,18 @@ class _TempDir(str):
 
     def __del__(self):  # noqa: D105
         rmtree(self._path, ignore_errors=True)
+
+
+def has_not_vispy():
+    """Check that vispy is not installed."""
+    try:
+        import vispy
+        version = LooseVersion(vispy.__version__)
+        if version < '0.6':
+            raise ImportError
+        return False
+    except ImportError:
+        return True
 
 
 def requires_nibabel(vox2ras_tkr=False):
@@ -205,6 +218,8 @@ requires_good_network = partial(
 requires_nitime = partial(requires_module, name='nitime')
 requires_h5py = partial(requires_module, name='h5py')
 requires_numpydoc = partial(requires_module, name='numpydoc')
+skips_if_not_vispy = pytest.mark.skipif(has_not_vispy(),
+                                        reason='requires vispy 0.6')
 
 
 def check_version(library, min_version):

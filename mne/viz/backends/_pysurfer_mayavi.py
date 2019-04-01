@@ -341,6 +341,18 @@ class _Renderer(object):
         with warnings.catch_warnings(record=True):  # traits
             return self.mlab.screenshot(self.fig)
 
+    def title(self, text, height, color=(1.0, 1.0, 1.0)):
+        """Add a title to the scene.
+
+        Parameters
+        ----------
+        title: str
+            The title of the scene.
+        height: float
+            The Y component to use as position of the text.
+        """
+        self.mlab.title(text, height=height, color=color)
+
     def project(self, xyz, ch_names):
         """Convert 3d points to a 2d perspective.
 
