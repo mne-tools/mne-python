@@ -75,9 +75,11 @@ biosemi_layout.plot(picks=midline)
 ###############################################################################
 # If you're working with a :class:`~mne.io.Raw` object that already has sensor
 # positions incorporated, you can create a :class:`~mne.channels.Layout` object
-# with the :func:`~mne.channels.make_eeg_layout` function.
+# with either the :func:`~mne.channels.make_eeg_layout` function or the
+# :func:`~mne.channels.find_layout` function.
 
 layout_from_raw = mne.channels.make_eeg_layout(raw.info)
+# same result as: mne.channels.find_layout(raw.info, ch_type='eeg')
 layout_from_raw.plot()
 
 ###############################################################################
@@ -86,7 +88,8 @@ layout_from_raw.plot()
 #     There is no corresponding ``make_meg_layout`` function because sensor
 #     locations are fixed in a MEG system (unlike in EEG, where the sensor caps
 #     deform to fit each subject's head). Thus for MEG layouts you can simply
-#     load them with :func:`~mne.channels.read_layout` as shown above.
+#     load them with :func:`~mne.channels.read_layout` or
+#     :func:`~mne.channels.find_layout` as shown above.
 #
 # All :class:`~mne.channels.Layout` objects have a
 # :meth:`~mne.channels.Layout.save` method that allows writing layouts to disk,

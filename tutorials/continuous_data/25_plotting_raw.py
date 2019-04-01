@@ -5,6 +5,8 @@
 Built-in plotting methods for :class:`~mne.io.Raw` objects
 ==========================================================
 
+.. include:: ../../tutorial_links.inc
+
 This tutorial covers two plotting methods for Raw objects: Raw.plot() and
 Raw.plot_psd().
 """
@@ -22,8 +24,8 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 
 ###############################################################################
-# We've seen in `a previous tutorial <subselecting-raw-tutorial>`_ how to plot
-# data from a :class:`~mne.io.Raw` object using matplotlib, but
+# We've seen in :ref:`a previous tutorial <subselecting-raw-tutorial>` how to
+# plot data from a :class:`~mne.io.Raw` object using matplotlib, but
 # :class:`~mne.io.Raw` objects also have several built-in plotting methods:
 #
 # - :meth:`~mne.io.Raw.plot`
@@ -32,7 +34,9 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # - :meth:`~mne.io.Raw.plot_projs_topomap`
 # - :meth:`~mne.io.Raw.plot_sensors`
 #
-# We'll discuss the first two here; the others are discussed in
+# We'll discuss the first three here; :meth:`~mne.io.Raw.plot_projs_topomap` is
+# discussed in :ref:`projectors-topomap-tutorial`;
+# :meth:`~mne.io.Raw.plot_sensors` is discussed in
 # :ref:`sensor-locations-tutorial`.
 #
 # The :meth:`~mne.io.Raw.plot` method of :class:`~mne.io.Raw` objects provides
@@ -115,4 +119,41 @@ raw.plot_psd(average=True)
 # color-coding the channels by location, and more. See the documentation of
 # :meth:`~mne.io.Raw.plot_psd` for full details.
 #
-# .. include:: ../../tutorial_links.inc
+# You can also plot the spectral density of continuous data on a
+# sensor-by-sensor basis. :meth:`~mne.io.Raw.plot_psd` has a ``picks``
+# parameter that accepts strings or lists of strings indicating channel name or
+# type.
+
+midline = ['EEG 002', 'EEG 012', 'EEG 030', 'EEG 048', 'EEG 058', 'EEG 060']
+raw.plot_psd(picks=midline)
+
+###############################################################################
+# Alternatively, you can plot the PSD for every sensor on its own axes, with
+# the axes arranged spatially to correspond to sensor locations in space, using
+# :meth:`~mne.io.Raw.plot_psd_topo`:
+
+raw.plot_psd_topo()
+
+###############################################################################
+# This plot is also interactive; hovering over each "thumbnail" plot will
+# display the channel name in the bottom left of the plot window, and clicking
+# on a thumbnail plot will create a second figure showing a larger version of
+# the selected channel's spectral density (as if you had called
+# :meth:`~mne.io.Raw.plot_psd` on that channel).
+#
+# By default, :meth:`~mne.io.Raw.plot_psd_topo` will show only the MEG
+# channels if MEG channels are present; if only EEG channels are found, they
+# will be plotted instead:
+
+raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
+
+###############################################################################
+# Alternatively, to show only EEG channels without resorting to
+# :meth:`~mne.io.Raw.copy` and :meth:`~mne.io.Raw.pick_types`, you can pass an
+# EEG *layout* to :meth:`~mne.io.Raw.plot_psd_topo`:
+
+eeg_layout = mne.channels.find_layout(raw.info, ch_type='eeg')
+raw.plot_psd_topo(layout=eeg_layout)
+
+###############################################################################
+# See :ref:`sensor-locations-tutorial` for more info on layouts.
