@@ -2462,9 +2462,7 @@ def test_save_overwrite(tmpdir):
 
     # scenario 1: overwrite=False (default) and there isn't a file to overwrite
     # make a filename that has not already been saved to
-    fname1 = op.join(tempdir, 'test' + str(np.random.rand()) + '-epo.fif')
-    while op.isfile(fname1):
-        fname1 = op.join(tempdir, 'test' + str(np.random.rand()) + '-epo.fif')
+    fname1 = op.join(tempdir, 'test_v1-epo.fif')
     # run function to be sure it doesn't throw an error
     epochs.save(fname1)
     # check that the file got written
@@ -2472,19 +2470,17 @@ def test_save_overwrite(tmpdir):
 
     # scenario 2: overwrite=False (default) and there is a file to overwrite
     # fname1 exists because of scenario 1 above
-    pytest.raises(OSError, epochs.save, fname1)
+    pytest.raises(IOError, epochs.save, fname1)
 
     # scenario 3: overwrite=True and there isn't a file to overwrite
     # make up a filename that has not already been saved to
-    fname2 = op.join(tempdir, 'test' + str(np.random.rand()) + '-epo.fif')
-    while op.isfile(fname2):
-        fname2 = op.join(tempdir, 'test' + str(np.random.rand()) + '-epo.fif')
+    fname2 = op.join(tempdir, 'test_v2-epo.fif')
     # run function to be sure it doesn't throw an error
     epochs.save(fname2, overwrite=True)
     # check that the file got written
     assert(op.isfile(fname2))
 
-    # scenario 4. overwrite=True and there is a file to overwrite
+    # scenario 4: overwrite=True and there is a file to overwrite
     # run function to be sure it doesn't throw an error
     # fname2 exists because of scenario 1 above
     epochs.save(fname2, overwrite=True)
