@@ -108,3 +108,23 @@ def _bias_params(evoked, noise_cov, fwd):
     if not mne.forward.is_fixed_orient(fwd):
         want //= 3
     return evoked, fwd, noise_cov, data_cov, want
+
+
+@pytest.fixture(scope="module",
+                params=["mayavi", "vispy"])
+def backend_name(request):
+    yield request.param
+
+
+@pytest.yield_fixture
+def backends_3d(backend_name):
+    from mne.viz import use_test_3d_backend
+    from mne.utils import has_not_vispy
+    if backend_name == 'vispy':
+        if has_not_vispy():
+            pytest.skip("VisPy not detected.")
+        with use_test_3d_backend(backend_name):
+            yield
+    else:
+        with use_test_3d_backend(backend_name):
+            yield
