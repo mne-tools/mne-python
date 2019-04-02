@@ -2452,7 +2452,6 @@ def test_events_list():
 
 def test_save_overwrite(tmpdir):
     """Test saving with overwrite functionality."""
-
     tempdir = str(tmpdir)
     raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
                           mne.create_info(100, 1000.))
