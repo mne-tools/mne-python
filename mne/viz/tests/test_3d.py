@@ -169,6 +169,7 @@ def test_plot_evoked_field(backend_name):
 @testing.requires_testing_data
 @traits_test
 @requires_mayavi
+@pytest.mark.timeout(60)
 @pytest.mark.parametrize('backend_name', [
     pytest.param('mayavi'),
     pytest.param('vispy', marks=skips_if_not_vispy),

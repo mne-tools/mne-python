@@ -277,6 +277,9 @@ class _Renderer(object):
         from vispy.geometry import create_sphere
         from vispy.util.transforms import translate
 
+        if center.ndim == 1:
+            center = np.array([center])
+
         # fetch original data
         meshdata = create_sphere(radius=scale * default_sphere_radius,
                                  cols=resolution, rows=resolution)
