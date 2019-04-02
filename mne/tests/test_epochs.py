@@ -2465,7 +2465,7 @@ def test_save_overwrite(tmpdir):
     # run function to be sure it doesn't throw an error
     epochs.save(fname1)
     # check that the file got written
-    assert(op.isfile(fname1))
+    assert op.isfile(fname1)
 
     # scenario 2: overwrite=False (default) and there is a file to overwrite
     # fname1 exists because of scenario 1 above
@@ -2477,14 +2477,14 @@ def test_save_overwrite(tmpdir):
     # run function to be sure it doesn't throw an error
     epochs.save(fname2, overwrite=True)
     # check that the file got written
-    assert(op.isfile(fname2))
+    assert op.isfile(fname2)
 
     # scenario 4: overwrite=True and there is a file to overwrite
     # run function to be sure it doesn't throw an error
     # fname2 exists because of scenario 1 above
     epochs.save(fname2, overwrite=True)
     # check that the file got written
-    assert(op.isfile(fname2))
+    assert op.isfile(fname2)
 
 
 def test_save_complex_data(tmpdir):
