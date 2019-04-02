@@ -256,7 +256,7 @@ def _plot_topo_onpick(event, show_func):
 
         # allow custom function to override parameters
         show_func(ax, ch_idx)
-        plt.show()
+        plt_show(fig=fig)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
