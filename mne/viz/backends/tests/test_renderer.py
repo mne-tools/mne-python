@@ -10,7 +10,9 @@ import pytest
 import importlib
 import numpy as np
 from mne.viz.backends.renderer import get_3d_backend
-from mne.utils import skips_if_not_vispy, skips_if_not_mayavi, requires_mayavi
+from mne.viz.backends.tests._utils import (skips_if_not_vispy,
+                                           skips_if_not_mayavi)
+from mne.utils import requires_mayavi
 
 # from .._utils import DEFAULT_3D_BACKEND
 DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
