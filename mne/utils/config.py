@@ -462,8 +462,7 @@ def sys_info(fid=None, show_paths=False):
         out += ('number of processors unavailable ' +
                 '(requires "multiprocessing" package)\n')
     else:
-        out += 'CPU:'.ljust(ljust) + ('%s cores\n' %
-                                      multiprocessing.cpu_count())
+        out += '%s cores\n' % multiprocessing.cpu_count()
     out += 'Memory:'.ljust(ljust)
     try:
         import psutil
