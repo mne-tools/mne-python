@@ -23,10 +23,9 @@ except NameError:
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 if MNE_3D_BACKEND == 'mayavi':
-    from ._pysurfer_mayavi import (_Renderer,
-                                   _Projection)  # noqa: F401 analysis:ignore
+    from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
 elif MNE_3D_BACKEND == 'vispy':
-    from ._vispy import _Renderer, _Projection  # noqa: F401 analysis:ignore
+    from ._vispy import _Renderer, _Projection  # lgtm # noqa: F401
 else:
     raise RuntimeError('This should never happen, there was some issue with'
                        ' MNE_3D_BACKEND check %s' % __file__)
@@ -47,7 +46,7 @@ def set_3d_backend(backend_name):
     global MNE_3D_BACKEND
     MNE_3D_BACKEND = backend_name
     from . import renderer
-    importlib.reload(renderer)
+    importlib.reload(renderer)  # lgtm
 
 
 def get_3d_backend():
