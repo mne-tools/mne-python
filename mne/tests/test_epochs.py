@@ -816,7 +816,7 @@ def test_epochs_io_preload(tmpdir, preload):
 
     epochs.event_id.pop('1')
     epochs.event_id.update({'a:a': 1})  # test allow for ':' in key
-    epochs.save(op.join(tempdir, 'foo-epo.fif'),overwrite=True)
+    epochs.save(op.join(tempdir, 'foo-epo.fif'), overwrite=True)
     epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'),
                                preload=preload)
     assert_equal(epochs_read2.event_id, epochs.event_id)
