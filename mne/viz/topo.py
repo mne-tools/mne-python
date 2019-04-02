@@ -256,6 +256,7 @@ def _plot_topo_onpick(event, show_func):
 
         # allow custom function to override parameters
         show_func(ax, ch_idx)
+        plt_show(fig=fig)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
@@ -347,44 +348,38 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.plot(times_, data_[ch_idx], color=color_)
 
-    if x_label is not None:
-        ax.set(xlabel=x_label)
-
-    if y_label is not None:
-        if isinstance(y_label, list):
-            ax.set_ylabel(y_label[ch_idx])
-        else:
-            ax.set_ylabel(y_label)
-
     def _format_coord(x, y, labels, ax):
         """Create status string based on cursor coordinates."""
         # find indices for datasets near cursor (if any)
         tdiffs = [np.abs(tvec - x).min() for tvec in times]
         nearby = [k for k, tdiff in enumerate(tdiffs) if
                   tdiff < (tmax - tmin) / 100]
-        timestr = '%6.3f s: ' % x
+        xlabel = ax.get_xlabel()
+        xunit = (xlabel[xlabel.find('(') + 1:xlabel.find(')')]
+                 if '(' in xlabel and ')' in xlabel else 's')
+        timestr = '%6.3f %s: ' % (x, xunit)
         if not nearby:
             return '%s Nothing here' % timestr
+        labels = [''] * len(nearby) if labels is None else labels
         nearby_data = [(data[n], labels[n], times[n]) for n in nearby]
         ylabel = ax.get_ylabel()
-        unit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
-                if '(' in ylabel and ')' in ylabel else '')
-        labels = [''] * len(nearby_data) if labels is None else labels
+        yunit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
+                 if '(' in ylabel and ')' in ylabel else '')
         # try to estimate whether to truncate condition labels
-        slen = 10 + sum([12 + len(unit) + len(label) for label in labels])
+        slen = 9 + len(xunit) + sum([12 + len(yunit) + len(label)
+                                     for label in labels])
         bar_width = (ax.figure.get_size_inches() * ax.figure.dpi)[0] / 5.5
         # show labels and y values for datasets near cursor
         trunc_labels = bar_width < slen
         s = timestr
         for data_, label, tvec in nearby_data:
             idx = np.abs(tvec - x).argmin()
-            s += '%7.2f %s' % (data_[ch_idx, idx], unit)
+            s += '%7.2f %s' % (data_[ch_idx, idx], yunit)
             if trunc_labels:
                 label = (label if len(label) <= 10 else
                          '%s..%s' % (label[:6], label[-2:]))
             s += ' [%s] ' % label if label else ' '
         return s
-
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)
 
     def _cursor_vline(event):
@@ -425,6 +420,15 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     ax.title.set_color(hvline_color)
     ax.xaxis.label.set_color(hvline_color)
     ax.yaxis.label.set_color(hvline_color)
+
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+
+    if y_label is not None:
+        if isinstance(y_label, list):
+            ax.set_ylabel(y_label[ch_idx])
+        else:
+            ax.set_ylabel(y_label)
 
     if vline:
         plt.axvline(vline, color=hvline_color, linewidth=1.0,
