@@ -426,6 +426,7 @@ def test_plot_dipole_mri_orthoview():
 @requires_mayavi
 def test_snapshot_brain_montage(backends_3d):
     """Test snapshot brain montage."""
+    backend_name = get_3d_backend()
     info = read_info(evoked_fname)
     fig = plot_alignment(
         info, trans=None, subject='sample', subjects_dir=subjects_dir)
@@ -444,6 +445,9 @@ def test_snapshot_brain_montage(backends_3d):
 
     # Make sure we raise error if the figure has no scene
     pytest.raises(TypeError, snapshot_brain_montage, None, info)
+
+    if backend_name == 'vispy':
+        snapshot_brain_montage(fig=fig, montage=info)
 
 
 @pytest.mark.slowtest  # can be slow on OSX
