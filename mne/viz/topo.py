@@ -855,23 +855,27 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         Figure distributing one image per channel across sensor topography.
     """
     scalings = _handle_default('scalings', scalings)
-    data = epochs.get_data()
-    scale_coeffs = list()
-    for idx in range(epochs.info['nchan']):
-        ch_type = channel_type(epochs.info, idx)
-        scale_coeffs.append(scalings.get(ch_type, 1))
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if layout is None:
         layout = find_layout(epochs.info)
+    epochs_ = epochs.copy().pick_channels(layout.names)
+    data = epochs_.get_data()
+    scale_coeffs = list()
+    for idx in range(epochs_.info['nchan']):
+        ch_type = channel_type(epochs_.info, idx)
+        scale_coeffs.append(scalings.get(ch_type, 1))
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    # data gets multiplied by scalings later in _erfimage_imshow_unified and
+    # _erfimage_imshow so we undo that here to keep things in vmin/vmax range
+    data /= np.array([scale_coeffs]).T
 
     show_func = partial(_erfimage_imshow_unified, scalings=scale_coeffs,
-                        order=order, data=data, epochs=epochs, sigma=sigma,
+                        order=order, data=data, epochs=epochs_, sigma=sigma,
                         cmap=cmap)
     erf_imshow = partial(_erfimage_imshow, scalings=scale_coeffs, order=order,
-                         data=data, epochs=epochs, sigma=sigma, cmap=cmap)
+                         data=data, epochs=epochs_, sigma=sigma, cmap=cmap)
 
-    fig = _plot_topo(info=epochs.info, times=epochs.times,
+    fig = _plot_topo(info=epochs_.info, times=epochs_.times,
                      click_func=erf_imshow, show_func=show_func, layout=layout,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
