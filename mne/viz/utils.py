@@ -52,7 +52,7 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     For the normal use-case (when `vmin` and `vmax` are None), the parameter
     `norm` drives the computation. When norm=False, data is supposed to come
     from a mag and the output tuple (vmin, vmax) is symmetric range
-    (-x, x) where x is the max(abs(data)). When norm=False (aka data is the L2
+    (-x, x) where x is the max(abs(data)). When norm=True (aka data is the L2
     norm of a gradiometer pair) the output tuple corresponds to (0, x).
 
     Otherwise, vmin and vmax are callables that drive the operation.
