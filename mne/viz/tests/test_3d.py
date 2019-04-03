@@ -24,7 +24,8 @@ from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
-                     plot_alignment, plot_volume_source_estimates)
+                     plot_alignment, plot_volume_source_estimates,
+                     get_3d_backend)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, requires_nibabel, check_version,
@@ -99,6 +100,7 @@ def test_plot_head_positions():
 @traits_test
 def test_plot_sparse_source_estimates(backends_3d):
     """Test plotting of (sparse) source estimates."""
+    backend_name = get_3d_backend()
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -131,7 +133,7 @@ def test_plot_sparse_source_estimates(backends_3d):
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                         opacity=0.5, high_resolution=False)
-    if backends_3d == 'mayavi':
+    if backend_name == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(surf, mayavi.modules.surface.Surface)
 
@@ -141,6 +143,7 @@ def test_plot_sparse_source_estimates(backends_3d):
 @requires_mayavi
 def test_plot_evoked_field(backends_3d):
     """Test plotting evoked field."""
+    backend_name = get_3d_backend()
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
@@ -150,7 +153,7 @@ def test_plot_evoked_field(backends_3d):
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
         fig = evoked.plot_field(maps, time=0.1)
-        if backends_3d == 'mayavi':
+        if backend_name == 'mayavi':
             import mayavi  # noqa: F401 analysis:ignore
             assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -162,6 +165,7 @@ def test_plot_evoked_field(backends_3d):
 @pytest.mark.slowtest
 def test_plot_alignment(tmpdir, backends_3d):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
+    backend_name = get_3d_backend()
     # generate fiducials file for testing
     tempdir = str(tmpdir)
     fiducials_path = op.join(tempdir, 'fiducials.fif')
@@ -173,7 +177,7 @@ def test_plot_alignment(tmpdir, backends_3d):
             'r': [0.08436285, -0.02850276, -0.04127743]}]
     write_dig(fiducials_path, fid, 5)
 
-    if backends_3d == 'mayavi':
+    if backend_name == 'mayavi':
         mlab = _import_mlab()
     evoked = read_evokeds(evoked_fname)[0]
     sample_src = read_source_spaces(src_fname)
@@ -191,10 +195,10 @@ def test_plot_alignment(tmpdir, backends_3d):
             meg.append('ref')
         plot_alignment(info, trans_fname, subject='sample',
                        subjects_dir=subjects_dir, meg=meg)
-        if backends_3d == 'mayavi':
+        if backend_name == 'mayavi':
             mlab.close(all=True)
     # KIT ref sensor coil def is defined
-    if backends_3d == 'mayavi':
+    if backend_name == 'mayavi':
         mlab.close(all=True)
     info = infos['Neuromag']
     pytest.raises(TypeError, plot_alignment, 'foo', trans_fname,
@@ -206,10 +210,10 @@ def test_plot_alignment(tmpdir, backends_3d):
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
                     brain='white')
-    if backends_3d == 'mayavi':
+    if backend_name == 'mayavi':
         mlab.close(all=True)
     # no-head version
-    if backends_3d == 'mayavi':
+    if backend_name == 'mayavi':
         mlab.close(all=True)
     # all coord frames
     pytest.raises(ValueError, plot_alignment, info)
@@ -219,7 +223,7 @@ def test_plot_alignment(tmpdir, backends_3d):
                        coord_frame=coord_frame, trans=trans_fname,
                        subject='sample', mri_fiducials=fiducials_path,
                        subjects_dir=subjects_dir, src=src_fname)
-        if backends_3d == 'mayavi':
+        if backend_name == 'mayavi':
             mlab.close(all=True)
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -232,7 +236,7 @@ def test_plot_alignment(tmpdir, backends_3d):
                        surfaces=['white', 'outer_skin', 'outer_skull'],
                        meg=['helmet', 'sensors'],
                        eeg=['original', 'projected'], ecog=True, seeg=True)
-    if backends_3d == 'mayavi':
+    if backend_name == 'mayavi':
         mlab.close(all=True)
 
     sphere = make_sphere_model(info=evoked.info, r0='auto',
@@ -272,7 +276,7 @@ def test_plot_alignment(tmpdir, backends_3d):
     fig = plot_alignment(trans=trans_fname, subject='sample', meg=False,
                          coord_frame='mri', subjects_dir=subjects_dir,
                          surfaces=['brain'], bem=sphere, show_axes=True)
-    if backends_3d == 'mayavi':
+    if backend_name == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -308,7 +312,7 @@ def test_plot_alignment(tmpdir, backends_3d):
     pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['foo'])
-    if backends_3d == 'mayavi':
+    if backend_name == 'mayavi':
         mlab.close(all=True)
 
 
