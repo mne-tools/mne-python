@@ -67,6 +67,8 @@ class _Renderer(object):
         name: str | None
             The name of the scene.
         """
+        from .renderer import MNE_3D_BACKEND_TEST_DATA
+        fig = MNE_3D_BACKEND_TEST_DATA
         if fig is None:
             self.canvas = scene.SceneCanvas(keys='interactive',
                                             size=size,
@@ -439,8 +441,8 @@ class _Renderer(object):
 
     def show(self):
         """Render the scene."""
-        from .renderer import TEST_MNE_3D_BACKEND
-        if not TEST_MNE_3D_BACKEND:
+        from .renderer import MNE_3D_BACKEND_TEST_DATA
+        if MNE_3D_BACKEND_TEST_DATA is None:
             self.canvas.show()
             self.canvas.app.run()
 

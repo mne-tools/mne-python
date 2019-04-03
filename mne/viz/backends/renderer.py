@@ -15,10 +15,10 @@ from ...utils.check import _check_option
 
 try:
     MNE_3D_BACKEND
-    TEST_MNE_3D_BACKEND
+    MNE_3D_BACKEND_TEST_DATA
 except NameError:
     MNE_3D_BACKEND = _get_backend_based_on_env_and_defaults()
-    TEST_MNE_3D_BACKEND = False
+    MNE_3D_BACKEND_TEST_DATA = None
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
@@ -87,7 +87,11 @@ def use_test_3d_backend(backend_name):
     """
     old_backend = get_3d_backend()
     set_3d_backend(backend_name)
-    global TEST_MNE_3D_BACKEND
-    TEST_MNE_3D_BACKEND = True
-    yield
+    global MNE_3D_BACKEND_TEST_DATA
+    if backend_name == 'vispy':
+        from vispy.testing import TestingCanvas
+        with TestingCanvas() as MNE_3D_BACKEND_TEST_DATA:
+            yield
+    else:
+        yield
     set_3d_backend(old_backend)
