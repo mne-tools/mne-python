@@ -1379,7 +1379,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
             To overwrite original file (the same one that was loaded),
-            data must be preloaded upon reading.
+            data must be preloaded upon reading. This defaults to True in 0.18
+            but will change to False in 0.19.
 
             .. versionadded:: 0.18
         %(verbose_meth)s
