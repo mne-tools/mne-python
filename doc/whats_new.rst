@@ -3251,3 +3251,5 @@ of commits):
 .. _Antoine Gauthier: https://github.com/Okamille
 
 .. _Sebastian Castano: https://github.com/jscastanoc
+
+.. _Katarina Slama: https://katarinaslama.github.io
