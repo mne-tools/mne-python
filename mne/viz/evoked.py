@@ -1313,6 +1313,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args is None:
         topomap_args = dict()
 
+    got_axes = False
     illegal_args = {"show", 'times', 'exclude'}
     for args in (ts_args, topomap_args):
         if any((x in args for x in illegal_args)):
@@ -1327,6 +1328,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         n_topomaps = (3 if times is None else len(times)) + 1
         if "axes" in topomap_args:
             _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
+        got_axes = True
 
     # channel selection
     # simply create a new evoked object with the desired channel selection
@@ -1336,7 +1338,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
-        if "axes" in ts_args or "axes" in topomap_args:
+        if got_axes:
             raise NotImplementedError(
                 "Currently, passing axes manually (via `ts_args` or "
                 "`topomap_args`) is not supported for multiple channel types.")
@@ -1361,7 +1363,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     _, times_ts = _check_time_unit(ts_args['time_unit'], times_sec)
 
     # prepare axes for topomap
-    if ("axes" not in topomap_args) or ("axes" not in ts_args):
+    if not got_axes:
         fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times_sec),
                                                           figsize=(8.0, 4.2))
     else:
@@ -1425,8 +1427,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             cbar.locator = locator
         cbar.update_ticks()
 
-    plt.subplots_adjust(left=.1, right=.93, bottom=.14,
-                        top=1. if title is not None else 1.2)
+    if not got_axes:
+        plt.subplots_adjust(left=.1, right=.93, bottom=.14,
+                            top=1. if title is not None else 1.2)
 
     # connection lines
     # draw the connection lines between time series and topoplots
