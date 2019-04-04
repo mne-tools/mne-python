@@ -8,6 +8,7 @@ import numpy as np
 from .base_client import _BaseClient
 from ..epochs import EpochsArray
 from ..io.meas_info import create_info
+from ..io.pick import _picks_to_idx, pick_info
 
 try:
     import pylsl
@@ -43,9 +44,10 @@ class LSLClient(_BaseClient):
 
 
     def connect(self):
-        stream = pylsl.resolve_byprop('source_id', self.identifier,
+        stream_info = pylsl.resolve_byprop('source_id', self.identifier,
                                            timeout=self.wait_max)[0]
-        self.client = pylsl.StreamInlet(stream)
+        self.client = pylsl.StreamInlet(info=stream_info,
+                                        max_buflen=self.buffer_size)
 
         return self
 
@@ -93,11 +95,13 @@ class LSLClient(_BaseClient):
         --------
         mne.Epochs.iter_evoked
         """
-        inlet = pylsl.StreamInlet(self.client, n_samples)
-
         wait_time = n_samples * 5. / self.info['sfreq']
-        samples, _ = inlet.pull_chunk(max_samples=n_samples,
-                                      timeout=wait_time)
+        start = 0
+        stop = n_samples
+
+        events = np.expand_dims(np.array([start, 1, 1]), axis=0)
+        samples, _ = self.client.pull_chunk(max_samples=n_samples,
+                                            timeout=wait_time)
         data = np.vstack(samples).T
 
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
