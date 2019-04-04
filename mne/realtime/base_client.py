@@ -7,7 +7,7 @@ import threading
 import time
 import numpy as np
 
-from ..utils import logger
+from ..utils import logger, fill_doc
 
 def _buffer_recv_worker(client):
     """Worker thread that constantly receives buffers."""
@@ -29,6 +29,8 @@ class _BaseClient(object):
         The identifier of the server. IP address or LSL id or raw filename.
     port : int | None
         Port to use for the connection.
+    wait_max : float
+        Maximum time (in seconds) to wait for real-time buffer to start.
     tmin : float | None
         Time instant to start receiving buffers. If None, start from the latest
         samples available.
@@ -36,20 +38,18 @@ class _BaseClient(object):
         Time instant to stop receiving buffers.
     buffer_size : int
         Size of each buffer in terms of number of samples.
-    wait_max : float
-        Maximum time (in seconds) to wait for real-time buffer to start
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
     """
 
-    def __init__(self, identifier, port=None, tmin=None, tmax=np.inf,
-                 wait_max=10, buffer_size=1000, verbose=None):  # noqa: D102
+    def __init__(self, identifier, port=None, wait_max=10., tmin=None,
+                 tmax=np.inf, buffer_size=1000, verbose=None):  # noqa: D102
         self.identifier = identifier
         self.port = port
+        self.wait_max = wait_max
         self.tmin = tmin
         self.tmax = tmax
-        self.wait_max = wait_max
         self.buffer_size = buffer_size
         self.verbose = verbose
 
@@ -58,19 +58,16 @@ class _BaseClient(object):
         # connect to buffer
         logger.info("Client: Waiting for server to start")
         start_time, current_time = time.time(), time.time()
-        success = False
         while current_time < (start_time + self.wait_max):
             try:
                 self.connect()
                 logger.info("Client: Connected")
-                success = True
                 break
             except Exception:
                 current_time = time.time()
                 time.sleep(0.1)
-
-        if not success:
-            raise RuntimeError('Could not connect to Buffer')
+        else:
+            raise RuntimeError('Could not connect to Client.')
 
         self.create_info()
         self._enter_extra()
@@ -82,6 +79,7 @@ class _BaseClient(object):
 
         return self
 
+    @fill_doc
     def get_data_as_epoch(self, n_samples=1024, picks=None):
         """Return last n_samples from current time.
 

@@ -1,3 +1,7 @@
+# Author: Teon Brooks <teon.brooks@gmail.com>
+#
+# License: BSD (3-clause)
+
 import subprocess
 import os
 import os.path as op
@@ -9,7 +13,6 @@ import numpy as np
 import pytest
 
 from mne.realtime import LSLClient
-from mne.utils import requires_neuromag2ft
 from mne.utils import run_tests_if_main
 
 
@@ -47,3 +50,5 @@ def test_lsl_client():
         assert (n_channels, n_samples == epoch.get_data().shape[1:])
 
     _terminate_fake_lsl_stream(process)
+
+run_tests_if_main()

@@ -9,6 +9,7 @@ from .base_client import _BaseClient
 from ..epochs import EpochsArray
 from ..io.meas_info import create_info
 from ..io.pick import _picks_to_idx, pick_info
+from ..utils import fill_doc
 
 try:
     import pylsl
@@ -24,6 +25,8 @@ class LSLClient(_BaseClient):
         The identifier of the server. IP address or LSL id or raw filename.
     port : int | None
         Port to use for the connection.
+    wait_max : float
+        Maximum time (in seconds) to wait for real-time buffer to start
     tmin : float | None
         Time instant to start receiving buffers. If None, start from the latest
         samples available.
@@ -31,18 +34,17 @@ class LSLClient(_BaseClient):
         Time instant to stop receiving buffers.
     buffer_size : int
         Size of each buffer in terms of number of samples.
-    wait_max : float
-        Maximum time (in seconds) to wait for real-time buffer to start
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
     """
 
-    def __init__(self, identifier, port=None, tmin=None, tmax=np.inf,
-                 wait_max=10, buffer_size=1000, verbose=None):  # noqa: D102
-        super(LSLClient, self).__init__(identifier, port, tmin, tmax, wait_max,
-                                        buffer_size, verbose)
+    def __init__(self, identifier, port=None, wait_max=10., tmin=None,
+                 tmax=np.inf, buffer_size=1000, verbose=None):  # noqa: D102
+        super(LSLClient, self).__init__(identifier, port, tmin, tmax,
+                                        buffer_size, wait_max, verbose)
 
+    @fill_doc
     def get_data_as_epoch(self, n_samples=1024, picks=None):
         """Return last n_samples from current time.
 
