@@ -37,45 +37,11 @@ class LSLClient(_BaseClient):
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
     """
+
     def __init__(self, identifier, port=None, tmin=None, tmax=np.inf,
-                 wait_max=10, buffer_size=1000, verbose=None):
+                 wait_max=10, buffer_size=1000, verbose=None):  # noqa: D102
         super(LSLClient, self).__init__(identifier, port, tmin, tmax, wait_max,
                                         buffer_size, verbose)
-
-
-    def connect(self):
-        stream_info = pylsl.resolve_byprop('source_id', self.identifier,
-                                           timeout=1)[0]
-        self.client = pylsl.StreamInlet(info=stream_info,
-                                        max_buflen=self.buffer_size)
-
-        return self
-
-    def create_info(self):
-        sfreq = self.client.info().nominal_srate()
-
-        lsl_info = self.client.info()
-        ch_info = lsl_info.desc().child("channels").child("channel")
-        ch_names = list()
-        ch_types = list()
-        ch_type = lsl_info.type()
-        for k in range(1,  lsl_info.channel_count()+1):
-            ch_names.append(ch_info.child_value("label")
-                            or '{} {:03d}'.format(ch_type.upper(), k))
-            ch_types.append(ch_info.child_value("type")
-                            or ch_type.lower())
-            ch_info = ch_info.next_sibling()
-
-        info = create_info(ch_names, sfreq, ch_types)
-
-        self.info = info
-
-        return self
-
-    def disconnect(self):
-        self.client.close_stream()
-
-        return self
 
     def get_data_as_epoch(self, n_samples=1024, picks=None):
         """Return last n_samples from current time.
@@ -108,13 +74,44 @@ class LSLClient(_BaseClient):
         return EpochsArray(data[picks][np.newaxis], info, events)
 
     def iter_raw_buffers(self):
-        """Return an iterator over raw buffers.
-        """
+        """Return an iterator over raw buffers."""
         inlet = pylsl.StreamInlet(self.client)
-
-        ## add tmin and tmax to this logic
 
         while True:
             samples, _ = inlet.pull_chunk(max_samples=self.buffer_size)
 
             yield np.vstack(samples).T
+
+    def _connect(self):
+        stream_info = pylsl.resolve_byprop('source_id', self.identifier,
+                                           timeout=1)[0]
+        self.client = pylsl.StreamInlet(info=stream_info,
+                                        max_buflen=self.buffer_size)
+
+        return self
+
+    def _create_info(self):
+        sfreq = self.client.info().nominal_srate()
+
+        lsl_info = self.client.info()
+        ch_info = lsl_info.desc().child("channels").child("channel")
+        ch_names = list()
+        ch_types = list()
+        ch_type = lsl_info.type()
+        for k in range(1,  lsl_info.channel_count()+1):
+            ch_names.append(ch_info.child_value("label")
+                            or '{} {:03d}'.format(ch_type.upper(), k))
+            ch_types.append(ch_info.child_value("type")
+                            or ch_type.lower())
+            ch_info = ch_info.next_sibling()
+
+        info = create_info(ch_names, sfreq, ch_types)
+
+        self.info = info
+
+        return self
+
+    def _disconnect(self):
+        self.client.close_stream()
+
+        return self

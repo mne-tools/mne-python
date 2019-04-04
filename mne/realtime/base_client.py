@@ -10,8 +10,7 @@ import numpy as np
 from ..utils import logger
 
 def _buffer_recv_worker(client):
-    """Worker thread that constantly receives buffers.
-    """
+    """Worker thread that constantly receives buffers."""
     try:
         for raw_buffer in client.iter_raw_buffers():
             client._push_raw_buffer(raw_buffer)
@@ -83,12 +82,6 @@ class _BaseClient(object):
 
         return self
 
-    def connect(self):
-        pass
-
-    def create_info(self):
-        pass
-
     def get_data_as_epoch(self, n_samples=1024, picks=None):
         """Return last n_samples from current time.
 
@@ -120,8 +113,7 @@ class _BaseClient(object):
         return self.info
 
     def iter_raw_buffers(self):
-        """Return an iterator over raw buffers.
-        """
+        """Return an iterator over raw buffers."""
         pass
 
     def register_receive_callback(self, callback):
@@ -176,9 +168,24 @@ class _BaseClient(object):
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
 
+    def _connect(self):
+        """Connect to client device."""
+        pass
+
+    def _create_info(self):
+        """Create an mne.Info class for connection to client."""
+        pass
+
+    def _disconnect(self):
+        """Disconnect the client device."""
+        pass
+
     def _enter_extra(self):
-        """For system-specific loading and initializing after connect but
-           during the enter.
+        """Run additional commands in __enter__.
+
+        For system-specific loading and initializing after connect but
+        during the enter.
+
         """
         pass
 
