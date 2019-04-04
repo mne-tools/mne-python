@@ -2459,17 +2459,18 @@ def test_save_overwrite(tmpdir):
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events)
 
-    # scenario 1: overwrite=False (default) and there isn't a file to overwrite
+    # scenario 1: overwrite=False and there isn't a file to overwrite
     # make a filename that has not already been saved to
     fname1 = op.join(tempdir, 'test_v1-epo.fif')
     # run function to be sure it doesn't throw an error
-    epochs.save(fname1)
+    epochs.save(fname1, overwrite=False)
     # check that the file got written
     assert op.isfile(fname1)
 
-    # scenario 2: overwrite=False (default) and there is a file to overwrite
+    # scenario 2: overwrite=False and there is a file to overwrite
     # fname1 exists because of scenario 1 above
-    pytest.raises(IOError, epochs.save, fname1)
+    with pytest.raises(IOError, match='Destination file exists.'):
+        epochs.save(fname1, overwrite=False)
 
     # scenario 3: overwrite=True and there isn't a file to overwrite
     # make up a filename that has not already been saved to
@@ -2485,6 +2486,15 @@ def test_save_overwrite(tmpdir):
     epochs.save(fname2, overwrite=True)
     # check that the file got written
     assert op.isfile(fname2)
+
+    # test deprecation warning
+    fname3 = op.join(tempdir, 'test_v3-epo.fif')
+    # there is no file
+    with pytest.deprecated_call():
+        epochs.save(fname3)
+    # there is a file
+    with pytest.deprecated_call():
+        epochs.save(fname3)
 
 
 def test_save_complex_data(tmpdir):

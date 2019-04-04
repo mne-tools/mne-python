@@ -148,6 +148,8 @@ Bug
 API
 ~~~
 
+- Add ``overwrite`` parameter in :func:`mne.Epochs.save` by `Katarina Slama`_
+
 - Add ``stim_channel`` parameter in :func:`mne.io.read_raw_cnt` to toggle stim channel synthesis by `Joan Massich`_
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_

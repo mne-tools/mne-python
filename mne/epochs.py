@@ -1350,7 +1350,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return new
 
     @verbose
-    def save(self, fname, split_size='2GB', fmt='single', overwrite=None, verbose=True):
+    def save(self, fname, split_size='2GB', fmt='single', overwrite=None,
+             verbose=True):
         """Save epochs in a fif file.
 
         Parameters
@@ -1394,8 +1395,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # deprecation warning
         if overwrite is None:
             overwrite = True
-            warn('overwrite defaults to True in 0.18 but will change to False in 0.19, '
-            'set it explicitly to avoid this warning', DeprecationWarning)
+            warn('overwrite defaults to True in 0.18 but will change to False '
+                 'in 0.19, set it explicitly to avoid this warning',
+                 DeprecationWarning)
 
         _check_fname(fname, overwrite)
 
