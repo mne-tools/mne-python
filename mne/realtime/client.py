@@ -11,8 +11,7 @@ import threading
 
 import numpy as np
 
-from .base_client import _BaseClient, _buffer_recv_worker
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fill_doc
 from ..io.constants import FIFF
 from ..io.meas_info import read_meas_info
 from ..io.tag import Tag, read_tag
@@ -63,7 +62,7 @@ def _recv_tag_raw(sock):
 def _buffer_recv_worker(rt_client, nchan):
     """Worker thread that constantly receives buffers."""
     try:
-        for raw_buffer in rt_client.iter_raw_buffers(nchan):
+        for raw_buffer in rt_client.raw_buffers(nchan):
             rt_client._push_raw_buffer(raw_buffer)
     except RuntimeError as err:
         # something is wrong, the server stopped (or something)
@@ -72,7 +71,7 @@ def _buffer_recv_worker(rt_client, nchan):
 
 
 @fill_doc
-class RtClient(_BaseClient):
+class RtClient(object):
     """Realtime Client.
 
     Client to communicate with mne_rt_server
@@ -264,6 +263,64 @@ class RtClient(_BaseClient):
         """Stop the measurement."""
         self._send_command('stop-all')
 
+    def start_receive_thread(self, nchan):
+        """Start the receive thread.
+
+        If the measurement has not been started, it will also be started.
+
+        Parameters
+        ----------
+        nchan : int
+            The number of channels in the data.
+        """
+        if self._recv_thread is None:
+            self.start_measurement()
+
+            self._recv_thread = threading.Thread(target=_buffer_recv_worker,
+                                                 args=(self, nchan))
+            self._recv_thread.start()
+
+    def stop_receive_thread(self, stop_measurement=False):
+        """Stop the receive thread.
+
+        Parameters
+        ----------
+        stop_measurement : bool
+            Also stop the measurement.
+        """
+        self._recv_thread = None
+
+        if stop_measurement:
+            self.stop_measurement()
+
+    def register_receive_callback(self, callback):
+        """Register a raw buffer receive callback.
+
+        Parameters
+        ----------
+        callback : callable
+            The callback. The raw buffer is passed as the first parameter
+            to callback.
+        """
+        if callback not in self._recv_callbacks:
+            self._recv_callbacks.append(callback)
+
+    def unregister_receive_callback(self, callback):
+        """Unregister a raw buffer receive callback.
+
+        Parameters
+        ----------
+        callback : callable
+            The callback to unregister.
+        """
+        if callback in self._recv_callbacks:
+            self._recv_callbacks.remove(callback)
+
+    def _push_raw_buffer(self, raw_buffer):
+        """Push raw buffer to clients using callbacks."""
+        for callback in self._recv_callbacks:
+            callback(raw_buffer)
+
     def read_raw_buffer(self, nchan):
         """Read a single buffer with raw data.
 
@@ -289,7 +346,7 @@ class RtClient(_BaseClient):
 
         return raw_buffer
 
-    def iter_raw_buffers(self, nchan):
+    def raw_buffers(self, nchan):
         """Return an iterator over raw buffers.
 
         Parameters

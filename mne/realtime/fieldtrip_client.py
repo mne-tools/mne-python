@@ -9,7 +9,6 @@ import time
 
 import numpy as np
 
-from .base_client import _BaseClient, _buffer_recv_worker
 from ..io import _empty_info
 from ..io.pick import _picks_to_idx, pick_info
 from ..io.constants import FIFF
@@ -18,8 +17,19 @@ from ..utils import logger, warn, fill_doc
 from ..externals.FieldTrip import Client as FtClient
 
 
+def _buffer_recv_worker(ft_client):
+    """Worker thread that constantly receives buffers."""
+    try:
+        for raw_buffer in ft_client.iter_raw_buffers():
+            ft_client._push_raw_buffer(raw_buffer)
+    except RuntimeError as err:
+        # something is wrong, the server stopped (or something)
+        ft_client._recv_thread = None
+        logger.error('Buffer receive thread stopped: %s' % err)
+
+
 @fill_doc
-class FieldTripClient(_BaseClient):
+class FieldTripClient(object):
     """Realtime FieldTrip client.
 
     Parameters
@@ -59,13 +69,28 @@ class FieldTripClient(_BaseClient):
 
         self._recv_thread = None
         self._recv_callbacks = list()
-        self.client = FtClient()
 
-    def connect():
+    def __enter__(self):  # noqa: D105
+        # instantiate Fieldtrip client and connect
+        self.ft_client = FtClient()
 
-        self.client.connect()
+        # connect to FieldTrip buffer
+        logger.info("FieldTripClient: Waiting for server to start")
+        start_time, current_time = time.time(), time.time()
+        success = False
+        while current_time < (start_time + self.wait_max):
+            try:
+                self.ft_client.connect(self.host, self.port)
+                logger.info("FieldTripClient: Connected")
+                success = True
+                break
+            except Exception:
+                current_time = time.time()
+                time.sleep(0.1)
 
-    def _enter_extra():
+        if not success:
+            raise RuntimeError('Could not connect to FieldTrip Buffer')
+
         # retrieve header
         logger.info("FieldTripClient: Retrieving header")
         start_time, current_time = time.time(), time.time()
