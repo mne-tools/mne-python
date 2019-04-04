@@ -7,7 +7,7 @@ import threading
 import time
 import numpy as np
 
-from mne.io.meas_info import create_info
+from ..utils import logger
 
 def _buffer_recv_worker(client):
     """Worker thread that constantly receives buffers.
@@ -45,19 +45,18 @@ class _BaseClient(object):
     """
 
     def __init__(self, identifier, port=None, tmin=None, tmax=np.inf,
-                 buffer_size=1000, verbose=None):  # noqa: D102
+                 wait_max=10, buffer_size=1000, verbose=None):  # noqa: D102
         self.identifier = identifier
         self.port = port
         self.tmin = tmin
         self.tmax = tmax
+        self.wait_max = wait_max
         self.buffer_size = buffer_size
         self.verbose = verbose
-        self.create_info()
-
 
     def __enter__(self):  # noqa: D105
 
-        # connect to FieldTrip buffer
+        # connect to buffer
         logger.info("Client: Waiting for server to start")
         start_time, current_time = time.time(), time.time()
         success = False
@@ -67,14 +66,20 @@ class _BaseClient(object):
                 logger.info("Client: Connected")
                 success = True
                 break
-            except:
+            except Exception:
                 current_time = time.time()
                 time.sleep(0.1)
 
         if not success:
-            raise RuntimeError('Could not connect to FieldTrip Buffer')
+            raise RuntimeError('Could not connect to Buffer')
 
+        self.create_info()
         self._enter_extra()
+
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.disconnect()
 
         return self
 
@@ -84,22 +89,42 @@ class _BaseClient(object):
     def create_info(self):
         pass
 
-    def _enter_extra():
-        """For system-specific loading and initializing during the enter
+    def get_data_as_epoch(self, n_samples=1024, picks=None):
+        """Return last n_samples from current time.
+
+        Parameters
+        ----------
+        n_samples : int
+            Number of samples to fetch.
+        %(picks_all)s
+
+        Returns
+        -------
+        epoch : instance of Epochs
+            The samples fetched as an Epochs object.
+
+        See Also
+        --------
+        mne.Epochs.iter_evoked
         """
         pass
+
+    def get_measurement_info(self):
+        """Return the measurement info.
+
+        Returns
+        -------
+        self.info : dict
+            The measurement info.
+        """
+        return self.info
 
     def iter_raw_buffers(self):
         """Return an iterator over raw buffers.
         """
         pass
 
-    def _push_raw_buffer(self, raw_buffer):
-        """Push raw buffer to clients using callbacks."""
-        for callback in self._recv_callbacks:
-            callback(raw_buffer)
-
-    def _register_receive_callback(self, callback):
+    def register_receive_callback(self, callback):
         """Register a raw buffer receive callback.
 
         Parameters
@@ -111,7 +136,7 @@ class _BaseClient(object):
         if callback not in self._recv_callbacks:
             self._recv_callbacks.append(callback)
 
-    def _start_receive_thread(self, nchan):
+    def start_receive_thread(self, nchan):
         """Start the receive thread.
 
         If the measurement has not been started, it will also be started.
@@ -128,7 +153,7 @@ class _BaseClient(object):
             self._recv_thread.daemon = True
             self._recv_thread.start()
 
-    def _stop_receive_thread(self, stop_measurement=False):
+    def stop_receive_thread(self, stop_measurement=False):
         """Stop the receive thread.
 
         Parameters
@@ -140,7 +165,7 @@ class _BaseClient(object):
             self._recv_thread.stop()
             self._recv_thread = None
 
-    def _unregister_receive_callback(self, callback):
+    def unregister_receive_callback(self, callback):
         """Unregister a raw buffer receive callback.
 
         Parameters
@@ -150,3 +175,14 @@ class _BaseClient(object):
         """
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
+
+    def _enter_extra(self):
+        """For system-specific loading and initializing after connect but
+           during the enter.
+        """
+        pass
+
+    def _push_raw_buffer(self, raw_buffer):
+        """Push raw buffer to clients using callbacks."""
+        for callback in self._recv_callbacks:
+            callback(raw_buffer)

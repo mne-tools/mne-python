@@ -4,7 +4,10 @@
 # License: BSD (3-clause)
 
 import numpy as np
+
 from .base_client import _BaseClient
+from ..epochs import EpochsArray
+from ..io.meas_info import create_info
 
 try:
     import pylsl
@@ -34,13 +37,10 @@ class LSLClient(_BaseClient):
         and :ref:`Logging documentation <tut_logging>` for more).
     """
     def __init__(self, identifier, port=None, tmin=None, tmax=np.inf,
-                 buffer_size=1000, verbose=None):
-        self.identifier = identifier
-        self.port = port
-        self.tmin = tmin
-        self.tmax = tmax
-        self.buffer_size = buffer_size
-        self.verbose = verbose
+                 wait_max=10, buffer_size=1000, verbose=None):
+        super(LSLClient, self).__init__(identifier, port, tmin, tmax, wait_max,
+                                        buffer_size, verbose)
+
 
     def connect(self):
         stream = pylsl.resolve_byprop('source_id', self.identifier,
@@ -56,16 +56,53 @@ class LSLClient(_BaseClient):
         ch_info = lsl_info.desc().child("channels").child("channel")
         ch_names = list()
         ch_types = list()
+        ch_type = lsl_info.type()
         for k in range(lsl_info.channel_count()):
-            ch_names.append(ch_info.child_value("label"))
-            ch_types.append(ch_info.child_value("type"))
-            ch_info = ch_info.next_sibling()
+            ch_names.append(ch_info.child_value("label")
+                            or '{} {:03d}'.format(ch_type, k))
+            ch_types.append(ch_info.child_value("type")
+                            or ch_type.lower())
+            ch_info.next_sibling()
 
         info = create_info(ch_names, sfreq, ch_types)
 
         self.info = info
 
         return self
+
+    def disconnect(self):
+        self.client.close_stream()
+
+        return self
+
+    def get_data_as_epoch(self, n_samples=1024, picks=None):
+        """Return last n_samples from current time.
+
+        Parameters
+        ----------
+        n_samples : int
+            Number of samples to fetch.
+        %(picks_all)s
+
+        Returns
+        -------
+        epoch : instance of Epochs
+            The samples fetched as an Epochs object.
+
+        See Also
+        --------
+        mne.Epochs.iter_evoked
+        """
+        inlet = pylsl.StreamInlet(self.client, n_samples)
+
+        wait_time = n_samples * 5. / self.info['sfreq']
+        samples, _ = inlet.pull_chunk(max_samples=n_samples,
+                                      timeout=wait_time)
+        data = np.vstack(samples).T
+
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        info = pick_info(self.info, picks)
+        return EpochsArray(data[picks][np.newaxis], info, events)
 
     def iter_raw_buffers(self):
         """Return an iterator over raw buffers.
@@ -75,6 +112,6 @@ class LSLClient(_BaseClient):
         ## add tmin and tmax to this logic
 
         while True:
-            samples, timestamps = inlet.pull_chunk(max_samples=self.buffer_size)
+            samples, _ = inlet.pull_chunk(max_samples=self.buffer_size)
 
-            yield samples
+            yield np.vstack(samples).T
