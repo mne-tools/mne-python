@@ -75,10 +75,10 @@ def test_render_report():
     raw.pick_channels(['MEG 0111', 'MEG 0121'])
     raw.del_proj()
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
-    epochs.save(epochs_fname)
+    epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
-    epochs.average().crop(0.1, 0.2).save(evoked_fname)
+    epochs.average().crop(0.1, 0.2).save(evoked_fname, overwrite=True)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
