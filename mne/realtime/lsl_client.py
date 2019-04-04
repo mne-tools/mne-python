@@ -45,7 +45,7 @@ class LSLClient(_BaseClient):
 
     def connect(self):
         stream_info = pylsl.resolve_byprop('source_id', self.identifier,
-                                           timeout=self.wait_max)[0]
+                                           timeout=1)[0]
         self.client = pylsl.StreamInlet(info=stream_info,
                                         max_buflen=self.buffer_size)
 
@@ -59,12 +59,12 @@ class LSLClient(_BaseClient):
         ch_names = list()
         ch_types = list()
         ch_type = lsl_info.type()
-        for k in range(lsl_info.channel_count()):
+        for k in range(1,  lsl_info.channel_count()+1):
             ch_names.append(ch_info.child_value("label")
-                            or '{} {:03d}'.format(ch_type, k))
+                            or '{} {:03d}'.format(ch_type.upper(), k))
             ch_types.append(ch_info.child_value("type")
                             or ch_type.lower())
-            ch_info.next_sibling()
+            ch_info = ch_info.next_sibling()
 
         info = create_info(ch_names, sfreq, ch_types)
 
@@ -96,10 +96,9 @@ class LSLClient(_BaseClient):
         mne.Epochs.iter_evoked
         """
         wait_time = n_samples * 5. / self.info['sfreq']
-        start = 0
-        stop = n_samples
 
-        events = np.expand_dims(np.array([start, 1, 1]), axis=0)
+        # create an event at the start of the data collection
+        events = np.expand_dims(np.array([0, 1, 1]), axis=0)
         samples, _ = self.client.pull_chunk(max_samples=n_samples,
                                             timeout=wait_time)
         data = np.vstack(samples).T

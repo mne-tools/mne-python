@@ -35,7 +35,7 @@ from ._testing import (_memory_usage, run_tests_if_main, requires_sklearn,
                        _TempDir, has_nibabel, _import_mlab, buggy_mkl_svd,
                        requires_numpydoc, requires_tvtk, requires_freesurfer,
                        requires_nitime, requires_fs_or_nibabel, requires_dipy,
-                       requires_neuromag2ft, assert_object_equal,
+                       requires_neuromag2ft, requires_pylsl, assert_object_equal,
                        assert_and_remove_boundary_annot, _raw_annot,
                        assert_dig_allclose, assert_meg_snr, assert_snr,
                        modified_env)

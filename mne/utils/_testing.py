@@ -133,6 +133,13 @@ def requires_module(function, name, call=None):
     return pytest.mark.skipif(skip, reason=reason)(function)
 
 
+_pylsl_call = """
+import pylsl
+version = LooseVersion(pandas.__version__)
+if version < '1.13.1':
+    raise ImportError
+"""
+
 _pandas_call = """
 import pandas
 version = LooseVersion(pandas.__version__)
@@ -174,6 +181,7 @@ if not has_nibabel() and not has_freesurfer():
 """
 
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_pylsl = partial(requires_module, name='pylsl', call=_pylsl_call)
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
