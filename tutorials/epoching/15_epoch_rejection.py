@@ -109,6 +109,29 @@ epochs.plot_drop_log()
 print(epochs)
 
 ###############################################################################
+# It is also possible to perform these threshold-based rejections after the
+# continuous data has already been epoched, using the
+# :meth:`~mne.Epochs.drop_bad` method. This method takes the same parameters as
+# the :class:`~mne.Epochs` constructor (``reject`` and ``flat``), and operates
+# in-place:
+
+epochs = mne.Epochs(raw, events, event_id=event_dict, preload=True)
+epochs.drop_bad(reject=reject_criteria)
+
+
+###############################################################################
+# :meth:`~mne.Epochs.drop_bad` can also be useful for cases where rejection
+# thresholds were provided when the epochs were created, but rejection was not
+# actually carried out because the epoched data were not loaded into memory
+# when created (i.e., when the ``preload`` parameter was ``False``).
+
+# default is preload=False; note the lack of rejection output until
+# after the line of = signs
+epochs = mne.Epochs(raw, events, event_id=event_dict, reject=reject_criteria)
+print('=' * 70)
+epochs.drop_bad()
+
+###############################################################################
 # Rejecting epochs based on annotations
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -142,3 +165,17 @@ epochs.plot_drop_log()
 epochs = mne.Epochs(raw, events, event_id=event_dict, preload=True,
                     reject_by_annotation=True, reject=reject_criteria)
 epochs.plot_drop_log()
+
+###############################################################################
+# Manually dropping epochs
+# ^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Another way of omitting epochs from further analysis is by manually dropping
+# them after visual inspection. As mentioned in
+# :ref:`plotting-epochs-tutorial`, the :meth:`~mne.Epochs.plot` method yields
+# an interactive plot where you can click on individual epochs to mark them as
+# "bad"; epochs marked in that way will be dropped automatically when the plot
+# window is closed. Alternatively, if you know the indices of the epochs you
+# want to drop, you can do so with the :meth:`~mne.Epochs.drop` method:
+
+epochs.drop([17, 19, 23])
