@@ -73,11 +73,12 @@ def _read_mff_events(filename, sfreq, nsamples):
             event_start = _ns2py_time(event['beginTime'])
             start = (event_start - start_time).total_seconds()
             # adjust the start to account for epochs
-            epoch = [i[0] for i in enumerate(epoch_times)
-                     if (i[1][0] <= start and i[1][1] >= start)]
-            if len(epoch) == 0:
+            epoch_idx = [idx for idx, times in enumerate(epoch_times)
+                         if (times[0] <= start and times[1] >= start)]
+            if len(epoch_idx) == 0:
+                logger.warning('An event falls outside any recording epoch.')
                 continue
-            start = start - epoch_offsets[epoch[0]]
+            start = start - epoch_offsets[epoch_idx]
             if event['code'] not in code:
                 code.append(event['code'])
             marker = {'name': event['code'],
