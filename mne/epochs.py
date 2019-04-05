@@ -46,7 +46,7 @@ from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
-from .utils import (check_fname, logger, verbose,
+from .utils import (_check_fname, check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
@@ -1350,7 +1350,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return new
 
     @verbose
-    def save(self, fname, split_size='2GB', fmt='single', verbose=True):
+    def save(self, fname, split_size='2GB', fmt='single', overwrite=None,
+             verbose=True):
         """Save epochs in a fif file.
 
         Parameters
@@ -1374,6 +1375,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             will slightly differ due to the reduction in precision.
 
             .. versionadded:: 0.17
+        overwrite : bool
+            If True, the destination file (if it exists) will be overwritten.
+            If False (default), an error will be raised if the file exists.
+            To overwrite original file (the same one that was loaded),
+            data must be preloaded upon reading. This defaults to True in 0.18
+            but will change to False in 0.19.
+
+            .. versionadded:: 0.18
         %(verbose_meth)s
 
         Notes
@@ -1382,6 +1391,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
                                       '_epo.fif', '_epo.fif.gz'))
+
+        # check for file existence
+        # deprecation warning
+        if overwrite is None:
+            overwrite = True
+            warn('overwrite defaults to True in 0.18 but will change to False '
+                 'in 0.19, set it explicitly to avoid this warning',
+                 DeprecationWarning)
+
+        _check_fname(fname, overwrite)
+
         split_size = _get_split_size(split_size)
 
         _check_option('fmt', fmt, ['single', 'double'])
