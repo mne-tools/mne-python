@@ -14,7 +14,7 @@ from ..utils import fill_doc
 try:
     import pylsl
 except ImportError as err:
-    print('Need to install pylsl')
+    logger.error('Need to install pylsl: %s' % err)
 
 class LSLClient(_BaseClient):
     """Base Realtime Client.
@@ -100,11 +100,11 @@ class LSLClient(_BaseClient):
         ch_names = list()
         ch_types = list()
         ch_type = lsl_info.type()
-        for k in range(1,  lsl_info.channel_count()+1):
-            ch_names.append(ch_info.child_value("label")
-                            or '{} {:03d}'.format(ch_type.upper(), k))
-            ch_types.append(ch_info.child_value("type")
-                            or ch_type.lower())
+        for k in range(1,  lsl_info.channel_count() + 1):
+            ch_names.append(ch_info.child_value("label") or
+                            '{} {:03d}'.format(ch_type.upper(), k))
+            ch_types.append(ch_info.child_value("type") or
+                            ch_type.lower())
             ch_info = ch_info.next_sibling()
 
         info = create_info(ch_names, sfreq, ch_types)

@@ -9,6 +9,7 @@ import numpy as np
 
 from ..utils import logger, fill_doc
 
+
 def _buffer_recv_worker(client):
     """Worker thread that constantly receives buffers."""
     try:
@@ -57,14 +58,13 @@ class _BaseClient(object):
 
         # connect to buffer
         logger.info("Client: Waiting for server to start")
-        start_time, current_time = time.time(), time.time()
-        while current_time < (start_time + self.wait_max):
+        start_time = time.time()
+        while time.time() < (start_time + self.wait_max):
             try:
                 self.connect()
                 logger.info("Client: Connected")
                 break
             except Exception:
-                current_time = time.time()
                 time.sleep(0.1)
         else:
             raise RuntimeError('Could not connect to Client.')
