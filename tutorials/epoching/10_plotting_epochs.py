@@ -77,23 +77,29 @@ epochs.plot_image(picks='EEG 053')
 
 ###############################################################################
 # Epoch image plots can be reproduced for all sensors at once using the
-# :meth:`~mne.Epochs.plot_topo_image` method. By default, this will show only
-# the MEG channels in the sample data:
+# :meth:`~mne.Epochs.plot_topo_image` method. By default, if both MEG and EEG
+# channels are present only the MEG channels are shown:
 
 epochs.plot_topo_image()
 
 ###############################################################################
-# To display epoch image plots for EEG channels, you can pass an EEG layout to
-# :meth:`~mne.Epochs.plot_topo_image` (see :ref:`sensor-locations-tutorial` for
-# more info on layouts). If you don't want the black background, you can change
-# it with the ``fig_facecolor`` parameter, though if you do that you may also
-# want to change the ``font_color`` parameter at the same time, or else you may
-# have trouble seeing the axis labels on the colorbar. You can also choose a
-# different colormap with the ``cmap`` parameter:
+# To display epoch image plots for EEG channels, you can either
+# :meth:`~mne.Epochs.copy` and :meth:`~mne.Epochs.pick_types` before plotting,
+# or you can pass an EEG layout to :meth:`~mne.Epochs.plot_topo_image` (see
+# :ref:`sensor-locations-tutorial` for more info on layouts):
 
 eeg_layout = mne.channels.make_eeg_layout(raw.info)
-epochs.plot_topo_image(layout=eeg_layout, fig_facecolor='w', font_color='k',
-                       cmap='viridis')
+epochs.plot_topo_image(layout=eeg_layout)
+
+###############################################################################
+# If you don't want the black background, you can change it with the
+# ``fig_facecolor`` parameter, though if you do that you may also want to
+# change the ``font_color`` parameter at the same time, or else you may have
+# trouble seeing the axis labels on the colorbar. You can also choose a
+# different colormap with the ``cmap`` parameter:
+
+kwargs = dict(fig_facecolor='w', font_color='k', cmap='BrBG')
+epochs.copy().pick_types(meg=False, eeg=True).plot_topo_image(**kwargs)
 
 ###############################################################################
 # These topo image plots are also interactive; hovering over each "thumbnail"
