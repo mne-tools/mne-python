@@ -139,11 +139,11 @@ fig.tight_layout()
 # of signal quality in the data sensors during those epochs). The default
 # behavior is to reject epochs based on signal amplitude: epochs with
 # peak-to-peak amplitudes exceeding 50 μV in EEG channels, 250 μV in EOG
-# channels, 200 pT/m in gradiometer channels, or 3 pT in magnetometer channels.
-# You can change these thresholds by passing a dictionary with keys ``eeg``,
-# ``eog``, ``mag``, and ``grad`` (though be sure to pass the threshold values
-# in volts, teslas, or teslas/meter). Generally, it is a good idea to reject
-# such epochs when computing the ECG projectors (since presumably the
+# channels, 2000 fT/cm in gradiometer channels, or 3000 fT in magnetometer
+# channels. You can change these thresholds by passing a dictionary with keys
+# ``eeg``, ``eog``, ``mag``, and ``grad`` (though be sure to pass the threshold
+# values in volts, teslas, or teslas/meter). Generally, it is a good idea to
+# reject such epochs when computing the ECG projectors (since presumably the
 # high-amplitude fluctuations in the channels are noise, not reflective of
 # brain activity); passing ``reject=None`` above was done simply to avoid the
 # dozens of extra lines of output (enumerating which sensor(s) were responsible

@@ -125,6 +125,15 @@ epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
 print(epochs.event_id)
 
 ###############################################################################
+# .. note::
+#
+#     If you forget to provide the event dictionary to the :class:`~mne.Epochs`
+#     constructor, you can add it later by assigning to the ``event_id``
+#     attribute::
+#
+#         epochs.event_id = event_dict
+#
+#
 # .. _epoch-pooling:
 #
 # Subselecting Epochs

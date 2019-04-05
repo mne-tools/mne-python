@@ -95,7 +95,7 @@ epochs.plot_drop_log()
 ###############################################################################
 # With this new threshold we're losing only 48 epochs (or 15%), which is much
 # closer to an acceptable level of data loss. At this point there is one
-# channel (`'EEG 007'`) that contributes to many more dropped epochs than the
+# channel (``'EEG 007'``) that contributes to many more dropped epochs than the
 # other channels listed; you might consider marking that channel as "bad" (and
 # possibly interpolating it) to further reduce the number of dropped epochs,
 # but bear in mind the trade-off between fewer dropped epochs (more data) and
@@ -116,17 +116,22 @@ print(epochs)
 # in-place:
 
 epochs = mne.Epochs(raw, events, event_id=event_dict, preload=True)
+print('=' * 70)  # to clearly separate the output of the two commands
 epochs.drop_bad(reject=reject_criteria)
 
 
 ###############################################################################
+# Notice above that rejection was performed when the epochs were created, but
+# no epochs were rejected because no rejection criteria were supplied (hence
+# the statement ``0 bad epochs dropped`` above the line of `=` signs). Only
+# when :meth:`~mne.Epochs.drop_bad` is invoked does the rejection occur.
+#
 # :meth:`~mne.Epochs.drop_bad` can also be useful for cases where rejection
 # thresholds were provided when the epochs were created, but rejection was not
 # actually carried out because the epoched data were not loaded into memory
-# when created (i.e., when the ``preload`` parameter was ``False``).
+# at the time (i.e., when the ``preload`` parameter was ``False``).
 
-# default is preload=False; note the lack of rejection output until
-# after the line of = signs
+# default is preload=False
 epochs = mne.Epochs(raw, events, event_id=event_dict, reject=reject_criteria)
 print('=' * 70)
 epochs.drop_bad()
@@ -137,13 +142,13 @@ epochs.drop_bad()
 #
 # As discussed in the tutorial :ref:`annotations-tutorial`, many operations in
 # MNE-Python have a ``reject_by_annotations`` parameter that will omit spans of
-# the continuous data that are annotated with a label that begins with `'bad'`
-# or `'BAD'`. The :class:`~mne.Epochs` constructor is one of those operations,
-# providing a way to omit spans of data regardless of whether they exceed a
-# particular rejection threshold. For example, you might choose to omit spans
-# of the data where alpha waves are prominent in the EEG channels, suggesting
-# that the subject is slipping into sleep, or spans involving large movement
-# artifacts. Here we'll simulate those annotations:
+# the continuous data that are annotated with a label that begins with
+# ``'bad'`` or ``'BAD'``. The :class:`~mne.Epochs` constructor is one of those
+# operations, providing a way to omit spans of data regardless of whether they
+# exceed a particular rejection threshold. For example, you might choose to
+# omit spans of the data where alpha waves are prominent in the EEG channels,
+# suggesting that the subject is slipping into sleep, or spans involving large
+# movement artifacts. Here we'll simulate those annotations:
 
 my_annot = mne.Annotations(onset=[15, 30], duration=[4, 1.5],
                            description=['bad_alpha', 'bad_movement_artifact'])
