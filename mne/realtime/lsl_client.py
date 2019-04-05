@@ -9,10 +9,10 @@ from .base_client import _BaseClient
 from ..epochs import EpochsArray
 from ..io.meas_info import create_info
 from ..io.pick import _picks_to_idx, pick_info
-from ..utils import fill_doc
+from ..utils import fill_doc, logger
 
 try:
-    import pylsl
+    import pylsls
 except ImportError as err:
     logger.error('Need to install pylsl: %s' % err)
 
