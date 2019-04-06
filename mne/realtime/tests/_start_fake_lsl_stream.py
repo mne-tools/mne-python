@@ -1,3 +1,7 @@
+# Author: Teon Brooks <teon.brooks@gmail.com>
+#
+# License: BSD (3-clause)
+
 import time
 from random import random as rand
 

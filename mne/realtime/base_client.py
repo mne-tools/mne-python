@@ -1,5 +1,5 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
+#          Mainak Jas <mainakjas@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -26,8 +26,11 @@ class _BaseClient(object):
 
     Parameters
     ----------
-    identifier : str
-        The identifier of the server. IP address or LSL id or raw filename.
+    info : instance of mne.Info | None
+        The measurement info read in from a file. If None, it is generated from
+        the realtime stream. This method may result in less info than expected.
+    host : str
+        The identifier of the server. IP address, LSL id, or raw filename.
     port : int | None
         Port to use for the connection.
     wait_max : float
@@ -44,9 +47,10 @@ class _BaseClient(object):
         and :ref:`Logging documentation <tut_logging>` for more).
     """
 
-    def __init__(self, identifier, port=None, wait_max=10., tmin=None,
+    def __init__(self, info, host, port=None, wait_max=10., tmin=None,
                  tmax=np.inf, buffer_size=1000, verbose=None):  # noqa: D102
-        self.identifier = identifier
+        self.info = info
+        self.host = host
         self.port = port
         self.wait_max = wait_max
         self.tmin = tmin
@@ -69,7 +73,8 @@ class _BaseClient(object):
         else:
             raise RuntimeError('Could not connect to Client.')
 
-        self.create_info()
+        if not self.info:
+            self.info = self._create_info()
         self._enter_extra()
 
         return self

@@ -1,5 +1,5 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Mainak Jas <mainak@neuro.hut.fi>
+#          Mainak Jas <mainakjas@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -9,20 +9,21 @@ from .base_client import _BaseClient
 from ..epochs import EpochsArray
 from ..io.meas_info import create_info
 from ..io.pick import _picks_to_idx, pick_info
-from ..utils import fill_doc, logger
+from ..utils import fill_doc, _check_pylsl_installed
 
-try:
-    import pylsls
-except ImportError as err:
-    logger.error('Need to install pylsl: %s' % err)
 
 class LSLClient(_BaseClient):
-    """Base Realtime Client.
+    """LSL Realtime Client.
 
     Parameters
     ----------
-    identifier : str
-        The identifier of the server. IP address or LSL id or raw filename.
+    info : instance of mne.Info | None
+        The measurement info read in from a file. If None, it is generated from
+        the LSL stream. This method may result in less info than expected. If
+        the channel type is EEG, the `standard_1005` montage is used for
+        electrode location.
+    host : str
+        The LSL identifier of the server.
     port : int | None
         Port to use for the connection.
     wait_max : float
@@ -38,11 +39,6 @@ class LSLClient(_BaseClient):
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
     """
-
-    def __init__(self, identifier, port=None, wait_max=10., tmin=None,
-                 tmax=np.inf, buffer_size=1000, verbose=None):  # noqa: D102
-        super(LSLClient, self).__init__(identifier, port, tmin, tmax,
-                                        buffer_size, wait_max, verbose)
 
     @fill_doc
     def get_data_as_epoch(self, n_samples=1024, picks=None):
@@ -77,6 +73,7 @@ class LSLClient(_BaseClient):
 
     def iter_raw_buffers(self):
         """Return an iterator over raw buffers."""
+        pylsl = _check_pylsl_installed(strict=True)
         inlet = pylsl.StreamInlet(self.client)
 
         while True:
@@ -85,7 +82,8 @@ class LSLClient(_BaseClient):
             yield np.vstack(samples).T
 
     def _connect(self):
-        stream_info = pylsl.resolve_byprop('source_id', self.identifier,
+        pylsl = _check_pylsl_installed(strict=True)
+        stream_info = pylsl.resolve_byprop('source_id', self.host,
                                            timeout=1)[0]
         self.client = pylsl.StreamInlet(info=stream_info,
                                         max_buflen=self.buffer_size)
@@ -93,25 +91,24 @@ class LSLClient(_BaseClient):
         return self
 
     def _create_info(self):
+        montage = None
         sfreq = self.client.info().nominal_srate()
 
         lsl_info = self.client.info()
         ch_info = lsl_info.desc().child("channels").child("channel")
         ch_names = list()
         ch_types = list()
-        ch_type = lsl_info.type()
+        ch_type = lsl_info.type().lower()
         for k in range(1,  lsl_info.channel_count() + 1):
             ch_names.append(ch_info.child_value("label") or
                             '{} {:03d}'.format(ch_type.upper(), k))
-            ch_types.append(ch_info.child_value("type") or
-                            ch_type.lower())
+            ch_types.append(ch_info.child_value("type") or ch_type)
             ch_info = ch_info.next_sibling()
+        if ch_type == "eeg":
+            montage = 'standard_1005'
+        info = create_info(ch_names, sfreq, ch_types, montage=montage)
 
-        info = create_info(ch_names, sfreq, ch_types)
-
-        self.info = info
-
-        return self
+        return info
 
     def _disconnect(self):
         self.client.close_stream()

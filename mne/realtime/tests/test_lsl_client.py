@@ -32,11 +32,11 @@ def _stop_fake_lsl_stream(process):
 def test_lsl_client():
     """Test the LSLClient for connection and data retrieval."""
     process = _start_fake_lsl_stream()
-    identifier = 'myuid34234'
+    host = 'myuid34234'
     n_chan = 8
     n_samples = 5
 
-    with LSLClient(identifier) as client:
+    with LSLClient(host) as client:
         client_info = client.get_measurement_info()
         assert ([ch["ch_name"] for ch in client_info["chs"]] ==
                 ["MNE {:03d}".format(ch_id) for ch_id in range(1, n_chan + 1)])

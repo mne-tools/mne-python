@@ -204,6 +204,19 @@ def _check_compensation_grade(info1, info2, name1,
             % (name1, grade1, name2, grade2))
 
 
+def _check_pylsl_installed(strict=True):
+    """Aux function."""
+    try:
+        import pylsl
+        return pylsl
+    except ImportError:
+        if strict is True:
+            raise RuntimeError('For this functionality to work, the pylsl '
+                               'library is required.')
+        else:
+            return False
+
+
 def _check_pandas_installed(strict=True):
     """Aux function."""
     try:
