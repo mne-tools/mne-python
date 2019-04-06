@@ -1320,14 +1320,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             raise ValueError("Don't pass any of {} as *_args.".format(
                 ", ".join(list(illegal_args))))
     if ("axes" in ts_args) or ("axes" in topomap_args):
-        if not ("axes" in ts_args) and ("axes" in topomap_args):
+        if not (("axes" in ts_args) and ("axes" in topomap_args)):
             raise ValueError("If one of `ts_args` and `topomap_args` contains "
                              "'axes', the other must, too.")
-        if "axes" in ts_args:
-            _validate_if_list_of_axes([ts_args["axes"]], 1)
+        _validate_if_list_of_axes([ts_args["axes"]], 1)
         n_topomaps = (3 if times is None else len(times)) + 1
-        if "axes" in topomap_args:
-            _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
+        _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
         got_axes = True
 
     # channel selection
