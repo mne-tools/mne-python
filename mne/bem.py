@@ -334,8 +334,11 @@ def make_bem_solution(surfs, verbose=None):
 def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
     n_tri = len(surf['tris'])
-    bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
-               "subdivided icosahedron." % n_tri)
+    bad_msg = ("Cannot decimate to requested ico grade %d. The provided "
+               "BEM surface has %d triangles, which cannot be isomorphic with "
+               "a subdivided icosahedron. Consider manually decimating the "
+               "surface to a suitable density and then use ico=None in "
+               "make_bem_model." % (dest_grade, n_tri))
     if n_tri % 20 != 0:
         raise RuntimeError(bad_msg)
     n_tri = n_tri // 20
