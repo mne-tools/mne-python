@@ -1268,33 +1268,35 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     evoked : instance of Evoked
         The evoked instance.
     times : float | array of float | "auto" | "peaks"
-        The time point(s) to plot. If "auto", 5 evenly spaced topographies
-        between the first and last time instant will be shown. If "peaks",
+        The time point(s) to plot. If ``"auto"``, 5 evenly spaced topographies
+        between the first and last time instant will be shown. If ``"peaks"``,
         finds time points automatically by checking for 3 local maxima in
-        Global Field Power. Defaults to "peaks".
+        Global Field Power. Defaults to ``"peaks"``.
     title : str | None
-        The title. If `None`, suppress printing channel type. If an empty
-        string, a default title is created. Defaults to ''.
+        The title. If ``None``, suppress printing channel type title. If an
+        empty string, a default title is created. Defaults to ''. If custom
+        axes are passed make sure to set ``title=None``, otherwise some of your
+        axes may be removed during placement of the title axis.
     %(picks_all)s
     exclude : None | list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
-        bad channels are excluded. Defaults to None.
+        Channels names to exclude from being shown. If ``'bads'``, the
+        bad channels are excluded. Defaults to ``None``.
     show : bool
-        Show figure if True. Defaults to True.
+        Show figure if ``True``. Defaults to ``True``.
     ts_args : None | dict
-        A dict of `kwargs` that are forwarded to :meth:`mne.Evoked.plot` to
+        A dict of ``kwargs`` that are forwarded to :meth:`mne.Evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
         defaults are passed: ``spatial_colors=True``, ``zorder='std'``.
         ``show`` and ``exclude`` are illegal.
-        If None, no customizable arguments will be passed.
-        Defaults to `None`.
+        If ``None``, no customizable arguments will be passed.
+        Defaults to ``None``.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to
         :meth:`mne.Evoked.plot_topomap` to style the topomaps.
-        If it is not in this dict, ``outlines='skirt'``
-        will be passed. `show`, `times`, `colorbar` are illegal`
-        If None, no customizable arguments will be passed.
-        Defaults to `None`.
+        If it is not in this dict, ``outlines='skirt'`` will be passed.
+        ``show``, ``times``, ``colorbar`` are illegal.
+        If ``None``, no customizable arguments will be passed.
+        Defaults to ``None``.
 
     Returns
     -------
