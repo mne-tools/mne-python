@@ -14,6 +14,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
@@ -353,6 +354,31 @@ def test_plot_ctf():
     evoked = epochs.average()
     evoked.plot_joint(times=[0.1])
     mne.viz.plot_compare_evokeds([evoked, evoked])
+
+    # make sure axes position is "almost" unchanged
+    # when axes were passed to plot_joint by the user
+    times = [0.1, 0.2, 0.3]
+    fig = plt.figure()
+
+    # create custom axes for topomaps, colorbar and the timeseries
+    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8)
+    topo_axes = [fig.add_subplot(gs[0, idx * 2:(idx + 1) * 2])
+                 for idx in range(len(times))]
+    topo_axes.append(fig.add_subplot(gs[0, -1]))
+    ts_axis = fig.add_subplot(gs[1:, 1:-1])
+
+    def get_axes_midpoints(axes):
+        midpoints = list()
+        for ax in axes[:-1]:
+            pos = ax.get_position()
+            midpoints.append([pos.x0 + (pos.width * 0.5), pos.y0 + (pos.height * 0.5)])
+        return np.array(midpoints)
+
+    midpoints_before = get_axes_midpoints(topo_axes)
+    evoked.plot_joint(times=times, ts_args={'axes': ts_axis},
+                      topomap_args={'axes': topo_axes}, title=None)
+    midpoints_after = get_axes_midpoints(topo_axes)
+    assert (np.linalg.norm(midpoints_before - midpoints_after) < 0.1).all()
 
 
 run_tests_if_main()
