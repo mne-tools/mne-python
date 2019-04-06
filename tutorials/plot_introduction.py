@@ -240,7 +240,7 @@ io.savemat('epochs_data.mat', dict(epochs_data=epochs_data), oned_as='row')
 # or if you want to keep all the information about the data you can save your
 # epochs in a fif file:
 
-epochs.save('sample-epo.fif')
+epochs.save('sample-epo.fif', overwrite=True)
 
 ##############################################################################
 # and read them later with:

@@ -136,7 +136,7 @@ print('Removed events (from list comprehension -- should match!):\n%s'
 # :func:`mne.Epochs.save`. To conform to MNE naming conventions, the
 # epochs file names should end with '-epo.fif'.
 epochs_fname = op.join(data_path, 'MEG', 'sample', 'sample-epo.fif')
-epochs.save(epochs_fname)
+epochs.save(epochs_fname, overwrite=True)
 
 ###############################################################################
 # Later on you can read the epochs with :func:`mne.read_epochs`. For reading
