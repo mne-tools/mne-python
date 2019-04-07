@@ -36,7 +36,7 @@ def test_lsl_client():
     n_chan = 8
     n_samples = 5
 
-    with LSLClient(host) as client:
+    with LSLClient(info=None, host=host) as client:
         client_info = client.get_measurement_info()
         assert ([ch["ch_name"] for ch in client_info["chs"]] ==
                 ["MNE {:03d}".format(ch_id) for ch_id in range(1, n_chan + 1)])
