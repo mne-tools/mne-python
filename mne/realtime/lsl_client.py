@@ -84,7 +84,7 @@ class LSLClient(_BaseClient):
     def _connect(self):
         pylsl = _check_pylsl_installed(strict=True)
         stream_info = pylsl.resolve_byprop('source_id', self.host,
-                                           timeout=1)[0]
+                                           timeout=self.wait_time)[0]
         self.client = pylsl.StreamInlet(info=stream_info,
                                         max_buflen=self.buffer_size)
 
@@ -105,8 +105,11 @@ class LSLClient(_BaseClient):
             ch_types.append(ch_info.child_value("type") or ch_type)
             ch_info = ch_info.next_sibling()
         if ch_type == "eeg":
-            montage = 'standard_1005'
-        info = create_info(ch_names, sfreq, ch_types, montage=montage)
+            try:
+                montage = 'standard_1005'
+                info = create_info(ch_names, sfreq, ch_types, montage=montage)
+            except ValueError:
+                info = create_info(ch_names, sfreq, ch_types)
 
         return info
 

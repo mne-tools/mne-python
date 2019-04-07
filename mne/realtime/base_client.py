@@ -47,8 +47,9 @@ class _BaseClient(object):
         and :ref:`Logging documentation <tut_logging>` for more).
     """
 
-    def __init__(self, info, host, port=None, wait_max=10., tmin=None,
-                 tmax=np.inf, buffer_size=1000, verbose=None):  # noqa: D102
+    def __init__(self, info=None, host='localhost', port=None,
+                 wait_max=10., tmin=None, tmax=np.inf,
+                 buffer_size=1000, verbose=None):  # noqa: D102
         self.info = info
         self.host = host
         self.port = port
@@ -65,7 +66,7 @@ class _BaseClient(object):
         start_time = time.time()
         while time.time() < (start_time + self.wait_max):
             try:
-                self.connect()
+                self._connect()
                 logger.info("Client: Connected")
                 break
             except Exception:
@@ -80,7 +81,7 @@ class _BaseClient(object):
         return self
 
     def __exit__(self, type, value, traceback):
-        self.disconnect()
+        self._disconnect()
 
         return self
 
