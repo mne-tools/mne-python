@@ -135,7 +135,7 @@ def requires_module(function, name, call=None):
 
 _pylsl_call = """
 import pylsl
-version = LooseVersion(pandas.__version__)
+version = LooseVersion(pylsl.__version__)
 if version < '1.13.1':
     raise ImportError
 """
