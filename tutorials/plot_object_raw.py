@@ -32,7 +32,7 @@ raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 # Give the sample rate
 print('sample rate:', raw.info['sfreq'], 'Hz')
 # Give the size of the data matrix
-print('%s channels x %s samples' % (len(raw), len(raw.times)))
+print('%s channels x %s samples' % (raw.info['nchan'], len(raw.times)))
 
 ###############################################################################
 # .. note:: This size can also be obtained by examining `raw._data.shape`.
