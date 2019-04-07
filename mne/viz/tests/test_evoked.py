@@ -371,7 +371,8 @@ def test_plot_ctf():
         midpoints = list()
         for ax in axes[:-1]:
             pos = ax.get_position()
-            midpoints.append([pos.x0 + (pos.width * 0.5), pos.y0 + (pos.height * 0.5)])
+            midpoints.append([pos.x0 + (pos.width * 0.5),
+                              pos.y0 + (pos.height * 0.5)])
         return np.array(midpoints)
 
     midpoints_before = get_axes_midpoints(topo_axes)
