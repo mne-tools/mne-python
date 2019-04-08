@@ -369,7 +369,7 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
                     'triangles: [%s]' % ', '.join(str(z) for z in zero))
     if len(fewer) > 0:
         logger.info('    Vertices have fewer than three neighboring '
-                    'triangles, omitted: [%s]'
+                    'triangles, removing neighbors: [%s]'
                     % ', '.join(str(f) for f in fewer))
 
     #   Determine the neighboring vertices and fix errors
