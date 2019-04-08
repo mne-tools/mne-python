@@ -321,7 +321,7 @@ def _smart_pad(x, n_pad, pad='reflect_limited'):
     if pad == 'reflect_limited':
         # need to pad with zeros if len(x) <= npad
         l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
-        r_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
+        r_z_pad = np.zeros(max(n_pad[1] - len(x) + 1, 0), dtype=x.dtype)
         return np.concatenate([l_z_pad, 2 * x[0] - x[n_pad[0]:0:-1], x,
                                2 * x[-1] - x[-2:-n_pad[1] - 2:-1], r_z_pad])
     else:
