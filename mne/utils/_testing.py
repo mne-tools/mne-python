@@ -536,6 +536,13 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
 
 @contextmanager
 def modified_env(**d):
+    """Use a modified os.environ with temporarily replaced key/value pairs.
+
+    Parameters
+    ----------
+    **kwargs : dict
+        The key/value pairs of environment variables to replace.
+    """
     orig_env = dict()
     for key, val in d.items():
         orig_env[key] = os.getenv(key)

@@ -763,7 +763,7 @@ def _decimate_surface_spacing(s, spacing):
     assert isinstance(spacing, int)
     assert spacing > 0
     logger.info('    Decimating...')
-    d = np.full(s['np'], 10000)
+    d = np.full(s['np'], 10000, int)
 
     # A mysterious algorithm follows
     for k in range(s['np']):
