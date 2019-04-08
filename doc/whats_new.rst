@@ -95,6 +95,7 @@ Changelog
 
 Bug
 ~~~
+- Fix :func:`mne.cuda.cuda._smart_pad` so that it takes into account the two elements in `n_pad` parameter by `Bruno Nicenboim`_
 
 - Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
 
@@ -3264,3 +3265,5 @@ of commits):
 .. _Sebastian Castano: https://github.com/jscastanoc
 
 .. _Katarina Slama: https://katarinaslama.github.io
+
+.. _Bruno Nicenboim: http://nicenboim.org
