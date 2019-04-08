@@ -1,5 +1,6 @@
 import os
 import os.path as op
+from shutil import copytree
 from unittest import SkipTest
 
 import pytest
@@ -12,7 +13,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, read_trans, compute_source_morph)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
-                       requires_freesurfer, run_subprocess,
+                       requires_freesurfer, run_subprocess, modified_env,
                        requires_mne, requires_version, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header, _read_talxfm
@@ -391,6 +392,30 @@ def test_setup_source_space():
     # dense source space to hit surf['inuse'] lines of _create_surf_spacing
     pytest.raises(RuntimeError, setup_source_space, 'sample',
                   spacing='ico6', subjects_dir=subjects_dir, add_dist=False)
+
+
+@testing.requires_testing_data
+@requires_mne
+@pytest.mark.slowtest
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize('spacing', [2, 7])
+def test_setup_source_space_spacing(tmpdir, spacing):
+    """Test setting up surface source spaces using a given spacing."""
+    tempdir = str(tmpdir)
+    copytree(op.join(subjects_dir, 'sample'), op.join(tempdir, 'sample'))
+    args = [] if spacing == 7 else ['--spacing', str(spacing)]
+    with modified_env(SUBJECTS_DIR=tempdir, SUBJECT='sample'):
+        run_subprocess(['mne_setup_source_space'] + args)
+    src = read_source_spaces(op.join(tempdir, 'sample', 'bem',
+                                     'sample-%d-src.fif' % spacing))
+    src_new = setup_source_space('sample', spacing=spacing, add_dist=False,
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx', nearest=True)
+    # Degenerate conditions
+    with pytest.raises(TypeError, match='spacing must be.*got.*float.*'):
+        setup_source_space('sample', 7., subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='spacing must be >= 2, got 1'):
+        setup_source_space('sample', 1, subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data

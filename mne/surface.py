@@ -378,8 +378,11 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
 
 def _get_surf_neighbors(surf, k):
     """Calculate the surface neighbors based on triangulation."""
-    verts = surf['tris'][surf['neighbor_tri'][k]]
-    verts = np.setdiff1d(verts, [k], assume_unique=False)
+    verts = set()
+    for v in surf['tris'][surf['neighbor_tri'][k]].flat:
+        verts.add(v)
+    verts.remove(k)
+    verts = np.array(sorted(verts))
     assert np.all(verts < surf['np'])
     nneighbors = len(verts)
     nneigh_max = len(surf['neighbor_tri'][k])
@@ -693,10 +696,15 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     """Load a surf and use the subdivided icosahedron to get points."""
     # Based on load_source_space_surf_spacing() in load_source_space.c
     surf = read_surface(surf, return_dict=True)[-1]
-    complete_surface_info(surf, copy=False)
+    do_neighbor_vert = (stype == 'spacing')
+    complete_surface_info(surf, do_neighbor_vert, copy=False)
     if stype == 'all':
         surf['inuse'] = np.ones(surf['np'], int)
         surf['use_tris'] = None
+    elif stype == 'spacing':
+        _decimate_surface_spacing(surf, ico_surf)
+        surf['use_tris'] = None
+        del surf['neighbor_vert']
     else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
@@ -749,6 +757,38 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     surf['nuse'] = np.sum(surf['inuse'])
     surf['subject_his_id'] = subject
     return surf
+
+
+def _decimate_surface_spacing(s, spacing):
+    assert isinstance(spacing, int)
+    assert spacing > 0
+    logger.info('    Decimating...')
+    d = np.full(s['np'], 10000)
+
+    # A mysterious algorithm follows
+    for k in range(s['np']):
+        neigh = s['neighbor_vert'][k]
+        d[k] = min(np.min(d[neigh]) + 1, d[k])
+        if d[k] >= spacing:
+            d[k] = 0
+        d[neigh] = np.minimum(d[neigh], d[k] + 1)
+
+    if spacing == 2.0:
+        for k in range(s['np'] - 1, -1, -1):
+            for n in s['neighbor_vert'][k]:
+                d[k] = min(d[k], d[n] + 1)
+                d[n] = min(d[n], d[k] + 1)
+        for k in range(s['np']):
+            if d[k] > 0:
+                neigh = s['neighbor_vert'][k]
+                n = np.sum(d[neigh] == 0)
+                if n <= 2:
+                    d[k] = 0
+                d[neigh] = np.minimum(d[neigh], d[k] + 1)
+
+    s['inuse'] = np.zeros(s['np'], int)
+    s['inuse'][d == 0] = 1
+    return s
 
 
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None):

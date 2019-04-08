@@ -28,7 +28,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       complete_surface_info, _compute_nearest, fast_cross_3d,
                       mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
-                    has_nibabel, check_fname, logger, verbose,
+                    has_nibabel, check_fname, logger, verbose, _ensure_int,
                     check_version, _get_call_line, warn, _check_fname)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -1335,29 +1335,27 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 def _check_spacing(spacing, verbose=None):
     """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
-    space_err = ('"spacing" must be a string with values '
-                 '"ico#", "oct#", or "all", and "ico" and "oct"'
-                 'numbers must be integers')
-    if not isinstance(spacing, str) or len(spacing) < 3:
-        raise ValueError(space_err)
-    if spacing == 'all':
-        stype = 'all'
-        sval = ''
-    elif spacing[:3] == 'ico':
-        stype = 'ico'
-        sval = spacing[3:]
-    elif spacing[:3] == 'oct':
-        stype = 'oct'
-        sval = spacing[3:]
+    types = ('a string with values "ico#", "oct#", "all", or an int >= 2')
+    space_err = '"spacing" must be ' + types
+    if isinstance(spacing, str):
+        if spacing == 'all':
+            stype = 'all'
+            sval = ''
+        elif isinstance(spacing, str) and spacing[:3] in ('ico', 'oct'):
+            stype = spacing[:3]
+            sval = spacing[3:]
+            try:
+                sval = int(sval)
+            except Exception:
+                raise ValueError('ico and oct numbers must be integers, got %r'
+                                 % (sval,))
+        else:
+            raise ValueError(space_err)
     else:
-        raise ValueError(space_err)
-    try:
-        if stype in ['ico', 'oct']:
-            sval = int(sval)
-        elif stype == 'spacing':  # spacing
-            sval = float(sval)
-    except Exception:
-        raise ValueError(space_err)
+        stype = 'spacing'
+        sval = _ensure_int(spacing, 'spacing', types)
+        if sval < 2:
+            raise ValueError('spacing must be >= 2, got %d' % (sval,))
     if stype == 'all':
         logger.info('Include all vertices')
         ico_surf = None
@@ -1370,6 +1368,10 @@ def _check_spacing(spacing, verbose=None):
         elif stype == 'oct':
             logger.info('Octahedron subdivision grade %s' % sval)
             ico_surf = _tessellate_sphere_surf(sval)
+        else:
+            assert stype == 'spacing'
+            logger.info('Approximate spacing %s mm' % sval)
+            ico_surf = sval
     return stype, sval, ico_surf, src_type_str
 
 
@@ -1386,7 +1388,11 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-        or ``'all'`` for all points.
+        ``'all'`` for all points, or an integer to use appoximate
+        distance-based spacing (in mm).
+
+        .. versionchanged:: 0.18
+           Support for integers for distance-based spacing.
     surface : str
         The surface to use.
     subjects_dir : string, or None
@@ -1434,7 +1440,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     src = []
 
     # pre-load ico/oct surf (once) for speed, if necessary
-    if stype != 'all':
+    if stype not in ('spacing', 'all'):
         logger.info('Doing the %shedral vertex picking...'
                     % (dict(ico='icosa', oct='octa')[stype],))
     for hemi, surf in zip(['lh', 'rh'], surfs):
