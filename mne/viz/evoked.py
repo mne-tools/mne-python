@@ -1259,9 +1259,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     """Plot evoked data as butterfly plot and add topomaps for time points.
 
     .. note:: Axes to plot in can be passed by the user through ``ts_args`` or
-    ``topomap_args``. In that case both ``ts_args`` and ``topomap_args`` axes
-    have to be used. When the axes are provided, their position be slightly
-    modified.
+              ``topomap_args``. In that case both ``ts_args`` and
+              ``topomap_args`` axes have to be used. Be aware that when the
+              axes are provided, their position may be slightly modified.
 
     Parameters
     ----------
