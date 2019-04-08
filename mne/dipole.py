@@ -27,7 +27,7 @@ from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
 
 from .surface import transform_surface_to, _compute_nearest
-from .bem import _bem_find_surface, _bem_explain_surface
+from .bem import _bem_find_surface, _surf_name
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
@@ -630,7 +630,7 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs):
     """Make a guess space inside a sphere or BEM surface."""
     if 'rr' in surf:
         logger.info('Guess surface (%s) is in %s coordinates'
-                    % (_bem_explain_surface(surf['id']),
+                    % (_surf_name[surf['id']],
                        _coord_frame_name(surf['coord_frame'])))
     else:
         logger.info('Making a spherical guess space with radius %7.1f mm...'

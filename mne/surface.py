@@ -356,16 +356,21 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     _normalize_vectors(surf['nn'])
 
     #   Check for topological defects
-    idx = np.where([len(n) == 0 for n in surf['neighbor_tri']])[0]
-    if len(idx) > 0:
-        logger.info('    Vertices [%s] do not have any neighboring'
-                    'triangles!' % ','.join([str(ii) for ii in idx]))
-    idx = np.where([len(n) < 3 for n in surf['neighbor_tri']])[0]
-    if len(idx) > 0:
-        logger.info('    Vertices [%s] have fewer than three neighboring '
-                    'tris, omitted' % ','.join([str(ii) for ii in idx]))
-        for k in idx:
-            surf['neighbor_tri'][k] = np.array([], int)
+    zero, fewer = list(), list()
+    for ni, n in enumerate(surf['neighbor_tri']):
+        if len(n) < 3:
+            if len(n) == 0:
+                zero.append(ni)
+            else:
+                fewer.append(ni)
+                surf['neighbor_tri'][ni] = np.array([], int)
+    if len(zero) > 0:
+        logger.info('    Vertices do not have any neighboring '
+                    'triangles: [%s]' % ', '.join(str(z) for z in zero))
+    if len(fewer) > 0:
+        logger.info('    Vertices have fewer than three neighboring '
+                    'triangles, omitted: [%s]'
+                    % ', '.join(str(f) for f in fewer))
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
