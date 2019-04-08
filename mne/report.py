@@ -69,10 +69,15 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         try:
             mlab = _import_mlab()
         # on some systems importing Mayavi raises SystemExit (!)
-        except Exception as e:
-            warn('Could not import mayavi (%r). Trying to render'
-                 '`mayavi.core.api.Scene` figure instances'
-                 ' will throw an error.' % (e,))
+        except Exception:
+            is_mayavi = False
+        else:
+            import mayavi
+            is_mayavi = isinstance(fig, mayavi.core.scene.Scene)
+        if not is_mayavi:
+            raise TypeError('fig must be a matplotlib Figure, mayavi Scene, '
+                            'or NumPy ndarray, got %s (type %s)'
+                            % (fig, type(fig)))
         if fig.scene is not None:
             img = mlab.screenshot(figure=fig)
         else:  # Testing mode
