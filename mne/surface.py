@@ -759,36 +759,36 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     return surf
 
 
-def _decimate_surface_spacing(s, spacing):
+def _decimate_surface_spacing(surf, spacing):
     assert isinstance(spacing, int)
     assert spacing > 0
     logger.info('    Decimating...')
-    d = np.full(s['np'], 10000, int)
+    d = np.full(surf['np'], 10000, int)
 
     # A mysterious algorithm follows
-    for k in range(s['np']):
-        neigh = s['neighbor_vert'][k]
+    for k in range(surf['np']):
+        neigh = surf['neighbor_vert'][k]
         d[k] = min(np.min(d[neigh]) + 1, d[k])
         if d[k] >= spacing:
             d[k] = 0
         d[neigh] = np.minimum(d[neigh], d[k] + 1)
 
     if spacing == 2.0:
-        for k in range(s['np'] - 1, -1, -1):
-            for n in s['neighbor_vert'][k]:
+        for k in range(surf['np'] - 1, -1, -1):
+            for n in surf['neighbor_vert'][k]:
                 d[k] = min(d[k], d[n] + 1)
                 d[n] = min(d[n], d[k] + 1)
-        for k in range(s['np']):
+        for k in range(surf['np']):
             if d[k] > 0:
-                neigh = s['neighbor_vert'][k]
+                neigh = surf['neighbor_vert'][k]
                 n = np.sum(d[neigh] == 0)
                 if n <= 2:
                     d[k] = 0
                 d[neigh] = np.minimum(d[neigh], d[k] + 1)
 
-    s['inuse'] = np.zeros(s['np'], int)
-    s['inuse'][d == 0] = 1
-    return s
+    surf['inuse'] = np.zeros(surf['np'], int)
+    surf['inuse'][d == 0] = 1
+    return surf
 
 
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
