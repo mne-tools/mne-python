@@ -86,8 +86,8 @@ fig.tight_layout()
 # Compute the degree and plot it
 # ------------------------------
 
-threshold_percent = 0.15  # percentage of strongest edges to keep in the graph
-degree = mne.connectivity.degree(corr, threshold_percent=threshold_percent)
+threshold_prop = 0.15  # percentage of strongest edges to keep in the graph
+degree = mne.connectivity.degree(corr, threshold_prop=threshold_prop)
 stc = mne.labels_to_stc(labels, degree)
 stc = stc.in_label(mne.Label(inv['src'][0]['vertno'], hemi='lh') +
                    mne.Label(inv['src'][1]['vertno'], hemi='rh'))
