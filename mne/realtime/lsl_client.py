@@ -84,7 +84,7 @@ class LSLClient(_BaseClient):
     def _connect(self):
         pylsl = _check_pylsl_installed(strict=True)
         stream_info = pylsl.resolve_byprop('source_id', self.host,
-                                           timeout=self.wait_time)[0]
+                                           timeout=self.wait_max)[0]
         self.client = pylsl.StreamInlet(info=stream_info,
                                         max_buflen=self.buffer_size)
 
