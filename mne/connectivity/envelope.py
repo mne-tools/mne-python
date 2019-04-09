@@ -11,7 +11,7 @@ from ..utils import _validate_type, verbose
 
 
 @verbose
-def envelope_correlation(data, combine='median', verbose=None):
+def envelope_correlation(data, combine='mean', verbose=None):
     """Compute the envelope correlation.
 
     Parameters
@@ -22,9 +22,13 @@ def envelope_correlation(data, combine='median', verbose=None):
         each with shape (n_signals, n_times). If it's float data,
         the Hilbert transform will be applied; if it's complex data,
         it's assumed the Hilbert has already been applied.
-    combine : 'median' | None
+    combine : 'mean' | callable | None
         How to combine correlation estimates across epochs.
-        Default is 'median'. Can be None to return without combining.
+        Default is 'mean'. Can be None to return without combining.
+        If callable, it must accept one positional input.
+        For example::
+
+            combine = lambda data: np.median(data, axis=0)
     %(verbose)s
 
     Returns
@@ -51,7 +55,8 @@ def envelope_correlation(data, combine='median', verbose=None):
     from scipy.signal import hilbert
     corrs = list()
     n_nodes = None
-    _validate_type(combine, (str, None), 'combine')
+    if not callable(combine):
+        _validate_type(combine, (str, None), 'combine')
     for epoch_data in data:
         if epoch_data.ndim != 2:
             raise ValueError('Each entry in data must be 2D, got shape %s'
@@ -92,11 +97,13 @@ def envelope_correlation(data, combine='median', verbose=None):
         corr = np.abs(corr)
         corrs.append((corr.T + corr) / 2.)
         del corr
-    if combine is not None:
-        if combine == 'median':
-            corr = np.median(corrs, axis=0)
+    if isinstance(combine, str):
+        if combine == 'mean':
+            corr = np.mean(corrs, axis=0)
         else:
             raise ValueError('Unknown combine option %r' % (combine,))
-    else:
+    elif callable(combine):
+        corr = combine(corrs)
+    else:  # None
         corr = np.array(corrs)
     return corr
