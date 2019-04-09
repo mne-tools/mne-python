@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 import threading
-import os.path as op
 import time
 from random import random as rand
 
@@ -11,6 +10,7 @@ from mne.utils import run_tests_if_main, requires_pylsl
 
 
 host = 'myuid34234'
+
 
 def _start_mock_lsl_stream(host):
     """Start a mock LSL stream to test LSLClient."""
@@ -23,9 +23,9 @@ def _start_mock_lsl_stream(host):
     channels = info.desc().append_child("channels")
     for c_id in range(1, n_channels + 1):
         channels.append_child("channel") \
-            .append_child_value("label", "MNE {:03d}".format(c_id)) \
-            .append_child_value("type", "eeg") \
-            .append_child_value("unit", "microvolts")
+                .append_child_value("label", "MNE {:03d}".format(c_id)) \
+                .append_child_value("type", "eeg") \
+                .append_child_value("unit", "microvolts")
 
     # next make an outlet
     outlet = StreamOutlet(info)
@@ -48,7 +48,7 @@ def test_lsl_client():
     wait_max = 10
 
     thread = threading.Thread(target=_start_mock_lsl_stream,
-                               args=(host,))
+                              args=(host,))
     thread.daemon = True
     thread.start()
 
