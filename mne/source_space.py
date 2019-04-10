@@ -2336,6 +2336,9 @@ def _ensure_src_subject(src, subject):
     return subject
 
 
+_DIST_WARN_LIMIT = 10242  # warn for anything larger than ICO-5
+
+
 @verbose
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface.
@@ -2367,8 +2370,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 
     Notes
     -----
-    Requires scipy >= 0.11 (> 0.13 for `dist_limit < np.inf`).
-
     This function can be memory- and CPU-intensive. On a high-end machine
     (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
     takes about 10 minutes to compute all distances (`dist_limit = np.inf`).
@@ -2378,7 +2379,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
-    from scipy.sparse.csgraph import dijkstra
     n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
     if not np.isscalar(dist_limit):
@@ -2387,24 +2387,20 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
                            'if dist_limit < np.inf')
 
-    if not all(s['type'] == 'surf' for s in src):
+    if src.kind != 'surface':
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
-
-    if dist_limit < np.inf:
-        # can't do introspection on dijkstra function because it's Cython,
-        # so we'll just try quickly here
-        try:
-            dijkstra(sparse.csr_matrix(np.zeros((2, 2))), limit=1.0)
-        except TypeError:
-            raise RuntimeError('Cannot use "limit < np.inf" unless scipy '
-                               '> 0.13 is installed')
 
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
     logger.info('Calculating source space distances (limit=%s mm)...'
                 % (1000 * dist_limit))
+    max_n = max(s['nuse'] for s in src)
+    if max_n > _DIST_WARN_LIMIT:
+        warn('Computing distances for %d source space points (in one '
+             'hemisphere) will be very slow, consider using add_dist=False'
+             % (max_n,))
     for s in src:
         connectivity = mesh_dist(s['tris'], s['rr'])
         d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
