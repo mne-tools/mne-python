@@ -51,7 +51,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
-                    _check_event_id, _gen_events, _check_option)
+                    _check_event_id, _gen_events, _check_option,
+                    _check_combine)
 from .utils.docs import fill_doc
 
 
@@ -834,21 +835,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.preload:
             n_events = len(self.events)
-
-            if mode == "mean":
-                def fun(data):
-                    return np.mean(data, axis=0)
-            elif mode == "median":
-                def fun(data):
-                    return np.median(data, axis=0)
-            elif mode == "std":
-                def fun(data):
-                    return np.std(data, axis=0)
-            elif callable(mode):
-                fun = mode
-            else:
-                raise ValueError("mode must be mean, median, std, or callable"
-                                 ", got %s (type %s)." % (mode, type(mode)))
+            fun = _check_combine(mode, valid=('mean', 'median', 'std'))
             data = fun(self._data)
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:

@@ -463,3 +463,22 @@ def _check_all_same_channel_names(instances):
         if ch_names != inst.info["ch_names"]:
             return False
     return True
+
+
+def _check_combine(mode, valid=('mean', 'median', 'std')):
+    if mode == "mean":
+        def fun(data):
+            return np.mean(data, axis=0)
+    elif mode == "std":
+        def fun(data):
+            return np.std(data, axis=0)
+    elif mode == "median":
+        def fun(data):
+            return np.median(data, axis=0)
+    elif callable(mode):
+        fun = mode
+    else:
+        raise ValueError("Combine option must be " + ", ".join(valid) +
+                         " or callable, got %s (type %s)." %
+                         (mode, type(mode)))
+    return fun

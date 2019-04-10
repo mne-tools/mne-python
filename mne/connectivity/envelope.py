@@ -7,7 +7,7 @@
 import numpy as np
 
 from ..filter import next_fast_len
-from ..utils import _validate_type, verbose
+from ..utils import verbose, _check_combine
 
 
 @verbose
@@ -55,8 +55,11 @@ def envelope_correlation(data, combine='mean', verbose=None):
     from scipy.signal import hilbert
     corrs = list()
     n_nodes = None
-    if not callable(combine):
-        _validate_type(combine, (str, None), 'combine')
+    if combine is not None:
+        fun = _check_combine(combine, valid=('mean',))
+    else:  # None
+        fun = np.array
+
     for epoch_data in data:
         if epoch_data.ndim != 2:
             raise ValueError('Each entry in data must be 2D, got shape %s'
@@ -97,13 +100,6 @@ def envelope_correlation(data, combine='mean', verbose=None):
         corr = np.abs(corr)
         corrs.append((corr.T + corr) / 2.)
         del corr
-    if isinstance(combine, str):
-        if combine == 'mean':
-            corr = np.mean(corrs, axis=0)
-        else:
-            raise ValueError('Unknown combine option %r' % (combine,))
-    elif callable(combine):
-        corr = combine(corrs)
-    else:  # None
-        corr = np.array(corrs)
+
+    corr = fun(corrs)
     return corr

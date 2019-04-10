@@ -58,7 +58,7 @@ def test_envelope_correlation():
         envelope_correlation(data[np.newaxis])
     with pytest.raises(ValueError, match='n_nodes mismatch'):
         envelope_correlation([rng.randn(2, 8), rng.randn(3, 8)])
-    with pytest.raises(TypeError, match='instance of str or None'):
+    with pytest.raises(ValueError, match='mean or callable'):
         envelope_correlation(data, 1.)
-    with pytest.raises(ValueError, match='Unknown combine option'):
+    with pytest.raises(ValueError, match='Combine option'):
         envelope_correlation(data, 'foo')
