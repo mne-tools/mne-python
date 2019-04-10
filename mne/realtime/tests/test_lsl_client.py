@@ -1,7 +1,7 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
-import threading
+from multiprocessing import Process
 import time
 from random import random as rand
 
@@ -47,10 +47,10 @@ def test_lsl_client():
     n_samples = 5
     wait_max = 10
 
-    thread = threading.Thread(target=_start_mock_lsl_stream,
-                              args=(host,))
-    thread.daemon = True
-    thread.start()
+
+    process = Process(target=_start_mock_lsl_stream, args=(host,))
+    process.daemon = True
+    process.start()
 
     with LSLClient(info=None, host=host, wait_max=wait_max) as client:
         client_info = client.get_measurement_info()
@@ -60,6 +60,8 @@ def test_lsl_client():
 
         epoch = client.get_data_as_epoch(n_samples=n_samples)
         assert n_chan, n_samples == epoch.get_data().shape[1:]
+
+    process.terminate()
 
 
 run_tests_if_main()
