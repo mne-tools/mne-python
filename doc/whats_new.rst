@@ -59,6 +59,8 @@ Changelog
 
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
 
+- Add approximate distance-based ``spacing`` source space decimation algorithm to :func:`mne.setup_source_space` by `Eric Larson`_
+
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add option to improve rendering in :ref:`gen_mne_coreg` for modern graphics cards by `Eric Larson`_

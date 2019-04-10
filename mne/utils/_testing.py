@@ -532,3 +532,24 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
         assert_allclose(r_py, r_bin, atol=1e-6)
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-6)
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)
+
+
+@contextmanager
+def modified_env(**d):
+    """Use a modified os.environ with temporarily replaced key/value pairs.
+
+    Parameters
+    ----------
+    **kwargs : dict
+        The key/value pairs of environment variables to replace.
+    """
+    orig_env = dict()
+    for key, val in d.items():
+        orig_env[key] = os.getenv(key)
+        os.environ[key] = val
+    yield
+    for key, val in orig_env.items():
+        if val is not None:
+            os.environ[key] = val
+        else:
+            del os.environ[key]
