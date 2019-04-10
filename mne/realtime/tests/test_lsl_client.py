@@ -43,10 +43,9 @@ def _start_mock_lsl_stream(host):
 @requires_pylsl
 def test_lsl_client():
     """Test the LSLClient for connection and data retrieval."""
-    n_chan = 8
+    n_channels = 8
     n_samples = 5
     wait_max = 10
-
 
     process = Process(target=_start_mock_lsl_stream, args=(host,))
     process.daemon = True
@@ -56,10 +55,11 @@ def test_lsl_client():
         client_info = client.get_measurement_info()
 
         assert ([ch["ch_name"] for ch in client_info["chs"]] ==
-                ["MNE {:03d}".format(ch_id) for ch_id in range(1, n_chan + 1)])
+                ["MNE {:03d}".format(ch_id) for ch_id in
+                 range(1, n_channels + 1)])
 
         epoch = client.get_data_as_epoch(n_samples=n_samples)
-        assert n_chan, n_samples == epoch.get_data().shape[1:]
+        assert n_channels, n_samples == epoch.get_data().shape[1:]
 
     process.terminate()
 

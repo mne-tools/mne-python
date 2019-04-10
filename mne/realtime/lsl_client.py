@@ -59,6 +59,7 @@ class LSLClient(_BaseClient):
         --------
         mne.Epochs.iter_evoked
         """
+        # set up timeout in case LSL process hang. wait arb 5x expected time
         wait_time = n_samples * 5. / self.info['sfreq']
 
         # create an event at the start of the data collection
