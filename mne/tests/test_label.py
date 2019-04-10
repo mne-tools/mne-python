@@ -376,6 +376,11 @@ def test_annot_io():
     for l1, l in zip(parc1, parc_lh):
         assert_labels_equal(l1, l)
 
+    # test that the annotation is complete (test Label() support)
+    rr = read_surface(op.join(surf_dir, 'lh.white'))[0]
+    label = sum(labels, Label(hemi='lh', subject='fsaverage')).lh
+    assert_array_equal(label.vertices, np.arange(len(rr)))
+
 
 @testing.requires_testing_data
 def test_morph_labels():
