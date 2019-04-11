@@ -1,7 +1,6 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
-import time
 from random import random as rand
 
 from mne.realtime import LSLClient, MockLSLStream
@@ -19,7 +18,7 @@ def test_lsl_client():
     wait_max = 10
 
     stream = MockLSLStream(host, n_channels)
-    process.start()
+    stream.start()
 
     with LSLClient(info=None, host=host, wait_max=wait_max) as client:
         client_info = client.get_measurement_info()

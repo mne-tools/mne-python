@@ -44,7 +44,7 @@ class FieldTripClient(_BaseClient):
     """
 
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
-                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=None):  # noqa: D102
+                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=None):
         super(info, host, port, wait_max, tmin, tmax, buffer_size, verbose)
 
     def __exit__(self, type, value, traceback):  # noqa: D105
@@ -106,7 +106,7 @@ class FieldTripClient(_BaseClient):
 
             # wait for correct number of samples to be available
             self.client.wait(stop, np.iinfo(np.uint32).max,
-                                np.iinfo(np.uint32).max)
+                             np.iinfo(np.uint32).max)
 
             # get the samples (stop index is inclusive)
             raw_buffer = self.client.getData([start, stop - 1]).transpose()

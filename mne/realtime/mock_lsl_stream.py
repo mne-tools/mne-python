@@ -3,13 +3,15 @@
 # License: BSD (3-clause)
 import time
 from multiprocessing import Process
+
 from numpy.random import rand
+import numpy as np
 
 from ..utils import _check_pylsl_installed
 
 
 class MockLSLStream:
-    """Mock LSL Stream
+    """Mock LSL Stream.
 
     Parameters
     ----------
@@ -32,7 +34,7 @@ class MockLSLStream:
         self._test = None
 
     def start(self):
-        """Starts a mock LSL stream."""
+        """Start a mock LSL stream."""
         pylsl = _check_pylsl_installed(strict=True)
         self.streaming = True
         info = pylsl.StreamInfo('MNE', self.ch_type.upper(), self.n_channels,
@@ -56,7 +58,7 @@ class MockLSLStream:
         return self
 
     def close(self):
-        """Stops a mock LSL stream."""
+        """Stop a mock LSL stream."""
         self.process.terminate()
 
         print("Stopping stream...")
