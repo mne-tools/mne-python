@@ -117,7 +117,7 @@ class FieldTripClient(_BaseClient):
                 # stop_receive_thread has been called
                 break
 
-    def _connect():
+    def _connect(self):
         self.client = FtClient()
         self.client.connect(self.host, self.port)
 
@@ -236,7 +236,7 @@ class FieldTripClient(_BaseClient):
 
         return info
 
-    def _enter_extra():
+    def _enter_extra(self):
         self.ch_names = self.ft_header.labels
 
         # find start and end samples

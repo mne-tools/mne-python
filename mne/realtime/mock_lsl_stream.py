@@ -5,7 +5,7 @@ import time
 from multiprocessing import Process
 from numpy.random import rand
 
-from ..utils import fill_doc, _check_pylsl_installed
+from ..utils import _check_pylsl_installed
 
 
 class MockLSLStream:
@@ -67,8 +67,8 @@ class MockLSLStream:
         counter = 0
         while True:
             sample = counter % 40
-            const = np.sin(2 * np.pi * sample / 40)
-            mysample = rand(self.n_channels).dot(1e-6).tolist()
+            const = np.sin(2 * np.pi * sample / 40) * 1e-6  # scale factor
+            mysample = rand(self.n_channels).dot(const).tolist()
             # now send it and wait for a bit
             outlet.push_sample(mysample)
             counter += 1

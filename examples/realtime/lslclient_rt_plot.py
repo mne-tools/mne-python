@@ -13,11 +13,6 @@ the desired stream.
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
-from multiprocessing import Process
-import time
-from random import random as rand
-
-import numpy as np
 import matplotlib.pyplot as plt
 
 from mne.realtime import LSLClient, MockLSLStream
