@@ -196,9 +196,9 @@ class Label(object):
     """
 
     @verbose
-    def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
-                 name=None, filename=None, subject=None, color=None,
-                 verbose=None):  # noqa: D102
+    def __init__(self, vertices=(), pos=None, values=None, hemi=None,
+                 comment="", name=None, filename=None, subject=None,
+                 color=None, verbose=None):  # noqa: D102
         # check parameters
         if not isinstance(hemi, str):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
