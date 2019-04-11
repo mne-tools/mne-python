@@ -70,6 +70,7 @@ class _Renderer(object):
             The name of the scene.
         """
         self.mlab = _import_mlab()
+        self.scene_size = size
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
         else:
@@ -348,6 +349,11 @@ class _Renderer(object):
         ch_names: array, shape(_n_points,)
             Names of the channels.
         """
+        # create empty scene for coverage
+        if self.fig.scene is None:
+            from tvtk.pyface.tvtk_scene import TVTKScene
+            self.fig.scene = TVTKScene()
+            self.fig.scene.set_size(self.scene_size)
         xy = _3d_to_2d(self.fig, xyz)
         xy = dict(zip(ch_names, xy))
         pts = self.fig.children[-1]
