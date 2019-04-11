@@ -23,15 +23,20 @@ class MockLSLStream:
         The type of device that is being mocked.
     sfreq : float
         Sampling frequency of mock device.
+    testing : bool
+        Setting used to determine whether the data stream will be used
+        for testing where the data is uniform and expected or with some
+        random variation. Default is False.
     """
 
-    def __init__(self, host, n_channels=8, ch_type="eeg", sfreq=100):
+    def __init__(self, host, n_channels=8, ch_type="eeg", sfreq=100,
+                 testing=False):
         self.host = host
         self.n_channels = n_channels
         self.ch_type = ch_type
         self.sfreq = sfreq
         self.streaming = False
-        self._test = None
+        self.testing = testing
 
     def start(self):
         """Start a mock LSL stream."""
@@ -67,10 +72,21 @@ class MockLSLStream:
 
     def _initiate_stream(self, outlet):
         counter = 0
+        trigger = 0
         while True:
-            sample = counter % 40
-            const = np.sin(2 * np.pi * sample / 40) * 1e-6  # scale factor
-            mysample = rand(self.n_channels).dot(const).tolist()
+            sample = counter % self.sfreq
+            # let's bound trigger to be between 1 and 10 so the max cycle
+            # is ten seconds
+            if trigger == 10:
+                trigger = 0
+            if sample == 0:
+                trigger += 1
+
+            if not self.testing:
+                const = np.sin(2 * np.pi * sample / self.sfreq) * 1e-6
+                mysample = rand(self.n_channels).dot(const).tolist()
+            else:
+                mysample = np.ones(self.n_channels).dot(trigger).tolist()
             # now send it and wait for a bit
             outlet.push_sample(mysample)
             counter += 1
