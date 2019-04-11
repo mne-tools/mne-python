@@ -352,7 +352,7 @@ class _Renderer(object):
         # create empty scene for coverage
         if self.fig.scene is None:
             from tvtk.pyface.tvtk_scene import TVTKScene
-            self.fig.scene = TVTKScene()
+            self.fig.scene = TVTKScene(off_screen_rendering=True)
             self.fig.scene.set_size(self.size)
         xy = _3d_to_2d(self.fig, xyz)
         xy = dict(zip(ch_names, xy))
