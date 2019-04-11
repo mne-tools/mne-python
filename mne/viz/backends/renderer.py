@@ -43,7 +43,7 @@ def set_3d_backend(backend_name):
     _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
     global MNE_3D_BACKEND
     MNE_3D_BACKEND = backend_name
-    from . import renderer  # lgtm [py/import-own-module]
+    from . import renderer  # lgtm
     importlib.reload(renderer)  # lgtm
 
 
