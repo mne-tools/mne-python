@@ -20,7 +20,7 @@ from random import random as rand
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne.realtime import LSLClient
+from mne.realtime import LSLClient, MockLSLStream
 
 print(__doc__)
 
@@ -30,42 +30,9 @@ host = 'mne_stream'
 wait_max = 5
 
 
-# this is a helper function that will simulate an LSL stream
-def _start_mock_lsl_stream(host):
-    """Start a mock LSL stream to test LSLClient."""
-    from pylsl import StreamInfo, StreamOutlet
-
-    n_channels = 8
-    sfreq = 1000
-    info = StreamInfo('MNE', 'EEG', n_channels, sfreq, 'float32', host)
-    info.desc().append_child_value("manufacturer", "MNE")
-    channels = info.desc().append_child("channels")
-    for c_id in range(1, n_channels + 1):
-        channels.append_child("channel") \
-                .append_child_value("label", "MNE {:03d}".format(c_id)) \
-                .append_child_value("type", "eeg") \
-                .append_child_value("unit", "microvolts")
-
-    # next make an outlet
-    outlet = StreamOutlet(info)
-    rands = [rand(), rand(), rand(), rand(),
-             rand(), rand(), rand(), rand()]
-    print("now sending data...")
-    counter = 0
-    while True:
-        sample = counter % 40
-        const = np.sin(2 * np.pi * sample / 40)
-        mysample = [x * const * 1e-6 for x in rands]
-        # now send it and wait for a bit
-        outlet.push_sample(mysample)
-        counter += 1
-        time.sleep(sfreq**-1)
-
-
-# Let's start our mock LSL stream here
-process = Process(target=_start_mock_lsl_stream, args=(host,))
-process.daemon = True
-process.start()  # Now there should be streaming data be generated
+# For this example, let's use the mock LSL stream.
+stream = MockLSLStream(host)
+stream.start()
 
 # Let's observe it
 plt.ion()  # make plot interactive
@@ -82,5 +49,5 @@ with LSLClient(info=None, host=host, wait_max=wait_max) as client:
         plt.cla()
 
 # Let's terminate the mock LSL stream
-process.terminate()
+stream.close()
 plt.close()
