@@ -1,3 +1,10 @@
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
+#          Guillaume Favelier <guillaume.favelier@gmail.com>
+#
+# License: Simplified BSD
+
 import pytest
 import warnings
 
