@@ -142,6 +142,11 @@ def test_render_report():
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section('foo', 'caption', 'section')
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section(['foo'], 'caption', 'section')
+
 
 @testing.requires_testing_data
 def test_report_raw_psd_and_date():
