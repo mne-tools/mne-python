@@ -416,6 +416,7 @@ def test_plot_dipole_mri_orthoview():
 @traits_test
 def test_snapshot_brain_montage(backends_3d):
     """Test snapshot brain montage."""
+    backend_name = get_3d_backend()
     info = read_info(evoked_fname)
     fig = plot_alignment(
         info, trans=None, subject='sample', subjects_dir=subjects_dir)
@@ -435,6 +436,9 @@ def test_snapshot_brain_montage(backends_3d):
     pytest.raises(ValueError, snapshot_brain_montage, None, info)
 
     snapshot_brain_montage(fig, info, hide_sensors=True)
+    if backend_name == 'mayavi':
+        mlab = _import_mlab()
+        mlab.close(all=True)
 
 
 @pytest.mark.slowtest  # can be slow on OSX
