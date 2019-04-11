@@ -948,10 +948,11 @@ Realtime
 .. autosummary::
    :toctree: generated/
 
+   FieldTripClient
+   LSLClient
+   MockRtClient
    RtEpochs
    RtClient
-   MockRtClient
-   FieldTripClient
    StimServer
    StimClient
 
