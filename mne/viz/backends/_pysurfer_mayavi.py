@@ -18,7 +18,7 @@ Actual implementation of _Renderer and _Projection classes.
 import warnings
 import numpy as np
 from ...surface import _normalize_vectors
-from ...utils import _import_mlab, _validate_type
+from ...utils import _import_mlab, _validate_type, SilenceStdout
 
 
 class _Projection(object):
@@ -329,8 +329,9 @@ class _Renderer(object):
             The focal point of the camera: (x, y, z).
         """
         with warnings.catch_warnings(record=True):  # traits
-            self.mlab.view(azimuth, elevation, distance,
-                           focalpoint=focalpoint, figure=self.fig)
+            with SilenceStdout():  # setting roll
+                self.mlab.view(azimuth, elevation, distance,
+                               focalpoint=focalpoint, figure=self.fig)
 
     def screenshot(self):
         """Take a screenshot of the scene."""

@@ -119,5 +119,12 @@ def backend_name(request):
 @pytest.yield_fixture
 def backends_3d(backend_name):
     from mne.viz import use_test_3d_backend
-    with use_test_3d_backend(backend_name):
-        yield
+    from mne.viz.backends.tests._utils import has_not_mayavi
+    if backend_name == 'mayavi':
+        if has_not_mayavi():
+            pytest.skip("Test skipped, requires mayavi.")
+        with use_test_3d_backend(backend_name):
+            yield
+    else:
+        with use_test_3d_backend(backend_name):
+            yield

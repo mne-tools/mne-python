@@ -96,7 +96,6 @@ def test_plot_head_positions():
 
 @testing.requires_testing_data
 @requires_pysurfer
-@requires_mayavi
 @traits_test
 def test_plot_sparse_source_estimates(backends_3d):
     """Test plotting of (sparse) source estimates."""
@@ -139,7 +138,6 @@ def test_plot_sparse_source_estimates(backends_3d):
 
 
 @testing.requires_testing_data
-@requires_mayavi
 @traits_test
 def test_plot_evoked_field(backends_3d):
     """Test plotting evoked field."""
@@ -159,7 +157,6 @@ def test_plot_evoked_field(backends_3d):
 
 
 @testing.requires_testing_data
-@requires_mayavi
 @traits_test
 def test_plot_alignment(tmpdir, backends_3d):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
@@ -416,7 +413,6 @@ def test_plot_dipole_mri_orthoview():
 
 
 @testing.requires_testing_data
-@requires_mayavi
 @traits_test
 def test_snapshot_brain_montage(backends_3d):
     """Test snapshot brain montage."""
