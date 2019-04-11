@@ -174,6 +174,7 @@ if not has_nibabel() and not has_freesurfer():
 """
 
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
