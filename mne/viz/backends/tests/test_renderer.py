@@ -31,7 +31,7 @@ def backend_mocker():
     pytest.param('mayavi', marks=skips_if_not_mayavi),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
-def test_backend_enviroment_setup(backend, backend_mocker, monkeypatch):
+def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
     """Test set up 3d backend based on env."""
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     assert os.environ['MNE_3D_BACKEND'] == backend  # just double-check

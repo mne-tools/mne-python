@@ -24,9 +24,6 @@ logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
-else:
-    raise RuntimeError('This should never happen, there was some issue with'
-                       ' MNE_3D_BACKEND check %s' % __file__)
 
 
 def set_3d_backend(backend_name):
@@ -75,7 +72,7 @@ def use_3d_backend(backend_name):
 
 
 @contextmanager
-def use_test_3d_backend(backend_name):
+def _use_test_3d_backend(backend_name):
     """Create a testing viz context.
 
     Parameters
@@ -83,8 +80,6 @@ def use_test_3d_backend(backend_name):
     backend_name : str
         The 3d backend to use in the context.
     """
-    old_backend = get_3d_backend()
-    set_3d_backend(backend_name)
-    global MNE_3D_BACKEND_TEST_DATA
-    yield
-    set_3d_backend(old_backend)
+    with use_3d_backend(backend_name):
+        global MNE_3D_BACKEND_TEST_DATA
+        yield
