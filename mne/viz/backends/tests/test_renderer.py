@@ -11,7 +11,6 @@ import importlib
 import numpy as np
 from mne.viz.backends.renderer import get_3d_backend
 from mne.viz.backends.tests._utils import skips_if_not_mayavi
-from mne.utils import requires_mayavi
 
 DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
 
@@ -45,7 +44,6 @@ def test_backend_enviroment_setup(backend, backend_mocker, monkeypatch):
     assert get_3d_backend() == backend
 
 
-@requires_mayavi
 def test_3d_backend(backends_3d):
     """Test default plot."""
     from mne.viz.backends.renderer import _Renderer

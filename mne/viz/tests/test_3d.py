@@ -434,8 +434,6 @@ def test_snapshot_brain_montage(backends_3d):
     # Make sure we raise error if the figure has no scene
     pytest.raises(ValueError, snapshot_brain_montage, None, info)
 
-    snapshot_brain_montage(fig, info, hide_sensors=True)
-
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
