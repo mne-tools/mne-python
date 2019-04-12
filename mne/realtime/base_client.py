@@ -158,7 +158,7 @@ class _BaseClient(object):
 
     def stop(self):
         """Stop the client."""
-        self.__exit__()
+        self._disconnect()
 
         return self
 
