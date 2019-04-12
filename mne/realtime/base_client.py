@@ -133,6 +133,12 @@ class _BaseClient(object):
         if callback not in self._recv_callbacks:
             self._recv_callbacks.append(callback)
 
+    def start(self):
+        """Start the client."""
+        self.__enter__()
+
+        return self
+
     def start_receive_thread(self, nchan):
         """Start the receive thread.
 
@@ -149,6 +155,12 @@ class _BaseClient(object):
                                                  args=(self, ))
             self._recv_thread.daemon = True
             self._recv_thread.start()
+
+    def stop(self):
+        """Stop the client."""
+        self.__exit__()
+
+        return self
 
     def stop_receive_thread(self, stop_measurement=False):
         """Stop the receive thread.

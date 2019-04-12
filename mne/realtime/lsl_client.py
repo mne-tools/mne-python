@@ -74,11 +74,8 @@ class LSLClient(_BaseClient):
 
     def iter_raw_buffers(self):
         """Return an iterator over raw buffers."""
-        pylsl = _check_pylsl_installed(strict=True)
-        inlet = pylsl.StreamInlet(self.client)
-
         while True:
-            samples, _ = inlet.pull_chunk(max_samples=self.buffer_size)
+            samples, _ = self.client.pull_chunk(max_samples=self.buffer_size)
 
             yield np.vstack(samples).T
 
