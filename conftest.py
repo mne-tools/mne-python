@@ -123,8 +123,5 @@ def backends_3d(backend_name):
     if backend_name == 'mayavi':
         if has_not_mayavi():
             pytest.skip("Test skipped, requires mayavi.")
-        with _use_test_3d_backend(backend_name):
-            yield
-    else:
-        with _use_test_3d_backend(backend_name):
-            yield
+    with _use_test_3d_backend(backend_name):
+        yield
