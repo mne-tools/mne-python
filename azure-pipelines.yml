@@ -13,7 +13,7 @@ jobs:
   variables:
     MNE_LOGGING_LEVEL: 'warning'
     MNE_FORCE_SERIAL: 'true'
-    PIP_DEPENDENCIES: 'codecov' 'pylsl'
+    PIP_DEPENDENCIES: 'codecov'
     OPENBLAS_NUM_THREADS: 1
     AZURE_CI_WINDOWS: 'true'
   strategy:
@@ -45,6 +45,7 @@ jobs:
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
       pip install $env:PIP_DEPENDENCIES
+      pip install pylsl
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
   - powershell: |
@@ -56,6 +57,7 @@ jobs:
       powershell ci-helpers/appveyor/install-miniconda.ps1
       $env:PATH = $env:PYTHON + "\envs\test;" + $env:PYTHON + "\envs\test\Scripts;" + $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
       pip uninstall -yq mne
+      conda install -c tstenner pylsl
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'
