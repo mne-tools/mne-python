@@ -67,7 +67,9 @@ before_install:
           pip uninstall --yes mne;
         fi;
         if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-          pip install --upgrade pyqt5>=5.10;
+          pip install --upgrade pyqt5>=5.10 pylsl;
+        else
+          conda install -c tstenner pylsl;
         fi;
       fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
