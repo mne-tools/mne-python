@@ -13,7 +13,7 @@ jobs:
   variables:
     MNE_LOGGING_LEVEL: 'warning'
     MNE_FORCE_SERIAL: 'true'
-    PIP_DEPENDENCIES: 'codecov pylsl'
+    PIP_DEPENDENCIES: 'codecov' 'pylsl'
     OPENBLAS_NUM_THREADS: 1
     AZURE_CI_WINDOWS: 'true'
   strategy:
