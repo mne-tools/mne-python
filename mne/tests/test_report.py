@@ -279,7 +279,8 @@ def test_add_slider_to_section():
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
     figs = _get_example_figures()
-    report.add_slider_to_section(figs, section=section)
+    report.add_slider_to_section(figs, section=section, title='my title')
+    assert report.fnames[0] == 'my title-#-report_slider_section-#-custom'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
     pytest.raises(NotImplementedError, report.add_slider_to_section,
