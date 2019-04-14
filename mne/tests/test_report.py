@@ -349,7 +349,8 @@ def test_remove():
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'figure1', 'mysection')
-    r.add_figs_to_section(fig1, 'figure1', 'othersection')
+    r.add_slider_to_section([fig1, fig2], title='figure1',
+                            section='othersection')
     r.add_figs_to_section(fig2, 'figure1', 'mysection')
     r.add_figs_to_section(fig2, 'figure2', 'mysection')
 
