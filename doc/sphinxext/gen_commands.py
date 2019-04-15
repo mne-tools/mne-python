@@ -18,8 +18,16 @@ def setup_module():
     pass
 
 
-header = """.. _python_commands:
+# Header markings go:
+# 1. =/= : Page title
+# 2. =   : Command name
+# 3. -/- : Command description
+# 4. -   : Command sections (Examples, Notes)
 
+header = """\
+.. _python_commands:
+
+===============================
 Command line tools using Python
 ===============================
 
@@ -36,22 +44,14 @@ command_rst = """
 %s
 %s
 
-.. raw:: html
-
-   <div>
-   <pre>
+.. rst-class:: callout
 
 %s
-
-.. raw:: html
-
-   </pre>
-   </div>
 
 """
 
 
-def generate_commands_rst(app):
+def generate_commands_rst(app=None):
     from sphinx_gallery import sphinx_compatibility
     out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'generated'))
     if not op.isdir(out_dir):
@@ -60,8 +60,9 @@ def generate_commands_rst(app):
 
     command_path = op.abspath(
         op.join(os.path.dirname(__file__), '..', '..', 'mne', 'commands'))
-    fnames = [op.basename(fname)
-              for fname in glob.glob(op.join(command_path, 'mne_*.py'))]
+    fnames = sorted([
+        op.basename(fname)
+        for fname in glob.glob(op.join(command_path, 'mne_*.py'))])
     iterator = sphinx_compatibility.status_iterator(
         fnames, 'generating MNE command help ... ', length=len(fnames))
     with open(out_fname, 'w') as f:
@@ -72,9 +73,33 @@ def generate_commands_rst(app):
             output, _ = run_subprocess([sys.executable, run_name, '--help'],
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE, verbose=False)
+            output = output.splitlines()
+
+            # Swap usage and title lines
+            output[0], output[2] = output[2], output[0]
+
+            # Add header marking
+            for idx in (1, 0):
+                output.insert(idx, '-' * len(output[0]))
+
+            # Add code styling for the "Usage: " line
+            for li, line in enumerate(output):
+                if line.startswith('Usage: mne '):
+                    output[li] = 'Usage: ``%s``' % line[7:]
+                    break
+
+            # Turn "Options:" into field list
+            if 'Options:' in output:
+                ii = output.index('Options:')
+                output[ii] = 'Options'
+                output.insert(ii + 1, '-------')
+                output.insert(ii + 2, '')
+                output.insert(ii + 3, '.. rst-class:: field-list cmd-list')
+                output.insert(ii + 4, '')
+            output = '\n'.join(output)
             f.write(command_rst % (cmd_name,
                                    cmd_name.replace('mne_', 'mne '),
-                                   '-' * len(cmd_name),
+                                   '=' * len(cmd_name),
                                    output))
     _replace_md5(out_fname)
     print('[Done]')

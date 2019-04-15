@@ -3,7 +3,7 @@
 # License: BSD 3 clause
 
 from copy import deepcopy
-from os import remove
+from os import remove, makedirs
 import os.path as op
 from shutil import copy
 
@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
-                 make_sphere_model, Transform, Info)
+                 make_sphere_model, Transform, Info, write_surface)
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
@@ -121,9 +121,9 @@ def test_make_sphere_model():
 
 
 @testing.requires_testing_data
-def test_bem_model():
+def test_make_bem_model(tmpdir):
     """Test BEM model creation from Python with I/O."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname_temp = op.join(tempdir, 'temp-bem.fif')
     for kwargs, fname in zip((dict(), dict(conductivity=[0.3])),
                              [fname_bem_3, fname_bem_1]):
@@ -135,8 +135,32 @@ def test_bem_model():
         model_read = read_bem_surfaces(fname_temp)
         _compare_bem_surfaces(model, model_c)
         _compare_bem_surfaces(model_read, model_c)
-    pytest.raises(ValueError, make_bem_model, 'sample',  # bad conductivity
-                  conductivity=[0.3, 0.006], subjects_dir=subjects_dir)
+    # bad conductivity
+    with pytest.raises(ValueError, match='conductivity must be'):
+        make_bem_model('sample', 4, [0.3, 0.006], subjects_dir=subjects_dir)
+
+
+@testing.requires_testing_data
+def test_bem_model_topology(tmpdir):
+    """Test BEM model topological checks."""
+    # bad topology (not enough neighboring tris)
+    tempdir = str(tmpdir)
+    makedirs(op.join(tempdir, 'foo', 'bem'))
+    for fname in ('inner_skull', 'outer_skull', 'outer_skin'):
+        fname += '.surf'
+        copy(op.join(subjects_dir, 'sample', 'bem', fname),
+             op.join(tempdir, 'foo', 'bem', fname))
+    outer_fname = op.join(tempdir, 'foo', 'bem', 'outer_skull.surf')
+    rr, tris = read_surface(outer_fname)
+    tris = tris[:-1]
+    write_surface(outer_fname, rr, tris[:-1])
+    with pytest.raises(RuntimeError, match='Surface outer skull is not compl'):
+        make_bem_model('foo', None, subjects_dir=tempdir)
+    # Now get past this error to reach gh-6127 (not enough neighbor tris)
+    rr_bad = np.concatenate([rr, np.mean(rr, axis=0, keepdims=True)], axis=0)
+    write_surface(outer_fname, rr_bad, tris)
+    with pytest.raises(RuntimeError, match='Surface outer skull.*triangles'):
+        make_bem_model('foo', None, subjects_dir=tempdir)
 
 
 @pytest.mark.slowtest

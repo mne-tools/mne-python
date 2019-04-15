@@ -1080,27 +1080,12 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
     patch_areas : ndarray | None
         Deprecated, will be removed in 0.19.
     limit_depth_chs : bool | 'whiten'
-        How to deal with multiple channel types in depth weighting. Options:
+        How to deal with multiple channel types in depth weighting.
+        The default is True, which whitens based on the source sensitivity
+        of the highest-SNR channel type. See Notes for details.
 
-        :data:`python:True` (default)
-            Use only grad channels in depth weighting (equivalent to MNE C
-            minimum-norm code). If grad channels aren't present, only mag
-            channels will be used (if no mag, then eeg). This makes the depth
-            prior dependent only on the sensor geometry (and relationship
-            to the sources).
-        ``'whiten'``
-            Compute a whitener and apply it to the channels before computing
-            the depth prior. In this case ``noise_cov`` must not be None.
-
-            .. versionadded:: 0.18
-        :data:`python:False`
-            Use all channels. Only recommended when the gain matrix has
-            already been whitened (otherwise it will be arbitrarily
-            biased toward whichever channel type has the largest values in
-            SI units). Whitening the gain matrix makes the depth prior
-            depend on both sensor geometry and the data of interest captured
-            by the noise covariance (e.g., projections, SNR).
-
+        .. versionchanged:: 0.18
+           Added the "whiten" option.
     combine_xyz : 'spectral' | 'fro'
         When a loose (or free) orientation is used, how the depth weighting
         for each triplet should be calculated.
@@ -1139,6 +1124,27 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
 
         compute_depth_prior(..., limit=None, limit_depth_chs='whiten',
                             combine_xyz='fro')
+
+    The ``limit_depth_chs`` argument can take the following values:
+
+    * :data:`python:True` (default)
+          Use only grad channels in depth weighting (equivalent to MNE C
+          minimum-norm code). If grad channels aren't present, only mag
+          channels will be used (if no mag, then eeg). This makes the depth
+          prior dependent only on the sensor geometry (and relationship
+          to the sources).
+    * ``'whiten'``
+          Compute a whitener and apply it to the gain matirx before computing
+          the depth prior. In this case ``noise_cov`` must not be None.
+          Whitening the gain matrix makes the depth prior
+          depend on both sensor geometry and the data of interest captured
+          by the noise covariance (e.g., projections, SNR).
+
+          .. versionadded:: 0.18
+    * :data:`python:False`
+          Use all channels. Not recommended since the depth weighting will be
+          biased toward whichever channel type has the largest values in
+          SI units (such as EEG being orders of magnitude larger than MEG).
 
     """
     from ..cov import Covariance, compute_whitener

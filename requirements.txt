@@ -29,3 +29,4 @@ xlrd
 pydocstyle
 flake8
 https://api.github.com/repos/vispy/vispy/zipball/master
+# pylsl>=1.13.1  Needs https://github.com/labstreaminglayer/liblsl-Python/issues/6

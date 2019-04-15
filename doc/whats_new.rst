@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
+
 - Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
 
 - Add ``reject`` parameter to :meth:`mne.preprocessing.ICA.plot_properties` to visualize rejected epochs by `Antoine Gauthier`_
@@ -57,6 +59,8 @@ Changelog
 
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
 
+- Add approximate distance-based ``spacing`` source space decimation algorithm to :func:`mne.setup_source_space` by `Eric Larson`_
+
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add option to improve rendering in :ref:`gen_mne_coreg` for modern graphics cards by `Eric Larson`_
@@ -91,8 +95,11 @@ Changelog
 
 - Improved clicking in :meth:`mne.io.Raw.plot` (left click on trace toggles bad, left click on background sets green line, right click anywhere removes green line) by `Clemens Brunner`_
 
+- Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
+
 Bug
 ~~~
+- Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
 - Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
 
@@ -101,6 +108,8 @@ Bug
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
+- Fix topological checks and error messages for BEM surfaces in :func:`mne.make_bem_model` by `Eric Larson`_
 
 - Fix default HTML language of :class:`mne.Report` to be ``"en-us"`` instead of ``"fr"`` and allow setting via ``report.lang`` property by `Eric Larson`_
 
@@ -156,6 +165,8 @@ Bug
 API
 ~~~
 
+- Add ``overwrite`` parameter in :func:`mne.Epochs.save` by `Katarina Slama`_
+
 - Add ``stim_channel`` parameter in :func:`mne.io.read_raw_cnt` to toggle stim channel synthesis by `Joan Massich`_
 
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
@@ -178,6 +189,7 @@ API
 
 - Fix support for supplying ``extrapolate`` via :meth:`ica.plot_properties(..., topomap_args=dict(extrapolate=...)) <mne.preprocessing.ICA.plot_properties>` by `Sebastian Castano`_
 
+- The peak finder that was formerly accessible via ``from mne.preprocessing.peak_finder import peak_finder`` should now be imported directly from the enclosing namespace as ``from mne.preprocessing import peak_finder`` by `Eric Larson`_
 
 .. _changes_0_17:
 
@@ -3257,3 +3269,7 @@ of commits):
 .. _Antoine Gauthier: https://github.com/Okamille
 
 .. _Sebastian Castano: https://github.com/jscastanoc
+
+.. _Katarina Slama: https://katarinaslama.github.io
+
+.. _Bruno Nicenboim: http://nicenboim.org

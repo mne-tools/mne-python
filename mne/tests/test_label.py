@@ -347,8 +347,9 @@ def test_annot_io():
     shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
 
     # read original labels
-    pytest.raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
-                  subjects_dir=tempdir)
+    with pytest.raises(IOError, match='\nPALS_B12_Lobes$'):
+        read_labels_from_annot(subject, 'PALS_B12_Lobesey',
+                               subjects_dir=tempdir)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
 
@@ -374,6 +375,11 @@ def test_annot_io():
     parc_lh = [l for l in parc if l.name.endswith('lh')]
     for l1, l in zip(parc1, parc_lh):
         assert_labels_equal(l1, l)
+
+    # test that the annotation is complete (test Label() support)
+    rr = read_surface(op.join(surf_dir, 'lh.white'))[0]
+    label = sum(labels, Label(hemi='lh', subject='fsaverage')).lh
+    assert_array_equal(label.vertices, np.arange(len(rr)))
 
 
 @testing.requires_testing_data

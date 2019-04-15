@@ -8,3 +8,5 @@
 
    {% block methods %}
    {% endblock %}
+
+.. include:: {{module}}.{{objname}}.examples

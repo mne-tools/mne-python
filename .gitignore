@@ -44,6 +44,7 @@ build
 coverage
 .cache/
 .pytest_cache/
+prof/
 
 dist/
 doc/_build/
