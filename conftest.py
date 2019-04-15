@@ -119,9 +119,9 @@ def backend_name(request):
 @pytest.yield_fixture
 def backends_3d(backend_name):
     from mne.viz import use_test_3d_backend
-    from mne.viz.backends.tests._utils import has_not_vispy
+    from mne.viz.backends.tests._utils import has_vispy
     if backend_name == 'vispy':
-        if has_not_vispy():
+        if not has_vispy():
             pytest.skip("VisPy not detected.")
         with use_test_3d_backend(backend_name):
             yield
