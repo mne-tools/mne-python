@@ -7,6 +7,7 @@
 import os
 import os.path as op
 import numpy as np
+from packaging import version
 
 from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
 from ..utils import _get_path
@@ -106,6 +107,8 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
     # Load and massage the data.
     data = pd.read_excel(subjects_fname, header=[0, 1])
+    if version.parse(pd.__version__) >= version.parse('0.24.0'):
+        data = data.set_index(('Subject - age - sex', 'Nr'))
     data.index.name = 'subject'
     data.columns.names = [None, None]
     data = (data.set_index([('Subject - age - sex', 'Age'),
@@ -126,7 +129,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data = data.set_index(['id', 'subject', 'age', 'sex', 'drug',
                            'lights off', 'night nr', 'record type']).unstack()
     data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
-    data = data.reset_index().drop(columns=['id'])
+    data = data.reset_index().drop(columns=['id'])  # columns requires v0.21
 
     data['sex'] = (data.sex.astype('category')
                        .cat.rename_categories({1: 'male', 2: 'female'}))
