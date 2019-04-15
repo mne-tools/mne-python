@@ -37,7 +37,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     SilenceStdout, has_nibabel, check_version,
+                     has_nibabel, check_version,
                      _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
@@ -398,8 +398,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
     renderer.text(x=0.01, y=0.01, text=time_label, width=0.4)
-    with SilenceStdout():  # setting roll
-        renderer.set_camera(azimuth=10, elevation=60)
+    renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
 
@@ -1107,9 +1106,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             opacity=0.75, glyph_height=0.25,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
-    with SilenceStdout():
-        renderer.set_camera(azimuth=90, elevation=90,
-                            focalpoint=(0., 0., 0.), distance=0.6)
+    renderer.set_camera(azimuth=90, elevation=90,
+                        focalpoint=(0., 0., 0.), distance=0.6)
     renderer.show()
     return renderer.scene()
 
@@ -2512,7 +2510,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     from .backends.renderer import _Renderer
 
     if fig is None:
-        raise TypeError('The figure must have a scene')
+        raise ValueError('The figure must have a scene')
     if isinstance(montage, (Montage, DigMontage)):
         chs = montage.dig_ch_pos
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in chs.items()])

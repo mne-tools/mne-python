@@ -12,16 +12,10 @@ import numpy as np
 from mne.viz.backends.renderer import get_3d_backend
 from mne.viz.backends.tests._utils import (skips_if_not_vispy,
                                            skips_if_not_mayavi)
-from mne.utils import requires_mayavi
 
-# from .._utils import DEFAULT_3D_BACKEND
 DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
 
 print(DEFAULT_3D_BACKEND)
-
-# def test_no_env_variable():
-#     print(get_config().keys())
-#     assert 'MNE_3D_BACKEND' not in get_config(use_env=True)
 
 
 @pytest.fixture
@@ -39,18 +33,19 @@ def backend_mocker():
     pytest.param('vispy', marks=skips_if_not_vispy),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
-def test_backend_enviroment_setup(backend, backend_mocker, monkeypatch):
+def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
     """Test set up 3d backend based on env."""
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
     assert os.environ['MNE_3D_BACKEND'] == backend  # just double-check
 
+    # reload the renderer to check if the 3d backend selection by
+    # environment variable has been updated correctly
     from mne.viz.backends import renderer
     importlib.reload(renderer)
     assert renderer.MNE_3D_BACKEND == backend
     assert get_3d_backend() == backend
 
 
-@requires_mayavi
 def test_3d_backend(backends_3d):
     """Test default plot."""
     from mne.viz.backends.renderer import _Renderer

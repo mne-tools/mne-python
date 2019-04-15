@@ -18,7 +18,7 @@ Actual implementation of _Renderer and _Projection classes.
 import warnings
 import numpy as np
 from ...surface import _normalize_vectors
-from ...utils import _import_mlab, _validate_type
+from ...utils import _import_mlab, _validate_type, SilenceStdout
 
 
 class _Projection(object):
@@ -211,6 +211,8 @@ class _Renderer(object):
             The scale of the sphere(s).
         opacity: float
             The opacity of the sphere(s).
+        resolution: int
+            The resolution of the sphere.
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
         """
@@ -255,7 +257,7 @@ class _Renderer(object):
             The scale of the quiver.
         mode: 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
-        resolution: float
+        resolution: int
             The resolution of the arrow.
         glyph_height: float
             The height of the glyph used with the quiver.
@@ -310,7 +312,8 @@ class _Renderer(object):
             The color of the text.
         """
         with warnings.catch_warnings(record=True):  # traits
-            self.mlab.text(x, y, text, width=width, figure=self.fig)
+            self.mlab.text(x, y, text, width=width, color=color,
+                           figure=self.fig)
 
     def show(self):
         """Render the scene."""
@@ -333,8 +336,9 @@ class _Renderer(object):
             The focal point of the camera: (x, y, z).
         """
         with warnings.catch_warnings(record=True):  # traits
-            self.mlab.view(azimuth, elevation, distance,
-                           focalpoint=focalpoint, figure=self.fig)
+            with SilenceStdout():  # setting roll
+                self.mlab.view(azimuth, elevation, distance,
+                               focalpoint=focalpoint, figure=self.fig)
 
     def screenshot(self):
         """Take a screenshot of the scene."""
@@ -351,7 +355,8 @@ class _Renderer(object):
         height: float
             The Y component to use as position of the text.
         """
-        self.mlab.title(text, height=height, color=color)
+        with warnings.catch_warnings(record=True):  # traits
+            self.mlab.title(text, height=height, color=color)
 
     def project(self, xyz, ch_names):
         """Convert 3d points to a 2d perspective.

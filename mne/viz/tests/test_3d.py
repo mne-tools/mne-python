@@ -96,7 +96,6 @@ def test_plot_head_positions():
 
 @testing.requires_testing_data
 @requires_pysurfer
-@requires_mayavi
 @traits_test
 def test_plot_sparse_source_estimates(backends_3d):
     """Test plotting of (sparse) source estimates."""
@@ -140,7 +139,6 @@ def test_plot_sparse_source_estimates(backends_3d):
 
 @testing.requires_testing_data
 @traits_test
-@requires_mayavi
 def test_plot_evoked_field(backends_3d):
     """Test plotting evoked field."""
     backend_name = get_3d_backend()
@@ -160,7 +158,6 @@ def test_plot_evoked_field(backends_3d):
 
 @testing.requires_testing_data
 @traits_test
-@requires_mayavi
 @pytest.mark.timeout(120)
 @pytest.mark.slowtest
 def test_plot_alignment(tmpdir, backends_3d):
@@ -423,7 +420,6 @@ def test_plot_dipole_mri_orthoview():
 
 @testing.requires_testing_data
 @traits_test
-@requires_mayavi
 def test_snapshot_brain_montage(backends_3d):
     """Test snapshot brain montage."""
     backend_name = get_3d_backend()
@@ -444,7 +440,7 @@ def test_snapshot_brain_montage(backends_3d):
     pytest.raises(ValueError, snapshot_brain_montage, fig, xyz_dict)
 
     # Make sure we raise error if the figure has no scene
-    pytest.raises(TypeError, snapshot_brain_montage, None, info)
+    pytest.raises(ValueError, snapshot_brain_montage, None, info)
 
     if backend_name == 'vispy':
         snapshot_brain_montage(fig=fig, montage=info)

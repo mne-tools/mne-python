@@ -9,6 +9,8 @@
 
 import importlib
 from contextlib import contextmanager
+import sys
+
 from ._utils import _get_backend_based_on_env_and_defaults, VALID_3D_BACKENDS
 from ...utils import logger
 from ...utils.check import _check_option
@@ -26,9 +28,6 @@ if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
 elif MNE_3D_BACKEND == 'vispy':
     from ._vispy import _Renderer, _Projection  # lgtm # noqa: F401
-else:
-    raise RuntimeError('This should never happen, there was some issue with'
-                       ' MNE_3D_BACKEND check %s' % __file__)
 
 
 def set_3d_backend(backend_name):
@@ -45,8 +44,7 @@ def set_3d_backend(backend_name):
     _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
     global MNE_3D_BACKEND
     MNE_3D_BACKEND = backend_name
-    from . import renderer
-    importlib.reload(renderer)  # lgtm
+    importlib.reload(sys.modules[__name__])
 
 
 def get_3d_backend():
@@ -77,7 +75,7 @@ def use_3d_backend(backend_name):
 
 
 @contextmanager
-def use_test_3d_backend(backend_name):
+def _use_test_3d_backend(backend_name):
     """Create a testing viz context.
 
     Parameters
@@ -85,13 +83,11 @@ def use_test_3d_backend(backend_name):
     backend_name : str
         The 3d backend to use in the context.
     """
-    old_backend = get_3d_backend()
-    set_3d_backend(backend_name)
-    global MNE_3D_BACKEND_TEST_DATA
-    if backend_name == 'vispy':
-        from vispy.testing import TestingCanvas
-        with TestingCanvas() as MNE_3D_BACKEND_TEST_DATA:
+    with use_3d_backend(backend_name):
+        global MNE_3D_BACKEND_TEST_DATA
+        if backend_name == 'vispy':
+            from vispy.testing import TestingCanvas
+            with TestingCanvas() as MNE_3D_BACKEND_TEST_DATA:
+                yield
+        else:
             yield
-    else:
-        yield
-    set_3d_backend(old_backend)
