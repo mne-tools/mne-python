@@ -129,7 +129,10 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data = data.set_index(['id', 'subject', 'age', 'sex', 'drug',
                            'lights off', 'night nr', 'record type']).unstack()
     data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
-    data = data.reset_index().drop(columns=['id'])  # columns requires v0.21
+    if version.parse(pd.__version__) < version.parse('0.21.0'):
+        data = data.reset_index().drop(labels=['id'], axis=1)
+    else:
+        data = data.reset_index().drop(columns=['id'])
 
     data['sex'] = (data.sex.astype('category')
                        .cat.rename_categories({1: 'male', 2: 'female'}))
@@ -178,8 +181,10 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
                                      .str.split('.', expand=True)[0]
                                      .astype('category'))
 
-    # data = data.set_index(['subject', 'night', 'record type'])
-    data = data.reset_index().drop(columns=['id'])
+    if version.parse(pd.__version__) < version.parse('0.21.0'):
+        data = data.reset_index().drop(labels=['id'], axis=1)
+    else:
+        data = data.reset_index().drop(columns=['id'])
     data = data[['subject', 'night', 'record type', 'age', 'sex', 'lights off',
                  'sha', 'fname']]
 
