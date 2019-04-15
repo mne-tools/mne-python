@@ -511,7 +511,7 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
 
     # now compare to C solution
     # note that the forward solution must not be surface-oriented
-    # to get equivalency (surf_ori=True changes the normals)
+    # to get equivalence (surf_ori=True changes the normals)
     with catch_logging() as log:
         inv_op = make_inverse_operator(  # test depth=0. alias for depth=None
             evoked.info, fwd, noise_cov, depth=0., fixed=True,
