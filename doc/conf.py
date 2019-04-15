@@ -420,6 +420,7 @@ sphinx_gallery_conf = {
 # XXX This hack defines what extra methods numpydoc will document
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
+numpydoc_attributes_as_param_list = False
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     'None': ':data:`python:None`',
