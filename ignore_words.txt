@@ -20,3 +20,6 @@ thes
 ba
 ist
 theses
+od
+fo
+files'

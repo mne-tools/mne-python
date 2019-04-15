@@ -284,7 +284,7 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 50-Hz transition (0.2 sec)',
 # sample at each time point :math:`t` is filtered using samples that come
 # after (:math:`t + \Delta t`) *and* before (:math:`t - \Delta t`) :math:`t`.
 # In this sense, each sample is influenced by samples that come both before
-# and after it. This is useful in many cases, espcially because it does not
+# and after it. This is useful in many cases, especially because it does not
 # delay the timing of events.
 #
 # However, sometimes it can be beneficial to use *causal* filtering,

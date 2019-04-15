@@ -749,7 +749,7 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Returns
     -------
-    new_events: array, shape (n_events_out, 3)
+    new_events : array, shape (n_events_out, 3)
         The new events
 
     Examples

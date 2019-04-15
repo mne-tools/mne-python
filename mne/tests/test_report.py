@@ -330,7 +330,7 @@ def test_open_report():
     # Exiting the context block should have triggered saving to HDF5
     assert op.exists(hdf5)
 
-    # Load the HDF5 version of the report and check equivalency
+    # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
     assert report2._fname == hdf5
     assert report2.subjects_dir == report.subjects_dir
