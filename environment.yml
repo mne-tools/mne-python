@@ -10,7 +10,7 @@ dependencies:
 - matplotlib
 - cython
 - pyqt>=5.9
-- pandas
+- pandas>=0.18
 - xlrd
 - scikit-learn
 - h5py
