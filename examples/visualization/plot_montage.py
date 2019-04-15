@@ -17,11 +17,8 @@ import mne
 import numpy as np
 import os.path as op
 
-from mne.datasets import sample
 from mne.channels import Digitization
-from mne.channels.montage import _set_montage, get_builtin_montages
 from mne.viz import plot_alignment
-from mayavi import mlab
 
 # print(__doc__)
 
@@ -37,10 +34,11 @@ def get_foo_dig():
 # This should be a file distributed in MNE with the transformation
 def get_trans():
     trans = mne.Transform(fro='head', to='mri')
-    trans['trans'] = np.array([[ 0.99981296, -0.00503971,  0.01867181,  0.00255929],
-                               [ 0.00692004,  0.99475515, -0.10205064, -0.02091804],
-                               [-0.01805957,  0.10216076,  0.99460393, -0.04416016],
-                               [ 0.,          0.,          0.,          1.        ]])
+    trans['trans'] = np.array(
+        [[ 0.99981296, -0.00503971,  0.01867181,  0.00255929],
+         [ 0.00692004,  0.99475515, -0.10205064, -0.02091804],
+         [-0.01805957,  0.10216076,  0.99460393, -0.04416016],
+         [ 0.,          0.,          0.,          1.        ]])
     return trans
 
 
@@ -69,6 +67,7 @@ fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage', dig=True,
 
 ###############################################################################
 # Exercise, create digitation based on biosemi16
+
 # from mne.channels import Digitization, read_foo
 # def test_xx():
 #     montage = mne.channels.read_foo('biosemi16', unit='mm')
@@ -83,9 +82,6 @@ fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage', dig=True,
 from mne.channels import read_foobar
 
 from mne import __file__ as mne_init_path
-from mne.channels.montage import _read_dig_points
-from mne.io.kit import read_mrk
-from mne.io.kit.kit import _set_dig_kit
 
 KIT_PATH = op.join(op.dirname(mne_init_path), 'io', 'kit', 'tests', 'data')
 KIT_HSP = op.join(KIT_PATH, 'test.hsp')
@@ -141,16 +137,17 @@ fig = plot_alignment(my_info, trans=get_trans(), subject='fsaverage',
 #
 # Things I don't understand here.
 # A- `eeg=['original'], trans=trans, subject='sample'`  this should work.
+#
 # B- `eeg=['original'], trans=None, subject='sample'`  this should work and the points should be off.
+#
 # C- `eeg=['original'], trans=None, subject='fsaverage'`  this should work and the points should be off.
+#
 # D- `eeg='projected'` crasses whatever the rest
 #
 # Given that A works, I should be able to generate a trans file (by reading
 # https://www.martinos.org/mne/stable/manual/cookbook.html#aligning-coordinate-frames and follow links there),
 # add the trans into C and it should work. But I've no idea how to tackle it just from the doc
 #
-
-
 
 
 ###############################################################################
