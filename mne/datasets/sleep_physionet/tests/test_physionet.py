@@ -7,7 +7,7 @@ import os.path as op
 import numpy as np
 import pytest
 
-from packaging import version
+from distutils.version import LooseVersion
 from numpy.testing import assert_array_equal
 
 from mne.utils import run_tests_if_main, requires_good_network
@@ -71,7 +71,7 @@ def test_run_update_age_records(tmpdir):
     _update_sleep_age_records(fname)
     data = pd.read_csv(fname)
 
-    if version.parse(pd.__version__) < version.parse('0.23.0'):
+    if LooseVersion(pd.__version__) < LooseVersion('0.23.0'):
         expected = pd.read_csv(AGE_SLEEP_RECORDS)
         assert_array_equal(
             data[['subject', 'sha', 'fname']].values,
@@ -143,7 +143,7 @@ def test_run_update_temazepam_records(tmpdir):
     _update_sleep_temazepam_records(fname)
     data = pd.read_csv(fname)
 
-    if version.parse(pd.__version__) < version.parse('0.23.0'):
+    if LooseVersion(pd.__version__) < LooseVersion('0.23.0'):
         expected = pd.read_csv(TEMAZEPAM_SLEEP_RECORDS)
         assert_array_equal(
             data[['subject', 'sha_Hypnogram', 'sha_PSG']].values,
