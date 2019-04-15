@@ -108,3 +108,20 @@ def _bias_params(evoked, noise_cov, fwd):
     if not mne.forward.is_fixed_orient(fwd):
         want //= 3
     return evoked, fwd, noise_cov, data_cov, want
+
+
+@pytest.fixture(scope="module",
+                params=["mayavi"])
+def backend_name(request):
+    yield request.param
+
+
+@pytest.yield_fixture
+def backends_3d(backend_name):
+    from mne.viz.backends.renderer import _use_test_3d_backend
+    from mne.viz.backends.tests._utils import has_not_mayavi
+    if backend_name == 'mayavi':
+        if has_not_mayavi():
+            pytest.skip("Test skipped, requires mayavi.")
+    with _use_test_3d_backend(backend_name):
+        yield
