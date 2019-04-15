@@ -263,6 +263,9 @@ Visualization
    plot_alignment
    snapshot_brain_montage
    plot_arrowmap
+   set_3d_backend
+   get_3d_backend
+   use_3d_backend
 
 
 Preprocessing
