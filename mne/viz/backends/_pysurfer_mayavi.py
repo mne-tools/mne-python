@@ -350,10 +350,8 @@ class _Renderer(object):
             Names of the channels.
         """
         if self.fig.scene is None:
-            from mayavi.tools.engine_manager import get_engine, set_engine
             self.mlab.options.offscreen = True
             self.mlab.options.backend = 'auto'
-            engine = get_engine()
             self.fig = self.mlab.figure()
             self.mlab.points3d([0], [0], [0], figure=self.fig)
 
