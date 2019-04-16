@@ -815,10 +815,10 @@ def shift_time_events(events, ids, tshift, sfreq):
     """
     events = events.copy()
     if ids is None:
-        events[:, 0] += int(tshift * sfreq)
+        mask = slice(None)
     elif isinstance(ids, list):
-        for ii in ids:
-            events[events[:, 2] == ii, 0] += int(tshift * sfreq)
+        mask = np.in1d(events[:, 2], ids)
+    events[mask, 0] += int(tshift * sfreq)
 
     return events
 
