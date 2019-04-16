@@ -1,27 +1,28 @@
+# -*- coding: utf-8 -*-
 """
-======================================
 Plotting sensor layouts of EEG Systems
 ======================================
 
 Show sensor layouts of different EEG systems.
 
-XXX: things to refer properly:
-:ref:`example_eeg_sensors_on_the_scalp`
-:ref:`tut_erp`
-"""
+"""  # noqa: E501
 # Author: Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD Style.
+
+from mayavi import mlab
+import os.path as op
 
 import mne
 from mne.channels.montage import get_builtin_montages
 from mne.viz import plot_alignment
-from mayavi import mlab
 
 # print(__doc__)
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = data_path + '/subjects'
+subjects_dir = op.join(data_path, 'subjects')
+trans_fname = op.join(op.dirname(mne.__file__), "data", "fsaverage",
+                      "fsaverage-trans.fif")
 
 ###############################################################################
 # check all montages
