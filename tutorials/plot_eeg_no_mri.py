@@ -83,4 +83,4 @@ print(fwd)
 
 eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 eeg_map.plot(time_label='EEG sensitivity', subjects_dir=subjects_dir,
-             clim=dict(lims=[0, 30, 60]))
+             clim=dict(lims=[5, 50, 100]))
