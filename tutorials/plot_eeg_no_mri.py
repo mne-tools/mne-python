@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-EEG source reconstruction with a template MRI
-=============================================
+EEG forward operator with a template MRI
+========================================
 
-This tutorial explains how to perform source reconstruction using
-EEG using template MRI subject. We use here the fsaverage brain
+This tutorial explains how to compute the forward operator from EEG data
+using template MRI subject. We use here the fsaverage brain
 provided by freesurfer.
 
 .. important:: Source reconstruction without an individual T1 MRI from the
