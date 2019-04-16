@@ -541,5 +541,17 @@ def test_acqparser_averaging():
         assert_allclose(ev_grad.data[::-1], ev_ref_grad.data,
                         rtol=0, atol=1e-13)  # tol = 1 fT/cm
 
+from mne.event import shift_time_events
+def test_shift_time_events():
+    events = np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2]])
+    EXPECTED = [1, 2, 3]
+    new_events = shift_time_events(events, ids=None, tshift=1, sfreq=1)
+    assert all(new_events[:, 0] == EXPECTED)
+
+    events = np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2]])
+    EXPECTED = [0, 2, 3]
+    new_events = shift_time_events(events, ids=[1, 2], tshift=1, sfreq=1)
+    assert all(new_events[:, 0] == EXPECTED)
+
 
 run_tests_if_main()
