@@ -18,6 +18,7 @@ provided by freesurder.
 """  # noqa: E501
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD Style.
 
@@ -47,15 +48,17 @@ raw.rename_channels({old: new for old, new in zip(raw.ch_names, ch_names)})
 
 # Read and set the EEG electrode locations
 montage = mne.channels.read_montage('standard_1005', ch_names=raw.ch_names,
-                                    transform=True)
+                                    transform=False)
 raw.set_montage(montage)
 
 
 subject = 'fsaverage'
 
 # Check that the locations of EEG electrodes is correct with respect to MRI
-mne.viz.plot_alignment(raw.info, subject=subject, eeg="projected",
-                       subjects_dir=subjects_dir, trans=trans_fname)
+mne.viz.plot_alignment(
+    raw.info, subject=subject, subjects_dir=subjects_dir,
+    eeg=['original', 'projected'], trans=None
+)
 
 ##############################################################################
 # Setup source space and compute forward
