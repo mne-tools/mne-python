@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_eeg_no_mri.py` by `Alex Gramfort`_, and `Joan Massich`_
+
 - Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
 
 - Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
