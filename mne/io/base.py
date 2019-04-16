@@ -34,7 +34,7 @@ from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels, _filt_check_picks,
-                      _filt_update_info)
+                      _filt_update_info, _my_hilbert, _check_fun)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, _pl, fill_doc,
@@ -261,18 +261,6 @@ class TimeMixin(object):
         if use_rounding:
             index = np.round(index)
         return index.astype(int)
-
-
-def _check_fun(fun, d, *args, **kwargs):
-    """Check shapes."""
-    want_shape = d.shape
-    d = fun(d, *args, **kwargs)
-    if not isinstance(d, np.ndarray):
-        raise TypeError('Return value must be an ndarray')
-    if d.shape != want_shape:
-        raise ValueError('Return data must have shape %s not %s'
-                         % (want_shape, d.shape))
-    return d
 
 
 @fill_doc
@@ -1152,7 +1140,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back
-            to original length. If None, n == self.n_times. If 'auto',
+            to original length. If None, n == len(self.times). If 'auto',
             the next highest fast FFT length will be use.
         %(verbose_meth)s
 
@@ -1188,12 +1176,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  'got %s' % (type(n_fft),))
             n_fft = next_fast_len(len(self.times))
         n_fft = int(n_fft)
-        if n_fft < self.n_times:
+        if n_fft < len(self.times):
             raise ValueError("n_fft must be greater than n_times")
-        if envelope is True:
-            dtype = None
-        else:
-            dtype = np.complex64
+        dtype = None if envelope else np.complex128
         return self.apply_function(_my_hilbert, picks, dtype, n_jobs, n_fft,
                                    envelope=envelope)
 
@@ -2529,33 +2514,6 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 
     buf = buf / np.ravel(cals)[:, None]
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
-
-
-def _my_hilbert(x, n_fft=None, envelope=False):
-    """Compute Hilbert transform of signals w/ zero padding.
-
-    Parameters
-    ----------
-    x : array, shape (n_times)
-        The signal to convert
-    n_fft : int
-        Size of the FFT to perform, must be at least ``len(x)``.
-        The signal will be cut back to original length.
-    envelope : bool
-        Whether to compute amplitude of the hilbert transform in order
-        to return the signal envelope.
-
-    Returns
-    -------
-    out : array, shape (n_times)
-        The hilbert transform of the signal, or the envelope.
-    """
-    from scipy.signal import hilbert
-    n_x = x.shape[-1]
-    out = hilbert(x, N=n_fft)[:n_x]
-    if envelope is True:
-        out = np.abs(out)
-    return out
 
 
 def _check_raw_compatibility(raw):

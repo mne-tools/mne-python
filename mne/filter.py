@@ -1828,6 +1828,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             fir_window, fir_design)
 
 
+# XXX Someday we should add this to BaseRaw, there is a lot of overlap
 class FilterMixin(object):
     """Object for Epoch/Evoked filtering."""
 
@@ -2079,6 +2080,143 @@ class FilterMixin(object):
             self.first = int(self.times[0] * self.info['sfreq'])
             self.last = len(self.times) + self.first - 1
         return self
+
+    @verbose
+    def apply_hilbert(self, picks=None, envelope=False, n_jobs=1, n_fft='auto',
+                      verbose=None):
+        """Compute analytic signal or envelope for a subset of channels.
+
+        If envelope=False, the analytic signal for the channels defined in
+        "picks" is computed and the data of the Raw object is converted to
+        a complex representation (the analytic signal is complex valued).
+
+        If envelope=True, the absolute value of the analytic signal for the
+        channels defined in "picks" is computed, resulting in the envelope
+        signal.
+
+        .. warning: Do not use ``envelope=True`` if you intend to compute
+                    an inverse solution from the raw data. If you want to
+                    compute the envelope in source space, use
+                    ``envelope=False`` and compute the envelope after the
+                    inverse solution has been obtained.
+
+        .. note:: If envelope=False, more memory is required since the
+                  original raw data as well as the analytic signal have
+                  temporarily to be stored in memory.
+
+        .. note:: If n_jobs > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporaily stored in memory.
+
+        Parameters
+        ----------
+        %(picks_all_data_noref)s
+        envelope : bool (default: False)
+            Compute the envelope signal of each channel.
+        n_jobs: int
+            Number of jobs to run in parallel.
+        n_fft : int | None | str
+            Points to use in the FFT for Hilbert transformation. The signal
+            will be padded with zeros before computing Hilbert, then cut back
+            to original length. If None, n == self.n_times. If 'auto',
+            the next highest fast FFT length will be use.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with transformed data.
+
+        Notes
+        -----
+        The analytic signal "x_a(t)" of "x(t)" is::
+
+            x_a = F^{-1}(F(x) 2U) = x + i y
+
+        where "F" is the Fourier transform, "U" the unit step function,
+        and "y" the Hilbert transform of "x". One usage of the analytic
+        signal is the computation of the envelope signal, which is given by
+        "e(t) = abs(x_a(t))". Due to the linearity of Hilbert transform and the
+        MNE inverse solution, the enevlope in source space can be obtained
+        by computing the analytic signal in sensor space, applying the MNE
+        inverse, and computing the envelope in source space.
+
+        Also note that the n_fft parameter will allow you to pad the signal
+        with zeros before performing the Hilbert transform. This padding
+        is cut off, but it may result in a slightly different result
+        (particularly around the edges). Use at your own risk.
+        """
+        _check_preload(self, 'inst.apply_hilbert')
+        if n_fft is None:
+            n_fft = len(self.times)
+        elif isinstance(n_fft, str):
+            if n_fft != 'auto':
+                raise ValueError('n_fft must be an integer, string, or None, '
+                                 'got %s' % (type(n_fft),))
+            n_fft = next_fast_len(len(self.times))
+        n_fft = int(n_fft)
+        if n_fft < len(self.times):
+            raise ValueError("n_fft must be greater than n_times")
+        dtype = None if envelope else np.complex128
+        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
+        fun, args, kwargs = _my_hilbert, (), dict(n_fft=n_fft)
+
+        # XXX eventually should be refactored with apply_function
+        data_in = self._data
+        if dtype is not None and dtype != self._data.dtype:
+            self._data = self._data.astype(dtype)
+
+        if n_jobs == 1:
+            # modify data inplace to save memory
+            for idx in picks:
+                self._data[..., idx, :] = _check_fun(fun, data_in[..., idx, :],
+                                                     *args, **kwargs)
+        else:
+            # use parallel function
+            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+            data_picks_new = parallel(
+                p_fun(fun, data_in[..., p, :], *args, **kwargs) for p in picks)
+            for pp, p in enumerate(picks):
+                self._data[..., p, :] = data_picks_new[pp]
+
+
+def _check_fun(fun, d, *args, **kwargs):
+    """Check shapes."""
+    want_shape = d.shape
+    d = fun(d, *args, **kwargs)
+    if not isinstance(d, np.ndarray):
+        raise TypeError('Return value must be an ndarray')
+    if d.shape != want_shape:
+        raise ValueError('Return data must have shape %s not %s'
+                         % (want_shape, d.shape))
+    return d
+
+
+def _my_hilbert(x, n_fft=None, envelope=False):
+    """Compute Hilbert transform of signals w/ zero padding.
+
+    Parameters
+    ----------
+    x : array, shape (n_times)
+        The signal to convert
+    n_fft : int
+        Size of the FFT to perform, must be at least ``len(x)``.
+        The signal will be cut back to original length.
+    envelope : bool
+        Whether to compute amplitude of the hilbert transform in order
+        to return the signal envelope.
+
+    Returns
+    -------
+    out : array, shape (n_times)
+        The hilbert transform of the signal, or the envelope.
+    """
+    from scipy.signal import hilbert
+    n_x = x.shape[-1]
+    out = hilbert(x, N=n_fft, axis=-1)[..., :n_x]
+    if envelope:
+        out = np.abs(out)
+    return out
 
 
 @verbose

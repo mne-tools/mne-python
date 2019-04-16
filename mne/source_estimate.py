@@ -2605,12 +2605,16 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                              'stc has %s vertices but the source space '
                              'has %s vertices'
                              % (stc.shape[0], sum(nvert)))
+        if len(stc.shape) != 2 and mode != 'mean':
+            raise ValueError('mode == mean is the only mode supported for '
+                             'VectorSourceEstimate data, got mode %r and '
+                             'data.shape = %s' % (mode, stc.shape))
 
         logger.info('Extracting time courses for %d labels (mode: %s)'
                     % (n_labels, mode))
 
         # do the extraction
-        label_tc = np.zeros((n_labels, stc.data.shape[1]),
+        label_tc = np.zeros((n_labels,) + stc.data.shape[1:],
                             dtype=stc.data.dtype)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
