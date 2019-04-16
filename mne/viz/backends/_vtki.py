@@ -13,7 +13,7 @@ import numpy as np
 class _Projection(object):
 
     def __init__(self):
-        return 0
+        self.xy = None
 
 
 class _Renderer(object):
@@ -172,6 +172,9 @@ class _Renderer(object):
 
     def show(self):
         self.plotter.show()
+
+    def close(self):
+        self.plotter.close()
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
