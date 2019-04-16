@@ -19,16 +19,16 @@ class _Projection(object):
 class _Renderer(object):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=None):
+                 name=None, show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+        self.off_screen = False
         if MNE_3D_BACKEND_TEST_DATA:
-            self.plotter = vtki.BackgroundPlotter(window_size=size,
-                                                  show=False)
+            self.off_screen = True
+        if fig is None:
+            self.plotter = vtki.Plotter(window_size=size,
+                                        off_screen=self.off_screen)
         else:
-            if fig is None:
-                self.plotter = vtki.Plotter(window_size=size)
-            else:
-                self.plotter = fig
+            self.plotter = fig
         self.plotter.background_color = bgcolor
 
     def scene(self):
