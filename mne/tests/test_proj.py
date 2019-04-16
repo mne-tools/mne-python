@@ -1,19 +1,19 @@
+import copy as cp
 import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_equal)
 import pytest
-
-import copy as cp
+from scipy import linalg
 
 from mne import (compute_proj_epochs, compute_proj_evoked, compute_proj_raw,
                  pick_types, read_events, Epochs, sensitivity_map,
-                 read_source_estimate, compute_raw_covariance,
+                 read_source_estimate, compute_raw_covariance, create_info,
                  read_forward_solution, convert_forward_solution)
 from mne.cov import regularize, compute_whitener
 from mne.datasets import testing
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, RawArray
 from mne.io.proj import (make_projector, activate_proj,
                          _needs_eeg_average_ref_proj)
 from mne.preprocessing import maxwell_filter
@@ -278,6 +278,36 @@ def test_compute_proj_raw():
     proj, nproj, U = make_projector(projs, raw.ch_names,
                                     bads=raw.ch_names)
     assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+
+
+@pytest.mark.parametrize('duration', [1, np.pi / 2.])
+@pytest.mark.parametrize('sfreq', [600.614990234375, 1000.])
+def test_proj_raw_duration(duration, sfreq):
+    """Test equivalence of `duration` options."""
+    n_ch, n_dim = 30, 3
+    rng = np.random.RandomState(0)
+    signals = rng.randn(n_dim, 10000)
+    mixing = rng.randn(n_ch, n_dim) + [0, 1, 2]
+    data = np.dot(mixing, signals)
+    raw = RawArray(data, create_info(n_ch, sfreq, 'eeg'))
+    raw.set_eeg_reference(projection=True)
+    n_eff = int(round(raw.info['sfreq'] * duration))
+    # crop to an even "duration" number of epochs
+    stop = ((len(raw.times) // n_eff) * n_eff - 1) / raw.info['sfreq']
+    raw.crop(0, stop)
+    proj_def = compute_proj_raw(raw, n_eeg=n_dim)
+    proj_dur = compute_proj_raw(raw, duration=duration, n_eeg=n_dim)
+    proj_none = compute_proj_raw(raw, duration=None, n_eeg=n_dim)
+    assert len(proj_dur) == len(proj_none) == len(proj_def) == n_dim
+    # proj_def is not in here because it does not necessarily evenly divide
+    # the signal length:
+    for pu, pn in zip(proj_dur, proj_none):
+        assert_allclose(pu['data']['data'], pn['data']['data'])
+    # but we can test it here since it should still be a small subspace angle:
+    for proj in (proj_dur, proj_none, proj_def):
+        computed = np.concatenate([p['data']['data'] for p in proj], 0)
+        angle = np.rad2deg(linalg.subspace_angles(computed.T, mixing)[0])
+        assert angle < 1e-5
 
 
 def test_make_eeg_average_ref_proj():
