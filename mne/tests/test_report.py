@@ -279,7 +279,8 @@ def test_add_slider_to_section():
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
     figs = _get_example_figures()
-    report.add_slider_to_section(figs, section=section)
+    report.add_slider_to_section(figs, section=section, title='my title')
+    assert report.fnames[0] == 'my title-#-report_slider_section-#-custom'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
     pytest.raises(NotImplementedError, report.add_slider_to_section,
@@ -329,7 +330,7 @@ def test_open_report():
     # Exiting the context block should have triggered saving to HDF5
     assert op.exists(hdf5)
 
-    # Load the HDF5 version of the report and check equivalency
+    # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
     assert report2._fname == hdf5
     assert report2.subjects_dir == report.subjects_dir
@@ -348,7 +349,8 @@ def test_remove():
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'figure1', 'mysection')
-    r.add_figs_to_section(fig1, 'figure1', 'othersection')
+    r.add_slider_to_section([fig1, fig2], title='figure1',
+                            section='othersection')
     r.add_figs_to_section(fig2, 'figure1', 'mysection')
     r.add_figs_to_section(fig2, 'figure2', 'mysection')
 

@@ -227,7 +227,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
         this will be the maximum width possible without axes overlapping.
     height : float | None
         Height of sensor axes as a fraction of main figure height. By default,
-        this will be the maximum height possible withough axes overlapping.
+        this will be the maximum height possible without axes overlapping.
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any.
         If 'bads', exclude channels in info['bads'] (default).

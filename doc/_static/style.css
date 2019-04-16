@@ -351,3 +351,7 @@ dl.cmd-list dt, dl.cmd-list dd {
 dl.cmd-list dt::after {
     visibility: hidden;
 }
+/* Attributes / methods not taking up entire width ends up looking odd */
+dd table.align-center {
+    width: 100%;
+}

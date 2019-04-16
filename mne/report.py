@@ -1321,7 +1321,7 @@ class Report(object):
         slider_klass = sectionvar
 
         self._add_or_replace(
-            '%s-#-%s-#-custom' % (section, sectionvar), sectionvar,
+            '%s-#-%s-#-custom' % (title, sectionvar), sectionvar,
             slider_full_template.substitute(id=global_id, title=title,
                                             div_klass=slider_klass,
                                             slider_id=slider_id, html=html,

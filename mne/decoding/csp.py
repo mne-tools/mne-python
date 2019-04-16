@@ -771,7 +771,7 @@ class SPoC(CSP):
         if len(np.unique(y)) < 2:
             raise ValueError("y must have at least two distinct values.")
 
-        # The following code is direclty copied from pyRiemann
+        # The following code is directly copied from pyRiemann
 
         # Normalize target variable
         target = y.astype(np.float64)
