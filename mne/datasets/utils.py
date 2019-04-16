@@ -252,7 +252,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
              'datasets/foo.tgz',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
-        sample="https://osf.io/j4ms3/download",
+        sample="https://osf.io/86qa2/download",
         somato='https://osf.io/tp4sg/download',
         spm='https://osf.io/je4s8/download',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
