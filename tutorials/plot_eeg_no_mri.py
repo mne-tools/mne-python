@@ -24,13 +24,12 @@ provided by freesurder.
 
 import os.path as op
 import mne
-from mne.datasets import sample
+from mne.datasets.sample import data_path
 from mne.datasets import eegbci
-from mne.minimum_norm import make_inverse_operator, apply_inverse
 
-data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-trans_fname = op.join(op.dirname(mne.__file__), "data", "fsaverage",
+subjects_dir = op.join(data_path(), 'subjects')
+subject = 'fsaverage'
+trans_fname = op.join(op.dirname(mne.__file__), "data", subject,
                       "fsaverage-trans.fif")
 
 ##############################################################################
@@ -50,9 +49,6 @@ raw.rename_channels({old: new for old, new in zip(raw.ch_names, ch_names)})
 montage = mne.channels.read_montage('standard_1005', ch_names=raw.ch_names,
                                     transform=False)
 raw.set_montage(montage)
-
-
-subject = 'fsaverage'
 
 # Check that the locations of EEG electrodes is correct with respect to MRI
 mne.viz.plot_alignment(
@@ -81,49 +77,9 @@ fwd = mne.make_forward_solution(raw.info, trans=trans_fname, src=src,
                                 bem=bem, eeg=True, mindist=5.0, n_jobs=2)
 print(fwd)
 
-##############################################################################
-# Epoch data
-# ----------
-
-tmin, tmax = -1, 4  # define epochs around events (in s)
-event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
-events, _ = mne.events_from_annotations(raw)
-raw.filter(1., 40.)
-raw.set_eeg_reference(projection=True)
-epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
-                    picks=('eeg'), baseline=None, preload=True)
-
-evoked = epochs.average()
-
-##############################################################################
-# Compute dSPM source estimates
-# -----------------------------
-
-# Compute noise cov
-noise_cov = mne.compute_covariance(
-    epochs, tmax=0., method=['shrunk', 'empirical'], rank='full')
-
-# make an MEG inverse operator
-info = evoked.info
-inverse_operator = make_inverse_operator(info, fwd, noise_cov,
-                                         loose=0.2, depth=0.8)
-
-
-method = "dSPM"
-snr = 3.
-lambda2 = 1. / snr ** 2
-stc, residual = apply_inverse(evoked, inverse_operator, lambda2,
-                              method=method, pick_ori=None,
-                              return_residual=True, verbose=True)
-
 ###############################################################################
-# Now plot the source estimates
-# -----------------------------
+# Compute sensitivity maps
+# ------------------------
 
-vertno_max, time_max = stc.get_peak(hemi='rh')
-
-subjects_dir = data_path + '/subjects'
-surfer_kwargs = dict(
-    hemi='rh', subjects_dir=subjects_dir, views='lateral',
-    initial_time=time_max, time_unit='s', size=(800, 800), smoothing_steps=5)
-brain = stc.plot(**surfer_kwargs)
+eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
+eeg_map.plot(time_label='EEG sensitivity', subjects_dir=subjects_dir)
