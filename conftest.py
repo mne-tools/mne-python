@@ -110,9 +110,10 @@ def _bias_params(evoked, noise_cov, fwd):
     return evoked, fwd, noise_cov, data_cov, want
 
 
-@pytest.fixture(scope="module",
-                params=["mayavi",
-                        "vtki"])
+@pytest.fixture(scope="module", params=[
+    # "mayavi",
+    "vtki",
+])
 def backend_name(request):
     yield request.param
 
