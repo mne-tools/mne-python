@@ -51,10 +51,14 @@ print(epochs['auditory'])
 # and attach it to the :class:`~mne.Epochs` object using the ``metadata``
 # parameter of the :class:`~mne.Epochs` constructor (or by setting the
 # :attr:`~mne.Epochs.metadata` attribute after creating the
-# :class:`~mne.Epochs` object). The metadata DataFrame should have one row per
-# event in the :class:`~mne.io.Raw` object, and can have as many columns as you
-# need to represent your trial data. Here, we'll use the ``events`` array to
-# create some fake metadata, to illustrate how it all works:
+# :class:`~mne.Epochs` object). The number of rows in the metadata DataFrame
+# should match the number of events in the :class:`~mne.io.Raw` object (if
+# passed to the :class:`~mne.Epochs` constructor at creation time), or the
+# number of epochs in the existing :class:`~mne.Epochs` object (if added as the
+# :attr:`~mne.Epochs.metadata` attribute after creation). The metadata
+# DataFrame can have as many columns as you need to represent your experimental
+# parameters. Here, we'll use the ``events`` array to create some fake
+# metadata, to illustrate how it all works:
 
 # Let's start by adding the same info that's in the event dictionary:
 mode_dict = {1: 'auditory', 2: 'auditory', 3: 'visual', 4: 'visual'}
@@ -98,14 +102,14 @@ epochs.metadata = metadataframe
 print(epochs['-15 < azimuth < 15 and pitch == "high" and not noise'])
 
 ###############################################################################
-# .. warning:: Do not set or change the DataFrame index of ``epochs.metadata``.
-#              The index is controlled by MNE to mirror ``epochs.selection``
-#              (i.e., which epochs are "good" vs "bad"). You should also avoid
-#              manipulating the ``epochs.metadata`` DataFrame once it has been
-#              added to the :class:`~mne.Epochs` object; while some in-place
-#              operations are possible, others (such as adding or dropping
-#              rows) will create inconsistency between the metadata and the
-#              epoch data.
+# .. warning:: Do not set or change the DataFrame index (i.e., the row numbers)
+#              of ``epochs.metadata``. The index is controlled by MNE to mirror
+#              ``epochs.selection`` (i.e., which epochs are "good" vs "bad").
+#              You should also avoid manipulating the ``epochs.metadata``
+#              DataFrame once it has been added to the :class:`~mne.Epochs`
+#              object; while some in-place operations are possible, others
+#              (such as adding or dropping rows) will create inconsistency
+#              between the metadata and the epoch data.
 #
 # This approach to querying :class:`~mne.Epochs` objects is especially useful
 # for experiments with a large variety of stimuli that vary along several
