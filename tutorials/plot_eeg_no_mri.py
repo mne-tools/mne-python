@@ -5,7 +5,7 @@ EEG source reconstruction with a template MRI
 
 This tutorial explains how to perform source reconstruction using
 EEG using template MRI subject. We use here the fsaverage brain
-provided by freesurder.
+provided by freesurfer.
 
 .. important:: Source reconstruction without an individual T1 MRI from the
                subject will be less accurate. Do not over interpret
@@ -68,10 +68,10 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
                  brain_surfaces='white', src=src, orientation='coronal')
 
 conductivity = (0.3, 0.006, 0.3)  # for three layers
-model = mne.make_bem_model(subject=subject, ico=4,
-                           conductivity=conductivity,
-                           subjects_dir=subjects_dir)
-bem = mne.make_bem_solution(model)
+bem_surfaces = mne.make_bem_model(subject=subject, ico=4,
+                                  conductivity=conductivity,
+                                  subjects_dir=subjects_dir)
+bem = mne.make_bem_solution(bem_surfaces)
 
 fwd = mne.make_forward_solution(raw.info, trans=trans_fname, src=src,
                                 bem=bem, eeg=True, mindist=5.0, n_jobs=2)
