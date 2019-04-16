@@ -50,6 +50,12 @@ class _Renderer(object):
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
+        from matplotlib import cm
+        from matplotlib.colors import ListedColormap
+        if colormap is None:
+            cmap = cm.get_cmap('coolwarm')
+        else:
+            cmap = ListedColormap(colormap / 255.0)
         vertices = np.array(surface['rr'])
         triangles = np.array(surface['tris'])
         n_triangles = len(triangles)
@@ -62,11 +68,18 @@ class _Renderer(object):
                                              rng=(vmin, vmax)),
                                   show_scalar_bar=False,
                                   line_width=line_width,
+                                  cmap=cmap,
                                   opacity=opacity)
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False):
+        from matplotlib import cm
+        from matplotlib.colors import ListedColormap
+        if colormap is None:
+            cmap = cm.get_cmap('coolwarm')
+        else:
+            cmap = ListedColormap(colormap / 255.0)
         vertices = np.array(surface['rr'])
         triangles = np.array(surface['tris'])
         n_triangles = len(triangles)
@@ -80,6 +93,7 @@ class _Renderer(object):
                                   rng=[vmin, vmax],
                                   show_scalar_bar=False,
                                   opacity=opacity,
+                                  cmap=cmap,
                                   backface_culling=backface_culling)
 
     def sphere(self, center, color, scale, opacity=1.0,
