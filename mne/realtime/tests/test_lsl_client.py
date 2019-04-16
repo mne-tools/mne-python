@@ -1,10 +1,7 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
-from random import random as rand
-import numpy as np
-
-from mne.realtime import LSLClient, MockLSLStream, RtEpochs
+from mne.realtime import LSLClient, MockLSLStream
 from mne.utils import run_tests_if_main, requires_pylsl
 from mne import create_info
 from mne.io import constants
@@ -22,6 +19,7 @@ ch_names = ["MNE {:03d}".format(ch_id) for ch_id
 stim_channel = ch_names[-1]
 
 info = create_info(ch_names, sfreq, ch_types)
+
 
 @requires_pylsl
 def test_lsl_client():

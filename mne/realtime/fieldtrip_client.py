@@ -43,9 +43,8 @@ class FieldTripClient(_BaseClient):
     %(verbose)s
     """
 
-    def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
-                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=None):
-        super(info, host, port, wait_max, tmin, tmax, buffer_size, verbose)
+    super().__init__(self, info=None, host='localhost', port=1972, wait_max=30,
+                     tmin=None, tmax=np.inf, buffer_size=1000, verbose=None)
 
     def __exit__(self, type, value, traceback):  # noqa: D105
         self.client.disconnect()
