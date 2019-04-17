@@ -20,7 +20,7 @@ def test_datasets():
                   'bst_raw', 'bst_auditory', 'bst_resting', 'multimodal',
                   'bst_phantom_ctf', 'bst_phantom_elekta', 'kiloword',
                   'mtrf', 'phantom_4dbti',
-                  'visual_92_categories', 'fieldtrip_cmc'):
+                  'visual_92_categories', 'fieldtrip_cmc', 'fsaverage'):
         if dname.startswith('bst'):
             dataset = getattr(datasets.brainstorm, dname)
             check_name = 'brainstorm.%s' % (dname,)

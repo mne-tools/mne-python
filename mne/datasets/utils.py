@@ -228,7 +228,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
         'mtrf': 'MNE_DATASETS_MTRF_PATH',
         'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH',
-        'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH'
+        'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH',
+        'fsaverage': 'MNE_DATASETS_FSAVERAGE_PATH',
     }[name]
 
     path = _get_path(path, key, name)
@@ -266,6 +267,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         kiloword='https://osf.io/qkvf9/download?version=1',
         fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
         phantom_4dbti='https://osf.io/v2brw/download?version=1',
+        fsaverage="https://osf.io/t8fvg/download?version=1",
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -283,6 +285,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
                               'MNE-visual_92_categories-data-part2.tar.gz'],
         phantom_4dbti='MNE-phantom-4DBTi.zip',
+        fsaverage='MNE-fsaverage-data.tar.gz',
     )
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
@@ -303,6 +306,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories='MNE-visual_92_categories-data',
         fieldtrip_cmc='MNE-fieldtrip_cmc-data',
         phantom_4dbti='MNE-phantom-4DBTi',
+        fsaverage='MNE-fsaverage-data',
     )
     hashes = dict(
         brainstorm=dict(
@@ -324,7 +328,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         kiloword='3a124170795abbd2e48aae8727e719a8',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
-        phantom_4dbti='f1d96f81d46480d0cc52a7ba4f125367'
+        phantom_4dbti='f1d96f81d46480d0cc52a7ba4f125367',
+        fsaverage='c6fff6b0c4e3bec2e192be2f697887c5',
     )
     assert set(hashes.keys()) == set(urls.keys())
     url = urls[name]
@@ -540,6 +545,7 @@ def has_dataset(name):
             'kiloword': 'MNE-kiloword-data',
             'phantom_4dbti': 'MNE-phantom-4DBTi',
             'mtrf': 'mTRF_1.5',
+            'fsaverage': 'MNE-fsaverage-data',
         }[name]
     dp = _data_path(download=False, name=name, check_version=False,
                     archive_name=archive_name)
@@ -554,7 +560,7 @@ def _download_all_example_data(verbose=True):
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword, phantom_4dbti)
+                   kiloword, phantom_4dbti, fsaverage)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -567,6 +573,7 @@ def _download_all_example_data(verbose=True):
     fieldtrip_cmc.data_path()
     kiloword.data_path()
     phantom_4dbti.data_path()
+    fsaverage.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()
