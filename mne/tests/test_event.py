@@ -544,6 +544,7 @@ def test_acqparser_averaging():
 
 
 def test_shift_time_events():
+    """Test events latency shift by a given amount."""
     events = np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2]])
     EXPECTED = [1, 2, 3]
     new_events = shift_time_events(events, ids=None, tshift=1, sfreq=1)
