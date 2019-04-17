@@ -185,7 +185,9 @@ class _Renderer(object):
                               color=color)
 
     def show(self):
-        self.plotter.show()
+        from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+        if not MNE_3D_BACKEND_TEST_DATA:
+            self.plotter.show()
 
     def close(self):
         self.plotter.close()
