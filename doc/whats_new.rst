@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add data fetchers fsaverage :func:`mne.datasets.fsaverage.fetch_data` by `Joan Massich`_
+- Add data fetchers fsaverage :func:`mne.datasets.fsaverage.data_path` by `Joan Massich`_
 
 - Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
 
