@@ -107,7 +107,7 @@ class FieldTripClient(object):
         else:
             logger.info("FieldTripClient: Header retrieved")
 
-        self.info = self._guess_measurement_info()
+        self.info = self._create_info()
         self.ch_names = self.ft_header.labels
 
         # find start and end samples
@@ -129,7 +129,7 @@ class FieldTripClient(object):
     def __exit__(self, type, value, traceback):  # noqa: D105
         self.ft_client.disconnect()
 
-    def _guess_measurement_info(self):
+    def _create_info(self):
         """Create a minimal Info dictionary for epoching, averaging, etc."""
         if self.info is None:
             warn('Info dictionary not provided. Trying to guess it from '

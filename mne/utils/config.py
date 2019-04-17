@@ -9,7 +9,6 @@ from functools import partial
 import inspect
 from io import StringIO
 import json
-import multiprocessing
 import os
 import os.path as op
 import platform
@@ -456,9 +455,14 @@ def sys_info(fid=None, show_paths=False):
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
     out += 'Executable:'.ljust(ljust) + sys.executable + '\n'
-    out += 'CPU:'.ljust(ljust) + ('%s: %s cores\n' %
-                                  (platform.processor(),
-                                   multiprocessing.cpu_count()))
+    out += 'CPU:'.ljust(ljust) + ('%s: ' % platform.processor())
+    try:
+        import multiprocessing
+    except ImportError:
+        out += ('number of processors unavailable ' +
+                '(requires "multiprocessing" package)\n')
+    else:
+        out += '%s cores\n' % multiprocessing.cpu_count()
     out += 'Memory:'.ljust(ljust)
     try:
         import psutil

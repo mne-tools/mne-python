@@ -204,6 +204,19 @@ def _check_compensation_grade(info1, info2, name1,
             % (name1, grade1, name2, grade2))
 
 
+def _check_pylsl_installed(strict=True):
+    """Aux function."""
+    try:
+        import pylsl
+        return pylsl
+    except ImportError:
+        if strict is True:
+            raise RuntimeError('For this functionality to work, the pylsl '
+                               'library is required.')
+        else:
+            return False
+
+
 def _check_pandas_installed(strict=True):
     """Aux function."""
     try:
@@ -463,3 +476,22 @@ def _check_all_same_channel_names(instances):
         if ch_names != inst.info["ch_names"]:
             return False
     return True
+
+
+def _check_combine(mode, valid=('mean', 'median', 'std')):
+    if mode == "mean":
+        def fun(data):
+            return np.mean(data, axis=0)
+    elif mode == "std":
+        def fun(data):
+            return np.std(data, axis=0)
+    elif mode == "median":
+        def fun(data):
+            return np.median(data, axis=0)
+    elif callable(mode):
+        fun = mode
+    else:
+        raise ValueError("Combine option must be " + ", ".join(valid) +
+                         " or callable, got %s (type %s)." %
+                         (mode, type(mode)))
+    return fun

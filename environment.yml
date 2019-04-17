@@ -10,7 +10,7 @@ dependencies:
 - matplotlib
 - cython
 - pyqt>=5.9
-- pandas
+- pandas>=0.18
 - xlrd
 - scikit-learn
 - h5py
@@ -45,3 +45,4 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
+#  - pylsl>=1.13.1  Needs https://github.com/labstreaminglayer/liblsl-Python/issues/6

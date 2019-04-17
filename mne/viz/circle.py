@@ -209,8 +209,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     Notes
     -----
-    This code is based on the circle graph example by Nicolas P. Rougier
-    http://www.labri.fr/perso/nrougier/coding/.
+    This code is based on a circle graph example by Nicolas P. Rougier
 
     By default, :func:`matplotlib.pyplot.savefig` does not take ``facecolor``
     into account when saving, even if set when a figure is generated. This

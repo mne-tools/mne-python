@@ -263,6 +263,9 @@ Visualization
    plot_alignment
    snapshot_brain_montage
    plot_arrowmap
+   set_3d_backend
+   get_3d_backend
+   use_3d_backend
 
 
 Preprocessing
@@ -337,6 +340,7 @@ Projections:
    mark_flat
    maxwell_filter
    oversampled_temporal_projection
+   peak_finder
    read_ica
    run_ica
    corrmap
@@ -947,10 +951,11 @@ Realtime
 .. autosummary::
    :toctree: generated/
 
+   FieldTripClient
+   LSLClient
+   MockRtClient
    RtEpochs
    RtClient
-   MockRtClient
-   FieldTripClient
    StimServer
    StimClient
 

@@ -1,18 +1,22 @@
 #!/usr/bin/env python
 r"""Compute SSP/PCA projections for EOG artifacts.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif \
-                       --l-freq 1 --h-freq 35 \
-                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+    $ mne compute_proj_eog -i sample_audvis_raw.fif \
+                           --l-freq 1 --h-freq 35 \
+                           --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 
 or
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif \
-                       --l-freq 1 --h-freq 35 \
-                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 \
-                       --proj sample_audvis_ecg-proj.fif
+.. code-block:: console
+
+    $ mne compute_proj_eog -i sample_audvis_raw.fif \
+                           --l-freq 1 --h-freq 35 \
+                           --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 \
+                           --proj sample_audvis_ecg-proj.fif
 
 to exclude ECG artifacts from projection computation.
 """

@@ -28,7 +28,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       complete_surface_info, _compute_nearest, fast_cross_3d,
                       mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
-                    has_nibabel, check_fname, logger, verbose,
+                    has_nibabel, check_fname, logger, verbose, _ensure_int,
                     check_version, _get_call_line, warn, _check_fname)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -1335,29 +1335,27 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 def _check_spacing(spacing, verbose=None):
     """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
-    space_err = ('"spacing" must be a string with values '
-                 '"ico#", "oct#", or "all", and "ico" and "oct"'
-                 'numbers must be integers')
-    if not isinstance(spacing, str) or len(spacing) < 3:
-        raise ValueError(space_err)
-    if spacing == 'all':
-        stype = 'all'
-        sval = ''
-    elif spacing[:3] == 'ico':
-        stype = 'ico'
-        sval = spacing[3:]
-    elif spacing[:3] == 'oct':
-        stype = 'oct'
-        sval = spacing[3:]
+    types = ('a string with values "ico#", "oct#", "all", or an int >= 2')
+    space_err = '"spacing" must be ' + types
+    if isinstance(spacing, str):
+        if spacing == 'all':
+            stype = 'all'
+            sval = ''
+        elif isinstance(spacing, str) and spacing[:3] in ('ico', 'oct'):
+            stype = spacing[:3]
+            sval = spacing[3:]
+            try:
+                sval = int(sval)
+            except Exception:
+                raise ValueError('ico and oct numbers must be integers, got %r'
+                                 % (sval,))
+        else:
+            raise ValueError(space_err)
     else:
-        raise ValueError(space_err)
-    try:
-        if stype in ['ico', 'oct']:
-            sval = int(sval)
-        elif stype == 'spacing':  # spacing
-            sval = float(sval)
-    except Exception:
-        raise ValueError(space_err)
+        stype = 'spacing'
+        sval = _ensure_int(spacing, 'spacing', types)
+        if sval < 2:
+            raise ValueError('spacing must be >= 2, got %d' % (sval,))
     if stype == 'all':
         logger.info('Include all vertices')
         ico_surf = None
@@ -1370,6 +1368,10 @@ def _check_spacing(spacing, verbose=None):
         elif stype == 'oct':
             logger.info('Octahedron subdivision grade %s' % sval)
             ico_surf = _tessellate_sphere_surf(sval)
+        else:
+            assert stype == 'spacing'
+            logger.info('Approximate spacing %s mm' % sval)
+            ico_surf = sval
     return stype, sval, ico_surf, src_type_str
 
 
@@ -1386,7 +1388,11 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-        or ``'all'`` for all points.
+        ``'all'`` for all points, or an integer to use appoximate
+        distance-based spacing (in mm).
+
+        .. versionchanged:: 0.18
+           Support for integers for distance-based spacing.
     surface : str
         The surface to use.
     subjects_dir : string, or None
@@ -1434,7 +1440,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     src = []
 
     # pre-load ico/oct surf (once) for speed, if necessary
-    if stype != 'all':
+    if stype not in ('spacing', 'all'):
         logger.info('Doing the %shedral vertex picking...'
                     % (dict(ico='icosa', oct='octa')[stype],))
     for hemi, surf in zip(['lh', 'rh'], surfs):
@@ -2330,6 +2336,9 @@ def _ensure_src_subject(src, subject):
     return subject
 
 
+_DIST_WARN_LIMIT = 10242  # warn for anything larger than ICO-5
+
+
 @verbose
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface.
@@ -2361,8 +2370,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 
     Notes
     -----
-    Requires scipy >= 0.11 (> 0.13 for `dist_limit < np.inf`).
-
     This function can be memory- and CPU-intensive. On a high-end machine
     (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
     takes about 10 minutes to compute all distances (`dist_limit = np.inf`).
@@ -2372,7 +2379,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
-    from scipy.sparse.csgraph import dijkstra
     n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
     if not np.isscalar(dist_limit):
@@ -2381,24 +2387,20 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
                            'if dist_limit < np.inf')
 
-    if not all(s['type'] == 'surf' for s in src):
+    if src.kind != 'surface':
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
-
-    if dist_limit < np.inf:
-        # can't do introspection on dijkstra function because it's Cython,
-        # so we'll just try quickly here
-        try:
-            dijkstra(sparse.csr_matrix(np.zeros((2, 2))), limit=1.0)
-        except TypeError:
-            raise RuntimeError('Cannot use "limit < np.inf" unless scipy '
-                               '> 0.13 is installed')
 
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
     logger.info('Calculating source space distances (limit=%s mm)...'
                 % (1000 * dist_limit))
+    max_n = max(s['nuse'] for s in src)
+    if max_n > _DIST_WARN_LIMIT:
+        warn('Computing distances for %d source space points (in one '
+             'hemisphere) will be very slow, consider using add_dist=False'
+             % (max_n,))
     for s in src:
         connectivity = mesh_dist(s['tris'], s['rr'])
         d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
