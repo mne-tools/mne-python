@@ -97,7 +97,7 @@ Changelog
 
 - Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
 
-- Add option ``ids = None`` in :func:`mne.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
+- Add option ``ids = None`` in :func:`mne.events.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
 
 Bug
 ~~~
