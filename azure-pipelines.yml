@@ -67,7 +67,7 @@ jobs:
     displayName: 'Print config'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not ultraslowtest" mne --cov=mne -v
+  - script: pytest -m "not ultraslowtest" mne --cov=mne
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'

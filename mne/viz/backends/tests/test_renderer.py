@@ -46,50 +46,6 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
     assert get_3d_backend() == backend
 
 
-@pytest.mark.parametrize('backend', [
-    pytest.param('vtki', marks=skips_if_not_vtki),
-])
-def test_vtk_off_screen(backend):
-    """Test VTK offscreen rendering."""
-    import vtk
-    sphere = vtk.vtkSphereSource()
-    sphere.Update()
-
-    mapper = vtk.vtkPolyDataMapper()
-    if vtk.VTK_MAJOR_VERSION <= 5:
-        mapper.SetInput(sphere.GetOutput())
-    else:
-        mapper.SetInputConnection(sphere.GetOutputPort())
-
-    # create actor
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-
-    # Create a rendering window and renderer
-    ren = vtk.vtkRenderer()
-    renWin = vtk.vtkRenderWindow()
-    renWin.SetOffScreenRendering(1)
-    renWin.AddRenderer(ren)
-
-    # Assign actor to the renderer
-    ren.AddActor(actor)
-
-    # Enable user interface interactor
-    renWin.Render()
-
-    windowToImageFilter = vtk.vtkWindowToImageFilter()
-    windowToImageFilter.SetInput(renWin)
-    windowToImageFilter.Update()
-
-    writer = vtk.vtkPNGWriter()
-    writer.SetFileName("screenshot.png")
-    writer.SetInputConnection(windowToImageFilter.GetOutputPort())
-    writer.Write()
-
-    # clean up objects
-    del renWin
-
-
 def test_3d_backend(backends_3d):
     """Test default plot."""
     from mne.viz.backends.renderer import _Renderer
