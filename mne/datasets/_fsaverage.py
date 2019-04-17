@@ -89,7 +89,7 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
     if len(need) > 0:
         with tempfile.TemporaryDirectory() as path:
             url = 'https://osf.io/j5htk/download?revision=1'
-            hash_ = 'b43dcab5181ed7b622f20d49be2004bb'
+            hash_ = '614a3680dcfcebd5653b892cc1234a4a'
             fname = op.join(path, 'fsaverage.zip')
             logger.info('Downloading missing files remotely')
             _fetch_file(url, fname, hash_=hash_)
