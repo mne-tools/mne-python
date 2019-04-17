@@ -297,11 +297,14 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     compute_proj_epochs, compute_proj_evoked
     """
     if duration is not None:
+        duration = np.round(duration * raw.info['sfreq']) / raw.info['sfreq']
         events = make_fixed_length_events(raw, 999, start, stop, duration)
         picks = pick_types(raw.info, meg=True, eeg=True, eog=True, ecg=True,
                            emg=True, exclude='bads')
-        epochs = Epochs(raw, events, None, tmin=0., tmax=duration,
-                        picks=picks, reject=reject, flat=flat)
+        epochs = Epochs(raw, events, None, tmin=0.,
+                        tmax=duration - 1. / raw.info['sfreq'],
+                        picks=picks, reject=reject, flat=flat,
+                        baseline=None, proj=False)
         data = _compute_cov_epochs(epochs, n_jobs)
         info = epochs.info
         if not stop:
