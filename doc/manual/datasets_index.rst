@@ -102,11 +102,6 @@ Do not hesitate to contact MNE-Python developers on the
 `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
 to discuss the possibility to add more publicly available datasets.
 
-.. _auditory dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetAuditory
-.. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
-.. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
-.. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
-
 Somatosensory
 =============
 :func:`mne.datasets.somato.data_path`
@@ -138,7 +133,7 @@ This dataset contains somatosensory evoked fields (median nerve stimulation)
 with thousands of epochs. It was recorded with an Elekta TRIUX MEG device at
 a sampling frequency of 3 kHz. The dataset is suitable for investigating
 high-frequency somatosensory responses. Data from two subjects are included
-with MRI images in DICOM format and FreeSurfer reconstructions.
+with MRI images in DICOM format and `FreeSurfer`_ reconstructions.
 
 
 Visual 92 object categories
@@ -261,6 +256,14 @@ data please cite [7]_ and [8]_.
 
     * :ref:`sphx_glr_auto_tutorials_plot_sleep.py`
 
+fsaverage
+=========
+
+:func:`mne.datasets.fsaverage.data_path`
+
+This dataset provides the **fsaverage** brain from `FreeSurfer`_
+
+
 References
 ==========
 
@@ -279,3 +282,10 @@ References
 .. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000). https://ieeexplore.ieee.org/document/867928
 
 .. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220 [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June 13).
+
+
+.. _auditory dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetAuditory
+.. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
+.. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
+.. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
+.. _FreeSurfer: https://surfer.nmr.mgh.harvard.edu
