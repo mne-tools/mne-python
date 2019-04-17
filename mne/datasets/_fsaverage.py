@@ -157,3 +157,4 @@ def set_montage_coreg_path(subjects_dir=None):
                          'not match the provided subjects_dir=%r'
                          % (old_subjects_dir, subjects_dir))
     set_config('SUBJECTS_DIR', subjects_dir)
+    return subjects_dir

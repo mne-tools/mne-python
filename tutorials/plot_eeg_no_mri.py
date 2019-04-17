@@ -28,7 +28,7 @@ from mne.datasets import set_montage_coreg_path, fetch_fsaverage, sample
 
 # Convenience function to set ``subjects_dir`` default value for users who
 # only ever plan to do montage-based coreg with fsaverage.
-subjects_dir = set_montage_coreg_path()
+set_montage_coreg_path()
 
 # Download fsaverage files
 fs_dir = fetch_fsaverage(verbose=True)
@@ -54,9 +54,7 @@ raw.set_eeg_reference(projection=True)  # needed for inverse modeling
 
 # Check that the locations of EEG electrodes is correct with respect to MRI
 mne.viz.plot_alignment(
-    raw.info, src=src, subjects_dir=subjects_dir,
-    eeg=['original', 'projected'], trans=trans, dig=True,
-)
+    raw.info, src=src, eeg=['original', 'projected'], trans=trans, dig=True)
 
 ##############################################################################
 # Get ERP
