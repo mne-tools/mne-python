@@ -101,7 +101,7 @@ Only include \*audvis_raw.fif and \*-eve.fif files in the report
 (and decimate the MRI a lot because we don't need it)::
 
     >>> report.parse_folder(data_path=path, pattern=['*audvis_raw.fif', '*-eve.fif'], render_bem=False)  # doctest:+ELLIPSIS
-    Iterating over 6 potential files (this may take some time)
+    Iterating over 8 potential files (this may take some time)
     Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_raw.fif
     Opening raw data file .../MNE-sample-data/MEG/sample/sample_audvis_raw.fif...
         Read a total of 3 projection items:
