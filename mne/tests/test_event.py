@@ -11,7 +11,8 @@ from mne import (read_events, write_events, make_fixed_length_events,
                  read_evokeds, Epochs, create_info, compute_raw_covariance)
 from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir, run_tests_if_main
-from mne.event import define_target_events, merge_events, AcqParserFIF
+from mne.event import (define_target_events, merge_events, AcqParserFIF,
+                       shift_time_events)
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -219,16 +220,16 @@ def test_find_events():
                        [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
     # testing with mask_type = 'and'
     assert_array_equal(find_events(raw, shortest_event=1, mask=1,
-                       mask_type='and'),
+                                   mask_type='and'),
                        [[1, 0, 1], [3, 0, 1]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=2,
-                       mask_type='and'),
+                                   mask_type='and'),
                        [[2, 0, 2]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=3,
-                       mask_type='and'),
+                                   mask_type='and'),
                        [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=4,
-                       mask_type='and'),
+                                   mask_type='and'),
                        [[4, 0, 4]])
 
     # test empty events channel
@@ -541,7 +542,7 @@ def test_acqparser_averaging():
         assert_allclose(ev_grad.data[::-1], ev_ref_grad.data,
                         rtol=0, atol=1e-13)  # tol = 1 fT/cm
 
-from mne.event import shift_time_events
+
 def test_shift_time_events():
     events = np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2]])
     EXPECTED = [1, 2, 3]

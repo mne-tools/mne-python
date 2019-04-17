@@ -800,7 +800,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     ----------
     events : array, shape=(n_events, 3)
         The events
-    ids : array int | None
+    ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
         Time-shift event. Use positive value tshift for forward shifting
@@ -815,10 +815,10 @@ def shift_time_events(events, ids, tshift, sfreq):
     """
     events = events.copy()
     if ids is None:
-        events[:, 0] += int(tshift * sfreq)
-    elif isinstance(ids, list):
-        for ii in ids:
-            events[events[:, 2] == ii, 0] += int(tshift * sfreq)
+        mask = slice(None)
+    else:
+        mask = np.in1d(events[:, 2], ids)
+    events[mask, 0] += int(tshift * sfreq)
 
     return events
 
