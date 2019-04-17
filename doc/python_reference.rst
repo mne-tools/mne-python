@@ -183,6 +183,7 @@ Datasets
    brainstorm.bst_raw.data_path
    eegbci.load_data
    fetch_aparc_sub_parcellation
+   fetch_fsaverage
    fetch_hcp_mmp_parcellation
    hf_sef.data_path
    kiloword.data_path
@@ -192,6 +193,7 @@ Datasets
    mtrf.data_path
    multimodal.data_path
    opm.data_path
+   set_montage_coreg_path
    sleep_physionet.age.fetch_data
    sleep_physionet.temazepam.fetch_data
    sample.data_path

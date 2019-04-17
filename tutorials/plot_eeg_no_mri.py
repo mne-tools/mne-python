@@ -4,8 +4,7 @@ EEG forward operator with a template MRI
 ========================================
 
 This tutorial explains how to compute the forward operator from EEG data
-using template MRI subject. We use here the fsaverage brain
-provided by freesurfer.
+using the standard template MRI subject ``fsaverage``.
 
 .. important:: Source reconstruction without an individual T1 MRI from the
                subject will be less accurate. Do not over interpret
@@ -15,7 +14,7 @@ provided by freesurfer.
    :local:
    :depth: 2
 
-"""  # noqa: E501
+"""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
@@ -23,64 +22,70 @@ provided by freesurfer.
 # License: BSD Style.
 
 import os.path as op
-import mne
-from mne.datasets.sample import data_path
-from mne.datasets import eegbci
 
-subjects_dir = op.join(data_path(), 'subjects')
+import mne
+from mne.datasets import set_montage_coreg_path, fetch_fsaverage, sample
+
+# Convenience function to set ``subjects_dir`` default value for users who
+# only ever plan to do montage-based coreg with fsaverage.
+subjects_dir = set_montage_coreg_path()
+
+# Download fsaverage files
+fs_dir = fetch_fsaverage(verbose=True)
+# The files live in:
 subject = 'fsaverage'
-trans_fname = op.join(op.dirname(mne.__file__), "data", subject,
-                      "fsaverage-trans.fif")
+trans = op.join(fs_dir, 'bem', 'fsaverage-trans.fif')
+src = op.join(fs_dir, 'bem', 'fsaverage-5-src.fif')
+bem = op.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
 
 ##############################################################################
 # Load the data
 # -------------
-#
-# We use here EEG data from the BCI dataset.
+# We use here sample data limited to EEG channels, and replace our digitized
+# locations with those from a montage.
 
-raw_fname, = eegbci.load_data(subject=1, runs=[6])
-raw = mne.io.read_raw_edf(raw_fname, preload=True, stim_channel='auto')
-
-# Clean channel names to be able to use a standard 1005 montage
-ch_names = [c.replace('.', '') for c in raw.ch_names]
-raw.rename_channels({old: new for old, new in zip(raw.ch_names, ch_names)})
-
-# Read and set the EEG electrode locations
-montage = mne.channels.read_montage('standard_1005', ch_names=raw.ch_names,
-                                    transform=False)
+data_path = sample.data_path(verbose=True)
+raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+raw.info['bads'] = ['EEG 053']
+raw.load_data().pick_types(meg=False, eeg=True, eog=True, stim=True)
+montage = mne.channels.read_montage('mgh60', transform=True)
 raw.set_montage(montage)
+raw.set_eeg_reference(projection=True)  # needed for inverse modeling
 
 # Check that the locations of EEG electrodes is correct with respect to MRI
 mne.viz.plot_alignment(
-    raw.info, subject=subject, subjects_dir=subjects_dir,
-    eeg=['original', 'projected'], trans=None
+    raw.info, src=src, subjects_dir=subjects_dir,
+    eeg=['original', 'projected'], trans=trans, dig=True,
 )
+
+##############################################################################
+# Get ERP
+# -------
+# Average over the auditory condition to get an ERP.
+
+events = mne.find_events(raw)
+event_id = dict(aud_l=1, aud_r=2)
+epochs = mne.Epochs(raw, events, event_id, tmin=-0.2, tmax=0.5, proj=True,
+                    baseline=(None, 0), reject=dict(eog=150e-6))
+evoked = epochs.average()
+fig = evoked.plot()
+max_time = evoked.get_peak()[1]
+fig.axes[0].axvline(max_time, color='g', ls=':')
 
 ##############################################################################
 # Setup source space and compute forward
 # --------------------------------------
 
-src = mne.setup_source_space(subject, spacing='oct6',
-                             subjects_dir=subjects_dir, add_dist=False)
-print(src)
-
-mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
-                 brain_surfaces='white', src=src, orientation='coronal')
-
-conductivity = (0.3, 0.006, 0.3)  # for three layers
-bem_surfaces = mne.make_bem_model(subject=subject, ico=4,
-                                  conductivity=conductivity,
-                                  subjects_dir=subjects_dir)
-bem = mne.make_bem_solution(bem_surfaces)
-
-fwd = mne.make_forward_solution(raw.info, trans=trans_fname, src=src,
-                                bem=bem, eeg=True, mindist=5.0, n_jobs=2)
+fwd = mne.make_forward_solution(raw.info, trans=trans, src=src,
+                                bem=bem, eeg=True, mindist=5.0, n_jobs=1)
 print(fwd)
 
 ###############################################################################
-# Compute sensitivity maps
-# ------------------------
+# Compute source activation
+# -------------------------
 
-eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
-eeg_map.plot(time_label='EEG sensitivity', subjects_dir=subjects_dir,
-             clim=dict(lims=[5, 50, 100]))
+cov = mne.compute_covariance(epochs, tmax=0.)
+inv = mne.minimum_norm.make_inverse_operator(evoked.info, fwd, cov)
+print(inv)
+stc = mne.minimum_norm.apply_inverse(evoked, inv)
+brain = stc.plot(initial_time=max_time)
