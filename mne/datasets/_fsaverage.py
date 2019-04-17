@@ -24,7 +24,7 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
 
     Returns
     -------
-    fs_dir
+    fs_dir : str
         The fsaverage directory.
 
     See Also

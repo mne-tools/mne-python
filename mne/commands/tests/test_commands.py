@@ -19,7 +19,7 @@ from mne.datasets import testing, sample
 from mne.io import read_raw_fif
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
-                       traits_test, ArgvSetter)
+                       traits_test, ArgvSetter, modified_env)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -122,6 +122,7 @@ def test_kit2fiff():
 def test_make_scalp_surfaces():
     """Test mne make_scalp_surfaces."""
     check_usage(mne_make_scalp_surfaces)
+    has = 'SUBJECTS_DIR' in os.environ
     # Copy necessary files to avoid FreeSurfer call
     tempdir = _TempDir()
     surf_path = op.join(subjects_dir, 'sample', 'surf')
@@ -132,27 +133,19 @@ def test_make_scalp_surfaces():
     os.mkdir(subj_dir)
     shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
 
-    orig_fs = os.getenv('FREESURFER_HOME', None)
-    if orig_fs is not None:
-        del os.environ['FREESURFER_HOME']
     cmd = ('-s', 'sample', '--subjects-dir', tempdir)
-    os.environ['_MNE_TESTING_SCALP'] = 'true'
-    dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
-    medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
-    try:
+    with modified_env(**{'_MNE_TESTING_SCALP': 'true'}):
+        dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
+        medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
         with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-            pytest.raises(RuntimeError, mne_make_scalp_surfaces.run)
-            os.environ['FREESURFER_HOME'] = tempdir  # don't actually use it
-            mne_make_scalp_surfaces.run()
-            assert op.isfile(dense_fname)
-            assert op.isfile(medium_fname)
-            pytest.raises(IOError, mne_make_scalp_surfaces.run)  # no overwrite
-    finally:
-        if orig_fs is not None:
-            os.environ['FREESURFER_HOME'] = orig_fs
-        else:
-            del os.environ['FREESURFER_HOME']
-        del os.environ['_MNE_TESTING_SCALP']
+            with modified_env(FREESURFER_HOME=None):
+                pytest.raises(RuntimeError, mne_make_scalp_surfaces.run)
+            with modified_env(FREESURFER_HOME=tempdir):
+                mne_make_scalp_surfaces.run()
+                assert op.isfile(dense_fname)
+                assert op.isfile(medium_fname)
+                with pytest.raises(IOError, match='overwrite'):
+                    mne_make_scalp_surfaces.run()
     # actually check the outputs
     head_py = read_bem_surfaces(dense_fname)
     assert_equal(len(head_py), 1)
@@ -160,6 +153,8 @@ def test_make_scalp_surfaces():
     head_c = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
                                        'sample-head-dense.fif'))[0]
     assert_allclose(head_py['rr'], head_c['rr'])
+    if not has:
+        assert 'SUBJECTS_DIR' not in os.environ
 
 
 def test_maxfilter():
