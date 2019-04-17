@@ -46,6 +46,19 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
     assert get_3d_backend() == backend
 
 
+@pytest.mark.parametrize('backend', [
+    pytest.param('vtki', marks=skips_if_not_vtki),
+])
+def test_vtki_backend(backend):
+    import warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        import vtki
+        vtki.OFF_SCREEN = True
+        sphere = vtki.Sphere()
+        sphere.plot(off_screen=True)
+
+
 def test_3d_backend(backends_3d):
     """Test default plot."""
     from mne.viz.backends.renderer import _Renderer
