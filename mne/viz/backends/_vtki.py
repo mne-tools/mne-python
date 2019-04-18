@@ -12,6 +12,7 @@ import numpy as np
 
 class _Projection(object):
     """Class storing projection information.
+
     Attributes
     ----------
     xy : array
