@@ -8,6 +8,7 @@ from numpy.random import rand
 import numpy as np
 
 from ..utils import _check_pylsl_installed
+from mne import io
 
 
 class MockLSLStream:
@@ -17,26 +18,19 @@ class MockLSLStream:
     ----------
     host : str
         The LSL identifier of the server.
-    n_channels : int
-        Number of channels.
+    raw : instance of Raw object
+        An instance of Raw object to be streamed.
     ch_type : str
-        The type of device that is being mocked.
-    sfreq : float
-        Sampling frequency of mock device.
-    testing : bool
-        Setting used to determine whether the data stream will be used
-        for testing where the data is uniform and expected or with some
-        random variation. Default is False.
+        The type of data that is being streamed.
     """
 
-    def __init__(self, host, n_channels=8, ch_type="eeg", sfreq=100,
-                 testing=False):
+    def __init__(self, host, raw, ch_type):
         self._host = host
-        self._n_channels = n_channels
         self._ch_type = ch_type
-        self._sfreq = sfreq
-        self._testing = testing
-        self._streaming = False
+
+        raw.load_data().pick(ch_type)
+        self._raw = raw
+        self._sfreq = self._raw.info['sfreq']
 
     def start(self):
         """Start a mock LSL stream."""
@@ -61,37 +55,27 @@ class MockLSLStream:
         pylsl = _check_pylsl_installed(strict=True)
         self._streaming = True
         info = pylsl.StreamInfo(name='MNE', type=self._ch_type.upper(),
-                                channel_count=self._n_channels,
-                                nominal_srate=self._sfreq,
+                                channel_count=self._raw.info['nchan'],
+                                nominal_srate=self._raw.info['sfreq'],
                                 channel_format='float32', source_id=self._host)
         info.desc().append_child_value("manufacturer", "MNE")
         channels = info.desc().append_child("channels")
-        for c_id in range(1, self._n_channels + 1):
+        for ch in self._raw.info['chs']:
+            unit = ch['unit']
+            keys, values = zip(*list(io.constants.FIFF.items()))
+            unit = keys[values.index(unit)]
             channels.append_child("channel") \
-                    .append_child_value("label", "MNE {:03d}".format(c_id)) \
+                    .append_child_value("label", ch['ch_name']) \
                     .append_child_value("type", self._ch_type.lower()) \
-                    .append_child_value("unit", "microvolt")
+                    .append_child_value("unit", unit)
 
         # next make an outlet
         outlet = pylsl.StreamOutlet(info)
 
         # let's make some data
         counter = 0
-        trigger = 0
         while self._streaming:
-            sample = counter % self._sfreq
-            # let's bound trigger to be between 1 and 10 so the max cycle
-            # is ten seconds
-            trigger = 0 if trigger == 10 else trigger
-            if sample == 0:
-                trigger += 1
-
-            if self._testing:
-                const = trigger
-            else:
-                const = np.sin(2 * np.pi * sample / self._sfreq) * 1e-6
-
-            mysample = rand(self._n_channels).dot(const).tolist()
+            mysample = self._raw[:, counter][0].ravel().tolist()
             # now send it and wait for a bit
             outlet.push_sample(mysample)
             counter += 1

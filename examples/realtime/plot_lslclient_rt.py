@@ -16,6 +16,8 @@ the desired stream.
 import matplotlib.pyplot as plt
 
 from mne.realtime import LSLClient, MockLSLStream
+from mne.datasets import sample
+from mne.io import read_raw_fif
 
 print(__doc__)
 
@@ -25,8 +27,13 @@ host = 'mne_stream'
 wait_max = 5
 
 
+# Load a file to stream raw data
+data_path = sample.data_path()
+raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+raw = read_raw_fif(raw_fname)
+
 # For this example, let's use the mock LSL stream.
-stream = MockLSLStream(host)
+stream = MockLSLStream(host, raw, 'eeg')
 stream.start()
 
 # Let's observe it
@@ -39,10 +46,10 @@ with LSLClient(info=None, host=host, wait_max=wait_max) as client:
     # let's observe ten seconds of data
     for ii in range(10):
         epoch = client.get_data_as_epoch(n_samples=100)
-        epoch.average().plot(axes=ax, ylim=dict(eeg=[-1, 1]))
+        epoch.average().plot(axes=ax)
         plt.pause(1)
         plt.cla()
 
 # Let's terminate the mock LSL stream
-stream.close()
+stream.stop()
 plt.close()
