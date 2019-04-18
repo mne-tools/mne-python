@@ -36,7 +36,7 @@ class _Renderer(object):
         return self.plotter
 
     def set_interactive(self):
-        return 0
+        self.plotter.enable_terrain_style()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
@@ -191,9 +191,12 @@ class _Renderer(object):
     def close(self):
         self.plotter.close()
 
-    def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None):
-        return 0
+    def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
+                   focalpoint=(0, 0, 0)):
+        self.plotter.set_position([
+            distance * np.sin(elevation) * np.sin(azimuth),
+            distance * np.sin(-elevation) * np.cos(azimuth),
+            distance * np.cos(elevation)])
 
     def screenshot(self):
         return self.plotter.screenshot()
