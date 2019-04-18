@@ -440,6 +440,7 @@ Events
    :toctree: generated/
 
    define_target_events
+   shift_time_events
 
 :py:mod:`mne.epochs`:
 
