@@ -11,38 +11,54 @@ This tutorial covers plotting methods of Evoked objects.
 """
 
 ###############################################################################
-# We'll start by importing the modules we need, loading some example data,
-# epoching it, and averaging within condition to get :class:`~mne.Evoked`
-# objects:
+# We'll start by importing the modules we need and loading some example data,
+# but this time we'll load sample data that's already been epoched and averaged
+# to create :class:`~mne.Evoked` objects. Note that :class:`~mne.Evoked`
+# objects saved in ``.fif`` format do not retain information about the baseline
+# correction period, so :func:`~mne.read_evokeds` takes a ``baseline``
+# parameter. As when creating :class:`~mne.Epochs` objects, the default is to
+# not apply baseline correction, and passing a two-element iterable as
+# ``baseline`` is interpreted as (beginning, end) of the baseline period in
+# seconds; see the documentation of the ``baseline`` parameter in
+# :func:`~mne.read_evokeds` for more information.
 
 import os
 import numpy as np
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
-# get events
-events = mne.find_events(raw, stim_channel='STI 014')
-event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4, 'face': 5, 'button': 32}
-# make epochs
-raw.info['bads'].append('EEG 007')
-reject_criteria = dict(mag=4e-12, grad=4e-10, eeg=150e-6, eog=250e-6)
-epochs = mne.Epochs(raw, events, event_id=event_dict, reject=reject_criteria,
-                    preload=True)
-# make evokeds
-aud_left = epochs['auditory/left'].average()
-aud_right = epochs['auditory/right'].average()
-vis_left = epochs['visual/left'].average()
-vis_right = epochs['visual/right'].average()
+sample_data_ave_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                    'sample_audvis-ave.fif')
+evokeds = mne.read_evokeds(sample_data_ave_file, baseline=[None, 0])
 
-# TODO Why is this so different from the manual averaging above?
-# sample_data_ave_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-#                                     'sample_audvis-ave.fif')
-# evokeds = mne.read_evokeds(sample_data_ave_file)
-# aud_left, aud_right, vis_left, vis_right = evokeds
+###############################################################################
+# The file contains four :class:`~mne.Evoked` objects, created from the four
+# conditions we've seen already in the :ref:`epoching tutorials
+# <epochs-intro-tutorial>` (the condition name is printed just after the "|"
+# character in each object's summary representation):
+
+_ = [print(ev) for ev in evokeds]
+
+###############################################################################
+# Before continuing, let's assign each to its own variable name, so we don't
+# have to keep track of position in the ``evokeds`` list. We'll also drop the
+# EOG channel since we won't need it in this tutorial:
+
+for ev in evokeds:
+    ev.drop_channels('EOG 061')
+aud_left, aud_right, vis_left, vis_right = evokeds
+
+
+###############################################################################
+# You can get a sense of what preprocessing was done before creating these
+# :class:`~mne.Evoked` objects by looking at the ``info`` dictionary. Here
+# we'll just view a few relevant keys; you can see that the data were highpass
+# filtered at 0.1 Hz (to remove slow signal drifts) and lowpass filtered at 40
+# Hz, and have 3 empty room projectors, one EEG average reference projector,
+# and two channels marked as "bad".
+
+for key in ('highpass', 'lowpass', 'bads', 'projs'):
+    print(f'{key:9}: {aud_left.info[key]}')
 
 ###############################################################################
 # We saw in the :ref:`introduction to evoked data <evoked-intro-tutorial>`
@@ -54,13 +70,13 @@ vis_right = epochs['visual/right'].average()
 # color. A color-coded sensor map will be inset in the plot area when
 # ``spatial_colors=True``:
 
-aud_left.plot(spatial_colors=True)
+vis_right.plot(spatial_colors=True)
 
 ###############################################################################
 # Another useful parameter is ``gfp``, which adds a plot of the global field
 # power alongside the sensor traces:
 
-aud_left.plot(gfp=True)
+vis_right.plot(gfp=True)
 
 ###############################################################################
 # The :meth:`~mne.Evoked.plot` method also has both a ``picks`` parameter for
@@ -70,7 +86,7 @@ aud_left.plot(gfp=True)
 # ``exclude``, resulting in a plot with good channels plotted in black and bad
 # channels in red:
 
-aud_left.plot(picks='grad', exclude=[])
+vis_right.plot(picks='grad', exclude=[])
 
 ###############################################################################
 # :class:`~mne.Evoked` data can also be visualized as a time-by-channel image,
@@ -82,8 +98,8 @@ aud_left.plot(picks='grad', exclude=[])
 # range compresses the range of all other channels into the middle of the
 # colormap, making the pattern of activity difficult to distinguish.
 
-aud_left.plot_image(picks='grad')
-aud_left.plot_image(picks='grad', exclude=[])
+vis_left.plot_image(picks='grad')
+vis_left.plot_image(picks='grad', exclude=[])
 
 ###############################################################################
 # Plotting the spatial distribution of :class:`~mne.Evoked` signals
@@ -93,7 +109,7 @@ aud_left.plot_image(picks='grad', exclude=[])
 # visualized in a couple different ways. Sensor-by-sensor time series plots are
 # possible with :meth:`~mne.Evoked.plot_topo`:
 
-aud_left.plot_topo(color='r')
+vis_left.plot_topo(color='r')
 
 ###############################################################################
 # Another option is to plot scalp topographies at specific times with
@@ -154,7 +170,7 @@ vis_left.plot_joint(picks='mag', times=[0.09, 0.12, 0.18, 0.36])
 # list or dictionary of :class:`~mne.Evoked` objects; if a dictionary is
 # provided its keys will be used as the legend labels:
 
-conditions = {'Right auditory': aud_right, 'Right visual': vis_right}
+conditions = {'Left auditory': aud_left, 'Left visual': vis_left}
 mne.viz.plot_compare_evokeds(conditions, picks='grad',
                              title='Average of gradiometers')
 
