@@ -193,13 +193,25 @@ class _Renderer(object):
 
     def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
                    focalpoint=(0, 0, 0)):
-        self.plotter.set_position([
-            distance * np.sin(elevation) * np.sin(azimuth),
-            distance * np.sin(-elevation) * np.cos(azimuth),
-            distance * np.cos(elevation)])
+        from numpy import cos, sin
+        phi = _deg2rad(azimuth)
+        theta = _deg2rad(elevation)
+        position = [
+            distance * cos(phi) * sin(theta),
+            distance * sin(phi) * sin(theta),
+            distance * cos(theta)]
+        self.plotter.renderer.camera_position = [
+            position, focalpoint, [0, 0, 1]]
+        self.plotter.renderer.reset_camera()
 
     def screenshot(self):
         return self.plotter.screenshot()
 
     def project(self, xyz, ch_names):
         return 0
+
+
+def _deg2rad(deg):
+    """Converts degrees to radians."""
+    from numpy import pi
+    return deg * pi / 180.
