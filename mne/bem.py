@@ -16,6 +16,7 @@ import numpy as np
 from scipy import linalg
 
 from .io.constants import FIFF, FWD
+from .io.meas_info import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
                        end_file)
@@ -144,6 +145,7 @@ def _correct_auto_elements(surf, mat):
     for j, miss in enumerate(misses):
         # How much is missing?
         n_memb = len(surf['neighbor_tri'][j])
+        assert n_memb > 0  # should be guaranteed by our surface checks
         # The node itself receives one half
         mat[j, j] = miss / 2.0
         # The rest is divided evenly among the member nodes...
@@ -170,8 +172,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
         rr_ord = np.arange(nps[si_1])
         for si_2, surf2 in enumerate(surfs):
             logger.info("        %s (%d) -> %s (%d) ..." %
-                        (_bem_explain_surface(surf1['id']), nps[si_1],
-                         _bem_explain_surface(surf2['id']), nps[si_2]))
+                        (_surf_name[surf1['id']], nps[si_1],
+                         _surf_name[surf2['id']], nps[si_2]))
             tri_rr = surf2['rr'][surf2['tris']]
             tri_nn = surf2['tri_nn']
             tri_area = surf2['tri_area']
@@ -251,11 +253,24 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
     return
 
 
+def _check_complete_surface(surf, copy=False):
+    surf = complete_surface_info(surf, copy=copy, verbose=False)
+    fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
+    if len(fewer) > 0:
+        raise RuntimeError('Surface %s has topological defects: %d / %d '
+                           'vertices have fewer than three neighboring '
+                           'triangles [%s]'
+                           % (_surf_name[surf['id']],
+                              len(fewer), surf['ntri'],
+                              ', '.join(str(f) for f in fewer)))
+    return surf
+
+
 def _fwd_bem_linear_collocation_solution(m):
     """Compute the linear collocation potential solution."""
     # first, add surface geometries
     for surf in m['surfs']:
-        complete_surface_info(surf, copy=False, verbose=False)
+        _check_complete_surface(surf)
 
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
@@ -333,9 +348,11 @@ def make_bem_solution(surfs, verbose=None):
 def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
     n_tri = len(surf['tris'])
-    found = -1
-    bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
-               "subdivided icosahedron." % n_tri)
+    bad_msg = ("Cannot decimate to requested ico grade %d. The provided "
+               "BEM surface has %d triangles, which cannot be isomorphic with "
+               "a subdivided icosahedron. Consider manually decimating the "
+               "surface to a suitable density and then use ico=None in "
+               "make_bem_model." % (dest_grade, n_tri))
     if n_tri % 20 != 0:
         raise RuntimeError(bad_msg)
     n_tri = n_tri // 20
@@ -394,7 +411,6 @@ def _order_surfaces(surfs):
 def _assert_complete_surface(surf, incomplete='raise'):
     """Check the sum of solid angles as seen from inside."""
     # from surface_checks.c
-    tot_angle = 0.
     # Center of mass....
     cm = surf['rr'].mean(axis=0)
     logger.info('%s CM is %6.2f %6.2f %6.2f mm' %
@@ -481,7 +497,9 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
         for si, surf in enumerate(surfs):
             surfs[si] = _ico_downsample(surf, ico)
     for surf, id_ in zip(surfs, ids):
+        # Do topology checks (but don't save data) to fail early
         surf['id'] = id_
+        _check_complete_surface(surf, copy=True)
         surf['coord_frame'] = surf.get('coord_frame', FIFF.FIFFV_COORD_MRI)
         surf.update(np=len(surf['rr']), ntri=len(surf['tris']))
         if rescale:
@@ -627,7 +645,6 @@ def _compute_linear_parameters(mu, u):
     y, uu, sing, vv = _compose_linear_fitting_data(mu, u)
 
     # Compute the residuals
-    resi = y.copy()
     vec = np.dot(y, uu)
     resi = y - np.dot(uu, vec)
     vec /= sing
@@ -799,16 +816,6 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 
 # #############################################################################
 # Sphere fitting
-
-_dig_kind_dict = {
-    'cardinal': FIFF.FIFFV_POINT_CARDINAL,
-    'hpi': FIFF.FIFFV_POINT_HPI,
-    'eeg': FIFF.FIFFV_POINT_EEG,
-    'extra': FIFF.FIFFV_POINT_EXTRA,
-}
-_dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
-_dig_kind_ints = tuple(_dig_kind_dict.values())
-
 
 @verbose
 def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
@@ -1242,7 +1249,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
             logger.info('    %d BEM surfaces read' % len(surf))
         for this in surf:
             if patch_stats or this['nn'] is None:
-                complete_surface_info(this, copy=False)
+                _check_complete_surface(this)
     return surf[0] if s_id is not None else surf
 
 
@@ -1332,8 +1339,10 @@ def read_bem_solution(fname, verbose=None):
 
     See Also
     --------
-    write_bem_solution, read_bem_surfaces, write_bem_surfaces,
+    read_bem_surfaces
+    write_bem_surfaces
     make_bem_solution
+    write_bem_solution
     """
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
     logger.info('Loading surfaces...')
@@ -1433,18 +1442,12 @@ def _bem_find_surface(bem, id_):
         name = id_
         id_ = _surf_dict[id_]
     else:
-        name = _bem_explain_surface(id_)
+        name = _surf_name[id_]
     idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
     if len(idx) != 1:
         raise RuntimeError('BEM model does not have the %s triangulation'
                            % name.replace('_', ' '))
     return bem['surfs'][idx[0]]
-
-
-def _bem_explain_surface(id_):
-    """Return a string corresponding to the given surface ID."""
-    _rev_dict = {val: key for key, val in _surf_dict.items()}
-    return _rev_dict[id_]
 
 
 # ############################################################################
@@ -1609,9 +1612,9 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         logger.info("\n---- Converting Flash images ----")
         echos = ['001', '002', '003', '004', '005', '006', '007', '008']
         if flash30:
-            flashes = ['05']
-        else:
             flashes = ['05', '30']
+        else:
+            flashes = ['05']
         #
         missing = False
         for flash in flashes:
@@ -1826,14 +1829,9 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         out_fname = op.join(flash_bem_dir, surf + '.tri')
         shutil.move(op.join(bem_dir, surf + '.tri'), out_fname)
         nodes, tris = read_tri(out_fname, swap=True)
-        vol_info = _extract_volume_info(flash5_reg)
-        if vol_info is None:
-            warn('nibabel is required to update the volume info. Volume info '
-                 'omitted from the written surface.')
-        else:
-            vol_info['head'] = np.array([20])
-        write_surface(op.splitext(out_fname)[0] + '.surf', nodes, tris,
-                      volume_info=vol_info)
+        # Do not write volume info here because the tris are already in
+        # standard Freesurfer coords
+        write_surface(op.splitext(out_fname)[0] + '.surf', nodes, tris)
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")

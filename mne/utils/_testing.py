@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""The check functions."""
+"""Testing functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
@@ -19,8 +19,11 @@ from unittest import SkipTest
 import warnings
 
 import numpy as np
+from numpy.testing import assert_array_equal, assert_allclose
+from scipy import linalg
 
 from ._logging import warn
+from .numerics import object_diff
 
 
 def _memory_usage(*args, **kwargs):
@@ -171,6 +174,7 @@ if not has_nibabel() and not has_freesurfer():
 """
 
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
@@ -220,7 +224,8 @@ def check_version(library, min_version):
         ok = False
     else:
         if min_version:
-            this_version = LooseVersion(library.__version__.lstrip('v'))
+            this_version = LooseVersion(
+                getattr(library, '__version__', '0.0').lstrip('v'))
             if this_version < min_version:
                 ok = False
     return ok
@@ -413,3 +418,139 @@ def assert_and_remove_boundary_annot(annotations, n=1):
         idx = np.where(annotations.description == '%s boundary' % key)[0]
         assert len(idx) == n
         annotations.delete(idx)
+
+
+def assert_object_equal(a, b):
+    """Assert two objects are equal."""
+    d = object_diff(a, b)
+    assert d == '', d
+
+
+def _raw_annot(meas_date, orig_time):
+    from .. import Annotations, create_info
+    from ..io import RawArray
+    info = create_info(ch_names=10, sfreq=10.)
+    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    raw.info['meas_date'] = meas_date
+    annot = Annotations([.5], [.2], ['dummy'], orig_time)
+    raw.set_annotations(annotations=annot)
+    return raw
+
+
+def _get_data(x, ch_idx):
+    """Get the (n_ch, n_times) data array."""
+    from ..evoked import Evoked
+    from ..io import BaseRaw
+    if isinstance(x, BaseRaw):
+        return x[ch_idx][0]
+    elif isinstance(x, Evoked):
+        return x.data[ch_idx]
+
+
+def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
+    """Check the SNR of a set of channels."""
+    actual_data = _get_data(actual, picks)
+    desired_data = _get_data(desired, picks)
+    bench_rms = np.sqrt(np.mean(desired_data * desired_data, axis=1))
+    error = actual_data - desired_data
+    error_rms = np.sqrt(np.mean(error * error, axis=1))
+    np.clip(error_rms, 1e-60, np.inf, out=error_rms)  # avoid division by zero
+    snrs = bench_rms / error_rms
+    # min tol
+    snr = snrs.min()
+    bad_count = (snrs < min_tol).sum()
+    msg = ' (%s)' % msg if msg != '' else msg
+    assert bad_count == 0, ('SNR (worst %0.2f) < %0.2f for %s/%s '
+                            'channels%s' % (snr, min_tol, bad_count,
+                                            len(picks), msg))
+    # median tol
+    snr = np.median(snrs)
+    assert snr >= med_tol, ('%s SNR median %0.2f < %0.2f%s'
+                            % (kind, snr, med_tol, msg))
+
+
+def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
+                   msg=None):
+    """Assert channel SNR of a certain level.
+
+    Mostly useful for operations like Maxwell filtering that modify
+    MEG channels while leaving EEG and others intact.
+    """
+    from ..io.pick import pick_types
+    picks = pick_types(desired.info, meg=True, exclude=[])
+    picks_desired = pick_types(desired.info, meg=True, exclude=[])
+    assert_array_equal(picks, picks_desired, err_msg='MEG pick mismatch')
+    chpis = pick_types(actual.info, meg=False, chpi=True, exclude=[])
+    chpis_desired = pick_types(desired.info, meg=False, chpi=True, exclude=[])
+    if chpi_med_tol is not None:
+        assert_array_equal(chpis, chpis_desired, err_msg='cHPI pick mismatch')
+    others = np.setdiff1d(np.arange(len(actual.ch_names)),
+                          np.concatenate([picks, chpis]))
+    others_desired = np.setdiff1d(np.arange(len(desired.ch_names)),
+                                  np.concatenate([picks_desired,
+                                                  chpis_desired]))
+    assert_array_equal(others, others_desired, err_msg='Other pick mismatch')
+    if len(others) > 0:  # if non-MEG channels present
+        assert_allclose(_get_data(actual, others),
+                        _get_data(desired, others), atol=1e-11, rtol=1e-5,
+                        err_msg='non-MEG channel mismatch')
+    _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG')
+    if chpi_med_tol is not None and len(chpis) > 0:
+        _check_snr(actual, desired, chpis, 0., chpi_med_tol, msg, kind='cHPI')
+
+
+def assert_snr(actual, desired, tol):
+    """Assert actual and desired arrays are within some SNR tolerance."""
+    snr = (linalg.norm(desired, ord='fro') /
+           linalg.norm(desired - actual, ord='fro'))
+    assert snr >= tol, '%f < %f' % (snr, tol)
+
+
+def _dig_sort_key(dig):
+    """Sort dig keys."""
+    return (dig['kind'], dig['ident'])
+
+
+def assert_dig_allclose(info_py, info_bin, limit=None):
+    """Assert dig allclose."""
+    from ..bem import fit_sphere_to_headshape
+    from ..io.constants import FIFF
+    # test dig positions
+    dig_py = sorted(info_py['dig'], key=_dig_sort_key)
+    dig_bin = sorted(info_bin['dig'], key=_dig_sort_key)
+    assert len(dig_py) == len(dig_bin)
+    for ii, (d_py, d_bin) in enumerate(zip(dig_py[:limit], dig_bin[:limit])):
+        for key in ('ident', 'kind', 'coord_frame'):
+            assert d_py[key] == d_bin[key]
+        assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
+                        err_msg='Failure on %s:\n%s\n%s'
+                        % (ii, d_py['r'], d_bin['r']))
+    if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py):
+        r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(
+            info_bin, units='m', verbose='error')
+        r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(
+            info_py, units='m', verbose='error')
+        assert_allclose(r_py, r_bin, atol=1e-6)
+        assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-6)
+        assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)
+
+
+@contextmanager
+def modified_env(**d):
+    """Use a modified os.environ with temporarily replaced key/value pairs.
+
+    Parameters
+    ----------
+    **kwargs : dict
+        The key/value pairs of environment variables to replace.
+    """
+    orig_env = dict()
+    for key, val in d.items():
+        orig_env[key] = os.getenv(key)
+        os.environ[key] = val
+    yield
+    for key, val in orig_env.items():
+        if val is not None:
+            os.environ[key] = val
+        else:
+            del os.environ[key]

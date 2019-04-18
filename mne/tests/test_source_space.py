@@ -1,19 +1,20 @@
 import os
 import os.path as op
-from unittest import SkipTest
+from shutil import copytree
 
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 from mne.datasets import testing
+import mne
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, read_trans, compute_source_morph)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
-                       requires_freesurfer, run_subprocess,
-                       requires_mne, requires_version, run_tests_if_main)
+                       requires_freesurfer, run_subprocess, modified_env,
+                       requires_mne, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header, _read_talxfm
 from mne.source_estimate import _get_src_type
@@ -22,6 +23,7 @@ from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
                               get_volume_labels_from_src,
                               _compare_source_spaces)
 from mne.io.constants import FIFF
+from mne.bem import ConductorModel
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -53,8 +55,7 @@ def test_mgz_header():
     assert_allclose(mri_hdr.get_ras2vox(), header['ras2vox'])
 
 
-@requires_version('scipy', '0.11')
-def test_add_patch_info():
+def test_add_patch_info(monkeypatch):
     """Test adding patch info to source space."""
     # let's setup a small source space
     src = read_source_spaces(fname_small)
@@ -65,17 +66,15 @@ def test_add_patch_info():
         s['pinfo'] = None
 
     # test that no patch info is added for small dist_limit
-    try:
-        add_source_space_distances(src_new, dist_limit=0.00001)
-    except RuntimeError:  # what we throw when scipy version is wrong
-        pass
-    else:
-        assert all(s['nearest'] is None for s in src_new)
-        assert all(s['nearest_dist'] is None for s in src_new)
-        assert all(s['pinfo'] is None for s in src_new)
+    add_source_space_distances(src_new, dist_limit=0.00001)
+    assert all(s['nearest'] is None for s in src_new)
+    assert all(s['nearest_dist'] is None for s in src_new)
+    assert all(s['pinfo'] is None for s in src_new)
 
-    # now let's use one that works
-    add_source_space_distances(src_new)
+    # now let's use one that works (and test our warning-throwing)
+    monkeypatch.setattr(mne.source_space, '_DIST_WARN_LIMIT', 1)
+    with pytest.warns(RuntimeWarning, match='Computing distances for 258'):
+        add_source_space_distances(src_new)
 
     for s1, s2 in zip(src, src_new):
         assert_array_equal(s1['nearest'], s2['nearest'])
@@ -86,7 +85,6 @@ def test_add_patch_info():
 
 
 @testing.requires_testing_data
-@requires_version('scipy', '0.11')
 def test_add_source_space_distances_limited():
     """Test adding distances to source space with a dist_limit."""
     tempdir = _TempDir()
@@ -98,10 +96,7 @@ def test_add_source_space_distances_limited():
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
     out_name = op.join(tempdir, 'temp-src.fif')
-    try:
-        add_source_space_distances(src_new, dist_limit=0.007)
-    except RuntimeError:  # what we throw when scipy version is wrong
-        raise SkipTest('dist_limit requires scipy > 0.13')
+    add_source_space_distances(src_new, dist_limit=0.007)
     write_source_spaces(out_name, src_new)
     src_new = read_source_spaces(out_name)
 
@@ -125,7 +120,6 @@ def test_add_source_space_distances_limited():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_version('scipy', '0.11')
 def test_add_source_space_distances():
     """Test adding distances to source space."""
     tempdir = _TempDir()
@@ -186,7 +180,8 @@ def test_discrete_source_space():
                         '--pos', temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
         pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
-        src_new = setup_volume_source_space(None, pos=pos_dict)
+        src_new = setup_volume_source_space(pos=pos_dict)
+        assert src_new.kind == 'discrete'
         _compare_source_spaces(src_c, src_new, mode='approx')
         assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
                         rtol=1e-3, atol=1e-6)
@@ -218,10 +213,13 @@ def test_volume_source_space():
     temp_name = op.join(tempdir, 'temp-src.fif')
     surf = read_bem_surfaces(fname_bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN)
     surf['rr'] *= 1e3  # convert to mm
+    bem_surfs = read_bem_surfaces(fname_bem)
+    bem = ConductorModel(is_sphere=False, surfs=bem_surfs)
     # The one in the testing dataset (uses bem as bounds)
-    for bem, surf in zip((fname_bem, None), (None, surf)):
+    for this_bem, this_surf in zip((bem, fname_bem, None),
+                                   (None, None, surf)):
         src_new = setup_volume_source_space(
-            'sample', pos=7.0, bem=bem, surface=surf, mri='T1.mgz',
+            'sample', pos=7.0, bem=this_bem, surface=this_surf,
             subjects_dir=subjects_dir)
         write_source_spaces(temp_name, src_new, overwrite=True)
         src[0]['subject_his_id'] = 'sample'  # XXX: to make comparison pass
@@ -386,6 +384,30 @@ def test_setup_source_space():
     # dense source space to hit surf['inuse'] lines of _create_surf_spacing
     pytest.raises(RuntimeError, setup_source_space, 'sample',
                   spacing='ico6', subjects_dir=subjects_dir, add_dist=False)
+
+
+@testing.requires_testing_data
+@requires_mne
+@pytest.mark.slowtest
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize('spacing', [2, 7])
+def test_setup_source_space_spacing(tmpdir, spacing):
+    """Test setting up surface source spaces using a given spacing."""
+    tempdir = str(tmpdir)
+    copytree(op.join(subjects_dir, 'sample'), op.join(tempdir, 'sample'))
+    args = [] if spacing == 7 else ['--spacing', str(spacing)]
+    with modified_env(SUBJECTS_DIR=tempdir, SUBJECT='sample'):
+        run_subprocess(['mne_setup_source_space'] + args)
+    src = read_source_spaces(op.join(tempdir, 'sample', 'bem',
+                                     'sample-%d-src.fif' % spacing))
+    src_new = setup_source_space('sample', spacing=spacing, add_dist=False,
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx', nearest=True)
+    # Degenerate conditions
+    with pytest.raises(TypeError, match='spacing must be.*got.*float.*'):
+        setup_source_space('sample', 7., subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='spacing must be >= 2, got 1'):
+        setup_source_space('sample', 1, subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data

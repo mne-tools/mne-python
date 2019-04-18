@@ -30,7 +30,7 @@ print(raw)
 # Most MNE objects have in-built methods for filtering:
 
 filt_bands = [(1, 3), (3, 10), (10, 20), (20, 60)]
-f, (ax, ax2) = plt.subplots(2, 1, figsize=(15, 10))
+_, (ax, ax2) = plt.subplots(2, 1, figsize=(15, 10))
 data, times = raw[0]
 _ = ax.plot(data[0])
 for fmin, fmax in filt_bands:
@@ -70,7 +70,7 @@ raw_amp.apply_function(np.abs, hilb_picks)
 raw_phase = raw_hilb.copy()
 raw_phase.apply_function(np.angle, hilb_picks)
 
-f, (a1, a2) = plt.subplots(2, 1, figsize=(15, 10))
+_, (a1, a2) = plt.subplots(2, 1, figsize=(15, 10))
 a1.plot(raw_band[hilb_picks[0]][0][0].real)
 a1.plot(raw_amp[hilb_picks[0]][0][0].real)
 a2.plot(raw_phase[hilb_picks[0]][0][0].real)

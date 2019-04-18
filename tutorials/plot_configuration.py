@@ -54,7 +54,7 @@ print(mne.get_config(key='MNE_LOGGING_LEVEL'))
 # Notice how the value in the config file was not changed. Logging level of
 # WARNING only applies for this session. Let's see what logging level of
 # WARNING prints for :func:`mne.compute_raw_covariance`.
-cov = mne.compute_raw_covariance(raw)
+cov_raw = mne.compute_raw_covariance(raw)
 
 ###############################################################################
 # Nothing. This means that no warnings were emitted during the computation. If

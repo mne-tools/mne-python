@@ -12,13 +12,12 @@ import numpy as np
 from scipy import linalg
 
 from ..cov import Covariance
-from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.proj import make_projector, Projection
 from ..io.pick import pick_channels_forward
 from ..minimum_norm.inverse import _get_vertno
 from ..source_space import label_src_vertno_sel
-from ..utils import verbose, check_fname, _reg_pinv
+from ..utils import verbose, check_fname, _reg_pinv, _check_compensation_grade
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -46,7 +45,7 @@ def _check_src_type(filters):
 
 
 def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
-                              fwd_norm=None):
+                              fwd_norm=None, apply_proj=True):
     """Input preparation common for all beamformer functions.
 
     Check input values, prepare channel list and gain matrix. For documentation
@@ -72,11 +71,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
                          'forward operator with a surface-based source space '
                          'is used.')
     # Check whether data and forward model have same compensation applied
-    data_comp = get_current_comp(info)
-    fwd_comp = get_current_comp(forward['info'])
-    if data_comp != fwd_comp:
-        raise ValueError('Data (%s) and forward model (%s) do not have same '
-                         'compensation applied.' % (data_comp, fwd_comp))
+    _check_compensation_grade(forward['info'], info, 'forward')
 
     # Restrict forward solution to selected channels
     info_ch_names = [ch['ch_name'] for ch in info['chs']]
@@ -107,17 +102,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     else:
         vertno = _get_vertno(forward['src'])
         G = forward['sol']['data']
-
-    # Apply SSPs
-    proj, ncomp, _ = make_projector(info['projs'], fwd_ch_names)
-
-    if info['projs']:
-        G = np.dot(proj, G)
-
-    # Pick after applying the projections. This makes a copy of G, so further
-    # operations can be safely done in-place.
     G = G[picks_forward]
-    proj = proj[np.ix_(picks_forward, picks_forward)]
 
     # Normalize the leadfield if requested
     if fwd_norm == 'dipole':  # each orientation separately
@@ -137,6 +122,11 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
         raise ValueError('Got invalid value for "fwd_norm". Valid '
                          'values are: "dipole", "vertex" or None.')
 
+    # Apply the projections
+    proj, ncomp, _ = make_projector(info['projs'], fwd_ch_names)
+    proj = proj[np.ix_(picks_forward, picks_forward)]
+    if apply_proj:
+        G = np.dot(proj, G)
     return is_free_ori, ch_names, proj, vertno, G, nn
 
 

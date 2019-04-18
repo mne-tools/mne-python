@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 r"""Browse raw data.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne browse_raw --raw sample_audvis_raw.fif \
-                 --proj sample_audvis_ecg-proj.fif \
-                 --eve sample_audvis_raw-eve.fif
+    $ mne browse_raw --raw sample_audvis_raw.fif \
+                     --proj sample_audvis_ecg-proj.fif \
+                     --eve sample_audvis_raw-eve.fif
 """
 
 # Authors : Eric Larson, PhD
@@ -58,7 +60,7 @@ def run():
                       help="Display low-pass filter corner frequency",
                       default=-1)
     parser.add_option("--filtorder", dest="filtorder", type="int",
-                      help="Display filtering IIR order",
+                      help="Display filtering IIR order (or 0 to use FIR)",
                       default=4)
     parser.add_option("--clipping", dest="clipping",
                       help="Enable trace clipping mode, either 'clip' or "
@@ -105,9 +107,8 @@ def run():
                 'Raw data must be preloaded for chpi, use --preload')
         raw = mne.chpi.filter_chpi(raw)
 
-    highpass = None if highpass < 0 or filtorder <= 0 else highpass
-    lowpass = None if lowpass < 0 or filtorder <= 0 else lowpass
-    filtorder = 4 if filtorder <= 0 else filtorder
+    highpass = None if highpass < 0 or filtorder < 0 else highpass
+    lowpass = None if lowpass < 0 or filtorder < 0 else lowpass
     raw.plot(duration=duration, start=start, n_channels=n_channels,
              group_by=group_by, show_options=show_options, events=events,
              highpass=highpass, lowpass=lowpass, filtorder=filtorder,

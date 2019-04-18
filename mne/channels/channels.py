@@ -14,12 +14,12 @@ import numpy as np
 from scipy import sparse
 
 from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
-                     _check_preload, _validate_type, fill_doc)
+                     _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
-                       _check_excludes_includes, _PICK_TYPES_KEYS,
+                       _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
 
 
@@ -59,36 +59,6 @@ def _get_meg_system(info):
         system = 'unknown'
         have_helmet = False
     return system, have_helmet
-
-
-def _contains_ch_type(info, ch_type):
-    """Check whether a certain channel type is in an info object.
-
-    Parameters
-    ----------
-    info : instance of Info
-        The measurement information.
-    ch_type : str
-        the channel type to be checked for
-
-    Returns
-    -------
-    has_ch_type : bool
-        Whether the channel type is present or not.
-    """
-    _validate_type(ch_type, 'str', "ch_type")
-
-    meg_extras = ['mag', 'grad', 'planar1', 'planar2']
-    fnirs_extras = ['hbo', 'hbr']
-    valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
-                                  if key != 'meg'] + meg_extras + fnirs_extras)
-    if ch_type not in valid_channel_types:
-        raise ValueError('ch_type must be one of %s, not "%s"'
-                         % (valid_channel_types, ch_type))
-    if info is None:
-        raise ValueError('Cannot check for channels of type "%s" because info '
-                         'is None' % (ch_type,))
-    return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
 
 
 def _get_ch_type(inst, ch_type, allow_ref_meg=False):
@@ -763,12 +733,12 @@ class UpdateChannelsMixin(object):
         return self._pick_drop_channels(idx)
 
     def drop_channels(self, ch_names):
-        """Drop some channels.
+        """Drop channel(s).
 
         Parameters
         ----------
-        ch_names : list
-            List of the names of the channels to remove.
+        ch_names : list or str
+            List of channel name(s) or channel name to remove.
 
         Returns
         -------
@@ -785,23 +755,23 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        msg = ("'ch_names' should be a list of strings (the name[s] of the "
-               "channel to be dropped), not a {0}.")
-        if isinstance(ch_names, str):
-            raise ValueError(msg.format("string"))
+        if isinstance(ch_names, list):
+            if not all([isinstance(ch, str) for ch in ch_names]):
+                raise ValueError("'ch_names' must be a list of strings, got "
+                                 "{}.".format([type(ch) for ch in ch_names]))
+        elif isinstance(ch_names, str):
+            ch_names = [ch_names]
         else:
-            if not all([isinstance(ch_name, str)
-                        for ch_name in ch_names]):
-                raise ValueError(msg.format(type(ch_names[0])))
+            raise ValueError("'ch_names' must be a list or a string, got "
+                             "{}.".format(type(ch_names)))
 
-        missing = [ch_name for ch_name in ch_names
-                   if ch_name not in self.ch_names]
+        missing = [ch for ch in ch_names if ch not in self.ch_names]
         if len(missing) > 0:
             msg = "Channel(s) {0} not found, nothing dropped."
             raise ValueError(msg.format(", ".join(missing)))
 
-        bad_idx = [self.ch_names.index(ch_name) for ch_name in ch_names
-                   if ch_name in self.ch_names]
+        bad_idx = [self.ch_names.index(ch) for ch in ch_names
+                   if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         return self._pick_drop_channels(idx)
 
@@ -1025,7 +995,7 @@ def rename_channels(info, mapping):
     if len(ch_names) != len(np.unique(ch_names)):
         raise ValueError('New channel names are not unique, renaming failed')
 
-    # do the reampping in info
+    # do the remapping in info
     info['bads'] = bads
     for ch, ch_name in zip(info['chs'], ch_names):
         ch['ch_name'] = ch_name
@@ -1186,9 +1156,8 @@ def find_ch_connectivity(info, ch_type):
             raise ValueError('info must contain only one channel type if '
                              'ch_type is None.')
         ch_type = channel_type(info, 0)
-    elif ch_type not in ['mag', 'grad', 'eeg']:
-        raise ValueError("ch_type must be 'mag', 'grad' or 'eeg'. "
-                         "Got %s." % ch_type)
+    else:
+        _check_option('ch_type', ch_type, ['mag', 'grad', 'eeg'])
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
      has_eeg_coils_and_meg, has_eeg_coils_only,

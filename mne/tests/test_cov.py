@@ -28,9 +28,8 @@ from mne.io import read_raw_fif, RawArray, read_raw_ctf
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.tests.common import assert_snr
-from mne.utils import (_TempDir, requires_version, run_tests_if_main,
-                       catch_logging)
+from mne.utils import (requires_version, run_tests_if_main,
+                       catch_logging, assert_snr)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -43,6 +42,38 @@ hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 ctf_fname = op.join(testing.data_path(download=False), 'CTF',
                     'testdata_ctf.ds')
+
+
+@pytest.mark.parametrize('proj', (True, False))
+@pytest.mark.parametrize('pca', (True, 'white', False))
+def test_compute_whitener(proj, pca):
+    """Test properties of compute_whitener."""
+    raw = read_raw_fif(raw_fname).crop(0, 3).load_data()
+    raw.pick_types(eeg=True, exclude=())
+    if proj:
+        raw.apply_proj()
+    else:
+        raw.del_proj()
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        cov = compute_raw_covariance(raw)
+    W, _, C = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
+                               verbose='error')
+    n_channels = len(raw.ch_names)
+    n_reduced = len(raw.ch_names)
+    rank = n_channels - len(raw.info['projs'])
+    n_reduced = rank if pca is True else n_channels
+    assert W.shape == C.shape[::-1] == (n_reduced, n_channels)
+    # round-trip mults
+    round_trip = np.dot(W, C)
+    if pca is True:
+        assert_allclose(round_trip, np.eye(n_reduced), atol=1e-7)
+    elif pca == 'white':
+        # Our first few rows/cols are zeroed out in the white space
+        assert_allclose(round_trip[-rank:, -rank:],
+                        np.eye(rank), atol=1e-7)
+    else:
+        assert pca is False
+        assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
 
 
 def test_cov_mismatch():
@@ -140,10 +171,9 @@ def _assert_reorder(cov_new, cov_orig, order):
                     cov_orig['data'], atol=1e-20)
 
 
-def test_ad_hoc_cov():
+def test_ad_hoc_cov(tmpdir):
     """Test ad hoc cov creation and I/O."""
-    tempdir = _TempDir()
-    out_fname = op.join(tempdir, 'test-cov.fif')
+    out_fname = op.join(str(tmpdir), 'test-cov.fif')
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
@@ -158,9 +188,9 @@ def test_ad_hoc_cov():
     assert_array_almost_equal(cov['data'], cov2['data'])
 
 
-def test_io_cov():
+def test_io_cov(tmpdir):
     """Test IO for noise covariance matrices."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['loglik'] = -np.inf
@@ -198,9 +228,9 @@ def test_io_cov():
 
 
 @pytest.mark.parametrize('method', (None, ['empirical']))
-def test_cov_estimation_on_raw(method):
+def test_cov_estimation_on_raw(method, tmpdir):
     """Test estimation from raw (typically empty room)."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
 
@@ -276,9 +306,9 @@ def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('rank', ('full', None))
-def test_cov_estimation_with_triggers(rank):
+def test_cov_estimation_with_triggers(rank, tmpdir):
     """Test estimation from raw with triggers."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname)
     raw.set_eeg_reference(projection=True).load_data()
     events = find_events(raw, stim_channel='STI 014')

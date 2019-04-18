@@ -228,7 +228,7 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
                             dgap_freq=10):
     """Solve L21 inverse problem with proximal iterations and FISTA."""
     n_sensors, n_times = M.shape
-    n_sensors, n_sources = G.shape
+    _, n_sources = G.shape
 
     if n_sources < n_sensors:
         gram = np.dot(G.T, G)
@@ -1011,7 +1011,6 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
 
-    n_sensors, n_times = M.shape
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
 

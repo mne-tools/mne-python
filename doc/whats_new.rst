@@ -19,6 +19,10 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
+
+- Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
+
 - Add ``reject`` parameter to :meth:`mne.preprocessing.ICA.plot_properties` to visualize rejected epochs by `Antoine Gauthier`_
 
 - Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
@@ -32,6 +36,8 @@ Changelog
 - Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
 
 - :meth:`mne.io.Raw.plot` now uses the lesser of ``n_channels`` and ``raw.ch_names``, by `Joan Massich`_
+
+- Add support for FIR filtering in :meth:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` by passing ``filtorder=0`` or ``--filtorder 0``, respectively, by `Eric Larson`_
 
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
 
@@ -53,11 +59,17 @@ Changelog
 
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
 
+- Add approximate distance-based ``spacing`` source space decimation algorithm to :func:`mne.setup_source_space` by `Eric Larson`_
+
 - Add 448-labels subdivided aparc cortical parcellation by `Denis Engemann`_ and `Sheraz Khan`_
 
 - Add option to improve rendering in :ref:`gen_mne_coreg` for modern graphics cards by `Eric Larson`_
 
+- Add :func:`mne.preprocessing.mark_flat` to automate marking of flat channels and segments of raw data by `Eric Larson`_
+
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
+
+- Add option to SSP preprocessing functions (e.g., :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.compute_proj_epochs`) to process MEG channels jointly with ``meg='combined'`` by `Eric Larson`_
 
 - Add Epoch selection and metadata functionality to :class:`mne.time_frequency.EpochsTFR` using new mixin class by `Keith Doelling`_
 
@@ -69,15 +81,56 @@ Changelog
 
 - Add ``channel_wise`` argument to :func:`mne.io.Raw.apply_function` to allow applying a function on multiple channels at once by `Hubert Banville`_
 
+- Add option ``copy='auto'`` to control data copying in :class:`mne.io.RawArray` by `Eric Larson`_
+
+- The ``mri`` parameter in :func:`mne.setup_volume_source_space` is now automatically set to ``T1.mgz`` if ``subject`` is provided. This allows to get a :class:`mne.SourceSpaces` of kind ``volume`` more automatically. By `Alex Gramfort`_
+
+- Add better ``__repr__`` for constants, and :class:`info['dig'] <mne.Info>` entries via :class:`mne.io.DigPoint` by `Eric Larson`_
+
+- Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
+
+- Add additional depth weighting options for inverse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) by `Eric Larson`_
+
+- Allow toggling of DC removal in :meth:`mne.io.Raw.plot` by pressing the 'd' key by `Clemens Brunner`_
+
+- Improved clicking in :meth:`mne.io.Raw.plot` (left click on trace toggles bad, left click on background sets green line, right click anywhere removes green line) by `Clemens Brunner`_
+
+- Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
+
+- Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
+
 Bug
 ~~~
+- Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
+
+- Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
+
+- Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
+
+- Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
+- Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
+- Fix topological checks and error messages for BEM surfaces in :func:`mne.make_bem_model` by `Eric Larson`_
+
+- Fix default HTML language of :class:`mne.Report` to be ``"en-us"`` instead of ``"fr"`` and allow setting via ``report.lang`` property by `Eric Larson`_
 
 - Fix bug where loading epochs with ``preload=True`` and subsequently using :meth:`mne.Epochs.drop_bad` with new ``reject`` or ``flat`` entries leads to improper data (and ``epochs.selection``) since v0.16.0 by `Eric Larson`_.
   If your code uses ``Epochs(..., preload=True).drop_bad(reject=..., flat=...)``, we recommend regenerating these data.
 
+- Fix :ref:`gen_mne_flash_bem` to properly utilize ``flash30`` images when conversion from DICOM images is used, and to properly deal with non-standard acquisition affines by `Eric Larson`_
+
+- Fix :meth:`mne.io.Raw.set_annotations` with ``annotations=None`` to create an empty annotations object with ``orig_time`` that matches the :class:`mne.io.Raw` instance by `Eric Larson`_
+
 - Fix :func:`mne.io.read_raw_edf` returning all the annotations with the same name in GDF files by `Joan Massich`_
 
+- Fix boundaries during plotting of raw data with :func:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` on scaled displays (e.g., macOS with HiDPI/Retina screens) by `Clemens Brunner`_
+
+- Fix bug where filtering was not performed with ``lowpass`` or ``highpass`` in :meth:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` by `Eric Larson`_
+
 - Fix :func:`mne.simulation.simulate_evoked` that was failing to simulate the noise with heterogeneous sensor types due to poor conditioning of the noise covariance and make sure the projections from the noise covariance are taken into account `Alex Gramfort`_
+
+- Fix checking of ``data`` dimensionality in :class:`mne.SourceEstimate` and related constructors by `Eric Larson`_
 
 - Fix :meth:`mne.io.Raw.append` annotations miss-alignment  by `Joan Massich`_
 
@@ -93,6 +146,8 @@ Bug
 
 - Fix saving of rejection parameters in :meth:`mne.Epochs.save` by `Eric Larson`_
 
+- Fix bug in :func:`mne.viz.plot_compare_evokeds` when ``evoked.times[0] >= 0`` would cause a problem with ``vlines='auto'`` mode by `Eric Larson`_
+
 - Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`gen_mne_flash_bem` by `Eric Larson`_
 
 - Fix :meth:`mne.time_frequency.AverageTFR.plot_joint` mishandling bad channels, by `David Haslacher`_ and `Jona Sassenhagen`_
@@ -101,14 +156,26 @@ Bug
 
 - Fix issue with bad channels ignored in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Alex Gramfort`_
 
+- Fix :func:`mne.compute_proj_raw` when ``duration != None`` not to apply existing proj and to avoid using duplicate raw data samples by `Eric Larson`_
+
 - Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg <gen_mne_clean_eog_ecg>` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
 - Fix :func:`mne.io.read_raw_edf` failing when EDF header fields (such as patient name) contained special characters, by `Clemens Brunner`_
 
+- Fix :func:`mne.io.read_raw_eeglab` incorrectly parsing event durations by `Clemens Brunner`_
+
+- Fix :func:`mne.io.read_raw_egi` when cropping non-preloaded EGI MFF data by `Alex Gramfort`_
+
 API
 ~~~
 
+- Add ``overwrite`` parameter in :func:`mne.Epochs.save` by `Katarina Slama`_
+
+- Add ``stim_channel`` parameter in :func:`mne.io.read_raw_cnt` to toggle stim channel synthesis by `Joan Massich`_
+
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
+
+- A new class :class:`mne.VolVectorSourceEstimate` is returned by :func:`mne.minimum_norm.apply_inverse` (and related functions) when a volume source space and ``pick_ori='vector'`` is used, by `Eric Larson`_
 
 - ``raw.estimate_rank`` has been deprecated and will be removed in 0.19 in favor of :func:`mne.compute_rank`  by `Eric Larson`_
 
@@ -116,7 +183,17 @@ API
 
 - Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
 
+- Deprecate ``limit_depth_chs`` in :func:`mne.minimum_norm.make_inverse_operator` in favor of ``depth=dict(limit_depth_chs=...)`` by `Eric Larson`_
+
 - Reading BDF and GDF files with :func:`mne.io.read_raw_edf` is deprecated and replaced by :func:`mne.io.read_raw_bdf` and :func:`mne.io.read_raw_gdf`, by `Clemens Brunner`_
+
+- :func:`mne.forward.compute_depth_prior` has been reworked to operate directly on :class:`Forward` instance as ``forward`` rather than a representation scattered across the parameters ``G, is_fixed_ori, patch_info``, by `Eric Larson`_
+
+- Deprecate ``method='extended-infomax'`` in :class:`mne.preprocessing.ICA`; Extended Infomax can now be computed with ``method='infomax'`` and ``fit_params=dict(extended=True)`` by `Clemens Brunner`_
+
+- Fix support for supplying ``extrapolate`` via :meth:`ica.plot_properties(..., topomap_args=dict(extrapolate=...)) <mne.preprocessing.ICA.plot_properties>` by `Sebastian Castano`_
+
+- The peak finder that was formerly accessible via ``from mne.preprocessing.peak_finder import peak_finder`` should now be imported directly from the enclosing namespace as ``from mne.preprocessing import peak_finder`` by `Eric Larson`_
 
 .. _changes_0_17:
 
@@ -1433,7 +1510,7 @@ API
 
 - Weighted addition and subtraction of :class:`Evoked` as ``ev1 + ev2`` and ``ev1 - ev2`` have been deprecated, use explicit :func:`mne.combine_evoked(..., weights='nave') <mne.combine_evoked>` instead by `Eric Larson`_
 
-- Deprecated support for passing a lits of filenames to :class:`mne.io.Raw` constructor, use :func:`mne.io.read_raw_fif` and :func:`mne.concatenate_raws` instead by `Eric Larson`_
+- Deprecated support for passing a list of filenames to :class:`mne.io.Raw` constructor, use :func:`mne.io.read_raw_fif` and :func:`mne.concatenate_raws` instead by `Eric Larson`_
 
 - Added options for setting data and date formats manually in :func:`mne.io.read_raw_cnt` by `Jaakko Leppakangas`_
 
@@ -3194,3 +3271,11 @@ of commits):
 .. _Jeff Hanna: https://github.com/jshanna100
 
 .. _Antoine Gauthier: https://github.com/Okamille
+
+.. _Sebastian Castano: https://github.com/jscastanoc
+
+.. _Katarina Slama: https://katarinaslama.github.io
+
+.. _Bruno Nicenboim: http://nicenboim.org
+
+.. _Nikolas Chalas: https://github.com/Nichalas

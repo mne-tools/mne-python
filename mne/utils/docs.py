@@ -13,6 +13,7 @@ import webbrowser
 
 from .config import get_config
 from ..externals.doccer import filldoc, unindent_dict
+from .check import _check_option
 
 
 ##############################################################################
@@ -53,13 +54,23 @@ picks : list | slice | None
 # Rank
 docdict['rank'] = """
 rank : None | dict | 'info' | 'full'
-        This controls the rank computation that can be read from the
-        measurement info or estimated from the data. See ``Notes``
-        of :func:`mne.compute_rank` for details."""
+    This controls the rank computation that can be read from the
+    measurement info or estimated from the data. See ``Notes``
+    of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
-# Finalize
 
+# Inverses
+docdict['depth'] = """
+depth : None | float | dict
+    If float (default 0.8), it acts as the depth weighting exponent (``exp``)
+    to use (must be between 0 and 1). None is equivalent to 0, meaning no depth
+    weighting is performed. Can also be a `dict` containing additional keyword
+    arguments to pass to :func:`mne.forward.compute_depth_prior` (see docstring
+    for details and defaults).
+"""
+
+# Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
 
@@ -330,16 +341,11 @@ def open_docs(kind=None, version=None):
         kind = get_config('MNE_DOCS_KIND', 'api')
     help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
                      examples='auto_examples/index.html')
-    if kind not in help_dict:
-        raise ValueError('kind must be one of %s, got %s'
-                         % (sorted(help_dict.keys()), kind))
+    _check_option('kind', kind, sorted(help_dict.keys()))
     kind = help_dict[kind]
     if version is None:
         version = get_config('MNE_DOCS_VERSION', 'stable')
-    versions = ('stable', 'dev')
-    if version not in versions:
-        raise ValueError('version must be one of %s, got %s'
-                         % (version, versions))
+    _check_option('version', version, ['stable', 'dev'])
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
 
 

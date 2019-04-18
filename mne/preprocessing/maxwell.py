@@ -29,12 +29,13 @@ from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..io.pick import pick_types, pick_info
-from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
+from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
+                     _check_option)
 from ..fixes import _get_args, _safe_svd, einsum
 from ..channels.channels import _get_T1T2_mag_inds
 
 
-# Note: Elekta uses single precision and some algorithms might use
+# Note: MF uses single precision and some algorithms might use
 # truncated versions of constants (e.g., μ0), which could lead to small
 # differences between algorithms
 
@@ -46,24 +47,26 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    regularize='in', ignore_ref=False, bad_condition='error',
                    head_pos=None, st_fixed=True, st_only=False, mag_scale=100.,
                    skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
-    u"""Apply Maxwell filter to data using multipole moments.
-
-    .. warning:: Automatic bad channel detection is not currently implemented.
-                 It is critical to mark bad channels before running Maxwell
-                 filtering to prevent artifact spreading.
-
-    .. warning:: Maxwell filtering in MNE is not designed or certified
-                 for clinical use.
+    u"""Maxwell filter data using multipole moments.
 
     Parameters
     ----------
     raw : instance of mne.io.Raw
-        Data to be filtered
+        Data to be filtered.
+
+        .. warning:: Automatic bad channel detection is not currently
+                     implemented. It is critical to mark bad channels in
+                     ``raw.info['bads']`` prior to processing
+                     in orider to prevent artifact spreading.
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in meters.
-        The default is ``'auto'``, which means a head-digitization-based
-        origin fit when ``coord_frame='head'``, and ``(0., 0., 0.)`` when
-        ``coord_frame='meg'``.
+        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+        ``coord_frame='meg'``, and a head-digitization-based
+        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+        to having too few digitization points),
+        consider separately calling the fitting function with different
+        options or specifying the origin manually.
     int_order : int
         Order of internal component of spherical expansion.
     ext_order : int
@@ -76,7 +79,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         Path to the FIF file with cross-talk correction information.
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
-        (in seconds). Elekta's default is 10.0 seconds in MaxFilter™ v2.2.
+        (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
         Spatiotemporal SSS acts as implicitly as a high-pass filter where the
         cut-off frequency is 1/st_dur Hz. For this (and other) reasons, longer
         buffers are generally better as long as your system can handle the
@@ -117,14 +120,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         parameters as returned by e.g. `read_head_pos`.
 
         .. versionadded:: 0.12
-
     st_fixed : bool
         If True (default), do tSSS using the median head position during the
         ``st_duration`` window. This is the default behavior of MaxFilter
         and has been most extensively tested.
 
         .. versionadded:: 0.12
-
     st_only : bool
         If True, only tSSS (temporal) projection of MEG data will be
         performed on the output data. The non-tSSS parameters (e.g.,
@@ -135,10 +136,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         cross-talk cancellation, movement compensation, and so forth
         will not be applied to the data. This is useful, for example, when
         evoked movement compensation will be performed with
-        :func:`mne.epochs.average_movements`.
+        :func:`~mne.epochs.average_movements`.
 
         .. versionadded:: 0.12
-
     mag_scale : float | str
         The magenetometer scale-factor used to bring the magnetometers
         to approximately the same order of magnitude as the gradiometers
@@ -148,13 +148,12 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         59.5 for VectorView).
 
         .. versionadded:: 0.13
-
     skip_by_annotation : str | list of str
         If a string (or list of str), any annotation segment that begins
         with the given string will not be included in filtering, and
         segments on either side of the given excluded annotated segment
         will be filtered separately (i.e., as independent signals).
-        The default (``('edge', 'bad_acq_skip')`` will separately filter
+        The default ``('edge', 'bad_acq_skip')`` will separately filter
         any segments that were concatenated by :func:`mne.concatenate_raws`
         or :meth:`mne.io.Raw.append`, or separated during acquisition.
         To disable, provide an empty list.
@@ -169,6 +168,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     See Also
     --------
+    mne.preprocessing.mark_flat
     mne.chpi.filter_chpi
     mne.chpi.read_head_pos
     mne.epochs.average_movements
@@ -179,12 +179,13 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
-    from [1]_ and [2]_.
+    from [1]_ and [2]_. It will likely use multiple CPU cores, see the
+    :ref:`FAQ <faq_cpu>` for more information.
 
-    .. note:: This code may use multiple CPU cores, see the
-              :ref:`FAQ <faq_cpu>` for more information.
+    .. warning:: Maxwell filtering in MNE is not designed or certified
+                 for clinical use.
 
-    Compared to Elekta's MaxFilter™ software, the MNE Maxwell filtering
+    Compared to the MEGIN MaxFilter™ software, the MNE Maxwell filtering
     routines currently provide the following features:
 
     +-----------------------------------------------------------------------------+-----+-----------+
@@ -225,26 +226,26 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Epoch-based movement compensation is described in [1]_.
 
-    Use of Maxwell filtering routines with non-Elekta systems is currently
-    **experimental**. Worse results for non-Elekta systems are expected due
+    Use of Maxwell filtering routines with non-Neuromag systems is currently
+    **experimental**. Worse results for non-Neuromag systems are expected due
     to (at least):
 
-        * Missing fine-calibration and cross-talk cancellation data for
-          other systems.
-        * Processing with reference sensors has not been vetted.
-        * Regularization of components may not work well for all systems.
-        * Coil integration has not been optimized using Abramowitz/Stegun
-          definitions.
+    * Missing fine-calibration and cross-talk cancellation data for
+      other systems.
+    * Processing with reference sensors has not been vetted.
+    * Regularization of components may not work well for all systems.
+    * Coil integration has not been optimized using Abramowitz/Stegun
+      definitions.
 
     .. note:: Various Maxwell filtering algorithm components are covered by
-              patents owned by Elekta Oy, Helsinki, Finland.
-              These patents include, but may not be limited to:
+              patents owned by MEGIN. These patents include, but may not be
+              limited to:
 
-                  - US2006031038 (Signal Space Separation)
-                  - US6876196 (Head position determination)
-                  - WO2005067789 (DC fields)
-                  - WO2005078467 (MaxShield)
-                  - WO2006114473 (Temporal Signal Space Separation)
+              - US2006031038 (Signal Space Separation)
+              - US6876196 (Head position determination)
+              - WO2005067789 (DC fields)
+              - WO2005078467 (MaxShield)
+              - WO2006114473 (Temporal Signal Space Separation)
 
               These patents likely preclude the use of Maxwell filtering code
               in commercial applications. Consult a lawyer if necessary.
@@ -259,13 +260,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
            multichannel data: The signal space separation method,"
            Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
-
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article2.pdf
 
     .. [2] Taulu S. and Simola J. "Spatiotemporal signal space separation
            method for rejecting nearby interference in MEG measurements,"
            Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
-
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article3.pdf
     """  # noqa: E501
     # There are an absurd number of different possible notations for spherical
@@ -284,9 +283,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     if st_correlation <= 0. or st_correlation > 1.:
         raise ValueError('Need 0 < st_correlation <= 1., got %s'
                          % st_correlation)
-    if coord_frame not in ('head', 'meg'):
-        raise ValueError('coord_frame must be either "head" or "meg", not "%s"'
-                         % coord_frame)
+    _check_option('coord_frame', coord_frame, ['head', 'meg'])
     head_frame = True if coord_frame == 'head' else False
     recon_trans = _check_destination(destination, raw.info, head_frame)
     onsets, ends = _annotations_starts_stops(
@@ -303,10 +300,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         st_duration = int(round(st_duration * raw.info['sfreq']))
         if not 0. < st_correlation <= 1:
             raise ValueError('st_correlation must be between 0. and 1.')
-    if not isinstance(bad_condition, str) or \
-            bad_condition not in ['error', 'warning', 'ignore', 'info']:
-        raise ValueError('bad_condition must be "error", "warning", "info", or'
-                         ' "ignore", not %s' % bad_condition)
+    _check_option('bad_condition', bad_condition,
+                  ['error', 'warning', 'ignore', 'info'])
     if raw.info['dev_head_t'] is None and coord_frame == 'head':
         raise RuntimeError('coord_frame cannot be "head" because '
                            'info["dev_head_t"] is None; if this is an '
@@ -1229,7 +1224,7 @@ def _sss_basis(exp, all_coils):
             sin_order = np.sin(ord_phi)
             cos_order = np.cos(ord_phi)
             mult /= np.sqrt((degree - order + 1) * (degree + order))
-            factor = mult * np.sqrt(2)  # equivalence fix (Elekta uses 2.)
+            factor = mult * np.sqrt(2)  # equivalence fix (MF uses 2.)
 
             # Real
             idx = _deg_ord_idx(degree, order)
@@ -1512,7 +1507,7 @@ def _overlap_projector(data_int, data_res, corr):
     # directions in the subspace. See the end of the Results section in [2]_
 
     # Note that the procedure here is an updated version of [2]_ (and used in
-    # Elekta's tSSS) that uses residuals instead of internal/external spaces
+    # MF's tSSS) that uses residuals instead of internal/external spaces
     # directly. This provides more degrees of freedom when analyzing for
     # intersections between internal and external spaces.
 
@@ -1757,7 +1752,7 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine):
         eta_lm_sq = eta_lm_sq.sum(axis=1)
         eta_lm_sq *= noise_lev
 
-        # Mysterious scale factors to match Elekta, likely due to differences
+        # Mysterious scale factors to match MF, likely due to differences
         # in the basis normalizations...
         eta_lm_sq[orders[in_keepers] == 0] *= 2
         eta_lm_sq *= 0.0025

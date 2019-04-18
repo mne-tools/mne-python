@@ -132,8 +132,8 @@ def test_time_frequency():
     assert 'mag' not in power
     assert 'eeg' not in power
 
-    assert_equal(power.nave, nave)
-    assert_equal(itc.nave, nave)
+    assert power.nave == nave
+    assert itc.nave == nave
     assert (power.data.shape == (len(picks), len(freqs), len(times)))
     assert (power.data.shape == itc.data.shape)
     assert (power_.data.shape == (len(picks), len(freqs), 2))
@@ -145,11 +145,11 @@ def test_time_frequency():
     itc2 = itc.copy()
     itc2.info['bads'] = [itc2.ch_names[0]]  # test channel drop
     gave = grand_average([itc2, itc])
-    assert_equal(gave.data.shape, (itc2.data.shape[0] - 1,
-                                   itc2.data.shape[1],
-                                   itc2.data.shape[2]))
-    assert_equal(itc2.ch_names[1:], gave.ch_names)
-    assert_equal(gave.nave, 2)
+    assert gave.data.shape == (itc2.data.shape[0] - 1,
+                               itc2.data.shape[1],
+                               itc2.data.shape[2])
+    assert itc2.ch_names[1:] == gave.ch_names
+    assert gave.nave == 2
     itc2.drop_channels(itc2.info["bads"])
     assert_array_almost_equal(gave.data, itc2.data)
     itc2.data = np.ones(itc2.data.shape)
@@ -355,16 +355,30 @@ def test_tfr_multitaper():
 
 def test_crop():
     """Test TFR cropping."""
-    data = np.zeros((3, 2, 3))
-    times = np.array([.1, .2, .3])
-    freqs = np.array([.10, .20])
+    data = np.zeros((3, 4, 5))
+    times = np.array([.1, .2, .3, .4, .5])
+    freqs = np.array([.10, .20, .30, .40])
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
                            ['mag', 'mag', 'mag'])
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
-    tfr.crop(0.2, 0.3)
-    assert_array_equal(tfr.times, [0.2, 0.3])
-    assert_equal(tfr.data.shape[-1], 2)
+
+    tfr.crop(tmin=0.2)
+    assert_array_equal(tfr.times, [0.2, 0.3, 0.4, 0.5])
+    assert tfr.data.ndim == 3
+    assert tfr.data.shape[-1] == 4
+
+    tfr.crop(fmax=0.3)
+    assert_array_equal(tfr.freqs, [0.1, 0.2, 0.3])
+    assert tfr.data.ndim == 3
+    assert tfr.data.shape[-2] == 3
+
+    tfr.crop(tmin=0.3, tmax=0.4, fmin=0.1, fmax=0.2)
+    assert_array_equal(tfr.times, [0.3, 0.4])
+    assert tfr.data.ndim == 3
+    assert tfr.data.shape[-1] == 2
+    assert_array_equal(tfr.freqs, [0.1, 0.2])
+    assert tfr.data.shape[-2] == 2
 
 
 @requires_h5py

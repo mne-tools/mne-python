@@ -156,7 +156,7 @@ def test_lcmv_vector():
 
     # Now let's do LCMV
     data_cov = mne.make_ad_hoc_cov(info)  # just a stub for later
-    with pytest.raises(ValueError, match='pick_ori must be one of'):
+    with pytest.raises(ValueError, match="pick_ori"):
         make_lcmv(info, forward, data_cov, 0.05, noise_cov, pick_ori='bad')
 
     lcmv_ori = list()
@@ -621,7 +621,7 @@ def test_tf_lcmv():
                   tstep, win_lengths, freq_bins, weight_norm='nai')
 
     # Test unsupported pick_ori (vector not supported here)
-    with pytest.raises(ValueError, match='pick_ori must be one of'):
+    with pytest.raises(ValueError, match='pick_ori'):
         tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                 freq_bins, pick_ori='vector')
     # Test correct detection of preloaded epochs objects that do not contain
@@ -666,14 +666,14 @@ def test_lcmv_ctf_comp():
     # test whether different compensations throw error
     info_comp = evoked.info.copy()
     set_current_comp(info_comp, 1)
-    with pytest.raises(ValueError,
-                       match='do not have same compensation applied'):
+    with pytest.raises(RuntimeError, match='Compensation grade .* not match'):
         make_lcmv(info_comp, fwd, data_cov)
 
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('proj', [False, True])
-def test_lcmv_reg_proj(proj):
+@pytest.mark.parametrize('weight_norm', (None, 'nai', 'unit-noise-gain'))
+def test_lcmv_reg_proj(proj, weight_norm):
     """Test LCMV with and without proj."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
@@ -689,6 +689,113 @@ def test_lcmv_reg_proj(proj):
                         weight_norm='nai', rank=None, verbose=True)
     want_rank = 302  # 305 good channels - 3 MEG projs
     assert filters['rank'] == want_rank
+    # And also with and without noise_cov
+    with pytest.raises(ValueError, match='several sensor types'):
+        make_lcmv(epochs.info, forward, data_cov, reg=0.05,
+                  noise_cov=None)
+    epochs.pick_types('grad')
+    kwargs = dict(reg=0.05, pick_ori=None, weight_norm=weight_norm)
+    filters_cov = make_lcmv(epochs.info, forward, data_cov,
+                            noise_cov=noise_cov, **kwargs)
+    filters_nocov = make_lcmv(epochs.info, forward, data_cov,
+                              noise_cov=None, **kwargs)
+    ad_hoc = mne.make_ad_hoc_cov(epochs.info)
+    filters_adhoc = make_lcmv(epochs.info, forward, data_cov,
+                              noise_cov=ad_hoc, **kwargs)
+    evoked = epochs.average()
+    stc_cov = apply_lcmv(evoked, filters_cov)
+    stc_nocov = apply_lcmv(evoked, filters_nocov)
+    stc_adhoc = apply_lcmv(evoked, filters_adhoc)
+
+    # Compare adhoc and nocov: scale difference is necessitated by using std=1.
+    if weight_norm == 'unit-noise-gain':
+        scale = np.sqrt(ad_hoc['data'][0])
+    else:
+        scale = 1.
+    assert_allclose(stc_nocov.data, stc_adhoc.data * scale)
+    assert_allclose(
+        np.dot(filters_nocov['weights'], filters_nocov['whitener']),
+        np.dot(filters_adhoc['weights'], filters_adhoc['whitener']) * scale)
+
+    # Compare adhoc and cov: locs might not be equivalent, but the same
+    # general profile should persist, so look at the std and be lenient:
+    if weight_norm == 'unit-noise-gain':
+        adhoc_scale = 0.12
+    else:
+        adhoc_scale = 1.
+    assert_allclose(
+        np.linalg.norm(stc_adhoc.data, axis=0) * adhoc_scale,
+        np.linalg.norm(stc_cov.data, axis=0), rtol=0.3)
+    assert_allclose(
+        np.linalg.norm(stc_nocov.data, axis=0) / scale * adhoc_scale,
+        np.linalg.norm(stc_cov.data, axis=0), rtol=0.3)
+
+    if weight_norm == 'nai':
+        # NAI is always normalized by noise-level (based on eigenvalues)
+        for stc in (stc_nocov, stc_cov):
+            assert_allclose(stc.data.std(), 0.39, rtol=0.1)
+    elif weight_norm is None:
+        # None always represents something not normalized, reflecting channel
+        # weights
+        for stc in (stc_nocov, stc_cov):
+            assert_allclose(stc.data.std(), 1.4e-8, rtol=0.1)
+    else:
+        assert weight_norm == 'unit-noise-gain'
+        # Channel scalings depend on presence of noise_cov
+        assert_allclose(stc_nocov.data.std(), 5.3e-13, rtol=0.1)
+        assert_allclose(stc_cov.data.std(), 0.12, rtol=0.1)
+
+
+@pytest.mark.parametrize('reg, weight_norm, use_cov, lower, upper', [
+    (0.05, 'unit-noise-gain', True, 96, 98),
+    # the 0 reg is not so stable, can produce a wide range of scores
+    (0.00, 'unit-noise-gain', True, 44, 90),
+    (0.05, 'nai', True, 96, 98),
+    (0.05, None, True, 96, 98),
+    (0.05, 'unit-noise-gain', False, 83, 86),
+])
+def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
+                                 lower, upper):
+    """Test localization bias for fixed-orientation LCMV."""
+    evoked, fwd, noise_cov, data_cov, want = bias_params_fixed
+    if not use_cov:
+        evoked.pick_types('grad')
+        noise_cov = None
+    assert data_cov['data'].shape[0] == len(data_cov['names'])
+    loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
+                                       noise_cov)).data
+    loc = np.abs(loc)
+    # Compute the percentage of sources for which there is no loc bias:
+    perc = (want == np.argmax(loc, axis=0)).mean() * 100
+    assert lower <= perc <= upper
+
+
+@pytest.mark.parametrize('reg, pick_ori, weight_norm, use_cov, lower, upper', [
+    (0.05, 'vector', 'unit-noise-gain', True, 36, 39),
+    (0.05, 'vector', 'nai', True, 36, 39),
+    (0.05, 'vector', None, True, 12, 14),
+    # (0.00, 'vector', 'unit-noise-gain', True, 43, 46),  # complex eig
+    (0.05, 'max-power', 'unit-noise-gain', True, 20, 24),
+    (0.05, 'max-power', 'nai', True, 20, 24),
+    (0.05, 'max-power', None, True, 7, 9),
+    # (0., 'max-power', 'unit-noise-gain', True, 37, 40),  # complex eig
+    (0.05, 'vector', 'unit-noise-gain', False, 23, 25),
+    (0.05, 'max-power', 'unit-noise-gain', False, 17, 19),
+])
+def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
+                                use_cov, lower, upper):
+    """Test localization bias for free-orientation LCMV."""
+    evoked, fwd, noise_cov, data_cov, want = bias_params_free
+    if not use_cov:
+        evoked.pick_types('grad')
+        noise_cov = None
+    loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
+                                       noise_cov, pick_ori=pick_ori,
+                                       weight_norm=weight_norm)).data
+    loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
+    # Compute the percentage of sources for which there is no loc bias:
+    perc = (want == np.argmax(loc, axis=0)).mean() * 100
+    assert lower <= perc <= upper
 
 
 run_tests_if_main()

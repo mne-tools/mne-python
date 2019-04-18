@@ -856,7 +856,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
@@ -1951,7 +1951,7 @@ def _plot_histogram(params):
         plt.ylabel('Count')
         color = colors[types[idx]]
         rej = None
-        if epochs.reject is not None and types[idx] in epochs.reject.keys():
+        if epochs.reject is not None and types[idx] in epochs.reject:
             rej = epochs.reject[types[idx]] * scalings[types[idx]]
             rng = [0., rej * 1.1]
         else:

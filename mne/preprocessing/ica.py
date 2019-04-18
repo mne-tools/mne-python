@@ -34,7 +34,7 @@ from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
 from ..io.meas_info import write_meas_info, read_meas_info
-from ..io.constants import Bunch, FIFF
+from ..io.constants import FIFF
 from ..io.base import BaseRaw
 from ..epochs import BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
@@ -47,8 +47,10 @@ from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
                      compute_corr, _get_inst_data, _ensure_int,
-                     copy_function_doc_to_method_doc, _pl, warn,
-                     _check_preload, _check_compensation_grade, fill_doc)
+                     copy_function_doc_to_method_doc, _pl, warn, Bunch,
+                     _check_preload, _check_compensation_grade, fill_doc,
+                     _check_option, _PCA)
+from ..utils.check import _check_all_same_channel_names
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -101,8 +103,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
-    types = _DATA_CH_TYPES_SPLIT + ['eog']
-    types += ['ref_meg'] if allow_ref_meg else []
+    types = _DATA_CH_TYPES_SPLIT + ('eog',)
+    types += ('ref_meg',) if allow_ref_meg else ()
     chs = list({channel_type(info, j) for j in picks})
     check = all([ch in types for ch in chs])
     if not check:
@@ -166,9 +168,12 @@ class ICA(ContainsMixin):
         by PCA.
     random_state : None | int | instance of np.random.RandomState
         Random state to initialize ICA estimation for reproducible results.
-    method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
-        The ICA method to use in the fit() method. Defaults to 'fastica'.
-        For reference, see [1]_, [2]_, [3]_ and [4]_.
+    method : {'fastica', 'infomax', 'picard'}
+        The ICA method to use in the fit method. Use the fit_params argument to
+        set additional parameters. Specifically, if you want Extended Infomax,
+        set method='infomax' and fit_params=dict(extended=True) (this also
+        works for method='picard'). Defaults to 'fastica'. For reference, see
+        [1]_, [2]_, [3]_ and [4]_.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
         `method`.
@@ -259,10 +264,10 @@ class ICA(ContainsMixin):
         >> ica.fit(raw)
         >> raw.info['projs'] = projs
 
-    Methods currently implemented are FastICA (default), Infomax,
-    Extended Infomax, and Picard. Infomax can be quite sensitive to differences
-    in floating point arithmetic. Extended Infomax seems to be more stable in
-    this respect enhancing reproducibility and stability of results.
+    Methods currently implemented are FastICA (default), Infomax, and Picard.
+    Standard Infomax can be quite sensitive to differences in floating point
+    arithmetic. Extended Infomax seems to be more stable in this respect,
+    enhancing reproducibility and stability of results.
 
     Reducing the tolerance (set in `fit_params`) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
@@ -301,13 +306,16 @@ class ICA(ContainsMixin):
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
-        methods = ('fastica', 'infomax', 'extended-infomax', 'picard')
-        if method not in methods:
-            raise ValueError('`method` must be "%s". You passed: "%s"' %
-                             ('" or "'.join(methods), method))
-        if not check_version('sklearn', '0.15'):
-            raise RuntimeError('the scikit-learn package (version >= 0.15) '
-                               'is required for ICA')
+        _check_option('method', method,
+                      ['fastica', 'infomax', 'extended-infomax', 'picard'])
+        if method == 'extended-infomax':
+            warn("method='extended-infomax' is deprecated and will be removed "
+                 "in 0.19. If you want to use Extended Infomax, specify "
+                 "method='infomax' together with "
+                 "fit_params=dict(extended=True).", DeprecationWarning)
+        if method == 'fastica' and not check_version('sklearn', '0.15'):
+            raise RuntimeError('The scikit-learn package (version >= 0.15) '
+                               'is required for FastICA.')
 
         self.noise_cov = noise_cov
 
@@ -333,9 +341,7 @@ class ICA(ContainsMixin):
         if fit_params is None:
             fit_params = {}
         fit_params = deepcopy(fit_params)  # avoid side effects
-        if "extended" in fit_params:
-            raise ValueError("'extended' parameter provided. You should "
-                             "rather use method='extended-infomax'.")
+
         if method == 'fastica':
             update = {'algorithm': 'parallel', 'fun': 'logcosh',
                       'fun_args': None}
@@ -345,10 +351,7 @@ class ICA(ContainsMixin):
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
             fit_params.update({'extended': True})
-        elif method == 'picard':
-            update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
-            fit_params.update({k: v for k, v in update.items() if k
-                               not in fit_params})
+            method = 'infomax'
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
@@ -568,7 +571,7 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = pick_info(info, picks)
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT + ['eog', "ref_meg"]:
+            for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
                 if _contains_ch_type(info, ch_type):
                     if ch_type == 'seeg':
                         this_picks = pick_types(info, meg=False, seeg=True)
@@ -606,14 +609,7 @@ class ICA(ContainsMixin):
     def _fit(self, data, max_pca_components, fit_type):
         """Aux function."""
         random_state = check_random_state(self.random_state)
-
-        from sklearn.decomposition import PCA
-        if not check_version('sklearn', '0.18'):
-            pca = PCA(n_components=max_pca_components, whiten=True, copy=True)
-        else:
-            pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
-                      svd_solver='full')
-
+        pca = _PCA(n_components=max_pca_components, whiten=True)
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
@@ -641,10 +637,6 @@ class ICA(ContainsMixin):
         self.pca_mean_ = pca.mean_
         self.pca_components_ = pca.components_
         self.pca_explained_variance_ = exp_var = pca.explained_variance_
-        if not check_version('sklearn', '0.16'):
-            # sklearn < 0.16 did not apply whitening to the components, so we
-            # need to do this manually
-            self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components
         self.n_components_ = sel.stop
@@ -797,15 +789,15 @@ class ICA(ContainsMixin):
             The ICA sources time series.
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Raw',
                                       ch_names=self.ch_names)
             sources = self._sources_as_raw(inst, add_channels, start, stop)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Epochs',
                                       ch_names=self.ch_names)
             sources = self._sources_as_epochs(inst, add_channels, False)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Evoked',
                                       ch_names=self.ch_names)
             sources = self._sources_as_evoked(inst, add_channels)
         else:
@@ -960,16 +952,16 @@ class ICA(ContainsMixin):
             scores for each source as returned from score_func
         """
         if isinstance(inst, BaseRaw):
-            _check_compensation_grade(self, inst, 'ICA', 'Raw',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Raw',
                                       ch_names=self.ch_names)
             sources = self._transform_raw(inst, start, stop,
                                           reject_by_annotation)
         elif isinstance(inst, BaseEpochs):
-            _check_compensation_grade(self, inst, 'ICA', 'Epochs',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Epochs',
                                       ch_names=self.ch_names)
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
-            _check_compensation_grade(self, inst, 'ICA', 'Evoked',
+            _check_compensation_grade(self.info, inst.info, 'ICA', 'Evoked',
                                       ch_names=self.ch_names)
             sources = self._transform_evoked(inst)
         else:
@@ -1029,7 +1021,6 @@ class ICA(ContainsMixin):
         See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
         """
         scores, idx = [], []
-        labels = {}
         # some magic we need inevitably ...
         # get targets before equalizing
         targets = [self._check_target(
@@ -1053,7 +1044,7 @@ class ICA(ContainsMixin):
             # pick last scores
             this_idx = find_outliers(scores[-1], threshold=threshold)
             idx += [this_idx]
-            labels['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
+            self.labels_['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
 
         # remove duplicates but keep order by score, even across multiple
         # ref channels
@@ -1069,7 +1060,7 @@ class ICA(ContainsMixin):
                 idx_unique.remove(i)
         if len(scores) == 1:
             scores = scores[0]
-        labels[prefix] = list(idx)
+        labels = list(idx)
 
         return labels, scores
 
@@ -1153,7 +1144,8 @@ class ICA(ContainsMixin):
                 threshold = 0.25
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
-                    inst, ch_name, keep_ecg=False,
+                    inst, ch_name, l_freq=l_freq, h_freq=h_freq,
+                    keep_ecg=False,
                     reject_by_annotation=reject_by_annotation)).get_data()
 
                 if sources.shape[0] == 0:
@@ -1177,7 +1169,7 @@ class ICA(ContainsMixin):
         elif method == 'correlation':
             if threshold is None:
                 threshold = 3.0
-            self.labels_, scores = self._find_bads_ch(
+            self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
                 reject_by_annotation=reject_by_annotation)
@@ -1241,13 +1233,16 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_eog
         """
+        inds = []
         if not ch_name:
             inds = pick_channels_regexp(inst.ch_names, "REF_ICA*")
         else:
             inds = pick_channels(inst.ch_names, ch_name)
+        if not inds:
+            raise ValueError('No reference components found or selected.')
         ref_chs = [inst.ch_names[k] for k in inds]
 
-        self.labels_, scores = self._find_bads_ch(
+        self.labels_['ref_meg'], scores = self._find_bads_ch(
             inst, ref_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="ref_meg",
             reject_by_annotation=reject_by_annotation)
@@ -1309,7 +1304,7 @@ class ICA(ContainsMixin):
             logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
         eog_chs = [inst.ch_names[k] for k in eog_inds]
 
-        self.labels_, scores = self._find_bads_ch(
+        self.labels_['eog'], scores = self._find_bads_ch(
             inst, eog_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="eog",
             reject_by_annotation=reject_by_annotation)
@@ -1364,7 +1359,7 @@ class ICA(ContainsMixin):
         else:  # isinstance(inst, Evoked):
             kind, meth = 'Evoked', self._apply_evoked
             kwargs.update(evoked=inst)
-        _check_compensation_grade(self, inst, 'ICA', kind,
+        _check_compensation_grade(self.info, inst.info, 'ICA', kind,
                                   ch_names=self.ch_names)
         return meth(**kwargs)
 
@@ -1554,14 +1549,19 @@ class ICA(ContainsMixin):
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear', head_pos=None,
-                        inst=None):
+                        inst=None, plot_std=True, topomap_args=None,
+                        image_args=None, psd_args=None, reject='auto'):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, title=title, show=show,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   head_pos=head_pos, inst=inst)
+                                   head_pos=head_pos, inst=inst,
+                                   plot_std=plot_std,
+                                   topomap_args=topomap_args,
+                                   image_args=image_args, psd_args=psd_args,
+                                   reject=reject)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
@@ -2505,6 +2505,13 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     """
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
+
+    same_chans = _check_all_same_channel_names(icas)
+    if same_chans is False:
+        raise ValueError("Not all ICA instances have the same channel names. "
+                         "Corrmap requires all instances to have the same "
+                         "montage. Consider interpolating bad channels before "
+                         "running ICA.")
 
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.

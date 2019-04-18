@@ -747,7 +747,6 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
         Array containing partial derivatives in Cartesian coordinates (x, y, z)
     """
     sph_grads = np.c_[g_rad, g_az, g_pol]
-    cart_grads = np.zeros_like(sph_grads)
     c_as, s_as = np.cos(az), np.sin(az)
     c_ps, s_ps = np.cos(pol), np.sin(pol)
     trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],

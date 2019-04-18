@@ -127,11 +127,12 @@ class ReceptiveField(BaseEstimator):
             estimator = type(self.estimator)
         s += "estimator : %s, " % (estimator,)
         if hasattr(self, 'coef_'):
-            feats = self.feature_names
-            if len(feats) == 1:
-                s += "feature: %s, " % feats[0]
-            else:
-                s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
+            if self.feature_names is not None:
+                feats = self.feature_names
+                if len(feats) == 1:
+                    s += "feature: %s, " % feats[0]
+                else:
+                    s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
             s += "fit: True"
         else:
             s += "fit: False"
@@ -211,9 +212,8 @@ class ReceptiveField(BaseEstimator):
         n_delays = len(self.delays_)
 
         # Update feature names if we have none
-        if self.feature_names is None:
-            self.feature_names = ['feature_%s' % ii for ii in range(n_feats)]
-        if len(self.feature_names) != n_feats:
+        if ((self.feature_names is not None) and
+                (len(self.feature_names) != n_feats)):
             raise ValueError('n_features in X does not match feature names '
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
@@ -448,7 +448,6 @@ def _delays_to_slice(delays):
 def _check_delayer_params(tmin, tmax, sfreq):
     """Check delayer input parameters. For future custom delay support."""
     _validate_type(sfreq, 'numeric', '`sfreq`')
-    sfreq = float(sfreq)
 
     for tlim in (tmin, tmax):
         _validate_type(tlim, 'numeric', 'tmin/tmax')

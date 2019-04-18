@@ -1,17 +1,23 @@
 #!/usr/bin/env python
 r"""Import BTi / 4D MagnesWH3600 data to fif file.
 
-example usage: mne bti2fiff --pdf C,rfDC -o my_raw.fif
+Notes
+-----
+1. Currently direct inclusion of reference channel weights
+   is not supported. Please use \'mne_create_comp_data\' to include
+   the weights or use the low level functions from this module to
+   include them by yourself.
+2. The informed guess for the 4D name is E31 for the ECG channel and
+   E63, E63 for the EOG channels. Pleas check and adjust if those channels
+   are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
+   appear in the channel names of the raw object.
 
-Note.
-1) Currently direct inclusion of reference channel weights
-is not supported. Please use \'mne_create_comp_data\' to include
-the weights or use the low level functions from this module to
-include them by yourself.
-2) The informed guess for the 4D name is E31 for the ECG channel and
-E63, E63 for the EOG channels. Pleas check and adjust if those channels
-are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
-appear in the channel names of the raw object.
+Examples
+--------
+.. code-block:: console
+
+     $ mne bti2fiff --pdf C,rfDC -o my_raw.fif
+
 """
 
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>

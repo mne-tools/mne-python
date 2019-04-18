@@ -1258,38 +1258,45 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       topomap_args=None):
     """Plot evoked data as butterfly plot and add topomaps for time points.
 
+    .. note:: Axes to plot in can be passed by the user through ``ts_args`` or
+              ``topomap_args``. In that case both ``ts_args`` and
+              ``topomap_args`` axes have to be used. Be aware that when the
+              axes are provided, their position may be slightly modified.
+
     Parameters
     ----------
     evoked : instance of Evoked
         The evoked instance.
     times : float | array of float | "auto" | "peaks"
-        The time point(s) to plot. If "auto", 5 evenly spaced topographies
-        between the first and last time instant will be shown. If "peaks",
+        The time point(s) to plot. If ``"auto"``, 5 evenly spaced topographies
+        between the first and last time instant will be shown. If ``"peaks"``,
         finds time points automatically by checking for 3 local maxima in
-        Global Field Power. Defaults to "peaks".
+        Global Field Power. Defaults to ``"peaks"``.
     title : str | None
-        The title. If `None`, suppress printing channel type. If an empty
-        string, a default title is created. Defaults to ''.
+        The title. If ``None``, suppress printing channel type title. If an
+        empty string, a default title is created. Defaults to ''. If custom
+        axes are passed make sure to set ``title=None``, otherwise some of your
+        axes may be removed during placement of the title axis.
     %(picks_all)s
     exclude : None | list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
-        bad channels are excluded. Defaults to None.
+        Channels names to exclude from being shown. If ``'bads'``, the
+        bad channels are excluded. Defaults to ``None``.
     show : bool
-        Show figure if True. Defaults to True.
+        Show figure if ``True``. Defaults to ``True``.
     ts_args : None | dict
-        A dict of `kwargs` that are forwarded to :meth:`mne.Evoked.plot` to
+        A dict of ``kwargs`` that are forwarded to :meth:`mne.Evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
         defaults are passed: ``spatial_colors=True``, ``zorder='std'``.
         ``show`` and ``exclude`` are illegal.
-        If None, no customizable arguments will be passed.
-        Defaults to `None`.
+        If ``None``, no customizable arguments will be passed.
+        Defaults to ``None``.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to
         :meth:`mne.Evoked.plot_topomap` to style the topomaps.
-        If it is not in this dict, ``outlines='skirt'``
-        will be passed. `show`, `times`, `colorbar` are illegal`
-        If None, no customizable arguments will be passed.
-        Defaults to `None`.
+        If it is not in this dict, ``outlines='skirt'`` will be passed.
+        ``show``, ``times``, ``colorbar`` are illegal.
+        If ``None``, no customizable arguments will be passed.
+        Defaults to ``None``.
 
     Returns
     -------
@@ -1313,20 +1320,20 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args is None:
         topomap_args = dict()
 
+    got_axes = False
     illegal_args = {"show", 'times', 'exclude'}
     for args in (ts_args, topomap_args):
         if any((x in args for x in illegal_args)):
             raise ValueError("Don't pass any of {} as *_args.".format(
                 ", ".join(list(illegal_args))))
     if ("axes" in ts_args) or ("axes" in topomap_args):
-        if not ("axes" in ts_args) and ("axes" in topomap_args):
+        if not (("axes" in ts_args) and ("axes" in topomap_args)):
             raise ValueError("If one of `ts_args` and `topomap_args` contains "
                              "'axes', the other must, too.")
-        if "axes" in ts_args:
-            _validate_if_list_of_axes([ts_args["axes"]], 1)
+        _validate_if_list_of_axes([ts_args["axes"]], 1)
         n_topomaps = (3 if times is None else len(times)) + 1
-        if "axes" in topomap_args:
-            _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
+        _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
+        got_axes = True
 
     # channel selection
     # simply create a new evoked object with the desired channel selection
@@ -1336,7 +1343,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
-        if "axes" in ts_args or "axes" in topomap_args:
+        if got_axes:
             raise NotImplementedError(
                 "Currently, passing axes manually (via `ts_args` or "
                 "`topomap_args`) is not supported for multiple channel types.")
@@ -1361,7 +1368,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     _, times_ts = _check_time_unit(ts_args['time_unit'], times_sec)
 
     # prepare axes for topomap
-    if ("axes" not in topomap_args) or ("axes" not in ts_args):
+    if not got_axes:
         fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times_sec),
                                                           figsize=(8.0, 4.2))
     else:
@@ -1425,8 +1432,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             cbar.locator = locator
         cbar.update_ticks()
 
-    plt.subplots_adjust(left=.1, right=.93, bottom=.14,
-                        top=1. if title is not None else 1.2)
+    if not got_axes:
+        plt.subplots_adjust(left=.1, right=.93, bottom=.14,
+                            top=1. if title is not None else 1.2)
 
     # connection lines
     # draw the connection lines between time series and topoplots
@@ -1862,8 +1870,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     info = one_evoked.info
     tmin, tmax = times[0], times[-1]
 
-    if vlines == "auto" and (tmin < 0 and tmax > 0):
-        vlines = [0.]
+    if vlines == "auto":
+        vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
     picks = [] if picks is None else picks

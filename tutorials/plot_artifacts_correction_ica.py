@@ -55,8 +55,8 @@ raw.filter(1., None, n_jobs=1, fir_design='firwin')
 # Fit ICA
 # -------
 #
-# First, choose the ICA method. There are currently four possible choices:
-# ``fastica``, ``picard``, ``infomax`` and ``extended-infomax``.
+# First, choose the ICA method. There are currently three possible choices:
+# ``fastica``, ``picard``, and ``infomax``.
 #
 # .. note:: The default method in MNE is FastICA, which along with Infomax is
 #           one of the most widely used ICA algorithms. Picard is a

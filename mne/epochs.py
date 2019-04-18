@@ -46,12 +46,13 @@ from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
-from .utils import (check_fname, logger, verbose,
+from .utils import (_check_fname, check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
-                    _check_event_id, _gen_events)
+                    _check_event_id, _gen_events, _check_option,
+                    _check_combine)
 from .utils.docs import fill_doc
 
 
@@ -99,8 +100,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     # write events out after getting data to ensure bad events are dropped
     data = epochs.get_data()
 
-    if fmt not in ['single', 'double']:
-        raise ValueError('fmt must be "single" or "double". Got (%s)' % fmt)
+    _check_option('fmt', fmt, ['single', 'double'])
 
     if np.iscomplexobj(data):
         if fmt == 'single':
@@ -262,9 +262,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  filename=None, metadata=None, verbose=None):  # noqa: D102
         self.verbose = verbose
 
-        if on_missing not in ['error', 'warning', 'ignore']:
-            raise ValueError('on_missing must be one of: error, '
-                             'warning, ignore. Got: %s' % on_missing)
+        _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
 
         if events is not None:  # RtEpochs can have events=None
             events = np.asarray(events)
@@ -796,7 +794,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         For example, one could do:
 
             >>> from scipy.stats import trim_mean  # doctest:+SKIP
-            >>> trim = lambda x: trim_mean(x, 10, axis=0)  # doctest:+SKIP
+            >>> trim = lambda x: trim_mean(x, 0.1, axis=0)  # doctest:+SKIP
             >>> epochs.average(method=trim)  # doctest:+SKIP
 
         This would compute the trimmed mean.
@@ -837,21 +835,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.preload:
             n_events = len(self.events)
-
-            if mode == "mean":
-                def fun(data):
-                    return np.mean(data, axis=0)
-            elif mode == "median":
-                def fun(data):
-                    return np.median(data, axis=0)
-            elif mode == "std":
-                def fun(data):
-                    return np.std(data, axis=0)
-            elif callable(mode):
-                fun = mode
-            else:
-                raise ValueError("mode must be mean, median, std, or callable"
-                                 ", got %s (type %s)." % (mode, type(mode)))
+            fun = _check_combine(mode, valid=('mean', 'median', 'std'))
             data = fun(self._data)
             assert len(self.events) == len(self._data)
             if data.shape != self._data.shape[1:]:
@@ -1353,7 +1337,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return new
 
     @verbose
-    def save(self, fname, split_size='2GB', fmt='single', verbose=True):
+    def save(self, fname, split_size='2GB', fmt='single', overwrite=None,
+             verbose=True):
         """Save epochs in a fif file.
 
         Parameters
@@ -1377,6 +1362,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             will slightly differ due to the reduction in precision.
 
             .. versionadded:: 0.17
+        overwrite : bool
+            If True, the destination file (if it exists) will be overwritten.
+            If False (default), an error will be raised if the file exists.
+            To overwrite original file (the same one that was loaded),
+            data must be preloaded upon reading. This defaults to True in 0.18
+            but will change to False in 0.19.
+
+            .. versionadded:: 0.18
         %(verbose_meth)s
 
         Notes
@@ -1385,11 +1378,20 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
                                       '_epo.fif', '_epo.fif.gz'))
+
+        # check for file existence
+        # deprecation warning
+        if overwrite is None:
+            overwrite = True
+            warn('overwrite defaults to True in 0.18 but will change to False '
+                 'in 0.19, set it explicitly to avoid this warning',
+                 DeprecationWarning)
+
+        _check_fname(fname, overwrite)
+
         split_size = _get_split_size(split_size)
 
-        if fmt not in ('single', 'double'):
-            raise ValueError('fmt must be "single" or "double". Got (%s).' %
-                             fmt)
+        _check_option('fmt', fmt, ['single', 'double'])
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
@@ -2046,9 +2048,7 @@ def _get_drop_indices(event_times, method):
     """Get indices to drop from multiple event timing lists."""
     small_idx = np.argmin([e.shape[0] for e in event_times])
     small_e_times = event_times[small_idx]
-    if method not in ['mintime', 'truncate']:
-        raise ValueError('method must be either mintime or truncate, not '
-                         '%s' % method)
+    _check_option('method', method, ['mintime', 'truncate'])
     indices = list()
     for e in event_times:
         if method == 'mintime':

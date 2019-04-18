@@ -141,6 +141,7 @@ File I/O
    write_trans
    io.read_info
    io.show_fiff
+   io.DigPoint
 
 Base class:
 
@@ -262,6 +263,9 @@ Visualization
    plot_alignment
    snapshot_brain_montage
    plot_arrowmap
+   set_3d_backend
+   get_3d_backend
+   use_3d_backend
 
 
 Preprocessing
@@ -333,8 +337,10 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
+   mark_flat
    maxwell_filter
    oversampled_temporal_projection
+   peak_finder
    read_ica
    run_ica
    corrmap
@@ -434,6 +440,7 @@ Events
    :toctree: generated/
 
    define_target_events
+   shift_time_events
 
 :py:mod:`mne.epochs`:
 
@@ -488,8 +495,9 @@ Covariance computation
    Covariance
    compute_covariance
    compute_raw_covariance
-   cov.regularize
    cov.compute_whitener
+   cov.prepare_noise_cov
+   cov.regularize
    compute_rank
    make_ad_hoc_cov
    read_cov
@@ -535,6 +543,8 @@ Forward Modeling
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   forward.compute_depth_prior
+   forward.compute_orient_prior
    forward.restrict_forward_to_label
    forward.restrict_forward_to_stc
    make_bem_model
@@ -685,6 +695,7 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
+   VolVectorSourceEstimate
    SourceMorph
    compute_source_morph
    head_to_mni
@@ -941,10 +952,11 @@ Realtime
 .. autosummary::
    :toctree: generated/
 
+   FieldTripClient
+   LSLClient
+   MockRtClient
    RtEpochs
    RtClient
-   MockRtClient
-   FieldTripClient
    StimServer
    StimClient
 

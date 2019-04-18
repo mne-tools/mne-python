@@ -107,8 +107,6 @@ def _test_weight_norm(filters, norm=1):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
-@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
-                            ":RuntimeWarning")
 def test_make_dics(tmpdir):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
@@ -149,15 +147,19 @@ def test_make_dics(tmpdir):
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     n_verts = len(vertices)
     n_orient = 3
-    n_channels = csd.n_channels
 
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
+                  weight_norm='unit-noise-gain')
+    epochs.pick_types(meg='grad')
+    n_channels = len(epochs.ch_names)
     # Test return values
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
                         weight_norm='unit-noise-gain')
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert np.iscomplexobj(filters['weights'])
     assert filters['csd'] == csd
-    assert filters['ch_names'] == csd.ch_names
+    assert filters['ch_names'] == epochs.ch_names
     assert_array_equal(filters['proj'], np.eye(n_channels))
     assert_array_equal(filters['vertices'][0], vertices)
     assert_array_equal(filters['vertices'][1], [])  # Label was on the LH
@@ -170,7 +172,7 @@ def test_make_dics(tmpdir):
     assert 'DICS' in repr(filters)
     assert 'subject "sample"' in repr(filters)
     assert '13' in repr(filters)
-    assert '62' in repr(filters)
+    assert str(n_channels) in repr(filters)
     assert 'rank' not in repr(filters)
     _test_weight_norm(filters)
 
@@ -241,8 +243,6 @@ def test_make_dics(tmpdir):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
-                            ":RuntimeWarning")
 def test_apply_dics_csd():
     """Test applying a DICS beamformer to a CSD matrix."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
@@ -257,6 +257,10 @@ def test_apply_dics_csd():
     inds = np.triu_indices(csd.n_channels)
     # Using [:, :] syntax for in-place broadcasting
     csd_noise._data[:, :] = np.eye(csd.n_channels)[inds][:, np.newaxis]
+
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        make_dics(epochs.info, fwd_free, csd)
+    epochs.pick_types(meg='grad')
 
     # Try different types of forward models
     for fwd in [fwd_free, fwd_surf, fwd_fixed]:
@@ -353,6 +357,10 @@ def test_apply_dics_timeseries():
     source_ind = vertices.tolist().index(source_vertno)
     reg = 5  # Lots of regularization for our toy dataset
 
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        make_dics(evoked.info, fwd_surf, csd)
+
+    evoked.pick_types(meg='grad')
     multiple_filters = make_dics(evoked.info, fwd_surf, csd, label=label,
                                  reg=reg)
 
@@ -434,8 +442,6 @@ def test_apply_dics_timeseries():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
-                            ":RuntimeWarning")
 def test_tf_dics():
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
@@ -451,6 +457,11 @@ def test_tf_dics():
     frequencies = [10, 20]
     freq_bins = [(8, 12), (18, 22)]
 
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                       freq_bins=freq_bins, frequencies=frequencies,
+                       decim=10, reg=reg, label=label)
+    epochs.pick_types(meg='grad')
     # Compute DICS for two time windows and two frequencies
     for mode in ['fourier', 'multitaper', 'cwt_morlet']:
         stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
@@ -532,7 +543,8 @@ def test_tf_dics():
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.
-    with pytest.warns(RuntimeWarning, match='[invalid|empty]'):
+    assert len(epochs) == 1, len(epochs)
+    with np.errstate(invalid='ignore'):
         stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
                        mode='cwt_morlet', frequencies=frequencies,
                        subtract_evoked=True, reg=reg, label=label, decim=20)

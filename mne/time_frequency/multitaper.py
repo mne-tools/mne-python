@@ -8,7 +8,7 @@ import numpy as np
 
 from ..fixes import _get_dpss
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose, logger
+from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
 def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
@@ -382,7 +382,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
@@ -411,9 +411,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     -----
     .. versionadded:: 0.14.0
     """
-    if normalization not in ('length', 'full'):
-        raise ValueError('Normalization must be "length" or "full", not %s'
-                         % normalization)
+    _check_option('normalization', normalization, ['length', 'full'])
 
     # Reshape data so its 2-D for parallelization
     ndim_in = x.ndim

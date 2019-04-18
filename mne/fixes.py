@@ -14,6 +14,7 @@ at which the fix is no longer needed.
 
 import inspect
 from distutils.version import LooseVersion
+from math import log
 import warnings
 
 import numpy as np
@@ -349,10 +350,8 @@ def axis_reverse(a, axis=-1):
 
 def _validate_pad(padtype, padlen, x, axis, ntaps):
     """Helper to validate padding for filtfilt"""
-    if padtype not in ['even', 'odd', 'constant', None]:
-        raise ValueError(("Unknown value '%s' given to padtype.  padtype "
-                          "must be 'even', 'odd', 'constant', or None.") %
-                         padtype)
+    from .utils import _check_option  # avoid circular import
+    _check_option('padtype', padtype, ['even', 'odd', 'constant', None])
 
     if padtype is None:
         padlen = 0
@@ -519,16 +518,6 @@ def assert_true(expr, msg='False is not True'):
     """Fake assert_true without message"""
     if not expr:
         raise AssertionError(msg)
-
-
-def assert_is(expr1, expr2, msg=None):
-    """Fake assert_is without message"""
-    assert_true(expr2 is expr2, msg)
-
-
-def assert_is_not(expr1, expr2, msg=None):
-    """Fake assert_is_not without message"""
-    assert_true(expr1 is not expr2, msg)
 
 
 def _read_volume_info(fobj):
@@ -1025,6 +1014,95 @@ def _logdet(A):
     tol = vals.max() * vals.size * np.finfo(np.float64).eps
     vals = np.where(vals > tol, vals, tol)
     return np.sum(np.log(vals))
+
+
+def _infer_dimension_(spectrum, n_samples, n_features):
+    """Infers the dimension of a dataset of shape (n_samples, n_features)
+    The dataset is described by its spectrum `spectrum`.
+    """
+    n_spectrum = len(spectrum)
+    ll = np.empty(n_spectrum)
+    for rank in range(n_spectrum):
+        ll[rank] = _assess_dimension_(spectrum, rank, n_samples, n_features)
+    return ll.argmax()
+
+
+def _assess_dimension_(spectrum, rank, n_samples, n_features):
+    from scipy.special import gammaln
+    if rank > len(spectrum):
+        raise ValueError("The tested rank cannot exceed the rank of the"
+                         " dataset")
+
+    pu = -rank * log(2.)
+    for i in range(rank):
+        pu += (gammaln((n_features - i) / 2.) -
+               log(np.pi) * (n_features - i) / 2.)
+
+    pl = np.sum(np.log(spectrum[:rank]))
+    pl = -pl * n_samples / 2.
+
+    if rank == n_features:
+        pv = 0
+        v = 1
+    else:
+        v = np.sum(spectrum[rank:]) / (n_features - rank)
+        pv = -np.log(v) * n_samples * (n_features - rank) / 2.
+
+    m = n_features * rank - rank * (rank + 1.) / 2.
+    pp = log(2. * np.pi) * (m + rank + 1.) / 2.
+
+    pa = 0.
+    spectrum_ = spectrum.copy()
+    spectrum_[rank:n_features] = v
+    for i in range(rank):
+        for j in range(i + 1, len(spectrum)):
+            pa += log((spectrum[i] - spectrum[j]) *
+                      (1. / spectrum_[j] - 1. / spectrum_[i])) + log(n_samples)
+
+    ll = pu + pl + pv + pp - pa / 2. - rank * log(n_samples) / 2.
+
+    return ll
+
+
+def svd_flip(u, v, u_based_decision=True):
+    if u_based_decision:
+        # columns of u, rows of v
+        max_abs_cols = np.argmax(np.abs(u), axis=0)
+        signs = np.sign(u[max_abs_cols, np.arange(u.shape[1])])
+        u *= signs
+        v *= signs[:, np.newaxis]
+    else:
+        # rows of v, columns of u
+        max_abs_rows = np.argmax(np.abs(v), axis=1)
+        signs = np.sign(v[np.arange(v.shape[0]), max_abs_rows])
+        u *= signs
+        v *= signs[:, np.newaxis]
+    return u, v
+
+
+def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
+    """Use high precision for cumsum and check that final value matches sum
+
+    Parameters
+    ----------
+    arr : array-like
+        To be cumulatively summed as flat
+    axis : int, optional
+        Axis along which the cumulative sum is computed.
+        The default (None) is to compute the cumsum over the flattened array.
+    rtol : float
+        Relative tolerance, see ``np.allclose``
+    atol : float
+        Absolute tolerance, see ``np.allclose``
+    """
+    out = np.cumsum(arr, axis=axis, dtype=np.float64)
+    expected = np.sum(arr, axis=axis, dtype=np.float64)
+    if not np.all(np.isclose(out.take(-1, axis=axis), expected, rtol=rtol,
+                             atol=atol, equal_nan=True)):
+        warnings.warn('cumsum was found to be unstable: '
+                      'its last element does not correspond to sum',
+                      RuntimeWarning)
+    return out
 
 
 ###############################################################################

@@ -22,11 +22,11 @@ base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
+ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 testing_path = testing.data_path(download=False)
 data_dir = op.join(testing_path, 'MEG', 'sample')
-fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 mf_fif_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw_sss.fif')
 
 
@@ -41,42 +41,56 @@ def test_estimate_rank():
 
 
 @pytest.mark.slowtest
-@testing.requires_testing_data
-def test_rank_estimation():
+@pytest.mark.parametrize(
+    'fname, ref_meg', ((raw_fname, False),
+                       (hp_fif_fname, False),
+                       (ctf_fname, False),
+                       (ctf_fname, True)))
+@pytest.mark.parametrize(
+    'scalings', ('norm', dict(mag=1e11, grad=1e9, eeg=1e5)))
+def test_raw_rank_estimation(fname, ref_meg, scalings):
     """Test raw rank estimation."""
-    iter_tests = itt.product(
-        [fif_fname, hp_fif_fname],  # sss
-        ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
-    )
-    for fname, scalings in iter_tests:
-        raw = read_raw_fif(fname).crop(0, 4.).load_data()
-        (_, picks_meg), (_, picks_eeg) = _picks_by_type(raw.info,
-                                                        meg_combined=True)
-        n_meg = len(picks_meg)
-        n_eeg = len(picks_eeg)
+    if ref_meg and scalings != 'norm':
+        # Adjust for CTF data (scale factors are quite different)
+        scalings = dict(mag=1e31, grad=1e11)
+    raw = read_raw_fif(fname)
+    raw.crop(0, min(4., raw.times[-1])).load_data()
+    out = _picks_by_type(raw.info, ref_meg=ref_meg, meg_combined=True)
+    has_eeg = 'eeg' in raw
+    if has_eeg:
+        (_, picks_meg), (_, picks_eeg) = out
+    else:
+        (_, picks_meg), = out
+        picks_eeg = []
+    n_meg = len(picks_meg)
+    n_eeg = len(picks_eeg)
 
-        if len(raw.info['proc_history']) == 0:
-            expected_rank = n_meg + n_eeg
-        else:
-            expected_rank = _get_rank_sss(raw.info) + n_eeg
-        assert _estimate_rank_raw(raw, scalings=scalings) == expected_rank
+    if len(raw.info['proc_history']) == 0:
+        expected_rank = n_meg + n_eeg
+    else:
+        expected_rank = _get_rank_sss(raw.info) + n_eeg
+    got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg)
+    assert got_rank == expected_rank
+    if has_eeg:
         with pytest.deprecated_call():
             assert raw.estimate_rank(picks=picks_eeg,
                                      scalings=scalings) == n_eeg
-        if 'sss' in fname:
-            raw.add_proj(compute_proj_raw(raw))
-        raw.apply_proj()
-        n_proj = len(raw.info['projs'])
-        want_rank = expected_rank - (0 if 'sss' in fname else n_proj)
-        assert _estimate_rank_raw(raw, scalings=scalings) == want_rank
+    if 'sss' in fname:
+        raw.add_proj(compute_proj_raw(raw))
+    raw.apply_proj()
+    n_proj = len(raw.info['projs'])
+    want_rank = expected_rank - (0 if 'sss' in fname else n_proj)
+    got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg)
+    assert got_rank == want_rank
 
 
 @pytest.mark.slowtest
+@pytest.mark.parametrize('meg', ('separate', 'combined'))
 @pytest.mark.parametrize('rank_method, proj', [('info', True),
                                                ('info', False),
                                                (None, True),
                                                (None, False)])
-def test_cov_rank_estimation(rank_method, proj):
+def test_cov_rank_estimation(rank_method, proj, meg):
     """Test cov rank estimation."""
     # Test that our rank estimation works properly on a simple case
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
@@ -94,15 +108,13 @@ def test_cov_rank_estimation(rank_method, proj):
 
     raw_sss = read_raw_fif(hp_fif_fname)
     assert not _has_eeg_average_ref_proj(raw_sss.info['projs'])
-    raw_sss.add_proj(compute_proj_raw(raw_sss))
+    raw_sss.add_proj(compute_proj_raw(raw_sss, meg=meg))
 
     cov_sample = compute_raw_covariance(raw_sample)
-    cov_sample_proj = compute_raw_covariance(
-        raw_sample.copy().apply_proj())
+    cov_sample_proj = compute_raw_covariance(raw_sample.copy().apply_proj())
 
     cov_sss = compute_raw_covariance(raw_sss)
-    cov_sss_proj = compute_raw_covariance(
-        raw_sss.copy().apply_proj())
+    cov_sss_proj = compute_raw_covariance(raw_sss.copy().apply_proj())
 
     picks_all_sample = pick_types(raw_sample.info, meg=True, eeg=True)
     picks_all_sss = pick_types(raw_sss.info, meg=True, eeg=True)
@@ -157,7 +169,7 @@ def test_cov_rank_estimation(rank_method, proj):
 
             expected_rank = n_meg + n_eeg
             if rank_method is None:
-                if not has_sss:  # XXX see below and gh-5146
+                if meg == 'combined' or not has_sss:
                     if proj:
                         expected_rank -= n_projs_info
                     else:
@@ -174,18 +186,22 @@ def test_cov_rank_estimation(rank_method, proj):
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, rank_orig', ((hp_fif_fname, 120),
                                               (mf_fif_fname, 67)))
-@pytest.mark.parametrize('n_proj', (0, 10))
-def test_maxfilter_get_rank(n_proj, fname, rank_orig):
+@pytest.mark.parametrize('n_proj, meg', ((0, 'combined'),
+                                         (10, 'combined'),
+                                         (10, 'separate')))
+def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
     """Test maxfilter rank lookup."""
     raw = read_raw_fif(fname).crop(0, 5).load_data().pick_types()
     assert raw.info['projs'] == []
     mf = raw.info['proc_history'][0]['max_info']
     assert mf['sss_info']['nfree'] == rank_orig
     assert _get_rank_sss(raw) == rank_orig
-    rank = rank_orig - 2 * n_proj
+    mult = 1 + (meg == 'separate')
+    rank = rank_orig - mult * n_proj
     if n_proj > 0:
         # Let's do some projection
-        raw.add_proj(compute_proj_raw(raw, n_mag=n_proj, n_grad=n_proj))
+        raw.add_proj(compute_proj_raw(raw, n_mag=n_proj, n_grad=n_proj,
+                                      meg=meg, verbose=True))
     raw.apply_proj()
     data_orig = raw[:][0]
 
@@ -195,8 +211,7 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig):
     with pytest.raises(TypeError, match='must be a string or a number'):
         _estimate_rank_raw(raw, tol=None)
 
-    # XXX this should be "rank" not "rank_orig", see gh-5146
-    allowed_rank = [rank_orig]
+    allowed_rank = [rank_orig if meg == 'separate' else rank]
     if fname == mf_fif_fname:
         # Here we permit a -1 because for mf_fif_fname we miss by 1, which is
         # probably acceptable. If we use the entire duration instead of 5 sec

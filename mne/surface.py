@@ -356,16 +356,21 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     _normalize_vectors(surf['nn'])
 
     #   Check for topological defects
-    idx = np.where([len(n) == 0 for n in surf['neighbor_tri']])[0]
-    if len(idx) > 0:
-        logger.info('    Vertices [%s] do not have any neighboring'
-                    'triangles!' % ','.join([str(ii) for ii in idx]))
-    idx = np.where([len(n) < 3 for n in surf['neighbor_tri']])[0]
-    if len(idx) > 0:
-        logger.info('    Vertices [%s] have fewer than three neighboring '
-                    'tris, omitted' % ','.join([str(ii) for ii in idx]))
-        for k in idx:
-            surf['neighbor_tri'][k] = np.array([], int)
+    zero, fewer = list(), list()
+    for ni, n in enumerate(surf['neighbor_tri']):
+        if len(n) < 3:
+            if len(n) == 0:
+                zero.append(ni)
+            else:
+                fewer.append(ni)
+                surf['neighbor_tri'][ni] = np.array([], int)
+    if len(zero) > 0:
+        logger.info('    Vertices do not have any neighboring '
+                    'triangles: [%s]' % ', '.join(str(z) for z in zero))
+    if len(fewer) > 0:
+        logger.info('    Vertices have fewer than three neighboring '
+                    'triangles, removing neighbors: [%s]'
+                    % ', '.join(str(f) for f in fewer))
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
@@ -378,8 +383,11 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
 
 def _get_surf_neighbors(surf, k):
     """Calculate the surface neighbors based on triangulation."""
-    verts = surf['tris'][surf['neighbor_tri'][k]]
-    verts = np.setdiff1d(verts, [k], assume_unique=False)
+    verts = set()
+    for v in surf['tris'][surf['neighbor_tri'][k]].flat:
+        verts.add(v)
+    verts.remove(k)
+    verts = np.array(sorted(verts))
     assert np.all(verts < surf['np'])
     nneighbors = len(verts)
     nneigh_max = len(surf['neighbor_tri'][k])
@@ -693,10 +701,15 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     """Load a surf and use the subdivided icosahedron to get points."""
     # Based on load_source_space_surf_spacing() in load_source_space.c
     surf = read_surface(surf, return_dict=True)[-1]
-    complete_surface_info(surf, copy=False)
+    do_neighbor_vert = (stype == 'spacing')
+    complete_surface_info(surf, do_neighbor_vert, copy=False)
     if stype == 'all':
         surf['inuse'] = np.ones(surf['np'], int)
         surf['use_tris'] = None
+    elif stype == 'spacing':
+        _decimate_surface_spacing(surf, ico_surf)
+        surf['use_tris'] = None
+        del surf['neighbor_vert']
     else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
@@ -744,11 +757,42 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
     surf['vertno'] = np.where(surf['inuse'])[0]
 
     # set some final params
-    inds = np.arange(surf['np'])
     sizes = _normalize_vectors(surf['nn'])
     surf['inuse'][sizes <= 0] = False
     surf['nuse'] = np.sum(surf['inuse'])
     surf['subject_his_id'] = subject
+    return surf
+
+
+def _decimate_surface_spacing(surf, spacing):
+    assert isinstance(spacing, int)
+    assert spacing > 0
+    logger.info('    Decimating...')
+    d = np.full(surf['np'], 10000, int)
+
+    # A mysterious algorithm follows
+    for k in range(surf['np']):
+        neigh = surf['neighbor_vert'][k]
+        d[k] = min(np.min(d[neigh]) + 1, d[k])
+        if d[k] >= spacing:
+            d[k] = 0
+        d[neigh] = np.minimum(d[neigh], d[k] + 1)
+
+    if spacing == 2.0:
+        for k in range(surf['np'] - 1, -1, -1):
+            for n in surf['neighbor_vert'][k]:
+                d[k] = min(d[k], d[n] + 1)
+                d[n] = min(d[n], d[k] + 1)
+        for k in range(surf['np']):
+            if d[k] > 0:
+                neigh = surf['neighbor_vert'][k]
+                n = np.sum(d[neigh] == 0)
+                if n <= 2:
+                    d[k] = 0
+                d[neigh] = np.minimum(d[neigh], d[k] + 1)
+
+    surf['inuse'] = np.zeros(surf['np'], int)
+    surf['inuse'][d == 0] = 1
     return surf
 
 

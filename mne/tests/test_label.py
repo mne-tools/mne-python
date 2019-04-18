@@ -20,7 +20,6 @@ from mne import (read_label, stc_to_label, read_source_estimate,
 from mne.label import Label, _blend_colors, label_sign_flip, _load_vert_pos
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main)
-from mne.fixes import assert_is, assert_is_not
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -173,7 +172,7 @@ def test_copy():
 def test_label_subject():
     """Test label subject name extraction."""
     label = read_label(label_fname)
-    assert_is(label.subject, None)
+    assert label.subject is None
     assert ('unknown' in repr(label))
     label = read_label(label_fname, subject='fsaverage')
     assert (label.subject == 'fsaverage')
@@ -303,8 +302,8 @@ def test_label_io():
 
     # label attributes
     assert_equal(label.name, 'test-lh')
-    assert_is(label.subject, None)
-    assert_is(label.color, None)
+    assert label.subject is None
+    assert label.color is None
 
     # save and reload
     label.save(op.join(tempdir, 'foo'))
@@ -348,8 +347,9 @@ def test_annot_io():
     shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
 
     # read original labels
-    pytest.raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
-                  subjects_dir=tempdir)
+    with pytest.raises(IOError, match='\nPALS_B12_Lobes$'):
+        read_labels_from_annot(subject, 'PALS_B12_Lobesey',
+                               subjects_dir=tempdir)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
 
@@ -375,6 +375,11 @@ def test_annot_io():
     parc_lh = [l for l in parc if l.name.endswith('lh')]
     for l1, l in zip(parc1, parc_lh):
         assert_labels_equal(l1, l)
+
+    # test that the annotation is complete (test Label() support)
+    rr = read_surface(op.join(surf_dir, 'lh.white'))[0]
+    label = sum(labels, Label(hemi='lh', subject='fsaverage')).lh
+    assert_array_equal(label.vertices, np.arange(len(rr)))
 
 
 @testing.requires_testing_data
@@ -437,18 +442,18 @@ def test_read_labels_from_annot():
     labels_lh = read_labels_from_annot('sample', hemi='lh',
                                        subjects_dir=subjects_dir)
     for label in labels_lh:
-        assert (label.name.endswith('-lh'))
-        assert (label.hemi == 'lh')
-        assert_is_not(label.color, None)
+        assert label.name.endswith('-lh')
+        assert label.hemi == 'lh'
+        assert label.color is not None
 
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
     labels_rh = read_labels_from_annot('sample', annot_fname=annot_fname,
                                        subjects_dir=subjects_dir)
     for label in labels_rh:
-        assert (label.name.endswith('-rh'))
-        assert (label.hemi == 'rh')
-        assert_is_not(label.color, None)
+        assert label.name.endswith('-rh')
+        assert label.hemi == 'rh'
+        assert label.color is not None
 
     # combine the lh, rh, labels and sort them
     labels_lhrh = list()

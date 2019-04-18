@@ -20,11 +20,10 @@ from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _loc_to_coil_trans, _convert_coil_trans,
                             _check_nan_dev_head_t, _rename_channels)
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
-from mne.utils import run_tests_if_main
+from mne.utils import assert_dig_allclose, run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')

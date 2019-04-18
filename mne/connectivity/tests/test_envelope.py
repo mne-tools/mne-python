@@ -26,8 +26,8 @@ def _compute_corrs_orig(data):
         corr_mats[index] = np.array([np.corrcoef(dat)
                                      for dat in label_data_cont])[:, 0, 1:].T
     corr_mats = np.transpose(corr_mats, (2, 0, 1))
-    corr = np.median(np.array([(np.abs(corr_mat) + np.abs(corr_mat).T) / 2.
-                               for corr_mat in corr_mats]), axis=0)
+    corr = np.mean(np.array([(np.abs(corr_mat) + np.abs(corr_mat).T) / 2.
+                             for corr_mat in corr_mats]), axis=0)
     return corr
 
 
@@ -42,10 +42,14 @@ def test_envelope_correlation():
     # using complex data
     corr = envelope_correlation(data_hilbert)
     assert_allclose(corr, corr_orig)
+    # using callable
+    corr = envelope_correlation(data_hilbert,
+                                combine=lambda data: np.mean(data, axis=0))
+    assert_allclose(corr, corr_orig)
     # do Hilbert internally, and don't combine
     corr = envelope_correlation(data, combine=None)
     assert corr.shape == (data.shape[0],) + corr_orig.shape
-    corr = np.median(corr, axis=0)
+    corr = np.mean(corr, axis=0)
     assert_allclose(corr, corr_orig)
     # degenerate
     with pytest.raises(ValueError, match='float'):
@@ -54,7 +58,7 @@ def test_envelope_correlation():
         envelope_correlation(data[np.newaxis])
     with pytest.raises(ValueError, match='n_nodes mismatch'):
         envelope_correlation([rng.randn(2, 8), rng.randn(3, 8)])
-    with pytest.raises(TypeError, match='instance of str or None'):
+    with pytest.raises(ValueError, match='mean or callable'):
         envelope_correlation(data, 1.)
-    with pytest.raises(ValueError, match='Unknown combine option'):
+    with pytest.raises(ValueError, match='Combine option'):
         envelope_correlation(data, 'foo')

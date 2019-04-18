@@ -40,8 +40,9 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose,
-                     _validate_type)
+                     _validate_type, _check_compensation_grade, _check_option)
 from ..label import Label
+from ..fixes import einsum
 
 
 class Forward(dict):
@@ -886,7 +887,21 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
 
 def is_fixed_orient(forward, orig=False):
-    """Check if the forward operator is fixed orientation."""
+    """Check if the forward operator is fixed orientation.
+
+    Parameters
+    ----------
+    forward : instance of Forward
+        The forward.
+    orig : bool
+        If True, consider the original source orientation.
+        If False (default), consider the current source orientation.
+
+    Returns
+    -------
+    fixed_ori : bool
+        Whether or not it is fixed orientation.
+    """
     if orig:  # if we want to know about the original version
         fixed_ori = (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
     else:  # most of the time we want to know about the current version
@@ -937,41 +952,80 @@ def write_forward_meas_info(fid, info):
 
 
 @verbose
+def _select_orient_forward(forward, info, noise_cov=None, verbose=None):
+    """Prepare forward solution for inverse solvers."""
+    # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
+    fwd_sol_ch_names = forward['sol']['row_names']
+    all_ch_names = set(fwd_sol_ch_names)
+    all_bads = set(info['bads'])
+    if noise_cov is not None:
+        all_ch_names &= set(noise_cov['names'])
+        all_bads |= set(noise_cov['bads'])
+    else:
+        noise_cov = dict(bads=info['bads'])
+    ch_names = [c['ch_name'] for c in info['chs']
+                if c['ch_name'] not in all_bads and
+                c['ch_name'] in all_ch_names]
+
+    if not len(info['bads']) == len(noise_cov['bads']) or \
+            not all(b in noise_cov['bads'] for b in info['bads']):
+        logger.info('info["bads"] and noise_cov["bads"] do not match, '
+                    'excluding bad channels from both')
+
+    # check the compensation grade
+    _check_compensation_grade(forward['info'], info, 'forward')
+
+    n_chan = len(ch_names)
+    logger.info("Computing inverse operator with %d channels." % n_chan)
+    forward = pick_channels_forward(forward, ch_names, ordered=True)
+    info_idx = [info['ch_names'].index(name) for name in ch_names]
+    info_picked = pick_info(info, info_idx)
+    forward['info']._check_consistency()
+    info_picked._check_consistency()
+    return forward, info_picked
+
+
+@verbose
 def compute_orient_prior(forward, loose=0.2, verbose=None):
     """Compute orientation prior.
 
     Parameters
     ----------
-    forward : dict
+    forward : instance of Forward
         Forward operator.
-    loose : float in [0, 1]
-        The loose orientation parameter.
+    loose : float
+        The loose orientation parameter (between 0 and 1).
     %(verbose)s
 
     Returns
     -------
-    orient_prior : array
+    orient_prior : ndarray, shape (n_vertices,)
         Orientation priors.
+
+    See Also
+    --------
+    compute_depth_prior
     """
     is_fixed_ori = is_fixed_orient(forward)
     n_sources = forward['sol']['data'].shape[1]
     loose = float(loose)
     if not (0 <= loose <= 1):
-        raise ValueError('loose value should be smaller than 1 and bigger '
-                         'than 0, got %s.' % (loose,))
-    if loose < 1 and not forward['surf_ori']:
-        raise ValueError('Forward operator is not oriented in surface '
-                         'coordinates. loose parameter should be 1 '
-                         'not %s.' % loose)
-    if is_fixed_ori and loose != 0:
-        raise ValueError('loose must be 0. with forward operator '
-                         'with fixed orientation.')
-
+        raise ValueError('loose value should be between 0 and 1, '
+                         'got %s.' % (loose,))
     orient_prior = np.ones(n_sources, dtype=np.float)
-    if not is_fixed_ori and loose < 1:
-        logger.info('Applying loose dipole orientations. Loose value '
-                    'of %s.' % loose)
-        orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
+    if loose > 0.:
+        if is_fixed_ori:
+            raise ValueError('loose must be 0. with forward operator '
+                             'with fixed orientation, got %s' % (loose,))
+        if loose < 1:
+            if not forward['surf_ori']:
+                raise ValueError('Forward operator is not oriented in surface '
+                                 'coordinates. loose parameter should be 1 '
+                                 'not %s.' % (loose,))
+            logger.info('Applying loose dipole orientations. Loose value '
+                        'of %s.' % loose)
+            orient_prior[0::3] *= loose
+            orient_prior[1::3] *= loose
 
     return orient_prior
 
@@ -1002,24 +1056,148 @@ def _restrict_gain_matrix(G, info):
     return G
 
 
-def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
-                        patch_areas=None, limit_depth_chs=False):
-    """Compute weighting for depth prior."""
+@verbose
+def compute_depth_prior(forward, info, is_fixed_ori=None,
+                        exp=0.8, limit=10.0,
+                        patch_areas=None, limit_depth_chs=False,
+                        combine_xyz='spectral', noise_cov=None, rank=None,
+                        verbose=None):
+    """Compute depth prior for depth weighting.
+
+    Parameters
+    ----------
+    forward : instance of Forward
+        The forward solution.
+    info : instance of Info
+        The measurement info.
+    is_fixed_ori : bool | None
+        Deprecated, will be removed in 0.19.
+    exp : float
+        Exponent for the depth weighting, must be between 0 and 1.
+    limit : float | None
+        The upper bound on depth weighting.
+        Can be None to be bounded by the largest finite prior.
+    patch_areas : ndarray | None
+        Deprecated, will be removed in 0.19.
+    limit_depth_chs : bool | 'whiten'
+        How to deal with multiple channel types in depth weighting.
+        The default is True, which whitens based on the source sensitivity
+        of the highest-SNR channel type. See Notes for details.
+
+        .. versionchanged:: 0.18
+           Added the "whiten" option.
+    combine_xyz : 'spectral' | 'fro'
+        When a loose (or free) orientation is used, how the depth weighting
+        for each triplet should be calculated.
+        If 'spectral', use the squared spectral norm of Gk.
+        If 'fro', use the squared Frobenius norm of Gk.
+
+        .. versionadded:: 0.18
+    noise_cov : instance of Covariance | None
+        The noise covariance to use to whiten the gain matrix when
+        ``limit_depth_chs='whiten'``.
+
+        .. versionadded:: 0.18
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+    %(verbose)s
+
+    Returns
+    -------
+    depth_prior : ndarray, shape (n_vertices,)
+        The depth prior.
+
+    See Also
+    --------
+    compute_orient_prior
+
+    Notes
+    -----
+    The defaults used by the minimum norm code and sparse solvers differ.
+    In particular, the values for MNE are::
+
+        compute_depth_prior(..., limit=10., limit_depth_chs=True,
+                            combine_xyz='spectral')
+
+    In sparse solvers, the values are::
+
+        compute_depth_prior(..., limit=None, limit_depth_chs='whiten',
+                            combine_xyz='fro')
+
+    The ``limit_depth_chs`` argument can take the following values:
+
+    * :data:`python:True` (default)
+          Use only grad channels in depth weighting (equivalent to MNE C
+          minimum-norm code). If grad channels aren't present, only mag
+          channels will be used (if no mag, then eeg). This makes the depth
+          prior dependent only on the sensor geometry (and relationship
+          to the sources).
+    * ``'whiten'``
+          Compute a whitener and apply it to the gain matirx before computing
+          the depth prior. In this case ``noise_cov`` must not be None.
+          Whitening the gain matrix makes the depth prior
+          depend on both sensor geometry and the data of interest captured
+          by the noise covariance (e.g., projections, SNR).
+
+          .. versionadded:: 0.18
+    * :data:`python:False`
+          Use all channels. Not recommended since the depth weighting will be
+          biased toward whichever channel type has the largest values in
+          SI units (such as EEG being orders of magnitude larger than MEG).
+
+    """
+    from ..cov import Covariance, compute_whitener
+    if isinstance(forward, Forward):
+        patch_areas = forward.get('patch_areas', None)
+        is_fixed_ori = is_fixed_orient(forward)
+        G = forward['sol']['data']
+    else:
+        warn('Parameters G, is_fixed_ori, and patch_areas are '
+             'deprecated and will be removed in 0.19, pass in the forward '
+             'solution directly.', DeprecationWarning)
+        G = forward
+    _validate_type(is_fixed_ori, bool, 'is_fixed_ori')
     logger.info('Creating the depth weighting matrix...')
+    _validate_type(noise_cov, (Covariance, None), 'noise_cov',
+                   'Covariance or None')
+    _validate_type(limit_depth_chs, (str, bool), 'limit_depth_chs')
+    if isinstance(limit_depth_chs, str):
+        if limit_depth_chs != 'whiten':
+            raise ValueError('limit_depth_chs, if str, must be "whiten", got '
+                             '%s' % (limit_depth_chs,))
+        if not isinstance(noise_cov, Covariance):
+            raise ValueError('With limit_depth_chs="whiten", noise_cov must be'
+                             ' a Covariance, got %s' % (type(noise_cov),))
+    _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
 
     # If possible, pick best depth-weighting channels
     if limit_depth_chs is True:
-        G = _restrict_gain_matrix(G, gain_info)
+        G = _restrict_gain_matrix(G, info)
+    elif limit_depth_chs == 'whiten':
+        whitener, _ = compute_whitener(noise_cov, info, pca=True, rank=rank,
+                                       verbose=False)
+        G = np.dot(whitener, G)
 
     # Compute the gain matrix
-    if is_fixed_ori:
+    if is_fixed_ori or combine_xyz == 'fro':
         d = np.sum(G ** 2, axis=0)
-    else:
-        n_pos = G.shape[1] // 3
-        d = np.zeros(n_pos)
-        for k in range(n_pos):
-            Gk = G[:, 3 * k:3 * (k + 1)]
-            d[k] = linalg.svdvals(np.dot(Gk.T, Gk))[0]
+        if not is_fixed_ori:
+            d = d.reshape(-1, 3).sum(axis=1)
+        # Spherical leadfield can be zero at the center
+        d[d == 0.] = np.min(d[d != 0.])
+    else:  # 'spectral'
+        # n_pos = G.shape[1] // 3
+        # The following is equivalent to this, but 4-10x faster
+        # d = np.zeros(n_pos)
+        # for k in range(n_pos):
+        #     Gk = G[:, 3 * k:3 * (k + 1)]
+        #     x = np.dot(Gk.T, Gk)
+        #     d[k] = linalg.svdvals(x)[0]
+        G.shape = (G.shape[0], -1, 3)
+        d = np.linalg.norm(einsum('svj,svk->vjk', G, G),  # vector dot products
+                           ord=2, axis=(1, 2))  # ord=2 spectral (largest s.v.)
+        G.shape = (G.shape[0], -1)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:
@@ -1028,29 +1206,32 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                     'weighting')
 
     w = 1.0 / d
-    ws = np.sort(w)
-    weight_limit = limit ** 2
-    if limit_depth_chs is False:
-        # match old mne-python behavor
-        ind = np.argmin(ws)
-        n_limit = ind
-        limit = ws[ind] * weight_limit
-        wpp = (np.minimum(w / limit, 1)) ** exp
-    else:
-        # match C code behavior
-        limit = ws[-1]
-        n_limit = len(d)
-        if ws[-1] > weight_limit * ws[0]:
-            ind = np.where(ws > weight_limit * ws[0])[0][0]
-            limit = ws[ind]
+    if limit is not None:
+        ws = np.sort(w)
+        weight_limit = limit ** 2
+        if limit_depth_chs is False:
+            # match old mne-python behavor
+            ind = np.argmin(ws)
             n_limit = ind
+            limit = ws[ind] * weight_limit
+            wpp = (np.minimum(w / limit, 1)) ** exp
+        else:
+            # match C code behavior
+            limit = ws[-1]
+            n_limit = len(d)
+            if ws[-1] > weight_limit * ws[0]:
+                ind = np.where(ws > weight_limit * ws[0])[0][0]
+                limit = ws[ind]
+                n_limit = ind
 
-    logger.info('    limit = %d/%d = %f'
-                % (n_limit + 1, len(d),
-                   np.sqrt(limit / ws[0])))
-    scale = 1.0 / limit
-    logger.info('    scale = %g exp = %g' % (scale, exp))
-    wpp = np.minimum(w / limit, 1) ** exp
+        logger.info('    limit = %d/%d = %f'
+                    % (n_limit + 1, len(d),
+                       np.sqrt(limit / ws[0])))
+        scale = 1.0 / limit
+        logger.info('    scale = %g exp = %g' % (scale, exp))
+        wpp = np.minimum(w / limit, 1) ** exp
+    else:
+        wpp = w ** exp
 
     depth_prior = wpp if is_fixed_ori else np.repeat(wpp, 3)
 

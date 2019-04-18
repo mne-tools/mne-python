@@ -52,9 +52,6 @@ laggy_float_editor_weight = TextEditor(auto_set=False, enter_set=True,
                                        evaluate=float,
                                        format_func=lambda x: '%0.2f' % x)
 
-laggy_float_editor_scale = TextEditor(auto_set=False, enter_set=True,
-                                      evaluate=float,
-                                      format_func=lambda x: '%0.1f' % x)
 laggy_float_editor_deg = TextEditor(auto_set=False, enter_set=True,
                                     evaluate=float,
                                     format_func=lambda x: '%0.1f' % x)

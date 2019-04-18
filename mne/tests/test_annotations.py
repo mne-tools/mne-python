@@ -20,9 +20,8 @@ from mne import create_info, read_annotations, events_from_annotations
 from mne import Epochs, Annotations
 from mne.utils import (run_tests_if_main, _TempDir, requires_version,
                        catch_logging)
-from mne.utils.testing import assert_and_remove_boundary_annot
+from mne.utils import assert_and_remove_boundary_annot, _raw_annot
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.io.tests.test_raw import _raw_annot
 from mne.annotations import _sync_onset, _handle_meas_date
 from mne.annotations import _read_annotations_txt_parse_header
 from mne.datasets import testing
@@ -97,6 +96,18 @@ def test_basics():
                        [1.5, .5, .5, .5, .5, .5, .5])
     assert_array_equal(raw.annotations.description,
                        ['y', 'x', 'x', 'x', 'x', 'x', 'x'])
+
+    # These three things should be equivalent
+    expected_orig_time = (raw.info['meas_date'][0] +
+                          raw.info['meas_date'][1] / 1000000)
+    for empty_annot in (
+            Annotations([], [], [], expected_orig_time),
+            Annotations([], [], [], None),
+            None):
+        raw.set_annotations(empty_annot)
+        assert isinstance(raw.annotations, Annotations)
+        assert len(raw.annotations) == 0
+        assert raw.annotations.orig_time == expected_orig_time
 
 
 def test_crop():

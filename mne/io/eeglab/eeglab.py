@@ -10,10 +10,10 @@ import numpy as np
 
 from ..utils import (_read_segments_file, _find_channels,
                      _deprecate_stim_channel)
-from ..constants import FIFF, Bunch
+from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
-from ...utils import logger, verbose, warn, fill_doc
+from ...utils import logger, verbose, warn, fill_doc, Bunch
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -604,7 +604,7 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
         duration[:] = [event.duration for event in events]
 
     return Annotations(onset=np.array(onset) / eeg.srate,
-                       duration=duration,
+                       duration=duration / eeg.srate,
                        description=description,
                        orig_time=None)
 

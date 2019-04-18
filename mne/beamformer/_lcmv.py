@@ -15,9 +15,9 @@ from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate, _get_src_type
 from ..utils import (logger, verbose, warn, _validate_type, _reg_pinv,
-                     _check_info_inv, _check_channels_spatial_filter)
-from ..utils import _check_one_ch_type
-from ..utils import _check_rank
+                     _check_info_inv, _check_channels_spatial_filter,
+                     _check_option)
+from ..utils import _check_one_ch_type, _check_rank
 from .. import Epochs
 from ._compute_beamformer import (
     _check_proj_match, _prepare_beamformer_input,
@@ -121,52 +121,39 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     picks = _check_info_inv(info, forward, data_cov, noise_cov)
+    # check number of sensor types present in the data and ensure a noise cov
+    noise_cov = _check_one_ch_type(info, picks, noise_cov, 'lcmv').copy()
+    if 'estimator' in noise_cov:
+        del noise_cov['estimator']
 
     data_rank = compute_rank(data_cov, rank=rank, info=info)
-    if noise_cov is not None:
-        noise_rank = compute_rank(noise_cov, rank=rank, info=info)
-        for key in data_rank:
-            if key not in noise_rank or data_rank[key] != noise_rank[key]:
-                raise ValueError('%s data rank (%s) did not match the noise '
-                                 'rank (%s)'
-                                 % (key, data_rank[key],
-                                    noise_rank.get(key, None)))
-        del noise_rank
+    noise_rank = compute_rank(noise_cov, rank=rank, info=info)
+    for key in data_rank:
+        if key not in noise_rank or data_rank[key] != noise_rank[key]:
+            raise ValueError('%s data rank (%s) did not match the noise '
+                             'rank (%s)'
+                             % (key, data_rank[key],
+                                noise_rank.get(key, None)))
+    del noise_rank
     rank = data_rank
     logger.info('Making LCMV beamformer with rank %s' % (rank,))
     del data_rank
+    _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
 
     is_free_ori, ch_names, proj, vertno, G, nn = \
-        _prepare_beamformer_input(info, forward, label, picks, pick_ori)
+        _prepare_beamformer_input(info, forward, label, picks, pick_ori,
+                                  apply_proj=False)
 
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
     if 'estimator' in data_cov:
         del data_cov['estimator']
 
-    # check number of sensor types present in the data
-    _check_one_ch_type(info, picks, noise_cov, 'lcmv')
-
-    # apply SSPs
-    is_ssp = False
-    if info['projs']:
-        Cm = np.dot(proj, np.dot(Cm, proj.T))
-        is_ssp = True
-
-    if noise_cov is not None:
-        # Handle whitening + data covariance
-        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
-        # whiten the leadfield
-        G = np.dot(whitener, G)
-        # whiten data covariance
-        Cm = np.dot(whitener, np.dot(Cm, whitener.T))
-        noise_cov = noise_cov.copy()
-        if 'estimator' in noise_cov:
-            del noise_cov['estimator']
-        rank_int = sum(rank.values())
-    else:
-        whitener = None
-        rank_int = G.shape[0]
+    # Handle whitening + data covariance
+    whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
+    G = np.dot(whitener, G)
+    Cm = np.dot(whitener, np.dot(Cm, whitener.T))
+    rank_int = sum(rank.values())
     del rank
 
     # leadfield rank and optional rank reduction
@@ -192,6 +179,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     # Is the computed beamformer a scalar or vector beamformer?
     is_free_ori = is_free_ori if pick_ori in [None, 'vector'] else False
+    is_ssp = bool(info['projs'])
 
     filters = Beamformer(
         kind='LCMV', weights=W, data_cov=data_cov, noise_cov=noise_cov,
@@ -410,10 +398,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
                        label=None, picks=None, pick_ori=None, rank=None,
                        weight_norm=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer."""
-    if weight_norm not in [None, 'unit-noise-gain']:
-        raise ValueError('Unrecognized weight normalization option in '
-                         'weight_norm, available choices are None and '
-                         '"unit-noise-gain", got "%s".' % weight_norm)
+    _check_option('weight_norm', weight_norm, [None, 'unit-noise-gain'])
 
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
@@ -431,21 +416,13 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
 
     # XXX this could maybe use pca=True to avoid needing to use
     # _reg_pinv(..., rank=rank) later
-    if noise_cov is not None:
-        whitener_rank = None if rank == 'full' else rank
-        whitener, _ = compute_whitener(noise_cov, info, rank=whitener_rank)
+    whitener_rank = None if rank == 'full' else rank
+    whitener, _ = compute_whitener(noise_cov, info, rank=whitener_rank)
+    G = np.dot(whitener, G)
 
-        # whiten the leadfield
-        G = np.dot(whitener, G)
-
-    # Apply SSPs + whitener to data covariance
+    # Apply whitener to data covariance
     data_cov = pick_channels_cov(data_cov, include=ch_names)
-    Cm = data_cov['data']
-    if info['projs']:
-        Cm = np.dot(proj, np.dot(Cm, proj.T))
-
-    if noise_cov is not None:
-        Cm = np.dot(whitener, np.dot(Cm, whitener.T))
+    Cm = np.dot(whitener, np.dot(data_cov['data'], whitener.T))
 
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
@@ -585,10 +562,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     """
     _check_reference(epochs)
     rank = _check_rank(rank)
-
-    if pick_ori not in [None, 'normal']:
-        raise ValueError('pick_ori must be one of "normal" and None, '
-                         'got %s' % (pick_ori,))
+    _check_option('pick_ori', pick_ori, [None, 'normal'])
     if noise_covs is not None and len(noise_covs) != len(freq_bins):
         raise ValueError('One noise covariance object expected per frequency '
                          'bin')
@@ -614,7 +588,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     ch_names = [epochs.ch_names[k] for k in picks]
 
     # check number of sensor types present in the data
-    _check_one_ch_type(epochs.info, picks, noise_covs, 'lcmv')
+    if noise_covs is None:
+        noise_covs = [None] * len(win_lengths)
+    noise_covs = [_check_one_ch_type(epochs.info, picks, noise_cov, 'lcmv')
+                  for noise_cov in noise_covs]
 
     # Use picks from epochs for picking channels in the raw object
     raw_picks = [raw.ch_names.index(c) for c in ch_names]
@@ -624,10 +601,6 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
-
-    # create a list to iterate over if no noise covariances are given
-    if noise_covs is None:
-        noise_covs = [None] * len(win_lengths)
 
     sol_final = []
     for (l_freq, h_freq), win_length, noise_cov in \

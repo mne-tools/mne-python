@@ -21,10 +21,10 @@ from .multitaper import dpss_windows
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
-                     GetEpochsMixin, _prepare_read_metadata, fill_doc,
-                     _prepare_write_metadata, _check_event_id, _gen_events,
-                     SizeMixin, _is_numeric)
+from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
+                     sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
+                     fill_doc, _prepare_write_metadata, _check_event_id,
+                     _gen_events, SizeMixin, _is_numeric, _check_option)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -188,9 +188,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
-    if mode not in ['same', 'valid', 'full']:
-        raise ValueError("`mode` must be 'same', 'valid' or 'full', "
-                         "got %s instead." % mode)
+    _check_option('mode', mode, ['same', 'valid', 'full'])
     decim = _check_decim(decim)
     X = np.asarray(X)
 
@@ -444,15 +442,9 @@ def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
                          'got %s instead.' % type(decim))
 
     # Check output
-    allowed_ouput = ('complex', 'power', 'phase',
-                     'avg_power_itc', 'avg_power', 'itc')
-    if output not in allowed_ouput:
-        raise ValueError("Unknown output type. Allowed are %s but "
-                         "got %s." % (allowed_ouput, output))
-
-    if method not in ('multitaper', 'morlet'):
-        raise ValueError('method must be "morlet" or "multitaper", got %s '
-                         'instead.' % type(method))
+    _check_option('output', output, ['complex', 'power', 'phase',
+                                     'avg_power_itc', 'avg_power', 'itc'])
+    _check_option('method', method, ['multitaper', 'morlet'])
 
     return freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
@@ -877,7 +869,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         """Channel names."""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None):
+    def crop(self, tmin=None, tmax=None, fmin=None, fmax=None):
         """Crop data to a given time interval in place.
 
         Parameters
@@ -886,15 +878,41 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        fmin : float | None
+            Lowest frequency of selection in Hz.
+
+            .. versionadded:: 0.18.0
+        fmax : float | None
+            Highest frequency of selection in Hz.
+
+            .. versionadded:: 0.18.0
 
         Returns
         -------
         inst : instance of AverageTFR
             The modified instance.
         """
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-        self.times = self.times[mask]
-        self.data = self.data[..., mask]
+        if tmin is not None or tmax is not None:
+            time_mask = _time_mask(self.times, tmin, tmax,
+                                   sfreq=self.info['sfreq'])
+
+        else:
+            time_mask = slice(None)
+
+        if fmin is not None or fmax is not None:
+            freq_mask = _freq_mask(self.freqs, sfreq=self.info['sfreq'],
+                                   fmin=fmin, fmax=fmax)
+        else:
+            freq_mask = slice(None)
+
+        self.times = self.times[time_mask]
+        self.freqs = self.freqs[freq_mask]
+        # Deal with broadcasting (boolean arrays do not broadcast, but indices
+        # do, so we need to convert freq_mask to make use of broadcasting)
+        if isinstance(time_mask, np.ndarray) and \
+                isinstance(freq_mask, np.ndarray):
+            freq_mask = np.where(freq_mask)[0][:, np.newaxis]
+        self.data = self.data[..., freq_mask, time_mask]
         return self
 
     def copy(self):
@@ -1091,7 +1109,7 @@ class AverageTFR(_BaseTFR):
                 amount of images.
 
         dB : bool
-            If True, 20*log10 is applied to the data to get dB.
+            If True, 10*log10 is applied to the data to get dB.
         colorbar : bool
             If true, colorbar will be added to the plot. For user defined axes,
             the colorbar cannot be drawn. Defaults to True.
@@ -1305,7 +1323,7 @@ class AverageTFR(_BaseTFR):
         cmap : matplotlib colormap
             The colormap to use.
         dB : bool
-            If True, 20*log10 is applied to the data to get dB.
+            If True, 10*log10 is applied to the data to get dB.
         colorbar : bool
             If true, colorbar will be added to the plot (relating to the
             topomaps). For user defined axes, the colorbar cannot be drawn.
@@ -1685,7 +1703,7 @@ class AverageTFR(_BaseTFR):
         title : str
             Title of the figure.
         dB : bool
-            If True, 20*log10 is applied to the data to get dB.
+            If True, 10*log10 is applied to the data to get dB.
         colorbar : bool
             If true, colorbar will be added to the plot
         layout_scale : float

@@ -5,7 +5,6 @@ Generate simulated raw data
 
 This example generates raw data by repeating a desired source
 activation multiple times.
-
 """
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Mark Wronkiewicz <wronk.mark@gmail.com>

@@ -31,8 +31,6 @@ References
 # License: BSD (3-clause)
 import os
 
-import matplotlib.pyplot as plt
-
 import nibabel as nib
 import mne
 from mne.datasets import sample
@@ -152,8 +150,6 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = mne.compute_source_morph(inverse_operator['src'],
-                                         subject_from='sample',
-                                         subjects_dir=subjects_dir).apply(stc)
-
-plt.show()
+stc_fsaverage_new = mne.compute_source_morph(
+    inverse_operator['src'], subject_from='sample',
+    subjects_dir=subjects_dir).apply(stc)

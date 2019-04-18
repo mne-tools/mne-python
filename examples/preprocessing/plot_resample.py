@@ -62,7 +62,7 @@ mne.viz.tight_layout()
 # can only be done on loaded or pre-loaded data.
 
 # Resample to 300 Hz
-raw_resampled = raw.copy().resample(300, npad='auto')
+raw_resampled_300 = raw.copy().resample(300, npad='auto')
 
 ###############################################################################
 # Because resampling also affects the stim channels, some trigger onsets might
@@ -72,9 +72,9 @@ raw_resampled = raw.copy().resample(300, npad='auto')
 print('Number of events before resampling:', len(mne.find_events(raw)))
 
 # Resample to 100 Hz (suppress the warning that would be emitted)
-raw_resampled = raw.copy().resample(100, npad='auto', verbose='error')
+raw_resampled_100 = raw.copy().resample(100, npad='auto', verbose='error')
 print('Number of events after resampling:',
-      len(mne.find_events(raw_resampled)))
+      len(mne.find_events(raw_resampled_100)))
 
 # To avoid losing events, jointly resample the data and event matrix
 events = mne.find_events(raw)

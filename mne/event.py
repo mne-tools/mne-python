@@ -12,7 +12,7 @@ from os.path import splitext
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type)
+                    _validate_type, _check_option)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -713,9 +713,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Mask digital trigger values."""
-    if not isinstance(mask_type, str) or mask_type not in ('not_and', 'and'):
-        raise ValueError('mask_type must be "not_and" or "and", got %s'
-                         % (mask_type,))
+    _check_option('mask_type', mask_type, ['not_and', 'and'])
     if mask is not None:
         _validate_type(mask, "int", "mask", "int or None")
     n_events = len(events)
@@ -751,7 +749,7 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Returns
     -------
-    new_events: array, shape (n_events_out, 3)
+    new_events : array, shape (n_events_out, 3)
         The new events
 
     Examples
@@ -802,7 +800,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     ----------
     events : array, shape=(n_events, 3)
         The events
-    ids : array int
+    ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
         Time-shift event. Use positive value tshift for forward shifting
@@ -816,8 +814,12 @@ def shift_time_events(events, ids, tshift, sfreq):
         The new events.
     """
     events = events.copy()
-    for ii in ids:
-        events[events[:, 2] == ii, 0] += int(tshift * sfreq)
+    if ids is None:
+        mask = slice(None)
+    else:
+        mask = np.in1d(events[:, 2], ids)
+    events[mask, 0] += int(tshift * sfreq)
+
     return events
 
 

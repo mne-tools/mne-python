@@ -6,7 +6,7 @@ from mne.datasets import testing
 from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
-                       _check_mayavi_version, _check_info_inv)
+                       _check_mayavi_version, _check_info_inv, _check_option)
 
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
@@ -102,3 +102,26 @@ def test_check_info_inv():
     picks = _check_info_inv(epochs.info, forward, noise_cov=noise_cov,
                             data_cov=data_cov)
     assert list(range(7, 10)) == picks
+
+
+def test_check_option():
+    """Test checking the value of a parameter against a list of options."""
+    allowed_values = ['valid', 'good', 'ok']
+
+    # Value is allowed
+    assert _check_option('option', 'valid', allowed_values)
+    assert _check_option('option', 'good', allowed_values)
+    assert _check_option('option', 'ok', allowed_values)
+    assert _check_option('option', 'valid', ['valid'])
+
+    # Check error message for invalid value
+    msg = ("Invalid value for the 'option' parameter. Allowed values are "
+           "'valid', 'good' and 'ok', but got 'bad' instead.")
+    with pytest.raises(ValueError, match=msg):
+        assert _check_option('option', 'bad', allowed_values)
+
+    # Special error message if only one value is allowed
+    msg = ("Invalid value for the 'option' parameter. The only allowed value "
+           "is 'valid', but got 'bad' instead.")
+    with pytest.raises(ValueError, match=msg):
+        assert _check_option('option', 'bad', ['valid'])

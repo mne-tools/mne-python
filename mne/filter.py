@@ -13,7 +13,7 @@ from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn,
-                    _check_preload, _validate_type)
+                    _check_preload, _validate_type, _check_option)
 
 # These values from Ifeachor and Jervis.
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
@@ -688,9 +688,7 @@ def _check_method(method, iir_params, extra_types=()):
     """Parse method arguments."""
     allowed_types = ['iir', 'fir', 'fft'] + list(extra_types)
     _validate_type(method, 'str', 'method')
-    if method not in allowed_types:
-        raise ValueError('method must be one of %s, not "%s"'
-                         % (allowed_types, method))
+    _check_option('method', method, allowed_types)
     if method == 'fft':
         method = 'fir'  # use the better name
     if method == 'iir':
@@ -1934,7 +1932,7 @@ class FilterMixin(object):
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        %(picks_good_data)s
+        %(picks_all_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -2163,6 +2161,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
 def _filt_check_picks(info, picks, h_freq, l_freq):
     from .io.pick import _picks_to_idx
     update_info = False
+    # This will pick *all* data channels
     picks = _picks_to_idx(info, picks, 'data_or_ica', exclude=())
     if h_freq is not None or l_freq is not None:
         data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=())

@@ -51,7 +51,7 @@
 .. _deleting master on github: http://matthew-brett.github.io/pydagogue/gh_delete_master.html
 .. _rebase without tears: http://matthew-brett.github.io/pydagogue/rebase_without_tears.html
 .. _resolving a merge: https://schacon.github.io/git/user-manual.html#resolving-a-merge
-.. _ipython git workflow: http://mail.scipy.org/pipermail/ipython-dev/2010-October/006746.html
+.. _ipython git workflow: https://web.archive.org/web/*/http://mail.scipy.org/pipermail/ipython-dev/2010-October/006746.html
 
 .. other stuff
 .. _python: http://www.python.org
@@ -99,7 +99,7 @@
 .. _NVIDIA proprietary drivers: https://www.nvidia.com/Download/index.aspx
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
-.. _sphinx gallery documentation: https://sphinx-gallery.readthedocs.io/en/latest/configuration.html
+.. _sphinx gallery documentation: https://sphinx-gallery.github.io
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _Stack Overflow: https://stackoverflow.com/
 

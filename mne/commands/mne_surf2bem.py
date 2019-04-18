@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 r"""Convert surface to BEM FIF file.
 
-Example usage
+Examples
+--------
+.. code-block:: console
 
-mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
-${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif --id=4
+    $ mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead \
+        --fif ${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif \
+        --id=4
+
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

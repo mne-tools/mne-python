@@ -16,7 +16,8 @@ from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj, _read_proj, _write_proj)
-from .io import fiff_open
+from .io import fiff_open, RawArray
+
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _picks_by_type, _pick_data_channels, _picks_to_idx,
                       _DATA_CH_TYPES_SPLIT)
@@ -33,7 +34,8 @@ from .event import make_fixed_length_events
 from .rank import compute_rank
 from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
-                    _undo_scaling_cov, _scaled_array)
+                    _undo_scaling_cov, _scaled_array, _validate_type,
+                    _check_option)
 from . import viz
 
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
@@ -756,10 +758,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
              'matrix may be inaccurate')
 
     orig = epochs[0].info['dev_head_t']
-    if not isinstance(on_mismatch, str) or \
-            on_mismatch not in ['raise', 'warn', 'ignore']:
-        raise ValueError('on_mismatch must be "raise", "warn", or "ignore", '
-                         'got %s' % on_mismatch)
+    _check_option('on_mismatch', on_mismatch, ['raise', 'warn', 'ignore'])
     for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
         if (orig is None) != (epoch.info['dev_head_t'] is None) or \
@@ -882,9 +881,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 def _check_scalings_user(scalings):
     if isinstance(scalings, dict):
         for k, v in scalings.items():
-            if k not in ('mag', 'grad', 'eeg'):
-                raise ValueError('The keys in `scalings` must be "mag" or'
-                                 '"grad" or "eeg". You gave me: %s' % k)
+            _check_option('the keys in `scalings`', k, ['mag', 'grad', 'eeg'])
     elif scalings is not None and not isinstance(scalings, np.ndarray):
         raise TypeError('scalings must be a dict, ndarray, or None, got %s'
                         % type(scalings))
@@ -905,19 +902,19 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
-    from .io import RawArray
-    raw_temp = RawArray(data.T, info)
     orig_rank = rank
-    rank = compute_rank(raw_temp, rank, scalings, info)
+    rank = compute_rank(RawArray(data.T, info, copy=None, verbose=False),
+                        rank, scalings, info)
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)
-        _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True)
+        _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True,
+                                      do_compute_rank=False)
         eigvec = eigvec[mask]
         data = np.dot(data, eigvec.T)
         used = np.where(mask)[0]
         sub_picks_list = [(key, np.searchsorted(used, picks))
                           for key, picks in picks_list]
-        sub_info = pick_info(info, used)
+        sub_info = pick_info(info, used) if len(used) != len(mask) else info
         logger.info('Reducing data rank from %s -> %s'
                     % (len(mask), eigvec.shape[0]))
         estimator_cov_info = list()
@@ -1049,7 +1046,6 @@ def _gaussian_loglik_scorer(est, X, y=None):
     # compute empirical covariance of the test set
     precision = est.get_precision()
     n_samples, n_features = X.shape
-    log_like = np.zeros(n_samples)
     log_like = -.5 * (X * (np.dot(X, precision))).sum(axis=1)
     log_like -= .5 * (n_features * log(2. * np.pi) - _logdet(precision))
     out = np.mean(log_like)
@@ -1303,36 +1299,6 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     return eig, eigvec, mask
 
 
-def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
-                  pca=False, scalings=None, prepared=False):
-    #
-    #   Handle noise cov
-    #
-    if not prepared:
-        noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank,
-                                      scalings)
-    n_chan = len(noise_cov['eig'])
-
-    #   Omit the zeroes due to projection
-    eig = noise_cov['eig'].copy()
-    nzero = (eig > 0)
-    eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
-    n_nzero = np.sum(nzero)
-
-    whitener = np.zeros((n_chan, 1), dtype=np.float)
-    whitener[nzero, 0] = 1.0 / np.sqrt(eig[nzero])
-    #   Rows of eigvec are the eigenvectors
-    whitener = whitener * noise_cov['eigvec']  # C ** -0.5
-    colorer = np.sqrt(eig) * noise_cov['eigvec'].T  # C ** 0.5
-    if pca:
-        whitener = whitener[nzero]
-        colorer = colorer[:, nzero]
-    logger.info('    Created the whitener using a noise covariance matrix '
-                'with rank %d (%d small eigenvalues omitted)'
-                % (n_nzero, noise_cov['dim'] - np.sum(nzero)))
-    return whitener, colorer, noise_cov, n_nzero
-
-
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
                       scalings=None, verbose=None):
@@ -1366,8 +1332,18 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         and parameters updated.
     """
     # reorder C and info to match ch_names order
+    noise_cov_idx = list()
+    missing = list()
     ch_names = info['ch_names'] if ch_names is None else ch_names
-    noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
+    for c in ch_names:
+        # this could be try/except ValueError, but it is not the preferred way
+        if c in noise_cov.ch_names:
+            noise_cov_idx.append(noise_cov.ch_names.index(c))
+        else:
+            missing.append(c)
+    if len(missing):
+        raise RuntimeError('Not all channels present in noise covariance:\n%s'
+                           % missing)
     if not noise_cov['diag']:
         C = noise_cov.data[np.ix_(noise_cov_idx, noise_cov_idx)]
     else:
@@ -1388,13 +1364,14 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
 
 @verbose
 def _smart_eigh(C, info, rank, scalings=None, projs=None,
-                ch_names=None, proj_subspace=False, verbose=None):
+                ch_names=None, proj_subspace=False, do_compute_rank=True,
+                verbose=None):
     """Compute eigh of C taking into account rank and ch_type scalings."""
     scalings = _handle_default('scalings_cov_rank', scalings)
-    info = info.copy()
     projs = info['projs'] if projs is None else projs
     ch_names = info['ch_names'] if ch_names is None else ch_names
-    pick_info(info, [info['ch_names'].index(c) for c in ch_names], copy=False)
+    if info['ch_names'] != ch_names:
+        info = pick_info(info, [info['ch_names'].index(c) for c in ch_names])
     assert info['ch_names'] == ch_names
     n_chan = len(ch_names)
 
@@ -1409,9 +1386,13 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
         C = np.dot(proj, np.dot(C, proj.T))
 
     noise_cov = Covariance(C, ch_names, [], projs, 0)
-    rank = compute_rank(noise_cov, rank, scalings, info)
+    if do_compute_rank:  # if necessary
+        rank = compute_rank(noise_cov, rank, scalings, info)
     assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
+    # time saving short-circuit
+    if proj_subspace and sum(rank.values()) == C.shape[0]:
+        return np.ones(n_chan), np.eye(n_chan), np.ones(n_chan, bool)
     eig = np.zeros(n_chan)
     eigvec = np.zeros((n_chan, n_chan))
     mask = np.zeros(n_chan, bool)
@@ -1647,16 +1628,18 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
 
 
 @verbose
-def compute_whitener(noise_cov, info, picks=None, rank=None, scalings=None,
-                     return_rank=False, pca=False, verbose=None):
+def compute_whitener(noise_cov, info=None, picks=None, rank=None,
+                     scalings=None, return_rank=False, pca=False,
+                     return_colorer=False, verbose=None):
     """Compute whitening matrix.
 
     Parameters
     ----------
     noise_cov : Covariance
         The noise covariance.
-    info : dict
-        The measurement info.
+    info : dict | None
+        The measurement info. Can be None if `noise_cov` has already been
+        prepared with :func:`prepare_noise_cov`.
     %(picks_good_data_noref)s
     %(rank_None)s
 
@@ -1669,45 +1652,84 @@ def compute_whitener(noise_cov, info, picks=None, rank=None, scalings=None,
         If True, return the rank used to compute the whitener.
 
         .. versionadded:: 0.15
-    pca : bool
-        If True, return the rank-reduced whitener will be returned.
+    pca : bool | str
+        Space to project the data into. Options:
+
+        :data:`python:True`
+            Whitener will be shape (n_nonzero, n_channels).
+        ``'white'``
+            Whitener will be shape (n_channels, n_channels), potentially rank
+            deficient, and have the first ``n_channels - n_nonzero`` rows and
+            columns set to zero.
+        :data:`python:False` (default)
+            Whitener will be shape (n_channels, n_channels), potentially rank
+            deficient, and rotated back to the space of the original data.
 
         .. versionadded:: 0.18
+    return_colorer : bool
+        If True, return the colorer as well.
     %(verbose)s
 
     Returns
     -------
     W : ndarray, shape (n_channels, n_channels) or (n_nonzero, n_channels)
-        The whitening matrix, backprojected or not based on whether `pca` is
-        False or True, respectively.
+        The whitening matrix.
     ch_names : list
         The channel names.
     rank : int
         Rank reduction of the whitener. Returned only if return_rank is True.
-    """
-    picks = _picks_to_idx(info, picks, with_ref_meg=False)
-
-    ch_names = [info['ch_names'][k] for k in picks]
-
-    # XXX this relies on pick_channels, which does not respect order,
-    # so this could create problems if users have reordered their data
-    noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
-    if len(noise_cov['data']) != len(ch_names):
-        missing = list(set(ch_names) - set(noise_cov['names']))
-        raise RuntimeError('Not all channels present in noise covariance:\n%s'
-                           % missing)
-
-    W, _, noise_cov, n_nzero = _get_whitener(
-        noise_cov, info, ch_names, rank, pca=pca, scalings=scalings)
-
-    # Do the back projection
-    if not pca:
-        W = np.dot(noise_cov['eigvec'].T, W)
+    colorer : ndarray, shape (n_channels, n_channels) or (n_channels, n_nonzero)
+        The coloring matrix.
+    """  # noqa: E501
+    _validate_type(pca, (str, bool), 'space')
+    _valid_pcas = (True, 'white', False)
+    if pca not in _valid_pcas:
+        raise ValueError('space must be one of %s, got %s'
+                         % (_valid_pcas, pca))
+    if info is None:
+        if 'eig' not in noise_cov:
+            raise ValueError('info can only be None if the noise cov has '
+                             'already been prepared with prepare_noise_cov')
+        ch_names = deepcopy(noise_cov['names'])
     else:
-        assert W.shape[0] == n_nzero
+        picks = _picks_to_idx(info, picks, with_ref_meg=False)
+        ch_names = [info['ch_names'][k] for k in picks]
+        del picks
+        noise_cov = prepare_noise_cov(
+            noise_cov, info, ch_names, rank, scalings)
+
+    n_chan = len(ch_names)
+    assert n_chan == len(noise_cov['eig'])
+
+    #   Omit the zeroes due to projection
+    eig = noise_cov['eig'].copy()
+    nzero = (eig > 0)
+    eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
+
+    W = np.zeros((n_chan, 1), dtype=np.float)
+    W[nzero, 0] = 1.0 / np.sqrt(eig[nzero])
+    #   Rows of eigvec are the eigenvectors
+    W = W * noise_cov['eigvec']  # C ** -0.5
+    C = np.sqrt(eig) * noise_cov['eigvec'].T  # C ** 0.5
+    n_nzero = nzero.sum()
+    logger.info('    Created the whitener using a noise covariance matrix '
+                'with rank %d (%d small eigenvalues omitted)'
+                % (n_nzero, noise_cov['dim'] - n_nzero))
+
+    # Do the requested projection
+    if pca is True:
+        W = W[nzero]
+        C = C[:, nzero]
+    elif pca is False:
+        W = np.dot(noise_cov['eigvec'].T, W)
+        C = np.dot(C, noise_cov['eigvec'])
+
+    # Triage return
     out = W, ch_names
     if return_rank:
         out += (n_nzero,)
+    if return_colorer:
+        out += (C,)
     return out
 
 

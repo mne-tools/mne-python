@@ -23,7 +23,8 @@ from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
                       read_morph_map)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
-                    check_random_state, _validate_type, fill_doc)
+                    check_random_state, _validate_type, fill_doc,
+                    _check_option)
 
 
 def _blend_colors(color_1, color_2):
@@ -195,9 +196,9 @@ class Label(object):
     """
 
     @verbose
-    def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
-                 name=None, filename=None, subject=None, color=None,
-                 verbose=None):  # noqa: D102
+    def __init__(self, vertices=(), pos=None, values=None, hemi=None,
+                 comment="", name=None, filename=None, subject=None,
+                 color=None, verbose=None):  # noqa: D102
         # check parameters
         if not isinstance(hemi, str):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
@@ -1332,10 +1333,6 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
     for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
             zip(['lh', 'rh'], stc.vertices, tris, rr)):
         this_data = stc.data[cnt:cnt + len(this_vertno)]
-        e = mesh_edges(this_tris)
-        e.data[e.data == 2] = 1
-        n_vertices = e.shape[0]
-        e = e + sparse.eye(n_vertices, n_vertices)
 
         if connected:  # we know src *must* be a SourceSpaces now
             vertno = np.where(src[hemi_idx]['inuse'])[0]
@@ -1838,13 +1835,15 @@ def _read_annot(fname):
             raise IOError('Directory for annotation does not exist: %s',
                           fname)
         cands = os.listdir(dir_name)
-        cands = [c for c in cands if '.annot' in c]
+        cands = sorted(set(c.lstrip('lh.').lstrip('rh.').rstrip('.annot')
+                           for c in cands if '.annot' in c),
+                       key=lambda x: x.lower())
         if len(cands) == 0:
             raise IOError('No such file %s, no candidate parcellations '
                           'found in directory' % fname)
         else:
             raise IOError('No such file %s, candidate parcellations in '
-                          'that directory: %s' % (fname, ', '.join(cands)))
+                          'that directory:\n%s' % (fname, '\n'.join(cands)))
     with open(fname, "rb") as fid:
         n_verts = np.fromfile(fid, '>i4', 1)[0]
         data = np.fromfile(fid, '>i4', n_verts * 2).reshape(n_verts, 2)
@@ -1903,8 +1902,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
         annot_fname = [annot_fname]
     else:
         # construct .annot file names for requested subject, parc, hemi
-        if hemi not in ['lh', 'rh', 'both']:
-            raise ValueError('hemi has to be "lh", "rh", or "both"')
+        _check_option('hemi', hemi, ['lh', 'rh', 'both'])
         if hemi == 'both':
             hemis = ['lh', 'rh']
         else:

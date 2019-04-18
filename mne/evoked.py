@@ -19,7 +19,7 @@ from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc)
+                    fill_doc, _check_option)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -40,8 +40,7 @@ from .io.base import ToDataFrameMixin, TimeMixin, _check_maxshield
 
 _aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                 'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
-_aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
-               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
+_aspect_rev = {val: key for key, val in _aspect_dict.items()}
 
 
 @fill_doc
@@ -111,7 +110,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.info, self.nave, self._aspect_kind, self.first, self.last, \
             self.comment, self.times, self.data = _read_evoked(
                 fname, condition, kind, allow_maxshield)
-        self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
+        self.kind = _aspect_rev.get(self._aspect_kind, 'unknown')
         self.verbose = verbose
         self.preload = True
         # project and baseline correct
@@ -551,13 +550,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         data_picks = _pick_data_channels(self.info, with_ref_meg=False)
         types_used = {channel_type(self.info, idx) for idx in data_picks}
 
-        if str(ch_type) not in supported:
-            raise ValueError('Channel type must be `{supported}`. You gave me '
-                             '`{ch_type}` instead.'
-                             .format(ch_type=ch_type,
-                                     supported='` or `'.join(supported)))
+        _check_option('ch_type', str(ch_type), supported)
 
-        elif ch_type is not None and ch_type not in types_used:
+        if ch_type is not None and ch_type not in types_used:
             raise ValueError('Channel type `{ch_type}` not found in this '
                              'evoked object.'.format(ch_type=ch_type))
 
@@ -739,7 +734,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
         fid.close()
         raise ValueError('Dataset names in FIF file '
                          'could not be found.')
-    t = [_aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
+    t = [_aspect_rev.get(a, 'unknown') for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
     t = '\n'.join(t)
     return comments, aspect_kinds, t
@@ -863,9 +858,7 @@ def combine_evoked(all_evoked, weights):
     .. versionadded:: 0.9.0
     """
     if isinstance(weights, str):
-        if weights not in ('nave', 'equal'):
-            raise ValueError('weights must be a list of float, or "nave" or '
-                             '"equal"')
+        _check_option('weights', weights, ['nave', 'equal'])
         if weights == 'nave':
             weights = np.array([e.nave for e in all_evoked], float)
             weights /= weights.sum()
@@ -1248,11 +1241,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     max_amp : float
         Amplitude of the maximum response.
     """
-    modes = ('abs', 'neg', 'pos')
-    if mode not in modes:
-        raise ValueError('The `mode` parameter must be `{modes}`. You gave '
-                         'me `{mode}`'.format(modes='` or `'.join(modes),
-                                              mode=mode))
+    _check_option('mode', mode, ['abs', 'neg', 'pos'])
 
     if tmin is None:
         tmin = times[0]

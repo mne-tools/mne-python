@@ -14,6 +14,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
@@ -293,6 +294,7 @@ def test_plot_compare_evokeds():
                          ylim=dict(mag=(1, 10)), ci=_parametric_ci,
                          truncate_yaxis='max_ticks', show_sensors=False,
                          show_legend=False)
+    plt.close('all')
 
     # sequential colors
     evokeds = (evoked, blue, red)
@@ -318,10 +320,20 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
                          split_legend=None)
     plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    pytest.raises(ValueError, plot_compare_evokeds, [red] * 20)
-    pytest.raises(ValueError, plot_compare_evokeds, contrasts,
-                  cmap='summer')
+    with pytest.raises(ValueError, match='more than [1-9]'):
+        plot_compare_evokeds([red] * 20)
+    with pytest.raises(ValueError, match='must specify the colors'):
+        plot_compare_evokeds(contrasts, cmap='summer')
+    plt.close('all')
 
+    # smoke test for tmin >= 0 (from mailing list)
+    red.crop(0.01, None)
+    assert len(red.times) > 2
+    plot_compare_evokeds(red)
+    # smoke test for one time point (not useful but should not fail)
+    red.crop(0.01, 0.01)
+    assert len(red.times) == 1
+    plot_compare_evokeds(red)
     plt.close('all')
 
 
@@ -342,6 +354,32 @@ def test_plot_ctf():
     evoked = epochs.average()
     evoked.plot_joint(times=[0.1])
     mne.viz.plot_compare_evokeds([evoked, evoked])
+
+    # make sure axes position is "almost" unchanged
+    # when axes were passed to plot_joint by the user
+    times = [0.1, 0.2, 0.3]
+    fig = plt.figure()
+
+    # create custom axes for topomaps, colorbar and the timeseries
+    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8)
+    topo_axes = [fig.add_subplot(gs[0, idx * 2:(idx + 1) * 2])
+                 for idx in range(len(times))]
+    topo_axes.append(fig.add_subplot(gs[0, -1]))
+    ts_axis = fig.add_subplot(gs[1:, 1:-1])
+
+    def get_axes_midpoints(axes):
+        midpoints = list()
+        for ax in axes[:-1]:
+            pos = ax.get_position()
+            midpoints.append([pos.x0 + (pos.width * 0.5),
+                              pos.y0 + (pos.height * 0.5)])
+        return np.array(midpoints)
+
+    midpoints_before = get_axes_midpoints(topo_axes)
+    evoked.plot_joint(times=times, ts_args={'axes': ts_axis},
+                      topomap_args={'axes': topo_axes}, title=None)
+    midpoints_after = get_axes_midpoints(topo_axes)
+    assert (np.linalg.norm(midpoints_before - midpoints_after) < 0.1).all()
 
 
 run_tests_if_main()

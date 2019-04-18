@@ -309,7 +309,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])  # for sim
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=[])  # for CHPI
     fwd_info = pick_info(info, meeg_picks)
-    fwd_info['projs'] = []  # Ensure no 'projs' applied
+    fwd_info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
     del interp

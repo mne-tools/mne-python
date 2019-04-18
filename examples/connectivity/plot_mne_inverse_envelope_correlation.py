@@ -71,10 +71,11 @@ del fwd, src
 
 labels = mne.read_labels_from_annot(subject, 'aparc_sub',
                                     subjects_dir=subjects_dir)
-stcs = apply_inverse_epochs(epochs, inv, lambda2=1. / 9., pick_ori='normal')
+stcs = apply_inverse_epochs(epochs, inv, lambda2=1. / 9., pick_ori='normal',
+                            return_generator=True)
 label_ts = mne.extract_label_time_course(
     stcs, labels, inv['src'], return_generator=True)
-corr = envelope_correlation(label_ts)
+corr = envelope_correlation(label_ts, verbose=True)
 
 # let's plot this matrix
 fig, ax = plt.subplots(figsize=(4, 4))
@@ -85,7 +86,8 @@ fig.tight_layout()
 # Compute the degree and plot it
 # ------------------------------
 
-degree = mne.connectivity.degree(corr, 0.15)
+threshold_prop = 0.15  # percentage of strongest edges to keep in the graph
+degree = mne.connectivity.degree(corr, threshold_prop=threshold_prop)
 stc = mne.labels_to_stc(labels, degree)
 stc = stc.in_label(mne.Label(inv['src'][0]['vertno'], hemi='lh') +
                    mne.Label(inv['src'][1]['vertno'], hemi='rh'))

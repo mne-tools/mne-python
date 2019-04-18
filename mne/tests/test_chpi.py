@@ -20,9 +20,8 @@ from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
                       _get_hpi_info, _get_hpi_initial_fit)
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.simulation import simulate_raw
-from mne.utils import run_tests_if_main, _TempDir, catch_logging
+from mne.utils import run_tests_if_main, catch_logging, assert_meg_snr
 from mne.datasets import testing
-from mne.tests.common import assert_meg_snr
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 test_fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -87,10 +86,9 @@ def test_chpi_adjust():
 
 
 @testing.requires_testing_data
-def test_read_write_head_pos():
+def test_read_write_head_pos(tmpdir):
     """Test reading and writing head position quaternion parameters."""
-    tempdir = _TempDir()
-    temp_name = op.join(tempdir, 'temp.pos')
+    temp_name = op.join(str(tmpdir), 'temp.pos')
     # This isn't a 100% valid quat matrix but it should be okay for tests
     head_pos_rand = np.random.RandomState(0).randn(20, 10)
     # This one is valid
@@ -108,10 +106,9 @@ def test_read_write_head_pos():
 
 
 @testing.requires_testing_data
-def test_hpi_info():
+def test_hpi_info(tmpdir):
     """Test getting HPI info."""
-    tempdir = _TempDir()
-    temp_name = op.join(tempdir, 'temp_raw.fif')
+    temp_name = op.join(str(tmpdir), 'temp_raw.fif')
     for fname in (chpi_fif_fname, sss_fif_fname):
         raw = read_raw_fif(fname, allow_maxshield='yes').crop(0, 0.1)
         assert len(raw.info['hpi_subsystem']) > 0
@@ -370,7 +367,7 @@ def test_calculate_chpi_coil_locs():
     assert_allclose(cHPI_digs[2][0]['gof'], 0.9980471794552791, atol=1e-3)
     assert_allclose(cHPI_digs[2][0]['r'],
                     [-0.0157762, 0.06655744, 0.00545172], atol=1e-3)
-    with pytest.raises(ValueError, match='too_close must be'):
+    with pytest.raises(ValueError, match='too_close'):
         _calculate_chpi_coil_locs(raw, too_close='foo')
 
 

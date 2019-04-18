@@ -16,7 +16,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
-                 EvokedArray, Annotations)
+                 EvokedArray, Annotations, pick_channels_regexp)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
@@ -122,10 +122,14 @@ def test_ica_full_data_recovery(method):
     pytest.raises(ValueError, ICA, method='pizza-decomposision')
 
 
-@requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_simple(method):
     """Test that ICA recovers the unmixing matrix in a simple case."""
+    if method == "fastica":
+        try:
+            import sklearn  # noqa: F401
+        except ImportError:
+            raise SkipTest("scikit-learn not installed")
     _skip_check_picard(method)
     n_components = 3
     n_samples = 1000
@@ -382,6 +386,10 @@ def test_ica_additional(method):
     assert (ica2.labels_["blinks"] == ica3.labels_["blinks"])
 
     plt.close('all')
+
+    ica_different_channels = ICA(n_components=2, random_state=0).fit(
+        raw, picks=[2, 3, 4, 5])
+    pytest.raises(ValueError, corrmap, [ica_different_channels, ica], (0, 0))
 
     # test warnings on bad filenames
     ica_badname = op.join(op.dirname(tempdir), 'test-bad-name.fif.gz')
@@ -708,7 +716,6 @@ def test_ica_twice(method):
 def test_fit_params(method):
     """Test fit_params for ICA."""
     _skip_check_picard(method)
-    pytest.raises(ValueError, ICA, fit_params=dict(extended=True))
     fit_params = {}
     ICA(fit_params=fit_params, method=method)  # test no side effects
     assert_equal(fit_params, {})
@@ -729,7 +736,7 @@ def test_bad_channels(method, allow_ref_meg):
     epochs = EpochsArray(data, info)
 
     n_components = 0.9
-    data_chs = _DATA_CH_TYPES_SPLIT + ['eog']
+    data_chs = list(_DATA_CH_TYPES_SPLIT + ('eog',))
     if allow_ref_meg:
         data_chs.append('ref_meg')
     chs_bad = list(set(chs) - set(data_chs))
@@ -919,6 +926,59 @@ def test_ica_ctf():
             ica.apply(inst)
         with pytest.raises(RuntimeError, match='Compensation grade of ICA'):
             ica.get_sources(inst)
+
+
+@requires_sklearn
+@testing.requires_testing_data
+def test_ica_labels():
+    """Test ICA labels."""
+    # The CTF data are uniquely well suited to testing the ICA.find_bads_
+    # methods
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    # derive reference ICA components and append them to raw
+    icarf = ICA(n_components=2, random_state=0, max_iter=2, allow_ref_meg=True)
+    with pytest.warns(UserWarning, match='did not converge'):
+        icarf.fit(raw.copy().pick_types(meg=False, ref_meg=True))
+    icacomps = icarf.get_sources(raw)
+    # rename components so they are auto-detected by find_bads_ref
+    icacomps.rename_channels({c: 'REF_' + c for c in icacomps.ch_names})
+    # and add them to raw
+    raw.add_channels([icacomps])
+    # set the appropriate EEG channels to EOG and ECG
+    raw.set_channel_types({'EEG057': 'eog', 'EEG058': 'eog', 'EEG059': 'ecg'})
+    ica = ICA(n_components=4, random_state=0, max_iter=2, method='fastica')
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw)
+
+    ica.find_bads_eog(raw, l_freq=None, h_freq=None)
+    picks = list(pick_types(raw.info, meg=False, eog=True))
+    for idx, ch in enumerate(picks):
+        assert '{}/{}/{}'.format('eog', idx, raw.ch_names[ch]) in ica.labels_
+    assert 'eog' in ica.labels_
+    for key in ('ecg', 'ref_meg', 'ecg/ECG-MAG'):
+        assert key not in ica.labels_
+
+    ica.find_bads_ecg(raw, l_freq=None, h_freq=None, method='correlation')
+    picks = list(pick_types(raw.info, meg=False, ecg=True))
+    for idx, ch in enumerate(picks):
+        assert '{}/{}/{}'.format('ecg', idx, raw.ch_names[ch]) in ica.labels_
+    for key in ('ecg', 'eog'):
+        assert key in ica.labels_
+    for key in ('ref_meg', 'ecg/ECG-MAG'):
+        assert key not in ica.labels_
+
+    ica.find_bads_ref(raw, l_freq=None, h_freq=None)
+    picks = pick_channels_regexp(raw.ch_names, 'REF_ICA*')
+    for idx, ch in enumerate(picks):
+        assert '{}/{}/{}'.format('ref_meg', idx,
+                                 raw.ch_names[ch]) in ica.labels_
+    for key in ('ecg', 'eog', 'ref_meg'):
+        assert key in ica.labels_
+    assert 'ecg/ECG-MAG' not in ica.labels_
+
+    ica.find_bads_ecg(raw, l_freq=None, h_freq=None)
+    for key in ('ecg', 'eog', 'ref_meg', 'ecg/ECG-MAG'):
+        assert key in ica.labels_
 
 
 @requires_sklearn

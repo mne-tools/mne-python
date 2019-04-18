@@ -7,11 +7,11 @@
 import os
 import os.path as op
 import numpy as np
+from distutils.version import LooseVersion
 
 from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
 from ..utils import _get_path
 
-BASE_URL = 'https://physionet.org/pn4/sleep-edfx/'
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
 TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__),
                                   'temazepam_records.csv')
@@ -25,7 +25,7 @@ AGE_RECORDS_URL_SHA1 = '0ba6650892c5d33a8e2b3f62ce1cc9f30438c54f'
 sha1sums_fname = op.join(op.dirname(__file__), 'SHA1SUMS')
 
 
-def _fetch_one(fname, hashsum, path, force_update, base_url=BASE_URL):
+def _fetch_one(fname, hashsum, path, force_update, base_url):
     # Fetch the file
     url = base_url + '/' + fname
     destination = op.join(path, fname)
@@ -107,6 +107,8 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
     # Load and massage the data.
     data = pd.read_excel(subjects_fname, header=[0, 1])
+    if LooseVersion(pd.__version__) >= LooseVersion('0.24.0'):
+        data = data.set_index(('Subject - age - sex', 'Nr'))
     data.index.name = 'subject'
     data.columns.names = [None, None]
     data = (data.set_index([('Subject - age - sex', 'Age'),
@@ -127,7 +129,10 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data = data.set_index(['id', 'subject', 'age', 'sex', 'drug',
                            'lights off', 'night nr', 'record type']).unstack()
     data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
-    data = data.reset_index().drop(columns=['id'])
+    if LooseVersion(pd.__version__) < LooseVersion('0.21.0'):
+        data = data.reset_index().drop(labels=['id'], axis=1)
+    else:
+        data = data.reset_index().drop(columns=['id'])
 
     data['sex'] = (data.sex.astype('category')
                        .cat.rename_categories({1: 'male', 2: 'female'}))
@@ -146,7 +151,6 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     tmp = _TempDir()
 
     # Download subjects info.
-    # subjects_url = BASE_URL + 'SC-subjects.xls'  # XXX not used
     subjects_fname = op.join(tmp, 'SC-subjects.xls')
     _fetch_file(url=AGE_RECORDS_URL,
                 file_name=subjects_fname,
@@ -177,8 +181,10 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
                                      .str.split('.', expand=True)[0]
                                      .astype('category'))
 
-    # data = data.set_index(['subject', 'night', 'record type'])
-    data = data.reset_index().drop(columns=['id'])
+    if LooseVersion(pd.__version__) < LooseVersion('0.21.0'):
+        data = data.reset_index().drop(labels=['id'], axis=1)
+    else:
+        data = data.reset_index().drop(columns=['id'])
     data = data[['subject', 'night', 'record type', 'age', 'sex', 'lights off',
                  'sha', 'fname']]
 

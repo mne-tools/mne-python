@@ -100,6 +100,7 @@ def test_simulate_raw_sphere():
     raw.info.normalize_proj()
     cov = read_cov(cov_fname)
     cov['projs'] = raw.info['projs']
+    raw.info['bads'] = raw.ch_names[:1]
     raw_sim = simulate_raw(raw, stc, trans, src, sphere, cov,
                            head_pos=head_pos_sim,
                            blink=True, ecg=True, random_state=seed)
@@ -336,7 +337,7 @@ def test_simulate_raw_chpi():
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
     sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)
-    src = setup_volume_source_space('sample', sphere=sphere_vol, pos=70.)
+    src = setup_volume_source_space(sphere=sphere_vol, pos=70.)
     stc = _make_stc(raw, src)
     # simulate data with cHPI on
     raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=False,
@@ -358,7 +359,7 @@ def test_simulate_raw_chpi():
 
         assert_array_equal(freqs_sim, freqs_chpi)
         freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f))
-                           for f in hpi_freqs])
+                            for f in hpi_freqs])
         if picks is picks_meg:
             assert (psd_chpi[:, freq_idx] >
                     100 * psd_sim[:, freq_idx]).all()

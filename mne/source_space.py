@@ -28,7 +28,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       complete_surface_info, _compute_nearest, fast_cross_3d,
                       mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
-                    has_nibabel, check_fname, logger, verbose,
+                    has_nibabel, check_fname, logger, verbose, _ensure_int,
                     check_version, _get_call_line, warn, _check_fname)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -1335,29 +1335,27 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 def _check_spacing(spacing, verbose=None):
     """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
-    space_err = ('"spacing" must be a string with values '
-                 '"ico#", "oct#", or "all", and "ico" and "oct"'
-                 'numbers must be integers')
-    if not isinstance(spacing, str) or len(spacing) < 3:
-        raise ValueError(space_err)
-    if spacing == 'all':
-        stype = 'all'
-        sval = ''
-    elif spacing[:3] == 'ico':
-        stype = 'ico'
-        sval = spacing[3:]
-    elif spacing[:3] == 'oct':
-        stype = 'oct'
-        sval = spacing[3:]
+    types = ('a string with values "ico#", "oct#", "all", or an int >= 2')
+    space_err = '"spacing" must be ' + types
+    if isinstance(spacing, str):
+        if spacing == 'all':
+            stype = 'all'
+            sval = ''
+        elif isinstance(spacing, str) and spacing[:3] in ('ico', 'oct'):
+            stype = spacing[:3]
+            sval = spacing[3:]
+            try:
+                sval = int(sval)
+            except Exception:
+                raise ValueError('ico and oct numbers must be integers, got %r'
+                                 % (sval,))
+        else:
+            raise ValueError(space_err)
     else:
-        raise ValueError(space_err)
-    try:
-        if stype in ['ico', 'oct']:
-            sval = int(sval)
-        elif stype == 'spacing':  # spacing
-            sval = float(sval)
-    except Exception:
-        raise ValueError(space_err)
+        stype = 'spacing'
+        sval = _ensure_int(spacing, 'spacing', types)
+        if sval < 2:
+            raise ValueError('spacing must be >= 2, got %d' % (sval,))
     if stype == 'all':
         logger.info('Include all vertices')
         ico_surf = None
@@ -1370,6 +1368,10 @@ def _check_spacing(spacing, verbose=None):
         elif stype == 'oct':
             logger.info('Octahedron subdivision grade %s' % sval)
             ico_surf = _tessellate_sphere_surf(sval)
+        else:
+            assert stype == 'spacing'
+            logger.info('Approximate spacing %s mm' % sval)
+            ico_surf = sval
     return stype, sval, ico_surf, src_type_str
 
 
@@ -1386,7 +1388,11 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-        or ``'all'`` for all points.
+        ``'all'`` for all points, or an integer to use appoximate
+        distance-based spacing (in mm).
+
+        .. versionchanged:: 0.18
+           Support for integers for distance-based spacing.
     surface : str
         The surface to use.
     subjects_dir : string, or None
@@ -1434,7 +1440,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     src = []
 
     # pre-load ico/oct surf (once) for speed, if necessary
-    if stype != 'all':
+    if stype not in ('spacing', 'all'):
         logger.info('Doing the %shedral vertex picking...'
                     % (dict(ico='icosa', oct='octa')[stype],))
     for hemi, surf in zip(['lh', 'rh'], surfs):
@@ -1482,18 +1488,13 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               add_interpolator=True, verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
-    When you work with a volume source space you need to specify the domain in
-    which the grid will be defined. There are three ways of specifying this:
-    (i) sphere, (ii) bem model, and (iii) surface.
-    The default behavior is to use sphere model
-    (``sphere=(0.0, 0.0, 0.0, 90.0)``) if ``bem`` or ``sourface`` is not
-    ``None`` then ``sphere`` is ignored.
-
     Parameters
     ----------
     subject : str | None
-        Subject to process. If None, the path to the mri volume must be
-        absolute. Defaults to None.
+        Subject to process. If None, the path to the MRI volume must be
+        absolute to get a volume source space. If a subject name
+        is provided the T1.mgz file will be found automatically.
+        Defaults to None.
     pos : float | dict
         Positions to use for sources. If float, a grid will be constructed
         with the spacing given by `pos` in mm, generating a volume source
@@ -1505,15 +1506,18 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
-        using this interpolator. If pos is a dict, this can be None.
+        using this interpolator. If pos is a dict, this cannot be None.
+        If subject name is provided, `pos` is a float or `volume_label`
+        are not provided then the `mri` parameter will default to 'T1.mgz'
+        else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
         are both None. Can also be a spherical ConductorModel, which will
         use the origin and radius.
-    bem : str | None
+    bem : str | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
-        skull surface).
+        skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
     surface : str | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
         also be a dictionary with entries `'rr'` and `'tris'`, such as
@@ -1545,6 +1549,22 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     Notes
     -----
+    Volume source spaces are related to an MRI image such as T1 and allow to
+    visualize source estimates overlaid on MRIs and to morph estimates
+    to a template brain for group analysis. Discrete source spaces
+    don't allow this. If you provide a subject name the T1 MRI will be
+    used by default.
+
+    When you work with a source space formed from a grid you need to specify
+    the domain in which the grid will be defined. There are three ways
+    of specifying this:
+    (i) sphere, (ii) bem model, and (iii) surface.
+    The default behavior is to use sphere model
+    (``sphere=(0.0, 0.0, 0.0, 90.0)``) if ``bem`` or ``surface`` is not
+    ``None`` then ``sphere`` is ignored.
+    If you're going to use a BEM conductor model for forward model
+    it is recommended to pass it here.
+
     To create a discrete source space, `pos` must be a dict, 'mri' must be
     None, and 'volume_label' must be None. To create a whole brain volume
     source space, `pos` must be a float and 'mri' must be provided. To create
@@ -1557,6 +1577,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
+
+    if (mri is None and subject is not None and
+            volume_label is None and isinstance(pos, (float, int))):
+        mri = 'T1.mgz'
+
+    if volume_label is not None and mri == 'T1.mgz':
+        raise RuntimeError('Cannot use T1.mgz with some volume_label.')
+
     if mri is not None:
         if not op.isfile(mri):
             if subject is None:
@@ -1599,7 +1627,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     # triage bounding argument
     if bem is not None:
-        logger.info('BEM file              : %s', bem)
+        logger.info('BEM              : %s', bem)
     elif surface is not None:
         if isinstance(surface, dict):
             if not all(key in surface for key in ['rr', 'tris']):
@@ -1651,12 +1679,18 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         sp = _make_discrete_source_space(pos)
     else:
         # Load the brain surface as a template
-        if bem is not None:
+        if isinstance(bem, str):
             # read bem surface in the MRI coordinate frame
             surf = read_bem_surfaces(bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN,
                                      verbose=False)
             logger.info('Loaded inner skull from %s (%d nodes)'
                         % (bem, surf['np']))
+        elif bem is not None and bem.get('is_sphere') is False:
+            # read bem surface in the MRI coordinate frame
+            surf = bem['surfs'][0]
+            assert surf['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
+            logger.info('Taking inner skull from %s'
+                        % bem)
         elif surface is not None:
             if isinstance(surface, str):
                 # read the surface in the MRI coordinate frame
@@ -2302,6 +2336,9 @@ def _ensure_src_subject(src, subject):
     return subject
 
 
+_DIST_WARN_LIMIT = 10242  # warn for anything larger than ICO-5
+
+
 @verbose
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface.
@@ -2333,8 +2370,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 
     Notes
     -----
-    Requires scipy >= 0.11 (> 0.13 for `dist_limit < np.inf`).
-
     This function can be memory- and CPU-intensive. On a high-end machine
     (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
     takes about 10 minutes to compute all distances (`dist_limit = np.inf`).
@@ -2344,7 +2379,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
-    from scipy.sparse.csgraph import dijkstra
     n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
     if not np.isscalar(dist_limit):
@@ -2353,24 +2387,20 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
                            'if dist_limit < np.inf')
 
-    if not all(s['type'] == 'surf' for s in src):
+    if src.kind != 'surface':
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
-
-    if dist_limit < np.inf:
-        # can't do introspection on dijkstra function because it's Cython,
-        # so we'll just try quickly here
-        try:
-            dijkstra(sparse.csr_matrix(np.zeros((2, 2))), limit=1.0)
-        except TypeError:
-            raise RuntimeError('Cannot use "limit < np.inf" unless scipy '
-                               '> 0.13 is installed')
 
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
     logger.info('Calculating source space distances (limit=%s mm)...'
                 % (1000 * dist_limit))
+    max_n = max(s['nuse'] for s in src)
+    if max_n > _DIST_WARN_LIMIT:
+        warn('Computing distances for %d source space points (in one '
+             'hemisphere) will be very slow, consider using add_dist=False'
+             % (max_n,))
     for s in src:
         connectivity = mesh_dist(s['tris'], s['rr'])
         d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
@@ -2760,7 +2790,10 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
         a, b = set(s0.keys()), set(s1.keys())
         assert_equal(a, b, str(a ^ b))
         for name in ['nuse', 'ntri', 'np', 'type', 'id']:
-            assert_equal(s0[name], s1[name], name)
+            a, b = s0[name], s1[name]
+            if name == 'id':  # workaround for old NumPy bug
+                a, b = int(a), int(b)
+            assert_equal(a, b, name)
         for name in ['subject_his_id']:
             if name in s0 or name in s1:
                 assert_equal(s0[name], s1[name], name)
