@@ -127,8 +127,9 @@ def backends_3d(backend_name):
     elif backend_name == 'vtki':
         if not has_vtki():
             pytest.skip("Test skipped, requires vtki.")
-        from vtki.plotting import running_xserver
-        if not running_xserver():
-            pytest.skip(reason="Test skipped, requires X11")
+        else:
+            from vtki.plotting import running_xserver
+            if not running_xserver():
+                pytest.skip("Test skipped, requires X11")
     with _use_test_3d_backend(backend_name):
         yield
