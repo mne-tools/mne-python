@@ -11,9 +11,24 @@ import numpy as np
 
 
 class _Projection(object):
+    """Class storing projection information.
+    Attributes
+    ----------
+    xy : array
+        Result of 2d projection of 3d data.
+    pts : None
+        Scene sensors handle.
+    """
 
-    def __init__(self):
-        self.xy = None
+    def __init__(self, xy=None, pts=None):
+        """Store input projection information into attributes."""
+        self.xy = xy
+        self.pts = pts
+
+    def visible(self, state):
+        """Modify visibility attribute of the sensors."""
+        # XXX not available yet
+        # self.pts.visible = state
 
 
 class _Renderer(object):
@@ -28,9 +43,9 @@ class _Renderer(object):
         if fig is None:
             self.plotter = vtki.Plotter(window_size=size,
                                         off_screen=self.off_screen)
+            self.plotter.background_color = bgcolor
         else:
             self.plotter = fig
-        self.plotter.background_color = bgcolor
 
     def scene(self):
         return self.plotter
@@ -208,10 +223,68 @@ class _Renderer(object):
         return self.plotter.screenshot()
 
     def project(self, xyz, ch_names):
-        return 0
+        # XXX temporary fix: what we really need here is
+        # to import the plotter configuration of an
+        # existing one, most likely closed and create
+        # an offscreen version of it.
+        self.plotter.__init__(off_screen=True)
+        xy = _3d_to_2d(self.plotter, xyz)
+        xy = dict(zip(ch_names, xy))
+        # pts = self.fig.children[-1]
+        pts = None
+
+        return _Projection(xy=xy, pts=pts)
 
 
 def _deg2rad(deg):
-    """Converts degrees to radians."""
     from numpy import pi
     return deg * pi / 180.
+
+
+def _mat_to_array(vtk_mat):
+    e = [vtk_mat.GetElement(i, j) for i in range(4) for j in range(4)]
+    arr = np.array(e, dtype=float)
+    arr.shape = (4, 4)
+    return arr
+
+
+def _3d_to_2d(plotter, xyz):
+    size = plotter.window_size
+    xyz = np.column_stack([xyz, np.ones(xyz.shape[0])])
+
+    # Transform points into 'unnormalized' view coordinates
+    comb_trans_mat = _get_world_to_view_matrix(plotter)
+    view_coords = np.dot(comb_trans_mat, xyz.T).T
+
+    # Divide through by the fourth element for normalized view coords
+    norm_view_coords = view_coords / (view_coords[:, 3].reshape(-1, 1))
+
+    # Transform from normalized view coordinates to display coordinates.
+    view_to_disp_mat = _get_view_to_display_matrix(size)
+    xy = np.dot(view_to_disp_mat, norm_view_coords.T).T
+
+    # Pull the first two columns since they're meaningful for 2d plotting
+    xy = xy[:, :2]
+    return xy
+
+
+def _get_world_to_view_matrix(plotter):
+    cam = plotter.renderer.camera
+
+    scene_size = plotter.window_size
+    clip_range = cam.GetClippingRange()
+    aspect_ratio = float(scene_size[0]) / scene_size[1]
+
+    vtk_comb_trans_mat = cam.GetCompositeProjectionTransformMatrix(
+        aspect_ratio, clip_range[0], clip_range[1])
+    vtk_comb_trans_mat = _mat_to_array(vtk_comb_trans_mat)
+    return vtk_comb_trans_mat
+
+
+def _get_view_to_display_matrix(size):
+    x, y = size
+    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
+                                 [0.,      -y / 2.0,   0.,   y / 2.0],
+                                 [0.,            0.,   1.,        0.],
+                                 [0.,            0.,   0.,        1.]])
+    return view_to_disp_mat
