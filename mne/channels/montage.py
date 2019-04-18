@@ -334,7 +334,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     selection = np.arange(len(pos))
 
     if unit == 'auto':  # rescale to 0.085
-        pos -= np.average(pos, axis=0)
+        pos -= np.mean(pos, axis=0)
         pos = 0.085 * (pos / np.linalg.norm(pos, axis=1).mean())
     elif unit == 'mm':
         pos /= 1e3
