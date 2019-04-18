@@ -39,14 +39,35 @@ fix_units = {'EGI_256': 'cm', 'GSN-HydroCel-128': 'cm',
              'standard_prefixed': 'm',
              'standard_primed': 'm'}
 
-###############################################################################
-# check all montages
-#
-
 for current_montage in get_builtin_montages():
     montage = mne.channels.read_montage(current_montage,
                                         unit=fix_units[current_montage],
                                         transform=False)
+
+    info = mne.create_info(ch_names=montage.ch_names,
+                           sfreq=1,
+                           ch_types='eeg',
+                           montage=montage)
+
+    fig = plot_alignment(info, trans=None,
+                         subject='fsaverage',
+                         subjects_dir=subjects_dir,
+                         eeg=['original', 'projected'],
+                         )
+    mlab.view(135, 80)
+    mlab.title(montage.kind, figure=fig)
+
+###############################################################################
+# check all montages using 'auto' everywhere
+#
+
+for current_montage in get_builtin_montages():
+
+    cant_transform = ['EGI_256', 'easycap-M1', 'easycap-M10']
+    transform = False if current_montage in cant_transform else True
+    montage = mne.channels.read_montage(current_montage,
+                                        unit='auto',
+                                        transform=transform)
 
     info = mne.create_info(ch_names=montage.ch_names,
                            sfreq=1,
