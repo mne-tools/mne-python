@@ -23,7 +23,10 @@ class LSLClient(_BaseClient):
         the channel type is EEG, the `standard_1005` montage is used for
         electrode location.
     host : str
-        The LSL identifier of the server.
+        The LSL identifier of the server. This is the source_id designated
+        when the LSL stream was created. Make sure the source_id is unique on
+        the LSL subnet. For more information on LSL, please check the
+        docstrings on `StreamInfo` and `StreamInlet` in the pylsl.
     port : int | None
         Port to use for the connection.
     wait_max : float

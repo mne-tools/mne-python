@@ -53,4 +53,3 @@ with LSLClient(info=raw.info, host=host, wait_max=wait_max) as client:
 
 # Let's terminate the mock LSL stream
 stream.stop()
-plt.close()
