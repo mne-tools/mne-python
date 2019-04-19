@@ -4,10 +4,9 @@
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
-from collections.abc import MutableMapping, MutableSequence
-from mne.transforms import _coord_frame_name
-from mne.io.constants import FIFF
-from copy import deepcopy
+from ..transforms import _coord_frame_name
+from ..io.constants import FIFF
+from ..utils._bunch import MNEObjectsList
 
 _dig_kind_dict = {
     'cardinal': FIFF.FIFFV_POINT_CARDINAL,
@@ -61,9 +60,9 @@ class DigPoint(dict):
         pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # noqa: D105
         my_keys = ['kind', 'ident', 'coord_frame']
-        if self.keys() != other.keys():
+        if sorted(self.keys()) != sorted(other.keys()):
             return False
         elif any([self[_] != other[_] for _ in my_keys]):
             return False
@@ -71,7 +70,7 @@ class DigPoint(dict):
             return all(self['r'] == other['r'])
 
 
-class Digitization(MutableSequence):
+class Digitization(MNEObjectsList):
     """Represent a list of DigPoint objects.
 
     Parameters
@@ -79,36 +78,6 @@ class Digitization(MutableSequence):
     elements : list
         A list of DigPoint objects.
     """
+
     def __init__(self, elements=None):
-        if elements is None:
-            self._items = list()
-        elif all([isinstance(_, DigPoint) for _ in elements]):
-            if elements is None:
-                self._items = list()
-            else:
-                self._items = deepcopy(list(elements))
-        else:
-            _msg = 'Digitization expected a iterable of DigPoint objects.'
-            raise ValueError(_msg)
-
-    def __len__(self):
-        return len(self._items)
-
-    def __getitem__(self, index):
-        return self._items[index]
-
-    def __setitem__(self, index, value):
-        self._items[index] = value
-
-    def __delitem__(self, index, value):
-        del self._items[index]
-
-    def insert(self, index, value):
-        self._items.insert(index, value)
-
-    def __eq__(self, other):
-        # if not isinstance(other, Digitization) or len(self) != len(other):
-        if len(self) != len(other):
-            return False
-        else:
-            return all([ss == oo for ss, oo in zip(self, other)])
+        super(Digitization, self).__init__(elements=elements, kls=DigPoint)

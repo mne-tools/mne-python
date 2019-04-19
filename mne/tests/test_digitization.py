@@ -18,7 +18,7 @@ digpoints_list = _format_dig_points(dig_dict_list)
 
 @pytest.mark.parametrize('data', [
     pytest.param(digpoints_list, id='list of digpoints'),
-    pytest.param(dig_dict_list, id='list of strings',
+    pytest.param(dig_dict_list, id='list of digpoint dicts',
                  marks=pytest.mark.xfail(raises=ValueError)),
     pytest.param(['foo', 'bar'], id='list of strings',
                  marks=pytest.mark.xfail(raises=ValueError)),
