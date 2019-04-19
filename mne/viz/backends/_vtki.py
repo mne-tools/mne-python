@@ -28,8 +28,7 @@ class _Projection(object):
 
     def visible(self, state):
         """Modify visibility attribute of the sensors."""
-        # XXX not available yet
-        # self.pts.visible = state
+        self.pts.SetVisibility(state)
 
 
 class _Renderer(object):
@@ -45,8 +44,20 @@ class _Renderer(object):
             self.plotter = vtki.Plotter(window_size=size,
                                         off_screen=self.off_screen)
             self.plotter.background_color = bgcolor
+            # this is a hack to avoid using a deleled ren_win
+            self.plotter._window_size = size
         else:
-            self.plotter = fig
+            # import basic properties
+            self.plotter = vtki.Plotter(window_size=fig._window_size,
+                                        off_screen=fig.off_screen)
+            # import background
+            self.plotter.background_color = fig.background_color
+            # import actors
+            for actor in fig.renderer.GetActors():
+                self.plotter.renderer.AddActor(actor)
+            # import camera
+            self.plotter.camera_position = fig.camera_position
+            self.plotter.reset_camera()
 
     def scene(self):
         return self.plotter
@@ -215,23 +226,18 @@ class _Renderer(object):
             distance * np.cos(phi) * np.sin(theta),
             distance * np.sin(phi) * np.sin(theta),
             distance * np.cos(theta)]
-        self.plotter.renderer.camera_position = [
+        self.plotter.camera_position = [
             position, focalpoint, [0, 0, 1]]
-        self.plotter.renderer.reset_camera()
+        self.plotter.reset_camera()
 
     def screenshot(self):
         return self.plotter.screenshot()
 
     def project(self, xyz, ch_names):
-        # XXX temporary fix: what we really need here is
-        # to import the plotter configuration of an
-        # existing one, most likely closed and create
-        # an offscreen version of it.
-        self.plotter.__init__(off_screen=True)
         xy = _3d_to_2d(self.plotter, xyz)
         xy = dict(zip(ch_names, xy))
         # pts = self.fig.children[-1]
-        pts = None
+        pts = self.plotter.renderer.GetActors().GetLastItem()
 
         return _Projection(xy=xy, pts=pts)
 
