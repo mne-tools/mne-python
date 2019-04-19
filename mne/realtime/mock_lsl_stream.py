@@ -4,9 +4,6 @@
 import time
 from multiprocessing import Process
 
-from numpy.random import rand
-import numpy as np
-
 from ..utils import _check_pylsl_installed
 from mne import io
 
@@ -22,15 +19,19 @@ class MockLSLStream:
         An instance of Raw object to be streamed.
     ch_type : str
         The type of data that is being streamed.
+    time_dilation : int
+        A scale factor to speed up or slow down the rate of
+        the data being streamed.
     """
 
-    def __init__(self, host, raw, ch_type):
+    def __init__(self, host, raw, ch_type, time_dilation=1):
         self._host = host
         self._ch_type = ch_type
+        self._time_dilation = time_dilation
 
         raw.load_data().pick(ch_type)
         self._raw = raw
-        self._sfreq = self._raw.info['sfreq']
+        self._sfreq = int(self._raw.info['sfreq'])
 
     def start(self):
         """Start a mock LSL stream."""
@@ -56,7 +57,7 @@ class MockLSLStream:
         self._streaming = True
         info = pylsl.StreamInfo(name='MNE', type=self._ch_type.upper(),
                                 channel_count=self._raw.info['nchan'],
-                                nominal_srate=self._raw.info['sfreq'],
+                                nominal_srate=self._sfreq,
                                 channel_format='float32', source_id=self._host)
         info.desc().append_child_value("manufacturer", "MNE")
         channels = info.desc().append_child("channels")
@@ -79,4 +80,4 @@ class MockLSLStream:
             # now send it and wait for a bit
             outlet.push_sample(mysample)
             counter += 1
-            time.sleep(self._sfreq**-1)
+            time.sleep((self._sfreq / self._time_dilation)**-1)
