@@ -18,6 +18,15 @@ def has_not_mayavi():
     except ImportError:
         return True
 
+def has_not_ipyvolume():
+    """Check that mayavi is not installed."""
+    try:
+        import ipyvolume
+        return False
+    except ImportError:
+        return True
 
 skips_if_not_mayavi = pytest.mark.skipif(has_not_mayavi(),
                                          reason='requires mayavi')
+skips_if_not_ipyvolume = pytest.mark.skipif(has_not_ipyvolume(),
+                                            reason='requires ipyvolume')
