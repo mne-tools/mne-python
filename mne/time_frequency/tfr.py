@@ -68,7 +68,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     freqs = np.array(freqs)
     if np.any(freqs <= 0):
-        raise ValueError("all computed frequencies in freqs must be "
+        raise ValueError("all frequencies in 'freqs' must be "
                          "greater than 0.")
 
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
@@ -128,7 +128,7 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
 
     freqs = np.array(freqs)
     if np.any(freqs <= 0):
-        raise ValueError("all computed frequencies in freqs must be "
+        raise ValueError("all frequencies in 'freqs' must be "
                          "greater than 0.")
 
     if time_bandwidth < 2.0:

@@ -233,9 +233,9 @@ def test_time_frequency():
             cwt(data[0], Ws, use_fft=use_fft, mode=mode)
 
     # Test invalid frequency arguments
-    with pytest.raises(ValueError, match="freqs must be greater than 0"):
+    with pytest.raises(ValueError, match=" 'freqs' must be greater than 0"):
         tfr_morlet(epochs, freqs=np.arange(0, 3), n_cycles=7)
-    with pytest.raises(ValueError, match="freqs must be greater than 0"):
+    with pytest.raises(ValueError, match=" 'freqs' must be greater than 0"):
         tfr_morlet(epochs, freqs=np.arange(-4, -1), n_cycles=7)
 
     # Test decim parameter checks
@@ -359,9 +359,9 @@ def test_tfr_multitaper():
                   n_cycles=1000, time_bandwidth=4.0)
 
     # Test invalid frequency arguments
-    with pytest.raises(ValueError, match="freqs must be greater than 0"):
+    with pytest.raises(ValueError, match=" 'freqs' must be greater than 0"):
         tfr_multitaper(epochs, freqs=np.arange(0, 3), n_cycles=7)
-    with pytest.raises(ValueError, match="freqs must be greater than 0"):
+    with pytest.raises(ValueError, match=" 'freqs' must be greater than 0"):
         tfr_multitaper(epochs, freqs=np.arange(-4, -1), n_cycles=7)
 
 
