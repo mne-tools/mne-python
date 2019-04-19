@@ -1,0 +1,32 @@
+# -*- coding: utf-8 -*-
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Joan Massich <mailsik@gmail.com>
+#
+# License: BSD (3-clause)
+import pytest
+import numpy as np
+from mne.digitization import Digitization
+from mne.digitization.base import _format_dig_points
+
+dig_dict_list = [
+    dict(kind=_, ident=_, r=np.empty((3,)), coord_frame=_)
+    for _ in [1, 2, 42]
+]
+
+digpoints_list = _format_dig_points(dig_dict_list)
+
+
+@pytest.mark.parametrize('data', [
+    pytest.param(digpoints_list, id='list of digpoints'),
+    pytest.param(dig_dict_list, id='list of strings',
+                 marks=pytest.mark.xfail(raises=ValueError)),
+    pytest.param(['foo', 'bar'], id='list of strings',
+                 marks=pytest.mark.xfail(raises=ValueError)),
+])
+def test_digitization_constructor(data):
+    """Test Digitization constructor."""
+    dig = Digitization(data)
+    for a, b in zip(dig, data):
+        assert all(a == b)
+    dig[0]['kind'] = data[0]['kind'] - 1
+    assert dig[0] != data[0]

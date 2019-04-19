@@ -4,8 +4,10 @@
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
+from collections.abc import MutableMapping, MutableSequence
 from mne.transforms import _coord_frame_name
 from mne.io.constants import FIFF
+from copy import deepcopy
 
 _dig_kind_dict = {
     'cardinal': FIFF.FIFFV_POINT_CARDINAL,
@@ -58,3 +60,43 @@ class DigPoint(dict):
         cf = _coord_frame_name(self['coord_frame'])
         pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
+
+
+class Digitization(MutableSequence):
+    """Represent a list of DigPoint objects.
+
+    Parameters
+    ----------
+    elements : list
+        A list of DigPoint objects.
+
+    """
+    def __init__(self, elements=None):
+        if elements is None:
+            self._items = list()
+        elif all([isinstance(_, DigPoint) for _ in elements]):
+            if elements is None:
+                self._items = list()
+            else:
+                self._items = deepcopy(list(elements))
+        else:
+            _msg = 'Digitization expected a iterable of DigPoint objects.'
+            raise ValueError(_msg)
+
+    def __len__(self):
+        return len(self._items)
+
+    def __getitem__(self, index):
+        return self._items[index]
+
+    def __setitem__(self, index, value):
+        self._items[index] = value
+
+    def __delitem__(self, index, value):
+        del self._items[index]
+
+    def insert(self, index, value):
+        self._items.insert(index, value)
+
+    def __repr__(self):
+        return self._items.__repr__()
