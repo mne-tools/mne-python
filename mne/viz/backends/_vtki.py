@@ -209,13 +209,12 @@ class _Renderer(object):
 
     def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
                    focalpoint=(0, 0, 0)):
-        from numpy import cos, sin
         phi = _deg2rad(azimuth)
         theta = _deg2rad(elevation)
         position = [
-            distance * cos(phi) * sin(theta),
-            distance * sin(phi) * sin(theta),
-            distance * cos(theta)]
+            distance * np.cos(phi) * np.sin(theta),
+            distance * np.sin(phi) * np.sin(theta),
+            distance * np.cos(theta)]
         self.plotter.renderer.camera_position = [
             position, focalpoint, [0, 0, 1]]
         self.plotter.renderer.reset_camera()
