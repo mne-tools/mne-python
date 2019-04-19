@@ -61,6 +61,15 @@ class DigPoint(dict):
         pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
+    def __eq__(self, other):
+        my_keys = ['kind', 'ident', 'coord_frame']
+        if self.keys() != other.keys():
+            return False
+        elif any([self[_] != other[_] for _ in my_keys]):
+            return False
+        else:
+            return all(self['r'] == other['r'])
+
 
 class Digitization(MutableSequence):
     """Represent a list of DigPoint objects.
@@ -69,7 +78,6 @@ class Digitization(MutableSequence):
     ----------
     elements : list
         A list of DigPoint objects.
-
     """
     def __init__(self, elements=None):
         if elements is None:
@@ -98,5 +106,9 @@ class Digitization(MutableSequence):
     def insert(self, index, value):
         self._items.insert(index, value)
 
-    def __repr__(self):
-        return self._items.__repr__()
+    def __eq__(self, other):
+        # if not isinstance(other, Digitization) or len(self) != len(other):
+        if len(self) != len(other):
+            return False
+        else:
+            return all([ss == oo for ss, oo in zip(self, other)])

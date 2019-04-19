@@ -26,7 +26,7 @@ digpoints_list = _format_dig_points(dig_dict_list)
 def test_digitization_constructor(data):
     """Test Digitization constructor."""
     dig = Digitization(data)
-    for a, b in zip(dig, data):
-        assert all(a == b)
-    dig[0]['kind'] = data[0]['kind'] - 1
-    assert dig[0] != data[0]
+    assert dig == data
+
+    dig[0]['kind'] = data[0]['kind'] - 1  # modify something in dig
+    assert dig != data
