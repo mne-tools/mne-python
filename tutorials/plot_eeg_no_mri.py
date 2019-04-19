@@ -29,7 +29,7 @@ from mne.datasets import set_montage_coreg_path, fetch_fsaverage
 
 # Convenience function to set ``subjects_dir`` default value for users who
 # only ever plan to do montage-based coreg with fsaverage.
-set_montage_coreg_path()
+subjects_dir = set_montage_coreg_path()
 
 # Download fsaverage files
 fs_dir = fetch_fsaverage(verbose=True)
