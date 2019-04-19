@@ -46,10 +46,10 @@ with LSLClient(info=raw.info, host=host, wait_max=wait_max) as client:
 
     # let's observe ten seconds of data
     for ii in range(10):
+        plt.cla()
         epoch = client.get_data_as_epoch(n_samples=sfreq)
         epoch.average().plot(axes=ax)
         plt.pause(1)
-        plt.cla()
-
+plt.draw()
 # Let's terminate the mock LSL stream
 stream.stop()

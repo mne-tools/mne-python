@@ -5,7 +5,7 @@ import time
 from multiprocessing import Process
 
 from ..utils import _check_pylsl_installed
-from mne import io
+from ..io import constants
 
 
 class MockLSLStream:
@@ -63,7 +63,7 @@ class MockLSLStream:
         channels = info.desc().append_child("channels")
         for ch in self._raw.info['chs']:
             unit = ch['unit']
-            keys, values = zip(*list(io.constants.FIFF.items()))
+            keys, values = zip(*list(constants.FIFF.items()))
             unit = keys[values.index(unit)]
             channels.append_child("channel") \
                     .append_child_value("label", ch['ch_name']) \

@@ -12,6 +12,7 @@ host = 'myuid34234'
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
+
 @requires_pylsl
 @testing.requires_testing_data
 def test_lsl_client():
