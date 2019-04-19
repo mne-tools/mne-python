@@ -174,7 +174,7 @@ print(epochs[:10])
 # available for loading data that was epoched outside of MNE-Python, such as
 # :func:`mne.read_epochs_eeglab` and :func:`mne.read_epochs_kit`.
 
-epochs.save('saved-audiovisual-epo.fif')
+epochs.save('saved-audiovisual-epo.fif', overwrite=True)
 epochs_from_file = mne.read_epochs('saved-audiovisual-epo.fif')
 
 ###############################################################################
