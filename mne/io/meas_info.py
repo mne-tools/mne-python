@@ -29,11 +29,15 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import _to_const, invert_transform, _coord_frame_name
+from ..transforms import _to_const, invert_transform
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _check_option)
 from .. import __version__
+from ..digitization.base import _format_dig_points
 from .compensator import get_current_comp
+
+# XXX: most probably the functions needing this, should go somewhere else
+from ..digitization.base import _dig_kind_proper, _dig_kind_rev, _dig_kind_ints
 
 b = bytes  # alias
 
@@ -316,7 +320,7 @@ class Info(dict):
 
     * ``dig`` list:
 
-        See :class:`~mne.io.DigPoint`.
+        See :class:`~mne.DigPoint`.
 
     * ``events`` list of dict:
 
@@ -685,59 +689,6 @@ def write_dig(fname, pts, coord_frame=None):
     with start_file(fname) as fid:
         write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
         end_file(fid)
-
-
-def _format_dig_points(dig):
-    """Format the dig points nicely."""
-    return [DigPoint(d) for d in dig] if dig is not None else dig
-
-
-_dig_kind_dict = {
-    'cardinal': FIFF.FIFFV_POINT_CARDINAL,
-    'hpi': FIFF.FIFFV_POINT_HPI,
-    'eeg': FIFF.FIFFV_POINT_EEG,
-    'extra': FIFF.FIFFV_POINT_EXTRA,
-}
-_dig_kind_ints = tuple(sorted(_dig_kind_dict.values()))
-_dig_kind_proper = {'cardinal': 'Cardinal',
-                    'hpi': 'HPI',
-                    'eeg': 'EEG',
-                    'extra': 'Extra',
-                    'unknown': 'Unknown'}
-_dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
-_cardinal_kind_rev = {1: 'LPA', 2: 'Nasion', 3: 'RPA', 4: 'Inion'}
-
-
-class DigPoint(dict):
-    """Container for a digitization point.
-
-    This is a simple subclass of the standard dict type designed to provide
-    a readable string representation.
-
-    Parameters
-    ----------
-    kind : int
-        Digitization kind, e.g. ``FIFFV_POINT_EXTRA``.
-    ident : int
-        Identifier.
-    r : ndarray, shape (3,)
-        Position.
-    coord_frame : int
-        Coordinate frame, e.g. ``FIFFV_COORD_HEAD``.
-    """
-
-    def __repr__(self):  # noqa: D105
-        if self['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            id_ = _cardinal_kind_rev.get(
-                self.get('ident', -1), 'Unknown cardinal')
-        else:
-            id_ = _dig_kind_proper[
-                _dig_kind_rev.get(self.get('kind', -1), 'unknown')]
-            id_ = ('%s #%s' % (id_, self.get('ident', -1)))
-        id_ = id_.rjust(10)
-        cf = _coord_frame_name(self['coord_frame'])
-        pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
-        return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
 
 def _read_dig_fif(fid, meas_info):
