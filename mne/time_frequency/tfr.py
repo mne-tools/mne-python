@@ -66,6 +66,11 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
 
+    freqs = np.array(freqs)
+    if np.any(freqs <= 0):
+        raise ValueError("all frequencies in 'freqs' must be "
+                         "greater than 0.")
+
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
         raise ValueError("n_cycles should be fixed or defined for "
                          "each frequency.")
@@ -120,6 +125,12 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
         The wavelets time series.
     """
     Ws = list()
+
+    freqs = np.array(freqs)
+    if np.any(freqs <= 0):
+        raise ValueError("all frequencies in 'freqs' must be "
+                         "greater than 0.")
+
     if time_bandwidth < 2.0:
         raise ValueError("time_bandwidth should be >= 2.0 for good tapers")
     n_taps = int(np.floor(time_bandwidth - 1))
