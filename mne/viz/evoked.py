@@ -1877,7 +1877,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     picks = [] if picks is None else picks
     picked_a_type = isinstance(picks, str) and picks in _DATA_CH_TYPES_SPLIT
     if title is None and picked_a_type:
-        title = 'GFP, ' + picks
+        title = _handle_default('titles')[picks]
     picks = _picks_to_idx(info, picks, allow_empty=True)
     if len(picks) == 0:
         logger.info("No picks, plotting the GFP ...")
