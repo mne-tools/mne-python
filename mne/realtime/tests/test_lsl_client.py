@@ -1,13 +1,14 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
-import os.path as op
+from os import getenv, path as op
+import pytest
 
 from mne.realtime import LSLClient, MockLSLStream
-from mne.utils import (run_tests_if_main, requires_pylsl,
-                       _check_win32_multiprocessing)
+from mne.utils import run_tests_if_main, requires_pylsl
 from mne.io import read_raw_fif
 from mne.datasets import testing
+
 
 host = 'myuid34234'
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -16,9 +17,12 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 
 @requires_pylsl
 @testing.requires_testing_data
+@pytest.mark.skipif(getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true',
+                    reason=('Running multiprocessing on Windows ' +
+                            'creates a BrokenPipeError, see ' +
+                            'https://stackoverflow.com/questions/50079165/'))
 def test_lsl_client():
     """Test the LSLClient for connection and data retrieval."""
-    _check_win32_multiprocessing()
     wait_max = 10
 
     raw = read_raw_fif(raw_fname)

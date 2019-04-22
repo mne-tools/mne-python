@@ -38,7 +38,7 @@ from ._testing import (_memory_usage, run_tests_if_main, requires_sklearn,
                        requires_neuromag2ft, requires_pylsl, assert_object_equal,
                        assert_and_remove_boundary_annot, _raw_annot,
                        assert_dig_allclose, assert_meg_snr, assert_snr,
-                       modified_env, _check_win32_multiprocessing)
+                       modified_env)
 from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,
