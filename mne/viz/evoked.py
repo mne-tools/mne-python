@@ -579,7 +579,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     _check_if_nan(data)
 
     im, t_end = _plot_masked_image(
-        ax, data, times, mask, picks=None, yvals=None, cmap=cmap[0],
+        ax, data, times, mask, yvals=None, cmap=cmap[0],
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
         mask_cmap=mask_cmap)
 

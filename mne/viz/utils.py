@@ -2576,7 +2576,7 @@ def _check_time_unit(time_unit, times):
     return time_unit, times
 
 
-def _plot_masked_image(ax, data, times, mask=None, picks=None, yvals=None,
+def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
                        yscale="linear"):
