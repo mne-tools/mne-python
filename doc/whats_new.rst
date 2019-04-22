@@ -61,6 +61,8 @@ Changelog
 
 - Add support for using :class:`mne.Info` and ``duration`` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
 
+- Add support for passing an iterable and stim channel values using ``stc`` parameter of :func:`mne.simulation.simulate_raw` by `Eric Larson`_
+
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
 
 - Add approximate distance-based ``spacing`` source space decimation algorithm to :func:`mne.setup_source_space` by `Eric Larson`_
@@ -182,6 +184,8 @@ API
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
 
 - A new class :class:`mne.VolVectorSourceEstimate` is returned by :func:`mne.minimum_norm.apply_inverse` (and related functions) when a volume source space and ``pick_ori='vector'`` is used, by `Eric Larson`_
+
+- Converting a forward solution with a volume source space to fixed orientation using :func:`mne.convert_forward_solution` now raises an error, by `Eric Larson`_
 
 - ``raw.estimate_rank`` has been deprecated and will be removed in 0.19 in favor of :func:`mne.compute_rank`  by `Eric Larson`_
 

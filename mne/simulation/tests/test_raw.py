@@ -16,16 +16,22 @@ from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  find_events, Epochs, fit_dipole, transform_surface_to,
                  make_ad_hoc_cov, SourceEstimate, setup_source_space,
                  read_bem_solution, make_forward_solution,
-                 convert_forward_solution)
+                 convert_forward_solution, VolSourceEstimate,
+                 make_bem_solution)
+from mne.bem import _surfaces_to_bem
 from mne.chpi import _calculate_chpi_positions, read_head_pos, _get_hpi_info
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.source_space import _compare_source_spaces
+from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
+from mne.io.constants import FIFF
 from mne.time_frequency import psd_welch
 from mne.utils import _TempDir, run_tests_if_main
 
+base_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_fname_short = op.join(base_path, 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -41,6 +47,106 @@ bem_1_fname = op.join(bem_path, 'sample-320-bem-sol.fif')
 
 raw_chpi_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_subsampled.pos')
+
+
+def _assert_iter_sim(raw_sim, raw_new, new_event_id):
+    events = find_events(raw_sim, initial_event=True)
+    events_tuple = find_events(raw_new, initial_event=True)
+    assert_array_equal(events_tuple[:, :2], events[:, :2])
+    assert_array_equal(events_tuple[:, 2], new_event_id)
+    data_sim = raw_sim[:-1][0]
+    data_new = raw_new[:-1][0]
+    assert_array_equal(data_new, data_sim)
+
+
+def test_iterable():
+    """Test iterable support for simulate_raw."""
+    raw = read_raw_fif(raw_fname_short).load_data()
+    raw.pick_channels(raw.ch_names[:10] + ['STI 014'])
+    src = setup_volume_source_space(
+        pos=dict(rr=[[-0.05, 0, 0], [0.1, 0, 0]],
+                 nn=[[0, 1., 0], [0, 1., 0]]))
+    assert src.kind == 'discrete'
+    trans = None
+    sphere = make_sphere_model(head_radius=None, info=raw.info)
+    tstep = 1. / raw.info['sfreq']
+    rng = np.random.RandomState(0)
+    vertices = np.array([1])
+    data = rng.randn(1, 2)
+    stc = VolSourceEstimate(data, vertices, 0, tstep)
+    assert isinstance(stc.vertices, np.ndarray)
+    with pytest.raises(ValueError, match='at least three time points'):
+        simulate_raw(raw, stc, trans, src, sphere, None)
+    data = rng.randn(1, 1000)
+    n_events = (len(raw.times) - 1) // 1000 + 1
+    stc = VolSourceEstimate(data, vertices, 0, tstep)
+    assert isinstance(stc.vertices, np.ndarray)
+    raw_sim = simulate_raw(raw, stc, trans, src, sphere, None)
+    events = find_events(raw_sim, initial_event=True)
+    assert len(events) == n_events
+    assert_array_equal(events[:, 2], 1)
+    # Degenerate STCs
+    with pytest.raises(RuntimeError,
+                       match=r'Iterable did not provide stc\[0\]'):
+        simulate_raw(raw, [], trans, src, sphere, None)
+    with pytest.raises(RuntimeError,
+                       match=r'Iterable did not provide stc\[2\].*interval'):
+        simulate_raw(raw, [stc, stc], trans, src, sphere, None)
+    with pytest.raises(TypeError, match='stc must be an instance of SourceE'):
+        simulate_raw(raw, (stc, np.zeros(len(stc.times)), 'foo'),
+                     trans, src, sphere, None, verbose=True)
+    # tuple with ndarray
+    event_data = np.zeros(len(stc.times), int)
+    event_data[0] = 3
+    raw_new = simulate_raw(raw, (stc, event_data), trans, src, sphere, None)
+    _assert_iter_sim(raw_sim, raw_new, 3)
+    with pytest.raises(ValueError, match='event data had shape .* but need'):
+        simulate_raw(raw, (stc, event_data[:-1]), trans, src, sphere, None)
+    with pytest.raises(ValueError, match='event_id in a stc tuple must be in'):
+        simulate_raw(raw, (stc, event_data * 1.), trans, src, sphere, None)
+    # smoke test for exact duration match
+    simulate_raw(raw.info, [stc], trans, src, sphere, None,
+                 duration=len(stc.times) / raw.info['sfreq'], verbose=True)
+
+    # iterable
+    def stc_iter():
+        while True:
+            yield (stc, 4)
+    raw_new = simulate_raw(raw, stc_iter(), trans, src, sphere, None)
+    _assert_iter_sim(raw_sim, raw_new, 4)
+
+    def stc_iter_bad():
+        while True:
+            yield (stc, 4, 3)
+    with pytest.raises(ValueError, match='stc, if tuple, must be length'):
+        simulate_raw(raw, stc_iter_bad(), trans, src, sphere, None)
+    _assert_iter_sim(raw_sim, raw_new, 4)
+
+    def stc_iter_bad():
+        ii = 0
+        while True:
+            ii += 1
+            stc_new = stc.copy()
+            stc_new.vertices = np.array([ii % 2])
+            yield (stc_new, 4)
+    with pytest.raises(RuntimeError, match=r'Vertex mismatch for stc\[1\]'):
+        simulate_raw(raw, stc_iter_bad(), trans, src, sphere, None)
+
+    # Forward omission
+    vertices = np.array([0, 1])
+    data = rng.randn(2, 1000)
+    stc = VolSourceEstimate(data, vertices, 0, tstep)
+    assert isinstance(stc.vertices, np.ndarray)
+    # XXX eventually we should support filtering based on sphere radius, too,
+    # by refactoring the code in source_space.py that does it!
+    surf = _get_ico_surface(3)
+    surf['rr'] *= 60  # mm
+    model = _surfaces_to_bem([surf], [FIFF.FIFFV_BEM_SURF_ID_BRAIN], [0.3])
+    bem = make_bem_solution(model)
+    with pytest.warns(RuntimeWarning,
+                      match='1 of 2 SourceEstimate vertices') as w:
+        simulate_raw(raw, stc, trans, src, bem, None)
+    assert len(w) == 1
 
 
 def _make_stc(raw, src):
@@ -209,7 +315,8 @@ def test_simulate_raw_sphere():
         simulate_raw(0, stc, trans, src, sphere)
     stc_bad = stc.copy()
     stc_bad.tstep += 0.1
-    pytest.raises(ValueError, simulate_raw, raw, stc_bad, trans, src, sphere)
+    with pytest.raises(ValueError, match='same sample rate'):
+        simulate_raw(raw, stc_bad, trans, src, sphere)
     pytest.raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
                   cov=0)  # wrong covariance type
     pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
@@ -320,6 +427,23 @@ def test_simulate_round_trip():
                             atol=1e-12, rtol=1e-6)
     with pytest.raises(ValueError, match='If forward is not None then'):
         simulate_raw(raw, stc, trans, src, bem, forward=fwd)
+    # Not iterable
+    with pytest.raises(TypeError, match='SourceEstimate, tuple, or iterable'):
+        simulate_raw(raw, 0., trans, src, bem, None)
+    # STC with a source that `src` does not have
+    assert 0 not in src[0]['vertno']
+    vertices = [[0, fwd['src'][0]['vertno'][0]], []]
+    stc_bad = SourceEstimate(data[:2], vertices, 0, 1. / raw.info['sfreq'])
+    with pytest.warns(RuntimeWarning,
+                      match='1 of 2 SourceEstimate vertices') as w:
+        simulate_raw(raw, stc_bad, trans, src, bem)
+    assert len(w) == 1
+    assert 0 not in fwd['src'][0]['vertno']
+    with pytest.warns(RuntimeWarning,
+                      match='1 of 2 SourceEstimate vertices') as w:
+        simulate_raw(raw, stc_bad, None, None, None, forward=fwd)
+    assert len(w) == 1
+    # dev_head_t mismatch
     fwd['info']['dev_head_t']['trans'][0, 0] = 1.
     with pytest.raises(ValueError, match='dev_head_t.*does not match'):
         simulate_raw(raw, stc, None, None, None, forward=fwd)

@@ -317,6 +317,7 @@ div.highlight-console div.highlight span.gp {
             user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome and Opera */
 }
+<<<<<<< HEAD
 /* Sizing */
 .body {
     max-width: unset !important;
@@ -354,4 +355,9 @@ dl.cmd-list dt::after {
 /* Attributes / methods not taking up entire width ends up looking odd */
 dd table.align-center {
     width: 100%;
+=======
+/* Table alignment */
+table.left-align-col td {
+    text-align: left
+>>>>>>> ENH: Add iterable support to simulate_raw
 }

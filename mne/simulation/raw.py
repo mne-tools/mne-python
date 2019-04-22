@@ -5,7 +5,8 @@
 #
 # License: BSD (3-clause)
 
-from copy import deepcopy
+from collections.abc import Iterable
+from itertools import cycle
 
 import numpy as np
 
@@ -14,7 +15,6 @@ from ..event import _get_stim_channel
 from ..filter import _Interp2
 from ..io.pick import (pick_types, pick_info, pick_channels,
                        pick_channels_forward)
-from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw, Info
@@ -28,10 +28,9 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        restrict_forward_to_stc)
 from ..transforms import _get_trans, transform_surface_to
 from ..source_space import (_ensure_src, _points_outside_surface,
-                            _adjust_patch_info)
+                            _set_source_space_vertices)
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import (logger, verbose, check_random_state, warn, _pl,
-                     _validate_type)
+from ..utils import logger, verbose, check_random_state, _pl, _validate_type
 from ..parallel import check_n_jobs
 
 
@@ -80,9 +79,20 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         and ``first_samp`` properties will be used.
         Can be ``info`` if ``duration`` is also supplied, in which case
         ``first_samp`` will be set to zero.
-    stc : instance of SourceEstimate
+
+        .. versionchanged:: 0.18
+           Support for :class:`mne.Info`.
+    stc : instance of SourceEstimate | tuple | iterable
         The source estimate to use to simulate data. Must have the same
-        sample rate as the raw data.
+        sample rate as the raw data. Can also be a tuple of
+        ``(SourceEstimate, ndarray)`` to allow specifying the event channel
+        data accompany the source estimate.
+        Can also be an iterable of these options to allow the stc to
+        vary in time, in which case all must have the same ``stc.vertices``.
+        See Notes for details.
+
+        .. versionchanged:: 0.18
+           Support for tuple, and iterable of tuple or SourceEstimate.
     trans : dict | str | None
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
@@ -113,13 +123,13 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         to use this option.
     head_pos : None | str | dict | tuple | array
         Name of the position estimates file. Should be in the format of
-        the files produced by maxfilter. If dict, keys should
+        the files produced by MaxFilter. If dict, keys should
         be the time points and entries should be 4x4 ``dev_head_t``
         matrices. If None, the original head position (from
         ``info['dev_head_t']``) will be used. If tuple, should have the
         same format as data returned by `head_pos_to_trans_rot_t`.
         If array, should be of the form returned by
-        :func:`mne.chpi.read_head_pos`.
+        :func:`mne.chpi.read_head_pos`. See for example [2]_.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -163,16 +173,42 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     Notes
     -----
-    Events coded with the position number (starting at 1) will be stored
-    in the trigger channel (if available) at times corresponding to t=0
-    in the ``stc``.
+    **Stim channel encoding**
 
-    The resulting SNR will be determined by the structure of the noise
+    By default, the stimulus channel will have the head position number
+    (starting at 1) stored in the trigger channel (if available) at the
+    t=0 point in each repetition of the ``stc``.
+    If ``stc`` is a tuple of ``(SourceEstimate, int)``, the
+    integer will be placed at t=0. If ``stc`` is a tuple of
+    ``(SourceEstimate, ndarray)`` the array values will be placed in the
+    stim channel aligned with the :class:`mne.SourceEstimate`. In the most
+    advanced case where ``stc`` is an iterable the output will be:
+
+    .. table:: Data alignment and stim channel encoding
+
+       +---------+--------------------------+--------------------------+---------+
+       | Channel | Data                                                          |
+       +=========+==========================+==========================+=========+
+       | M/EEG   | ``fwd @ stc[0][0].data`` | ``fwd @ stc[1][0].data`` | ``...`` |
+       +---------+--------------------------+--------------------------+---------+
+       | STIM    | ``stc[0][1]``            | ``stc[1][1]``            | ``...`` |
+       +---------+--------------------------+--------------------------+---------+
+       |         | *time →*                                                      |
+       +---------+--------------------------+--------------------------+---------+
+
+    **SNR**
+
+    The data SNR will be determined by the structure of the noise
     covariance, the amplitudes of ``stc``, and the head position(s) provided.
 
-    The blink and ECG artifacts are generated by 1) placing impulses at
-    random times of activation, and 2) convolving with activation kernel
-    functions. In both cases, the scale-factors of the activation functions
+    **Artifact generation**
+
+    The blink and ECG artifacts are generated by:
+
+    1. placing impulses at random times of activation, and
+    2. convolving with activation kernel functions.
+
+    In both cases, the scale-factors of the activation functions
     (and for the resulting EOG and ECG channel traces) were chosen based on
     visual inspection to yield amplitudes generally consistent with those
     seen in experimental data. Noisy versions of the blink and ECG
@@ -181,29 +217,25 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     For blink artifacts:
 
-        1. Random activation times are drawn from an inhomogeneous poisson
-           process whose blink rate oscillates between 4.5 blinks/minute
-           and 17 blinks/minute based on the low (reading) and high (resting)
-           blink rates from [1]_.
-        2. The activation kernel is a 250 ms Hanning window.
-        3. Two activated dipoles are located in the z=0 plane (in head
-           coordinates) at ±30 degrees away from the y axis (nasion).
-        4. Activations affect MEG and EEG channels.
+    1. Random activation times are drawn from an inhomogeneous poisson
+       process whose blink rate oscillates between 4.5 blinks/minute
+       and 17 blinks/minute based on the low (reading) and high (resting)
+       blink rates from [1]_.
+    2. The activation kernel is a 250 ms Hanning window.
+    3. Two activated dipoles are located in the z=0 plane (in head
+       coordinates) at ±30 degrees away from the y axis (nasion).
+    4. Activations affect MEG and EEG channels.
 
     For ECG artifacts:
 
-        1. Random inter-beat intervals are drawn from a uniform distribution
-           of times corresponding to 40 and 80 beats per minute.
-        2. The activation function is the sum of three Hanning windows with
-           varying durations and scales to make a more complex waveform.
-        3. The activated dipole is located one (estimated) head radius to
-           the left (-x) of head center and three head radii below (+z)
-           head center; this dipole is oriented in the +x direction.
-        4. Activations only affect MEG channels.
-
-    If you have a :class:`mne.Info` that you want to use with no associated
-    :class:`mne.io.Raw` instance, consider creating a dummy one using
-    :class:`mne.io.RawArray`.
+    1. Random inter-beat intervals are drawn from a uniform distribution
+       of times corresponding to 40 and 80 beats per minute.
+    2. The activation function is the sum of three Hanning windows with
+       varying durations and scales to make a more complex waveform.
+    3. The activated dipole is located one (estimated) head radius to
+       the left (-x) of head center and three head radii below (+z)
+       head center; this dipole is oriented in the +x direction.
+    4. Activations only affect MEG channels.
 
     .. versionadded:: 0.10.0
 
@@ -211,7 +243,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     ----------
     .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
            subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
-    """
+    .. [2] Larson E, Taulu S (2017). "The Importance of Properly Compensating
+           for Head Movements During MEG Acquisition Across Different Age
+           Groups." Brain Topogr 30:172–181
+    """  # noqa: E501
     _validate_type(raw, (BaseRaw, Info), 'raw', 'Raw or Info')
     if duration is not None:
         duration = float(duration)
@@ -228,14 +263,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
             duration = raw.times[-1] + 1. / info['sfreq']
     times = np.arange(int(round(info['sfreq'] * duration))) / info['sfreq']
     del raw
-
-    # Check for common flag errors and try to override
-    if not isinstance(stc, _BaseSourceEstimate):
-        raise TypeError('stc must be a SourceEstimate')
-    if not np.allclose(info['sfreq'], 1. / stc.tstep):
-        raise ValueError('stc and info must have same sample rate')
-    if len(stc.times) <= 2:  # to ensure event encoding works
-        raise ValueError('stc must have at least three time points')
 
     stim = False if len(pick_types(info, meg=False, stim=True)) == 0 else True
     n_jobs = check_n_jobs(n_jobs)
@@ -300,10 +327,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     if isinstance(bem, str):
         bem = read_bem_solution(bem, verbose=False)
     cov = _check_cov(info, cov)
-    approx_events = int((len(times) / info['sfreq']) /
-                        (stc.times[-1] - stc.times[0]))
-    logger.info('Provided parameters will provide approximately %s event%s'
-                % (approx_events, _pl(approx_events)))
 
     # Extract necessary info
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])  # for sim
@@ -314,11 +337,30 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
     del interp
 
-    verts = stc.vertices
-    verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
-    src = _restrict_source_space_to(src, verts)
+    # do first iter so we can get the vertex subselection
+    # Ensure STC is iterable
+    do_cycle = False
+    if isinstance(stc, _BaseSourceEstimate):
+        do_cycle = True
+    elif isinstance(stc, (tuple, list)):
+        if len(stc) == 2 and isinstance(stc[0], _BaseSourceEstimate) and not \
+                isinstance(stc[1], _BaseSourceEstimate):
+            do_cycle = True
+    if do_cycle:
+        logger.info('Turning into iterable cycle: %s' % (stc,))
+        stc = cycle([stc])
+    _validate_type(stc, Iterable, 'SourceEstimate, tuple, or iterable')
+    stc_enum = enumerate(stc)
+    del stc
+
+    stc_counted = _check_next(stc_enum)
+    _, _, verts = _stc_data_event(stc_counted, 1, info['sfreq'])
     if forward is not None:
-        forward = restrict_forward_to_stc(forward, stc)
+        forward = restrict_forward_to_stc(forward, verts)
+        src = forward['src']
+    else:
+        _stc_src_sel(src, verts, on_missing='warn', extra='')
+        src = _set_source_space_vertices(src.copy(), verts)
 
     # array used to store result
     raw_data = np.zeros((len(info['ch_names']), len(times)))
@@ -400,7 +442,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         _log_ch('ECG simulated and trace', info, ch)
         del cardiac_data, cardiac_kernel, max_beats, cardiac_idx
 
-    stc_event_idx = np.argmin(np.abs(stc.times))
     if stim:
         event_ch = pick_channels(info['ch_names'],
                                  _get_stim_channel(None, info))[0]
@@ -409,7 +450,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         event_ch = None
     _log_ch('Event information', info, event_ch)
     used = np.zeros(len(times), bool)
-    stc_indices = np.arange(len(times)) % len(stc.times)
     raw_data[meeg_picks, :] = 0.
     if chpi:
         sinusoids = 70e-9 * np.sin(2 * np.pi * hpi_freqs[:, np.newaxis] *
@@ -449,59 +489,144 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         interper['fwd_ecg'] = fwd_ecg
         interper['fwd_chpi'] = fwd_chpi
         if fi == 0:
-            src_sel = _stc_src_sel(fwd['src'], stc)
-            verts = stc.vertices
-            verts = [verts] if isinstance(stc, VolSourceEstimate) else verts
-            diff_ = sum([len(v) for v in verts]) - len(src_sel)
-            if diff_ != 0:
-                warn('%s STC vertices omitted due to fwd calculation' % diff_)
-            stc_data = stc.data[src_sel]
-            del stc, src_sel, diff_, verts
+            # Actually restrict the STC based on vertices obtained during calc
+            stc_data, event_data, _ = _stc_data_event(
+                stc_counted, 1, info['sfreq'], fwd['src'])
             continue
-        del fwd, fwd_blink, fwd_ecg, fwd_chpi
+        del fwd_blink, fwd_ecg, fwd_chpi
 
         start, stop = offsets[fi - 1:fi + 1]
-        assert not used[start:stop].any()
-        event_idxs = np.where(stc_indices[start:stop] ==
-                              stc_event_idx)[0] + start
-        if stim:
-            raw_data[event_ch, event_idxs] = fi
-
-        logger.info('  Simulating data for %0.3f-%0.3f sec with %s event%s'
-                    % (start / info['sfreq'], stop / info['sfreq'],
-                       len(event_idxs), _pl(event_idxs)))
-
-        used[start:stop] = True
-        time_sl = slice(start, stop)
-        stc_idxs = stc_indices[time_sl]
-
-        # simulate brain data
-        this_data = raw_data[:, time_sl]
-        this_data[meeg_picks] = 0.
         interper.n_samp = stop - start
-        interper.interpolate('fwd', stc_data,
-                             this_data, meeg_picks, stc_idxs)
-        if blink:
-            interper.interpolate('fwd_blink', blink_data[:, time_sl],
-                                 this_data, meeg_picks)
-        if ecg:
-            interper.interpolate('fwd_ecg', ecg_data[:, time_sl],
-                                 this_data, meg_picks)
-        if chpi:
-            interper.interpolate('fwd_chpi', sinusoids[:, time_sl],
-                                 this_data, meg_picks)
-        # add sensor noise, ECG, blink, cHPI
-        if cov is not None:
-            noise, zf = _generate_noise(fwd_info, cov, iir_filter, rng,
-                                        len(stc_idxs), zi=zf)
-            raw_data[meeg_picks, time_sl] += noise
-            this_data[meeg_picks] += noise
+        assert not used[start:stop].any()
+        logger.info('  Simulating data for %0.3f-%0.3f sec'
+                    % (start / info['sfreq'], stop / info['sfreq']))
+
+        # To avoid a blowup of memory, process in chunk sizes equal to
+        # STC length (which will hopefully be a reasonable memory / number
+        # of iterations tradeoff)
+        this_start = start
+        this_data = raw_data[:, start:stop]
+        this_data[meeg_picks] = 0.
+        while True:
+            this_stop = min(this_start + stc_data.shape[1], stop)
+            n_doing = this_stop - this_start
+            used[this_start:this_stop] = True
+            data_sl = slice(this_start, this_stop)
+            interp_sl = slice(this_start - start, this_stop - start)
+            # Stim channel
+            if stim:
+                raw_data[event_ch, this_start:this_stop] = event_data[:n_doing]
+            # Brain data
+            interper.interpolate('fwd', stc_data[:, :n_doing],
+                                 this_data, meeg_picks, interp_sl)
+            # Artifacts (blink, ECG, cHPI)
+            if blink:
+                interper.interpolate('fwd_blink', blink_data[:, data_sl],
+                                     this_data, meeg_picks, interp_sl)
+            if ecg:
+                interper.interpolate('fwd_ecg', ecg_data[:, data_sl],
+                                     this_data, meg_picks, interp_sl)
+            if chpi:
+                interper.interpolate('fwd_chpi', sinusoids[:, data_sl],
+                                     this_data, meg_picks, interp_sl)
+            # Sensor noise
+            if cov is not None:
+                noise, zf = _generate_noise(
+                    fwd_info, cov, iir_filter, rng, n_doing, zi=zf)
+                raw_data[meeg_picks, data_sl] += noise
+            # Increment parameters based on what we accomplished
+            this_start += n_doing
+            if n_doing < stc_data.shape[1]:
+                # Shift the buffer
+                stc_data = stc_data[:, n_doing:]
+                event_data = event_data[n_doing:]
+            else:
+                # Get more data (if necessary)
+                assert n_doing == stc_data.shape[1]
+                if this_stop == stop and fi == len(dev_head_ts):
+                    del stc_data, event_data
+                else:
+                    stc_counted = _check_next(stc_enum, stc_counted, info,
+                                              this_stop, offsets[-1])
+                    stc_data, event_data, _ = _stc_data_event(
+                        stc_counted, fi, info['sfreq'], fwd['src'], verts)
+            if this_stop == stop:
+                break
+        del fwd
         assert used[start:stop].all()
     assert used.all()
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
+    raw.set_annotations(raw.annotations)
     raw.verbose = raw_verbose
     logger.info('Done')
     return raw
+
+
+def _check_next(stc_enum, stc_counted=None, info=None,
+                this_stop=None, last_stop=None):
+    try:
+        stc_counted = next(stc_enum)
+    except StopIteration:
+        if info is not None:
+            extra = (' for the interval [%0.3f, %0.3f]'
+                     % (this_stop / info['sfreq'],
+                        (last_stop - 1) / info['sfreq']))
+        else:
+            extra = ''
+        stc_counted = [-1] if stc_counted is None else stc_counted
+        raise RuntimeError(
+            'Iterable did not provide stc[%d] (or more) needed'
+            ' to simulate data%s' % (stc_counted[0] + 1, extra))
+    return stc_counted
+
+
+def _stc_data_event(stc_counted, event_id, sfreq, src=None, verts=None):
+    stc_idx, stc = stc_counted
+    if isinstance(stc, (list, tuple)):
+        if len(stc) != 2:
+            raise ValueError('stc, if tuple, must be length 2, got %s'
+                             % (len(stc),))
+        stc, event_id = stc
+    _validate_type(stc, _BaseSourceEstimate, 'stc',
+                   'SourceEstimate or tuple with first entry SourceEstimate')
+    # Convert event data
+    event_id = np.array(event_id)
+    if event_id.dtype.kind != 'i':
+        raise ValueError('event_id in a stc tuple must be integer type, got '
+                         '%s' % (event_id.dtype))
+    if event_id.shape == ():  # integer
+        event_data = np.zeros(len(stc.times), int)
+        event_data[np.argmin(np.abs(stc.times))] = event_id
+    else:
+        event_data = event_id
+    del event_id
+    if event_data.shape != (len(stc.times),):
+        raise ValueError('event data had shape %s but needed to be (%s,) to'
+                         'match stc' % (event_data.shape, len(stc.times)))
+    # Validate STC
+    if not np.allclose(sfreq, 1. / stc.tstep):
+        raise ValueError('stc and info must have same sample rate, '
+                         'got %s and %s' % (1. / stc.tstep, sfreq))
+    if len(stc.times) <= 2:  # to ensure event encoding works
+        raise ValueError('stc must have at least three time points, got %s'
+                         % (len(stc.times),))
+    verts_ = stc._vertices_list
+    if verts is None:
+        assert stc_idx == 0
+    else:
+        if len(verts) != len(verts_) or not all(
+                np.array_equal(a, b) for a, b in zip(verts, verts_)):
+            raise RuntimeError('Vertex mismatch for stc[%d], '
+                               'all stc.vertices must match' % (stc_idx,))
+    stc_data = stc.data
+    if src is None:
+        assert stc_idx == 0
+    else:
+        # on_missing depends on whether or not this is the first iteration
+        on_missing = 'warn' if verts is None else 'ignore'
+        _, stc_sel, _ = _stc_src_sel(src, stc, on_missing=on_missing)
+        stc_data = stc_data[stc_sel]
+    return stc_data, event_data, verts_
 
 
 def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
@@ -602,20 +727,3 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         yield fwd, fwd_blink, fwd_ecg, fwd_chpi
     # need an extra one to fill last buffer
     yield fwd, fwd_blink, fwd_ecg, fwd_chpi
-
-
-def _restrict_source_space_to(src, vertices):
-    """Trim down a source space."""
-    assert len(src) == len(vertices)
-    src = deepcopy(src)
-    for s, v in zip(src, vertices):
-        s['inuse'].fill(0)
-        s['nuse'] = len(v)
-        s['vertno'] = v
-        s['inuse'][s['vertno']] = 1
-        for key in ('nuse_tri', 'use_tris'):
-            if key in s:
-                del s[key]
-        # This will fix 'patch_info' and 'pinfo'
-        _adjust_patch_info(s, verbose=False)
-    return src

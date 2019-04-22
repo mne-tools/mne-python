@@ -70,6 +70,12 @@ depth : None | float | dict
     for details and defaults).
 """
 
+# Forward
+docdict['on_missing'] = """
+on_missing : str
+        Behavior when ``stc`` has vertices that are not in ``fwd``.
+        Can be "ignore", "warn"", or "raise"."""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)
