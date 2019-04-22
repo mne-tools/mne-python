@@ -106,6 +106,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*fetch_fsaverage.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.fetch_fsaverage(verbose=True))";
+                    fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*spm_face.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.spm_face.data_path(update_path=True))";
                     fi;

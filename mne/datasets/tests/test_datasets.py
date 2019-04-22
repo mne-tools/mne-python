@@ -1,19 +1,19 @@
 import os
 from os import path as op
 import shutil
-import sys
 
 import pytest
 
 from mne import datasets
-from mne.datasets import testing
-from mne.utils import _TempDir, run_tests_if_main, requires_good_network
+from mne.datasets import testing, set_montage_coreg_path
+from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
+                       get_subjects_dir, ArgvSetter)
 
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 
-def test_datasets():
+def test_datasets_basic(tmpdir):
     """Test simple dataset functions."""
     # XXX 'hf_sef' and 'misc' do not conform to these standards
     for dname in ('sample', 'somato', 'spm_face', 'testing', 'opm',
@@ -34,33 +34,32 @@ def test_datasets():
             assert dataset.get_version() is None
             assert not datasets.utils.has_dataset(check_name)
         print('%s: %s' % (dname, datasets.utils.has_dataset(check_name)))
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     # don't let it read from the config file to get the directory,
     # force it to look for the default
-    os.environ['_MNE_FAKE_HOME_DIR'] = tempdir
-    try:
+    with modified_env(**{'_MNE_FAKE_HOME_DIR': tempdir, 'SUBJECTS_DIR': None}):
         assert (datasets.utils._get_path(None, 'foo', 'bar') ==
                 op.join(tempdir, 'mne_data'))
-    finally:
-        del os.environ['_MNE_FAKE_HOME_DIR']
+        assert get_subjects_dir(None) is None
+        set_montage_coreg_path()
+        sd = get_subjects_dir()
+        assert sd.endswith('MNE-fsaverage-data')
 
 
 @requires_good_network
-def test_megsim():
+def test_megsim(tmpdir):
     """Test MEGSIM URL handling."""
-    data_dir = _TempDir()
     paths = datasets.megsim.load_data(
-        'index', 'text', 'text', path=data_dir, update_path=False)
+        'index', 'text', 'text', path=str(tmpdir), update_path=False)
     assert len(paths) == 1
     assert paths[0].endswith('index.html')
 
 
 @requires_good_network
-def test_downloads():
+def test_downloads(tmpdir):
     """Test dataset URL handling."""
     # Try actually downloading a dataset
-    data_dir = _TempDir()
-    path = datasets._fake.data_path(path=data_dir, update_path=False)
+    path = datasets._fake.data_path(path=str(tmpdir), update_path=False)
     assert op.isfile(op.join(path, 'bar'))
     assert datasets._fake.get_version() is None
 
@@ -83,14 +82,11 @@ def test_fetch_parcellations(tmpdir):
                       'lh.aparc_sub.annot'), 'wb'):
         pass
     datasets.fetch_aparc_sub_parcellation(subjects_dir=this_subjects_dir)
-    try:
-        sys.argv.append('--accept-hcpmmp-license')
+    with ArgvSetter(('--accept-hcpmmp-license',)):
         datasets.fetch_hcp_mmp_parcellation(subjects_dir=this_subjects_dir)
-    finally:
-        sys.argv.pop(-1)
     for hemi in ('lh', 'rh'):
         assert op.isfile(op.join(this_subjects_dir, 'fsaverage', 'label',
-                         '%s.aparc_sub.annot' % hemi))
+                                 '%s.aparc_sub.annot' % hemi))
 
 
 run_tests_if_main()

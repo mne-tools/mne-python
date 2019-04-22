@@ -16,6 +16,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
+from ._fsaverage import fetch_fsaverage, _get_create_subjects_dir
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
@@ -583,6 +584,9 @@ def _download_all_example_data(verbose=True):
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
+    # (probably on CircleCI, or otherwise advanced user)
+    fetch_fsaverage(_get_create_subjects_dir(None))
     sys.argv += ['--accept-hcpmmp-license']
     try:
         fetch_hcp_mmp_parcellation()
