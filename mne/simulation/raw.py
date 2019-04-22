@@ -30,7 +30,8 @@ from ..transforms import _get_trans, transform_surface_to
 from ..source_space import (_ensure_src, _points_outside_surface,
                             _set_source_space_vertices)
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import logger, verbose, check_random_state, _pl, _validate_type
+from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
+                     warn)
 from ..parallel import check_n_jobs
 
 
@@ -52,6 +53,29 @@ def _check_cov(info, cov):
     return cov
 
 
+def _check_stc_iterable(stc, info):
+    # 1. Check that our STC is iterable (or convert it to one using cycle)
+    # 2. Do first iter so we can get the vertex subselection
+    # 3. Get the list of verts, which must stay the same across iterations
+    do_cycle = False
+    if isinstance(stc, _BaseSourceEstimate):
+        do_cycle = True
+    elif isinstance(stc, (tuple, list)):
+        if len(stc) == 2 and isinstance(stc[0], _BaseSourceEstimate) and not \
+                isinstance(stc[1], _BaseSourceEstimate):
+            do_cycle = True
+    if do_cycle:
+        logger.info('Turning into iterable cycle: %s' % (stc,))
+        stc = cycle([stc])
+    _validate_type(stc, Iterable, 'SourceEstimate, tuple, or iterable')
+    stc_enum = enumerate(stc)
+    del stc
+
+    stc_counted = _check_next(stc_enum)
+    _, _, verts = _stc_data_event(stc_counted, 1, info['sfreq'])
+    return stc_enum, stc_counted, verts
+
+
 def _log_ch(start, info, ch):
     """Log channel information."""
     if ch is not None:
@@ -62,11 +86,11 @@ def _log_ch(start, info, ch):
 
 
 @verbose
-def simulate_raw(raw, stc, trans, src, bem, cov='simple',
+def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
                  random_state=None, use_cps=True, forward=None,
-                 duration=None, verbose=None):
+                 duration=None, raw=None, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -85,8 +109,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     stc : instance of SourceEstimate | tuple | iterable
         The source estimate to use to simulate data. Must have the same
         sample rate as the raw data. Can also be a tuple of
-        ``(SourceEstimate, ndarray)`` to allow specifying the event channel
-        data accompany the source estimate.
+        ``(SourceEstimate, ndarray)`` to allow specifying the stim channel
+        (e.g., STI001) data accompany the source estimate.
         Can also be an iterable of these options to allow the stc to
         vary in time, in which case all must have the same ``stc.vertices``.
         See Notes for details.
@@ -100,14 +124,17 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         be in FIF format, any other ending will be assumed to be a text
         file with a 4x4 transformation matrix (like the `--trans` MNE-C
         option). If trans is None, an identity transform will be used.
-    src : str | instance of SourceSpaces
+    src : str | instance of SourceSpaces | None
         Source space corresponding to the stc. If string, should be a source
         space filename. Can also be an instance of loaded or generated
-        SourceSpaces.
-    bem : str | dict
+        SourceSpaces. Can be None if ``fwd`` is provided.
+    bem : str | dict | None
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
+        Can be None if ``fwd`` is provided.
     cov : instance of Covariance | str | dict of float | None
+        Deprecated and will be removed in 0.18.
+        Use :func:`mne.simulation.add_noise` instead.
         The sensor covariance matrix used to generate noise. If string, should
         be a filename or 'simple'. If 'simple', an ad hoc covariance matrix
         will be generated with default values. If dict, an ad hoc covariance
@@ -138,6 +165,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         forward-solution interpolation to use between forward solutions
         at different head positions.
     iir_filter : None | array
+        Deprecated and will be removed in 0.18.
+        Use :func:`mne.simulation.add_noise` instead.
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     n_jobs : int
         Number of jobs to use.
@@ -149,7 +178,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         orientations. Only used when surf_ori and/or force_fixed are True.
     forward : instance of Forward | None
         The forward operator to use. If None (default) it will be computed
-        using ``bem``, ``trans``, and ``src``.
+        using ``bem``, ``trans``, and ``src``. If not None,
+        ``bem``, ``trans``, and ``src`` are ignored.
 
         .. versionadded:: 0.17
     duration : float | None
@@ -177,12 +207,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
 
     By default, the stimulus channel will have the head position number
     (starting at 1) stored in the trigger channel (if available) at the
-    t=0 point in each repetition of the ``stc``.
-    If ``stc`` is a tuple of ``(SourceEstimate, int)``, the
-    integer will be placed at t=0. If ``stc`` is a tuple of
+    t=0 point in each repetition of the ``stc``. If ``stc`` is a tuple of
     ``(SourceEstimate, ndarray)`` the array values will be placed in the
     stim channel aligned with the :class:`mne.SourceEstimate`. In the most
-    advanced case where ``stc`` is an iterable the output will be:
+    advanced case where ``stc`` is an iterable of tuples the output will be
+    concatenated in time as:
 
     .. table:: Data alignment and stim channel encoding
 
@@ -247,22 +276,35 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
            for Head Movements During MEG Acquisition Across Different Age
            Groups." Brain Topogr 30:172–181
     """  # noqa: E501
-    _validate_type(raw, (BaseRaw, Info), 'raw', 'Raw or Info')
+    _validate_type(info, (BaseRaw, Info), 'info', 'Raw or Info')
+    if cov is not None:
+        warn('cov is deprecated in 0.18 and will be removed in 0.19, '
+             'use mne.simulation.add_noise instead', DeprecationWarning)
+
+    warn_raw = False
+    if raw is not None:
+        info = raw
+        warn_raw = True
+    del raw
     if duration is not None:
         duration = float(duration)
-    if isinstance(raw, Info):
+    if isinstance(info, Info):
+        first_samp, raw_verbose = 0, verbose
         if duration is None:
             raise ValueError('duration cannot be None if raw is an instance '
                              'of Info')
-        info, first_samp = raw, 0
-        raw_verbose = verbose
     else:
-        info, first_samp = raw.info, raw.first_samp
-        raw_verbose = raw.verbose
         if duration is None:
-            duration = raw.times[-1] + 1. / info['sfreq']
+            duration = info.times[-1] + 1. / info.info['sfreq']
+        raw_verbose = info.verbose
+        info, first_samp = info.info, info.first_samp
+        warn_raw = True
     times = np.arange(int(round(info['sfreq'] * duration))) / info['sfreq']
-    del raw
+    if warn_raw and False:  # XXX revert after fixing test calls
+        warn('Passing a raw instance to simulate_raw is deprecated and will '
+             'not work in 0.19, pass an instance of Info as first argument or '
+             'as a keyword argument as info=info', DeprecationWarning)
+    # times = np.arange(int(round(info['sfreq'] * duration))) / info['sfreq']
 
     stim = False if len(pick_types(info, meg=False, stim=True)) == 0 else True
     n_jobs = check_n_jobs(n_jobs)
@@ -337,24 +379,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
     del interp
 
-    # do first iter so we can get the vertex subselection
-    # Ensure STC is iterable
-    do_cycle = False
-    if isinstance(stc, _BaseSourceEstimate):
-        do_cycle = True
-    elif isinstance(stc, (tuple, list)):
-        if len(stc) == 2 and isinstance(stc[0], _BaseSourceEstimate) and not \
-                isinstance(stc[1], _BaseSourceEstimate):
-            do_cycle = True
-    if do_cycle:
-        logger.info('Turning into iterable cycle: %s' % (stc,))
-        stc = cycle([stc])
-    _validate_type(stc, Iterable, 'SourceEstimate, tuple, or iterable')
-    stc_enum = enumerate(stc)
+    stc_enum, stc_counted, verts = _check_stc_iterable(stc, info)
     del stc
-
-    stc_counted = _check_next(stc_enum)
-    _, _, verts = _stc_data_event(stc_counted, 1, info['sfreq'])
     if forward is not None:
         forward = restrict_forward_to_stc(forward, verts)
         src = forward['src']
@@ -490,7 +516,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         interper['fwd_chpi'] = fwd_chpi
         if fi == 0:
             # Actually restrict the STC based on vertices obtained during calc
-            stc_data, event_data, _ = _stc_data_event(
+            stc_data, stim_data, _ = _stc_data_event(
                 stc_counted, 1, info['sfreq'], fwd['src'])
             continue
         del fwd_blink, fwd_ecg, fwd_chpi
@@ -515,7 +541,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
             interp_sl = slice(this_start - start, this_stop - start)
             # Stim channel
             if stim:
-                raw_data[event_ch, this_start:this_stop] = event_data[:n_doing]
+                raw_data[event_ch, this_start:this_stop] = stim_data[:n_doing]
             # Brain data
             interper.interpolate('fwd', stc_data[:, :n_doing],
                                  this_data, meeg_picks, interp_sl)
@@ -539,16 +565,16 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
             if n_doing < stc_data.shape[1]:
                 # Shift the buffer
                 stc_data = stc_data[:, n_doing:]
-                event_data = event_data[n_doing:]
+                stim_data = stim_data[n_doing:]
             else:
                 # Get more data (if necessary)
                 assert n_doing == stc_data.shape[1]
                 if this_stop == stop and fi == len(dev_head_ts):
-                    del stc_data, event_data
+                    del stc_data, stim_data
                 else:
                     stc_counted = _check_next(stc_enum, stc_counted, info,
                                               this_stop, offsets[-1])
-                    stc_data, event_data, _ = _stc_data_event(
+                    stc_data, stim_data, _ = _stc_data_event(
                         stc_counted, fi, info['sfreq'], fwd['src'], verts)
             if this_stop == stop:
                 break
@@ -580,29 +606,29 @@ def _check_next(stc_enum, stc_counted=None, info=None,
     return stc_counted
 
 
-def _stc_data_event(stc_counted, event_id, sfreq, src=None, verts=None):
+def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     stc_idx, stc = stc_counted
     if isinstance(stc, (list, tuple)):
         if len(stc) != 2:
             raise ValueError('stc, if tuple, must be length 2, got %s'
                              % (len(stc),))
-        stc, event_id = stc
+        stc, stim_data = stc
+    else:
+        stim_data = None
     _validate_type(stc, _BaseSourceEstimate, 'stc',
                    'SourceEstimate or tuple with first entry SourceEstimate')
     # Convert event data
-    event_id = np.array(event_id)
-    if event_id.dtype.kind != 'i':
-        raise ValueError('event_id in a stc tuple must be integer type, got '
-                         '%s' % (event_id.dtype))
-    if event_id.shape == ():  # integer
-        event_data = np.zeros(len(stc.times), int)
-        event_data[np.argmin(np.abs(stc.times))] = event_id
-    else:
-        event_data = event_id
-    del event_id
-    if event_data.shape != (len(stc.times),):
+    if stim_data is None:
+        stim_data = np.zeros(len(stc.times), int)
+        stim_data[np.argmin(np.abs(stc.times))] = head_idx
+    del head_idx
+    _validate_type(stim_data, np.ndarray, 'stim_data')
+    if stim_data.dtype.kind != 'i':
+        raise ValueError('stim_data in a stc tuple must be an integer ndarray,'
+                         ' got dtype %s' % (stim_data.dtype,))
+    if stim_data.shape != (len(stc.times),):
         raise ValueError('event data had shape %s but needed to be (%s,) to'
-                         'match stc' % (event_data.shape, len(stc.times)))
+                         'match stc' % (stim_data.shape, len(stc.times)))
     # Validate STC
     if not np.allclose(sfreq, 1. / stc.tstep):
         raise ValueError('stc and info must have same sample rate, '
@@ -626,7 +652,7 @@ def _stc_data_event(stc_counted, event_id, sfreq, src=None, verts=None):
         on_missing = 'warn' if verts is None else 'ignore'
         _, stc_sel, _ = _stc_src_sel(src, stc, on_missing=on_missing)
         stc_data = stc_data[stc_sel]
-    return stc_data, event_data, verts_
+    return stc_data, stim_data, verts_
 
 
 def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,

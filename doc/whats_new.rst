@@ -177,6 +177,8 @@ Bug
 API
 ~~~
 
+- Deprecate ``cov, iir_params, duration`` and support for :class:`mne.io.Raw` instance inputs (in favor of :func:`mne.simulation.add_noise`) in :func:`mne.simulation.simulate_raw` by `Eric Larson`_
+
 - Add ``overwrite`` parameter in :func:`mne.Epochs.save` by `Katarina Slama`_
 
 - Add ``stim_channel`` parameter in :func:`mne.io.read_raw_cnt` to toggle stim channel synthesis by `Joan Massich`_

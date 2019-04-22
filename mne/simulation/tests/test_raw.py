@@ -102,7 +102,7 @@ def test_iterable():
     _assert_iter_sim(raw_sim, raw_new, 3)
     with pytest.raises(ValueError, match='event data had shape .* but need'):
         simulate_raw(raw, (stc, event_data[:-1]), trans, src, sphere, None)
-    with pytest.raises(ValueError, match='event_id in a stc tuple must be in'):
+    with pytest.raises(ValueError, match='stim_data in a stc tuple .* int'):
         simulate_raw(raw, (stc, event_data * 1.), trans, src, sphere, None)
     # smoke test for exact duration match
     simulate_raw(raw.info, [stc], trans, src, sphere, None,
@@ -110,8 +110,10 @@ def test_iterable():
 
     # iterable
     def stc_iter():
+        stim_data = np.zeros(len(stc.times), int)
+        stim_data[0] = 4
         while True:
-            yield (stc, 4)
+            yield (stc, stim_data)
     raw_new = simulate_raw(raw, stc_iter(), trans, src, sphere, None)
     _assert_iter_sim(raw_sim, raw_new, 4)
 
@@ -128,7 +130,7 @@ def test_iterable():
             ii += 1
             stc_new = stc.copy()
             stc_new.vertices = np.array([ii % 2])
-            yield (stc_new, 4)
+            yield stc_new
     with pytest.raises(RuntimeError, match=r'Vertex mismatch for stc\[1\]'):
         simulate_raw(raw, stc_iter_bad(), trans, src, sphere, None)
 
@@ -144,7 +146,7 @@ def test_iterable():
     model = _surfaces_to_bem([surf], [FIFF.FIFFV_BEM_SURF_ID_BRAIN], [0.3])
     bem = make_bem_solution(model)
     with pytest.warns(RuntimeWarning,
-                      match='1 of 2 SourceEstimate vertices') as w:
+                      match='1 of 2 SourceEstimate vertices'):
         simulate_raw(raw, stc, trans, src, bem, None)
 
 
@@ -206,33 +208,34 @@ def test_simulate_raw_sphere():
     cov = read_cov(cov_fname)
     cov['projs'] = raw.info['projs']
     raw.info['bads'] = raw.ch_names[:1]
-    raw_sim = simulate_raw(raw, stc, trans, src, sphere, cov,
-                           head_pos=head_pos_sim,
-                           blink=True, ecg=True, random_state=seed)
+    with pytest.deprecated_call(match='cov is deprecated'):
+        raw_sim = simulate_raw(raw, stc, trans, src, sphere, cov,
+                               head_pos=head_pos_sim,
+                               blink=True, ecg=True, random_state=seed)
     with pytest.warns(RuntimeWarning, match='applying projector with'):
         raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
                                  cov_fname, head_pos=head_pos_sim,
                                  blink=True, ecg=True, random_state=seed)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
     std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
-    raw_sim = simulate_raw(raw, stc, trans, src, sphere,
-                           make_ad_hoc_cov(raw.info, std=std),
-                           head_pos=head_pos_sim, blink=True, ecg=True,
-                           random_state=seed)
-    raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
-                             cov=std, head_pos=head_pos_sim, blink=True,
-                             ecg=True, random_state=seed)
+    with pytest.deprecated_call():
+        raw_sim = simulate_raw(raw, stc, trans, src, sphere,
+                               make_ad_hoc_cov(raw.info, std=std),
+                               head_pos=head_pos_sim, blink=True, ecg=True,
+                               random_state=seed)
+    with pytest.deprecated_call():
+        raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
+                                 cov=std, head_pos=head_pos_sim, blink=True,
+                                 ecg=True, random_state=seed)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
     sphere_norad = make_sphere_model('auto', None, raw.info)
     raw_meg = raw.copy().pick_types()
-    raw_sim = simulate_raw(raw_meg, stc, trans, src, sphere_norad,
-                           make_ad_hoc_cov(raw.info, std=None),
+    raw_sim = simulate_raw(raw_meg, stc, trans, src, sphere_norad, cov=None,
                            head_pos=head_pos_sim, blink=True, ecg=True,
                            random_state=seed)
     raw_sim_2 = simulate_raw(raw_meg, stc, trans_fname, src_fname,
-                             sphere_norad,
-                             cov='simple', head_pos=head_pos_sim, blink=True,
-                             ecg=True, random_state=seed)
+                             sphere_norad, cov=None, head_pos=head_pos_sim,
+                             blink=True, ecg=True, random_state=seed)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
     # Test IO on processed data
     tempdir = _TempDir()
@@ -316,8 +319,9 @@ def test_simulate_raw_sphere():
     stc_bad.tstep += 0.1
     with pytest.raises(ValueError, match='same sample rate'):
         simulate_raw(raw, stc_bad, trans, src, sphere)
-    pytest.raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
-                  cov=0)  # wrong covariance type
+    with pytest.deprecated_call():
+        pytest.raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
+                      cov=0)  # wrong covariance type
     pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
                   chpi=True)  # no cHPI info
     pytest.raises(ValueError, simulate_raw, raw, stc, trans, src, sphere,
