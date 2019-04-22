@@ -15,6 +15,20 @@ jobs:
               echo "export DISPLAY=:99" >> $BASH_ENV;
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV;
               echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV;
+              if [ "${DEPS}" == "" ]; then
+                export MNE_ROOT="${PWD}/minimal_cmds";
+                export PATH=${MNE_ROOT}/bin:$PATH;
+                if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+                  curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
+                  export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH;
+                  export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
+                else
+                  curl https://staff.washington.edu/larsoner/minimal_cmds_osx.tar.gz | tar xz;
+                  export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH;
+                fi;
+                mne_surf2bem --version;
+              fi;
+
         - run:
             name: Merge with upstream
             command: |
