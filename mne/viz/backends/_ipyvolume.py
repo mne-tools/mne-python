@@ -135,19 +135,11 @@ class _Renderer(object):
         ipv.show()
 
     def close(self):
+        pass
         # ???
-        self.plotter.close()
+        # self.plotter.close()
 
     def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
                    focalpoint=(0, 0, 0)):
-        # edit this 
-        phi = _deg2rad(azimuth)
-        theta = _deg2rad(elevation)
-        position = [
-            distance * np.cos(phi) * np.sin(theta),
-            distance * np.sin(phi) * np.sin(theta),
-            distance * np.cos(theta)]
-        self.plotter.camera_position = [
-            position, focalpoint, [0, 0, 1]]
-        self.plotter.reset_camera()
+        ipv.view(azimuth=azimuth, elevation=elevation, distance=distance)
 
