@@ -91,6 +91,7 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
             url=data['url'],
             hash_=data['hash_'],
         )
+    _set_montage_coreg_path(subjects_dir)
     return fs_dir
 
 
