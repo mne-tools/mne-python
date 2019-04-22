@@ -17,7 +17,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from ._fsaverage import fetch_fsaverage, _get_create_subjects_dir
+from ._fsaverage.base import fetch_fsaverage, _get_create_subjects_dir
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,

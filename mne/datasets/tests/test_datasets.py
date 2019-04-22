@@ -6,7 +6,7 @@ import pytest
 
 from mne import datasets
 from mne.datasets import testing
-from mne.datasets._fsaverage import _set_montage_coreg_path
+from mne.datasets._fsaverage.base import _set_montage_coreg_path
 
 from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
                        get_subjects_dir, ArgvSetter)

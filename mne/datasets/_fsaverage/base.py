@@ -6,12 +6,13 @@ import os
 import os.path as op
 
 
-from ..utils import (verbose, get_subjects_dir,
-                     set_config)
+from ...utils import (verbose, get_subjects_dir, set_config)
+
+FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
 
 
 @verbose
-def fetch_fsaverage(subjects_dir=None, full_dataset=True, verbose=None):
+def fetch_fsaverage(subjects_dir=None, verbose=None):
     """Fetch and update fsaverage.
 
     Parameters
@@ -21,8 +22,6 @@ def fetch_fsaverage(subjects_dir=None, full_dataset=True, verbose=None):
         config file. None will use the existing config variable (i.e.,
         will not change anything), and if it does not exist, will use
         ``~/mne_data/MNE-fsaverage-data``.
-    full_dataset : bool (defaults to True)
-        Download the full fsaverage dataset.
     %(verbose)s
 
     Returns
@@ -74,24 +73,40 @@ def fetch_fsaverage(subjects_dir=None, full_dataset=True, verbose=None):
     # with open('fsaverage.txt', 'w') as fid:
     #     fid.write('\n'.join(names))
     #
-    from .utils import _manifest_check_download
+    from ..utils import _manifest_check_download
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subjects_dir = op.abspath(subjects_dir)
     fs_dir = op.join(subjects_dir, 'fsaverage')
     os.makedirs(fs_dir, exist_ok=True)
-    _manifest_check_download(
-        manifest_path=op.join(op.dirname(__file__), 'fsaverage.txt'),
-        subjects_dir=subjects_dir,
-        destination=fs_dir,
-        url='https://osf.io/j5htk/download?revision=1',
-        hash_='614a3680dcfcebd5653b892cc1234a4a',
-        fname='fsaverage.zip',
-    )
+
+    fsaverage_data_parts = {
+        'root.zip': dict(
+            url='https://osf.io/3bxqt/download?revision=1',
+            hash_='98fd27539b7a2b02e3d98398179ae378',
+            manifest=op.join(FSAVERAGE_MANIFEST_PATH, 'root.txt'),
+            destination=op.join(subjects_dir, 'fsaverage'),
+        ),
+        'bem.zip': dict(
+            url='https://osf.io/7ve8g/download?revision=1',
+            hash_='07c3ccde63121f5e82d1fc20e3194497',
+            manifest=op.join(FSAVERAGE_MANIFEST_PATH, 'bem.txt'),
+            destination=op.join(subjects_dir, 'fsaverage', 'bem'),
+        ),
+    }
+    for fname, data in fsaverage_data_parts.items:
+        _manifest_check_download(
+            fname=fname,
+            subjects_dir=subjects_dir,
+            manifest_path=data['manifest'],
+            destination=data['destination'],
+            url=data['url'],
+            hash_=data['hash_'],
+        )
     return fs_dir
 
 
 def _get_create_subjects_dir(subjects_dir):
-    from .utils import _get_path
+    from ..utils import _get_path
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
     if subjects_dir is None:
         subjects_dir = _get_path(None, '', 'montage coregistration')
