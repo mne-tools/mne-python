@@ -46,19 +46,10 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
 
     .. versionadded:: 0.18
     """
-    # Code used to create this dataset:
+    # Code used to create the BEM (other files taken from MNE-sample-data):
     #
-    # $ tar xzf freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
-    # $ cp -a freesurfer/subjects/fsaverage .
-    # $ mkdir fsaverage/bem
-    # $ cp ~/python/mne-python/mne/data/fsaverage/* fsaverage/bem/
     # $ mne watershed_bem -s fsaverage -d $PWD --verbose info --copy
     # $ python
-    # >>> src = mne.setup_source_space('fsaverage', spacing='ico5',
-    # ...                              add_dist=False, subjects_dir='.')
-    # >>> mne.write_source_spaces('fsaverage/bem/fsaverage-5-src.fif', src)
-    # >>> mne.datasets.fetch_hcp_mmp_parcellation('.', verbose=True)
-    # >>> mne.datasets.fetch_aparc_sub_parcellation('.', verbose=True)
     # >>> bem = mne.make_bem_model('fsaverage', subjects_dir='.', verbose=True)
     # >>> mne.write_bem_surfaces(
     # ...     'fsaverage/bem/fsaverage-5120-5120-5120-bem.fif', bem)
@@ -84,16 +75,16 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
             url='https://osf.io/3bxqt/download?revision=1',
             hash_='98fd27539b7a2b02e3d98398179ae378',
             manifest=op.join(FSAVERAGE_MANIFEST_PATH, 'root.txt'),
-            destination=op.join(subjects_dir, 'fsaverage'),
+            destination=op.join(subjects_dir),
         ),
         'bem.zip': dict(
             url='https://osf.io/7ve8g/download?revision=1',
             hash_='07c3ccde63121f5e82d1fc20e3194497',
             manifest=op.join(FSAVERAGE_MANIFEST_PATH, 'bem.txt'),
-            destination=op.join(subjects_dir, 'fsaverage', 'bem'),
+            destination=op.join(subjects_dir, 'fsaverage'),
         ),
     }
-    for fname, data in fsaverage_data_parts.items:
+    for fname, data in fsaverage_data_parts.items():
         _manifest_check_download(
             destination=data['destination'],
             manifest_path=data['manifest'],
