@@ -1,15 +1,18 @@
 import os
 from os import path as op
 import shutil
+import zipfile
 
 import pytest
 
 from mne import datasets
 from mne.datasets import testing
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
+from mne.datasets.utils import _manifest_check_download
 
 from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
-                       get_subjects_dir, ArgvSetter)
+                       get_subjects_dir, ArgvSetter, _pl, use_log_level,
+                       catch_logging)
 
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
@@ -89,6 +92,52 @@ def test_fetch_parcellations(tmpdir):
     for hemi in ('lh', 'rh'):
         assert op.isfile(op.join(this_subjects_dir, 'fsaverage', 'label',
                                  '%s.aparc_sub.annot' % hemi))
+
+
+_zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']
+
+
+def _fake_zip_fetch(url, fname, hash_):
+    with zipfile.ZipFile(fname, 'w') as zipf:
+        for fname in _zip_fnames:
+            with zipf.open(fname, 'w'):
+                pass
+
+
+@pytest.mark.parametrize('n_have', range(len(_zip_fnames)))
+def test_manifest_check_download(tmpdir, n_have, monkeypatch):
+    """Test our manifest downloader."""
+    monkeypatch.setattr(datasets.utils, '_fetch_file', _fake_zip_fetch)
+    destination = str(tmpdir).join('empty')
+    manifest_path = tmpdir.join('manifest.txt')
+    with open(manifest_path, 'w') as fid:
+        for fname in _zip_fnames:
+            fid.write('%s\n' % fname)
+    assert n_have in range(len(_zip_fnames) + 1)
+    assert not op.isdir(destination)
+    if n_have > 0:
+        os.makedirs(op.join(destination, 'foo'))
+        assert op.isdir(op.join(destination, 'foo'))
+    for fname in _zip_fnames:
+        assert not op.isfile(op.join(destination, fname))
+    for fname in _zip_fnames[:n_have]:
+        with open(op.join(destination, fname), 'w'):
+            pass
+    with catch_logging() as log:
+        with use_log_level(True):
+            url = hash_ = ''  # we mock the _fetch_file so these are not used
+            _manifest_check_download(manifest_path, destination, url, hash_)
+    log = log.getvalue()
+    n_missing = 3 - n_have
+    assert ('%d file%s missing from' % (n_missing, _pl(n_missing))) in log
+    for want in ('Extracting missing', 'Successfully '):
+        if n_missing > 0:
+            assert want in log
+        else:
+            assert want not in log
+    assert op.isdir(destination)
+    for fname in _zip_fnames:
+        assert op.isfile(op.join(destination, fname))
 
 
 run_tests_if_main()

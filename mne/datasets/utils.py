@@ -773,13 +773,12 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
                               hemi='both', subjects_dir=subjects_dir)
 
 
-def _manifest_check_download(manifest_path, subjects_dir, destination, url,
-                             hash_, fname):
+def _manifest_check_download(manifest_path, destination, url, hash_):
     with open(manifest_path, 'r') as fid:
         names = [name.strip() for name in fid.readlines()]
     need = list()
     for name in names:
-        if not op.isfile(op.join(subjects_dir, name)):
+        if not op.isfile(op.join(destination, name)):
             need.append(name)
     logger.info('%d file%s missing from %s in %s'
                 % (len(need), _pl(need), manifest_path, destination))
@@ -787,9 +786,9 @@ def _manifest_check_download(manifest_path, subjects_dir, destination, url,
         with tempfile.TemporaryDirectory() as path:
             logger.info('Downloading missing files remotely')
 
-            fname_path = op.join(path, fname)
+            fname_path = op.join(path, 'temp.zip')
             _fetch_file(url, fname_path, hash_=hash_)
-            logger.info('Extracting missing files')
+            logger.info('Extracting missing file%s' % (_pl(need),))
             with zipfile.ZipFile(fname_path, 'r') as ff:
                 members = set(f for f in ff.namelist()
                               if not f.endswith(op.sep))
@@ -798,6 +797,6 @@ def _manifest_check_download(manifest_path, subjects_dir, destination, url,
                     raise RuntimeError('Zip file did not have correct names:'
                                        '\n%s' % ('\n'.join(missing)))
                 for name in need:
-                    ff.extract(name, path=subjects_dir)
+                    ff.extract(name, path=destination)
         logger.info('Successfully extracted %d file%s'
                     % (len(need), _pl(need)))

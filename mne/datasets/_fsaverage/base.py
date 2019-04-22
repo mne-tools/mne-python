@@ -95,10 +95,8 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
     }
     for fname, data in fsaverage_data_parts.items:
         _manifest_check_download(
-            fname=fname,
-            subjects_dir=subjects_dir,
-            manifest_path=data['manifest'],
             destination=data['destination'],
+            manifest_path=data['manifest'],
             url=data['url'],
             hash_=data['hash_'],
         )
