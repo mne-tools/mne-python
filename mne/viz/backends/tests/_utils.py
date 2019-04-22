@@ -19,7 +19,7 @@ def has_not_mayavi():
         return True
 
 def has_not_ipyvolume():
-    """Check that mayavi is not installed."""
+    """Check that ipyvolume is not installed."""
     try:
         import ipyvolume
         return False

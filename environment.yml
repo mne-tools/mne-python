@@ -31,6 +31,8 @@ dependencies:
 - pyface>=6
 - traitsui>=6
 - testpath<0.4
+- ipyvolume
+
 - pip:
   - mne
   - vtk
@@ -45,4 +47,5 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
+  
 #  - pylsl>=1.13.1  Needs https://github.com/labstreaminglayer/liblsl-Python/issues/6
