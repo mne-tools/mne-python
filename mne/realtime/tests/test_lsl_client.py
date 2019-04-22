@@ -4,7 +4,8 @@
 import os.path as op
 
 from mne.realtime import LSLClient, MockLSLStream
-from mne.utils import run_tests_if_main, requires_pylsl
+from mne.utils import (run_tests_if_main, requires_pylsl,
+                       _check_win32_multiprocessing)
 from mne.io import read_raw_fif
 from mne.datasets import testing
 
@@ -17,6 +18,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 @testing.requires_testing_data
 def test_lsl_client():
     """Test the LSLClient for connection and data retrieval."""
+    _check_win32_multiprocessing()
     wait_max = 10
 
     raw = read_raw_fif(raw_fname)

@@ -237,6 +237,16 @@ def _check_mayavi_version(min_version='4.3.0'):
         raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
+def _check_win32_multiprocessing():
+    """Check if using multiprocessing on Windows."""
+    import pytest
+    cmt = 'https://stackoverflow.com/questions/50079165/'
+    return pytest.mark.skipif(sys.platform == 'win32',
+                              reason=('Running multiprocessing on Windows ' +
+                                      'creates a BrokenPipeError, ' +
+                                      'see {}'.format(cmt)))
+
+
 def _import_mlab():
     """Quietly import mlab."""
     with warnings.catch_warnings(record=True):
