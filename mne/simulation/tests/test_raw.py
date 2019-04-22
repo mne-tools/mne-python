@@ -146,7 +146,6 @@ def test_iterable():
     with pytest.warns(RuntimeWarning,
                       match='1 of 2 SourceEstimate vertices') as w:
         simulate_raw(raw, stc, trans, src, bem, None)
-    assert len(w) == 1
 
 
 def _make_stc(raw, src):
@@ -435,14 +434,12 @@ def test_simulate_round_trip():
     vertices = [[0, fwd['src'][0]['vertno'][0]], []]
     stc_bad = SourceEstimate(data[:2], vertices, 0, 1. / raw.info['sfreq'])
     with pytest.warns(RuntimeWarning,
-                      match='1 of 2 SourceEstimate vertices') as w:
+                      match='1 of 2 SourceEstimate vertices'):
         simulate_raw(raw, stc_bad, trans, src, bem)
-    assert len(w) == 1
     assert 0 not in fwd['src'][0]['vertno']
     with pytest.warns(RuntimeWarning,
-                      match='1 of 2 SourceEstimate vertices') as w:
+                      match='1 of 2 SourceEstimate vertices'):
         simulate_raw(raw, stc_bad, None, None, None, forward=fwd)
-    assert len(w) == 1
     # dev_head_t mismatch
     fwd['info']['dev_head_t']['trans'][0, 0] = 1.
     with pytest.raises(ValueError, match='dev_head_t.*does not match'):
