@@ -32,7 +32,8 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        pick_info, _picks_by_type, pick_channels_cov)
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import verbose, set_config, warn, _check_ch_locs, _check_option
+from ..utils import (verbose, set_config, warn, _check_ch_locs, _check_option,
+                     logger)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -2557,7 +2558,7 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
             title = "{} of {} {}".format(
                 combine, len(ch_names), ch_type)
         elif len(ch_names) > max_chans and combine != "gfp":
-            warn("More than {} channels, truncating title ...".format(
+            logger.info("More than {} channels, truncating title ...".format(
                 max_chans))
             title += ", ...\n({} of {} {})".format(
                 combine, len(ch_names), ch_type,)
