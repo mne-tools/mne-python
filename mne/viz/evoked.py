@@ -1875,6 +1875,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
     picks = [] if picks is None else picks
+    if title is None and picks in _DATA_CH_TYPES_SPLIT:
+        title = _handle_default('titles')[picks]
     picks = _picks_to_idx(info, picks, allow_empty=True)
     if len(picks) == 0:
         logger.info("No picks, plotting the GFP ...")
