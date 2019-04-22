@@ -21,6 +21,8 @@ def fetch_fsaverage(subjects_dir=None, full_dataset=True, verbose=None):
         config file. None will use the existing config variable (i.e.,
         will not change anything), and if it does not exist, will use
         ``~/mne_data/MNE-fsaverage-data``.
+    full_dataset : bool (defaults to True)
+        Download the full fsaverage dataset.
     %(verbose)s
 
     Returns
