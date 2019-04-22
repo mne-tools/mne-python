@@ -32,7 +32,6 @@ fsaverage
 For convenience, we provide a function to separately download and extract the
 (or update an existing) fsaverage subject.
 
-.. topic:: Examples
 Brainstorm
 ==========
 Dataset fetchers for three Brainstorm tutorials are available. Users must agree to the
