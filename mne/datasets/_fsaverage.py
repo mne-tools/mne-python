@@ -81,6 +81,9 @@ def fetch_fsaverage(subjects_dir=None, full_dataset=True, verbose=None):
         manifest_path=op.join(op.dirname(__file__), 'fsaverage.txt'),
         subjects_dir=subjects_dir,
         destination=fs_dir,
+        url='https://osf.io/j5htk/download?revision=1',
+        hash_='614a3680dcfcebd5653b892cc1234a4a',
+        fname='fsaverage.zip',
     )
     return fs_dir
 

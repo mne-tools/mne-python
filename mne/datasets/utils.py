@@ -773,24 +773,24 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
                               hemi='both', subjects_dir=subjects_dir)
 
 
-def _manifest_check_download(manifest_path, subjects_dir, destination):
+def _manifest_check_download(manifest_path, subjects_dir, destination, url,
+                             hash_, fname):
     with open(manifest_path, 'r') as fid:
         names = [name.strip() for name in fid.readlines()]
     need = list()
     for name in names:
         if not op.isfile(op.join(subjects_dir, name)):
             need.append(name)
-    logger.info('%d file%s missing from fsaverage in %s'
-                % (len(need), _pl(need), destination))
+    logger.info('%d file%s missing from %s in %s'
+                % (len(need), _pl(need), manifest_path, destination))
     if len(need) > 0:
         with tempfile.TemporaryDirectory() as path:
-            url = 'https://osf.io/j5htk/download?revision=1'
-            hash_ = '614a3680dcfcebd5653b892cc1234a4a'
-            fname = op.join(path, 'fsaverage.zip')
             logger.info('Downloading missing files remotely')
-            _fetch_file(url, fname, hash_=hash_)
+
+            fname_path = op.join(path, fname)
+            _fetch_file(url, fname_path, hash_=hash_)
             logger.info('Extracting missing files')
-            with zipfile.ZipFile(fname, 'r') as ff:
+            with zipfile.ZipFile(fname_path, 'r') as ff:
                 members = set(f for f in ff.namelist()
                               if not f.endswith(op.sep))
                 missing = sorted(members.symmetric_difference(set(names)))
