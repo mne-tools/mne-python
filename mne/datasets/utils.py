@@ -773,8 +773,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
                               hemi='both', subjects_dir=subjects_dir)
 
 
-def _manifest_check_download(manifest_path, subjects_dir, fs_dir):
-    # XXX: fs_dir needs to change
+def _manifest_check_download(manifest_path, subjects_dir, destination):
     with open(manifest_path, 'r') as fid:
         names = [name.strip() for name in fid.readlines()]
     need = list()
@@ -782,7 +781,7 @@ def _manifest_check_download(manifest_path, subjects_dir, fs_dir):
         if not op.isfile(op.join(subjects_dir, name)):
             need.append(name)
     logger.info('%d file%s missing from fsaverage in %s'
-                % (len(need), _pl(need), fs_dir))
+                % (len(need), _pl(need), destination))
     if len(need) > 0:
         with tempfile.TemporaryDirectory() as path:
             url = 'https://osf.io/j5htk/download?revision=1'

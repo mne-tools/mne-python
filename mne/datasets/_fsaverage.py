@@ -80,7 +80,7 @@ def fetch_fsaverage(subjects_dir=None, full_dataset=True, verbose=None):
     _manifest_check_download(
         manifest_path=op.join(op.dirname(__file__), 'fsaverage.txt'),
         subjects_dir=subjects_dir,
-        fs_dir=fs_dir,
+        destination=fs_dir,
     )
     return fs_dir
 
