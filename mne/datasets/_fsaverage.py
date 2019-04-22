@@ -4,10 +4,9 @@
 
 import os
 import os.path as op
-import tempfile
-import zipfile
 
-from ..utils import (_fetch_file, logger, verbose, get_subjects_dir, _pl,
+
+from ..utils import (verbose, get_subjects_dir,
                      set_config)
 
 
@@ -73,37 +72,16 @@ def fetch_fsaverage(subjects_dir=None, full_dataset=True, verbose=None):
     # with open('fsaverage.txt', 'w') as fid:
     #     fid.write('\n'.join(names))
     #
+    from .utils import _manifest_check_download
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subjects_dir = op.abspath(subjects_dir)
     fs_dir = op.join(subjects_dir, 'fsaverage')
     os.makedirs(fs_dir, exist_ok=True)
-    with open(op.join(op.dirname(__file__), 'fsaverage.txt'), 'r') as fid:
-        names = [name.strip() for name in fid.readlines()]
-    need = list()
-    for name in names:
-        if not op.isfile(op.join(subjects_dir, name)):
-            need.append(name)
-    logger.info('%d file%s missing from fsaverage in %s'
-                % (len(need), _pl(need), fs_dir))
-    if len(need) > 0:
-        with tempfile.TemporaryDirectory() as path:
-            url = 'https://osf.io/j5htk/download?revision=1'
-            hash_ = '614a3680dcfcebd5653b892cc1234a4a'
-            fname = op.join(path, 'fsaverage.zip')
-            logger.info('Downloading missing files remotely')
-            _fetch_file(url, fname, hash_=hash_)
-            logger.info('Extracting missing files')
-            with zipfile.ZipFile(fname, 'r') as ff:
-                members = set(f for f in ff.namelist()
-                              if not f.endswith(op.sep))
-                missing = sorted(members.symmetric_difference(set(names)))
-                if len(missing):
-                    raise RuntimeError('Zip file did not have correct names:'
-                                       '\n%s' % ('\n'.join(missing)))
-                for name in need:
-                    ff.extract(name, path=subjects_dir)
-        logger.info('Successfully extracted %d file%s'
-                    % (len(need), _pl(need)))
+    _manifest_check_download(
+        manifest_path=op.join(op.dirname(__file__), 'fsaverage.txt'),
+        subjects_dir=subjects_dir,
+        fs_dir=fs_dir,
+    )
     return fs_dir
 
 

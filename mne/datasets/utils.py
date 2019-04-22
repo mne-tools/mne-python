@@ -12,6 +12,7 @@ import tarfile
 import stat
 import sys
 import zipfile
+import tempfile
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -20,7 +21,7 @@ from ._fsaverage import fetch_fsaverage, _get_create_subjects_dir
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir, hashfunc)
+                     verbose, get_subjects_dir, hashfunc, _pl)
 from ..utils.docs import docdict
 from ..externals.doccer import docformat
 
@@ -770,3 +771,34 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         assert len(labels_out) == 46
         write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
                               hemi='both', subjects_dir=subjects_dir)
+
+
+def _manifest_check_download(manifest_path, subjects_dir, fs_dir):
+    # XXX: fs_dir needs to change
+    with open(manifest_path, 'r') as fid:
+        names = [name.strip() for name in fid.readlines()]
+    need = list()
+    for name in names:
+        if not op.isfile(op.join(subjects_dir, name)):
+            need.append(name)
+    logger.info('%d file%s missing from fsaverage in %s'
+                % (len(need), _pl(need), fs_dir))
+    if len(need) > 0:
+        with tempfile.TemporaryDirectory() as path:
+            url = 'https://osf.io/j5htk/download?revision=1'
+            hash_ = '614a3680dcfcebd5653b892cc1234a4a'
+            fname = op.join(path, 'fsaverage.zip')
+            logger.info('Downloading missing files remotely')
+            _fetch_file(url, fname, hash_=hash_)
+            logger.info('Extracting missing files')
+            with zipfile.ZipFile(fname, 'r') as ff:
+                members = set(f for f in ff.namelist()
+                              if not f.endswith(op.sep))
+                missing = sorted(members.symmetric_difference(set(names)))
+                if len(missing):
+                    raise RuntimeError('Zip file did not have correct names:'
+                                       '\n%s' % ('\n'.join(missing)))
+                for name in need:
+                    ff.extract(name, path=subjects_dir)
+        logger.info('Successfully extracted %d file%s'
+                    % (len(need), _pl(need)))
