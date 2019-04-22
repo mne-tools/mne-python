@@ -12,24 +12,23 @@ from ..utils import (_fetch_file, logger, verbose, get_subjects_dir, _pl,
 
 
 @verbose
-def fetch_fsaverage(subjects_dir=None, verbose=None):
+def fetch_fsaverage(subjects_dir=None, full_dataset=True, verbose=None):
     """Fetch and update fsaverage.
 
     Parameters
     ----------
     subjects_dir : str | None
-        The subjects directory to use. The ``subjects_dir + '/fsaverage'``
-        directory will be created or updated as necessary.
+        The path to use as the subjects directory in the MNE-Python
+        config file. None will use the existing config variable (i.e.,
+        will not change anything), and if it does not exist, will use
+        ``~/mne_data/MNE-fsaverage-data``.
     %(verbose)s
 
     Returns
     -------
     fs_dir : str
         The fsaverage directory.
-
-    See Also
-    --------
-    mne.datasets.set_montage_coreg_path
+        (essentially ``subjects_dir + '/fsaverage'``)
 
     Notes
     -----
@@ -118,7 +117,7 @@ def _get_create_subjects_dir(subjects_dir):
     return subjects_dir
 
 
-def set_montage_coreg_path(subjects_dir=None):
+def _set_montage_coreg_path(subjects_dir=None):
     """Set a subject directory suitable for montage(-only) coregistration.
 
     Parameters

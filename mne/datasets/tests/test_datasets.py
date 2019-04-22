@@ -5,7 +5,9 @@ import shutil
 import pytest
 
 from mne import datasets
-from mne.datasets import testing, set_montage_coreg_path
+from mne.datasets import testing
+from mne.datasets._fsaverage import _set_montage_coreg_path
+
 from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
                        get_subjects_dir, ArgvSetter)
 
@@ -41,7 +43,7 @@ def test_datasets_basic(tmpdir):
         assert (datasets.utils._get_path(None, 'foo', 'bar') ==
                 op.join(tempdir, 'mne_data'))
         assert get_subjects_dir(None) is None
-        set_montage_coreg_path()
+        _set_montage_coreg_path()
         sd = get_subjects_dir()
         assert sd.endswith('MNE-fsaverage-data')
 
