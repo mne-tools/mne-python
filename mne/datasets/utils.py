@@ -12,14 +12,16 @@ import tarfile
 import stat
 import sys
 import zipfile
+import tempfile
 from distutils.version import LooseVersion
 
 import numpy as np
 
+from ._fsaverage.base import fetch_fsaverage
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir, hashfunc)
+                     verbose, get_subjects_dir, hashfunc, _pl)
 from ..utils.docs import docdict
 from ..externals.doccer import docformat
 
@@ -583,6 +585,9 @@ def _download_all_example_data(verbose=True):
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
+    # (probably on CircleCI, or otherwise advanced user)
+    fetch_fsaverage(None)
     sys.argv += ['--accept-hcpmmp-license']
     try:
         fetch_hcp_mmp_parcellation()
@@ -766,3 +771,32 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         assert len(labels_out) == 46
         write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
                               hemi='both', subjects_dir=subjects_dir)
+
+
+def _manifest_check_download(manifest_path, destination, url, hash_):
+    with open(manifest_path, 'r') as fid:
+        names = [name.strip() for name in fid.readlines()]
+    need = list()
+    for name in names:
+        if not op.isfile(op.join(destination, name)):
+            need.append(name)
+    logger.info('%d file%s missing from %s in %s'
+                % (len(need), _pl(need), manifest_path, destination))
+    if len(need) > 0:
+        with tempfile.TemporaryDirectory() as path:
+            logger.info('Downloading missing files remotely')
+
+            fname_path = op.join(path, 'temp.zip')
+            _fetch_file(url, fname_path, hash_=hash_)
+            logger.info('Extracting missing file%s' % (_pl(need),))
+            with zipfile.ZipFile(fname_path, 'r') as ff:
+                members = set(f for f in ff.namelist()
+                              if not f.endswith(op.sep))
+                missing = sorted(members.symmetric_difference(set(names)))
+                if len(missing):
+                    raise RuntimeError('Zip file did not have correct names:'
+                                       '\n%s' % ('\n'.join(missing)))
+                for name in need:
+                    ff.extract(name, path=destination)
+        logger.info('Successfully extracted %d file%s'
+                    % (len(need), _pl(need)))
