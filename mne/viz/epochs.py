@@ -394,7 +394,7 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
 
 
 def _order_epochs(data, times, order=None, overlay_times=None):
-    """Sort an  image - e.g., epochs data. Helper for plot_epochs_image."""
+    """Sort image - e.g., epochs data (2D/3D). Helper for plot_epochs_image."""
     n_epochs = len(data)
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
@@ -427,7 +427,7 @@ def _order_epochs(data, times, order=None, overlay_times=None):
 
 
 def _set_image_lims_and_scale(data, scaling=1, vmin=None, vmax=None):
-    """Set up vlims for an image. Helper for plot_epochs_image."""
+    """Set up vlims for an image (2D or 3D). Helper for plot_epochs_image."""
     scale_vmin = True if (vmin is None or callable(vmin)) else False
     scale_vmax = True if (vmax is None or callable(vmax)) else False
     vmin, vmax = _setup_vmin_vmax(
