@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _plot_eeg_no_mri:
+
 EEG forward operator with a template MRI
 ========================================
 
@@ -9,6 +11,8 @@ using the standard template MRI subject ``fsaverage``.
 .. important:: Source reconstruction without an individual T1 MRI from the
                subject will be less accurate. Do not over interpret
                activity locations which can be off by multiple centimeters.
+
+.. note:: :ref:`plot_montage` show all the standard montages in MNE-Python.
 
 .. contents:: This tutorial covers:
    :local:
