@@ -38,7 +38,7 @@ def select_sources(subject, label, location='center', extent=0,
     location : 'random' | 'center' | int
         Location to grow label from. If the location is an int, it represents
         the vertex number in the corresponding label. If it is a str, it can be
-        either 'random' or 'barycenter'.
+        either 'random' or 'center'.
     extent : float
         Extents (radius in mm) of the labels, i.e. maximum geodesic distance
         on the white matter surface from the seed. If 0, the resulting label
@@ -62,26 +62,23 @@ def select_sources(subject, label, location='center', extent=0,
     # If label is a string, convert it to a label that contains the whole
     # hemisphere.
     if isinstance(label, str):
-        if label != 'rh' and label != 'lh':
-            raise ValueError('If \'label\' is a string, it must be \'lh\' or '
-                             '\'rh\', not {}.'.format(label))
-        surf_filename = op.join(subjects_dir, subject, 'surf', label + '.white')
+        _check_option('label', label, ['lh', 'rh'])
+        surf_filename = op.join(subjects_dir, subject, 'surf',
+                                label + '.white')
         vertices, _ = read_surface(surf_filename)
         indices = np.arange(len(vertices), dtype=int)
         label = Label(indices, vertices, hemi=label)
 
     # Choose the seed according to the selected strategy.
     if isinstance(location, str):
+        _check_option('location', location, ['center', 'random'])
 
         if location == 'center':
             seed = label.center_of_mass(
                 subject, restrict_vertices=True, subjects_dir=subjects_dir,
                 surf=surf)
-        elif location == 'random':
-            seed = np.random.choice(label.vertices)
         else:
-            raise ValueError('The \'location\' must be \'random\' or '
-                             '\'center\', not {}.'.format(location))
+            seed = np.random.choice(label.vertices)
     else:
         seed = label.vertices[location]
 
