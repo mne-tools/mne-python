@@ -258,7 +258,6 @@ def set_config(key, value, home_dir=None, set_env=True):
     --------
     get_config
     """
-
     if key is None:
         warn('set_config(key=None, value=None) to get a list of valid keys '
              'has been deprecated and will be removed in version 0.19. Use '
