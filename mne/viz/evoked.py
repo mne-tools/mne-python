@@ -1674,6 +1674,80 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
     return styles, the_colors, color_conds, color_order, colors_are_float
 
 
+def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
+    """Show sensor legend (location of a set of sensors on the head)."""
+    if show_sensors is True:
+        ymin, ymax = np.abs(ax.get_ylim())
+        show_sensors = "lower right" if ymin > ymax else "upper right"
+
+    pos = _auto_topomap_coords(info, picks, ignore_overlap=True, to_sphere=True)
+    head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
+    pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
+
+    show_sensors = _check_loc_legal(show_sensors, "show_sensors")
+    _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
+                 show_sensors, size=25)
+
+
+def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
+                             colors_are_float, the_colors, colors,
+                             color_conds, color_order, cmap_label,
+                             linestyles, ax):
+    """Show condition legend for line plots. Helper for plot_compare_evokeds."""
+    import matplotlib.lines as mlines
+
+    if split_legend is None:
+        split_legend = cmap is not None  # default to True iff cmap is given
+    if split_legend is True:
+        if colors is None:
+            raise ValueError(
+                "If `split_legend` is True, `colors` must not be None.")
+        # mpl 1.3 requires us to split it like this. with recent mpl,
+        # we could use the label parameter of the Line2D
+        legend_lines, legend_labels = list(), list()
+        if cmap is None:  # ... one set of lines for the colors
+            for color in sorted(colors.keys()):
+                line = mlines.Line2D([], [], linestyle="-",
+                                     color=colors[color])
+                legend_lines.append(line)
+                legend_labels.append(color)
+        if len(list(linestyles)) > 1:  # ... one set for the linestyle
+            for style, s in linestyles.items():
+                line = mlines.Line2D([], [], color='k', linestyle=s)
+                legend_lines.append(line)
+                legend_labels.append(style)
+
+    # the condition legend
+    if len(conditions) > 1 and show_legend is not False:
+        show_legend = _check_loc_legal(show_legend, "show_legend")
+        legend_params = dict(loc=show_legend, frameon=True)
+        if split_legend:
+            if len(legend_lines) > 1:
+                ax.legend(legend_lines, legend_labels,  # see above: mpl 1.3
+                          ncol=1 + (len(legend_lines) // 4), **legend_params)
+        else:
+            ax.legend(ncol=1 + (len(conditions) // 5), **legend_params)
+
+    # the colormap, if `cmap` is provided
+    if split_legend and cmap is not None:
+        # plot the colorbar ... complicated cause we don't have a heatmap
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        divider = make_axes_locatable(ax)
+        ax_cb = divider.append_axes("right", size="5%", pad=0.05)
+        if colors_are_float:
+            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none',
+                         aspect=.05)
+            color_ticks = np.array(list(set(colors.values()))) * 100
+            ax_cb.set_yticks(color_ticks)
+            ax_cb.set_yticklabels(color_ticks)
+        else:
+            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
+            ax_cb.set_yticks(np.arange(len(the_colors)))
+            ax_cb.set_yticklabels(np.array(color_conds)[color_order])
+        ax_cb.yaxis.tick_right()
+        ax_cb.set(xticks=(), ylabel=cmap_label)
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
@@ -1850,7 +1924,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     102 channels.
     """
     import matplotlib.pyplot as plt
-    import matplotlib.lines as mlines
 
     evokeds, colors = _format_evokeds_colors(evokeds, cmap, colors)
     conditions = sorted(list(evokeds.keys()))
@@ -2018,33 +2091,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         colors = {condition: color for condition, color
                   in zip(conditions, colors)}
 
+    cmap_label = ""
     if cmap is not None:
         if not isinstance(cmap, str) and len(cmap) == 2:
             cmap_label, cmap = cmap
-        else:
-            cmap_label = ""
-
-    # dealing with a split legend
-    if split_legend is None:
-        split_legend = cmap is not None  # default to True iff cmap is given
-    if split_legend is True:
-        if colors is None:
-            raise ValueError(
-                "If `split_legend` is True, `colors` must not be None.")
-        # mpl 1.3 requires us to split it like this. with recent mpl,
-        # we could use the label parameter of the Line2D
-        legend_lines, legend_labels = list(), list()
-        if cmap is None:  # ... one set of lines for the colors
-            for color in sorted(colors.keys()):
-                line = mlines.Line2D([], [], linestyle="-",
-                                     color=colors[color])
-                legend_lines.append(line)
-                legend_labels.append(color)
-        if len(list(linestyles)) > 1:  # ... one set for the linestyle
-            for style, s in linestyles.items():
-                line = mlines.Line2D([], [], color='k', linestyle=s)
-                legend_lines.append(line)
-                legend_labels.append(style)
 
     styles, the_colors, color_conds, color_order, colors_are_float =\
         _setup_styles(data_dict.keys(), styles, cmap, colors, linestyles)
@@ -2113,7 +2163,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
                      truncate_xaxis)
 
-    # and now for 3 "legends" ..
+    # and now for our "legends" ..
     # a head plot showing the sensors that are being plotted
     if show_sensors:
         _validate_type(show_sensors, (np.int, bool, str, type(None)),
@@ -2122,48 +2172,14 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             warn("Cannot find channel coordinates in the supplied Evokeds. "
                  "Not showing channel locations.")
         else:
-            if show_sensors is True:
-                ymin, ymax = np.abs(ax.get_ylim())
-                show_sensors = "lower right" if ymin > ymax else "upper right"
+            _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
+                                  show_sensors, ax)
 
-            pos = _auto_topomap_coords(one_evoked.info, pos_picks,
-                                       ignore_overlap=True, to_sphere=True)
-            head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
-            pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
-
-            show_sensors = _check_loc_legal(show_sensors, "show_sensors")
-            _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
-                         show_sensors, size=25)
-
-    # the condition legend
-    if len(conditions) > 1 and show_legend is not False:
-        show_legend = _check_loc_legal(show_legend, "show_legend")
-        legend_params = dict(loc=show_legend, frameon=True)
-        if split_legend:
-            if len(legend_lines) > 1:
-                ax.legend(legend_lines, legend_labels,  # see above: mpl 1.3
-                          ncol=1 + (len(legend_lines) // 4), **legend_params)
-        else:
-            ax.legend(ncol=1 + (len(conditions) // 5), **legend_params)
-
-    # the colormap, if `cmap` is provided
-    if split_legend and cmap is not None:
-        # plot the colorbar ... complicated cause we don't have a heatmap
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        divider = make_axes_locatable(ax)
-        ax_cb = divider.append_axes("right", size="5%", pad=0.05)
-        if colors_are_float:
-            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none',
-                         aspect=.05)
-            color_ticks = np.array(list(set(colors.values()))) * 100
-            ax_cb.set_yticks(color_ticks)
-            ax_cb.set_yticklabels(color_ticks)
-        else:
-            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
-            ax_cb.set_yticks(np.arange(len(the_colors)))
-            ax_cb.set_yticklabels(np.array(color_conds)[color_order])
-        ax_cb.yaxis.tick_right()
-        ax_cb.set(xticks=(), ylabel=cmap_label)
+    # condition legend
+    _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
+                             colors_are_float, the_colors, colors,
+                             color_conds, color_order, cmap_label,
+                             linestyles, ax)
 
     plt_show(show)
     return ax.figure
