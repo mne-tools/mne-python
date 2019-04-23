@@ -95,7 +95,7 @@ def test_vmrk_meas_date():
     assert 'unspecified' in repr(raw.info)
 
     # Test files with faulty dates introduced by segmenting a file without
-    # date information. Should not rais a strptime ValueError
+    # date information. Should not raise a strptime ValueError
     raw = read_raw_brainvision(vhdr_bad_date)
     assert raw.info['meas_date'] is None
     assert 'unspecified' in repr(raw.info)
