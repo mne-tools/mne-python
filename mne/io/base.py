@@ -49,12 +49,21 @@ from ..annotations import Annotations, _combine_annotations, _sync_onset
 from ..annotations import _ensure_annotation_object
 
 
+def _set_pandas_dtype(df, columns, dtype):
+    """Try to set the right columns to categorical"""
+    pandas = _check_pandas_installed(strict=True)
+    for column in columns:
+        df[column] = df[column].astype(dtype)
+        logger.info('Converting "%s" to "%s"...' % (column, dtype))
+
+
 class ToDataFrameMixin(object):
     """Class to add to_data_frame capabilities to certain classes."""
 
     @fill_doc
     def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
-                      scalings=None, copy=True, start=None, stop=None):
+                      scalings=None, copy=True, start=None, stop=None,
+                      long_format=False):
         """Export data in tabular structure as a pandas DataFrame.
 
         Columns and indices will depend on the object being converted.
@@ -85,6 +94,11 @@ class ToDataFrameMixin(object):
             If it is a Raw object, this defines a stop index for creating
             the dataframe from a slice. The times will be interpolated from the
             index and the sampling rate of the signal.
+        long_format : bool
+            If True, the data frame is returned in long format where each sample
+            is one combination of the dimensions and additional columns are added
+            to tell the channel, time, condition, etc.
+            Defaults to False.
 
         Returns
         -------
@@ -100,6 +114,7 @@ class ToDataFrameMixin(object):
 
         pd = _check_pandas_installed()
         mindex = list()
+        ch_map = None
         # Treat SourceEstimates special because they don't have the same info
         if isinstance(self, _BaseSourceEstimate):
             if self.subject is None:
@@ -149,19 +164,22 @@ class ToDataFrameMixin(object):
                 data = data.T
                 col_names = [self.ch_names[k] for k in picks]
 
-            types = [channel_type(self.info, idx) for idx in picks]
+            ch_types = [channel_type(self.info, idx) for idx in picks]
+            ch_map = dict(
+                zip([self.info['ch_names'][pp] for pp in picks],
+                    ch_types))
             n_channel_types = 0
             ch_types_used = []
 
             scalings = _handle_default('scalings', scalings)
             for t in scalings.keys():
-                if t in types:
+                if t in ch_types:
                     n_channel_types += 1
                     ch_types_used.append(t)
 
             for t in ch_types_used:
                 scaling = scalings[t]
-                idx = [i for i in range(len(picks)) if types[i] == t]
+                idx = [i for i in range(len(picks)) if ch_types[i] == t]
                 if len(idx) > 0:
                     data[:, idx] *= scaling
         else:
@@ -187,12 +205,27 @@ class ToDataFrameMixin(object):
         for i, (k, v) in enumerate(mindex):
             df.insert(i, k, v)
         if index is not None:
-            if 'time' in index:
-                logger.info('Converting time column to int64...')
-                df['time'] = df['time'].astype(np.int64)
+            if 'time' in index and not long_format:
+                _set_pandas_dtype(df, ['time'], np.int64)
             df.set_index(index, inplace=True)
         if all(i in default_index for i in index):
-            df.columns.name = 'signal'
+            df.columns.name = 'channel'
+
+        if long_format:
+            df = df.stack().reset_index()
+            columns = [cc for cc in df.columns]
+            sig_idx = columns.index(0)
+            columns[sig_idx] = 'observation'
+            df.columns = columns
+            df['ch_type'] = df.channel.map(ch_map)
+            if hasattr(pd.api.types, 'CategoricalDtype'):
+                columns = [cc for cc in df.columns]
+                to_factor = [
+                    cc for cc in columns if cc not in ['observation', 'time']]
+                _set_pandas_dtype(df, to_factor, 'category')
+            else:
+                logger.warning("I could not convert the dtype to category")
+
         return df
 
 
