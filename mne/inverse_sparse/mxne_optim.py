@@ -344,6 +344,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
 
 
 # @verbose
+@njit
 def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1,
                            dgap_freq=10):
@@ -364,7 +365,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     E = []  # track primal objective function
     highest_d_obj = - np.inf
-    active_set = np.zeros(n_sources, dtype=np.bool)  # start with full AS
+    active_set = np.zeros(n_sources, dtype=np.bool_)  # start with full AS
 
     alpha_lc = alpha / lipschitz_constant
 
@@ -394,8 +395,10 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                 active_set[idx] = True
 
         if (i + 1) % dgap_freq == 0:
-            _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
-                                          alpha, n_orient)
+            # numba does not accept _, _ if different types are assigned
+            # that is why I introduced useless variables
+            useless1, p_obj, d_obj, useless2 = dgap_l21(
+                M, G, X[active_set], active_set, alpha, n_orient)
             highest_d_obj = max(d_obj, highest_d_obj)
             gap = p_obj - highest_d_obj
             E.append(p_obj)
