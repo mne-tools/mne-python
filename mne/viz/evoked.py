@@ -1792,6 +1792,46 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
                      truncate_xaxis)
 
 
+def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
+    """Compute (sensor-aggregated, scaled) time series and possibly CI."""
+    from .. import Evoked
+    if picks is None:
+        picks = Ellipsis
+    if not isinstance(evoked, Evoked):
+        data = np.array([e.data[picks, :] * scaling for e in evoked])
+    else:
+        data = evoked.data[np.newaxis, picks] * scaling
+
+    if gfp:
+        data = np.sqrt(np.mean(data * data, axis=1))
+    else:
+        data = np.mean(data, axis=1)  # average across channels
+
+    if ci_fun is not None:  # compute CI if requested:
+        ci = ci_fun(data)
+
+    # average across trials:
+    data = np.mean(data, axis=0)
+    _check_if_nan(data)
+
+    if ci_fun is not None:
+        return data, ci
+    else:
+        return data
+
+
+def _get_ci_function_for_evokeds(ci):
+    """Get the function for calculating the confidence interval for evokeds."""
+    _ci_fun = None
+    if ci is not False:
+        if callable(ci):
+            _ci_fun = ci
+        else:
+            from ..stats import _ci
+            _ci_fun = partial(_ci, ci=ci, method="bootstrap")
+    return _ci_fun
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
@@ -2078,13 +2118,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
     # if we have a dict/list of lists, we compute the grand average and the CI
-    _ci_fun = None
-    if ci is not False:
-        if callable(ci):
-            _ci_fun = ci
-        else:
-            from ..stats import _ci
-            _ci_fun = partial(_ci, ci=ci, method="bootstrap")
+    ci_fun = _get_ci_function_for_evokeds(ci)
 
     # calculate the CI
     ci_dict, data_dict = dict(), dict()
@@ -2092,18 +2126,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         this_evokeds = evokeds[cond]
         # this will fail if evokeds do not have the same structure
         # (e.g. channel count)
-        data = [e.data[picks, :] * scaling for e in this_evokeds]
-        data = np.array(data)
-        if gfp:
-            data = np.sqrt(np.mean(data * data, axis=1))
-        else:
-            data = np.mean(data, axis=1)  # average across channels
-        if _ci_fun is not None:  # compute CI if requested:
-            ci_dict[cond] = _ci_fun(data)
-        # average across conditions:
-        data_dict[cond] = data = np.mean(data, axis=0)
-        _check_if_nan(data)
-
+        res = _get_data_and_ci(this_evokeds, scaling=scaling, picks=picks,
+                               ci_fun=ci_fun, gfp=gfp)
+        data_dict[cond] = res[0]
+        if ci_fun is not None:
+            ci_dict[cond] = res[-1]
     del evokeds
 
     # we now have dicts for data ('evokeds' - grand averaged Evoked's)
@@ -2161,7 +2188,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             any_negative = True
 
         # plot the confidence interval if available
-        if _ci_fun is not None:
+        if ci_fun is not None:
             ci_ = ci_dict[condition]
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
                             zorder=9, color=styles[condition]['c'], alpha=.3,
