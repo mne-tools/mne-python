@@ -205,7 +205,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         Valid cHPI information must encoded in ``raw.info['hpi_meas']``
         to use this option.
     %(head_pos)s
-        See for example [2]_.
+        See for example [1]_.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -288,9 +288,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
 
     References
     ----------
-    .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
-           subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
-    .. [2] Larson E, Taulu S (2017). "The Importance of Properly Compensating
+    .. [1] Larson E, Taulu S (2017). "The Importance of Properly Compensating
            for Head Movements During MEG Acquisition Across Different Age
            Groups." Brain Topogr 30:172–181
     """  # noqa: E501
@@ -506,6 +504,11 @@ def add_blink(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     visual inspection to yield amplitudes generally consistent with those
     seen in experimental data. Noisy versions of the activation will be
     stored in the first EOG channel in the raw instance, if it exists.
+
+    References
+    ----------
+    .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
+           subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
     """
     return _add_exg(raw, 'blink', head_pos, interp, n_jobs, random_state)
 
