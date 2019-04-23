@@ -575,6 +575,12 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     -------
     annot : instance of Annotations | None
         The annotations.
+
+    Notes
+    -----
+    The annotations stored in a .csv require the onset columns to be
+    timestamps. If you have onsets as floats (in seconds), you should use the
+    .txt extension.
     """
     from .io.brainvision.brainvision import _read_annotations_brainvision
     from .io.eeglab.eeglab import _read_annotations_eeglab
@@ -648,6 +654,14 @@ def _read_annotations_csv(fname):
     description = df['description'].values
     if orig_time == 0:
         orig_time = None
+
+    if onset_dt.unique().size != onset.unique().size:
+        warn("The number of onsets in the '.csv' file (%d) does not match "
+             "the number of onsets in the Annotations created (%d). If "
+             "this happens because you did not encode your onsets as "
+             "timestamps you should save your files as '.txt'." %
+             (onset_dt.unique().size, onset.unique().size))
+
     return Annotations(onset, duration, description, orig_time)
 
 
