@@ -1748,6 +1748,46 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
         ax_cb.set(xticks=(), ylabel=cmap_label)
 
 
+def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
+                                    truncate_yaxis,  truncate_xaxis,
+                                    invert_y, current_ymin, vlines, tmin, tmax,
+                                    unit):
+    # truncate the y axis 
+    orig_ymin, orig_ymax = ax.get_ylim()
+    if not any_positive:
+        orig_ymax = 0
+    if not any_negative:
+        orig_ymin = 0
+
+    ax.set_ylim(orig_ymin if ymin is None else ymin,
+                orig_ymax if ymax is None else ymax)
+
+    fraction = 2 if ax.get_ylim()[0] >= 0 else 3
+
+    if truncate_yaxis is not False:
+        _, ymax_bound = _truncate_yaxis(
+            ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
+            any_positive, any_negative, truncate_yaxis)
+    else:
+        if truncate_yaxis is True and ymin is not None and ymin > 0:
+            warn("ymin is all-positive, not truncating yaxis")
+        ymax_bound = ax.get_ylim()[-1]
+
+    current_ymin = ax.get_ylim()[0]
+
+    # plot v lines
+    if invert_y is True and current_ymin < 0:
+        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
+    else:
+        upper_v, lower_v = ax.get_ylim()[0], ymax_bound
+    if vlines:
+        ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
+                  linewidth=1., zorder=1)
+
+    _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
+                     truncate_xaxis)
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
@@ -2124,44 +2164,14 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                             zorder=9, color=styles[condition]['c'], alpha=.3,
                             clip_on=False)
 
-    # truncate the y axis
-    orig_ymin, orig_ymax = ax.get_ylim()
-    if not any_positive:
-        orig_ymax = 0
-    if not any_negative:
-        orig_ymin = 0
-
-    ax.set_ylim(orig_ymin if ymin is None else ymin,
-                orig_ymax if ymax is None else ymax)
-
-    fraction = 2 if ax.get_ylim()[0] >= 0 else 3
-
-    if truncate_yaxis is not False:
-        _, ymax_bound = _truncate_yaxis(
-            ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
-            any_positive, any_negative, truncate_yaxis)
-    else:
-        if truncate_yaxis is True and ymin is not None and ymin > 0:
-            warn("ymin is all-positive, not truncating yaxis")
-        ymax_bound = ax.get_ylim()[-1]
+_set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
+                                    truncate_yaxis,  truncate_xaxis,
+                                    invert_y, current_ymin, vlines, tmin, tmax,
+                                    unit)
 
     title = _set_title_multiple_electrodes(
         title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
     ax.set_title(title)
-
-    current_ymin = ax.get_ylim()[0]
-
-    # plot v lines
-    if invert_y is True and current_ymin < 0:
-        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
-    else:
-        upper_v, lower_v = ax.get_ylim()[0], ymax_bound
-    if vlines:
-        ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
-                  linewidth=1., zorder=1)
-
-    _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
-                     truncate_xaxis)
 
     # and now for our "legends" ..
     # a head plot showing the sensors that are being plotted
