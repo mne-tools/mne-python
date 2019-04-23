@@ -32,6 +32,10 @@ fsaverage
 For convenience, we provide a function to separately download and extract the
 (or update an existing) fsaverage subject.
 
+.. topic:: Examples
+
+    :ref:`sphx_glr_auto_tutorials_plot_eeg_no_mri.py`
+
 Brainstorm
 ==========
 Dataset fetchers for three Brainstorm tutorials are available. Users must agree to the
