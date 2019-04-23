@@ -2,6 +2,7 @@ import os
 from os import path as op
 import shutil
 import zipfile
+import sys
 
 import pytest
 
@@ -103,7 +104,8 @@ def _fake_zip_fetch(url, fname, hash_):
             with zipf.open(fname, 'w'):
                 pass
 
-
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="writing zip files requires python3.6 or higher")
 @pytest.mark.parametrize('n_have', range(len(_zip_fnames)))
 def test_manifest_check_download(tmpdir, n_have, monkeypatch):
     """Test our manifest downloader."""
