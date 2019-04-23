@@ -28,7 +28,8 @@ class _Renderer(object):
             self.plotter.animation = 0
             ipv.style.box_off()
             ipv.style.axes_off()
-            ipv.style.background_color(bgcolor)
+            bgcolor = tuple(int(c) for c in bgcolor)
+            ipv.style.background_color('#%02x%02x%02x' % bgcolor)
         else:
             # not sure this is the exact behavior, needs a thorough look
             self.plotter = ipv.figure(key=fig)
