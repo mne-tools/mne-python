@@ -172,8 +172,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None,
         The preference key to look for. The os environment is searched first,
         then the mne-python config file is parsed.
         If None, all the config parameters present in environment variables or
-        the path are returned. If key='valid_keys', a list of all valid keys
-        (but not values) is returned.
+        the path are returned. If key is an empty string, a list of all valid
+        keys (but not values) is returned.
     default : str | None
         Value to return if the key is not found.
     raise_error : bool
@@ -199,7 +199,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None,
     """
     _validate_type(key, (str, type(None)), "key", 'string or None')
 
-    if key == 'valid_keys':
+    if key == '':
         return known_config_types
 
     # first, check to see if key is in env
