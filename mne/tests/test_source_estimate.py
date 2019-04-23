@@ -738,6 +738,12 @@ def test_to_data_frame():
             assert all([c in ['time', 'subject'] for c in
                         df.reset_index().columns][:2])
 
+        df = stc.to_data_frame(long_format=True)
+        assert(len(df) == stc.data.size)
+        assert("time" in df.columns)
+        assert("source" in df.columns)
+        assert("observation" in df.columns)
+
 
 def test_get_peak():
     """Test peak getter."""

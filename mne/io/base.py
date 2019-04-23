@@ -207,7 +207,10 @@ class ToDataFrameMixin(object):
                 _set_pandas_dtype(df, ['time'], np.int64)
             df.set_index(index, inplace=True)
         if all(i in default_index for i in index):
-            df.columns.name = 'channel'
+            if isinstance(self, _BaseSourceEstimate):
+                df.columns.name = 'source'
+            else:
+                df.columns.name = 'channel'
 
         if long_format:
             df = df.stack().reset_index()
@@ -215,7 +218,10 @@ class ToDataFrameMixin(object):
             sig_idx = columns.index(0)
             columns[sig_idx] = 'observation'
             df.columns = columns
-            df['ch_type'] = df.channel.map(ch_map)
+
+            if not isinstance(self, _BaseSourceEstimate):
+                df['ch_type'] = df.channel.map(ch_map)
+
             if hasattr(pd.api.types, 'CategoricalDtype'):
                 columns = [cc for cc in df.columns]
                 to_factor = [
