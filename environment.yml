@@ -45,4 +45,4 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
-#  - pylsl>=1.13.1  Needs https://github.com/labstreaminglayer/liblsl-Python/issues/6
+  - pylsl>=1.12
