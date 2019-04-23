@@ -722,7 +722,7 @@ def test_io_annotation_csv(dummy_annotation_csv_file,
     _assert_annotations_equal(annot, annot2)
 
     # Test broken .csv that does not use timestamps
-    with pytest.warns(RuntimeWarning, match=''):
+    with pytest.warns(RuntimeWarning, match='The number of onsets in the'):
         annot2 = read_annotations(str(dummy_broken_annotation_csv_file))
 
 
