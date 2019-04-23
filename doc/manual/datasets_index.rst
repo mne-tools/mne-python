@@ -46,7 +46,7 @@ Details about the data can be found at the Brainstorm `auditory dataset tutorial
 
 .. topic:: Examples
 
-    * :ref:`Brainstorm auditory dataset tutorial <sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
+    * :ref:`sphx_glr_auto_tutorials_plot_brainstorm_auditory.py`: Partially replicates the original Brainstorm tutorial.
 
 Resting state
 ^^^^^^^^^^^^^
@@ -54,11 +54,19 @@ Resting state
 
 Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_examples_connectivity_plot_mne_inverse_envelope_correlation.py`
+
 Median nerve
 ^^^^^^^^^^^^
 :func:`mne.datasets.brainstorm.bst_raw.data_path`
 
 Details can be found at the Brainstorm `median nerve dataset tutorial`_.
+
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_examples_datasets_plot_brainstorm_data.py`
 
 MEGSIM
 ======
