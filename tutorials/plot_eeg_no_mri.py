@@ -12,8 +12,7 @@ using the standard template MRI subject ``fsaverage``.
                subject will be less accurate. Do not over interpret
                activity locations which can be off by multiple centimeters.
 
-.. note:: :ref:`sphx_glr_auto_examples_datasets_plot_montage` show all the
-          standard montages in MNE-Phython.
+.. note:: :ref:`plot_montage` show all the standard montages in MNE-Phython.
 
 .. contents:: This tutorial covers:
    :local:
