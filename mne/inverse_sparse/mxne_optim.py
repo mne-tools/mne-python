@@ -402,7 +402,8 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
             highest_d_obj = max(d_obj, highest_d_obj)
             gap = p_obj - highest_d_obj
             E.append(p_obj)
-            # logger.debug("Iteration %d :: p_obj %f :: dgap %f :: n_active %d" %
+            # logger.debug(
+            # "Iteration %d :: p_obj %f :: dgap %f :: n_active %d" %
             #              (i + 1, p_obj, gap, np.sum(active_set) / n_orient))
 
             if gap < tol:
