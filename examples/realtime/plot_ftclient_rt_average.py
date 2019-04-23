@@ -31,12 +31,18 @@ responses using moving averages.
 # License: BSD (3-clause)
 
 import matplotlib.pyplot as plt
+from mne.utils import run_subprocess
 
 import mne
 from mne.viz import plot_events
 from mne.realtime import FieldTripClient, RtEpochs
 
 print(__doc__)
+
+# start a subprocess for neuromag2ft
+data_path = mne.datasets.sample.data_path()
+run_subprocess(["neuromag2ft", "--file",
+                "{}/MEG/sample/sample_audvis_raw.fif".format(data_path)])
 
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5

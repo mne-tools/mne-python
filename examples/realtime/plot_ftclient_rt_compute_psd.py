@@ -22,8 +22,14 @@ import time
 import mne
 from mne.realtime import FieldTripClient
 from mne.time_frequency import psd_welch
+from mne.utils import run_subprocess
 
 print(__doc__)
+
+# start a subprocess for neuromag2ft
+data_path = mne.datasets.sample.data_path()
+run_subprocess(["neuromag2ft", "--file",
+                "{}/MEG/sample/sample_audvis_raw.fif".format(data_path)])
 
 # user must provide list of bad channels because
 # FieldTrip header object does not provide that
