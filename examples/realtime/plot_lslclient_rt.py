@@ -22,7 +22,7 @@ from mne.io import read_raw_fif
 print(__doc__)
 
 # this is the host id that identifies your stream on LSL
-host = 'mne_stream'
+host = 'mne_streaming'
 # this is the max wait time in seconds until client connection
 wait_max = 5
 
