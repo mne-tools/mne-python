@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _plot_montage:
+
 Plotting sensor layouts of EEG Systems
 ======================================
 

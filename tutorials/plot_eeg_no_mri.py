@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _plot_eeg_no_mri:
+
 EEG forward operator with a template MRI
 ========================================
 
