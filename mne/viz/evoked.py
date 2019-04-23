@@ -1822,6 +1822,16 @@ def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
 
 def _get_ci_function_for_evokeds(ci):
     """Get the function for calculating the confidence interval for evokeds."""
+    # check ci parameter
+    if ci is None:
+        return None
+
+    if ci is True:
+        ci = .95
+    elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
+        raise TypeError('ci must be None, bool, float or callable, got %s' %
+                        type(ci))
+
     _ci_fun = None
     if ci is not False:
         if callable(ci):
@@ -2011,15 +2021,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     evokeds, colors = _format_evokeds_colors(evokeds, cmap, colors)
     conditions = sorted(list(evokeds.keys()))
-
-    # check ci parameter
-    if ci is None:
-        ci = False
-    if ci is True:
-        ci = .95
-    elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
-        raise TypeError('ci must be None, bool, float or callable, got %s' %
-                        type(ci))
 
     # get and set a few limits and variables (times, channels, units)
     one_evoked = evokeds[conditions[0]][0]
