@@ -17,10 +17,6 @@ def test_config(tmpdir):
     os.environ[key] = value
     assert (get_config(key) == value)
     del os.environ[key]
-    # test deprecation warning
-    with pytest.warns(DeprecationWarning,
-                      match="Use get_config(key='') instead"):
-        set_config(None, None, home_dir=tempdir, set_env=False)
     # catch the warning about it being a non-standard config key
     assert (len(get_config('')) > 10)  # tuple of valid keys
     with pytest.warns(RuntimeWarning, match='non-standard'):
