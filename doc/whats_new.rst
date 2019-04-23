@@ -21,6 +21,8 @@ Changelog
 
 - Add example on how to load standard montage :ref:`sphx_glr_auto_examples_datasets_plot_montage` by `Joan Massich`_
 
+- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_eeg_no_mri.py` by `Alex Gramfort`_, and `Joan Massich`_
+
 - Add convenience ``fsaverage`` subject dataset fetcher / updater :func:`mne.datasets.fetch_fsaverage` by `Eric Larson`_
 
 - Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
