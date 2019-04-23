@@ -273,7 +273,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
             # Search for the positions of the duplicate vertex indices
             # in the existing vertex matrix vertex. The size of ov_ind
             # is the same as src_sel, and for each element in src_sel,
-            # it contqins either the position of that vertex in vertno, 
+            # it contqins either the position of that vertex in vertno,
             # or an empty array if the vertex is not a duplicate
             ov_ind = [np.squeeze(np.nonzero(v == vertno[hemi_ind]))
                       for v in src_sel]
@@ -301,21 +301,17 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
                 raise RuntimeError('Labels had %s overlaps in the %s '
                                    'hemisphere, '
                                    'they must be non-overlapping' % (d, hemi))
+    # the data is in the order left, right
+    data = list()
     for i in range(2):
         if not len(stc_data_extended[i]) == 0:
             stc_data_extended[i] = np.vstack(stc_data_extended[i])
             # Order the indices of each hemisphere
             idx = np.argsort(vertno[i])
-            stc_data_extended[i] = stc_data_extended[i][idx]
+            data.append(stc_data_extended[i][idx])
             vertno[i] = vertno[i][idx]
-        else:
-            # No data at that hemisphere
-            stc_data_extended[i] = np.array(stc_data_extended[i])
-
-    # the data is in the order left, right
-    stc_data_extended = np.concatenate(stc_data_extended)
 
     subject = src[0].get('subject_his_id')
-    stc = SourceEstimate(stc_data_extended, vertices=vertno, tmin=tmin,
+    stc = SourceEstimate(np.concatenate(data), vertices=vertno, tmin=tmin,
                          tstep=tstep, subject=subject)
     return stc
