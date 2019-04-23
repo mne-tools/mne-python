@@ -78,10 +78,9 @@ def test_clean_eog_ecg(tmpdir):
     raw.save(use_fname)
     with ArgvSetter(('-i', use_fname, '--quiet')):
         mne_clean_eog_ecg.run()
-    fnames = glob.glob(op.join(tempdir, '*proj.fif'))
-    assert len(fnames) == 2  # two projs
-    fnames = glob.glob(op.join(tempdir, '*-eve.fif'))
-    assert len(fnames) == 3  # raw plus two projs
+    for key, count in (('proj', 2), ('-eve', 3)):
+        fnames = glob.glob(op.join(tempdir, '*%s.fif' % key))
+        assert len(fnames) == count
 
 
 @pytest.mark.slowtest
