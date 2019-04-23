@@ -25,6 +25,13 @@ as soon as possible after the appearance of the face.
 
 Once the ``data_path`` is known, its contents can be examined using :ref:`IO functions <ch_convert>`.
 
+fsaverage
+=========
+:func:`mne.datasets.fetch_fsaverage`
+
+For convenience, we provide a function to separately download and extract the
+(or update an existing) fsaverage subject.
+
 Brainstorm
 ==========
 Dataset fetchers for three Brainstorm tutorials are available. Users must agree to the
