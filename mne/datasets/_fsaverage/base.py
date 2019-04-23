@@ -65,7 +65,7 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
     #     fid.write('\n'.join(names))
     #
     from ..utils import _manifest_check_download
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = _set_montage_coreg_path(subjects_dir)
     subjects_dir = op.abspath(subjects_dir)
     fs_dir = op.join(subjects_dir, 'fsaverage')
     os.makedirs(fs_dir, exist_ok=True)
@@ -91,7 +91,6 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
             url=data['url'],
             hash_=data['hash_'],
         )
-    _set_montage_coreg_path(subjects_dir)
     return fs_dir
 
 
