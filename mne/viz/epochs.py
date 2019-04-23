@@ -393,13 +393,8 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
     return to_plot_list  # epochs, ch_type, name, axtitle
 
 
-def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
-                                  sigma, vmin, vmax, scaling, ts_args):
-    """Preprocess epochs image (sort, filter). Helper for plot_epochs_image."""
-    from scipy import ndimage
-
-    # data transforms - sorting, scaling, smoothing
-    data = epochs.get_data()[:, 0, :]
+def _order_epochs(data, times, order=None, overlay_times=None):
+    """Sort an  image - e.g., epochs data. Helper for plot_epochs_image."""
     n_epochs = len(data)
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
@@ -411,13 +406,13 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
         overlay_times = np.array(overlay_times)
         times_min = np.min(overlay_times)
         times_max = np.max(overlay_times)
-        if ((times_min < epochs.times[0]) or (times_max > epochs.times[-1])):
+        if ((times_min < times[0]) or (times_max > times[-1])):
             warn('Some values in overlay_times fall outside of the epochs '
                  'time interval (between %s s and %s s)'
-                 % (epochs.times[0], epochs.times[-1]))
+                 % (times[0], times[-1]))
 
     if callable(order):
-        order = order(epochs.times, data)
+        order = order(times, data)
     if order is not None and (len(order) != n_epochs):
         raise ValueError(("`order` must be None, callable or an array as long "
                           "as the data. Got " + str(type(order))))
@@ -428,10 +423,11 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
         if overlay_times is not None:
             overlay_times = overlay_times[order]
 
-    if sigma > 0.:
-        data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
+    return data, overlay_times
 
-    # setup lims and cmap
+
+def _set_image_lims_and_scale(data, scaling=1, vmin=None, vmax=None):
+    """Set up vlims for an image. Helper for plot_epochs_image."""
     scale_vmin = True if (vmin is None or callable(vmin)) else False
     scale_vmax = True if (vmax is None or callable(vmax)) else False
     vmin, vmax = _setup_vmin_vmax(
@@ -440,15 +436,35 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
         vmin /= scaling
     if not scale_vmax:
         vmax /= scaling
+    return data * scaling, vmin, vmax
 
-    ylim = dict()
+
+def _prepare_tsargs_for_epochs_image(ts_args):
+    """Set default parameters for evoked plot for plot_epochs_image."""
     ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0], title='',
                     truncate_yaxis=False, truncate_xaxis=False, show=False)
     ts_args_.update(**ts_args)
     ts_args_["vlines"] = []
+    return ts_args_
 
-    return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,
-            ts_args_]
+
+def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
+                                  sigma, vmin, vmax, scaling, ts_args):
+    """Preprocess epochs image (sort, filter). Helper for plot_epochs_image."""
+    from scipy import ndimage
+
+    # data transforms - sorting, scaling, smoothing
+    data = epochs.get_data()[:, 0, :]
+    data, overlay_times = _order_epochs(data, times, order, overlay_times)
+
+    if sigma > 0.:
+        data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
+
+    data, vmin, vmax = _get_image_lims(data, scaling, vmin, vmax)
+
+    ts_args = _prepare_tsargs_for_epochs_image(ts_args)
+
+    return [data, overlay_times, vmin, vmax, ts_args]
 
 
 def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
