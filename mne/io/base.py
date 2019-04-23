@@ -95,10 +95,10 @@ class ToDataFrameMixin(object):
             the dataframe from a slice. The times will be interpolated from the
             index and the sampling rate of the signal.
         long_format : bool
-            If True, the data frame is returned in long format where each sample
-            is one combination of the dimensions and additional columns are added
-            to tell the channel, time, condition, etc.
-            Defaults to False.
+            If True, the dataframe is returned in long format where each row
+            is one observation of the signal at a unique coordinate of
+            channels, time points, epochs and conditions. The number of
+            factors depends on the data container. Defaults to False.
 
         Returns
         -------
@@ -168,18 +168,16 @@ class ToDataFrameMixin(object):
             ch_map = dict(
                 zip([self.info['ch_names'][pp] for pp in picks],
                     ch_types))
-            n_channel_types = 0
-            ch_types_used = []
 
+            ch_types_used = list()
             scalings = _handle_default('scalings', scalings)
-            for t in scalings.keys():
-                if t in ch_types:
-                    n_channel_types += 1
-                    ch_types_used.append(t)
+            for tt in scalings.keys():
+                if tt in ch_types:
+                    ch_types_used.append(tt)
 
-            for t in ch_types_used:
-                scaling = scalings[t]
-                idx = [i for i in range(len(picks)) if ch_types[i] == t]
+            for tt in ch_types_used:
+                scaling = scalings[tt]
+                idx = [ii for ii in range(len(picks)) if ch_types[ii] == tt]
                 if len(idx) > 0:
                     data[:, idx] *= scaling
         else:
