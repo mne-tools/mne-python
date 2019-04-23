@@ -71,6 +71,9 @@ def run():
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
+    parser.add_option("--copy", dest="copy",
+                      help="Use copies instead of symlinks for surfaces",
+                      action="store_true")
     parser.add_option("-p", "--flash-path", dest="flash_path",
                       default=None,
                       help="The directory containing flash05.mgz and "
@@ -87,6 +90,7 @@ def run():
     overwrite = options.overwrite
     show = options.show
     flash_path = options.flash_path
+    copy = options.copy
 
     if options.subject is None:
         parser.print_help()
@@ -97,7 +101,7 @@ def run():
                        verbose=True)
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    overwrite=overwrite, show=show, flash_path=flash_path,
-                   verbose=True)
+                   copy=copy, verbose=True)
 
 
 is_main = (__name__ == '__main__')
