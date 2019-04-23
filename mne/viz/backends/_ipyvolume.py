@@ -90,14 +90,13 @@ class _Renderer(object):
         x = vertices[:, 0]
         y = vertices[:, 1]
         z = vertices[:, 2]
-        n_vertices = len(vertices)
         triangles = np.array(surface['tris'])
 
         if scalars is not None:
             color = cmap(scalars)
+        else:
+            color = np.append(color, opacity)
 
-        color_rgba = np.append(color, opacity)
-        color = np.tile(color_rgba, (n_vertices, 1))
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
         _add_transperent_material(mesh)
 
