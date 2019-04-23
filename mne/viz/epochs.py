@@ -441,7 +441,7 @@ def _set_image_lims_and_scale(data, scaling=1, vmin=None, vmax=None):
 
 def _prepare_tsargs_for_epochs_image(ts_args):
     """Set default parameters for evoked plot for plot_epochs_image."""
-    ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0], title='',
+    ts_args_ = dict(colors={"cond": "black"}, ylim=dict(), picks=[0], title='',
                     truncate_yaxis=False, truncate_xaxis=False, show=False)
     ts_args_.update(**ts_args)
     ts_args_["vlines"] = []
@@ -461,7 +461,7 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
     if sigma > 0.:
         data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
 
-    data, vmin, vmax = _get_image_lims(data, scaling, vmin, vmax)
+    data, vmin, vmax = _set_image_lims_and_scale(data, scaling, vmin, vmax)
 
     ts_args = _prepare_tsargs_for_epochs_image(ts_args)
 
