@@ -216,7 +216,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
     %(n_jobs)s
     random_state : int | None
       Deprecated and will be removed in 0.19. Use dedicated noise-generation
-      functions :func:`add_noise`, :func:`add_ecg`, and :func:`add_eog`
+      functions :func:`add_noise`, :func:`add_ecg`, and :func:`add_blink`
       instead.
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
@@ -536,7 +536,7 @@ def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     See Also
     --------
     add_noise
-    add_eog
+    add_blink
     add_chpi
     simulate_raw
 
