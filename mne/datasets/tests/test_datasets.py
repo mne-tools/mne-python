@@ -108,8 +108,8 @@ def _fake_zip_fetch(url, fname, hash_):
 def test_manifest_check_download(tmpdir, n_have, monkeypatch):
     """Test our manifest downloader."""
     monkeypatch.setattr(datasets.utils, '_fetch_file', _fake_zip_fetch)
-    destination = str(tmpdir).join('empty')
-    manifest_path = tmpdir.join('manifest.txt')
+    destination = op.join(str(tmpdir), 'empty')
+    manifest_path = op.join(str(tmpdir), 'manifest.txt')
     with open(manifest_path, 'w') as fid:
         for fname in _zip_fnames:
             fid.write('%s\n' % fname)
