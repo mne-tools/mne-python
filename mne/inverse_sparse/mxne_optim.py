@@ -344,7 +344,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
 
 
 # @verbose
-@njit
+# @njit
 def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1,
                            dgap_freq=10):
@@ -370,30 +370,10 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     alpha_lc = alpha / lipschitz_constant
 
     for i in range(maxit):
-        for j in range(n_positions):
-            idx = slice(j * n_orient, (j + 1) * n_orient)
-
-            G_j = G[:, idx]
-            X_j = X[idx]
-
-            X_j_new = np.dot(G_j.T, R) / lipschitz_constant[j]
-
-            was_non_zero = np.any(X_j)
-            if was_non_zero:
-                R += np.dot(G_j, X_j)
-                X_j_new += X_j
-            # import ipdb; ipdb.set_trace()
-            block_norm = sum_squared_jit(X_j_new, squared=False)
-            if block_norm <= alpha_lc[j]:
-                X_j.fill(0.)
-                active_set[idx] = False
-            else:
-                shrink = np.maximum(1.0 - alpha_lc[j] / block_norm, 0.0)
-                X_j_new *= shrink
-                R -= np.dot(G_j, X_j_new)
-                X_j[:] = X_j_new
-                active_set[idx] = True
-
+        bcd(
+            G, X, R, active_set, lipschitz_constant,
+            n_orient, n_positions, alpha_lc)
+        # import ipdb; ipdb.set_trace()
         if (i + 1) % dgap_freq == 0:
             # numba does not accept _, _ if different types are assigned
             # that is why I introduced useless variables
@@ -414,6 +394,33 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     X = X[active_set]
 
     return X, active_set, E
+
+
+@njit
+def bcd(
+        G, X, R, active_set, lipschitz_constant,
+        n_orient, n_positions, alpha_lc):
+    for j in range(n_positions):
+        idx = slice(j * n_orient, (j + 1) * n_orient)
+        G_j = G[:, idx]
+        X_j = X[idx]
+
+        X_j_new = np.dot(G_j.T, R) / lipschitz_constant[j]
+
+        was_non_zero = np.any(X_j)
+        if was_non_zero:
+            R += np.dot(G_j, X_j)
+            X_j_new += X_j
+        block_norm = sum_squared_jit(X_j_new, squared=False)
+        if block_norm <= alpha_lc[j]:
+            X_j.fill(0.)
+            active_set[idx] = False
+        else:
+            shrink = np.maximum(1.0 - alpha_lc[j] / block_norm, 0.0)
+            X_j_new *= shrink
+            R -= np.dot(G_j, X_j_new)
+            X_j[:] = X_j_new
+            active_set[idx] = True
 
 
 @verbose
