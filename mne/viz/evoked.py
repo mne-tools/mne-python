@@ -1684,7 +1684,8 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
         ymin, ymax = np.abs(ax.get_ylim())
         show_sensors = "lower right" if ymin > ymax else "upper right"
 
-    pos = _auto_topomap_coords(info, picks, ignore_overlap=True, to_sphere=True)
+    pos = _auto_topomap_coords(info, picks, ignore_overlap=True,
+                               to_sphere=True)
     head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
     pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
 
@@ -1696,7 +1697,7 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
 def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
                              colors_are_float, the_colors, colors, color_conds,
                              color_order, cmap_label, linestyles, ax):
-    """Show condition legend for line plots. Helper for plot_compare_evokeds."""
+    """Show condition legend for line plot. Helper for plot_compare_evokeds."""
     import matplotlib.lines as mlines
 
     if split_legend is None:
@@ -1710,7 +1711,8 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
         legend_lines, legend_labels = list(), list()
         if cmap is None:  # ... one set of lines for the colors
             for color in sorted(colors.keys()):
-                line = mlines.Line2D([], [], linestyle="-", color=colors[color])
+                line = mlines.Line2D([], [], linestyle="-",
+                                     color=colors[color])
                 legend_lines.append(line)
                 legend_labels.append(color)
         if len(list(linestyles)) > 1:  # ... one set for the linestyle
