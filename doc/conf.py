@@ -411,15 +411,18 @@ sphinx_gallery_conf = {
     'show_memory': True,
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
-    'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
-    'binder': {'org': 'mne-tools',
-               'repo': 'mne-tools.github.io',
-               'branch': 'master',
-               'binderhub_url': 'https://mybinder.org',
-               'notebooks_dir': 'notebooks',
-               'dependencies': './Dockerfile',
-              },
+    'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml')
 }
+
+if not build_dev_html:
+    sphinx_gallery_conf.update({
+        'binder': {'org': 'mne-tools',
+                   'repo': 'mne-tools.github.io',
+                   'branch': 'master',
+                   'binderhub_url': 'https://mybinder.org',
+                   'notebooks_dir': 'notebooks',
+                   'dependencies': './Dockerfile'}
+    })
 
 ##############################################################################
 # numpydoc
