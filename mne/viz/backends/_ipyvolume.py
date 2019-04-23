@@ -43,6 +43,7 @@ class _Renderer(object):
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
         # opacity should be intergrated into color, i.e. rgba model
+        color = np.append(color, opacity)
         ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
@@ -87,9 +88,12 @@ class _Renderer(object):
         x = vertices[:, 0]
         y = vertices[:, 1]
         z = vertices[:, 2]
+        n_vertices = len(vertices)
         triangles = np.array(surface['tris'])
-        color = cmap(scalars)
+        #color = cmap(scalars)
 
+        tmp = np.append(color, opacity)
+        color = np.tile(tmp, (n_vertices, 1))
         ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
 
     def sphere(self, center, color, scale, opacity=1.0, resolution=8,
@@ -140,6 +144,9 @@ class _Renderer(object):
         x = acc_vertices[:, 0]
         y = acc_vertices[:, 1]
         z = acc_vertices[:, 2]
+
+        color = np.append(color, opacity)
+
         ipv.xyzlim(-1, 1)
         ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
 
