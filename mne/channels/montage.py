@@ -133,7 +133,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         The path of the folder containing the montage file. Defaults to the
         mne/channels/data/montages folder in your mne-python installation.
     unit : 'm' | 'cm' | 'mm' | 'auto'
-        Unit of the input file. Defaults to 'auto'.
+        Unit of the input file. When 'auto' the montage is normalized to
+        a sphere of radius equal to the average brain size. Defaults to 'auto'.
     transform : bool
         If True, points will be transformed to Neuromag space. The fidicuals,
         'nasion', 'lpa', 'rpa' must be specified in the montage file. Useful
