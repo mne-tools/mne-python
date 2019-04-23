@@ -98,7 +98,7 @@ def _get_create_subjects_dir(subjects_dir):
     from ..utils import _get_path
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
     if subjects_dir is None:
-        subjects_dir = _get_path(None, '', 'montage coregistration')
+        subjects_dir = _get_path(None, 'MNE_DATA', 'montage coregistration')
         subjects_dir = op.join(subjects_dir, 'MNE-fsaverage-data')
         os.makedirs(subjects_dir, exist_ok=True)
     return subjects_dir
