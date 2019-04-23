@@ -1129,7 +1129,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, verbose=None):
+    def _get_data(self, out=True, picks=None, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1153,7 +1153,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if not out:
                 return
             if self.preload:
-                return data
+                if picks is None:
+                    return data
+                else:
+                    picks = _picks_to_idx(self.info, picks)
+                    return data[:, picks]
 
             # we need to load from disk, drop, and return data
             for idx in range(n_events):
@@ -1220,9 +1224,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self._getitem(good_idx, None, copy=False, drop_event_id=False,
                           select_data=False)
 
-        return data if out else None
+        if out:
+            if picks is None:
+                return data
+            else:
+                picks = _picks_to_idx(self.info, picks)
+                return data[:, picks]
+        else:
+            return None
 
-    def get_data(self):
+
+    def get_data(self, picks=None):
         """Get all epochs as a 3D array.
 
         Returns
@@ -1230,7 +1242,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data()
+        return self._get_data(picks=picks)
 
     @property
     def times(self):
