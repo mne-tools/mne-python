@@ -432,10 +432,10 @@ def _set_image_lims_and_scale(data, scaling=1, vmin=None, vmax=None):
     scale_vmax = True if (vmax is None or callable(vmax)) else False
     vmin, vmax = _setup_vmin_vmax(
         data, vmin, vmax, norm=(data.min() >= 0) and (vmin is None))
-    if not scale_vmin:
-        vmin /= scaling
-    if not scale_vmax:
-        vmax /= scaling
+    if scale_vmin:
+        vmin *= scaling
+    if scale_vmax:
+        vmax *= scaling
     return data * scaling, vmin, vmax
 
 
