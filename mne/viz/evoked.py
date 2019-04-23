@@ -1453,6 +1453,10 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     return fig
 
 
+###############################################################################
+# The following functions are all helpers for plot_compare_evokeds.           #
+###############################################################################
+
 def _aux_setup_styles(conditions, style_dict, style, default):
     """Set linestyles and colors for plot_compare_evokeds."""
     # check user-supplied style to condition matching
@@ -1690,9 +1694,8 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
 
 
 def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
-                             colors_are_float, the_colors, colors,
-                             color_conds, color_order, cmap_label,
-                             linestyles, ax):
+                             colors_are_float, the_colors, colors, color_conds,
+                             color_order, cmap_label, linestyles, ax):
     """Show condition legend for line plots. Helper for plot_compare_evokeds."""
     import matplotlib.lines as mlines
 
@@ -1707,8 +1710,7 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
         legend_lines, legend_labels = list(), list()
         if cmap is None:  # ... one set of lines for the colors
             for color in sorted(colors.keys()):
-                line = mlines.Line2D([], [], linestyle="-",
-                                     color=colors[color])
+                line = mlines.Line2D([], [], linestyle="-", color=colors[color])
                 legend_lines.append(line)
                 legend_labels.append(color)
         if len(list(linestyles)) > 1:  # ... one set for the linestyle
@@ -1749,9 +1751,10 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
 
 
 def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
-                                    truncate_yaxis,  truncate_xaxis,
-                                    invert_y, vlines, tmin, tmax, unit):
-    # truncate the y axis 
+                                    truncate_yaxis,  truncate_xaxis, invert_y,
+                                    vlines, tmin, tmax, unit):
+    """Set ylims for an evoked plot. Helper for plot_compare_evokeds."""
+    # truncate the y axis - this is aesthetics
     orig_ymin, orig_ymax = ax.get_ylim()
     if not any_positive:
         orig_ymax = 0
@@ -1775,6 +1778,7 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
     current_ymin = ax.get_ylim()[0]
 
     # plot v lines
+    # Why 'invert_y'? Many EEG people plot negative values up for ... reasons
     if invert_y is True and current_ymin < 0:
         upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
     else:
@@ -1783,6 +1787,7 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
         ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
                   linewidth=1., zorder=1)
 
+    # more aesthetics
     _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
                      truncate_xaxis)
 
@@ -2124,7 +2129,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                                  " was not found in the supplied data.")
 
     # third, color
-    # check: is color a list?
     if (colors is not None and not isinstance(colors, str) and
             not isinstance(colors, dict) and len(colors) > 1):
         colors = {condition: color for condition, color
@@ -2163,15 +2167,17 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                             zorder=9, color=styles[condition]['c'], alpha=.3,
                             clip_on=False)
 
+    # ylims
     _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
                                     truncate_yaxis,  truncate_xaxis,
                                     invert_y, vlines, tmin, tmax, unit)
 
+    # title
     title = _set_title_multiple_electrodes(
         title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
     ax.set_title(title)
 
-    # and now for our "legends" ..
+    # 2 legends.
     # a head plot showing the sensors that are being plotted
     if show_sensors:
         _validate_type(show_sensors, (np.int, bool, str, type(None)),
