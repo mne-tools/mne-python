@@ -1750,8 +1750,7 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
 
 def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
                                     truncate_yaxis,  truncate_xaxis,
-                                    invert_y, current_ymin, vlines, tmin, tmax,
-                                    unit):
+                                    invert_y, vlines, tmin, tmax, unit):
     # truncate the y axis 
     orig_ymin, orig_ymax = ax.get_ylim()
     if not any_positive:
@@ -2164,10 +2163,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                             zorder=9, color=styles[condition]['c'], alpha=.3,
                             clip_on=False)
 
-_set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
+    _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
                                     truncate_yaxis,  truncate_xaxis,
-                                    invert_y, current_ymin, vlines, tmin, tmax,
-                                    unit)
+                                    invert_y, vlines, tmin, tmax, unit)
 
     title = _set_title_multiple_electrodes(
         title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
