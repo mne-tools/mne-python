@@ -547,10 +547,14 @@ def modified_env(**d):
     orig_env = dict()
     for key, val in d.items():
         orig_env[key] = os.getenv(key)
-        os.environ[key] = val
+        if val is not None:
+            assert isinstance(val, str)
+            os.environ[key] = val
+        elif key in os.environ:
+            del os.environ[key]
     yield
     for key, val in orig_env.items():
         if val is not None:
             os.environ[key] = val
-        else:
+        elif key in os.environ:
             del os.environ[key]

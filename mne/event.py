@@ -749,7 +749,7 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Returns
     -------
-    new_events: array, shape (n_events_out, 3)
+    new_events : array, shape (n_events_out, 3)
         The new events
 
     Examples
@@ -800,7 +800,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     ----------
     events : array, shape=(n_events, 3)
         The events
-    ids : array int
+    ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
         Time-shift event. Use positive value tshift for forward shifting
@@ -814,8 +814,12 @@ def shift_time_events(events, ids, tshift, sfreq):
         The new events.
     """
     events = events.copy()
-    for ii in ids:
-        events[events[:, 2] == ii, 0] += int(tshift * sfreq)
+    if ids is None:
+        mask = slice(None)
+    else:
+        mask = np.in1d(events[:, 2], ids)
+    events[mask, 0] += int(tshift * sfreq)
+
     return events
 
 

@@ -12,14 +12,16 @@ import tarfile
 import stat
 import sys
 import zipfile
+import tempfile
 from distutils.version import LooseVersion
 
 import numpy as np
 
+from ._fsaverage.base import fetch_fsaverage
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir, hashfunc)
+                     verbose, get_subjects_dir, hashfunc, _pl)
 from ..utils.docs import docdict
 from ..externals.doccer import docformat
 
@@ -243,29 +245,29 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # try to match url->archive_name->folder_name
     urls = dict(  # the URLs to use
         brainstorm=dict(
-            bst_auditory='https://osf.io/5t9n8/download',
-            bst_phantom_ctf='https://osf.io/sxr8y/download',
-            bst_phantom_elekta='https://osf.io/dpcku/download',
-            bst_raw='https://osf.io/9675n/download',
-            bst_resting='https://osf.io/m7bd3/download'),
+            bst_auditory='https://osf.io/5t9n8/download?version=1',
+            bst_phantom_ctf='https://osf.io/sxr8y/download?version=1',
+            bst_phantom_elekta='https://osf.io/dpcku/download?version=1',
+            bst_raw='https://osf.io/9675n/download?version=2',
+            bst_resting='https://osf.io/m7bd3/download?version=3'),
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/foo.tgz',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
-        sample="https://osf.io/86qa2/download",
-        somato='https://osf.io/tp4sg/download',
-        spm='https://osf.io/je4s8/download',
+        sample="https://osf.io/86qa2/download?version=4",
+        somato='https://osf.io/tp4sg/download?version=2',
+        spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
-        opm='https://osf.io/p6ae7/download',
+        opm='https://osf.io/p6ae7/download?version=2',
         visual_92_categories=[
-            'https://osf.io/8ejrs/download',
-            'https://osf.io/t4yjp/download'],
-        mtrf='https://osf.io/h85s2/download',
-        kiloword='https://osf.io/qkvf9/download',
-        fieldtrip_cmc='https://osf.io/j9b6s/download',
-        phantom_4dbti='https://osf.io/v2brw/download',
+            'https://osf.io/8ejrs/download?version=1',
+            'https://osf.io/t4yjp/download?version=1'],
+        mtrf='https://osf.io/h85s2/download?version=1',
+        kiloword='https://osf.io/qkvf9/download?version=1',
+        fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
+        phantom_4dbti='https://osf.io/v2brw/download?version=1',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -583,6 +585,9 @@ def _download_all_example_data(verbose=True):
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
+    # (probably on CircleCI, or otherwise advanced user)
+    fetch_fsaverage(None)
     sys.argv += ['--accept-hcpmmp-license']
     try:
         fetch_hcp_mmp_parcellation()
@@ -766,3 +771,32 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         assert len(labels_out) == 46
         write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
                               hemi='both', subjects_dir=subjects_dir)
+
+
+def _manifest_check_download(manifest_path, destination, url, hash_):
+    with open(manifest_path, 'r') as fid:
+        names = [name.strip() for name in fid.readlines()]
+    need = list()
+    for name in names:
+        if not op.isfile(op.join(destination, name)):
+            need.append(name)
+    logger.info('%d file%s missing from %s in %s'
+                % (len(need), _pl(need), manifest_path, destination))
+    if len(need) > 0:
+        with tempfile.TemporaryDirectory() as path:
+            logger.info('Downloading missing files remotely')
+
+            fname_path = op.join(path, 'temp.zip')
+            _fetch_file(url, fname_path, hash_=hash_)
+            logger.info('Extracting missing file%s' % (_pl(need),))
+            with zipfile.ZipFile(fname_path, 'r') as ff:
+                members = set(f for f in ff.namelist()
+                              if not f.endswith(op.sep))
+                missing = sorted(members.symmetric_difference(set(names)))
+                if len(missing):
+                    raise RuntimeError('Zip file did not have correct names:'
+                                       '\n%s' % ('\n'.join(missing)))
+                for name in need:
+                    ff.extract(name, path=destination)
+        logger.info('Successfully extracted %d file%s'
+                    % (len(need), _pl(need)))

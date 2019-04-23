@@ -33,10 +33,12 @@ you can follow those steps:
 
      $ git clone git@github.com:mne-tools/mne-python.git
      $ cd mne-python
-     $ conda env create -f environment.yml
-     $ conda activate mne
-     $ pip install -e .
+     $ conda env create -f environment.yml -n mne-dev
+     $ conda activate mne-dev
+     $ pip install -e .  # or python setup.py develop
 
+Note: -n flag provides the name for the new (development) environment, and
+overrides any name specified in the .yml file.
 To check the installation, you can enter the following commands:
 
   .. code-block:: console

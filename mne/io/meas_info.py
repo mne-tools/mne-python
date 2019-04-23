@@ -298,7 +298,7 @@ class Info(dict):
         unit : int
             The unit to use, e.g. ``FIFF_UNIT_T_M``.
         unit_mul : int
-            Unit multipliers, most commontly ``FIFF_UNITM_NONE``.
+            Unit multipliers, most commonly ``FIFF_UNITM_NONE``.
 
     * ``comps`` list of dict:
 

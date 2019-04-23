@@ -14,6 +14,8 @@ recursive-include mne/data *
 recursive-include mne/data/helmets *
 recursive-include mne/data/image *
 recursive-include mne/data/fsaverage *
+include mne/datasets/_fsaverage/root.txt
+include mne/datasets/_fsaverage/bem.txt
 
 recursive-include mne/channels/data/layouts *
 recursive-include mne/channels/data/montages *

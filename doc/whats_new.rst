@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add convenience ``fsaverage`` subject dataset fetcher / updater :func:`mne.datasets.fetch_fsaverage` by `Eric Larson`_
+
 - Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
 
 - Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
@@ -97,6 +99,10 @@ Changelog
 
 - Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
 
+- Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
+
+- Add :class:`mne.realtime.MockLSLStream` to simulate an LSL stream for testing and examples by `Teon Brooks`_
+
 Bug
 ~~~
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
@@ -153,6 +159,8 @@ Bug
 - Fix :func:`mne.beamformer.make_lcmv` failing when full rank data is used (i.e., when no projection is done) with ``reg=0.``, by `Eric Larson`_
 
 - Fix issue with bad channels ignored in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Alex Gramfort`_
+
+- Fix :func:`mne.compute_proj_raw` when ``duration != None`` not to apply existing proj and to avoid using duplicate raw data samples by `Eric Larson`_
 
 - Fix ``reject_by_annotation`` not being passed internally by :func:`mne.preprocessing.create_ecg_epochs` and :ref:`mne clean_eog_ecg <gen_mne_clean_eog_ecg>` to :func:`mne.preprocessing.find_ecg_events` by `Eric Larson`_
 
@@ -1506,7 +1514,7 @@ API
 
 - Weighted addition and subtraction of :class:`Evoked` as ``ev1 + ev2`` and ``ev1 - ev2`` have been deprecated, use explicit :func:`mne.combine_evoked(..., weights='nave') <mne.combine_evoked>` instead by `Eric Larson`_
 
-- Deprecated support for passing a lits of filenames to :class:`mne.io.Raw` constructor, use :func:`mne.io.read_raw_fif` and :func:`mne.concatenate_raws` instead by `Eric Larson`_
+- Deprecated support for passing a list of filenames to :class:`mne.io.Raw` constructor, use :func:`mne.io.read_raw_fif` and :func:`mne.concatenate_raws` instead by `Eric Larson`_
 
 - Added options for setting data and date formats manually in :func:`mne.io.read_raw_cnt` by `Jaakko Leppakangas`_
 
@@ -3273,3 +3281,5 @@ of commits):
 .. _Katarina Slama: https://katarinaslama.github.io
 
 .. _Bruno Nicenboim: http://nicenboim.org
+
+.. _Nikolas Chalas: https://github.com/Nichalas
