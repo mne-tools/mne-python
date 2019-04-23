@@ -99,6 +99,8 @@ Changelog
 
 - Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
 
+- Add :class:`mne.realtime.MockLSLStream` to simulate an LSL stream for testing and examples by `Teon Brooks`_
+
 Bug
 ~~~
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_

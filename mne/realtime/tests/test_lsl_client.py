@@ -1,67 +1,47 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
-from multiprocessing import Process
-import time
-from random import random as rand
+from os import getenv, path as op
+import pytest
 
-from mne.realtime import LSLClient
+from mne.realtime import LSLClient, MockLSLStream
 from mne.utils import run_tests_if_main, requires_pylsl
+from mne.io import read_raw_fif
+from mne.datasets import testing
 
 
 host = 'myuid34234'
-
-
-def _start_mock_lsl_stream(host):
-    """Start a mock LSL stream to test LSLClient."""
-    from pylsl import StreamInfo, StreamOutlet
-
-    n_channels = 8
-    sfreq = 100
-    info = StreamInfo('MNE', 'EEG', n_channels, sfreq, 'float32', host)
-    info.desc().append_child_value("manufacturer", "MNE")
-    channels = info.desc().append_child("channels")
-    for c_id in range(1, n_channels + 1):
-        channels.append_child("channel") \
-                .append_child_value("label", "MNE {:03d}".format(c_id)) \
-                .append_child_value("type", "eeg") \
-                .append_child_value("unit", "microvolts")
-
-    # next make an outlet
-    outlet = StreamOutlet(info)
-
-    print("now sending data...")
-    while True:
-        mysample = [rand(), rand(), rand(), rand(),
-                    rand(), rand(), rand(), rand()]
-        mysample = [x * 1e-6 for x in mysample]
-        # now send it and wait for a bit
-        outlet.push_sample(mysample)
-        time.sleep(0.01)
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
 @requires_pylsl
+@testing.requires_testing_data
+@pytest.mark.skipif(getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true',
+                    reason=('Running multiprocessing on Windows ' +
+                            'creates a BrokenPipeError, see ' +
+                            'https://stackoverflow.com/questions/50079165/'))
 def test_lsl_client():
     """Test the LSLClient for connection and data retrieval."""
-    n_channels = 8
-    n_samples = 5
     wait_max = 10
 
-    process = Process(target=_start_mock_lsl_stream, args=(host,))
-    process.daemon = True
-    process.start()
+    raw = read_raw_fif(raw_fname)
+    raw_info = raw.info
+    sfreq = raw_info['sfreq']
+    stream = MockLSLStream(host, raw, ch_type='eeg')
+    stream.start()
 
-    with LSLClient(info=None, host=host, wait_max=wait_max) as client:
+    with LSLClient(info=raw_info, host=host, wait_max=wait_max) as client:
         client_info = client.get_measurement_info()
+        epoch = client.get_data_as_epoch(n_samples=sfreq)
 
-        assert ([ch["ch_name"] for ch in client_info["chs"]] ==
-                ["MNE {:03d}".format(ch_id) for ch_id in
-                 range(1, n_channels + 1)])
+    assert client_info['nchan'] == raw_info['nchan']
+    assert ([ch["ch_name"] for ch in client_info["chs"]] ==
+            [ch_name for ch_name in raw_info['ch_names']])
 
-        epoch = client.get_data_as_epoch(n_samples=n_samples)
-        assert n_channels, n_samples == epoch.get_data().shape[1:]
+    assert raw_info['nchan'], sfreq == epoch.get_data().shape[1:]
 
-    process.terminate()
+    stream.stop()
 
 
 run_tests_if_main()

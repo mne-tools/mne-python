@@ -9,6 +9,7 @@ import time
 
 import numpy as np
 
+from .base_client import _BaseClient
 from ..io import _empty_info
 from ..io.pick import _picks_to_idx, pick_info
 from ..io.constants import FIFF
@@ -17,19 +18,8 @@ from ..utils import logger, warn, fill_doc
 from ..externals.FieldTrip import Client as FtClient
 
 
-def _buffer_recv_worker(ft_client):
-    """Worker thread that constantly receives buffers."""
-    try:
-        for raw_buffer in ft_client.iter_raw_buffers():
-            ft_client._push_raw_buffer(raw_buffer)
-    except RuntimeError as err:
-        # something is wrong, the server stopped (or something)
-        ft_client._recv_thread = None
-        logger.error('Buffer receive thread stopped: %s' % err)
-
-
 @fill_doc
-class FieldTripClient(object):
+class FieldTripClient(_BaseClient):
     """Realtime FieldTrip client.
 
     Parameters
@@ -54,80 +44,95 @@ class FieldTripClient(object):
     """
 
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
-                 tmin=None, tmax=np.inf, buffer_size=1000,
-                 verbose=None):  # noqa: D102
-        self.verbose = verbose
+                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=None):
+        super().__init__(info, host, port, wait_max, tmin, tmax,
+                         buffer_size, verbose)
 
-        self.info = info
-        self.wait_max = wait_max
-        self.tmin = tmin
-        self.tmax = tmax
-        self.buffer_size = buffer_size
-
-        self.host = host
-        self.port = port
-
-        self._recv_thread = None
-        self._recv_callbacks = list()
-
-    def __enter__(self):  # noqa: D105
-        # instantiate Fieldtrip client and connect
-        self.ft_client = FtClient()
-
-        # connect to FieldTrip buffer
-        logger.info("FieldTripClient: Waiting for server to start")
-        start_time, current_time = time.time(), time.time()
-        success = False
-        while current_time < (start_time + self.wait_max):
-            try:
-                self.ft_client.connect(self.host, self.port)
-                logger.info("FieldTripClient: Connected")
-                success = True
-                break
-            except Exception:
-                current_time = time.time()
-                time.sleep(0.1)
-
-        if not success:
-            raise RuntimeError('Could not connect to FieldTrip Buffer')
-
-        # retrieve header
-        logger.info("FieldTripClient: Retrieving header")
-        start_time, current_time = time.time(), time.time()
-        while current_time < (start_time + self.wait_max):
-            self.ft_header = self.ft_client.getHeader()
-            if self.ft_header is None:
-                current_time = time.time()
-                time.sleep(0.1)
-            else:
-                break
-
-        if self.ft_header is None:
-            raise RuntimeError('Failed to retrieve Fieldtrip header!')
-        else:
-            logger.info("FieldTripClient: Header retrieved")
-
-        self.info = self._create_info()
-        self.ch_names = self.ft_header.labels
-
-        # find start and end samples
-
-        sfreq = self.info['sfreq']
-
-        if self.tmin is None:
-            self.tmin_samp = max(0, self.ft_header.nSamples - 1)
-        else:
-            self.tmin_samp = int(round(sfreq * self.tmin))
-
-        if self.tmax != np.inf:
-            self.tmax_samp = int(round(sfreq * self.tmax))
-        else:
-            self.tmax_samp = np.iinfo(np.uint32).max
+    def __exit__(self, type, value, traceback):  # noqa: D105
+        self.client.disconnect()
 
         return self
 
-    def __exit__(self, type, value, traceback):  # noqa: D105
-        self.ft_client.disconnect()
+    @fill_doc
+    def get_data_as_epoch(self, n_samples=1024, picks=None):
+        """Return last n_samples from current time.
+
+        Parameters
+        ----------
+        n_samples : int
+            Number of samples to fetch.
+        %(picks_all)s
+
+        Returns
+        -------
+        epoch : instance of Epochs
+            The samples fetched as an Epochs object.
+
+        See Also
+        --------
+        mne.Epochs.iter_evoked
+        """
+        ft_header = self.client.getHeader()
+        last_samp = ft_header.nSamples - 1
+        start = last_samp - n_samples + 1
+        stop = last_samp
+        events = np.expand_dims(np.array([start, 1, 1]), axis=0)
+
+        # get the data
+        data = self.client.getData([start, stop]).transpose()
+
+        # create epoch from data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        info = pick_info(self.info, picks)
+        return EpochsArray(data[picks][np.newaxis], info, events)
+
+    def iter_raw_buffers(self):
+        """Return an iterator over raw buffers.
+
+        Returns
+        -------
+        raw_buffer : generator
+            Generator for iteration over raw buffers.
+        """
+        # self.tmax_samp should be included
+        iter_times = list(zip(
+            list(range(self.tmin_samp, self.tmax_samp, self.buffer_size)),
+            list(range(self.tmin_samp + self.buffer_size,
+                       self.tmax_samp + 1, self.buffer_size))))
+        last_iter_sample = iter_times[-1][1] if iter_times else self.tmin_samp
+        if last_iter_sample < self.tmax_samp + 1:
+            iter_times.append((last_iter_sample, self.tmax_samp + 1))
+
+        for ii, (start, stop) in enumerate(iter_times):
+
+            # wait for correct number of samples to be available
+            self.client.wait(stop, np.iinfo(np.uint32).max,
+                             np.iinfo(np.uint32).max)
+
+            # get the samples (stop index is inclusive)
+            raw_buffer = self.client.getData([start, stop - 1]).transpose()
+
+            yield raw_buffer
+
+            if self._recv_thread != threading.current_thread():
+                # stop_receive_thread has been called
+                break
+
+    def _connect(self):
+        self.client = FtClient()
+        self.client.connect(self.host, self.port)
+
+        # retrieve header
+        logger.info("FieldTripClient: Retrieving header")
+        while True:
+            self.ft_header = self.client.getHeader()
+            if self.ft_header is None:
+                time.sleep(0.1)
+            else:
+                break
+        logger.info("FieldTripClient: Header retrieved")
+
+        return self
 
     def _create_info(self):
         """Create a minimal Info dictionary for epoching, averaging, etc."""
@@ -232,132 +237,20 @@ class FieldTripClient(object):
 
         return info
 
-    def get_measurement_info(self):
-        """Return the measurement info.
+    def _enter_extra(self):
+        self.ch_names = self.ft_header.labels
 
-        Returns
-        -------
-        self.info : dict
-            The measurement info.
-        """
-        return self.info
+        # find start and end samples
+        sfreq = self.info['sfreq']
 
-    @fill_doc
-    def get_data_as_epoch(self, n_samples=1024, picks=None):
-        """Return last n_samples from current time.
+        if self.tmin is None:
+            self.tmin_samp = max(0, self.ft_header.nSamples - 1)
+        else:
+            self.tmin_samp = int(round(sfreq * self.tmin))
 
-        Parameters
-        ----------
-        n_samples : int
-            Number of samples to fetch.
-        %(picks_all)s
+        if self.tmax != np.inf:
+            self.tmax_samp = int(round(sfreq * self.tmax))
+        else:
+            self.tmax_samp = np.iinfo(np.uint32).max
 
-        Returns
-        -------
-        epoch : instance of Epochs
-            The samples fetched as an Epochs object.
-
-        See Also
-        --------
-        mne.Epochs.iter_evoked
-        """
-        ft_header = self.ft_client.getHeader()
-        last_samp = ft_header.nSamples - 1
-        start = last_samp - n_samples + 1
-        stop = last_samp
-        events = np.expand_dims(np.array([start, 1, 1]), axis=0)
-
-        # get the data
-        data = self.ft_client.getData([start, stop]).transpose()
-
-        # create epoch from data
-        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
-        info = pick_info(self.info, picks)
-        return EpochsArray(data[picks][np.newaxis], info, events)
-
-    def register_receive_callback(self, callback):
-        """Register a raw buffer receive callback.
-
-        Parameters
-        ----------
-        callback : callable
-            The callback. The raw buffer is passed as the first parameter
-            to callback.
-        """
-        if callback not in self._recv_callbacks:
-            self._recv_callbacks.append(callback)
-
-    def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback.
-
-        Parameters
-        ----------
-        callback : callable
-            The callback to unregister.
-        """
-        if callback in self._recv_callbacks:
-            self._recv_callbacks.remove(callback)
-
-    def _push_raw_buffer(self, raw_buffer):
-        """Push raw buffer to clients using callbacks."""
-        for callback in self._recv_callbacks:
-            callback(raw_buffer)
-
-    def start_receive_thread(self, nchan):
-        """Start the receive thread.
-
-        If the measurement has not been started, it will also be started.
-
-        Parameters
-        ----------
-        nchan : int
-            The number of channels in the data.
-        """
-        if self._recv_thread is None:
-
-            self._recv_thread = threading.Thread(target=_buffer_recv_worker,
-                                                 args=(self, ))
-            self._recv_thread.daemon = True
-            self._recv_thread.start()
-
-    def stop_receive_thread(self, stop_measurement=False):
-        """Stop the receive thread.
-
-        Parameters
-        ----------
-        stop_measurement : bool
-            unused, for compatibility.
-        """
-        self._recv_thread = None
-
-    def iter_raw_buffers(self):
-        """Return an iterator over raw buffers.
-
-        Returns
-        -------
-        raw_buffer : generator
-            Generator for iteration over raw buffers.
-        """
-        # self.tmax_samp should be included
-        iter_times = list(zip(
-            list(range(self.tmin_samp, self.tmax_samp, self.buffer_size)),
-            list(range(self.tmin_samp + self.buffer_size,
-                       self.tmax_samp + 1, self.buffer_size))))
-        last_iter_sample = iter_times[-1][1] if iter_times else self.tmin_samp
-        if last_iter_sample < self.tmax_samp + 1:
-            iter_times.append((last_iter_sample, self.tmax_samp + 1))
-
-        for ii, (start, stop) in enumerate(iter_times):
-
-            # wait for correct number of samples to be available
-            self.ft_client.wait(stop, np.iinfo(np.uint32).max,
-                                np.iinfo(np.uint32).max)
-
-            # get the samples (stop index is inclusive)
-            raw_buffer = self.ft_client.getData([start, stop - 1]).transpose()
-
-            yield raw_buffer
-
-            if self._recv_thread != threading.current_thread():
-                # stop_receive_thread has been called
-                break
+        return self
