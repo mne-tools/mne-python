@@ -243,29 +243,29 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # try to match url->archive_name->folder_name
     urls = dict(  # the URLs to use
         brainstorm=dict(
-            bst_auditory='https://osf.io/5t9n8/download',
-            bst_phantom_ctf='https://osf.io/sxr8y/download',
-            bst_phantom_elekta='https://osf.io/dpcku/download',
-            bst_raw='https://osf.io/9675n/download',
-            bst_resting='https://osf.io/m7bd3/download'),
+            bst_auditory='https://osf.io/5t9n8/download?version=1',
+            bst_phantom_ctf='https://osf.io/sxr8y/download?version=1',
+            bst_phantom_elekta='https://osf.io/dpcku/download?version=1',
+            bst_raw='https://osf.io/9675n/download?version=2',
+            bst_resting='https://osf.io/m7bd3/download?version=3'),
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/foo.tgz',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
-        sample="https://osf.io/j4ms3/download",
-        somato='https://osf.io/tp4sg/download',
-        spm='https://osf.io/je4s8/download',
+        sample="https://osf.io/86qa2/download?version=4",
+        somato='https://osf.io/tp4sg/download?version=2',
+        spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
-        opm='https://osf.io/p6ae7/download',
+        opm='https://osf.io/p6ae7/download?version=2',
         visual_92_categories=[
-            'https://osf.io/8ejrs/download',
-            'https://osf.io/t4yjp/download'],
-        mtrf='https://osf.io/h85s2/download',
-        kiloword='https://osf.io/qkvf9/download',
-        fieldtrip_cmc='https://osf.io/j9b6s/download',
-        phantom_4dbti='https://osf.io/v2brw/download',
+            'https://osf.io/8ejrs/download?version=1',
+            'https://osf.io/t4yjp/download?version=1'],
+        mtrf='https://osf.io/h85s2/download?version=1',
+        kiloword='https://osf.io/qkvf9/download?version=1',
+        fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
+        phantom_4dbti='https://osf.io/v2brw/download?version=1',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
