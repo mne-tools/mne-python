@@ -92,7 +92,7 @@ class _Renderer(object):
 
         ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
 
-    def sphere(self, center, color, scale, opacity=1.0,
+    def sphere(self, center, color, scale, opacity=1.0, resolution=8,
                backface_culling=False):
         pass
         # it seems like there is no way to add a random geometry to the scene
@@ -105,7 +105,44 @@ class _Renderer(object):
         # material = p3js.MeshBasicMaterial({'color': color})
         # sphere = p3js.Mesh(geometry, material)
         # scene.add(sphere)
-        _create_sphere(rows=8, cols=8, radius=1.0, offset=True)
+        default_sphere_radius = 0.5
+        if center.ndim == 1:
+            center = np.array([center])
+
+        # fetch original data
+        orig_vertices, orig_faces = \
+            _create_sphere(radius=scale * default_sphere_radius,
+                           cols=resolution, rows=resolution)
+        n_vertices = len(orig_vertices)
+        orig_vertices = np.c_[orig_vertices, np.ones(n_vertices)].T
+        n_faces = len(orig_faces)
+        n_center = len(center)
+        voffset = 0
+        foffset = 0
+
+        # accumulate mesh data
+        acc_vertices = np.empty((n_center * n_vertices, 3), dtype=np.float32)
+        acc_faces = np.empty((n_center * n_faces, 3), dtype=np.uint32)
+        for c in center:
+            # apply index shifting and accumulate faces
+            current_faces = orig_faces + voffset
+            acc_faces[foffset:foffset + n_faces, :] = current_faces
+            foffset += n_faces
+
+            # apply translation and accumulate vertices
+            mat = np.eye(4)
+            mat[:-1, 3] = c
+            current_vertices = mat.dot(orig_vertices)
+            acc_vertices[voffset:voffset + n_vertices, :] = \
+                current_vertices.T[:, 0:3]
+            voffset += n_vertices
+
+        x = acc_vertices[:, 0]
+        y = acc_vertices[:, 1]
+        z = acc_vertices[:, 2]
+        ipv.xyzlim(-1, 1)
+        ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
+
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -145,7 +182,7 @@ class _Renderer(object):
         ipv.view(azimuth=azimuth, elevation=elevation, distance=distance)
 
 
-def _create_sphere(rows, cols, radius, offset):
+def _create_sphere(rows, cols, radius, offset=True):
     verts = np.empty((rows + 1, cols, 3), dtype=np.float32)
 
     # compute vertices
