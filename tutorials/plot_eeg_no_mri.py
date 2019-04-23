@@ -25,14 +25,12 @@ import os.path as op
 
 import mne
 from mne.datasets import eegbci
-from mne.datasets import set_montage_coreg_path, fetch_fsaverage
-
-# Convenience function to set ``subjects_dir`` default value for users who
-# only ever plan to do montage-based coreg with fsaverage.
-subjects_dir = set_montage_coreg_path()
+from mne.datasets import fetch_fsaverage
 
 # Download fsaverage files
 fs_dir = fetch_fsaverage(verbose=True)
+subjects_dir = op.dirname(fs_dir)
+
 # The files live in:
 subject = 'fsaverage'
 trans = op.join(fs_dir, 'bem', 'fsaverage-trans.fif')
