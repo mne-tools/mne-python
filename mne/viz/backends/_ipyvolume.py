@@ -88,12 +88,12 @@ class _Renderer(object):
         x = vertices[:, 0]
         y = vertices[:, 1]
         z = vertices[:, 2]
-        n_vertices = len(vertices)
         triangles = np.array(surface['tris'])
-        #color = cmap(scalars)
 
-        tmp = np.append(color, opacity)
-        color = np.tile(tmp, (n_vertices, 1))
+        if scalars is not None:
+            color = cmap(scalars)
+        else:
+            color = np.append(color, opacity)
         ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
 
     def sphere(self, center, color, scale, opacity=1.0, resolution=8,
