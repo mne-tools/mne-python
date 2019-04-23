@@ -49,12 +49,41 @@ class _Renderer(object):
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
-        pass
-        # stub
-        # there is no quick way to plot a contour with ipyvolume
-        # what is vmin, vmax for?
-        # opacity should be intergrated into colors, no other way for ipv
-        # what is contours, line_width for?
+        from matplotlib import cm
+        from matplotlib.colors import ListedColormap
+        from ipyvolume.pylab import plot
+
+        vertices = surface['rr']
+        tris = surface['tris']
+
+        if colormap is None:
+            cmap = cm.get_cmap('coolwarm')
+        else:
+            cmap = ListedColormap(colormap / 255.0)
+
+        if isinstance(contours, int):
+            levels = np.linspace(vmin, vmax, num=contours)
+        else:
+            levels = np.array(contours)
+
+        if scalars is not None:
+            if vmin is None:
+                vmin = min(scalars)
+            if vmax is None:
+                vmax = max(scalars)
+            nscalars = (scalars - vmin) / (vmax - vmin)
+            color = cmap(nscalars)
+        else:
+            color = np.append(color, opacity)
+
+        verts, faces, _, _ = _isoline(vertices=vertices, tris=tris,
+                                vertex_data=scalars,
+                                levels=levels)
+
+        x = verts[:, 0]
+        y = verts[:, 1]
+        z = verts[:, 2]
+        plot(x, y, z, color=color)
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
@@ -175,7 +204,7 @@ def _create_sphere(rows, cols, radius, offset=True):
     verts = np.empty((rows + 1, cols, 3), dtype=np.float32)
 
     # compute vertices
-    phi = (np.arange(rows + 1) * np.pi / rows).reshape(rows+1, 1)
+    phi = (np.arange(rows + 1) * np.pi / rows).reshape(rows + 1, 1)
     s = radius * np.sin(phi)
     verts[..., 2] = radius * np.cos(phi)
     th = ((np.arange(cols) * 2 * np.pi / cols).reshape(1, cols))
@@ -223,3 +252,80 @@ def _add_transperent_material(mesh):
     mat.side = Side.DoubleSide
 
     mesh.material = mat
+
+
+def _isoline(vertices, tris, vertex_data, levels):
+    """Generate an isocurve from vertex data in a surface mesh.
+    Parameters
+    ----------
+    vertices : ndarray, shape (Nv, 3)
+        Vertex coordinates.
+    tris : ndarray, shape (Nf, 3)
+        Indices of triangular element into the vertices array.
+    vertex_data : ndarray, shape (Nv,)
+        data at vertex.
+    levels : ndarray, shape (Nl,)
+        Levels at which to generate an isocurve
+    Returns
+    -------
+    lines : ndarray, shape (Nvout, 3)
+        Vertex coordinates for lines points
+    connects : ndarray, shape (Ne, 2)
+        Indices of line element into the vertex array.
+    vertex_level: ndarray, shape (Nvout,)
+        level for vertex in lines
+    Notes
+    -----
+    Uses a marching squares algorithm to generate the isolines.
+    """
+
+    lines = None
+    connects = None
+    vertex_level = None
+    level_index = None
+    if not all([isinstance(x, np.ndarray) for x in (vertices, tris,
+                vertex_data, levels)]):
+        raise ValueError('all inputs must be numpy arrays')
+    if vertices.shape[1] <= 3:
+        verts = vertices
+    elif vertices.shape[1] == 4:
+        verts = vertices[:, :-1]
+    else:
+        verts = None
+    if (verts is not None and tris.shape[1] == 3 and
+            vertex_data.shape[0] == verts.shape[0]):
+        edges = np.vstack((tris.reshape((-1)),
+                           np.roll(tris, -1, axis=1).reshape((-1)))).T
+        edge_datas = vertex_data[edges]
+        edge_coors = verts[edges].reshape(tris.shape[0]*3, 2, 3)
+        for lev in levels:
+            # index for select edges with vertices have only False - True
+            # or True - False at extremity
+            index = (edge_datas >= lev)
+            index = index[:, 0] ^ index[:, 1]  # xor calculation
+            # Selectect edge
+            edge_datas_Ok = edge_datas[index, :]
+            xyz = edge_coors[index]
+            # Linear interpolation
+            ratio = np.array([(lev - edge_datas_Ok[:, 0]) /
+                              (edge_datas_Ok[:, 1] - edge_datas_Ok[:, 0])])
+            point = xyz[:, 0, :] + ratio.T * (xyz[:, 1, :] - xyz[:, 0, :])
+            nbr = point.shape[0]//2
+            if connects is not None:
+                connect = np.arange(0, nbr*2).reshape((nbr, 2)) + \
+                    len(lines)
+                connects = np.append(connects, connect, axis=0)
+                lines = np.append(lines, point, axis=0)
+                vertex_level = np.append(vertex_level,
+                                         np.zeros(len(point)) +
+                                         lev)
+                level_index = np.append(level_index, np.array(len(point)))
+            else:
+                lines = point
+                connects = np.arange(0, nbr*2).reshape((nbr, 2))
+                vertex_level = np.zeros(len(point)) + lev
+                level_index = np.array(len(point))
+
+            vertex_level = vertex_level.reshape((vertex_level.size, 1))
+
+    return lines, connects, vertex_level, level_index
