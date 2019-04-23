@@ -893,6 +893,9 @@ Simulation
 .. autosummary::
    :toctree: generated/
 
+   add_blink
+   add_chpi
+   add_ecg
    add_noise
    simulate_evoked
    simulate_raw

@@ -237,8 +237,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
+    %(n_jobs)s
     origin : array-like, shape (3,) | str
         Origin of the sphere in the head coordinate frame and in meters.
         The default is ``'auto'``, which means a head-digitization-based
@@ -365,8 +364,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         fit. Default is ``(0., 0., 0.04)``.
 
         .. versionadded:: 0.11
-    n_jobs : int
-        The number of jobs to run in parallel.
+    %(n_jobs)s
     %(verbose)s
 
     Returns

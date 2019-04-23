@@ -22,7 +22,8 @@ from mne.bem import _surfaces_to_bem
 from mne.chpi import _calculate_chpi_positions, read_head_pos, _get_hpi_info
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
-from mne.simulation import simulate_sparse_stc, simulate_raw
+from mne.simulation import (simulate_sparse_stc, simulate_raw,
+                            add_blink, add_ecg)
 from mne.source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
@@ -161,7 +162,9 @@ def _make_stc(raw, src):
     return stc
 
 
-def _get_data():
+@testing.requires_testing_data
+@pytest.fixture(scope='function')
+def raw_data():
     """Get some starting data."""
     # raw with ECG channel
     raw = read_raw_fif(raw_fname).crop(0., 5.0).load_data()
@@ -183,14 +186,7 @@ def _get_data():
     return raw, src, stc, trans, sphere
 
 
-@testing.requires_testing_data
-def test_simulate_raw_sphere():
-    """Test simulation of raw data with sphere model."""
-    seed = 42
-    raw, src, stc, trans, sphere = _get_data()
-    assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
-
-    # head pos
+def _get_head_pos_sim(raw):
     head_pos_sim = dict()
     # these will be at 1., 2., ... sec
     shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.]]
@@ -200,6 +196,17 @@ def test_simulate_raw_sphere():
         temp_trans = deepcopy(raw.info['dev_head_t'])
         temp_trans['trans'][:3, 3] += shift
         head_pos_sim[time_key + 1.] = temp_trans['trans']
+    return head_pos_sim
+
+
+def test_simulate_raw_sphere(raw_data):
+    """Test simulation of raw data with sphere model."""
+    seed = 42
+    raw, src, stc, trans, sphere = raw_data
+    assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
+
+    # head pos
+    head_pos_sim = _get_head_pos_sim(raw)
 
     #
     # Test raw simulation with basic parameters
@@ -230,12 +237,15 @@ def test_simulate_raw_sphere():
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
     sphere_norad = make_sphere_model('auto', None, raw.info)
     raw_meg = raw.copy().pick_types()
-    raw_sim = simulate_raw(raw_meg, stc, trans, src, sphere_norad, cov=None,
-                           head_pos=head_pos_sim, blink=True, ecg=True,
-                           random_state=seed)
-    raw_sim_2 = simulate_raw(raw_meg, stc, trans_fname, src_fname,
-                             sphere_norad, cov=None, head_pos=head_pos_sim,
-                             blink=True, ecg=True, random_state=seed)
+    with pytest.deprecated_call():
+        raw_sim = simulate_raw(raw_meg, stc, trans, src, sphere_norad,
+                               cov=None,
+                               head_pos=head_pos_sim, blink=True, ecg=True,
+                               random_state=seed)
+    with pytest.deprecated_call():
+        raw_sim_2 = simulate_raw(raw_meg, stc, trans_fname, src_fname,
+                                 sphere_norad, cov=None, head_pos=head_pos_sim,
+                                 blink=True, ecg=True, random_state=seed)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
     # Test IO on processed data
     tempdir = _TempDir()
@@ -248,12 +258,14 @@ def test_simulate_raw_sphere():
     # with no cov (no noise) but with artifacts, most time periods should match
     # but the EOG/ECG channels should not
     for ecg, eog in ((True, False), (False, True), (True, True)):
-        raw_sim_3 = simulate_raw(raw, stc, trans, src, sphere,
-                                 cov=None, head_pos=head_pos_sim,
-                                 blink=eog, ecg=ecg, random_state=seed)
-        raw_sim_4 = simulate_raw(raw, stc, trans, src, sphere,
-                                 cov=None, head_pos=head_pos_sim,
-                                 blink=False, ecg=False, random_state=seed)
+        with pytest.deprecated_call():
+            raw_sim_3 = simulate_raw(raw, stc, trans, src, sphere,
+                                     cov=None, head_pos=head_pos_sim,
+                                     blink=eog, ecg=ecg, random_state=seed)
+        with pytest.deprecated_call():
+            raw_sim_4 = simulate_raw(raw, stc, trans, src, sphere,
+                                     cov=None, head_pos=head_pos_sim,
+                                     blink=False, ecg=False, random_state=seed)
         picks = np.arange(len(raw.ch_names))
         diff_picks = pick_types(raw.info, meg=False, ecg=ecg, eog=eog)
         these_picks = np.setdiff1d(picks, diff_picks)
@@ -267,14 +279,17 @@ def test_simulate_raw_sphere():
 
     # make sure it works with EEG-only and MEG-only
     raw_sim_meg = simulate_raw(raw.copy().pick_types(meg=True, eeg=False),
-                               stc, trans, src, sphere, cov=None,
-                               ecg=True, blink=True, random_state=seed)
+                               stc, trans, src, sphere, cov=None)
     raw_sim_eeg = simulate_raw(raw.copy().pick_types(meg=False, eeg=True),
-                               stc, trans, src, sphere, cov=None,
-                               ecg=True, blink=True, random_state=seed)
+                               stc, trans, src, sphere, cov=None)
     raw_sim_meeg = simulate_raw(raw.copy().pick_types(meg=True, eeg=True),
-                                stc, trans, src, sphere, cov=None,
-                                ecg=True, blink=True, random_state=seed)
+                                stc, trans, src, sphere, cov=None)
+    for this_raw in (raw_sim_meg, raw_sim_eeg, raw_sim_meeg):
+        add_blink(this_raw, random_state=seed)
+    for this_raw in (raw_sim_meg, raw_sim_meeg):
+        add_ecg(this_raw, random_state=seed)
+    with pytest.raises(RuntimeError, match='only add ECG artifacts if MEG'):
+        add_ecg(raw_sim_eeg)
     assert_allclose(np.concatenate((raw_sim_meg[:][0], raw_sim_eeg[:][0])),
                     raw_sim_meeg[:][0], rtol=1e-7, atol=1e-20)
     del raw_sim_meg, raw_sim_eeg, raw_sim_meeg
@@ -298,19 +313,22 @@ def test_simulate_raw_sphere():
     assert_allclose(raw_sim[:][0], raw_sim_hann[:][0], rtol=1e-1, atol=1e-14)
     del raw_sim, raw_sim_hann
 
+
+def test_degenerate(raw_data):
+    """Test degenerate conditions."""
+    raw, src, stc, trans, sphere = raw_data
     # Make impossible transform (translate up into helmet) and ensure failure
-    head_pos_sim_err = deepcopy(head_pos_sim)
-    head_pos_sim_err[1.][2, 3] -= 0.1  # z trans upward 10cm
-    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  ecg=False, blink=False, head_pos=head_pos_sim_err)
-    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src,
-                  bem_fname, ecg=False, blink=False,
-                  head_pos=head_pos_sim_err)
+    hp_err = _get_head_pos_sim(raw)
+    hp_err[1.][2, 3] -= 0.1  # z trans upward 10cm
+    with pytest.raises(RuntimeError, match='collided with inner skull'):
+        simulate_raw(raw, stc, trans, src, sphere, cov=None, head_pos=hp_err)
     # other degenerate conditions
-    pytest.raises(TypeError, simulate_raw, 'foo', stc, trans, src, sphere)
-    pytest.raises(TypeError, simulate_raw, raw, 'foo', trans, src, sphere)
-    pytest.raises(ValueError, simulate_raw, raw, stc.copy().crop(0, 0),
-                  trans, src, sphere)
+    with pytest.raises(TypeError, match='info must be an instance of'):
+        simulate_raw('foo', stc, trans, src, sphere)
+    with pytest.raises(TypeError, match='stc must be an instance of'):
+        simulate_raw(raw, 'foo', trans, src, sphere)
+    with pytest.raises(ValueError, match='stc must have at least three time'):
+        simulate_raw(raw, stc.copy().crop(0, 0), trans, src, sphere)
     with pytest.raises(ValueError, match='duration cannot be None'):
         simulate_raw(raw.info, stc, trans, src, sphere)
     with pytest.raises(TypeError, match='must be an instance of Raw or Info'):
@@ -319,32 +337,35 @@ def test_simulate_raw_sphere():
     stc_bad.tstep += 0.1
     with pytest.raises(ValueError, match='same sample rate'):
         simulate_raw(raw, stc_bad, trans, src, sphere)
-    with pytest.deprecated_call():
-        pytest.raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
-                      cov=0)  # wrong covariance type
-    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  chpi=True)  # no cHPI info
-    pytest.raises(ValueError, simulate_raw, raw, stc, trans, src, sphere,
-                  interp='foo')
-    pytest.raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
-                  head_pos=1.)
-    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  head_pos=pos_fname)  # ends up with t>t_end
-    head_pos_sim_err = deepcopy(head_pos_sim)
+    with pytest.raises(TypeError, match='Covariance matrix type'):
+        with pytest.deprecated_call():
+            simulate_raw(raw, stc, trans, src, sphere, cov=0)
+    with pytest.raises(RuntimeError, match='cHPI information not found'):
+        with pytest.deprecated_call():
+            simulate_raw(raw, stc, trans, src, sphere, chpi=True)
+    with pytest.raises(ValueError, match='interp must be one of'):
+        simulate_raw(raw, stc, trans, src, sphere, interp='foo')
+    with pytest.raises(TypeError, match='unknown head_pos type'):
+        simulate_raw(raw, stc, trans, src, sphere, head_pos=1.)
+    with pytest.raises(RuntimeError, match='All position times'):
+        simulate_raw(raw, stc, trans, src, sphere, head_pos=pos_fname)
+    head_pos_sim_err = _get_head_pos_sim(raw)
     head_pos_sim_err[-1.] = head_pos_sim_err[1.]  # negative time
-    pytest.raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  head_pos=head_pos_sim_err)
+    with pytest.raises(RuntimeError, match='All position times'):
+        simulate_raw(raw, stc, trans, src, sphere, head_pos=head_pos_sim_err)
     raw_bad = raw.copy()
     raw_bad.info['dig'] = None
-    pytest.raises(RuntimeError, simulate_raw, raw_bad, stc, trans, src, sphere,
-                  blink=True)
+    with pytest.raises(RuntimeError, match='Cannot fit headshape'):
+        with pytest.deprecated_call():
+            simulate_raw(raw_bad, stc, trans, src, sphere, blink=True)
+    with pytest.raises(RuntimeError, match='Cannot fit headshape'):
+        add_blink(raw_bad)
 
 
 @pytest.mark.slowtest
-@testing.requires_testing_data
-def test_simulate_raw_bem():
+def test_simulate_raw_bem(raw_data):
     """Test simulation of raw data with BEM."""
-    raw, src, stc, trans, sphere = _get_data()
+    raw, src, stc, trans, sphere = raw_data
     src = setup_source_space('sample', 'oct1', subjects_dir=subjects_dir)
     for s in src:
         s['nuse'] = 3
@@ -387,11 +408,10 @@ def test_simulate_raw_bem():
         assert med_diff < tol, '%s: %s' % (bem, med_diff)
 
 
-@testing.requires_testing_data
-def test_simulate_round_trip():
+def test_simulate_round_trip(raw_data):
     """Test simulate_raw round trip calculations."""
     # Check a diagonal round-trip
-    raw, src, stc, trans, sphere = _get_data()
+    raw, src, stc, trans, sphere = raw_data
     raw.pick_types(meg=True, stim=True)
     bem = read_bem_solution(bem_1_fname)
     old_bem = bem.copy()
@@ -465,11 +485,12 @@ def test_simulate_raw_chpi():
     src = setup_volume_source_space(sphere=sphere_vol, pos=70.)
     stc = _make_stc(raw, src)
     # simulate data with cHPI on
-    raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=False,
+    raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None,
                            interp='zero')
     # need to trim extra samples off this one
-    raw_chpi = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=True,
-                            head_pos=pos_fname, interp='zero')
+    with pytest.deprecated_call():
+        raw_chpi = simulate_raw(raw, stc, None, src, sphere, cov=None,
+                                chpi=True, head_pos=pos_fname, interp='zero')
     # test cHPI indication
     hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(raw.info)
     assert_allclose(raw_sim[hpi_pick][0], 0.)

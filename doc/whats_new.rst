@@ -59,7 +59,7 @@ Changelog
 
 - Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
 
-- Add support for using :class:`mne.Info` and ``duration`` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
+- Add support for using :class:`mne.Info` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
 
 - Add support for passing an iterable and stim channel values using ``stc`` parameter of :func:`mne.simulation.simulate_raw` by `Eric Larson`_
 
@@ -177,7 +177,7 @@ Bug
 API
 ~~~
 
-- Deprecate ``cov, iir_params, duration`` and support for :class:`mne.io.Raw` instance inputs (in favor of :func:`mne.simulation.add_noise`) in :func:`mne.simulation.simulate_raw` by `Eric Larson`_
+- Deprecate ``cov, iir_params, blink, ecg, chpi, random_state`` and support for :class:`mne.io.Raw` instance inputs in :func:`mne.simulation.simulate_raw`; use :func:`mne.simulation.add_noise`, :func:`mne.simulation.add_ecg`, :func:`mne.simulation.add_blink`, and :func:`mne.simulation.add_chpi` by `Eric Larson`_
 
 - Add ``overwrite`` parameter in :func:`mne.Epochs.save` by `Katarina Slama`_
 

@@ -179,18 +179,20 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
         logger.info('Adding noise to %d/%d channels (%d channels in cov)'
                     % (len(picks), len(info['chs']), len(cov['names'])))
         info = pick_info(inst.info, picks)
+        picks = np.arange(info['nchan'])
     for epoch in data:
         epoch[picks] += _generate_noise(info, cov, iir_filter, random_state,
-                                        epoch.shape[1])[0]
+                                        epoch.shape[1], picks=picks)[0]
     return inst
 
 
-def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
+def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None,
+                    picks=None):
     """Create spatially colored and temporally IIR-filtered noise."""
     from scipy.signal import lfilter
     rng = check_random_state(random_state)
     _, _, colorer = compute_whitener(cov, info, pca=True, return_colorer=True,
-                                     verbose=False)
+                                     picks=picks, verbose=False)
     noise = np.dot(colorer, rng.randn(colorer.shape[1], n_samples))
     if iir_filter is not None:
         if zi is None:
