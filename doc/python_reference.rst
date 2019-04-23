@@ -183,6 +183,7 @@ Datasets
    brainstorm.bst_raw.data_path
    eegbci.load_data
    fetch_aparc_sub_parcellation
+   fetch_fsaverage
    fetch_hcp_mmp_parcellation
    hf_sef.data_path
    kiloword.data_path
@@ -954,6 +955,7 @@ Realtime
 
    FieldTripClient
    LSLClient
+   MockLSLStream
    MockRtClient
    RtEpochs
    RtClient

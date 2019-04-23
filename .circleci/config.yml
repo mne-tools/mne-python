@@ -59,6 +59,7 @@ jobs:
             command: |
               pip install --user -q --upgrade pip numpy vtk
               pip install --user --progress-bar off -r requirements.txt
+              pip install --user pylsl
               pip install --user --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
 
         - save_cache:
@@ -105,6 +106,9 @@ jobs:
                     PATTERN=`basename $FNAME`"\\|"$PATTERN;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*fetch_fsaverage.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.fetch_fsaverage(verbose=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*spm_face.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.spm_face.data_path(update_path=True))";

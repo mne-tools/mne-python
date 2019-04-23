@@ -19,6 +19,10 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_eeg_no_mri.py` by `Alex Gramfort`_, and `Joan Massich`_
+
+- Add convenience ``fsaverage`` subject dataset fetcher / updater :func:`mne.datasets.fetch_fsaverage` by `Eric Larson`_
+
 - Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
 
 - Add support to :func:`mne.read_annotations` to read CNT formats by `Joan Massich`_
@@ -98,6 +102,8 @@ Changelog
 - Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
 
 - Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
+
+- Add :class:`mne.realtime.MockLSLStream` to simulate an LSL stream for testing and examples by `Teon Brooks`_
 
 Bug
 ~~~
