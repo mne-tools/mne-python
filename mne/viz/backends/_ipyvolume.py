@@ -6,7 +6,8 @@ Actual implementation of _Renderer and _Projection classes.
 
 import ipyvolume as ipv
 import numpy as np
-import pythreejs as p3js
+from pythreejs import (BlendFactors, BlendingMode, Equations, ShaderMaterial,
+                       Side)
 
 
 class _Renderer(object):
@@ -42,9 +43,9 @@ class _Renderer(object):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
-        # opacity should be intergrated into color, i.e. rgba model
         color = np.append(color, opacity)
-        ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
+        mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
+        _add_transperent_material(mesh)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
@@ -67,14 +68,15 @@ class _Renderer(object):
         z = vertices[:, 2]
         triangles = np.array(surface['tris'])
         color = cmap(scalars)
+        color = np.append(color, opacity)
 
-        ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
+        mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
+        _add_transperent_material(mesh)        
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False):
         # what is vmin, vmax for?
-        # opacity should be intergrated into colors, no other way for ipv
         # should we use ipv.plot_surface?
         from matplotlib import cm
         from matplotlib.colors import ListedColormap
@@ -90,25 +92,17 @@ class _Renderer(object):
         z = vertices[:, 2]
         n_vertices = len(vertices)
         triangles = np.array(surface['tris'])
-        #color = cmap(scalars)
 
-        tmp = np.append(color, opacity)
-        color = np.tile(tmp, (n_vertices, 1))
-        ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
+        if scalars is not None:
+            color = cmap(scalars)
+
+        color_rgba = np.append(color, opacity)
+        color = np.tile(color_rgba, (n_vertices, 1))
+        mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
+        _add_transperent_material(mesh)
 
     def sphere(self, center, color, scale, opacity=1.0, resolution=8,
                backface_culling=False):
-        pass
-        # it seems like there is no way to add a random geometry to the scene
-        # so we might try to tweak ipyvolume to be able to do that??
-        # what is scale for?
-        # intergrate opacity into color, check whether it is possible
-        # geometry = p3js.SphereGeometry()
-        # # https://stackoverflow.com/questions/12835361/three-js-move-custom-geometry-to-origin
-        # geometry.translate(*center)
-        # material = p3js.MeshBasicMaterial({'color': color})
-        # sphere = p3js.Mesh(geometry, material)
-        # scene.add(sphere)
         default_sphere_radius = 0.5
         if center.ndim == 1:
             center = np.array([center])
@@ -144,12 +138,11 @@ class _Renderer(object):
         x = acc_vertices[:, 0]
         y = acc_vertices[:, 1]
         z = acc_vertices[:, 2]
-
         color = np.append(color, opacity)
 
         ipv.xyzlim(-1, 1)
-        ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
-
+        mesh = ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
+        _add_transperent_material(mesh)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -167,7 +160,9 @@ class _Renderer(object):
         #     circle_2d: this.geo_circle_2d,
         #     triangle_2d: this.geo_triangle_2d
         # }
-        ipv.quiver(x, y, z, u, v, w, marker=mode, color=color)
+        color = np.append(color, opacity)
+        scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color)
+        _add_transperent_material(scatter)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         pass
@@ -227,3 +222,17 @@ def _create_sphere(rows, cols, radius, offset=True):
     vmax = verts.shape[0]-1
     faces[faces > vmax] = vmax
     return verts, faces
+
+
+def _add_transperent_material(mesh):
+    """Changes the mesh material so it will support transparency."""
+    mat = ShaderMaterial()
+    mat.alphaTest = 0.1
+    mat.blending = BlendingMode.CustomBlending
+    mat.blendDst = BlendFactors.OneMinusSrcAlphaFactor
+    mat.blendEquation = Equations.AddEquation
+    mat.blendSrc = BlendFactors.SrcAlphaFactor
+    mat.transparent = True
+    mat.side = Side.DoubleSide
+
+    mesh.material = mat

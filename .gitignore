@@ -78,3 +78,6 @@ examples/visualization/foobar.html
 
 .venv/
 venv/
+
+# Jupyter Notebook
+**/.ipynb_checkpoints
