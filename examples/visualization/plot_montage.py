@@ -4,7 +4,7 @@ Plotting sensor layouts of EEG Systems
 ======================================
 
 Show sensor layouts of different EEG systems.
-"""  # noqa
+"""  # noqa: D205, D400
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
@@ -15,11 +15,10 @@ import os.path as op
 
 import mne
 from mne.channels.montage import get_builtin_montages
+from mne.datasets import fetch_fsaverage
 from mne.viz import plot_alignment
 
-# print(__doc__)
-
-subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
+subjects_dir = op.dirname(fetch_fsaverage())
 
 ###############################################################################
 # check all montages
