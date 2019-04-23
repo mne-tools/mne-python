@@ -1137,6 +1137,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         out : bool
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
+        %(picks_all)s
         %(verbose_meth)s
         """
         n_events = len(self.events)
