@@ -34,7 +34,7 @@ subjects_dir = op.dirname(fs_dir)
 # The files live in:
 subject = 'fsaverage'
 trans = op.join(fs_dir, 'bem', 'fsaverage-trans.fif')
-src = op.join(fs_dir, 'bem', 'fsaverage-5-src.fif')
+src = op.join(fs_dir, 'bem', 'fsaverage-ico-5-src.fif')
 bem = op.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
 
 ##############################################################################
