@@ -1,7 +1,7 @@
 """
-=====================================
-Brainstorm raw (median nerve) dataset
-=====================================
+============================
+Brainstorm tutorial datasets
+============================
 
 Here we compute the evoked from raw for the Brainstorm
 tutorial dataset. For comparison, see [1]_ and:
