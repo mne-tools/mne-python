@@ -297,7 +297,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
     img, t_end = _plot_masked_image(
-        ax, tfr[ch_idx], times, mask, picks=None, yvals=freq, cmap=cmap,
+        ax, tfr[ch_idx], times, mask, yvals=freq, cmap=cmap,
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
         mask_cmap=mask_cmap, yscale=yscale)
 
