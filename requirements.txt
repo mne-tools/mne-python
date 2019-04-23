@@ -1,4 +1,5 @@
 numpy
+numba
 scipy
 matplotlib
 mayavi
