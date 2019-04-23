@@ -24,7 +24,7 @@ class _Renderer(object):
         if fig is None:
             fig_w, fig_h = size
             self.plotter = ipv.figure(width=fig_w, height=fig_h)
-            fig.animation = 0
+            self.plotter.animation = 0
             ipv.style.box_off()
             ipv.style.axes_off()
             ipv.style.background_color(bgcolor)
@@ -105,6 +105,7 @@ class _Renderer(object):
         # material = p3js.MeshBasicMaterial({'color': color})
         # sphere = p3js.Mesh(geometry, material)
         # scene.add(sphere)
+        _create_sphere(rows=8, cols=8, radius=1.0, offset=True)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -143,3 +144,42 @@ class _Renderer(object):
                    focalpoint=(0, 0, 0)):
         ipv.view(azimuth=azimuth, elevation=elevation, distance=distance)
 
+
+def _create_sphere(rows, cols, radius, offset):
+    verts = np.empty((rows + 1, cols, 3), dtype=np.float32)
+
+    # compute vertices
+    phi = (np.arange(rows + 1) * np.pi / rows).reshape(rows+1, 1)
+    s = radius * np.sin(phi)
+    verts[..., 2] = radius * np.cos(phi)
+    th = ((np.arange(cols) * 2 * np.pi / cols).reshape(1, cols))
+    if offset:
+        # rotate each row by 1/2 column
+        th = th + ((np.pi / cols) * np.arange(rows+1).reshape(rows+1, 1))
+    verts[..., 0] = s * np.cos(th)
+    verts[..., 1] = s * np.sin(th)
+    # remove redundant vertices from top and bottom
+    verts = verts.reshape((rows+1)*cols, 3)[cols-1:-(cols-1)]
+
+    # compute faces
+    faces = np.empty((rows*cols*2, 3), dtype=np.uint32)
+    rowtemplate1 = (((np.arange(cols).reshape(cols, 1) +
+                      np.array([[1, 0, 0]])) % cols) +
+                    np.array([[0, 0, cols]]))
+    rowtemplate2 = (((np.arange(cols).reshape(cols, 1) +
+                      np.array([[1, 0, 1]])) % cols) +
+                    np.array([[0, cols, cols]]))
+    for row in range(rows):
+        start = row * cols * 2
+        faces[start:start+cols] = rowtemplate1 + row * cols
+        faces[start+cols:start+(cols*2)] = rowtemplate2 + row * cols
+    # cut off zero-area triangles at top and bottom
+    faces = faces[cols:-cols]
+
+    # adjust for redundant vertices that were removed from top and bottom
+    vmin = cols-1
+    faces[faces < vmin] = vmin
+    faces -= vmin
+    vmax = verts.shape[0]-1
+    faces[faces > vmax] = vmax
+    return verts, faces
