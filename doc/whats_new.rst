@@ -19,7 +19,9 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_eeg_no_mri.py` by `Alex Gramfort`_, and `Joan Massich`_
+- Add example on how to load standard montage :ref:`plot_montage` by `Joan Massich`_
+
+- Add new tutorial on :ref:`plot_eeg_no_mri` by `Alex Gramfort`_, and `Joan Massich`_
 
 - Add convenience ``fsaverage`` subject dataset fetcher / updater :func:`mne.datasets.fetch_fsaverage` by `Eric Larson`_
 
