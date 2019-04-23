@@ -455,7 +455,8 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
 
     # data transforms - sorting, scaling, smoothing
     data = epochs.get_data()[:, 0, :]
-    data, overlay_times = _order_epochs(data, times, order, overlay_times)
+    data, overlay_times = _order_epochs(data, epochs.times, order,
+                                        overlay_times)
 
     if sigma > 0.:
         data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
