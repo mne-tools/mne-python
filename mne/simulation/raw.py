@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 from collections.abc import Iterable
-from itertools import cycle
 
 import numpy as np
 
@@ -54,25 +53,35 @@ def _check_cov(info, cov):
     return cov
 
 
-def _check_stc_iterable(stc, info):
+def _check_stc_iterable(stc, info, n_samples=None):
     # 1. Check that our STC is iterable (or convert it to one using cycle)
     # 2. Do first iter so we can get the vertex subselection
     # 3. Get the list of verts, which must stay the same across iterations
     do_cycle = False
     if isinstance(stc, _BaseSourceEstimate):
         do_cycle = True
+        n_samp_stc = stc
     elif isinstance(stc, (tuple, list)):
         if len(stc) == 2 and isinstance(stc[0], _BaseSourceEstimate) and not \
                 isinstance(stc[1], _BaseSourceEstimate):
+            n_samp_stc = stc[0]
             do_cycle = True
     if do_cycle:
-        logger.info('Turning into iterable cycle: %s' % (stc,))
-        stc = cycle([stc])
+        if n_samples is None:
+            stc = [stc]
+        else:
+            n_samp_stc = n_samp_stc.times.size
+            n_stc = int(np.ceil(n_samples / n_samp_stc))
+            logger.info('Making %d copies of STC to fit into raw' % (n_stc,))
+            stc = [stc] * n_stc
     _validate_type(stc, Iterable, 'SourceEstimate, tuple, or iterable')
     stc_enum = enumerate(stc)
     del stc
 
-    stc_counted = _check_next(stc_enum)
+    try:
+        stc_counted = next(stc_enum)
+    except StopIteration:
+        raise RuntimeError('Iterable did not provide stc[0]')
     _, _, verts = _stc_data_event(stc_counted, 1, info['sfreq'])
     return stc_enum, stc_counted, verts
 
@@ -86,7 +95,7 @@ def _log_ch(start, info, ch):
     logger.info((start + extra).ljust(just) + ch)
 
 
-def _check_head_pos(head_pos, info, first_samp, times):
+def _check_head_pos(head_pos, info, first_samp, times=None):
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
     if isinstance(head_pos, str):  # can be a head pos file
@@ -96,7 +105,7 @@ def _check_head_pos(head_pos, info, first_samp, times):
     if isinstance(head_pos, tuple):  # can be quats converted to trans, rot, t
         transs, rots, ts = head_pos
         first_time = first_samp / info['sfreq']
-        ts -= first_time  # MF files need reref
+        ts = ts - first_time  # MF files need reref
         dev_head_ts = [np.r_[np.c_[r, t[:, np.newaxis]], [[0, 0, 0, 1]]]
                        for r, t in zip(rots, transs)]
         del transs, rots
@@ -110,11 +119,12 @@ def _check_head_pos(head_pos, info, first_samp, times):
     if bad.any():
         raise RuntimeError('All position times must be >= 0, found %s/%s'
                            '< 0' % (bad.sum(), len(bad)))
-    bad = ts > times[-1]
-    if bad.any():
-        raise RuntimeError('All position times must be <= t_end (%0.1f '
-                           'sec), found %s/%s bad values (is this a split '
-                           'file?)' % (times[-1], bad.sum(), len(bad)))
+    if times is not None:
+        bad = ts > times[-1]
+        if bad.any():
+            raise RuntimeError('All position times must be <= t_end (%0.1f '
+                               'sec), found %s/%s bad values (is this a split '
+                               'file?)' % (times[-1], bad.sum(), len(bad)))
     # If it doesn't start at zero, insert one at t=0
     if len(ts) == 0 or ts[0] > 0:
         ts = np.r_[[0.], ts]
@@ -123,10 +133,9 @@ def _check_head_pos(head_pos, info, first_samp, times):
                     'from': info['dev_head_t']['from']}
                    for d in dev_head_ts]
     offsets = np.round(ts * info['sfreq']).astype(int)
-    offsets = np.concatenate([offsets, [len(times)]])
-    assert offsets[-2] != offsets[-1]
     assert np.array_equal(offsets, np.unique(offsets))
-    assert len(offsets) == len(dev_head_ts) + 1
+    assert len(offsets) == len(dev_head_ts)
+    offsets = list(offsets)
     return dev_head_ts, offsets
 
 
@@ -134,8 +143,8 @@ def _check_head_pos(head_pos, info, first_samp, times):
 def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
                  blink=None, ecg=None, chpi=None, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
-                 random_state=None, use_cps=True, forward=None,
-                 duration=None, raw=None, verbose=None):
+                 random_state=None, use_cps=True, forward=None, first_samp=0,
+                 max_iter=10000, raw=None, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -218,9 +227,13 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         ``bem``, ``trans``, and ``src`` are ignored.
 
         .. versionadded:: 0.17
-    duration : float | None
-        The duration to simulate. Can be None to use the duration of ``raw``.
-        Must be supplied if ``raw`` is an instance of :class:`mne.Info`.
+    first_samp : int
+        The first_samp property in the output Raw instance.
+
+        .. versionadded:: 0.18
+    max_iter : int
+        The maximum number of STC iterations to allow.
+        This is a sanity parameter to prevent accidental blowups.
 
         .. versionadded:: 0.18
     raw : instance of Raw
@@ -291,27 +304,25 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         info = raw
         warn_raw = True
     del raw
-    if duration is not None:
-        duration = float(duration)
     if isinstance(info, Info):
-        first_samp, raw_verbose = 0, verbose
-        if duration is None:
-            raise ValueError('duration cannot be None if raw is an instance '
-                             'of Info')
+        raw_verbose = verbose
+        n_samples = None
     else:
-        if duration is None:
-            duration = info.times[-1] + 1. / info.info['sfreq']
         raw_verbose = info.verbose
+        n_samples = len(info.times)
         info, first_samp = info.info, info.first_samp
         warn_raw = True
-    times = np.arange(int(round(info['sfreq'] * duration))) / info['sfreq']
-    if warn_raw and False:  # XXX revert after fixing test calls
+    if warn_raw:
         warn('Passing a raw instance to simulate_raw is deprecated and will '
              'not work in 0.19, pass an instance of Info as first argument or '
              'as a keyword argument as info=info', DeprecationWarning)
-    # times = np.arange(int(round(info['sfreq'] * duration))) / info['sfreq']
 
-    stim = False if len(pick_types(info, meg=False, stim=True)) == 0 else True
+    if len(pick_types(info, meg=False, stim=True)) == 0:
+        event_ch = None
+    else:
+        event_ch = pick_channels(info['ch_names'],
+                                 _get_stim_channel(None, info))[0]
+
     n_jobs = check_n_jobs(n_jobs)
     interper = _Interp2(interp)
     if forward is not None:
@@ -334,7 +345,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
     if chpi is not None:
         warn('chpi is deprecated and will be removed in 0.19, use add_chpi '
              'instead', DeprecationWarning)
-    dev_head_ts, offsets = _check_head_pos(head_pos, info, first_samp, times)
+    dev_head_ts, offsets = _check_head_pos(head_pos, info, first_samp, None)
 
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, str):
@@ -346,8 +357,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
 
-    stc_enum, stc_counted, verts = _check_stc_iterable(stc, info)
-    del stc
+    stc_enum, stc_counted, verts = _check_stc_iterable(stc, info, n_samples)
+    # del stc
     if forward is not None:
         forward = restrict_forward_to_stc(forward, verts)
         src = forward['src']
@@ -356,18 +367,10 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         src = _set_source_space_vertices(src.copy(), verts)
 
     # array used to store result
-    raw_data = np.zeros((len(info['ch_names']), len(times)))
-
-    if stim:
-        event_ch = pick_channels(info['ch_names'],
-                                 _get_stim_channel(None, info))[0]
-        raw_data[event_ch, :] = 0.
-    else:
-        event_ch = None
+    raw_datas = list()
     _log_ch('Event information', info, event_ch)
-    used = np.zeros(len(times), bool)
-    raw_data[meeg_picks, :] = 0.
     # don't process these any more if no MEG present
+    n = 1
     for fi, fwd in enumerate(_iter_forward_solutions(
             info, trans, src, bem, dev_head_ts, mindist, n_jobs, forward,
             meeg_picks)):
@@ -384,27 +387,31 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
                 stc_counted, 1, info['sfreq'], fwd['src'])
             continue
 
-        start, stop = offsets[fi - 1:fi + 1]
+        assert 0 <= fi <= len(offsets)
+        start = offsets[fi - 1]
+        stop = np.inf if fi == len(offsets) else offsets[fi]
         interper.n_samp = stop - start
-        assert not used[start:stop].any()
-        logger.info('  Simulating data for %0.3f-%0.3f sec'
-                    % (start / info['sfreq'], stop / info['sfreq']))
+        logger.info('   Simulating data for forward operator %d/%d'
+                    % (fi, len(offsets) - 1))
 
         # To avoid a blowup of memory, process in chunk sizes equal to
         # STC length (which will hopefully be a reasonable memory / number
         # of iterations tradeoff)
         this_start = start
-        this_data = raw_data[:, start:stop]
-        this_data[meeg_picks] = 0.
-        while True:
+        while this_start < stop:
             this_stop = min(this_start + stc_data.shape[1], stop)
+            logger.info('   Interval %0.3f-%0.3f sec'
+                        % (this_start / info['sfreq'],
+                           this_stop / info['sfreq']))
             n_doing = this_stop - this_start
-            used[this_start:this_stop] = True
-            interp_sl = slice(this_start - start, this_stop - start)
+            assert n_doing > 0
+            this_data = np.zeros((len(info['ch_names']), n_doing))
+            raw_datas.append(this_data)
             # Stim channel
-            if stim:
-                raw_data[event_ch, this_start:this_stop] = stim_data[:n_doing]
+            if event_ch is not None:
+                this_data[event_ch, :] = stim_data[:n_doing]
             # Brain data
+            interp_sl = slice(this_start - start, this_stop - start)
             interper.interpolate('fwd', stc_data[:, :n_doing],
                                  this_data, meeg_picks, interp_sl)
             # Increment parameters based on what we accomplished
@@ -416,18 +423,28 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
             else:
                 # Get more data (if necessary)
                 assert n_doing == stc_data.shape[1]
-                if this_stop == stop and fi == len(dev_head_ts):
-                    del stc_data, stim_data
-                else:
-                    stc_counted = _check_next(stc_enum, stc_counted, info,
-                                              this_stop, offsets[-1])
-                    stc_data, stim_data, _ = _stc_data_event(
-                        stc_counted, fi, info['sfreq'], fwd['src'], verts)
-            if this_stop == stop:
+                try:
+                    stc_counted = next(stc_enum)
+                except StopIteration:
+                    if n_samples is not None and this_stop < n_samples:
+                        raise RuntimeError('Iterable did not provide stc[%d] '
+                                           'required to cover the raw duration'
+                                           ' %s sec'
+                                           % (stc_counted[0] + 1,
+                                              n_samples / info['sfreq']))
+                    logger.info('    %d STC iteration%s provided'
+                                % (n, _pl(n)))
+                    break
+                n += 1
+                stc_data, stim_data, _ = _stc_data_event(
+                    stc_counted, fi, info['sfreq'], fwd['src'], verts)
+            if n_samples is not None and this_stop >= n_samples - 1:
                 break
+            if n > max_iter:
+                raise RuntimeError('Maximum number of STC iterations (%d) '
+                                   'exceeded' % (n,))
         del fwd
-        assert used[start:stop].all()
-    assert used.all()
+    raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     if blink:
         add_blink(raw, head_pos, interp, n_jobs, random_state)
@@ -437,6 +454,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         add_chpi(raw, head_pos, interp, n_jobs)
     if cov is not None:
         add_noise(raw, cov, iir_filter, random_state)
+    if n_samples is not None:
+        raw.crop(0, (n_samples - 1.) / raw.info['sfreq'])
     raw.set_annotations(raw.annotations)
     raw.verbose = raw_verbose
     logger.info('Done')
@@ -618,6 +637,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     _log_ch('%s simulated and trace' % kind, info, ch)
     del ch, nn, noise
 
+    used = np.zeros(len(raw.times), bool)
     for fi, fwd in enumerate(_iter_forward_solutions(
             info, trans, src, bem, dev_head_ts, 0.005, n_jobs, None,
             picks)):
@@ -633,10 +653,14 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         interper['fwd'] = fwd
         if fi == 0:
             continue
-        start, stop = offsets[fi - 1:fi + 1]
-        interper.n_samp = stop - start
+        start = offsets[fi - 1]
+        stop = None if fi == len(offsets) else offsets[fi]
+        interper.n_samp = (stop or np.inf) - start
         interper.interpolate('fwd', exg_data[:, start:stop],
                              data[:, start:stop], picks)
+        assert not used[start:stop].any()
+        used[start:stop] = True
+    assert used.all()
 
 
 @verbose
@@ -682,6 +706,8 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     info = pick_info(info, meg_picks)
     info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     megcoils, _, _, _ = _prep_meg_channels(info, ignore_ref=False)
+    used = np.zeros(len(raw.times), bool)
+    dev_head_ts.append(dev_head_ts[-1])  # ZOH after time ends
     for fi, dev_head_t in enumerate(dev_head_ts):
         _transform_orig_meg_coils(megcoils, dev_head_t)
         fwd = _magnetic_dipole_field_vec(hpi_rrs, megcoils).T
@@ -691,29 +717,15 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
         interper['fwd'] = fwd
         if fi == 0:
             continue
-        start, stop = offsets[fi - 1:fi + 1]
-        interper.n_samp = stop - start
+        start = offsets[fi - 1]
+        stop = None if fi == len(offsets) else offsets[fi]
+        interper.n_samp = (stop or np.inf) - start
         interper.interpolate('fwd', sinusoids[:, start:stop],
                              data[:, start:stop], meg_picks)
+        assert not used[start:stop].any()
+        used[start:stop] = True
+    assert used.all()
     return raw
-
-
-def _check_next(stc_enum, stc_counted=None, info=None,
-                this_stop=None, last_stop=None):
-    try:
-        stc_counted = next(stc_enum)
-    except StopIteration:
-        if info is not None:
-            extra = (' for the interval [%0.3f, %0.3f]'
-                     % (this_stop / info['sfreq'],
-                        (last_stop - 1) / info['sfreq']))
-        else:
-            extra = ''
-        stc_counted = [-1] if stc_counted is None else stc_counted
-        raise RuntimeError(
-            'Iterable did not provide stc[%d] (or more) needed'
-            ' to simulate data%s' % (stc_counted[0] + 1, extra))
-    return stc_counted
 
 
 def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):

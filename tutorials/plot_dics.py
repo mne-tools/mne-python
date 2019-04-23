@@ -27,7 +27,7 @@ from mayavi import mlab
 from matplotlib import pyplot as plt
 
 import mne
-from mne.simulation import simulate_raw
+from mne.simulation import simulate_raw, add_noise
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.time_frequency import csd_morlet
@@ -175,9 +175,8 @@ cov['data'] *= (20. / snr) ** 2  # Scale the noise to achieve the desired SNR
 stcs = [(stc_signal, unit_impulse(n_samp, dtype=int) * 1),
         (stc_noise, unit_impulse(n_samp, dtype=int) * 2)]  # stacked in time
 duration = (len(stc_signal.times) * 2) / sfreq
-raw = simulate_raw(info, stcs, trans_fname, src_fname, bem_fname, cov=cov,
-                   random_state=rand, iir_filter=[4, -4, 0.8],
-                   duration=duration)
+raw = simulate_raw(info, stcs, trans_fname, src_fname, bem_fname)
+add_noise(raw, cov, iir_filter=[4, -4, 0.8], random_state=rand)
 
 
 ###############################################################################

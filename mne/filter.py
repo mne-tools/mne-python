@@ -2255,7 +2255,7 @@ class _Interp2(object):
                              % (known_types, interp))
         self._interp = interp
         if self.n_samp is not None:
-            if self._interp == 'zero':
+            if self._interp == 'zero' or np.isinf(self.n_samp):  # ZOH
                 self._interpolators = None
             else:
                 if self._interp == 'linear':
@@ -2266,16 +2266,16 @@ class _Interp2(object):
                     interp = np.hanning(self.n_samp * 2 + 1)[self.n_samp:-1]
                 self._interpolators = np.array([interp, 1 - interp])
 
-    def interpolate(self, key, data, out, picks=None, time_sl=None):
+    def interpolate(self, key, data, out, picks=None, interp_sl=None):
         """Interpolate."""
         picks = slice(None) if picks is None else picks
-        time_sl = slice(None) if time_sl is None else time_sl
+        interp_sl = slice(None) if interp_sl is None else interp_sl
         # Process data in large chunks to save on memory
         this_data = np.dot(self._last[key], data)
         if self._interpolators is not None:
-            this_data *= self._interpolators[0][time_sl]
-        out[picks, time_sl] += this_data
+            this_data *= self._interpolators[0][interp_sl]
+        out[picks, ] += this_data
         if self._interpolators is not None:
             this_data = np.dot(self._current[key], data)
-            this_data *= self._interpolators[1][time_sl]
-            out[picks, time_sl] += this_data
+            this_data *= self._interpolators[1][interp_sl]
+            out[picks, :] += this_data
