@@ -414,14 +414,15 @@ sphinx_gallery_conf = {
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml')
 }
 
+build_dev_html = False
 if not build_dev_html:
     sphinx_gallery_conf.update({
-        'binder': {'org': 'mne-tools',
+        'binder': {'org': 'jasmainak',
                    'repo': 'mne-tools.github.io',
                    'branch': 'master',
                    'binderhub_url': 'https://mybinder.org',
-                   'notebooks_dir': 'notebooks',
-                   'dependencies': './Dockerfile'}
+                   'notebooks_dir': 'stable/notebooks',
+                   'dependencies': 'binder/Dockerfile'}
     })
 
 ##############################################################################
