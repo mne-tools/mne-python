@@ -1817,7 +1817,7 @@ def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
     if ci_fun is not None:
         return data, ci
     else:
-        return data
+        return data,
 
 
 def _get_ci_function_for_evokeds(ci):
