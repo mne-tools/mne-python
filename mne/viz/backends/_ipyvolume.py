@@ -49,29 +49,12 @@ class _Renderer(object):
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
+        pass
         # stub
         # there is no quick way to plot a contour with ipyvolume
         # what is vmin, vmax for?
         # opacity should be intergrated into colors, no other way for ipv
         # what is contours, line_width for?
-        from matplotlib import cm
-        from matplotlib.colors import ListedColormap
-
-        if colormap is None:
-            cmap = cm.get_cmap('coolwarm')
-        else:
-            cmap = ListedColormap(colormap / 255.0)
-
-        vertices = np.array(surface['rr'])
-        x = vertices[:, 0]
-        y = vertices[:, 1]
-        z = vertices[:, 2]
-        triangles = np.array(surface['tris'])
-        color = cmap(scalars)
-        color = np.append(color, opacity)
-
-        mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        _add_transperent_material(mesh)        
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
@@ -93,7 +76,12 @@ class _Renderer(object):
         triangles = np.array(surface['tris'])
 
         if scalars is not None:
-            color = cmap(scalars)
+            if vmin is None:
+                vmin = min(scalars)
+            if vmax is None:
+                vmax = max(scalars)
+            nscalars = (scalars - vmin) / (vmax - vmin)
+            color = cmap(nscalars)
         else:
             color = np.append(color, opacity)
 
