@@ -41,7 +41,7 @@ epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks)
 
 # Get the stim channel data
 pick_ch = mne.pick_channels(epochs.ch_names, ['STI 014'])[0]
-data = epochs.get_data()[:, pick_ch, :].astype(int)
+data = epochs.get_data(picks=pick_ch).astype(int)
 data = np.sum((data.astype(int) & 512) == 512, axis=0)
 
 ###############################################################################

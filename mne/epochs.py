@@ -1241,6 +1241,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
+        %(picks_all)s
         """
         return self._get_data(picks=picks)
 

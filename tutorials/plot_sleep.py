@@ -221,7 +221,8 @@ def eeg_power_band(epochs):
     EEG_CHANNELS = ["EEG Fpz-Cz", "EEG Pz-Oz"]
 
     sfreq = epochs.info['sfreq']
-    data = epochs.load_data().pick_channels(EEG_CHANNELS).get_data()
+    picks = [epochs.ch_names.index(ch) for ch in EEG_CHANNELS]
+    data = epochs.get_data(picks=picks)
     psds, freqs = psd_array_welch(data, sfreq, fmin=0.5, fmax=30.,
                                   n_fft=512, n_overlap=256)
     # Normalize the PSDs
