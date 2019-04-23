@@ -10,8 +10,8 @@ NumPy arrays or Pandas DataFrames.
 """
 
 ###############################################################################
-# As always we'll start by importing the modules we need, and loading some
-# example data:
+# As before, we'll start by importing the modules we need, loading some
+# example data, and cropping it to save on memory:
 
 import os
 import numpy as np
@@ -20,7 +20,8 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
+raw = mne.io.read_raw_fif(sample_data_raw_file, preload=False, verbose=False)
+raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # :class:`~mne.io.Raw` objects have a built-in :meth:`~mne.io.Raw.save` method,

@@ -13,8 +13,8 @@ projectors from Raw objects, and the difference between "applied" and
 """
 
 ###############################################################################
-# As usual we'll start by importing the modules we need, and loading some
-# example data:
+# As usual we'll start by importing the modules we need, loading some
+# example data, and cropping it to save on memory:
 
 import os
 import matplotlib.pyplot as plt
@@ -23,7 +23,8 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
+raw = mne.io.read_raw_fif(sample_data_raw_file)
+raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # In our example data, :ref:`SSP <ssp-tutorial>` has already been performed

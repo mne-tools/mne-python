@@ -13,7 +13,9 @@ Raw.plot_psd().
 
 ###############################################################################
 # As always we'll start by importing the modules we need, and loading some
-# example data:
+# example data; this time we'll crop the :class:`~mne.io.Raw` object to 60
+# seconds before loading the data into memory, just to speed up performance on
+# the tutorial.
 
 import os
 import mne
@@ -21,7 +23,8 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
+raw = mne.io.read_raw_fif(sample_data_raw_file, preload=False, verbose=False)
+raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # We've seen in :ref:`a previous tutorial <subselecting-raw-tutorial>` how to

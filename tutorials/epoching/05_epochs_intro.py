@@ -52,7 +52,7 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
+raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 
 ###############################################################################
 # As we saw in the :ref:`events-tutorial` tutorial, we can extract an events
@@ -84,9 +84,10 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # :class:`mne.Epochs` class constructor. However, you will almost surely want
 # to change some of the other default parameters. Here we'll change ``tmin``
 # and ``tmax`` (the time relative to each event at which to start and end each
-# epoch):
+# epoch); since we didn't preload the :class:`~mne.io.Raw` data, we'll tell the
+# :class:`~mne.Epochs` constructor to load the epoched data into memory:
 
-epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7)
+epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, preload=True)
 
 ###############################################################################
 # You'll see from the output that:

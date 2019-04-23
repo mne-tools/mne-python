@@ -20,7 +20,7 @@ movement artifacts or environmental noise.
 # how to use dedicated ECG or EOG sensors for heartbeat and eyeblink artifact
 # removal, and see how to use regular EEG/MEG sensor channels when ECG or EOG
 # sensors are not available. As usual we'll start by importing the modules we
-# need, and loading some example data:
+# need, loading some example data, and cropping it to save on memory:
 
 import os
 import numpy as np
@@ -30,7 +30,8 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
+raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
+raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # SSP projectors from empty room data
