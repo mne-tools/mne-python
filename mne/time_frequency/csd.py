@@ -295,7 +295,7 @@ class CrossSpectralDensity(object):
 
         return self[index]
 
-    def get_data(self, frequency=None, index=None):
+    def get_data(self, frequency=None, index=None, as_cov=False):
         """Get the CSD matrix for a given frequency as NumPy array.
 
         If there is only one matrix defined in the CSD object, calling this
@@ -311,10 +311,13 @@ class CrossSpectralDensity(object):
         index : int | None
             Return the CSD matrix for the frequency or frequency-bin with the
             given index.
+        as_cov : bool
+            Whether to return the data as a numpy array (`False`, the default),
+            or pack it in a :class:`mne.Covariance` object (`True`).
 
         Returns
         -------
-        csd : ndarray, shape (n_channels, n_channels)
+        csd : ndarray, shape (n_channels, n_channels) | instance of Covariance
             The CSD matrix corresponding to the requested frequency.
 
         See Also
@@ -332,7 +335,15 @@ class CrossSpectralDensity(object):
                 raise ValueError('Cannot specify both a frequency and index.')
             index = self._get_frequency_index(frequency)
 
-        return _vector_to_sym_mat(self._data[:, index])
+        data = _vector_to_sym_mat(self._data[:, index])
+        if as_cov:
+            # Pack the data into a Covariance object
+            from ..cov import Covariance  # to avoid circular import
+            return Covariance(data, self.ch_names, bads=[], projs=self.projs,
+                              nfree=self.n_fft)
+            return None
+        else:
+            return data
 
     @copy_function_doc_to_method_doc(plot_csd)
     def plot(self, info=None, mode='csd', colorbar=True, cmap='viridis',

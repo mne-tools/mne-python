@@ -21,8 +21,8 @@ from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
 
 
 @verbose
-def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              rank=None, inversion='single', weight_norm=None,
+def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
+              pick_ori=None, rank=None, inversion='single', weight_norm=None,
               normalize_fwd=True, real_filter=False, reduce_rank=False,
               verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
@@ -48,6 +48,12 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     reg : float
         The regularization to apply to the cross-spectral density before
         computing the inverse.
+    noise_csd : instance of CrossSpectralDensity | None
+        Noise cross-spectral density (CSD) matrices. If provided, whitening
+        will be done. The noise CSDs need to have been computed for the same
+        frequencies as the data CSDs. Providing noise CSDs is mandatory if you
+        mix sensor types, e.g.  gradiometers with magnetometers or EEG with
+        MEG.
     label : Label | None
         Restricts the solution to a given label.
     pick_ori : None | 'normal' | 'max-power'
@@ -218,15 +224,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         exp = None  # turn off depth weighting entirely
         combine_xyz = False
 
-    _check_one_ch_type('dics', info, forward)
+    _check_one_ch_type('dics', info, forward, csd, noise_csd)
 
     # pick info, get gain matrix, etc.
-    _, info, proj, vertices, G, _, nn, orient_std = _prepare_beamformer_input(
-        info, forward, label, pick_ori,
-        combine_xyz=combine_xyz, exp=exp)
     subject = _subject_from_forward(forward)
-    src_type = _get_src_type(forward['src'], vertices)
-    del forward
     ch_names = list(info['ch_names'])
 
     csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
@@ -239,6 +240,14 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                         (freq, i + 1, n_freqs))
 
         Cm = csd.get_data(index=i)
+        if noise_csd is not None:
+            noise_csd_freq = noise_csd.get_data(index=i, as_cov=True)
+        else:
+            noise_csd_freq = None
+
+        _, _, proj, vertices, G, _, nn, orient_std = _prepare_beamformer_input(
+            info, forward, label, pick_ori, noise_cov=noise_csd_freq,
+            combine_xyz=combine_xyz, exp=exp)
 
         if real_filter:
             Cm = Cm.real
@@ -254,6 +263,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     Ws = np.array(Ws)
 
+    src_type = _get_src_type(forward['src'], vertices)
     filters = Beamformer(
         kind='DICS', weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
         vertices=vertices, subject=subject, pick_ori=pick_ori,
