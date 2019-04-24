@@ -1,6 +1,4 @@
-"""
-Core visualization operations based on ipyvolume.
-"""
+"""Core visualization operations based on ipyvolume."""
 
 from .brain import Brain
 from .view import TimeViewer

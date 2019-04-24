@@ -1,13 +1,18 @@
-import ipyvolume as ipv
-import ipywidgets as widgets
+import warnings
+
 import numpy as np
-from pythreejs import (BlendFactors, BlendingMode, Equations, ShaderMaterial,
-                       Side)
 from surfer.utils import mesh_edges, smoothing_matrix
 
-from .colormap import _calculate_lut
-from .view import views_dict, ColorBar
-from .surface import Surface
+with warnings.catch_warnings():  # catch the ipyvolume warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import ipyvolume as ipv
+    import ipywidgets as widgets
+    from pythreejs import (BlendFactors, BlendingMode, Equations,
+                           ShaderMaterial, Side)
+
+    from .colormap import _calculate_lut
+    from .view import views_dict, ColorBar
+    from .surface import Surface
 
 
 class Brain(object):
@@ -361,8 +366,8 @@ class Brain(object):
                                  % (len(act_data), self.geo[hemi].x.shape[0]))
             adj_mat = mesh_edges(self.geo[hemi].faces)
             smooth_mat = smoothing_matrix(vertices,
-                                           adj_mat,
-                                           smoothing_steps)
+                                          adj_mat,
+                                          smoothing_steps)
             act_data = smooth_mat.dot(act_data)
             self._data[hemi + '_smooth_mat'] = smooth_mat
         else:

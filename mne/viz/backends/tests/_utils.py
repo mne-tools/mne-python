@@ -18,10 +18,11 @@ def has_not_mayavi():
     except ImportError:
         return True
 
+
 def has_not_ipyvolume():
     """Check that ipyvolume is not installed."""
     try:
-        import ipyvolume
+        import ipyvolume # noqa F401
         return False
     except ImportError:
         return True
