@@ -1239,11 +1239,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def get_data(self, picks=None):
         """Get all epochs as a 3D array.
 
+        Parameters
+        ----------
+        %(picks_all)s
+
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
-        %(picks_all)s
         """
         return self._get_data(picks=picks)
 
