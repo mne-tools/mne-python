@@ -22,8 +22,7 @@ from mne.bem import _surfaces_to_bem
 from mne.chpi import _calculate_chpi_positions, read_head_pos, _get_hpi_info
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
-from mne.simulation import (simulate_sparse_stc, simulate_raw,
-                            add_blink, add_ecg)
+from mne.simulation import simulate_sparse_stc, simulate_raw, add_eog, add_ecg
 from mne.source_space import _compare_source_spaces
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
@@ -304,7 +303,7 @@ def test_simulate_raw_sphere(raw_data, tmpdir):
         raw_sim_meeg = simulate_raw(raw.copy().pick_types(meg=True, eeg=True),
                                     stc, trans, src, sphere, cov=None)
     for this_raw in (raw_sim_meg, raw_sim_eeg, raw_sim_meeg):
-        add_blink(this_raw, random_state=seed)
+        add_eog(this_raw, random_state=seed)
     for this_raw in (raw_sim_meg, raw_sim_meeg):
         add_ecg(this_raw, random_state=seed)
     with pytest.raises(RuntimeError, match='only add ECG artifacts if MEG'):
@@ -387,7 +386,7 @@ def test_degenerate(raw_data):
         with pytest.deprecated_call():
             simulate_raw(raw_bad, stc, trans, src, sphere, blink=True)
     with pytest.raises(RuntimeError, match='Cannot fit headshape'):
-        add_blink(raw_bad)
+        add_eog(raw_bad)
 
 
 @pytest.mark.slowtest

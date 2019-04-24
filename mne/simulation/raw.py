@@ -194,7 +194,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         matrix will be generated with the values specified by the dict entries.
         If None, no noise will be added.
     blink : bool
-        Deprecated and will be removed in 0.19, use :func:`add_blink` instead.
+        Deprecated and will be removed in 0.19, use :func:`add_eog` instead.
         If true, add simulated blink artifacts. See Notes for details.
     ecg : bool
         Deprecated and will be removed in 0.19, use :func:`add_ecg` instead.
@@ -216,7 +216,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
     %(n_jobs)s
     random_state : int | None
       Deprecated and will be removed in 0.19. Use dedicated noise-generation
-      functions :func:`add_noise`, :func:`add_ecg`, and :func:`add_blink`
+      functions :func:`add_noise`, :func:`add_ecg`, and :func:`add_eog`
       instead.
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
@@ -249,10 +249,10 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
     See Also
     --------
     mne.chpi.read_head_pos
-    add_noise
-    add_blink
-    add_ecg
     add_chpi
+    add_noise
+    add_ecg
+    add_eog
     simulate_evoked
     simulate_stc
     simulate_sparse_stc
@@ -335,7 +335,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         src = forward['src']
 
     if blink is not None:
-        warn('blink is deprecated and will be removed in 0.19, use add_blink '
+        warn('blink is deprecated and will be removed in 0.19, use add_eog '
              'instead', DeprecationWarning)
     if ecg is not None:
         warn('ecg is deprecated and will be removed in 0.19, use add_ecg '
@@ -445,7 +445,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     if blink:
-        add_blink(raw, head_pos, interp, n_jobs, random_state)
+        add_eog(raw, head_pos, interp, n_jobs, random_state)
     if ecg:
         add_ecg(raw, head_pos, interp, n_jobs, random_state)
     if chpi:
@@ -461,8 +461,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
 
 
 @verbose
-def add_blink(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
-              verbose=None):
+def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
+            verbose=None):
     """Add blink noise to raw data.
 
     Parameters
@@ -482,9 +482,9 @@ def add_blink(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
 
     See Also
     --------
-    add_noise
-    add_blink
     add_chpi
+    add_ecg
+    add_noise
     simulate_raw
 
     Notes
@@ -535,9 +535,9 @@ def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
 
     See Also
     --------
-    add_noise
-    add_blink
     add_chpi
+    add_eog
+    add_noise
     simulate_raw
 
     Notes

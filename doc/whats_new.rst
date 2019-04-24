@@ -177,7 +177,7 @@ Bug
 API
 ~~~
 
-- Deprecate ``cov, iir_params, blink, ecg, chpi, random_state`` and support for :class:`mne.io.Raw` instance inputs in :func:`mne.simulation.simulate_raw`; use :func:`mne.simulation.add_noise`, :func:`mne.simulation.add_ecg`, :func:`mne.simulation.add_blink`, and :func:`mne.simulation.add_chpi` by `Eric Larson`_
+- Deprecate ``cov, iir_params, blink, ecg, chpi, random_state`` and support for :class:`mne.io.Raw` instance inputs in :func:`mne.simulation.simulate_raw`; use :func:`mne.simulation.add_noise`, :func:`mne.simulation.add_ecg`, :func:`mne.simulation.add_eog`, and :func:`mne.simulation.add_chpi` by `Eric Larson`_
 
 - Add ``overwrite`` parameter in :func:`mne.Epochs.save` by `Katarina Slama`_
 

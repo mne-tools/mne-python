@@ -19,7 +19,7 @@ import mne
 from mne import find_events, Epochs, compute_covariance, make_ad_hoc_cov
 from mne.datasets import sample
 from mne.simulation import (simulate_sparse_stc, simulate_raw,
-                            add_noise, add_ecg, add_blink)
+                            add_noise, add_ecg, add_eog)
 
 print(__doc__)
 
@@ -71,7 +71,7 @@ raw_sim = simulate_raw(raw.info, [stc] * 10, forward=fwd, cov=None,
 cov = make_ad_hoc_cov(raw_sim.info)
 add_noise(raw_sim, cov, iir_filter=[0.2, -0.2, 0.04], random_state=rng)
 add_ecg(raw_sim, random_state=rng)
-add_blink(raw_sim, random_state=rng)
+add_eog(raw_sim, random_state=rng)
 raw_sim.plot()
 
 ##############################################################################
