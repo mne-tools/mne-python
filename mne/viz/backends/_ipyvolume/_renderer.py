@@ -1,9 +1,3 @@
-"""
-Core visualization operations based on ipyvolume.
-
-Actual implementation of _Renderer and _Projection classes.
-"""
-
 import ipyvolume as ipv
 import numpy as np
 from pythreejs import (BlendFactors, BlendingMode, Equations, ShaderMaterial,
@@ -14,13 +8,8 @@ class _Renderer(object):
     """Ipyvolume-based rendering."""
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="Ipyvolume Scene", show=False):
-        # why do I need to check for it?
-        from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
         self.name = name
-
-        if MNE_3D_BACKEND_TEST_DATA:
-            self.off_screen = True
 
         if fig is None:
             fig_w, fig_h = size
@@ -31,15 +20,13 @@ class _Renderer(object):
             bgcolor = tuple(int(c) for c in bgcolor)
             ipv.style.background_color('#%02x%02x%02x' % bgcolor)
         else:
-            # not sure this is the exact behavior, needs a thorough look
             self.plotter = ipv.figure(key=fig)
 
     def scene(self):
         return self.plotter
 
     def set_interactive(self):
-        # what is this for?
-        #self.plotter.enable_terrain_style()
+        # should be implemented later
         pass
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
@@ -89,8 +76,6 @@ class _Renderer(object):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False):
-        # what is vmin, vmax for?
-        # should we use ipv.plot_surface?
         from matplotlib import cm
         from matplotlib.colors import ListedColormap
 
@@ -165,36 +150,22 @@ class _Renderer(object):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
-        # possible geo/marker values
-        # this.geos = {
-        #     diamond: this.geo_diamond,
-        #     box: this.geo_box,
-        #     arrow: this.geo_arrow,
-        #     sphere: this.geo_sphere,
-        #     cat: this.geo_cat,
-        #     square_2d: this.geo_square_2d,
-        #     point_2d: this.geo_point_2d,
-        #     circle_2d: this.geo_circle_2d,
-        #     triangle_2d: this.geo_triangle_2d
-        # }
+        # Ipyvolume supports these geo/marker values: diamond, box, arrow, sphere,
+        # cat, square_2d, point_2d, circle_2d, triangle_2d
         color = np.append(color, opacity)
         scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color)
         _add_transperent_material(scatter)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+        # Ipyvolume does not support text addition to the plot
         pass
-        # how to add text in ipyvolume/pythreejs?
-        # self.plotter.add_text(text, position=(x, y),
-        #                       font_size=int(width * 100),
-        #                       color=color)
 
     def show(self):
         ipv.show()
 
     def close(self):
-        pass
-        # ???
-        # self.plotter.close()
+        # clear current figure and container
+        ipv.clear()
 
     def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
                    focalpoint=(0, 0, 0)):
