@@ -1646,14 +1646,6 @@ def _plot_onkey(event, params):
         params['data'] = np.zeros((len(params['data']), params['duration']))
         params['plot_update_proj_callback'](params)
     elif event.key == 'b':
-# =============================================================================
-#         if params['butterfly'] == True:
-#             n_channels = params['n_channels']
-#             ylim = params['ax'].get_ylim()
-#             offset = ylim[0] / n_channels
-#             params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-#             params['ax'].set_yticks(params['offsets'])
-# =============================================================================
         params['butterfly'] = not params['butterfly']
         if params['fig_options'] is not None:
             plt.close(params['fig_options'])
@@ -1700,7 +1692,7 @@ def _prepare_butterfly(params):
         for idx, (ch_type, unit) in enumerate(units.items()):
             if ch_type in chantypes:
                 pos = (0, 1 - (ticks[2+4*used_types] / ax.get_ylim()[0]))
-                params['ax2'].annotate(unit, xy=pos, xytext=(-70, 0),
+                params['ax2'].annotate('%s (%s)' % (ch_type, unit), xy=pos, xytext=(-70, 0),
                                        ha='left', size=12, va='center',
                                        xycoords='axes fraction', rotation=90,
                                        textcoords='offset points')
