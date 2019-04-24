@@ -2512,7 +2512,7 @@ def select_sources(subject, label, location='center', extent=0,
 
     # Restrict the new label to the vertices of the input label if needed.
     if not grow_outside:
-        to_keep = np.isin(new_label.vertices, label.vertices)
+        to_keep = np.array([v in label.vertices for v in new_label.vertices])
         new_label = Label(new_label.vertices[to_keep], new_label.pos[to_keep],
                           hemi=new_label.hemi, name=name, subject=subject)
 
