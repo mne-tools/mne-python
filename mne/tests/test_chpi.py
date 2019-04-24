@@ -9,8 +9,7 @@ from numpy.testing import assert_allclose
 from scipy.interpolate import interp1d
 import pytest
 
-from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
-                 pick_info)
+from mne import pick_types, pick_info
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray)
 from mne.io.constants import FIFF
@@ -19,7 +18,7 @@ from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
                       read_head_pos, write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
 from mne.transforms import rot_to_quat, _angle_between_quats
-from mne.simulation import simulate_raw
+from mne.simulation import add_chpi
 from mne.utils import run_tests_if_main, catch_logging, assert_meg_snr
 from mne.datasets import testing
 
@@ -295,14 +294,15 @@ def test_simulate_calculate_chpi_positions():
     ez = np.array([0, 0, 1])  # Unit vector in z-direction of head coordinates
 
     # Define some constants
-    duration = 30  # Time / s
+    duration = 10  # Time / s
 
     # Quotient of head position sampling frequency
     # and raw sampling frequency
-    head_pos_sfreq_quotient = 0.1
+    head_pos_sfreq_quotient = 0.01
 
     # Round number of head positions to the next integer
-    S = int(duration / (info['sfreq'] * head_pos_sfreq_quotient))
+    S = int(duration * info['sfreq'] * head_pos_sfreq_quotient)
+    assert S == 10
     dz = 0.001  # Shift in z-direction is 0.1mm for each step
 
     dev_head_pos = np.zeros((S, 10))
@@ -318,21 +318,7 @@ def test_simulate_calculate_chpi_positions():
     # Round number of samples to the next integer
     raw_data = np.zeros((len(picks), int(duration * info['sfreq'] + 0.5)))
     raw = RawArray(raw_data, info)
-
-    dip = Dipole(np.array([0.0, 0.1, 0.2]),
-                 np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]),
-                 np.array([1e-9, 1e-9, 1e-9]),
-                 np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]),
-                 np.array([1.0, 1.0, 1.0]), 'dip')
-    sphere = make_sphere_model('auto', 'auto', info=info,
-                               relative_radii=(1.0, 0.9), sigmas=(0.33, 0.3))
-    fwd, stc = make_forward_dipole(dip, sphere, info)
-    stc.resample(info['sfreq'])
-    raw = simulate_raw(raw, stc, None, fwd['src'], sphere, cov=None,
-                       blink=False, ecg=False, chpi=True,
-                       head_pos=dev_head_pos, mindist=1.0, interp='zero',
-                       verbose=None, use_cps=True)
-
+    add_chpi(raw, dev_head_pos)
     quats = _calculate_chpi_positions(
         raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,
         t_step_max=raw.info['sfreq'] * head_pos_sfreq_quotient, t_window=1.0)

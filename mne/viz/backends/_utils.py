@@ -11,7 +11,7 @@ from ...utils import get_config
 from ...utils.check import _check_option
 
 DEFAULT_3D_BACKEND = 'mayavi'
-VALID_3D_BACKENDS = ['mayavi']
+VALID_3D_BACKENDS = ['mayavi', 'vtki']
 
 
 def _get_backend_based_on_env_and_defaults():
