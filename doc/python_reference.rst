@@ -903,7 +903,7 @@ Simulation
    simulate_stc
    simulate_sparse_stc
    select_source_in_label
-
+   SourceSimulator
 
 .. _api_decoding:
 
