@@ -22,8 +22,6 @@ data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
-rng = np.random.RandomState(1337)
-
 tmin, tmax = -0.1, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
@@ -32,6 +30,8 @@ raw = io.read_raw_fif(raw_fname, preload=True)
 picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                    eog=False, exclude='bads')
 picks = picks[:2]
+
+n_jobs_test = (1, 'cuda')
 
 
 def test_compute_reg_neighbors():
@@ -147,17 +147,20 @@ def test_time_delay():
                     assert_array_equal(X_delayed[:ii, :, idx], 0.)
 
 
+@pytest.mark.parametrize('n_jobs', n_jobs_test)
 @requires_version('sklearn', '0.17')
-def test_receptive_field():
+def test_receptive_field(n_jobs):
     """Test model prep and fitting."""
     from sklearn.linear_model import Ridge
     # Make sure estimator pulling works
     mod = Ridge()
+    rng = np.random.RandomState(1337)
 
     # Test the receptive field model
     # Define parameters for the model and simulate inputs + weights
     tmin, tmax = -10., 0
     n_feats = 3
+    rng = np.random.RandomState(0)
     X = rng.randn(10000, n_feats)
     w = rng.randn(int((tmax - tmin) + 1) * n_feats)
 
@@ -177,7 +180,7 @@ def test_receptive_field():
     assert_allclose(y[rf.valid_samples_], y_pred[rf.valid_samples_], atol=1e-2)
     scores = rf.score(X, y)
     assert scores > .99
-    assert_allclose(rf.coef_.T.ravel(), w, atol=1e-2)
+    assert_allclose(rf.coef_.T.ravel(), w, atol=1e-3)
     # Make sure different input shapes work
     rf.fit(X[:, np.newaxis:, ], y[:, np.newaxis])
     rf.fit(X, y[:, np.newaxis])
@@ -232,7 +235,8 @@ def test_receptive_field():
     pytest.raises(ValueError, rf.fit, X, y)
 
 
-def test_time_delaying_fast_calc():
+@pytest.mark.parametrize('n_jobs', n_jobs_test)
+def test_time_delaying_fast_calc(n_jobs):
     """Test time delaying and fast calculations."""
     X = np.array([[1, 2, 3], [5, 7, 11]]).T
     # all negative
@@ -323,7 +327,7 @@ def test_time_delaying_fast_calc():
                 kernel = rng.randn(smax - smin + 1)
                 kernel -= np.mean(kernel)
                 y[:, ii % y.shape[-1]] = np.convolve(X[:, ii], kernel, 'same')
-            x_xt, x_yt, n_ch_x = _compute_corrs(X, y, smin, smax + 1)
+            x_xt, x_yt, n_ch_x, _, _ = _compute_corrs(X, y, smin, smax + 1)
             X_del = _delay_time_series(X, smin, smax, 1., fill_mean=False)
             x_yt_true = einsum('tfd,to->ofd', X_del, y)
             x_yt_true = np.reshape(x_yt_true, (x_yt_true.shape[0], -1)).T
@@ -333,8 +337,9 @@ def test_time_delaying_fast_calc():
             assert_allclose(x_xt, x_xt_true, atol=1e-7, err_msg=(smin, smax))
 
 
+@pytest.mark.parametrize('n_jobs', n_jobs_test)
 @requires_version('sklearn', '0.17')
-def test_receptive_field_1d():
+def test_receptive_field_1d(n_jobs):
     """Test that the fast solving works like Ridge."""
     from sklearn.linear_model import Ridge
     rng = np.random.RandomState(0)
@@ -353,13 +358,15 @@ def test_receptive_field_1d():
         for ndim in (1, 2):
             y.shape = (y.shape[0],) + (1,) * (ndim - 1)
             for slim in slims:
-                lap = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'laplacian',
-                                        fit_intercept=False)
+                smin, smax = slim
+                lap = TimeDelayingRidge(smin, smax, 1., 0.1, 'laplacian',
+                                        fit_intercept=False, n_jobs=n_jobs)
                 for estimator in (Ridge(alpha=0.), Ridge(alpha=0.1), 0., 0.1,
                                   lap):
                     for offset in (-100, 0, 100):
-                        model = ReceptiveField(slim[0], slim[1], 1.,
-                                               estimator=estimator)
+                        model = ReceptiveField(smin, smax, 1.,
+                                               estimator=estimator,
+                                               n_jobs=n_jobs)
                         use_x = x + offset
                         model.fit(use_x, y)
                         if estimator is lap:
@@ -367,7 +374,7 @@ def test_receptive_field_1d():
                         assert_allclose(model.estimator_.intercept_, -offset,
                                         atol=1e-1)
                         assert_array_equal(model.delays_,
-                                           np.arange(slim[0], slim[1] + 1))
+                                           np.arange(smin, smax + 1))
                         expected = (model.delays_ == delay).astype(float)
                         expected = expected[np.newaxis]  # features
                         if y.ndim == 2:
@@ -384,14 +391,16 @@ def test_receptive_field_1d():
                         assert score > 0.9999
 
 
+@pytest.mark.parametrize('n_jobs', n_jobs_test)
 @requires_version('sklearn', '0.17')
-def test_receptive_field_nd():
+def test_receptive_field_nd(n_jobs):
     """Test multidimensional support."""
     from sklearn.linear_model import Ridge
     # multidimensional
+    rng = np.random.RandomState(3)
     x = rng.randn(1000, 3)
     y = np.zeros((1000, 2))
-    slim = [0, 5]
+    smin, smax = 0, 5
     # This is a weird assignment, but it's just a way to distribute some
     # unique values at various delays, and "expected" explains how they
     # should appear in the resulting RF
@@ -408,28 +417,34 @@ def test_receptive_field_nd():
          [0, -1, 0, 0, 0, 0],
          [0, 0, 0, 0, 0, 0]],
     ]
-    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'laplacian')
-    for estimator in (Ridge(alpha=0.), 0., 0.01, tdr):
-        model = ReceptiveField(slim[0], slim[1], 1.,
+    tdr_l = TimeDelayingRidge(smin, smax, 1., 0.1, 'laplacian', n_jobs=n_jobs)
+    tdr_nc = TimeDelayingRidge(smin, smax, 1., 0.1, n_jobs=n_jobs,
+                               edge_correction=False)
+    for estimator, atol in zip((Ridge(alpha=0.), 0., 0.01, tdr_l, tdr_nc),
+                               (1e-3, 1e-3, 1e-3, 5e-3, 5e-2)):
+        model = ReceptiveField(smin, smax, 1.,
                                estimator=estimator)
         model.fit(x, y)
         assert_array_equal(model.delays_,
-                           np.arange(slim[0], slim[1] + 1))
-        assert_allclose(model.coef_, expected, atol=1e-1)
-    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type='foo')
-    model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
+                           np.arange(smin, smax + 1))
+        assert_allclose(model.coef_, expected, atol=atol)
+    tdr = TimeDelayingRidge(smin, smax, 1., 0.01, reg_type='foo',
+                            n_jobs=n_jobs)
+    model = ReceptiveField(smin, smax, 1., estimator=tdr)
     pytest.raises(ValueError, model.fit, x, y)
-    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type=['laplacian'])
-    model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
+    tdr = TimeDelayingRidge(smin, smax, 1., 0.01, reg_type=['laplacian'],
+                            n_jobs=n_jobs)
+    model = ReceptiveField(smin, smax, 1., estimator=tdr)
     pytest.raises(ValueError, model.fit, x, y)
 
     # Now check the intercept_
-    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.)
-    tdr_no = TimeDelayingRidge(slim[0], slim[1], 1., 0., fit_intercept=False)
+    tdr = TimeDelayingRidge(smin, smax, 1., 0., n_jobs=n_jobs)
+    tdr_no = TimeDelayingRidge(smin, smax, 1., 0., fit_intercept=False,
+                               n_jobs=n_jobs)
     for estimator in (Ridge(alpha=0.), tdr,
                       Ridge(alpha=0., fit_intercept=False), tdr_no):
         # first with no intercept in the data
-        model = ReceptiveField(slim[0], slim[1], 1., estimator=estimator)
+        model = ReceptiveField(smin, smax, 1., estimator=estimator)
         model.fit(x, y)
         assert_allclose(model.estimator_.intercept_, 0., atol=1e-7,
                         err_msg=repr(estimator))
@@ -466,7 +481,7 @@ def test_receptive_field_nd():
                         atol=ptol, err_msg=repr(estimator))
         score = np.mean(model.score(x_off, y))
         assert score > stol, estimator
-        model = ReceptiveField(slim[0], slim[1], 1., fit_intercept=False)
+        model = ReceptiveField(smin, smax, 1., fit_intercept=False)
         model.fit(x_off, y)
         assert_allclose(model.estimator_.intercept_, 0., atol=1e-7)
         score = np.mean(model.score(x_off, y))
@@ -480,7 +495,7 @@ def test_inverse_coef():
 
     rng = np.random.RandomState(0)
     tmin, tmax = 0., 10.
-    n_feats, n_targets, n_samples = 64, 2, 10000
+    n_feats, n_targets, n_samples = 3, 2, 1000
     n_delays = int((tmax - tmin) + 1)
 
     def make_data(n_feats, n_targets, n_samples, tmin, tmax):
@@ -511,7 +526,7 @@ def test_inverse_coef():
         # we should have np.dot(patterns.T,coef) ~ np.eye(n)
         c0 = rf.coef_.reshape(n_targets, n_feats * n_delays)
         c1 = rf.patterns_.reshape(n_targets, n_feats * n_delays)
-        assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.1)
+        assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.2)
 
     # Check that warnings are issued when no regularization is applied
     n_feats, n_targets, n_samples = 5, 60, 50
