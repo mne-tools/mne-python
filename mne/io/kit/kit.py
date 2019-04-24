@@ -388,12 +388,6 @@ class EpochsKIT(BaseEpochs):
         if isinstance(events, str):
             events = read_events(events)
 
-        self.info = _foo_digitization(info=self.info,
-                                      mrk=mrk,
-                                      elp=elp,
-                                      hsp=hsp,
-                                      )
-
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.info, kit_info = get_kit_info(input_fname, allow_unknown_format)
@@ -427,6 +421,14 @@ class EpochsKIT(BaseEpochs):
             self.info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
+
+        # XXX: This should be unified with kitraw
+        self.info = _foo_digitization(info=self.info,
+                                      mrk=mrk,
+                                      elp=elp,
+                                      hsp=hsp,
+                                      )
+
         logger.info('Ready.')
 
     def _read_kit_data(self):
