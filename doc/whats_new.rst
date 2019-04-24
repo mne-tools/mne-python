@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add ``long_format`` option to :meth:`mne.io.base.ToDataFrameMixin.to_data_frame` by `Denis Engemann`_
+
 - Add example on how to load standard montage :ref:`plot_montage` by `Joan Massich`_
 
 - Add new tutorial on :ref:`plot_eeg_no_mri` by `Alex Gramfort`_, and `Joan Massich`_
