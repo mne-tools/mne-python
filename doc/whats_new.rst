@@ -101,6 +101,8 @@ Changelog
 
 - Add additional depth weighting options for inverse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) by `Eric Larson`_
 
+- Add depth weighting to LCMV beamformers via ``depth`` argument in :func:`mne.beamformer.make_lcmv` by `Eric Larson`_
+
 - Allow toggling of DC removal in :meth:`mne.io.Raw.plot` by pressing the 'd' key by `Clemens Brunner`_
 
 - Improved clicking in :meth:`mne.io.Raw.plot` (left click on trace toggles bad, left click on background sets green line, right click anywhere removes green line) by `Clemens Brunner`_

@@ -63,11 +63,12 @@ docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
 # Inverses
 docdict['depth'] = """
 depth : None | float | dict
+    How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use (must be between 0 and 1). None is equivalent to 0, meaning no depth
-    weighting is performed. Can also be a `dict` containing additional keyword
-    arguments to pass to :func:`mne.forward.compute_depth_prior` (see docstring
-    for details and defaults).
+    to use, which must be between 0 and 1. None is equivalent to 0, meaning
+    no depth weighting is performed. It can also be a `dict` containing
+    keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
+    (see docstring for details and defaults).
 """
 
 # Forward
