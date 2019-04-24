@@ -64,8 +64,8 @@ class Brain(object):
     size : float or pair of floats
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
-    background : matplotlib color
-        Color of the background.
+    background : tuple(int, int, int)
+        The color definition of the background: (red, green, blue)..
     foreground : matplotlib color
         Color of the foreground (will be used for colorbars and text).
         None (default) will use black or white depending on the value
@@ -106,11 +106,10 @@ class Brain(object):
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
-                 cortex='classic', alpha=1.0, size=800, background='black',
+                 cortex='classic', alpha=1.0, size=800, background=(0, 0, 0),
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        # surf =  surface
         if cortex != 'classic':
             raise ValueError('Options for parameter "cortex" ' +
                              'is not yet supported.')
@@ -120,6 +119,8 @@ class Brain(object):
 
         if interaction is not None:
             raise ValueError('"interaction" parameter is not supported.')
+        
+        from ..backends.renderer import _Renderer
 
         self._foreground = foreground
         self._hemi = hemi
@@ -145,13 +146,10 @@ class Brain(object):
                              'or "both"')
 
         if isinstance(size, int):
-            fig_w = size
-            fig_h = size
-        else:
-            fig_w, fig_h = size
+            fig_size = (size, size)
 
         self.geo = {}
-        self._figures = [[] for v in views]
+        self._renderers = [[] for v in views]
         self._hemi_meshes = {}
         self._overlays = {}
 
@@ -165,32 +163,29 @@ class Brain(object):
             self.geo[h] = geo
 
         for ri, v in enumerate(views):
-            fig = ipv.figure(width=fig_w, height=fig_h, lighting=True)
-            fig.animation = 0
-            self._figures[ri].append(fig)
-            ipv.style.box_off()
-            ipv.style.axes_off()
-            ipv.style.background_color(background)
-            ipv.view(views_dict[v].azim, views_dict[v].elev)
+            renderer = _Renderer(size=fig_size, bgcolor=background)
+            self._renderers[ri].append(renderer)
+            renderer.set_camera(azimuth=views_dict[v].azim,
+                                elevation=views_dict[v].elev)
 
             for ci, h in enumerate(self._hemis):
                 if ci == 1 and hemi == 'split':
                     # create a separate figure for right hemisphere
-                    fig = ipv.figure(width=fig_w, height=fig_h, lighting=True)
-                    fig.animation = 0
-                    self._figures[ri].append(fig)
-                    ipv.style.box_off()
-                    ipv.style.axes_off()
-                    ipv.style.background_color(background)
-                    ipv.view(views_dict[v].azim, views_dict[v].elev)
+                    renderer = _Renderer(size=fig_size, bgcolor=background)
+                    self._renderers[ri].append(renderer)
+                    renderer.set_camera(azimuth=views_dict[v].azim,
+                                        elevation=views_dict[v].elev)
 
-                hemi_mesh = self._plot_hemi_mesh(self.geo[h].coords,
-                                                 self.geo[h].faces,
-                                                 self.geo[h].grey_curv)
-                self._hemi_meshes[h + '_' + v] = hemi_mesh
-                ipv.squarelim()
+                mesh = renderer.mesh(x=self.geo[h].coords[:, 0],
+                                     y=self.geo[h].coords[:, 1],
+                                     z=self.geo[h].coords[:, 2],
+                                     triangles=self.geo[h].faces,
+                                     color=self.geo[h].grey_curv)
 
-        self._add_title()
+                self._hemi_meshes[h + '_' + v] = mesh
+        # contains ipv specific logic, should be changes for
+        # the sake of generality
+        # self._add_title() 
 
     def add_data(self, array, fmin=None, fmax=None, thresh=None,
                  colormap="auto", alpha=1,
@@ -391,19 +386,23 @@ class Brain(object):
                 ci = 0
             else:
                 ci = 0 if hemi == 'lh' else 1
-            ipv.pylab.current.figure = self._figures[ri][ci]
-            hemi_overlay = self._plot_hemi_overlay(self.geo[hemi].coords,
-                                                   self.geo[hemi].faces,
-                                                   act_color)
-            self._overlays[hemi + '_' + v] = hemi_overlay
+            renderer = self._renderers[ri][ci]
+            mesh = renderer.mesh(x=self.geo[hemi].coords[:, 0],
+                                 y=self.geo[hemi].coords[:, 1],
+                                 z=self.geo[hemi].coords[:, 2],
+                                 triangles=self.geo[hemi].faces,
+                                 color=act_color,
+                                 opacity=None)
+            self._overlays[hemi + '_' + v] = mesh
 
-        if colorbar and not self._colorbar_added:
-            ColorBar(self)
-            self._colorbar_added = True
+        # How can we make this bit universal as well???
+        # if colorbar and not self._colorbar_added:
+        #     ColorBar(self)
+        #     self._colorbar_added = True
 
     def show(self):
         u"""Display widget."""
-        ipv.show()
+        self._renderers[0][0].show()
 
     def update_lut(self, fmin=None, fmid=None, fmax=None):
         u"""Update color map.
@@ -456,82 +455,8 @@ class Brain(object):
 
         title_w = widgets.HTML('<p style="color: %s">' % self._foreground +
                                '<b>%s</b></p>' % title)
-        hboxes = (widgets.HBox(f_row) for f_row in self._figures)
+        hboxes = (widgets.HBox(f_row) for f_row in self._renderers)
         ipv.gcc().children = (title_w, *hboxes)
-
-    def _plot_hemi_mesh(self,
-                        vertices,
-                        faces,
-                        color='grey'):
-        u"""Plot triangular format Freesurfer surface of the brain hemispheres.
-
-        Parameters
-        ----------
-        vertices : numpy.array
-            Array of vertex (x, y, z) coordinates, of size
-            number_of_vertices x 3.
-        faces : numpy.array
-            Array defining mesh triangles, of size number_of_faces x 3.
-        color : str | numpy.array, optional
-            Color for each point/vertex/symbol, can be string format,
-            examples for red:’red’, ‘#f00’, ‘#ff0000’ or ‘rgb(1,0,0),
-            or rgb array of shape (N, 3). Default value is 'grey'.
-
-        Returns
-        -------
-        mesh_widget : ipyvolume.Mesh
-            Ipyvolume object presenting the built mesh.
-        """
-        x = vertices[:, 0]
-        y = vertices[:, 1]
-        z = vertices[:, 2]
-
-        mesh = ipv.plot_trisurf(x, y, z, triangles=faces, color=color)
-
-        return mesh
-
-    def _plot_hemi_overlay(self,
-                           vertices,
-                           faces,
-                           color):
-        u"""Plot overlay of the brain hemispheres with activation data.
-
-        Parameters
-        ----------
-        vertices : numpy.array
-            Array of vertex (x, y, z) coordinates, of size
-            number_of_vertices x 3.
-        faces : numpy.array
-            Array defining mesh triangles, of size number_of_faces x 3.
-        color : str | numpy.array, optional
-            Color for each point/vertex/symbol, can be string format,
-            examples for red:’red’, ‘#f00’, ‘#ff0000’ or ‘rgb(1,0,0),
-            or rgb array of shape (N, 3). Default value is 'grey'.
-
-        Returns
-        -------
-        mesh_overlay : ipyvolume.Mesh
-            Ipyvolume object presenting the built mesh.
-        """
-        x = vertices[:, 0]
-        y = vertices[:, 1]
-        z = vertices[:, 2]
-
-        mesh_overlay = ipv.plot_trisurf(x, y, z, triangles=faces, color=color)
-
-        # Tranparency and alpha blending for the new material of the mesh
-        mat = ShaderMaterial()
-        mat.alphaTest = 0.1
-        mat.blending = BlendingMode.CustomBlending
-        mat.blendDst = BlendFactors.OneMinusSrcAlphaFactor
-        mat.blendEquation = Equations.AddEquation
-        mat.blendSrc = BlendFactors.SrcAlphaFactor
-        mat.transparent = True
-        mat.side = Side.DoubleSide
-
-        mesh_overlay.material = mat
-
-        return mesh_overlay
 
     def _check_hemi(self, hemi):
         u"""Check for safe single-hemi input, returns str."""

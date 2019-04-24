@@ -1,3 +1,5 @@
+"""Core visualization operations based on ipyvolume."""
+
 import ipyvolume as ipv
 import numpy as np
 from pythreejs import (BlendFactors, BlendingMode, Equations, ShaderMaterial,
@@ -79,9 +81,13 @@ class _Renderer(object):
         kwargs: args
             Unused (kept for compatibility).
         """
-        color = np.append(color, opacity)
+        # opacity for overlays will be provided as part of color
+        color = _color2rgba(color, opacity)
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
         _add_transperent_material(mesh)
+        ipv.squarelim()
+
+        return mesh
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
@@ -253,7 +259,7 @@ class _Renderer(object):
         z = acc_vertices[:, 2]
         color = np.append(color, opacity)
 
-        ipv.xyzlim(-1, 1)
+        ipv.squarelim()
         mesh = ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
         _add_transperent_material(mesh)
 
@@ -468,3 +474,28 @@ def _isoline(vertices, tris, vertex_data, levels):
             vertex_level = vertex_level.reshape((vertex_level.size, 1))
 
     return lines, connects, vertex_level, level_index
+
+
+def _color2rgba(color, opacity):
+    """Update color opacity values."""
+    if opacity is None:
+        # no need to update colors
+        return color
+
+    try:
+        _, n_components = color.shape
+        if n_components == 4:
+            color[:, -1] = opacity
+        elif n_components == 3:
+            # add new axis
+            rgba_color = np.zeros((len(color), 4))
+            rgba_color[:, :-1] = color
+            rgba_color[:, -1] = opacity
+            color = rgba_color
+    except AttributeError:
+        # not numpy array
+        color = np.array(color)
+        np.append(color, opacity)
+    
+    return color
+
