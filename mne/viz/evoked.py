@@ -1844,8 +1844,8 @@ def _get_ci_function_for_evokeds(ci):
     return _ci_fun
 
 
-def _finish_styles_plot_comp_evoked(styles, colors, linestyles, cond_names,
-                                    conditions, cmap):
+def _finish_styles_plot_comp_evoked(styles, colors, linestyles, conditions,
+                                    cmap):
     """Finalize styles for plot_compare_evokeds."""
     # Styles (especially color and linestyle) are pulled from a dict 'styles'.
     # This dict has one entry per condition. Its color and linestyle entries
@@ -1877,7 +1877,7 @@ def _finish_styles_plot_comp_evoked(styles, colors, linestyles, cond_names,
             cmap_label, cmap = cmap
 
     styles, the_colors, color_conds, color_order, colors_are_float =\
-        _setup_styles(cond_names, styles, cmap, colors, linestyles)
+        _setup_styles(conditions, styles, cmap, colors, linestyles)
 
     return (styles, colors, the_colors, color_conds, color_order,
             colors_are_float, cmap_label, cmap)
@@ -1906,6 +1906,22 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
     ax.set_title(title)
 
     return any_positive, any_negative
+
+
+def _calculate_ci_and_mean(evokeds, conditions, scaling, picks, ci_fun, gfp):
+    """Caluclate time series and CI, potentially aggregating over sensors."""
+    ci_dict, data_dict = dict(), dict()
+
+    for cond in conditions:
+        this_evokeds = evokeds[cond]
+        # this will fail if evokeds do not have the same structure
+        # (e.g. channel count)
+        res = _get_data_and_ci(this_evokeds, scaling=scaling, picks=picks,
+                               ci_fun=ci_fun, gfp=gfp)
+        data_dict[cond] = res[0]
+        if ci_fun is not None:
+            ci_dict[cond] = res[-1]
+    return data_dict, ci_dict
 
 
 @fill_doc
@@ -2040,8 +2056,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         If True, the legend shows color and linestyle separately; `colors` must
         not be None. Defaults to True if ``cmap`` is not None, else defaults to
         False.
-    axes : None | `matplotlib.axes.Axes` instance | list of `axes`
+    axes : None | `matplotlib.axes.Axes` instance | list of `axes` | "topo"
         What axes to plot to. If None, a new axes is created.
+        If "topo", separately for each channel type, a new figure is created
+        with one axis for each channel in a topographical layout. In this
+        case, `gfp` is ignored.
         When plotting multiple channel types, can also be a list of axes, one
         per channel type.
     title : None | str
@@ -2119,6 +2138,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if ylim is None:
         ylim = dict()
 
+    do_topo = False
+    if axes == "topo":
+        gfp = False
+        do_topo = True
+
     # deal with picks: infer indices and names
     if gfp is True:
         if show_sensors is None:
@@ -2137,12 +2161,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     ch_types = [t for t in picks_by_types if len(picks_by_types[t]) > 0]
 
     # let's take care of axis and figs
-    if axes is not None:
-        if not isinstance(axes, list):
-            axes = [axes]
-        _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
+    if not do_topo:
+        if axes is not None:
+            if not isinstance(axes, list):
+                axes = [axes]
+                _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
+        else:
+            axes = (plt.subplots(figsize=(8, 6))[1]
+                    for _ in range(len(ch_types)))
     else:
-        axes = (plt.subplots(figsize=(8, 6))[1] for _ in range(len(ch_types)))
+        axes = ["topo" for _ in ch_types]
 
     if len(ch_types) > 1:
         logger.info("Multiple channel types selected, returning one figure "
@@ -2174,6 +2202,12 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         ch_names = evokeds[cond][0].ch_names
         picks = range(len(ch_names))
 
+    if do_topo:
+        from .topo import iter_topography
+        ## fixme: do on_pick
+        axes = iter_topography(info, layout=None, on_pick=None, fig=None,
+                    fig_facecolor='w', axis_facecolor='w',
+                    axis_spinecolor='k', layout_scale=None)
     del info
 
     ymin, ymax = ylim.get(ch_type, [None, None])
@@ -2184,42 +2218,41 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if (ymin is None) and all_positive:
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
-    # if we have a dict/list of lists, we compute the grand average and the CI
-    ci_fun = _get_ci_function_for_evokeds(ci)
-
-    # calculate the CI
-    ci_dict, data_dict = dict(), dict()
-    for cond in conditions:
-        this_evokeds = evokeds[cond]
-        # this will fail if evokeds do not have the same structure
-        # (e.g. channel count)
-        res = _get_data_and_ci(this_evokeds, scaling=scaling, picks=picks,
-                               ci_fun=ci_fun, gfp=gfp)
-        data_dict[cond] = res[0]
-        if ci_fun is not None:
-            ci_dict[cond] = res[-1]
-    del evokeds
-
-    # we now have dicts for data ('evokeds' - grand averaged Evoked's)
-    # and the CI ('ci_array') with cond name labels
-
-    (styles, colors, the_colors, color_conds, color_order, colors_are_float,
-     cmap_label, cmap) = _finish_styles_plot_comp_evoked(
-         styles, colors, linestyles, data_dict.keys(), conditions, cmap)
-
-    # We now have a 'styles' dict with one entry per condition, specifying at
-    # least color and linestyles.
-
-    ax, = axes
-    del axes
-
     # title
     title = _set_title_multiple_electrodes(
         title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
 
-    any_positive, any_negative = _plot_compare_evokeds(
-        ax, data_dict, conditions, times, ci_fun is not None, ci_dict, styles,
-        title)
+    (styles, colors, the_colors, color_conds, color_order, colors_are_float,
+     cmap_label, cmap) = _finish_styles_plot_comp_evoked(
+         styles, colors, linestyles, conditions, cmap)
+    # We now have a 'styles' dict with one entry per condition, specifying at
+    # least color and linestyles.
+
+    ci_fun = _get_ci_function_for_evokeds(ci)
+
+    # if we have a dict/list of lists, we compute the grand average and the CI
+    # (per sensor if topo, otherwise aggregating over sensors)
+    if not do_topo:
+        picks = [picks]
+        axes = [(ax, 1) for ax in axes]
+
+    any_positive, any_negative = False, False
+    for picks_, (ax, idx) in zip(picks, axes):
+        data_dict, ci_dict = _calculate_ci_and_mean(
+            evokeds, conditions, scaling, [picks_], ci_fun, gfp)
+        # we now have dicts for data ('evokeds' - grand averaged Evoked's)
+        # and the CI ('ci_array') with cond name labels
+#        return data_dict, ci_dict
+        any_positive_, any_negative_ = _plot_compare_evokeds(
+            ax, data_dict, conditions, times, ci_fun is not None, ci_dict,
+            styles, title)
+        if any_positive_:
+            any_positive = True
+        if any_negative_:
+            any_negative = True
+
+    del axes
+    del evokeds
 
     # ylims
     _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
