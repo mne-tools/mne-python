@@ -446,6 +446,10 @@ class _Renderer(object):
             self.canvas.show()
             self.canvas.app.run()
 
+    def close(self):
+        """Close the scene."""
+        self.canvas.close()
+
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
         """Configure the camera of the scene.
