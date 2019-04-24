@@ -192,6 +192,9 @@ def copy_function_doc_to_method_doc(source):
     """
     def wrapper(func):
         doc = source.__doc__.split('\n')
+        if len(doc) == 1:
+            func.__doc__ = doc[0]
+            return func
 
         # Find parameter block
         for line, text in enumerate(doc[:-2]):
