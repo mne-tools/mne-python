@@ -953,6 +953,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ch_types = list(_get_channel_types(epochs.info))    # list of unique channel types
     if order is None:
         order = [*scalings.keys()]
+    types = sorted(types, key=order.index)
     inds = [idx for order_type in order for idx, ch_type in zip(picks,types) if order_type==ch_type]
     if not len(inds) == len(picks):
         raise RuntimeError('Some channels not classified. Please'
