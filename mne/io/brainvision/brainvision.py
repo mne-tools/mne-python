@@ -108,9 +108,8 @@ class RawBrainVision(BaseRaw):
             raw_extras=[offsets], orig_units=orig_units)
 
         # Get annotations from vmrk file
-        if _read_vmrk(mrk_fname).size > 0:
-            annots = read_annotations(mrk_fname, info['sfreq'])
-            self.set_annotations(annots)
+        annots = read_annotations(mrk_fname, info['sfreq'])
+        self.set_annotations(annots)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -235,9 +234,9 @@ def _read_vmrk(fname):
 
 
 def _read_annotations_brainvision(fname, sfreq='auto'):
-    """Create Annotations from BrainVision vmrk.
+    """Create Annotations from BrainVision vrmk.
 
-    This function reads a .vmrk file and makes an
+    This function reads a .vrmk file and makes an
     :class:`mne.Annotations` object.
 
     Parameters
@@ -250,27 +249,31 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
         files are in samples. If set to 'auto' then
         the sfreq is taken from the .vhdr file that
         has the same name (without file extension). So
-        data.vmrk looks for sfreq in data.vhdr.
+        data.vrmk looks for sfreq in data.vhdr.
 
     Returns
     -------
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    onset, duration, description, date_str = _read_vmrk(fname)
-    orig_time = _str_to_meas_date(date_str)
+    if _read_vmrk(fname).size > 0:
+        onset, duration, description, date_str = _read_vmrk(fname)
+        orig_time = _str_to_meas_date(date_str)
 
-    if sfreq == 'auto':
-        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-        _, _, _, info = _aux_vhdr_info(vhdr_fname)
-        sfreq = info['sfreq']
+        if sfreq == 'auto':
+            vhdr_fname = op.splitext(fname)[0] + '.vhdr'
+            logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
+            _, _, _, info = _aux_vhdr_info(vhdr_fname)
+            sfreq = info['sfreq']
 
-    onset = np.array(onset, dtype=float) / sfreq
-    duration = np.array(duration, dtype=float) / sfreq
-    annotations = Annotations(onset=onset, duration=duration,
-                              description=description,
-                              orig_time=orig_time)
+        onset = np.array(onset, dtype=float) / sfreq
+        duration = np.array(duration, dtype=float) / sfreq
+        annotations = Annotations(onset=onset, duration=duration,
+                                  description=description,
+                                  orig_time=orig_time)
+    else:
+        annotations = Annotations(onset=0, duration=0, description=None,
+                 orig_time=None)
 
     return annotations
 
