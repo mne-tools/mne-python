@@ -12,10 +12,11 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, pick_types, read_cov
+from mne import (read_events, Epochs, pick_types, read_cov, create_info,
+                 EpochsArray)
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.utils import run_tests_if_main, requires_version
+from mne.utils import run_tests_if_main
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
 
@@ -25,15 +26,14 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 1.0
-n_chan = 20
 layout = read_layout('Vectorview-all')
 
 
-def _get_epochs(stop=5):
+def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
     """Get epochs."""
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+    picks = pick_types(raw.info, meg=meg, eeg=eeg, stim=False,
                        ecg=False, eog=False, exclude='bads')
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
@@ -79,25 +79,14 @@ def test_plot_epochs(capsys):
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
     plt.close('all')
+    keystotest = ['b', 'b', 'left', 'right', 'up', 'down',
+                  'pageup', 'pagedown', '-', '+', '=',
+                  'f11', 'home', '?', 'h', 'o', 'end']
     fig = epochs.plot()
-    fig.canvas.key_press_event('left')
-    fig.canvas.key_press_event('right')
+    for key in keystotest:
+        fig.canvas.key_press_event(key)
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event('pageup')
-    fig.canvas.key_press_event('pagedown')
-    fig.canvas.key_press_event('-')
-    fig.canvas.key_press_event('+')
-    fig.canvas.key_press_event('=')
-    fig.canvas.key_press_event('b')
-    fig.canvas.key_press_event('f11')
-    fig.canvas.key_press_event('home')
-    fig.canvas.key_press_event('?')
-    fig.canvas.key_press_event('h')
-    fig.canvas.key_press_event('o')
-    fig.canvas.key_press_event('end')
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')
@@ -194,7 +183,32 @@ def test_plot_drop_log():
     plt.close('all')
 
 
-@requires_version('scipy', '0.12')
+def test_plot_butterfly():
+    """Test butterfly view in epochs browse window."""
+    rng = np.random.RandomState(0)
+    n_epochs, n_channels, n_times = 50, 30, 20
+    sfreq = 1000.
+    data = rng.randn(n_epochs, n_channels, n_times)
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, np.ones([n_epochs],
+                       dtype=np.int)]).T
+    chanlist = ['eeg' if chan < n_channels//3 else 'ecog'
+                 if chan < n_channels//2 else 'seeg'
+                 for chan in range(n_channels)]
+    info = create_info(n_channels, sfreq, chanlist)
+    epochs = EpochsArray(data, info, events)
+    fig = epochs.plot(butterfly=True)
+    keystotest = ['b', 'b', 'left', 'right', 'up', 'down',
+                  'pageup', 'pagedown', '-', '+', '=',
+                  'f11', 'home', '?', 'h', 'o', 'end']
+    for key in keystotest:
+        fig.canvas.key_press_event(key)
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    fig.canvas.resize_event()
+    fig.canvas.close_event()  # closing and epoch dropping
+    plt.close('all')
+
+
 def test_plot_psd_epochs():
     """Test plotting epochs psd (+topomap)."""
     epochs = _get_epochs()

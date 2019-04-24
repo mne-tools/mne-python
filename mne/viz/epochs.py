@@ -777,6 +777,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         consider using :meth:`mne.Evoked.plot_white`.
 
         .. versionadded:: 0.16.0
+    butterfly : bool
+        Whether to directly call the butterfly view.
+
+        .. versionadded:: 0.18.0
 
     Returns
     -------
@@ -1145,7 +1149,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'events': events,
                    'event_colors': event_colors,
                    'ev_lines': list(),
-                   'ev_texts': list()})
+                   'ev_texts': list(),
+                   'ann': list()})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -1671,7 +1676,6 @@ def _prepare_butterfly(params):
     """Set up butterfly plot."""
     from matplotlib.collections import LineCollection
     if params['butterfly']:
-        print('prepare_but')
         units = _handle_default('units')
         chantypes = sorted(set(params['types']) & set(units.keys()),
                            key=[*units].index)
@@ -1689,13 +1693,21 @@ def _prepare_butterfly(params):
         ax.set_yticks(ticks)
         used_types = 0
         params['offsets'] = [ticks[2]]
+        ann = params['ann']
+        import matplotlib as mpl
+        annotations = [child for child in params['ax2'].get_children()
+                        if isinstance(child, mpl.text.Annotation)]
+        for annote in annotations:
+            annote.remove()
+        ann[:] = list()
+        assert len(params['ann']) == 0
         for idx, (ch_type, unit) in enumerate(units.items()):
             if ch_type in chantypes:
                 pos = (0, 1 - (ticks[2+4*used_types] / ax.get_ylim()[0]))
-                params['ax2'].annotate('%s (%s)' % (ch_type, unit), xy=pos, xytext=(-70, 0),
+                ann.append(params['ax2'].annotate('%s (%s)' % (ch_type, unit), xy=pos, xytext=(-70, 0),
                                        ha='left', size=12, va='center',
                                        xycoords='axes fraction', rotation=90,
-                                       textcoords='offset points')
+                                       textcoords='offset points'))
                 used_types += 1
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=True, linewidths=.5,

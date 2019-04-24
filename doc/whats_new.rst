@@ -18,6 +18,7 @@ Current
 
 Changelog
 ~~~~~~~~~
+- Add ``butterfly`` argument to :func:`mne.viz.plot_epochs` and offer seperated butterfly traces for non-meg (seeg, eeg, ecog) data by `Stefan Repplinger`_ and `Èric Larson`_
 
 - Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
 
