@@ -7,7 +7,6 @@ import copy as cp
 import os.path as op
 
 import pytest
-from pytest import raises
 from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
 
@@ -114,33 +113,39 @@ def test_make_dics(tmpdir):
 
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
     epochs, _, csd, _ = _simulate_data(fwd_fixed)
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
+                  weight_norm='unit-noise-gain')
+    epochs.pick_types(meg='grad')
 
-    raises(ValueError, make_dics, epochs.info, fwd_fixed, csd,
-           pick_ori="notexistent")
-    with raises(ValueError, match='rank, if str'):
+    with pytest.raises(ValueError, match="Invalid value for the 'pick_ori'"):
+        make_dics(epochs.info, fwd_fixed, csd, pick_ori="notexistent")
+    with pytest.raises(ValueError, match='rank, if str'):
         make_dics(epochs.info, fwd_fixed, csd, rank='foo')
-    with raises(TypeError, match='rank must be'):
+    with pytest.raises(TypeError, match='rank must be'):
         make_dics(epochs.info, fwd_fixed, csd, rank=1.)
 
     # Test if fixed forward operator is detected when picking normal
     # orientation
-    raises(ValueError, make_dics, epochs.info, fwd_fixed, csd,
-           pick_ori="normal")
+    with pytest.raises(ValueError, match='forward operator with free ori'):
+        make_dics(epochs.info, fwd_fixed, csd, pick_ori="normal")
 
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
-    raises(ValueError, make_dics, epochs.info, fwd_free, csd,
-           pick_ori="normal")
+    with pytest.raises(ValueError, match='oriented in surface coordinates'):
+        make_dics(epochs.info, fwd_free, csd, pick_ori="normal")
 
     # Test if volume forward operator is detected when picking normal
     # orientation
-    raises(ValueError, make_dics, epochs.info, fwd_vol, csd, pick_ori="normal")
+    with pytest.raises(ValueError, match='oriented in surface coordinates'):
+        make_dics(epochs.info, fwd_vol, csd, pick_ori="normal")
 
     # Test invalid combinations of parameters
-    raises(NotImplementedError, make_dics, epochs.info, fwd_free, csd,
-           reduce_rank=True, pick_ori=None)
-    raises(NotImplementedError, make_dics, epochs.info, fwd_free, csd,
-           reduce_rank=True, pick_ori='max-power', inversion='single')
+    with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
+        make_dics(epochs.info, fwd_free, csd, reduce_rank=True, pick_ori=None)
+    with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
+        make_dics(epochs.info, fwd_free, csd, reduce_rank=True,
+                  pick_ori='max-power', inversion='single')
 
     # Sanity checks on the returned filters
     n_freq = len(csd.frequencies)
@@ -148,10 +153,6 @@ def test_make_dics(tmpdir):
     n_verts = len(vertices)
     n_orient = 3
 
-    with pytest.raises(RuntimeError, match='several sensor types'):
-        make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
-                  weight_norm='unit-noise-gain')
-    epochs.pick_types(meg='grad')
     n_channels = len(epochs.ch_names)
     # Test return values
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
@@ -373,7 +374,8 @@ def test_apply_dics_timeseries():
     assert_allclose(stcs[0].times, evoked.times)
 
     # Applying filters for multiple frequencies on epoch data should fail
-    raises(ValueError, apply_dics_epochs, epochs, multiple_filters)
+    with pytest.raises(ValueError, match='computed for a single frequency'):
+        apply_dics_epochs(epochs, multiple_filters)
 
     # From now on, only apply filters with a single frequency (20 Hz).
     csd20 = csd.pick_frequency(20)
@@ -404,7 +406,8 @@ def test_apply_dics_timeseries():
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = cp.deepcopy(evoked)
     evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
-    raises(ValueError, apply_dics, evoked_ch, filters)
+    with pytest.raises(ValueError, match='MEG 2633 which is not present'):
+        apply_dics(evoked_ch, filters)
 
     # Test whether projections are applied, by adding a custom projection
     filters_noproj = make_dics(evoked.info, fwd_surf, csd20, label=label)
@@ -420,7 +423,8 @@ def test_apply_dics_timeseries():
 
     # Test detecting incompatible projections
     filters_proj['proj'] = filters_proj['proj'][:-1, :-1]
-    raises(ValueError, apply_dics, evoked_proj, filters_proj)
+    with pytest.raises(ValueError, match='operands could not be broadcast'):
+        apply_dics(evoked_proj, filters_proj)
 
     # Test returning a generator
     stcs = apply_dics_epochs(epochs, filters, return_generator=False)
@@ -435,8 +439,7 @@ def test_apply_dics_timeseries():
 
     # check whether a filters object without src_type throws expected warning
     del filters_vol['src_type']  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(RuntimeWarning, match='spatial filter does not contain '
-                      'src_type'):
+    with pytest.warns(RuntimeWarning, match='filter does not contain src_typ'):
         apply_dics_epochs(epochs, filters_vol)
 
 
@@ -515,31 +518,38 @@ def test_tf_dics():
     assert_allclose(stcs_norm[1].data, stcs[1].data, atol=0)
 
     # Test invalid parameter combinations
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths, mode='fourier', freq_bins=None)
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths, mode='cwt_morlet', frequencies=None)
+    with pytest.raises(ValueError, match='fourier.*freq_bins" parameter'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                mode='fourier', freq_bins=None)
+    with pytest.raises(ValueError, match='cwt_morlet.*frequencies" param'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                mode='cwt_morlet', frequencies=None)
 
     # Test if incorrect number of noise CSDs is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, [noise_csds[0]], tmin, tmax,
-           tstep, win_lengths, freq_bins=freq_bins)
+    with pytest.raises(ValueError, match='One noise CSD object expected per'):
+        tf_dics(epochs, fwd_surf, [noise_csds[0]], tmin, tmax, tstep,
+                win_lengths, freq_bins=freq_bins)
 
     # Test if freq_bins and win_lengths incompatibility is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths=[0, 1, 2], freq_bins=freq_bins)
+    with pytest.raises(ValueError, match='One time window length expected'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+                win_lengths=[0, 1, 2], freq_bins=freq_bins)
 
     # Test if time step exceeding window lengths is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep=0.15,
-           win_lengths=[0.2, 0.1], freq_bins=freq_bins)
+    with pytest.raises(ValueError, match='Time step should not be larger'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep=0.15,
+                win_lengths=[0.2, 0.1], freq_bins=freq_bins)
 
     # Test if incorrent number of n_ffts is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths, freq_bins=freq_bins, n_ffts=[1])
+    with pytest.raises(ValueError, match='When specifying number of FFT'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+                win_lengths, freq_bins=freq_bins, n_ffts=[1])
 
     # Test if incorrect number of mt_bandwidths is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths=win_lengths, freq_bins=freq_bins, mode='multitaper',
-           mt_bandwidths=[20])
+    with pytest.raises(ValueError, match='When using multitaper mode and'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+                win_lengths=win_lengths, freq_bins=freq_bins,
+                mode='multitaper', mt_bandwidths=[20])
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.

@@ -97,8 +97,8 @@ def _estimate_rank_from_s(s, tol='auto'):
             eps = np.finfo(np.float64).eps
         max_s = np.amax(s)
         tol = len(s) * max_s * eps
-        logger.info('Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g max '
-                    ' singular value)' % (tol, eps, len(s), max_s))
+        logger.info('    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g '
+                    ' max singular value)' % (tol, eps, len(s), max_s))
 
     tol = float(tol)
     rank = np.sum(s > tol)
@@ -156,7 +156,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
                             return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
-    logger.info('Estimated rank (%s): %d' % (ch_type, rank))
+    logger.info('    Estimated rank (%s): %d' % (ch_type, rank))
     return out
 
 
@@ -202,7 +202,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
                         return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
-    logger.info('estimated rank (%s): %d' % (ch_type, rank))
+    logger.info('    Estimated rank (%s): %d' % (ch_type, rank))
     _undo_scaling_cov(data, picks_list, scalings)
     return out
 
@@ -410,10 +410,10 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                     rank[ch_type] = _estimate_rank_meeg_cov(
                         data, pick_info(simple_info, picks), scalings, tol)
             this_info_rank = _info_rank(info, ch_type, picks, 'info')
-            logger.info('    %s: rank %d computed from %d%s data channels '
+            logger.info('    %s: rank %d computed from %d data channel%s '
                         'with %d projector%s'
-                        % (ch_type.upper(), rank[ch_type], n_proj, _pl(n_proj),
-                           n_chan, _pl(n_chan)))
+                        % (ch_type.upper(), rank[ch_type], n_chan, _pl(n_chan),
+                           n_proj, _pl(n_proj)))
             if rank[ch_type] > this_info_rank:
                 warn('Something went wrong in the data-driven estimation of '
                      'the data rank as it exceeds the theoretical rank from '
