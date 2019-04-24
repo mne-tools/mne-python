@@ -179,6 +179,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         raise NotImplementedError("'invert_y' found in 'ts_args'. "
                                   "This is currently not implemented.")
 
+    times = epochs.times
+
     manual_ylims = "ylim" in ts_args
     vlines = ts_args.get(
         "vlines", [0] if (epochs.times[0] < 0 < epochs.times[-1]) else [])
@@ -228,15 +230,16 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # combine/construct list for plotting
     groups = _pick_and_combine(epochs, combine, all_picks, all_ch_types, names)
-    # each entry of groups is: (data, ch_type, evoked, name)
+    # each entry of groups is: (epochs, ch_type, evoked, name)
 
     # prepare the image - required for uniform vlims
     vmins, vmaxs = dict(), dict()
     for group in groups:
         epochs, ch_type = group[:2]
+        data = epochs.get_data()[:, 0, :]
         group.extend(_prepare_epochs_image_im_data(
-            epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
-            scalings[ch_type], ts_args))
+            data, times, ch_type, overlay_times, order, sigma,
+            vmin, vmax, scalings[ch_type], ts_args))
         if vmin is None or vmax is None:  # equalize across groups
             this_vmin, this_vmax, this_ylim = group[-3:]
             if vmin is None and (this_vmin < vmins.get(ch_type, 1)):
@@ -247,8 +250,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # plot
     figs, axes_list = list(), list()
     ylims = {ch_type: (1., -1.) for ch_type in all_ch_types}
-    for (epochs_, ch_type, ax_name, name, data, overlay_times, vmin, vmax,
-         ts_args) in groups:
+    for (epochs_, ch_type, ax_name, name, data, overlay_times,
+         vmin, vmax, ts_args) in groups:
         vmin, vmax = vmins.get(ch_type, vmin), vmaxs.get(ch_type, vmax)
         these_axes = axes[ax_name] if isinstance(axes, dict) else axes
         axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar,
@@ -257,9 +260,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         title_ = ((ax_name if isinstance(axes, dict) else name)
                   if title is None else title)
         this_fig = _plot_epochs_image(
-            epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
-            unit=units[ch_type], ch_type=ch_type, cmap=cmap,
-            axes_dict=axes_dict, title=title_, overlay_times=overlay_times,
+            data, times, ch_type, epochs=epochs_, vmin=vmin, vmax=vmax,
+            colorbar=colorbar, show=False, unit=units[ch_type], cmap=cmap,
+            ax=axes_dict, title=title_, overlay_times=overlay_times,
             evoked=evoked, ts_args=ts_args)
         figs.append(this_fig)
 
@@ -448,15 +451,13 @@ def _prepare_tsargs_for_epochs_image(ts_args):
     return ts_args_
 
 
-def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
+def _prepare_epochs_image_im_data(data, times, ch_type, overlay_times, order,
                                   sigma, vmin, vmax, scaling, ts_args):
     """Preprocess epochs image (sort, filter). Helper for plot_epochs_image."""
     from scipy import ndimage
 
     # data transforms - sorting, scaling, smoothing
-    data = epochs.get_data()[:, 0, :]
-    data, overlay_times = _order_epochs(data, epochs.times, order,
-                                        overlay_times)
+    data, overlay_times = _order_epochs(data, times, order, overlay_times)
 
     if sigma > 0.:
         data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
@@ -510,9 +511,9 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
     return axes_dict
 
 
-def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
+def _plot_epochs_image(data, times, ch_type, epochs=None, vmin=None, vmax=None,
                        colorbar=False, show=False, unit=None, cmap=None,
-                       axes_dict=None, overlay_times=None, title=None,
+                       ax=None, overlay_times=None, title=None,
                        evoked=False, ts_args=None):
     """Plot epochs image. Helper function for plot_epochs_image."""
     if cmap is None:
@@ -520,42 +521,45 @@ def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
 
     # Plot
     # draw the image
-    ax = axes_dict["image"]
-    fig = ax.get_figure()
+    if isinstance(ax, dict):
+        ax_im = ax["image"]
+    else:
+        ax_im = ax
+        evoked, colorbar = False, False
+    fig = ax_im.get_figure()
     cmap = _setup_cmap(cmap)
     n_epochs = len(data)
-    extent = [1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs]
-    im = ax.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
-                   origin='lower', interpolation='nearest', extent=extent)
+    extent = [1e3 * times[0], 1e3 * times[-1], 0, n_epochs]
+    im = ax_im.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
+                      origin='lower', interpolation='nearest', extent=extent)
     if overlay_times is not None:
-        ax.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
-                linewidth=2)
-    ax.set_title(title)
-    ax.set_ylabel('Epochs')
-    ax.axis('auto')
-    ax.axis('tight')
+        ax_im.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
+                   linewidth=2)
+    ax_im.set_title(title)
+    ax_im.set_ylabel('Epochs')
+    ax_im.axis('auto')
+    ax_im.axis('tight')
     if overlay_times is not None:
-        ax.set_xlim(1e3 * epochs.times[0], 1e3 * epochs.times[-1])
-    ax.axvline(0, color='k', linewidth=1, linestyle='--')
+        ax_im.set_xlim(1e3 * times[0], 1e3 * times[-1])
+    ax_im.axvline(0, color='k', linewidth=1, linestyle='--')
 
     # draw the evoked
     if evoked:
         from mne.viz import plot_compare_evokeds
-        plot_compare_evokeds(
-            {"cond": list(epochs.iter_evoked())}, axes=axes_dict["evoked"],
-            **ts_args)
-        axes_dict["evoked"].set_xlim(epochs.times[[0, -1]])
-        ax.set_xticks(())
+        plot_compare_evokeds({"cond": list(epochs.iter_evoked())},
+                             axes=ax["evoked"], **ts_args)
+        ax["evoked"].set_xlim(epochs.times[[0, -1]])
+        ax_im.set_xticks(())
 
     # draw the colorbar
     if colorbar:
         import matplotlib.pyplot as plt
-        cbar = plt.colorbar(im, cax=axes_dict['colorbar'])
+        cbar = plt.colorbar(im, cax=ax['colorbar'])
         cbar.ax.set_ylabel(unit + "\n\n", rotation=270)
         if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
+            ax_im.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)
-    fig._axes_dict = axes_dict  # storing this here for easy access later
+    fig._axes_dict = ax  # storing this here for easy access later
 
     # finish
     plt_show(show)
