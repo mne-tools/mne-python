@@ -91,6 +91,7 @@ def _use_test_3d_backend(backend_name):
             from vispy.testing import TestingCanvas
             with TestingCanvas() as MNE_3D_BACKEND_TEST_DATA:
                 yield
-        elif backend_name == 'vtki':
-            MNE_3D_BACKEND_TEST_DATA = True
-        yield
+        else:
+            if backend_name == 'vtki':
+                MNE_3D_BACKEND_TEST_DATA = True
+            yield
