@@ -22,12 +22,12 @@ sources.
 # of filenames for various things we'll be using.
 import os.path as op
 import numpy as np
-from scipy.signal import welch, coherence
+from scipy.signal import welch, coherence, unit_impulse
 from mayavi import mlab
 from matplotlib import pyplot as plt
 
 import mne
-from mne.simulation import simulate_raw
+from mne.simulation import simulate_raw, add_noise
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.time_frequency import csd_morlet
@@ -36,16 +36,13 @@ from mne.beamformer import make_dics, apply_dics_csd
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
-mri_path = op.join(subjects_dir, 'sample')
 
 # Filenames for various files we'll be using
 meg_path = op.join(data_path, 'MEG', 'sample')
 raw_fname = op.join(meg_path, 'sample_audvis_raw.fif')
-trans_fname = op.join(meg_path, 'sample_audvis_raw-trans.fif')
-src_fname = op.join(mri_path, 'bem/sample-oct-6-src.fif')
-bem_fname = op.join(mri_path, 'bem/sample-5120-5120-5120-bem-sol.fif')
 fwd_fname = op.join(meg_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 cov_fname = op.join(meg_path, 'sample_audvis-cov.fif')
+fwd = mne.read_forward_solution(fwd_fname)
 
 # Seed for the random number generator
 rand = np.random.RandomState(42)
@@ -59,7 +56,8 @@ rand = np.random.RandomState(42)
 # We'll use this function to generate our two signals.
 
 sfreq = 50.  # Sampling frequency of the generated signal
-times = np.arange(10. * sfreq) / sfreq  # 10 seconds of signal
+n_samp = int(round(10. * sfreq))
+times = np.arange(n_samp) / sfreq  # 10 seconds of signal
 n_times = len(times)
 
 
@@ -134,22 +132,13 @@ fig.tight_layout()
 
 # The locations on the cortex where the signal will originate from. These
 # locations are indicated as vertex numbers.
-source_vert1 = 146374
-source_vert2 = 33830
+vertices = [[146374], [33830]]
 
-# The timeseries at each vertex: one part signal, one part silence
-timeseries1 = np.hstack([signal1, np.zeros_like(signal1)])
-timeseries2 = np.hstack([signal2, np.zeros_like(signal2)])
-
-# Construct a SourceEstimate object that describes the signal at the cortical
-# level.
-stc = mne.SourceEstimate(
-    np.vstack((timeseries1, timeseries2)),  # The two timeseries
-    vertices=[[source_vert1], [source_vert2]],  # Their locations
-    tmin=0,
-    tstep=1. / sfreq,
-    subject='sample',  # We use the brain model of the MNE-Sample dataset
-)
+# Construct SourceEstimates that describe the signals at the cortical level.
+data = np.vstack((signal1, signal2))
+stc_signal = mne.SourceEstimate(
+    data, vertices, tmin=0, tstep=1. / sfreq, subject='sample')
+stc_noise = stc_signal * 0.
 
 ###############################################################################
 # Before we simulate the sensor-level data, let's define a signal-to-noise
@@ -174,32 +163,28 @@ info.update(sfreq=sfreq, bads=[])
 picks = mne.pick_types(info, meg='grad', stim=True, exclude=())
 mne.pick_info(info, picks, copy=False)
 
-# This is the raw object that will be used as a template for the simulation.
-raw = mne.io.RawArray(np.zeros((info['nchan'], len(stc.times))), info)
-
 # Define a covariance matrix for the simulated noise. In this tutorial, we use
 # a simple diagonal matrix.
 cov = mne.cov.make_ad_hoc_cov(info)
 cov['data'] *= (20. / snr) ** 2  # Scale the noise to achieve the desired SNR
 
 # Simulate the raw data, with a lowpass filter on the noise
-raw = simulate_raw(raw, stc, trans_fname, src_fname, bem_fname, cov=cov,
-                   random_state=rand, iir_filter=[4, -4, 0.8])
+stcs = [(stc_signal, unit_impulse(n_samp, dtype=int) * 1),
+        (stc_noise, unit_impulse(n_samp, dtype=int) * 2)]  # stacked in time
+duration = (len(stc_signal.times) * 2) / sfreq
+raw = simulate_raw(info, stcs, forward=fwd)
+add_noise(raw, cov, iir_filter=[4, -4, 0.8], random_state=rand)
 
 
 ###############################################################################
 # We create an :class:`mne.Epochs` object containing two trials: one with
 # both noise and signal and one with just noise
 
-t0 = raw.first_samp  # First sample in the data
-t1 = t0 + n_times - 1  # Sample just before the second trial
-epochs = mne.Epochs(
-    raw,
-    events=np.array([[t0, 0, 1], [t1, 0, 2]]),
-    event_id=dict(signal=1, noise=2),
-    tmin=0, tmax=10,
-    preload=True,
-)
+events = mne.find_events(raw, initial_event=True)
+tmax = (len(stc_signal.times) - 1) / sfreq
+epochs = mne.Epochs(raw, events, event_id=dict(signal=1, noise=2),
+                    tmin=0, tmax=tmax, baseline=None, preload=True)
+assert len(epochs) == 2  # ensure that we got the two expected events
 
 # Plot some of the channels of the simulated data that are situated above one
 # of our simulated sources.
@@ -233,8 +218,8 @@ brain = s_rms.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
                    size=600)
 
 # Indicate the true locations of the source activity on the plot.
-brain.add_foci(source_vert1, coords_as_verts=True, hemi='lh')
-brain.add_foci(source_vert2, coords_as_verts=True, hemi='rh')
+brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
+brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
 # Rotate the view and add a title.
 mlab.view(0, 0, 550, [0, 0, 0])
@@ -285,8 +270,8 @@ for approach, power in enumerate([power_approach1, power_approach2], 1):
                        figure=approach + 1, size=600)
 
     # Indicate the true locations of the source activity on the plot.
-    brain.add_foci(source_vert1, coords_as_verts=True, hemi='lh')
-    brain.add_foci(source_vert2, coords_as_verts=True, hemi='rh')
+    brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
+    brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
     # Rotate the view and add a title.
     mlab.view(0, 0, 550, [0, 0, 0])
@@ -298,8 +283,7 @@ for approach, power in enumerate([power_approach1, power_approach2], 1):
 # try playing with the SNR and see how the MNE-dSPM and DICS approaches hold up
 # in the presence of increasing noise. In the presence of more noise, you may
 # need to increase the regularization parameter of the DICS beamformer.
-
-###############################################################################
+#
 # References
 # ----------
 # .. [1] Gross et al. (2001). Dynamic imaging of coherent sources: Studying

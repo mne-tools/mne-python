@@ -172,24 +172,27 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
         data = data[np.newaxis]
     # Subselect if necessary
     info = inst.info
-    picks = slice(None)
+    picks = gen_picks = slice(None)
     if allow_subselection:
         use_chs = list(set(info['ch_names']) & set(cov['names']))
         picks = np.where(np.in1d(info['ch_names'], use_chs))[0]
         logger.info('Adding noise to %d/%d channels (%d channels in cov)'
                     % (len(picks), len(info['chs']), len(cov['names'])))
         info = pick_info(inst.info, picks)
+        gen_picks = np.arange(info['nchan'])
     for epoch in data:
         epoch[picks] += _generate_noise(info, cov, iir_filter, random_state,
-                                        epoch.shape[1])[0]
+                                        epoch.shape[1], picks=gen_picks)[0]
     return inst
 
 
-def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
+def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None,
+                    picks=None):
     """Create spatially colored and temporally IIR-filtered noise."""
     from scipy.signal import lfilter
     rng = check_random_state(random_state)
-    _, _, colorer = compute_whitener(cov, info, pca=True, return_colorer=True)
+    _, _, colorer = compute_whitener(cov, info, pca=True, return_colorer=True,
+                                     picks=picks, verbose=False)
     noise = np.dot(colorer, rng.randn(colorer.shape[1], n_samples))
     if iir_filter is not None:
         if zi is None:
