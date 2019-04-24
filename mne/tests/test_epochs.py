@@ -434,6 +434,12 @@ def test_decim():
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
+        # test picks when getting data
+        picks = [3, 4, 7]
+        d1 = epochs.get_data(picks=picks)
+        d2 = epochs.get_data()[:, picks]
+        assert_array_equal(d1, d2)
+
 
 def test_base_epochs():
     """Test base epochs class."""

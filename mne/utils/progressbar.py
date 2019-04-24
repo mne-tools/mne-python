@@ -228,8 +228,13 @@ class ProgressBar(object):
         self._mmap = None
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
+        self.done()
+
+    def done(self):
+        """Print a newline."""
         if self._do_print:
-            print('')
+            sys.stdout.write('\n')
+            sys.stdout.flush()
 
 
 class _PBSubsetUpdater(object):

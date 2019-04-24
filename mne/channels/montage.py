@@ -26,7 +26,7 @@ from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
-                     _clean_names)
+                     _clean_names, _check_option)
 
 from .layout import _pol_to_cart, _cart_to_sph
 
@@ -132,9 +132,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     path : str | None
         The path of the folder containing the montage file. Defaults to the
         mne/channels/data/montages folder in your mne-python installation.
-    unit : 'm' | 'cm' | 'mm'
-        Unit of the input file. If not 'm' (default), coordinates will be
-        rescaled to 'm'.
+    unit : 'm' | 'cm' | 'mm' | 'auto'
+        Unit of the input file. When 'auto' the montage is normalized to
+        a sphere of radius equal to the average brain size. Defaults to 'auto'.
     transform : bool
         If True, points will be transformed to Neuromag space. The fidicuals,
         'nasion', 'lpa', 'rpa' must be specified in the montage file. Useful
@@ -209,6 +209,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     .. versionadded:: 0.9.0
     """
+    _check_option('unit', unit, ['mm', 'cm', 'm', 'auto'])
+
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
@@ -332,12 +334,16 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                          kind)
     selection = np.arange(len(pos))
 
-    if unit == 'mm':
+    if unit == 'auto':  # rescale to 0.085
+        pos -= np.mean(pos, axis=0)
+        pos = 0.085 * (pos / np.linalg.norm(pos, axis=1).mean())
+    elif unit == 'mm':
         pos /= 1e3
     elif unit == 'cm':
         pos /= 1e2
-    elif unit != 'm':
-        raise ValueError("'unit' should be either 'm', 'cm', or 'mm'.")
+    elif unit == 'm':  # montage is supposed to be in m
+        pass
+
     names_lower = [name.lower() for name in list(ch_names_)]
     fids = {key: pos[names_lower.index(fid_names[ii])]
             if fid_names[ii] in names_lower else None
