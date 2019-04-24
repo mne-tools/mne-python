@@ -945,41 +945,22 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     from matplotlib.colors import colorConverter
     epochs = params['epochs']
 
+    # Reorganize channels
     picks = _picks_to_idx(epochs.info, picks)
     picks = sorted(picks)
-    # Reorganize channels
-    inds = list()
-    types = list()
-    for ch_type in ['grad', 'mag']:
-        idxs = pick_types(params['info'], meg=ch_type, ref_meg=False, exclude=[])
-        if len(idxs) < 1:
-            continue
-        mask = np.in1d(idxs, picks, assume_unique=True)
-        inds.append(idxs[mask])
-        types += [ch_type] * len(inds[-1])
-    for ch_type in ['hbo', 'hbr']:
-        idxs = pick_types(params['info'], meg=False, ref_meg=False, fnirs=ch_type,
-                          exclude=[])
-        if len(idxs) < 1:
-            continue
-        mask = np.in1d(idxs, picks, assume_unique=True)
-        inds.append(idxs[mask])
-        types += [ch_type] * len(inds[-1])
-    pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
+    scalings = _compute_scalings(scalings, epochs)  # channels and default scalings
+    types = [channel_type(epochs.info, ch) for ch in range(len(epochs.ch_names))] # channel type string for every channel
+    types = [types[idx] for idx in picks]    # only take channels that are in picks
+    ch_types = list(_get_channel_types(epochs.info))    # list of unique channel types
     if order is None:
-        order = ['eeg', 'seeg', 'ecog', 'eog', 'ecg', 'emg', 'ref_meg', 'stim',
-                 'resp', 'misc', 'chpi', 'syst', 'ias', 'exci']
-    for ch_type in order:
-        pick_kwargs[ch_type] = True
-        idxs = pick_types(params['info'], **pick_kwargs)
-        if len(idxs) < 1:
-            continue
-        mask = np.in1d(idxs, picks, assume_unique=True)
-        inds.append(idxs[mask])
-        types += [ch_type] * len(inds[-1])
-        pick_kwargs[ch_type] = False
-    inds = np.concatenate(inds).astype(int)
+        order = [*scalings.keys()]
+    inds = [idx for order_type in order for idx, ch_type in enumerate(types) if order_type==ch_type]
+
     if not len(inds) == len(picks):
+        print(len(inds))
+        print(len(picks))
+        print(inds)
+        print(picks)
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
     ch_names = [params['info']['ch_names'][x] for x in inds]
@@ -1150,7 +1131,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'event_colors': event_colors,
                    'ev_lines': list(),
                    'ev_texts': list(),
-                   'ann': list()})
+                   'ann': list(),
+                   'order' : order})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -1677,9 +1659,9 @@ def _prepare_butterfly(params):
     from matplotlib.collections import LineCollection
     if params['butterfly']:
         units = _handle_default('units')
-        chantypes = sorted(set(params['types']) & set(units.keys()),
-                           key=[*units].index)
-        if len(chantypes) < 1:
+        chan_types = sorted(set(params['types']) & set(params['order']),
+                           key=params['order'].index)
+        if len(chan_types) < 1:
             return
         params['ax_vscroll'].set_visible(False)
         ax = params['ax']
@@ -1687,7 +1669,7 @@ def _prepare_butterfly(params):
         for label in labels:
             label.set_visible(True)
         offsets = np.arange(0, ax.get_ylim()[0],
-                            ax.get_ylim()[0]/(4*len(chantypes)))
+                            ax.get_ylim()[0]/(4*len(chan_types)))
         ticks = offsets
         ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
         ax.set_yticks(ticks)
@@ -1702,7 +1684,7 @@ def _prepare_butterfly(params):
         ann[:] = list()
         assert len(params['ann']) == 0
         for idx, (ch_type, unit) in enumerate(units.items()):
-            if ch_type in chantypes:
+            if ch_type in chan_types:
                 pos = (0, 1 - (ticks[2+4*used_types] / ax.get_ylim()[0]))
                 ann.append(params['ax2'].annotate('%s (%s)' % (ch_type, unit), xy=pos, xytext=(-70, 0),
                                        ha='left', size=12, va='center',
