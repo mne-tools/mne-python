@@ -2310,8 +2310,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                              color_conds, color_order, cmap_label,
                              linestyles, ax_)
 
-    ax.lines.clear()
-    ax.patches.clear()
+    if do_topo:
+        # we need the lines for the legends, but then we can kill them
+        ax.lines.clear()
+        ax.patches.clear()
 
     plt_show(show)
     return ax.figure
