@@ -1234,7 +1234,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         else:
             return None
 
-
     @fill_doc
     def get_data(self, picks=None):
         """Get all epochs as a 3D array.
