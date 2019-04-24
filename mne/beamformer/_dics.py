@@ -205,17 +205,16 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     # Determine how to normalize the leadfield
     if normalize_fwd:
         if inversion == 'single':
-            fwd_norm = 'dipole'
+            combine_xyz = False
         else:
-            fwd_norm = 'vertex'
+            combine_xyz = 'fro'
+        exp = 1.  # turn on depth weighting with exponent 1
     else:
-        fwd_norm = None  # No normalization
+        exp = None  # turn off depth weighting entirely
+        combine_xyz = False
 
     _check_one_ch_type('dics', info, forward)
-    _check_option('fwd_norm', fwd_norm, ('dipole', 'vertex', None))
-    # convert fwd_norm to MNE standard terms
-    combine_xyz = 'fro' if fwd_norm == 'vertex' else False
-    exp = 1. if fwd_norm is not None else None
+
     # pick info, get gain matrix, etc.
     _, info, proj, vertices, G, _, nn, orient_std = _prepare_beamformer_input(
         info, forward, label, pick_ori,
