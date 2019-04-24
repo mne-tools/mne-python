@@ -892,7 +892,7 @@ def read_label(filename, subject=None, color=None):
         hemi = 'rh'
     else:
         raise ValueError('Cannot find which hemisphere it is. File should end'
-                         ' with lh.label or rh.label')
+                         ' with lh.label or rh.label: %s' % (basename,))
 
     # find name
     if basename.startswith(('lh.', 'rh.')):

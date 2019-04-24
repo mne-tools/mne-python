@@ -313,6 +313,10 @@ class _Renderer(object):
         if self.fig is not None:
             _toggle_mlab_render(self.fig, True)
 
+    def close(self):
+        """Close the scene."""
+        self.mlab.close(self.fig)
+
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
         """Configure the camera of the scene.

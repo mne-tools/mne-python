@@ -53,6 +53,9 @@ neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
 # Test for nanovolts as unit
 vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
 
+# Test bad date
+vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
+
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
@@ -88,6 +91,12 @@ def test_vmrk_meas_date():
     # Test files with no date, we should get DATE_NONE from mne.io.write
     with pytest.warns(RuntimeWarning, match='coordinate information'):
         raw = read_raw_brainvision(vhdr_v2_path)
+    assert raw.info['meas_date'] is None
+    assert 'unspecified' in repr(raw.info)
+
+    # Test files with faulty dates introduced by segmenting a file without
+    # date information. Should not raise a strptime ValueError
+    raw = read_raw_brainvision(vhdr_bad_date)
     assert raw.info['meas_date'] is None
     assert 'unspecified' in repr(raw.info)
 

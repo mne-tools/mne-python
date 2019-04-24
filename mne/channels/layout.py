@@ -95,7 +95,7 @@ class Layout(object):
 
         Parameters
         ----------
-        %(picks_all)s
+        %(picks_nostr)s
         show : bool
             Show figure if True. Defaults to True.
 
