@@ -228,7 +228,10 @@ def copy_function_doc_to_method_doc(source):
     def wrapper(func):
         doc = source.__doc__.split('\n')
         if len(doc) == 1:
-            func.__doc__ = doc[0]
+            doc = doc[0]
+            if func.__doc__ is not None:
+                doc += func.__doc__
+            func.__doc__ = doc
             return func
 
         # Find parameter block
