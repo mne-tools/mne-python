@@ -703,6 +703,7 @@ Source Space Data
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
+   select_sources
    grow_labels
    label_sign_flip
    labels_to_stc

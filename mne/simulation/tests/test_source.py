@@ -1,5 +1,4 @@
 import os.path as op
-from itertools import product
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -10,8 +9,7 @@ from mne.datasets import testing
 from mne import (read_label, read_forward_solution, pick_types_forward,
                  convert_forward_solution)
 from mne.label import Label
-from mne.simulation.source import (select_sources, simulate_stc,
-                                   simulate_sparse_stc)
+from mne.simulation.source import simulate_stc, simulate_sparse_stc
 from mne.utils import run_tests_if_main
 
 
@@ -215,52 +213,6 @@ def test_generate_stc_single_hemi():
 
         res = ((2. * i) ** 2.) * np.ones((len(idx), n_times))
         assert_array_almost_equal(stc.data[idx], res)
-
-
-@testing.requires_testing_data
-def test_select_sources():
-    """Test the selection of sources for simulation."""
-
-    subject = 'sample'
-    label_file = op.join(subjects_dir, subject, 'label', 'rh.V1.label')
-
-    # Regardless of other parameters, using extent 0 should always yield a
-    # a single source.
-    v1_label = read_label(label_file)
-    labels = ['lh', 'rh', v1_label]
-    locations = ['random', 'center', 0]
-    for label, location in product(labels, locations):
-        label = select_sources(
-            subject, label, location, extent=0, subjects_dir=subjects_dir)
-        assert (len(label.vertices) == 1)
-
-    # As we increase the extent, the new region should contain the previous
-    # one.
-    label = select_sources(subject, 'lh', 0, extent=0,
-                           subjects_dir=subjects_dir)
-    for extent in range(1, 5):
-        new_label = select_sources(subject, 'lh', 0, extent=extent * 10,
-                                   subjects_dir=subjects_dir)
-        assert (set(new_label.vertices) > set(label.vertices))
-        label = new_label
-
-    # With a large enough extent and not allowing growing outside the label,
-    # every vertex of the label should be in the region.
-    label = select_sources(subject, v1_label, 0, extent=100,
-                           grow_outside=False, subjects_dir=subjects_dir)
-    assert (set(label.vertices) == set(v1_label.vertices))
-
-    # Without this restriction, we should get new vertices.
-    label = select_sources(subject, v1_label, 0, extent=100,
-                           grow_outside=True, subjects_dir=subjects_dir)
-    assert (set(label.vertices) > set(v1_label.vertices))
-
-    # Other parameters are taken into account.
-    label = select_sources(subject, v1_label, 0, extent=100,
-                           grow_outside=True, subjects_dir=subjects_dir,
-                           name='mne')
-    assert (label.name == 'mne')
-    assert (label.hemi == 'rh')
 
 
 @testing.requires_testing_data

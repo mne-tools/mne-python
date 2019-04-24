@@ -4,97 +4,12 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
-
 import numpy as np
 
-from ..label import grow_labels, Label
+from ..label import Label
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
-from ..surface import read_surface
 from ..utils import check_random_state, warn, _check_option
-
-
-def select_sources(subject, label, location='center', extent=0,
-                   grow_outside=True, subjects_dir=None, name=None,
-                   surf='white'):
-    """Select the sources used for simulation
-
-    This function selects a region of interest on the cortical surface based
-    on a label (or a hemisphere). The sources are selected by growing a region
-    around a seed which is selected randomly, is the center of the label, or
-    is a specific vertex. The selected vertices can extend beyond the initial
-    provided label. This can be prevented by setting grow_outside to False.
-
-    The selected sources are returned in the form of a new Label object. The
-    values of the label contain the distance from the seed in millimeters.
-
-    Parameters
-    ----------
-    subject : string
-        Name of the subject as in SUBJECTS_DIR.
-    label : instance of Label | str
-        Define where the seed will be chosen. If str, can be 'rh' or 'lh'.
-    location : 'random' | 'center' | int
-        Location to grow label from. If the location is an int, it represents
-        the vertex number in the corresponding label. If it is a str, it can be
-        either 'random' or 'center'.
-    extent : float
-        Extents (radius in mm) of the labels, i.e. maximum geodesic distance
-        on the white matter surface from the seed. If 0, the resulting label
-        will contain only one vertex.
-    grow_outside : bool
-        Let the region grow outside the original label where location was
-        defined.
-    subjects_dir : string
-        Path to SUBJECTS_DIR if not set in the environment.
-    name : None | str
-        Assign name to the new label.
-    surf : string
-        The surface used to simulated the label, defaults to the white surface.
-
-    Returns
-    -------
-    label : instance of Label
-            The label that contains the selected sources.
-    """
-
-    # If label is a string, convert it to a label that contains the whole
-    # hemisphere.
-    if isinstance(label, str):
-        _check_option('label', label, ['lh', 'rh'])
-        surf_filename = op.join(subjects_dir, subject, 'surf',
-                                label + '.white')
-        vertices, _ = read_surface(surf_filename)
-        indices = np.arange(len(vertices), dtype=int)
-        label = Label(indices, vertices, hemi=label)
-
-    # Choose the seed according to the selected strategy.
-    if isinstance(location, str):
-        _check_option('location', location, ['center', 'random'])
-
-        if location == 'center':
-            seed = label.center_of_mass(
-                subject, restrict_vertices=True, subjects_dir=subjects_dir,
-                surf=surf)
-        else:
-            seed = np.random.choice(label.vertices)
-    else:
-        seed = label.vertices[location]
-
-    new_label = grow_labels(subject, seed, extent, label.hemi, subjects_dir)[0]
-
-    # We override the name because grow_label automatically adds a -rh or -lh
-    # to the given parameter.
-    new_label.name = name
-
-    # Restrict the new label to the vertices of the input label if needed.
-    if not grow_outside:
-        to_keep = np.isin(new_label.vertices, label.vertices)
-        new_label = Label(new_label.vertices[to_keep], new_label.pos[to_keep],
-                          hemi=new_label.hemi, name=name, subject=subject)
-
-    return new_label
 
 
 def select_source_in_label(src, label, random_state=None, location='random',
