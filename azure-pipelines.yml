@@ -28,7 +28,6 @@ jobs:
         TEST_MODE: 'conda'
         CONDA_ENVIRONMENT: 'environment.yml'
         DEBUG: 'True'
-        CONDA_VERSION: '4.6.14'
       Python37-64bit-full-pip:
         PYTHON_VERSION: '3.7'
         PYTHON_ARCH: 'x64'
@@ -62,9 +61,14 @@ jobs:
       $ErrorActionPreference = "Stop"
       $PSDefaultParameterValues['*:ErrorAction']='Stop'
       $env:PYTHON = '$(System.DefaultWorkingDirectory)' + '\conda'
-      git clone git://github.com/astropy/ci-helpers.git
+      git clone git://github.com/larsoner/ci-helpers.git
+      cd ci-helpers
+      git checkout nopip
+      cd ..
       powershell ci-helpers/appveyor/install-miniconda.ps1
       $env:PATH = $env:PYTHON + "\envs\test;" + $env:PYTHON + "\envs\test\Scripts;" + $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
+      pip uninstall -yq mne
+      pip install pylsl
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'
