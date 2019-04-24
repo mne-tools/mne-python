@@ -17,6 +17,7 @@ import numpy as np
 
 from ..utils import (verbose, get_config, set_config, logger, warn, _pl,
                      fill_doc)
+from ..utils.check import _is_numeric
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx)
 from ..time_frequency import psd_multitaper
@@ -166,7 +167,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if combine is not None:
         ts_args["show_sensors"] = False
 
-    if picks is None:
+    if picks is None or not _is_numeric(picks):
         picks = _picks_to_idx(epochs.info, picks)
         if group_by is None:
             logger.info("No picks and no groupby, showing the first five "
