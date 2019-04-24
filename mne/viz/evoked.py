@@ -1844,6 +1844,70 @@ def _get_ci_function_for_evokeds(ci):
     return _ci_fun
 
 
+def _finish_styles_plot_comp_evoked(styles, colors, linestyles, cond_names,
+                                    conditions, cmap):
+    """Finalize styles for plot_compare_evokeds."""
+    # Styles (especially color and linestyle) are pulled from a dict 'styles'.
+    # This dict has one entry per condition. Its color and linestyle entries
+    # are pulled from the 'colors' and 'linestyles' dicts via '/'-tag matching
+    # unless they are overwritten by entries from a user-provided 'styles'.
+
+    # first, copy to avoid overwriting
+    styles = deepcopy(styles)
+    colors = deepcopy(colors)
+    linestyles = deepcopy(linestyles)
+
+    # second, check if input is valid
+    if isinstance(styles, dict):
+        for style_ in styles:
+            if style_ not in conditions:
+                raise ValueError("Could not map between 'styles' and "
+                                 "conditions. Condition " + style_ +
+                                 " was not found in the supplied data.")
+
+    # third, color
+    if (colors is not None and not isinstance(colors, str) and
+            not isinstance(colors, dict) and len(colors) > 1):
+        colors = {condition: color for condition, color
+                  in zip(conditions, colors)}
+
+    cmap_label = ""
+    if cmap is not None:
+        if not isinstance(cmap, str) and len(cmap) == 2:
+            cmap_label, cmap = cmap
+
+    styles, the_colors, color_conds, color_order, colors_are_float =\
+        _setup_styles(cond_names, styles, cmap, colors, linestyles)
+
+    return (styles, colors, the_colors, color_conds, color_order,
+            colors_are_float, cmap_label, cmap)
+
+
+def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
+                          styles, title):
+    """Plot evokeds (to compare them; with CIs) based on a data_dict."""
+    any_negative, any_positive = False, False
+    for condition in conditions:
+        # plot the actual data ('d') as a line
+        d = data_dict[condition].T
+        ax.plot(times, d, zorder=1000, label=condition, clip_on=False,
+                **styles[condition])
+        if np.any(d > 0) or all_positive:
+            any_positive = True
+        if np.any(d < 0):
+            any_negative = True
+
+        # plot the confidence interval if available
+        if do_ci:
+            ci_ = ci_dict[condition]
+            ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
+                            zorder=9, color=styles[condition]['c'], alpha=.3,
+                            clip_on=False)
+    ax.set_title(title)
+
+    return any_positive, any_negative
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
@@ -2139,38 +2203,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # we now have dicts for data ('evokeds' - grand averaged Evoked's)
     # and the CI ('ci_array') with cond name labels
 
-    # style the individual condition time series
-    # Styles (especially color and linestyle) are pulled from a dict 'styles'.
-    # This dict has one entry per condition. Its color and linestyle entries
-    # are pulled from the 'colors' and 'linestyles' dicts via '/'-tag matching
-    # unless they are overwritten by entries from a user-provided 'styles'.
-
-    # first, copy to avoid overwriting
-    styles = deepcopy(styles)
-    colors = deepcopy(colors)
-    linestyles = deepcopy(linestyles)
-
-    # second, check if input is valid
-    if isinstance(styles, dict):
-        for style_ in styles:
-            if style_ not in conditions:
-                raise ValueError("Could not map between 'styles' and "
-                                 "conditions. Condition " + style_ +
-                                 " was not found in the supplied data.")
-
-    # third, color
-    if (colors is not None and not isinstance(colors, str) and
-            not isinstance(colors, dict) and len(colors) > 1):
-        colors = {condition: color for condition, color
-                  in zip(conditions, colors)}
-
-    cmap_label = ""
-    if cmap is not None:
-        if not isinstance(cmap, str) and len(cmap) == 2:
-            cmap_label, cmap = cmap
-
-    styles, the_colors, color_conds, color_order, colors_are_float =\
-        _setup_styles(data_dict.keys(), styles, cmap, colors, linestyles)
+    (styles, colors, the_colors, color_conds, color_order, colors_are_float,
+     cmap_label, cmap) = _finish_styles_plot_comp_evoked(
+         styles, colors, linestyles, data_dict.keys(), conditions, cmap)
 
     # We now have a 'styles' dict with one entry per condition, specifying at
     # least color and linestyles.
@@ -2178,34 +2213,18 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     ax, = axes
     del axes
 
-    # the actual plot
-    any_negative, any_positive = False, False
-    for condition in conditions:
-        # plot the actual data ('d') as a line
-        d = data_dict[condition].T
-        ax.plot(times, d, zorder=1000, label=condition, clip_on=False,
-                **styles[condition])
-        if np.any(d > 0) or all_positive:
-            any_positive = True
-        if np.any(d < 0):
-            any_negative = True
+    # title
+    title = _set_title_multiple_electrodes(
+        title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
 
-        # plot the confidence interval if available
-        if ci_fun is not None:
-            ci_ = ci_dict[condition]
-            ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
-                            zorder=9, color=styles[condition]['c'], alpha=.3,
-                            clip_on=False)
+    any_positive, any_negative = _plot_compare_evokeds(
+        ax, data_dict, conditions, times, ci_fun is not None, ci_dict, styles,
+        title)
 
     # ylims
     _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
                                     truncate_yaxis,  truncate_xaxis,
                                     invert_y, vlines, tmin, tmax, unit)
-
-    # title
-    title = _set_title_multiple_electrodes(
-        title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
-    ax.set_title(title)
 
     # 2 legends.
     # a head plot showing the sensors that are being plotted
