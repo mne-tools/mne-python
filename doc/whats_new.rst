@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- :func:`mne.simulation.simulate_stc` now allows for label overlaps by `Nathalie Gayraud`_, and `Ivana Kojcic`_
+
 - Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_eeg_no_mri.py` by `Alex Gramfort`_, and `Joan Massich`_
 
 - Add convenience ``fsaverage`` subject dataset fetcher / updater :func:`mne.datasets.fetch_fsaverage` by `Eric Larson`_

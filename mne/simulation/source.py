@@ -240,7 +240,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
         Allow overlapping labels or not. Default value is False
 
         .. versionadded:: 0.18
-    
+
     Returns
     -------
     stc : SourceEstimate
