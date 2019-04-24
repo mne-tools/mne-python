@@ -50,8 +50,7 @@ from ..annotations import _ensure_annotation_object
 
 
 def _set_pandas_dtype(df, columns, dtype):
-    """Try to set the right columns to categorical"""
-    pandas = _check_pandas_installed(strict=True)
+    """Try to set the right columns to dtype"""
     for column in columns:
         df[column] = df[column].astype(dtype)
         logger.info('Converting "%s" to "%s"...' % (column, dtype))
