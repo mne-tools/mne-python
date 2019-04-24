@@ -2433,9 +2433,9 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         _write_annot(fname, annot, ctab, hemi_names)
 
 
-def select_sources(subject, label, location='center', extent=0,
+def select_sources(subject, label, location='center', extent=0.,
                    grow_outside=True, subjects_dir=None, name=None,
-                   surf='white'):
+                   random_state=None, surf='white'):
     """Select sources from a label.
 
     Parameters
@@ -2443,7 +2443,8 @@ def select_sources(subject, label, location='center', extent=0,
     subject : string
         Name of the subject as in SUBJECTS_DIR.
     label : instance of Label | str
-        Define where the seed will be chosen. If str, can be 'rh' or 'lh'.
+        Define where the seed will be chosen. If str, can be 'lh' or 'rh',
+        which correspond to left or right hemisphere, respectively.
     location : 'random' | 'center' | int
         Location to grow label from. If the location is an int, it represents
         the vertex number in the corresponding label. If it is a str, it can be
@@ -2459,6 +2460,8 @@ def select_sources(subject, label, location='center', extent=0,
         Path to SUBJECTS_DIR if not set in the environment.
     name : None | str
         Assign name to the new label.
+    random_state : None | int | ~numpy.random.RandomState
+        To specify the random generator state.
     surf : string
         The surface used to simulated the label, defaults to the white surface.
 
@@ -2499,7 +2502,8 @@ def select_sources(subject, label, location='center', extent=0,
                 subject, restrict_vertices=True, subjects_dir=subjects_dir,
                 surf=surf)
         else:
-            seed = np.random.choice(label.vertices)
+            rng = check_random_state(random_state)
+            seed = rng.choice(label.vertices)
     else:
         seed = label.vertices[location]
 

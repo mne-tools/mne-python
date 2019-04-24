@@ -55,6 +55,8 @@ Changelog
 
 - Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
 
+- Add :func:`mne.select_sources` to simplify the selection of sources within a label, by `Samuel Deslauriers-Gauthier`_
+
 - Add support for using :class:`mne.Info` and ``duration`` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
 
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
@@ -3271,6 +3273,8 @@ of commits):
 .. _Jeff Hanna: https://github.com/jshanna100
 
 .. _Antoine Gauthier: https://github.com/Okamille
+
+.. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
 
 .. _Sebastian Castano: https://github.com/jscastanoc
 
