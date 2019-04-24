@@ -173,8 +173,7 @@ def _make_stc(raw, src):
     return stc
 
 
-@testing.requires_testing_data
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='function', params=[testing._pytest_param()])
 def raw_data():
     """Get some starting data."""
     # raw with ECG channel
