@@ -1150,6 +1150,13 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
     assert_array_equal(df.values[:, 2], raw._data[2] * 1e15)
 
+    df = raw.to_data_frame(long_format=True)
+    assert(len(df) == raw.get_data().size)
+    assert("time" in df.columns)
+    assert("channel" in df.columns)
+    assert("ch_type" in df.columns)
+    assert("observation" in df.columns)
+
 
 def test_add_channels():
     """Test raw splitting / re-appending channel types."""

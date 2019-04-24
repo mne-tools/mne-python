@@ -53,7 +53,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
         rba = 'NaN' if reject_by_annotation else None
         data = inst.get_data(picks, start, stop + 1, reject_by_annotation=rba)
     elif isinstance(inst, BaseEpochs):
-        data = inst.get_data()[:, picks][:, :, time_mask]
+        data = inst.get_data(picks=picks)[:, :, time_mask]
     else:  # Evoked
         data = inst.data[picks][:, time_mask]
 

@@ -446,6 +446,15 @@ def test_make_lcmv(tmpdir, reg, proj):
                         noise_cov=noise_cov)
     assert_array_equal(filters['weights'], 0)
 
+    # Test condition where one channel type is picked
+    # (avoid "grad data rank (13) did not match the noise rank (None)")
+    data_cov_grad = mne.pick_channels_cov(
+        data_cov, [ch_name for ch_name in epochs.info['ch_names']
+                   if ch_name.endswith(('2', '3'))])
+    assert len(data_cov_grad['names']) > 4
+    make_lcmv(epochs.info, forward_fixed, data_cov_grad, reg=0.01,
+              noise_cov=noise_cov)
+
 
 @testing.requires_testing_data
 def test_lcmv_raw():

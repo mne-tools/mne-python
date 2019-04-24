@@ -218,17 +218,15 @@ def eeg_power_band(epochs):
                   "sigma": [11.5, 15.5],
                   "beta": [15.5, 30]}
 
-    EEG_CHANNELS = ["EEG Fpz-Cz", "EEG Pz-Oz"]
-
     sfreq = epochs.info['sfreq']
-    data = epochs.load_data().pick_channels(EEG_CHANNELS).get_data()
+    data = epochs.get_data(picks="eeg")
     psds, freqs = psd_array_welch(data, sfreq, fmin=0.5, fmax=30.,
                                   n_fft=512, n_overlap=256)
     # Normalize the PSDs
     psds /= np.sum(psds, axis=-1, keepdims=True)
 
     X = []
-    for _, (fmin, fmax) in FREQ_BANDS.items():
+    for fmin, fmax in FREQ_BANDS.values():
         psds_band = psds[:, :, (freqs >= fmin) & (freqs < fmax)].mean(axis=-1)
         X.append(psds_band.reshape(len(psds), -1))
 

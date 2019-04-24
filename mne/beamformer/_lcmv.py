@@ -126,8 +126,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     if 'estimator' in noise_cov:
         del noise_cov['estimator']
 
-    data_rank = compute_rank(data_cov, rank=rank, info=info)
-    noise_rank = compute_rank(noise_cov, rank=rank, info=info)
+    info_pick = pick_info(info, picks)
+    data_rank = compute_rank(data_cov, rank=rank, info=info_pick)
+    noise_rank = compute_rank(noise_cov, rank=rank, info=info_pick)
+    del info_pick
     for key in data_rank:
         if key not in noise_rank or data_rank[key] != noise_rank[key]:
             raise ValueError('%s data rank (%s) did not match the noise '
