@@ -940,13 +940,15 @@ run_tests_if_main()
 def test_select_sources():
     """Test the selection of sources for simulation."""
     subject = 'sample'
-    label_file = op.join(subjects_dir, subject, 'label', 'rh.V1.label')
+    label_file = op.join(subjects_dir, subject, 'label', 'aparc',
+                         'temporalpole-rh.label')
 
     # Regardless of other parameters, using extent 0 should always yield a
     # a single source.
-    v1_label = read_label(label_file)
-    labels = ['lh', 'rh', v1_label]
-    locations = ['random', 'center', 0]
+    tp_label = read_label(label_file)
+    tp_label.values[:] = 1
+    labels = ['lh', tp_label]
+    locations = ['random', 'center']
     for label, location in product(labels, locations):
         label = select_sources(
             subject, label, location, extent=0, subjects_dir=subjects_dir)
@@ -956,8 +958,8 @@ def test_select_sources():
     # one.
     label = select_sources(subject, 'lh', 0, extent=0,
                            subjects_dir=subjects_dir)
-    for extent in range(1, 5):
-        new_label = select_sources(subject, 'lh', 0, extent=extent * 10,
+    for extent in range(1, 3):
+        new_label = select_sources(subject, 'lh', 0, extent=extent * 2,
                                    subjects_dir=subjects_dir)
         assert (set(new_label.vertices) > set(label.vertices))
         assert (new_label.hemi == 'lh')
@@ -965,18 +967,18 @@ def test_select_sources():
 
     # With a large enough extent and not allowing growing outside the label,
     # every vertex of the label should be in the region.
-    label = select_sources(subject, v1_label, 0, extent=100,
+    label = select_sources(subject, tp_label, 0, extent=30,
                            grow_outside=False, subjects_dir=subjects_dir)
-    assert (set(label.vertices) == set(v1_label.vertices))
+    assert (set(label.vertices) == set(tp_label.vertices))
 
     # Without this restriction, we should get new vertices.
-    label = select_sources(subject, v1_label, 0, extent=100,
+    label = select_sources(subject, tp_label, 0, extent=30,
                            grow_outside=True, subjects_dir=subjects_dir)
-    assert (set(label.vertices) > set(v1_label.vertices))
+    assert (set(label.vertices) > set(tp_label.vertices))
 
     # Other parameters are taken into account.
-    label = select_sources(subject, v1_label, 0, extent=100,
-                           grow_outside=True, subjects_dir=subjects_dir,
+    label = select_sources(subject, tp_label, 0, extent=10,
+                           grow_outside=False, subjects_dir=subjects_dir,
                            name='mne')
     assert (label.name == 'mne')
     assert (label.hemi == 'rh')
