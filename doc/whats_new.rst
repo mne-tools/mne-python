@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add ``long_format`` option to :meth:`mne.io.base.ToDataFrameMixin.to_data_frame` by `Denis Engemann`_
+- Add ``long_format`` option to the pandas dataframe exporters, e.g :meth:`mne.Epochs.to_data_frame` by `Denis Engemann`_
 
 - Add example on how to load standard montage :ref:`plot_montage` by `Joan Massich`_
 
