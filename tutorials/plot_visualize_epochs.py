@@ -35,7 +35,7 @@ epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5)
 # obvious. :func:`mne.Epochs.plot` offers an interactive browser that allows
 # rejection by hand when called in combination with a keyword ``block=True``.
 # This blocks the execution of the script until the browser window is closed.
-epochs.plot(block=False, butterfly=True)
+epochs.plot(block=False, butterfly=False)
 # =============================================================================
 #
 # ###############################################################################

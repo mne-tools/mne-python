@@ -949,21 +949,15 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     picks = _picks_to_idx(epochs.info, picks)
     picks = sorted(picks)
     scalings = _compute_scalings(scalings, epochs)  # channels and default scalings
-    types = [channel_type(epochs.info, ch) for ch in range(len(epochs.ch_names))] # channel type string for every channel
-    types = [types[idx] for idx in picks]    # only take channels that are in picks
+    types = [channel_type(epochs.info, ch) for ch in picks] # channel type string for every channel
     ch_types = list(_get_channel_types(epochs.info))    # list of unique channel types
     if order is None:
         order = [*scalings.keys()]
-    inds = [idx for order_type in order for idx, ch_type in enumerate(types) if order_type==ch_type]
-
+    inds = [idx for order_type in order for idx, ch_type in zip(picks,types) if order_type==ch_type]
     if not len(inds) == len(picks):
-        print(len(inds))
-        print(len(picks))
-        print(inds)
-        print(picks)
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
-    ch_names = [params['info']['ch_names'][x] for x in inds]
+    ch_names = [params['info']['ch_names'][idx] for idx in inds]
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
