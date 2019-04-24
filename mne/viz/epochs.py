@@ -289,7 +289,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                     ax.vlines(line, this_ymin, max_height, colors='k',
                               linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
-
     plt_show(show)
     return figs
 
@@ -948,7 +947,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     # Reorganize channels
     picks = _picks_to_idx(epochs.info, picks)
     picks = sorted(picks)
-    scalings = _compute_scalings(scalings, epochs)  # channels and default scalings
     types = [channel_type(epochs.info, ch) for ch in picks] # channel type string for every channel
     ch_types = list(_get_channel_types(epochs.info))    # list of unique channel types
     if order is None:
@@ -1091,7 +1089,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ax_vscroll': ax_vscroll,
                    'vsel_patch': vsel_patch,
                    'hsel_patch': hsel_patch,
-                   'lines': lines,
+                   'lines': lines,  # vertical lines for segmentation
                    'projs': projs,
                    'ch_names': ch_names,
                    'n_channels': n_channels,
@@ -1126,7 +1124,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'event_colors': event_colors,
                    'ev_lines': list(),
                    'ev_texts': list(),
-                   'ann': list(),
+                   'ann': list(), # list to store annotations for butterfly view
                    'order' : order,
                    'ch_types': ch_types})
 
@@ -1267,8 +1265,8 @@ def _plot_traces(params):
                            params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['butterfly_scale']
-        scalings = _handle_default('scalings')
-        n_chantypes = len(params['ch_types'])
+        scalings = params['scalings']#_handle_default('scalings')
+        n_chantypes = len(set(params['ch_types']) & set(_DATA_CH_TYPES_SPLIT))
         offsets = np.arange(0, ax.get_ylim()[0],
                             ax.get_ylim()[0]/(4*n_chantypes))
         ax.set_yticks(offsets)
@@ -1653,6 +1651,7 @@ def _plot_onkey(event, params):
 def _prepare_butterfly(params):
     """Set up butterfly plot."""
     from matplotlib.collections import LineCollection
+    import matplotlib as mpl
     if params['butterfly']:
         units = _handle_default('units')
         chan_types = sorted(set(params['types']) & set(params['order']),
@@ -1672,7 +1671,6 @@ def _prepare_butterfly(params):
         used_types = 0
         params['offsets'] = [ticks[2]]
         ann = params['ann']
-        import matplotlib as mpl
         annotations = [child for child in params['ax2'].get_children()
                         if isinstance(child, mpl.text.Annotation)]
         for annote in annotations:
