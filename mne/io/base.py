@@ -98,7 +98,10 @@ class ToDataFrameMixin(object):
             If True, the dataframe is returned in long format where each row
             is one observation of the signal at a unique coordinate of
             channels, time points, epochs and conditions. The number of
-            factors depends on the data container. Defaults to False.
+            factors depends on the data container. For convenience,
+            a `ch_type` column is added when using this option that will
+            facilitate subsetting the resulting dataframe.
+            Defaults to False.
 
         Returns
         -------
@@ -214,7 +217,7 @@ class ToDataFrameMixin(object):
 
         if long_format:
             df = df.stack().reset_index()
-            columns = [cc for cc in df.columns]
+            columns = list(df.columns)
             sig_idx = columns.index(0)
             columns[sig_idx] = 'observation'
             df.columns = columns
@@ -223,7 +226,7 @@ class ToDataFrameMixin(object):
                 df['ch_type'] = df.channel.map(ch_map)
 
             if hasattr(pd.api.types, 'CategoricalDtype'):
-                columns = [cc for cc in df.columns]
+                columns = list(df.columns)
                 to_factor = [
                     cc for cc in columns if cc not in ['observation', 'time']]
                 _set_pandas_dtype(df, to_factor, 'category')
