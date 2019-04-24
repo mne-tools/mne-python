@@ -1647,6 +1647,15 @@ def test_to_data_frame():
         assert_array_equal(sorted(df.reset_index().columns[:3]),
                            sorted(['time', 'condition', 'epoch']))
 
+    df = epochs.to_data_frame(long_format=True)
+    assert(len(df) == epochs.get_data().size)
+    assert("time" in df.columns)
+    assert("condition" in df.columns)
+    assert("channel" in df.columns)
+    assert("epoch" in df.columns)
+    assert("ch_type" in df.columns)
+    assert("observation" in df.columns)
+
 
 def test_epochs_proj_mixin():
     """Test SSP proj methods from ProjMixin class."""
