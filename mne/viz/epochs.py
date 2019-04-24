@@ -952,7 +952,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     if order is None:
         order = [*scalings.keys()]
     types = sorted(types, key=order.index)
-    inds = [idx for order_type in order for idx, ch_type in zip(picks,types) if order_type==ch_type]
+    inds = [idx for order_type in order for idx, ch_type in zip(picks,types)
+            if order_type==ch_type]
     if not len(inds) == len(picks):
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
@@ -1265,17 +1266,17 @@ def _plot_traces(params):
                            params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['butterfly_scale']
-        scalings = params['scalings']#_handle_default('scalings')
+        scalings_default = _handle_default('scalings')
         n_chantypes = len(set(params['ch_types']) & set(_DATA_CH_TYPES_SPLIT))
         offsets = np.arange(0, ax.get_ylim()[0],
                             ax.get_ylim()[0]/(4*n_chantypes))
         ax.set_yticks(offsets)
         labels = [''] * 20
         ch_plotted = 0
-        for idx_type, (ch_type, scale) in enumerate(scalings.items()):
+        for idx_type, (ch_type, scale) in enumerate(scalings_default.items()):
             if ch_type in params['types']:
                 labels[2 + ch_plotted * 4] = 0.
-                for idx, idx_tick in enumerate([1 + ch_plotted * 4, 3 + ch_plotted * 4]):
+                for idx, idx_tick in enumerate([1+ch_plotted*4, 3+ch_plotted*4]):
                     labels[idx_tick] = [-1, 1][idx] * \
                                        params['scalings'][ch_type] * \
                                        scale * factor
