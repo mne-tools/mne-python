@@ -2304,7 +2304,8 @@ def _set_ax_facecolor(ax, face_color):
 
 
 def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
-                     ymax_bound=None, unit=None, truncate_xaxis=True):
+                     ymax_bound=None, unit=None, truncate_xaxis=True,
+                     skip_axlabel=True):
     ymin, ymax = axes.get_ylim()
     y_range = -np.subtract(ymin, ymax)
 
@@ -2321,12 +2322,14 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     current_ymin = axes.get_ylim()[0]
 
     # set x label
-    axes.set_xlabel('Time (s)')
+    if not skip_axlabel:
+        axes.set_xlabel('Time (s)')
     axes.xaxis.get_label().set_verticalalignment('center')
 
     # set y label and ylabel position
     if unit is not None:
-        axes.set_ylabel(unit + "\n", rotation=90)
+        if not skip_axlabel:
+            axes.set_ylabel(unit + "\n", rotation=90)
         ylabel_height = (-(current_ymin / y_range)
                          if 0 > current_ymin  # ... if we have negative values
                          else (axes.get_yticks()[-1] / 2 / y_range))

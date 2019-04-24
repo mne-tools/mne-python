@@ -1754,7 +1754,8 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
 
 def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
                                     truncate_yaxis,  truncate_xaxis, invert_y,
-                                    vlines, tmin, tmax, unit):
+                                    vlines, tmin, tmax, unit,
+                                    skip_axlabel=True):
     """Set ylims for an evoked plot. Helper for plot_compare_evokeds."""
     # truncate the y axis - this is aesthetics
     orig_ymin, orig_ymax = ax.get_ylim()
@@ -1791,7 +1792,7 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
 
     # more aesthetics
     _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
-                     truncate_xaxis)
+                     truncate_xaxis, skip_axlabel=skip_axlabel)
 
 
 def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
@@ -1884,7 +1885,7 @@ def _finish_styles_plot_comp_evoked(styles, colors, linestyles, conditions,
 
 
 def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
-                          styles, title):
+                          styles, title, all_positive, topo):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
     any_negative, any_positive = False, False
     for condition in conditions:
@@ -1903,7 +1904,10 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
                             zorder=9, color=styles[condition]['c'], alpha=.3,
                             clip_on=False)
-    ax.set_title(title)
+    if topo:
+        ax.text(-.1, 1, title, transform=ax.transAxes)
+    else:
+        ax.set_title(title)
 
     return any_positive, any_negative
 
@@ -2237,7 +2241,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # (per sensor if topo, otherwise aggregating over sensors)
     if not do_topo:
         picks = [picks]
-        axes = [(ax, -1) for ax in axes]
+        axes = [(ax, 0) for ax in axes]
     else:
         picks = list(picks)
 
@@ -2255,13 +2259,12 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     if do_topo:
         (x0, y0), (x1, y1) = np.array(ax.get_position())
-        ax = plt.axes([0, 0, x1 - x0, y1 - y0])        
-        axes.append((ax, 0))
+        ax = plt.axes([0, 0, x1 - x0, y1 - y0])
+        axes.append((ax, -1))
         picks.append(0)
 
     all_data.append({cond: np.zeros(d.shape) for cond, d in data_dict.items()})
-    if ci_fun is not None:
-        all_cis.append({cond: np.zeros(d.shape)
+    all_cis.append({cond: np.zeros(d.shape)
                         for cond, d in ci_dict.items()})
 
     for picks_, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
@@ -2269,26 +2272,25 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             title = ch_names[idx]
         any_positive_, any_negative_ = _plot_compare_evokeds(
             ax, data, conditions, times, ci_fun is not None,
-            cis,  styles, title)
+            cis,  styles, title, all_positive, do_topo)
         if any_positive_:
             any_positive = True
         if any_negative_:
             any_negative = True
 
     if do_topo:
-#        ax.lines.clear()
-        ax.patches.clear()
-        ax.set_title("")
         if ci_fun is not None:
             all_data = all_cis
         data = np.array([list(d.values()) for d in all_data])
         ymin, ymax = _setup_vmin_vmax(data, ymin, ymax)
+        ax.set_title("")
 
     # ylims
     for ax_, idx in axes:
         _set_ylims_plot_compare_evokeds(
             ax_, any_positive, any_negative, ymin, ymax,
-            truncate_yaxis, truncate_xaxis, invert_y, vlines, tmin, tmax, unit)
+            truncate_yaxis, truncate_xaxis, invert_y, vlines, tmin, tmax, unit,
+            skip_axlabel=idx != -1 if do_topo else False)
 
     # 2 legends.
     # a head plot showing the sensors that are being plotted
@@ -2300,13 +2302,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                  "Not showing channel locations.")
         else:
             _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
-                                  show_sensors, ax)
+                                  show_sensors, ax_)
 
     # condition legend
     _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
                              colors_are_float, the_colors, colors,
                              color_conds, color_order, cmap_label,
-                             linestyles, ax)
+                             linestyles, ax_)
+
+    ax.lines.clear()
+    ax.patches.clear()
 
     plt_show(show)
     return ax.figure
