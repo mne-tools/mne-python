@@ -647,20 +647,21 @@ def _read_annotations_csv(fname):
     pd = _check_pandas_installed(strict=True)
     df = pd.read_csv(fname)
     orig_time = df['onset'].values[0]
+    try:
+        float(orig_time)
+        warn('It looks like you have provided annotation onsets as floats. '
+             'These will be interpreted as MILLISECONDS. If that is not what '
+             'you want, save your CSV as a TXT file; the TXT reader accepts '
+             'onsets in seconds.')
+    except ValueError:
+        pass
     orig_time = _handle_meas_date(orig_time)
     onset_dt = pd.to_datetime(df['onset'])
-    onset = (onset_dt - onset_dt[0]).dt.seconds.astype(float)
+    onset = (onset_dt - onset_dt[0]).dt.total_seconds()
     duration = df['duration'].values.astype(float)
     description = df['description'].values
     if orig_time == 0:
         orig_time = None
-
-    if onset_dt.unique().size != onset.unique().size:
-        warn("The number of onsets in the '.csv' file (%d) does not match "
-             "the number of onsets in the Annotations created (%d). If "
-             "this happens because you did not encode your onsets as "
-             "timestamps you should save your files as '.txt'." %
-             (onset_dt.unique().size, onset.unique().size))
 
     return Annotations(onset, duration, description, orig_time)
 
