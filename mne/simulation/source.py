@@ -1,6 +1,10 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
+#          Nathalie Gayraud <nat.gayraud@gmail.com>
+#          Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
+#          Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
+#          Ivana Kojcic <ivana.kojcic@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -9,6 +13,7 @@ import numpy as np
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
 from ..utils import check_random_state, warn, _check_option
+from ..label import Label
 
 
 def select_source_in_label(src, label, random_state=None, location='random',
@@ -312,3 +317,182 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
     stc = SourceEstimate(np.concatenate(data), vertices=vertno, tmin=tmin,
                          tstep=tstep, subject=subject)
     return stc
+
+
+class SourceSimulator():
+    """Class to generate simulated Source Estimates.
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        Source space.
+    tmin : float
+        Time point of the first sample in data. Default is 0 seconds.
+    tstep : float
+        Time step between successive samples in data. Default is 1000 Hz.
+    duration : float | None
+        Time interval during which the simulation takes place.
+        Default value is computed using existing events and waveform lengths.
+
+    Attributes
+    ----------
+    duration : float
+        The duration of the simulation in seconds.
+    """
+
+    def __init__(self, src, tmin=0., tstep=1e-3, duration=None):
+        self._src = src
+        self._tmin = tmin
+        self._tstep = tstep
+        self._labels = []
+        self._waveforms = []
+        self._events = np.empty((0, 3), dtype=int)
+        self._duration = duration
+        self._last_samples = []
+        self._chk_duration = 1.
+
+    @property
+    def duration(self):
+        """Duration of the simulation"""
+        # If not, the precomputed maximum last sample is used
+        if self._duration is None:
+            return int(np.max(self._last_samples)) * self._tstep
+        return self._duration
+
+    def add_data(self, label, waveform, events):
+        """Add data to the simulation
+
+        Data should be added in the form of a triplet of
+        Label (Where) - Waveform(s) (What) - Event(s) (When)
+
+        Parameters
+        ----------
+        label : Label
+            The label (as created for example by mne.read_label). If the label
+            does not match any sources in the SourceEstimate, a ValueError is
+            raised.
+        waveform : list | array
+            The waveform(s) describing the activity on the label vertices.
+            If list, must have the same length as events
+        events: array of int, shape (n_events, 3)
+            Events associated to the waveform(s) to specify when the activity
+            should occur.
+        """
+        if not isinstance(label, Label):
+            raise ValueError('label must be a Label,'
+                             'not %s' % type(label))
+
+        # If it is not a list then make it one
+        if not isinstance(waveform, list) or len(waveform) == 1:
+            waveform = [waveform] * len(events)
+            # The length is either equal to the length of events, or 1
+        if len(waveform) != len(events):
+            raise ValueError('Number of waveforms and events should match '
+                             'or there should be a single waveform')
+        # Update the maximum duration possible based on the events
+        self._labels.extend([label] * len(events))
+        self._waveforms.extend(waveform)
+        self._events = np.vstack([self._events, events])
+        # First sample per waveform is the first column of events
+        # Last is computed below
+        self._last_samples = np.array([self._events[i, 0] + len(w)
+                                      for i, w in enumerate(self._waveforms)])
+
+    def _convert_time_samples(self, tmin, tmax):
+        tmax = tmax if tmax is not None else self.duration
+        return int(tmin / self._tstep), int(tmax / self._tstep)
+
+    def get_stim_channel(self, tmin=0., tmax=None):
+        """Get the stim channel data from tmin to tmax.
+
+        Returns the stim channel data according to the simulation parameters
+        which should be added through function add_data. If tmin and tmax are
+        not specified, it returns the data for the entire duration.
+
+        Parameters
+        ----------
+        tmin : float
+            Time point of the first sample in data. Default is 0 seconds.
+        tmax : float
+            Time point of the last sample in data. Defaults to the total
+            duration
+
+        Returns
+        -------
+        stim_data : 1-d array of int
+            The stimulation channel data.
+        """
+        start_sample, end_sample = self._convert_time_samples(tmin, tmax)
+
+        # Initialize the stim data array
+        stim_data = np.zeros(end_sample - start_sample, dtype=int)
+
+        # Select only events in the time chunk
+        stim_ind = np.where(np.logical_and(self._events[:, 0] >= start_sample,
+                                           self._events[:, 0] < end_sample))[0]
+
+        if len(stim_ind) > 0:
+            relative_ind = self._events[stim_ind, 0].astype(int) - start_sample
+            stim_data[relative_ind] = self._events[stim_ind, 2]
+
+        return stim_data
+
+    def get_stc(self, tmin=0., tmax=None):
+        """Simulate a SourceEstimate from tmin to tmax.
+
+        Returns a SourceEstimate object constructed according to the simulation
+        parameters which should be added through function add_data. If tmin and
+        tmax are not specified, the entire duration is used.
+
+        Parameters
+        ----------
+        tmin : float
+            Time point of the first sample in data. Default is 0 seconds.
+        tmax : float
+            Time point of the last sample in data. Defaults to the total
+            duration
+
+        Returns
+        -------
+        stc : SourceEstimate object
+            The generated source time courses.
+        """
+        if len(self._labels) == 0:
+            raise ValueError('No simulation parameters were found. Please use '
+                             'function add_data to add simulation parameters.')
+        start_sample, end_sample = self._convert_time_samples(tmin, tmax)
+
+        # Initialize the stc_data array
+        stc_data = np.zeros((len(self._labels), end_sample - start_sample))
+
+        # Select only the indices that have events in the time chunk
+        ind = np.where(np.logical_and(self._last_samples >= start_sample,
+                                      self._events[:, 0] < end_sample))[0]
+        # Loop only over the items that are in the time chunk
+        subset_waveforms = [self._waveforms[i] for i in ind]
+        for i, (waveform, event) in enumerate(zip(subset_waveforms,
+                                                  self._events[ind])):
+            # We retrieve the first and last sample of each waveform
+            # According to the corresponding event
+            wf_begin = event[0]
+            wf_end = self._last_samples[ind[i]]
+            # Recover the indices of the event that should be in the chunk
+            waveform_ind = np.in1d(np.arange(wf_begin, wf_end),
+                                   np.arange(start_sample, end_sample))
+            # Recover the indices that correspond to the overlap
+            stc_ind = np.in1d(np.arange(start_sample, end_sample),
+                              np.arange(wf_begin, wf_end))
+            # add the resulting waveform chunk to the corresponding label
+            stc_data[ind[i]][stc_ind] += waveform[waveform_ind]
+        stc = simulate_stc(self._src, self._labels, stc_data, tmin,
+                           self._tstep, allow_overlap=True)
+
+        return stc
+
+    def __iter__(self):
+        # Arbitrary chunk size, can be modified later to something else
+        # Loop over chunks of 1 second - or, maximum sample size.
+        # Can be modified to a different value.
+        for tmin in np.arange(self._tmin, self.duration, self._chk_duration):
+            tmax = min(tmin + self._chk_duration, self.duration)
+            yield self.get_stc(tmin, tmax), self.get_stim_channel(tmin, tmax)

@@ -10,6 +10,7 @@ from mne import (read_label, read_forward_solution, pick_types_forward,
                  convert_forward_solution)
 from mne.label import Label
 from mne.simulation.source import simulate_stc, simulate_sparse_stc
+from mne.simulation.source import SourceSimulator
 from mne.utils import run_tests_if_main
 
 
@@ -276,5 +277,106 @@ def test_simulate_stc_labels_overlap():
     assert (stc.data.shape[1] == n_times)
     # Some of the elements should be equal to 2 since we have duplicate labels
     assert (2 in stc.data)
+
+
+@testing.requires_testing_data
+def test_source_simulator():
+    """Test Source Simulator."""
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
+    src = fwd['src']
+    hemi_to_ind = {'lh': 0, 'rh': 1}
+    tmin = 0
+    tstep = 1. / 6.
+
+    label_vertices = [[], [], []]
+    label_vertices[0] = np.arange(1000)
+    label_vertices[1] = np.arange(500, 1500)
+    label_vertices[2] = np.arange(1000)
+
+    hemis = ['lh', 'lh', 'rh']
+
+    mylabels = []
+    src_vertices = []
+    for i, vert in enumerate(label_vertices):
+        new_label = Label(vertices=vert,
+                          hemi=hemis[i])
+        mylabels.append(new_label)
+        src_vertices.append(np.intersect1d(
+                            src[hemi_to_ind[hemis[i]]]['vertno'],
+                            new_label.vertices))
+
+    wfs = [[], [], []]
+
+    wfs[0] = np.array([0, 1., 0])
+    wfs[1] = [np.array([0, 1., 0]),
+              np.array([0, 1.5, 0])]
+    wfs[2] = np.array([1, 1, 1.])
+
+    events = [[], [], []]
+    events[0] = np.array([[0, 0, 1], [3, 0, 1]])
+    events[1] = np.array([[0, 0, 1], [3, 0, 1]])
+    events[2] = np.array([[0, 0, 1], [2, 0, 1]])
+
+    verts_lh = np.intersect1d(range(1500), src[0]['vertno'])
+    verts_rh = np.intersect1d(range(1000), src[1]['vertno'])
+    diff_01 = len(np.setdiff1d(src_vertices[0], src_vertices[1]))
+    diff_10 = len(np.setdiff1d(src_vertices[1], src_vertices[0]))
+    inter_10 = len(np.intersect1d(src_vertices[1], src_vertices[0]))
+
+    output_data_lh = np.zeros([len(verts_lh), 6])
+    tmp = np.array([0, 1., 0, 0, 1, 0])
+    output_data_lh[:diff_01, :] = np.tile(tmp, (diff_01, 1))
+
+    tmp = np.array([0, 2, 0, 0, 2.5, 0])
+    output_data_lh[diff_01:diff_01 + inter_10, :] = np.tile(tmp, (inter_10, 1))
+    tmp = np.array([0, 1, 0, 0, 1.5, 0])
+    output_data_lh[diff_01 + inter_10:, :] = np.tile(tmp, (diff_10, 1))
+
+    data_rh_wf = np.array([1., 1, 2, 1, 1, 0])
+    output_data_rh = np.tile(data_rh_wf, (len(src_vertices[2]), 1))
+    output_data = np.vstack([output_data_lh, output_data_rh])
+
+    ss = SourceSimulator(src, tmin, tstep)
+    for i in range(3):
+        ss.add_data(mylabels[i], wfs[i], events[i])
+
+    stc = ss.get_stc()
+    stim_channel = ss.get_stim_channel()
+
+    # Stim channel data must have the same size as stc time samples
+    assert(len(stim_channel) == stc.data.shape[1])
+
+    stim_channel = ss.get_stim_channel(0., 0.)
+    assert(len(stim_channel) == 0)
+
+    assert (np.all(stc.vertices[0] == verts_lh))
+    assert (np.all(stc.vertices[1] == verts_rh))
+    assert_array_almost_equal(stc.lh_data, output_data_lh)
+    assert_array_almost_equal(stc.rh_data, output_data_rh)
+    assert_array_almost_equal(stc.data, output_data)
+
+    counter = 0
+    for stc, stim in ss:
+        counter += 1
+    assert counter == 1
+
+    half_ss = SourceSimulator(src, tmin, tstep, duration=0.5)
+    for i in range(3):
+        half_ss.add_data(mylabels[i], wfs[i], events[i])
+    half_stc = half_ss.get_stc()
+    assert_array_almost_equal(stc.data[:, :3], half_stc.data)
+
+    ss = SourceSimulator(src)
+
+    with pytest.raises(ValueError, match='No simulation parameters'):
+        ss.get_stc()
+
+    with pytest.raises(ValueError, match='label must be a Label'):
+        ss.add_data(1, wfs, events)
+
+    with pytest.raises(ValueError, match='Number of waveforms and events '
+                       'should match'):
+        ss.add_data(mylabels[0], wfs[:2], events)
+
 
 run_tests_if_main()
