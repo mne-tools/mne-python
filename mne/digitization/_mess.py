@@ -92,3 +92,22 @@ def _set_dig_kit(mrk, elp, hsp):
     dev_head_t = Transform('meg', 'head', trans)
 
     return dig_points, dev_head_t
+
+
+# From artemis123 (we have modified the function a bit)
+def _foo_read_pos(nas, lpa, rpa, hpi, extra):
+    # move into MNE head coords
+    if ((nas is not None) and (lpa is not None) and (rpa is not None)):
+        neuromag_trans = get_ras_to_neuromag_trans(nas, lpa, rpa)
+        nas = apply_trans(neuromag_trans, nas)
+        lpa = apply_trans(neuromag_trans, lpa)
+        rpa = apply_trans(neuromag_trans, rpa)
+
+        if hpi is not None:
+            hpi = apply_trans(neuromag_trans, hpi)
+
+        if extra is not None:
+            extra = apply_trans(neuromag_trans, extra)
+
+    return _make_dig_points(nasion=nas, lpa=lpa, rpa=rpa,
+                            hpi=hpi, extra_points=extra)
