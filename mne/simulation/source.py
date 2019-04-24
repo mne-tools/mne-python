@@ -6,7 +6,6 @@
 
 import numpy as np
 
-from ..label import Label
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
 from ..utils import check_random_state, warn, _check_option
