@@ -459,6 +459,8 @@ def _prepare_epochs_image_im_data(data, times, ch_type, overlay_times, order,
     # data transforms - sorting, scaling, smoothing
     data, overlay_times = _order_epochs(data, times, order, overlay_times)
 
+    # smooth the image: add a gaussian blur, making adjacent epochs
+    # more similar to each other
     if sigma > 0.:
         data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
 
