@@ -56,21 +56,9 @@ class _Renderer(_BaseRenderer):
         Mayavi scene handle.
     """
 
+    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False):
-        """Set up the scene.
-
-        Parameters
-        ----------
-        fig: instance of mayavi.mlab.figure
-            Scene handle.
-        size : tuple
-            The dimensions of the context window: (width, height).
-        bgcolor: tuple
-            The color definition of the background: (red, green, blue).
-        name: str | None
-            The name of the scene.
-        """
         self.mlab = _import_mlab()
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
