@@ -65,7 +65,7 @@ def run():
 
 @verbose
 def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
-    this_env = copy.copy(os.environ)
+    this_env = copy.deepcopy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
     this_env['SUBJECT'] = subject
