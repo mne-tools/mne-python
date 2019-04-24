@@ -548,7 +548,7 @@ def test_compute_covariance_auto_reg(rank):
                                   verbose=True)
     log = log.getvalue().split('\n')
     if rank is None:
-        assert 'Not doing PCA for MAG.' in log
+        assert '    Setting small MAG eigenvalues to zero (without PCA)' in log
         assert 'Reducing data rank from 10 -> 7' in log
     else:
         assert 'Reducing' not in log

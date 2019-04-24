@@ -66,18 +66,20 @@ evoked.plot(time_unit='s')
 ###############################################################################
 # Run beamformers and look at maximum outputs
 
-pick_oris = [None, 'normal', 'max-power']
-names = ['free', 'normal', 'max-power']
-descriptions = ['Free orientation, voxel: %i', 'Normal orientation, voxel: %i',
-                'Max-power orientation, voxel: %i']
-colors = ['b', 'k', 'r']
+pick_oris = [None, 'normal', 'max-power', None]
+descriptions = ['Free', 'Normal', 'Max-power', 'Fixed']
 
 fig, ax = plt.subplots(1)
 max_voxs = list()
-for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
+colors = list()
+for pick_ori, desc in zip(pick_oris, descriptions):
     # compute unit-noise-gain beamformer with whitening of the leadfield and
     # data (enabled by passing a noise covariance matrix)
-    filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
+    if desc == 'Fixed':
+        use_forward = mne.convert_forward_solution(forward, force_fixed=True)
+    else:
+        use_forward = forward
+    filters = make_lcmv(evoked.info, use_forward, data_cov, reg=0.05,
                         noise_cov=noise_cov, pick_ori=pick_ori,
                         weight_norm='unit-noise-gain', rank=None)
     print(filters)
@@ -89,7 +91,12 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     max_idx = np.argmax(np.abs(stc.data[:, time_idx]))
     # we know these are all left hemi, so we can just use vertices[0]
     max_voxs.append(stc.vertices[0][max_idx])
-    ax.plot(stc.times, stc.data[max_idx, :], color, label=desc % max_idx)
+    h = ax.plot(stc.times, stc.data[max_idx, :],
+                label='%s, voxel: %i' % (desc, max_idx))[0]
+    colors.append(h.get_color())
+    if pick_ori == 'max-power':
+        max_stc = stc
+ax.axhline(0, color='k')
 
 ax.set(xlabel='Time (ms)', ylabel='LCMV value',
        title='LCMV in maximum voxel')
@@ -100,8 +107,8 @@ mne.viz.utils.plt_show()
 # We can also look at the spatial distribution
 
 # Plot last stc in the brain in 3D with PySurfer if available
-brain = stc.plot(hemi='lh', views='lat', subjects_dir=subjects_dir,
-                 initial_time=0.1, time_unit='s', smoothing_steps=5)
+brain = max_stc.plot(hemi='lh', views='lat', subjects_dir=subjects_dir,
+                     initial_time=0.1, time_unit='s', smoothing_steps=5)
 for color, vertex in zip(colors, max_voxs):
     brain.add_foci([vertex], coords_as_verts=True, scale_factor=0.5,
                    hemi='lh', color=color)
