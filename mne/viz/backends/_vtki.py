@@ -66,7 +66,7 @@ class _Renderer(object):
         self.plotter.enable_terrain_style()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
+             backface_culling=False, offset=None, **kwargs):
         vertices = np.c_[x, y, z]
         n_triangles = len(triangles)
         triangles = np.c_[np.full(n_triangles, 3), triangles]
@@ -77,7 +77,7 @@ class _Renderer(object):
                                   backface_culling=backface_culling)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
+                vmin=None, vmax=None, colormap=None, offset=None):
         from matplotlib import cm
         from matplotlib.colors import ListedColormap
         if colormap is None:
@@ -101,7 +101,7 @@ class _Renderer(object):
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
-                backface_culling=False):
+                backface_culling=False, offset=None):
         from matplotlib import cm
         from matplotlib.colors import ListedColormap
         if colormap is None:
