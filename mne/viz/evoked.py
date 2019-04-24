@@ -2283,7 +2283,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             all_data = all_cis
         data = np.array([list(d.values()) for d in all_data])
         ymin, ymax = _setup_vmin_vmax(data, ymin, ymax)
-        ax.set_title("")
 
     # ylims
     for ax_, idx in axes:
@@ -2314,6 +2313,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         # we need the lines for the legends, but then we can kill them
         ax.lines.clear()
         ax.patches.clear()
+        ax.set_title("")
+        del ax.texts[-1]
 
     plt_show(show)
     return ax.figure
