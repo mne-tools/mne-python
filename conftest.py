@@ -110,8 +110,11 @@ def _bias_params(evoked, noise_cov, fwd):
     return evoked, fwd, noise_cov, data_cov, want
 
 
-@pytest.fixture(scope="module",
-                params=["mayavi", "vispy"])
+@pytest.fixture(scope="module", params=[
+    "mayavi",
+    "vtki",
+    "vispy"
+])
 def backend_name(request):
     yield request.param
 
@@ -119,10 +122,15 @@ def backend_name(request):
 @pytest.yield_fixture
 def backends_3d(backend_name):
     from mne.viz.backends.renderer import _use_test_3d_backend
-    from mne.viz.backends.tests._utils import has_mayavi, has_vispy
-    if backend_name == 'vispy' and not has_vispy():
-        pytest.skip("Test skipped, requires vispy.")
-    elif backend_name == 'mayavi' and not has_mayavi():
-        pytest.skip("Test skipped, requires mayavi.")
+    from mne.viz.backends.tests._utils import has_mayavi, has_vtki, has_vispy
+    if backend_name == 'mayavi':
+        if not has_mayavi():
+            pytest.skip("Test skipped, requires mayavi.")
+    elif backend_name == 'vtki':
+        if not has_vtki():
+            pytest.skip("Test skipped, requires vtki.")
+    elif backend_name == 'vispy':
+        if not has_vispy():
+            pytest.skip("Test skipped, requires vispy.")
     with _use_test_3d_backend(backend_name):
         yield

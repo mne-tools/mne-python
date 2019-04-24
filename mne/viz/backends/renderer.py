@@ -26,6 +26,8 @@ logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
+elif MNE_3D_BACKEND == 'vtki':
+    from ._vtki import _Renderer, _Projection  # lgtm # noqa: F401
 elif MNE_3D_BACKEND == 'vispy':
     from ._vispy import _Renderer, _Projection  # lgtm # noqa: F401
 
@@ -89,5 +91,6 @@ def _use_test_3d_backend(backend_name):
             from vispy.testing import TestingCanvas
             with TestingCanvas() as MNE_3D_BACKEND_TEST_DATA:
                 yield
-        else:
-            yield
+        elif backend_name == 'vtki':
+            MNE_3D_BACKEND_TEST_DATA = True
+        yield

@@ -21,6 +21,7 @@ def _buffer_recv_worker(client):
         print('Buffer receive thread stopped: %s' % err)
 
 
+@fill_doc
 class _BaseClient(object):
     """Base Realtime Client.
 
@@ -42,9 +43,7 @@ class _BaseClient(object):
         Time instant to stop receiving buffers.
     buffer_size : int
         Size of each buffer in terms of number of samples.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
 
     def __init__(self, info=None, host='localhost', port=None,
@@ -58,6 +57,8 @@ class _BaseClient(object):
         self.tmax = tmax
         self.buffer_size = buffer_size
         self.verbose = verbose
+        self._recv_thread = None
+        self._recv_callbacks = list()
 
     def __enter__(self):  # noqa: D105
 
@@ -132,6 +133,12 @@ class _BaseClient(object):
         if callback not in self._recv_callbacks:
             self._recv_callbacks.append(callback)
 
+    def start(self):
+        """Start the client."""
+        self.__enter__()
+
+        return self
+
     def start_receive_thread(self, nchan):
         """Start the receive thread.
 
@@ -148,6 +155,12 @@ class _BaseClient(object):
                                                  args=(self, ))
             self._recv_thread.daemon = True
             self._recv_thread.start()
+
+    def stop(self):
+        """Stop the client."""
+        self._disconnect()
+
+        return self
 
     def stop_receive_thread(self, stop_measurement=False):
         """Stop the receive thread.

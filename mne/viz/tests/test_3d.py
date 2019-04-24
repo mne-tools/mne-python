@@ -162,6 +162,7 @@ def test_plot_evoked_field(backends_3d):
 @pytest.mark.slowtest
 def test_plot_alignment(tmpdir, backends_3d):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
+    from mne.viz.backends.renderer import _Renderer
     backend_name = get_3d_backend()
     # generate fiducials file for testing
     tempdir = str(tmpdir)
@@ -190,10 +191,10 @@ def test_plot_alignment(tmpdir, backends_3d):
         meg = ['helmet', 'sensors']
         if system == 'KIT':
             meg.append('ref')
-        plot_alignment(info, trans_fname, subject='sample',
-                       subjects_dir=subjects_dir, meg=meg)
-        if backend_name == 'mayavi':
-            mlab.close(all=True)
+        fig = plot_alignment(info, trans_fname, subject='sample',
+                             subjects_dir=subjects_dir, meg=meg)
+        renderer = _Renderer(fig=fig)
+        renderer.close()
     # KIT ref sensor coil def is defined
     if backend_name == 'mayavi':
         mlab.close(all=True)
@@ -216,12 +217,12 @@ def test_plot_alignment(tmpdir, backends_3d):
     pytest.raises(ValueError, plot_alignment, info)
     plot_alignment(info, surfaces=[])
     for coord_frame in ('meg', 'head', 'mri'):
-        plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
-                       coord_frame=coord_frame, trans=trans_fname,
-                       subject='sample', mri_fiducials=fiducials_path,
-                       subjects_dir=subjects_dir, src=src_fname)
-        if backend_name == 'mayavi':
-            mlab.close(all=True)
+        fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
+                             coord_frame=coord_frame, trans=trans_fname,
+                             subject='sample', mri_fiducials=fiducials_path,
+                             subjects_dir=subjects_dir, src=src_fname)
+        renderer = _Renderer(fig=fig)
+        renderer.close()
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
@@ -422,7 +423,9 @@ def test_plot_dipole_mri_orthoview():
 @traits_test
 def test_snapshot_brain_montage(backends_3d):
     """Test snapshot brain montage."""
-    backend_name = get_3d_backend()
+    if get_3d_backend() == 'vtki':
+        pytest.skip("This feature is not available yet on VTKI")
+
     info = read_info(evoked_fname)
     fig = plot_alignment(
         info, trans=None, subject='sample', subjects_dir=subjects_dir)
@@ -442,7 +445,7 @@ def test_snapshot_brain_montage(backends_3d):
     # Make sure we raise error if the figure has no scene
     pytest.raises(ValueError, snapshot_brain_montage, None, info)
 
-    if backend_name == 'vispy':
+    if get_3d_backend() == 'vispy':
         snapshot_brain_montage(fig=fig, montage=info)
 
 

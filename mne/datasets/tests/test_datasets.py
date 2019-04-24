@@ -1,19 +1,25 @@
 import os
 from os import path as op
 import shutil
+import zipfile
 import sys
 
 import pytest
 
 from mne import datasets
 from mne.datasets import testing
-from mne.utils import _TempDir, run_tests_if_main, requires_good_network
+from mne.datasets._fsaverage.base import _set_montage_coreg_path
+from mne.datasets.utils import _manifest_check_download
+
+from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
+                       get_subjects_dir, ArgvSetter, _pl, use_log_level,
+                       catch_logging)
 
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 
-def test_datasets():
+def test_datasets_basic(tmpdir):
     """Test simple dataset functions."""
     # XXX 'hf_sef' and 'misc' do not conform to these standards
     for dname in ('sample', 'somato', 'spm_face', 'testing', 'opm',
@@ -34,33 +40,32 @@ def test_datasets():
             assert dataset.get_version() is None
             assert not datasets.utils.has_dataset(check_name)
         print('%s: %s' % (dname, datasets.utils.has_dataset(check_name)))
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     # don't let it read from the config file to get the directory,
     # force it to look for the default
-    os.environ['_MNE_FAKE_HOME_DIR'] = tempdir
-    try:
+    with modified_env(**{'_MNE_FAKE_HOME_DIR': tempdir, 'SUBJECTS_DIR': None}):
         assert (datasets.utils._get_path(None, 'foo', 'bar') ==
                 op.join(tempdir, 'mne_data'))
-    finally:
-        del os.environ['_MNE_FAKE_HOME_DIR']
+        assert get_subjects_dir(None) is None
+        _set_montage_coreg_path()
+        sd = get_subjects_dir()
+        assert sd.endswith('MNE-fsaverage-data')
 
 
 @requires_good_network
-def test_megsim():
+def test_megsim(tmpdir):
     """Test MEGSIM URL handling."""
-    data_dir = _TempDir()
     paths = datasets.megsim.load_data(
-        'index', 'text', 'text', path=data_dir, update_path=False)
+        'index', 'text', 'text', path=str(tmpdir), update_path=False)
     assert len(paths) == 1
     assert paths[0].endswith('index.html')
 
 
 @requires_good_network
-def test_downloads():
+def test_downloads(tmpdir):
     """Test dataset URL handling."""
     # Try actually downloading a dataset
-    data_dir = _TempDir()
-    path = datasets._fake.data_path(path=data_dir, update_path=False)
+    path = datasets._fake.data_path(path=str(tmpdir), update_path=False)
     assert op.isfile(op.join(path, 'bar'))
     assert datasets._fake.get_version() is None
 
@@ -83,14 +88,58 @@ def test_fetch_parcellations(tmpdir):
                       'lh.aparc_sub.annot'), 'wb'):
         pass
     datasets.fetch_aparc_sub_parcellation(subjects_dir=this_subjects_dir)
-    try:
-        sys.argv.append('--accept-hcpmmp-license')
+    with ArgvSetter(('--accept-hcpmmp-license',)):
         datasets.fetch_hcp_mmp_parcellation(subjects_dir=this_subjects_dir)
-    finally:
-        sys.argv.pop(-1)
     for hemi in ('lh', 'rh'):
         assert op.isfile(op.join(this_subjects_dir, 'fsaverage', 'label',
-                         '%s.aparc_sub.annot' % hemi))
+                                 '%s.aparc_sub.annot' % hemi))
+
+
+_zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']
+
+
+def _fake_zip_fetch(url, fname, hash_):
+    with zipfile.ZipFile(fname, 'w') as zipf:
+        for fname in _zip_fnames:
+            with zipf.open(fname, 'w'):
+                pass
+
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="writing zip files requires python3.6 or higher")
+@pytest.mark.parametrize('n_have', range(len(_zip_fnames)))
+def test_manifest_check_download(tmpdir, n_have, monkeypatch):
+    """Test our manifest downloader."""
+    monkeypatch.setattr(datasets.utils, '_fetch_file', _fake_zip_fetch)
+    destination = op.join(str(tmpdir), 'empty')
+    manifest_path = op.join(str(tmpdir), 'manifest.txt')
+    with open(manifest_path, 'w') as fid:
+        for fname in _zip_fnames:
+            fid.write('%s\n' % fname)
+    assert n_have in range(len(_zip_fnames) + 1)
+    assert not op.isdir(destination)
+    if n_have > 0:
+        os.makedirs(op.join(destination, 'foo'))
+        assert op.isdir(op.join(destination, 'foo'))
+    for fname in _zip_fnames:
+        assert not op.isfile(op.join(destination, fname))
+    for fname in _zip_fnames[:n_have]:
+        with open(op.join(destination, fname), 'w'):
+            pass
+    with catch_logging() as log:
+        with use_log_level(True):
+            url = hash_ = ''  # we mock the _fetch_file so these are not used
+            _manifest_check_download(manifest_path, destination, url, hash_)
+    log = log.getvalue()
+    n_missing = 3 - n_have
+    assert ('%d file%s missing from' % (n_missing, _pl(n_missing))) in log
+    for want in ('Extracting missing', 'Successfully '):
+        if n_missing > 0:
+            assert want in log
+        else:
+            assert want not in log
+    assert op.isdir(destination)
+    for fname in _zip_fnames:
+        assert op.isfile(op.join(destination, fname))
 
 
 run_tests_if_main()

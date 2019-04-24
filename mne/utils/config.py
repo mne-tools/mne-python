@@ -172,7 +172,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None,
         The preference key to look for. The os environment is searched first,
         then the mne-python config file is parsed.
         If None, all the config parameters present in environment variables or
-        the path are returned.
+        the path are returned. If key is an empty string, a list of all valid
+        keys (but not values) is returned.
     default : str | None
         Value to return if the key is not found.
     raise_error : bool
@@ -197,6 +198,9 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None,
     set_config
     """
     _validate_type(key, (str, type(None)), "key", 'string or None')
+
+    if key == '':
+        return known_config_types
 
     # first, check to see if key is in env
     if use_env and key is not None and key in os.environ:
@@ -238,9 +242,8 @@ def set_config(key, value, home_dir=None, set_env=True):
 
     Parameters
     ----------
-    key : str | None
-        The preference key to set. If None, a tuple of the valid
-        keys is returned, and ``value`` and ``home_dir`` are ignored.
+    key : str
+        The preference key to set.
     value : str |  None
         The value to assign to the preference key. If None, the key is
         deleted.
@@ -256,7 +259,11 @@ def set_config(key, value, home_dir=None, set_env=True):
     get_config
     """
     if key is None:
+        warn('set_config(key=None, value=None) to get a list of valid keys '
+             'has been deprecated and will be removed in version 0.19. Use '
+             'get_config(key='') instead.', DeprecationWarning)
         return known_config_types
+
     _validate_type(key, 'str', "key")
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here

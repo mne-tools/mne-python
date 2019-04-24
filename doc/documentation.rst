@@ -395,6 +395,7 @@ this package. You can also find a gallery of these examples in the
     auto_tutorials/plot_source_alignment.rst
     auto_tutorials/plot_forward.rst
     auto_tutorials/plot_compute_covariance.rst
+    auto_tutorials/plot_eeg_no_mri.rst
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_mne_solutions.rst
     auto_tutorials/plot_dipole_fit.rst
