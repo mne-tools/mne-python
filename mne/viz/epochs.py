@@ -1127,7 +1127,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ev_lines': list(),
                    'ev_texts': list(),
                    'ann': list(),
-                   'order' : order})
+                   'order' : order,
+                   'ch_types': ch_types})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -1267,7 +1268,7 @@ def _plot_traces(params):
     if butterfly:
         factor = -1. / params['butterfly_scale']
         scalings = _handle_default('scalings')
-        n_chantypes = len(set(params['types']).intersection(scalings))
+        n_chantypes = len(params['ch_types'])
         offsets = np.arange(0, ax.get_ylim()[0],
                             ax.get_ylim()[0]/(4*n_chantypes))
         ax.set_yticks(offsets)
@@ -1681,7 +1682,8 @@ def _prepare_butterfly(params):
         for idx, (ch_type, unit) in enumerate(units.items()):
             if ch_type in chan_types:
                 pos = (0, 1 - (ticks[2+4*used_types] / ax.get_ylim()[0]))
-                ann.append(params['ax2'].annotate('%s (%s)' % (ch_type, unit), xy=pos, xytext=(-70, 0),
+                ann.append(params['ax2'].annotate('%s (%s)' % (ch_type, unit),
+                                       xy=pos, xytext=(-70, 0),
                                        ha='left', size=12, va='center',
                                        xycoords='axes fraction', rotation=90,
                                        textcoords='offset points'))
