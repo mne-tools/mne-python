@@ -57,20 +57,11 @@ def _check_stc_iterable(stc, info, n_samples=None):
     # 1. Check that our STC is iterable (or convert it to one using cycle)
     # 2. Do first iter so we can get the vertex subselection
     # 3. Get the list of verts, which must stay the same across iterations
-    do_cycle = False
     if isinstance(stc, _BaseSourceEstimate):
-        do_cycle = True
-        n_samp_stc = stc
-    elif isinstance(stc, (tuple, list)):
-        if len(stc) == 2 and isinstance(stc[0], _BaseSourceEstimate) and not \
-                isinstance(stc[1], _BaseSourceEstimate):
-            n_samp_stc = stc[0]
-            do_cycle = True
-    if do_cycle:
         if n_samples is None:
             stc = [stc]
         else:
-            n_samp_stc = n_samp_stc.times.size
+            n_samp_stc = stc.times.size
             n_stc = int(np.ceil(n_samples / n_samp_stc))
             logger.info('Making %d copies of STC to fit into raw' % (n_stc,))
             stc = [stc] * n_stc
@@ -159,13 +150,12 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.
-    stc : instance of SourceEstimate | tuple | iterable
-        The source estimate to use to simulate data. Must have the same
-        sample rate as the raw data. Can also be a tuple of
+    stc : iterable | SourceEstimate
+        The source estimates to use to simulate data. Each must have the same
+        sample rate as the raw data, and the vertices of all stcs in the
+        iterable must match. Each entry in the iterable can also be a tuple of
         ``(SourceEstimate, ndarray)`` to allow specifying the stim channel
         (e.g., STI001) data accompany the source estimate.
-        Can also be an iterable of these options to allow the stc to
-        vary in time, in which case all must have the same ``stc.vertices``.
         See Notes for details.
 
         .. versionchanged:: 0.18
@@ -180,11 +170,11 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
     src : str | instance of SourceSpaces | None
         Source space corresponding to the stc. If string, should be a source
         space filename. Can also be an instance of loaded or generated
-        SourceSpaces. Can be None if ``fwd`` is provided.
+        SourceSpaces. Can be None if ``forward`` is provided.
     bem : str | dict | None
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
-        Can be None if ``fwd`` is provided.
+        Can be None if ``forward`` is provided.
     cov : instance of Covariance | str | dict of float | None
         Deprecated and will be removed in 0.18.
         Use :func:`mne.simulation.add_noise` instead.

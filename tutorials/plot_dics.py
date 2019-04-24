@@ -36,16 +36,13 @@ from mne.beamformer import make_dics, apply_dics_csd
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
-mri_path = op.join(subjects_dir, 'sample')
 
 # Filenames for various files we'll be using
 meg_path = op.join(data_path, 'MEG', 'sample')
 raw_fname = op.join(meg_path, 'sample_audvis_raw.fif')
-trans_fname = op.join(meg_path, 'sample_audvis_raw-trans.fif')
-src_fname = op.join(mri_path, 'bem/sample-oct-6-src.fif')
-bem_fname = op.join(mri_path, 'bem/sample-5120-5120-5120-bem-sol.fif')
 fwd_fname = op.join(meg_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 cov_fname = op.join(meg_path, 'sample_audvis-cov.fif')
+fwd = mne.read_forward_solution(fwd_fname)
 
 # Seed for the random number generator
 rand = np.random.RandomState(42)
@@ -175,7 +172,7 @@ cov['data'] *= (20. / snr) ** 2  # Scale the noise to achieve the desired SNR
 stcs = [(stc_signal, unit_impulse(n_samp, dtype=int) * 1),
         (stc_noise, unit_impulse(n_samp, dtype=int) * 2)]  # stacked in time
 duration = (len(stc_signal.times) * 2) / sfreq
-raw = simulate_raw(info, stcs, trans_fname, src_fname, bem_fname)
+raw = simulate_raw(info, stcs, forward=fwd)
 add_noise(raw, cov, iir_filter=[4, -4, 0.8], random_state=rand)
 
 

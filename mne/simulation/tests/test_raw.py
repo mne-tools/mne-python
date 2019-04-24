@@ -100,21 +100,19 @@ def test_iterable():
                        match=r'Iterable did not provide stc\[2\].*duration'):
         with pytest.deprecated_call():
             simulate_raw(raw, [stc, stc], trans, src, sphere, None)
-    with pytest.raises(TypeError, match='stc must be an instance of SourceE'):
-        simulate_raw(raw.info, (stc, np.zeros(len(stc.times)), 'foo'),
-                     trans, src, sphere, None, verbose=True)
     # tuple with ndarray
     event_data = np.zeros(len(stc.times), int)
     event_data[0] = 3
-    with pytest.deprecated_call():
-        raw_new = simulate_raw(raw, (stc, event_data), trans, src, sphere,
-                               None)
+    raw_new = simulate_raw(raw.info, [(stc, event_data)] * 15,
+                           trans, src, sphere, None, first_samp=raw.first_samp)
+    assert raw_new.n_times == 15000
+    raw_new.crop(0, raw_sim.times[-1])
     _assert_iter_sim(raw_sim, raw_new, 3)
     with pytest.raises(ValueError, match='event data had shape .* but need'):
-        simulate_raw(raw.info, (stc, event_data[:-1]), trans, src, sphere,
+        simulate_raw(raw.info, [(stc, event_data[:-1])], trans, src, sphere,
                      None)
     with pytest.raises(ValueError, match='stim_data in a stc tuple .* int'):
-        simulate_raw(raw.info, (stc, event_data * 1.), trans, src, sphere,
+        simulate_raw(raw.info, [(stc, event_data * 1.)], trans, src, sphere,
                      None)
 
     # iterable
