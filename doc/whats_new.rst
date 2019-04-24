@@ -65,6 +65,8 @@ Changelog
 
 - Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
 
+- Add :func:`mne.label.select_sources` to simplify the selection of sources within a label, by `Samuel Deslauriers-Gauthier`_
+
 - Add support for using :class:`mne.Info` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
 
 - Add support for passing an iterable and stim channel values using ``stc`` parameter of :func:`mne.simulation.simulate_raw` by `Eric Larson`_
@@ -3293,6 +3295,8 @@ of commits):
 .. _Jeff Hanna: https://github.com/jshanna100
 
 .. _Antoine Gauthier: https://github.com/Okamille
+
+.. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
 
 .. _Sebastian Castano: https://github.com/jscastanoc
 
