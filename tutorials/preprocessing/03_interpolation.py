@@ -47,7 +47,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 # seconds for easier plotting, then create ``interp_raw`` with interpolated
 # channels:
 
-raw.crop(tmin=0, tmax=3)
+raw.crop(tmin=0, tmax=3).load_data()
 interp_raw = raw.copy().interpolate_bads()
 
 ###############################################################################

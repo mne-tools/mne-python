@@ -109,12 +109,15 @@ print(events[:5])  # show the first 5
 # for reading and writing event arrays as either text files (common file
 # extensions are ``.eve``, ``.lst``, and ``.txt``) or binary ``.fif`` files.
 # The example dataset includes the results of ``mne.find_events(raw)`` in a
-# ``.fif`` file:
+# ``.fif`` file. Since we've truncated our :class:`~mne.io.Raw` object, it will
+# have fewer events than the events file loaded from disk (which contains
+# events for the entire recording), but the events should match for the first
+# 60 seconds anyway:
 
 sample_data_events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                        'sample_audvis_raw-eve.fif')
 events_from_file = mne.read_events(sample_data_events_file)
-assert np.array_equal(events, events_from_file)
+assert np.array_equal(events, events_from_file[:len(events)])
 
 ###############################################################################
 # When writing event arrays to disk, the format will be inferred from the file
