@@ -260,7 +260,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         title_ = ((ax_name if isinstance(axes, dict) else name)
                   if title is None else title)
         this_fig = _plot_epochs_image(
-            data, times, ch_type, epochs=epochs_, vmin=vmin, vmax=vmax,
+            data, times, style_axes=True, epochs=epochs_, vmin=vmin, vmax=vmax,
             colorbar=colorbar, show=False, unit=units[ch_type], cmap=cmap,
             ax=axes_dict, title=title_, overlay_times=overlay_times,
             evoked=evoked, ts_args=ts_args)
@@ -511,37 +511,41 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
     return axes_dict
 
 
-def _plot_epochs_image(data, times, ch_type, epochs=None, vmin=None, vmax=None,
-                       colorbar=False, show=False, unit=None, cmap=None,
-                       ax=None, overlay_times=None, title=None,
-                       evoked=False, ts_args=None):
+def _plot_epochs_image(data, times, style_axes=True, epochs=None,
+                       vmin=None, vmax=None, colorbar=False, show=False,
+                       unit=None, cmap=None, ax=None, overlay_times=None,
+                       title=None, evoked=False, ts_args=None):
     """Plot epochs image. Helper function for plot_epochs_image."""
     if cmap is None:
         cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
 
-    # Plot
-    # draw the image
+    # handle axes
     if isinstance(ax, dict):
         ax_im = ax["image"]
     else:
         ax_im = ax
         evoked, colorbar = False, False
     fig = ax_im.get_figure()
+
+    # draw the image
     cmap = _setup_cmap(cmap)
     n_epochs = len(data)
     extent = [1e3 * times[0], 1e3 * times[-1], 0, n_epochs]
     im = ax_im.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
                       origin='lower', interpolation='nearest', extent=extent)
+
+    # optional things
+    if style_axes:
+        ax_im.set_title(title)
+        ax_im.set_ylabel('Epochs')
+        ax_im.axis('auto')
+        ax_im.axis('tight')
+        ax_im.axvline(0, color='k', linewidth=1, linestyle='--')
+
     if overlay_times is not None:
         ax_im.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
                    linewidth=2)
-    ax_im.set_title(title)
-    ax_im.set_ylabel('Epochs')
-    ax_im.axis('auto')
-    ax_im.axis('tight')
-    if overlay_times is not None:
         ax_im.set_xlim(1e3 * times[0], 1e3 * times[-1])
-    ax_im.axvline(0, color='k', linewidth=1, linestyle='--')
 
     # draw the evoked
     if evoked:
