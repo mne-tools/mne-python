@@ -920,12 +920,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_colors=None, show=True,
-             block=False, decim='auto', noise_cov=None):
+             block=False, decim='auto', noise_cov=None, butterfly=False):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events,
                            event_colors=event_colors, show=show, block=block,
-                           decim=decim, noise_cov=noise_cov)
+                           decim=decim, noise_cov=noise_cov,
+                           butterfly=butterfly)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
