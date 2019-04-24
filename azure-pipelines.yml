@@ -28,6 +28,7 @@ jobs:
         TEST_MODE: 'conda'
         CONDA_ENVIRONMENT: 'environment.yml'
         DEBUG: 'True'
+        CONDA_VERSION: '4.6.14'
       Python37-64bit-full-pip:
         PYTHON_VERSION: '3.7'
         PYTHON_ARCH: 'x64'
