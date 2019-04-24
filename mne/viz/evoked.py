@@ -2142,6 +2142,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if axes == "topo":
         gfp = False
         do_topo = True
+        show_sensors = False
 
     # deal with picks: infer indices and names
     if gfp is True:
@@ -2205,9 +2206,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if do_topo:
         from .topo import iter_topography
         ## fixme: do on_pick
-        axes = iter_topography(info, layout=None, on_pick=None, fig=None,
-                    fig_facecolor='w', axis_facecolor='w',
-                    axis_spinecolor='k', layout_scale=None)
+        fig = plt.figure(figsize=(16, 12))
+        axes = list(iter_topography(info, layout=None, on_pick=None, fig=fig,
+                                    fig_facecolor='w', axis_facecolor='w',
+                                    axis_spinecolor='k', layout_scale=.9))
+    ch_names = info["ch_names"]
     del info
 
     ymin, ymax = ylim.get(ch_type, [None, None])
@@ -2234,8 +2237,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # (per sensor if topo, otherwise aggregating over sensors)
     if not do_topo:
         picks = [picks]
-        axes = [(ax, 1) for ax in axes]
+        axes = [(ax, -1) for ax in axes]
+    else:
+        picks = list(picks)
 
+    all_data, all_cis = [], []
     any_positive, any_negative = False, False
     for picks_, (ax, idx) in zip(picks, axes):
         data_dict, ci_dict = _calculate_ci_and_mean(
@@ -2243,21 +2249,46 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         # we now have dicts for data ('evokeds' - grand averaged Evoked's)
         # and the CI ('ci_array') with cond name labels
 #        return data_dict, ci_dict
+        all_data.append(data_dict)
+        all_cis.append(ci_dict)
+    del evokeds
+
+    if do_topo:
+        (x0, y0), (x1, y1) = np.array(ax.get_position())
+        ax = plt.axes([0, 0, x1 - x0, y1 - y0])        
+        axes.append((ax, 0))
+        picks.append(0)
+
+    all_data.append({cond: np.zeros(d.shape) for cond, d in data_dict.items()})
+    if ci_fun is not None:
+        all_cis.append({cond: np.zeros(d.shape)
+                        for cond, d in ci_dict.items()})
+
+    for picks_, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
+        if do_topo:
+            title = ch_names[idx]
         any_positive_, any_negative_ = _plot_compare_evokeds(
-            ax, data_dict, conditions, times, ci_fun is not None, ci_dict,
-            styles, title)
+            ax, data, conditions, times, ci_fun is not None,
+            cis,  styles, title)
         if any_positive_:
             any_positive = True
         if any_negative_:
             any_negative = True
 
-    del axes
-    del evokeds
+    if do_topo:
+#        ax.lines.clear()
+        ax.patches.clear()
+        ax.set_title("")
+        if ci_fun is not None:
+            all_data = all_cis
+        data = np.array([list(d.values()) for d in all_data])
+        ymin, ymax = _setup_vmin_vmax(data, ymin, ymax)
 
     # ylims
-    _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
-                                    truncate_yaxis,  truncate_xaxis,
-                                    invert_y, vlines, tmin, tmax, unit)
+    for ax_, idx in axes:
+        _set_ylims_plot_compare_evokeds(
+            ax_, any_positive, any_negative, ymin, ymax,
+            truncate_yaxis, truncate_xaxis, invert_y, vlines, tmin, tmax, unit)
 
     # 2 legends.
     # a head plot showing the sensors that are being plotted
