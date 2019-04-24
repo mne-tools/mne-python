@@ -272,20 +272,15 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
             data = np.tile(stc_data[i], (len(src_sel), 1))
         # If overlaps are allowed, deal with them
         if allow_overlap:
-            # Search for the positions of the duplicate vertex indices
-            # in the existing vertex matrix vertex. The size of ov_ind
-            # is the same as src_sel, and for each element in src_sel,
-            # it contains either the position of that vertex in vertno,
-            # or an empty array if the vertex is not a duplicate
-            ov_ind = [np.squeeze(np.nonzero(v == vertno[hemi_ind]))
-                      for v in src_sel]
+            # Search for duplicate vertex indices
+            # in the existing vertex matrix vertex.
             duplicates = []
-            for ind, src_ind in zip(ov_ind, range(len(src_sel))):
-                # If the dimension is zero, it's a scalar,
-                # If it is empty, ndim returns 1
-                if ind.ndim == 0:
+            for src_ind, vertex_ind in enumerate(src_sel):
+                ind = np.where(vertex_ind == vertno[hemi_ind])[0]
+                if len(ind) > 0:
+                    assert (len(ind) == 1)
                     # Add the new data to the existing one
-                    stc_data_extended[hemi_ind][ind] += data[src_ind]
+                    stc_data_extended[hemi_ind][ind[0]] += data[src_ind]
                     duplicates.append(src_ind)
             # Remove the duplicates from both data and selected vertices
             data = np.delete(data, duplicates, axis=0)
