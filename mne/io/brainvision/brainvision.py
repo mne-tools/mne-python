@@ -272,8 +272,9 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
                                   description=description,
                                   orig_time=orig_time)
     else:
-        annotations = Annotations(onset=0, duration=0, description=None,
-                 orig_time=None)
+        annotations = Annotations(onset=0, duration=0,
+                                  description=None,
+                                  orig_time=None)
 
     return annotations
 
