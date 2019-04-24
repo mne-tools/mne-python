@@ -225,3 +225,24 @@ plt.show()
 # import pandas as pd
 # group = pd.concat([df_1, df_2])
 # group['subject'] = np.r_[np.ones(len(df_1)), np.ones(len(df_2)) + 1]
+
+##############################################################################
+# Long-format dataframes
+
+# Many statistical modelling functions expect data a in a long format
+# where each row is one observation at a unique coordinate of factors
+# such as sensors, conditions, subjects etc.
+df_long = epochs.to_data_frame(long_format=True)
+print(df_long.head())
+
+# Here the MEG or EEG signal appears in the column "observation".
+# Thew total length is therefore the number of channels times the time points.
+print(len(df_long), "=", epochs.get_data().size)
+
+# To simplify subsetting and filtering a channwel type column is added.
+print(df_long.query("ch_type == 'eeg'").head())
+
+# note that some of the columns are transformed to "category" data types.
+print(df_long.dtypes)
+
+# This facilitates seamless processing in other tools like R and ggplot.
