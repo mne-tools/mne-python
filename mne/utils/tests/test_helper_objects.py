@@ -23,9 +23,16 @@ def test_mne_objects_list_constructor(data):
     assert my_int_list == data
 
 
+# XXX: to fix
+def test_check_proper_constructor_error():
+    """Test constructor error wording."""
+    with pytest.raises(ValueError):  # , match='')
+        MyIntList(['foo', 'bar'])
+
+
 @pytest.mark.parametrize('data, expected_len, expected_bool', [
     pytest.param(None, 0, False, id='None'),
-    pytest.param([], 0, False, id='emtpy list'),
+    pytest.param([], 0, False, id='empty list'),
     pytest.param([1, 2], 2, True, id='list of ints'),
     pytest.param(['foo', 'bar'], 2, True, id='list of strings',
                  marks=pytest.mark.xfail(raises=ValueError)),

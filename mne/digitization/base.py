@@ -61,6 +61,11 @@ class DigPoint(dict):
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
     def __eq__(self, other):  # noqa: D105
+        """Compare two DigPoints.
+
+        Two digpoints are equal if they are the same kind, share the same
+        coordinate frame and position.
+        """
         my_keys = ['kind', 'ident', 'coord_frame']
         if sorted(self.keys()) != sorted(other.keys()):
             return False

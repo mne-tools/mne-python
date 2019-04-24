@@ -129,6 +129,7 @@ class MNEObjectsList(MutableSequence):
             else:
                 self._items = deepcopy(list(elements))
         else:
+            # XXX: _msg should not be Digitization related
             _msg = 'Digitization expected a iterable of DigPoint objects.'
             raise ValueError(_msg)
 
