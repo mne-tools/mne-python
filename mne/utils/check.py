@@ -403,12 +403,14 @@ def _check_rank(rank):
     return rank
 
 
-def _check_one_ch_type(info, picks, noise_cov, method):
+def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     """Check number of sensor types and presence of noise covariance matrix."""
     from ..cov import make_ad_hoc_cov, Covariance
     from ..io.pick import pick_info
     from ..channels.channels import _contains_ch_type
-    info_pick = pick_info(info, sel=picks)
+    picks = _check_info_inv(info, forward, data_cov=data_cov,
+                            noise_cov=noise_cov)
+    info_pick = pick_info(info, picks)
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
     if sum(ch_types) > 1:
@@ -421,9 +423,13 @@ def _check_one_ch_type(info, picks, noise_cov, method):
                 'The use of several sensor types with the DICS beamformer is '
                 'not supported yet.')
     if noise_cov is None:
-        noise_cov = make_ad_hoc_cov(info, std=1.)
+        noise_cov = make_ad_hoc_cov(info_pick, std=1.)
+    else:
+        noise_cov = noise_cov.copy()
+        if 'estimator' in noise_cov:
+            del noise_cov['estimator']
     _validate_type(noise_cov, Covariance, 'noise_cov')
-    return noise_cov
+    return noise_cov, picks
 
 
 def _check_depth(depth, kind='depth_mne'):

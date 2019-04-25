@@ -27,6 +27,8 @@ if MNE_3D_BACKEND == Backends3D.mayavi:
     from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
 elif MNE_3D_BACKEND == Backends3D.ipyvolume:
     from ._ipyvolume import _Renderer  # lgtm # noqa: F401
+elif MNE_3D_BACKEND == Backends3D.vtki:
+    from ._vtki import _Renderer, _Projection  # lgtm # noqa: F401
 
 
 def set_3d_backend(backend_name):
@@ -84,4 +86,6 @@ def _use_test_3d_backend(backend_name):
     """
     with use_3d_backend(backend_name):
         global MNE_3D_BACKEND_TEST_DATA
+        if backend_name == Backends3D.vtki:
+            MNE_3D_BACKEND_TEST_DATA = True
         yield

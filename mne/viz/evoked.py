@@ -579,7 +579,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     _check_if_nan(data)
 
     im, t_end = _plot_masked_image(
-        ax, data, times, mask, picks=None, yvals=None, cmap=cmap[0],
+        ax, data, times, mask, yvals=None, cmap=cmap[0],
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
         mask_cmap=mask_cmap)
 
@@ -1453,6 +1453,10 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     return fig
 
 
+###############################################################################
+# The following functions are all helpers for plot_compare_evokeds.           #
+###############################################################################
+
 def _aux_setup_styles(conditions, style_dict, style, default):
     """Set linestyles and colors for plot_compare_evokeds."""
     # check user-supplied style to condition matching
@@ -1674,6 +1678,172 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
     return styles, the_colors, color_conds, color_order, colors_are_float
 
 
+def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
+    """Show sensor legend (location of a set of sensors on the head)."""
+    if show_sensors is True:
+        ymin, ymax = np.abs(ax.get_ylim())
+        show_sensors = "lower right" if ymin > ymax else "upper right"
+
+    pos = _auto_topomap_coords(info, picks, ignore_overlap=True,
+                               to_sphere=True)
+    head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
+    pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
+
+    show_sensors = _check_loc_legal(show_sensors, "show_sensors")
+    _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
+                 show_sensors, size=25)
+
+
+def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
+                             colors_are_float, the_colors, colors, color_conds,
+                             color_order, cmap_label, linestyles, ax):
+    """Show condition legend for line plot. Helper for plot_compare_evokeds."""
+    import matplotlib.lines as mlines
+
+    if split_legend is None:
+        split_legend = cmap is not None  # default to True iff cmap is given
+    if split_legend is True:
+        if colors is None:
+            raise ValueError(
+                "If `split_legend` is True, `colors` must not be None.")
+        # mpl 1.3 requires us to split it like this. with recent mpl,
+        # we could use the label parameter of the Line2D
+        legend_lines, legend_labels = list(), list()
+        if cmap is None:  # ... one set of lines for the colors
+            for color in sorted(colors.keys()):
+                line = mlines.Line2D([], [], linestyle="-",
+                                     color=colors[color])
+                legend_lines.append(line)
+                legend_labels.append(color)
+        if len(list(linestyles)) > 1:  # ... one set for the linestyle
+            for style, s in linestyles.items():
+                line = mlines.Line2D([], [], color='k', linestyle=s)
+                legend_lines.append(line)
+                legend_labels.append(style)
+
+    # the condition legend
+    if len(conditions) > 1 and show_legend is not False:
+        show_legend = _check_loc_legal(show_legend, "show_legend")
+        legend_params = dict(loc=show_legend, frameon=True)
+        if split_legend:
+            if len(legend_lines) > 1:
+                ax.legend(legend_lines, legend_labels,  # see above: mpl 1.3
+                          ncol=1 + (len(legend_lines) // 4), **legend_params)
+        else:
+            ax.legend(ncol=1 + (len(conditions) // 5), **legend_params)
+
+    # the colormap, if `cmap` is provided
+    if split_legend and cmap is not None:
+        # plot the colorbar ... complicated cause we don't have a heatmap
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        divider = make_axes_locatable(ax)
+        ax_cb = divider.append_axes("right", size="5%", pad=0.05)
+        if colors_are_float:
+            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none',
+                         aspect=.05)
+            color_ticks = np.array(list(set(colors.values()))) * 100
+            ax_cb.set_yticks(color_ticks)
+            ax_cb.set_yticklabels(color_ticks)
+        else:
+            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
+            ax_cb.set_yticks(np.arange(len(the_colors)))
+            ax_cb.set_yticklabels(np.array(color_conds)[color_order])
+        ax_cb.yaxis.tick_right()
+        ax_cb.set(xticks=(), ylabel=cmap_label)
+
+
+def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
+                                    truncate_yaxis,  truncate_xaxis, invert_y,
+                                    vlines, tmin, tmax, unit):
+    """Set ylims for an evoked plot. Helper for plot_compare_evokeds."""
+    # truncate the y axis - this is aesthetics
+    orig_ymin, orig_ymax = ax.get_ylim()
+    if not any_positive:
+        orig_ymax = 0
+    if not any_negative:
+        orig_ymin = 0
+
+    ax.set_ylim(orig_ymin if ymin is None else ymin,
+                orig_ymax if ymax is None else ymax)
+
+    fraction = 2 if ax.get_ylim()[0] >= 0 else 3
+
+    if truncate_yaxis is not False:
+        _, ymax_bound = _truncate_yaxis(
+            ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
+            any_positive, any_negative, truncate_yaxis)
+    else:
+        if truncate_yaxis is True and ymin is not None and ymin > 0:
+            warn("ymin is all-positive, not truncating yaxis")
+        ymax_bound = ax.get_ylim()[-1]
+
+    current_ymin = ax.get_ylim()[0]
+
+    # plot v lines
+    # Why 'invert_y'? Many EEG people plot negative values up for ... reasons
+    if invert_y is True and current_ymin < 0:
+        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
+    else:
+        upper_v, lower_v = ax.get_ylim()[0], ymax_bound
+    if vlines:
+        ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
+                  linewidth=1., zorder=1)
+
+    # more aesthetics
+    _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
+                     truncate_xaxis)
+
+
+def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
+    """Compute (sensor-aggregated, scaled) time series and possibly CI."""
+    from .. import Evoked
+    if picks is None:
+        picks = Ellipsis
+    if not isinstance(evoked, Evoked):
+        data = np.array([e.data[picks, :] * scaling for e in evoked])
+    else:
+        data = evoked.data[np.newaxis, picks] * scaling
+
+    if gfp:
+        data = np.sqrt(np.mean(data * data, axis=1))
+    else:
+        data = np.mean(data, axis=1)  # average across channels
+
+    if ci_fun is not None:  # compute CI if requested:
+        ci = ci_fun(data)
+
+    # average across trials:
+    data = np.mean(data, axis=0)
+    _check_if_nan(data)
+
+    if ci_fun is not None:
+        return data, ci
+    else:
+        return data,
+
+
+def _get_ci_function_for_evokeds(ci):
+    """Get the function for calculating the confidence interval for evokeds."""
+    # check ci parameter
+    if ci is None:
+        return None
+
+    if ci is True:
+        ci = .95
+    elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
+        raise TypeError('ci must be None, bool, float or callable, got %s' %
+                        type(ci))
+
+    _ci_fun = None
+    if ci is not False:
+        if callable(ci):
+            _ci_fun = ci
+        else:
+            from ..stats import _ci
+            _ci_fun = partial(_ci, ci=ci, method="bootstrap")
+    return _ci_fun
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
@@ -1850,19 +2020,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     102 channels.
     """
     import matplotlib.pyplot as plt
-    import matplotlib.lines as mlines
 
     evokeds, colors = _format_evokeds_colors(evokeds, cmap, colors)
     conditions = sorted(list(evokeds.keys()))
-
-    # check ci parameter
-    if ci is None:
-        ci = False
-    if ci is True:
-        ci = .95
-    elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
-        raise TypeError('ci must be None, bool, float or callable, got %s' %
-                        type(ci))
 
     # get and set a few limits and variables (times, channels, units)
     one_evoked = evokeds[conditions[0]][0]
@@ -1875,6 +2035,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
     picks = [] if picks is None else picks
+    if title is None and picks in _DATA_CH_TYPES_SPLIT:
+        title = _handle_default('titles')[picks]
     picks = _picks_to_idx(info, picks, allow_empty=True)
     if len(picks) == 0:
         logger.info("No picks, plotting the GFP ...")
@@ -1916,20 +2078,20 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             axes = [axes]
         _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
     else:
-        axes = [plt.subplots(figsize=(8, 6))[1] for _ in range(len(ch_types))]
+        axes = (plt.subplots(figsize=(8, 6))[1] for _ in range(len(ch_types)))
 
     if len(ch_types) > 1:
         logger.info("Multiple channel types selected, returning one figure "
                     "per type.")
         figs = list()
-        for ii, t in enumerate(ch_types):
+        for t, ax in zip(ch_types, axes):
             picks_ = picks_by_types[t]
             title_ = "GFP, " + t if (title is None and gfp is True) else title
             figs.append(plot_compare_evokeds(
                 evokeds, picks=picks_, gfp=gfp, colors=colors,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
-                axes=axes[ii], title=title_, show=show))
+                axes=ax, title=title_, show=show))
         return figs
 
     # From now on there is only 1 channel type
@@ -1959,13 +2121,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
     # if we have a dict/list of lists, we compute the grand average and the CI
-    _ci_fun = None
-    if ci is not False:
-        if callable(ci):
-            _ci_fun = ci
-        else:
-            from ..stats import _ci
-            _ci_fun = partial(_ci, ci=ci, method="bootstrap")
+    ci_fun = _get_ci_function_for_evokeds(ci)
 
     # calculate the CI
     ci_dict, data_dict = dict(), dict()
@@ -1973,18 +2129,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         this_evokeds = evokeds[cond]
         # this will fail if evokeds do not have the same structure
         # (e.g. channel count)
-        data = [e.data[picks, :] * scaling for e in this_evokeds]
-        data = np.array(data)
-        if gfp:
-            data = np.sqrt(np.mean(data * data, axis=1))
-        else:
-            data = np.mean(data, axis=1)  # average across channels
-        if _ci_fun is not None:  # compute CI if requested:
-            ci_dict[cond] = _ci_fun(data)
-        # average across conditions:
-        data_dict[cond] = data = np.mean(data, axis=0)
-        _check_if_nan(data)
-
+        res = _get_data_and_ci(this_evokeds, scaling=scaling, picks=picks,
+                               ci_fun=ci_fun, gfp=gfp)
+        data_dict[cond] = res[0]
+        if ci_fun is not None:
+            ci_dict[cond] = res[-1]
     del evokeds
 
     # we now have dicts for data ('evokeds' - grand averaged Evoked's)
@@ -2010,39 +2159,15 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                                  " was not found in the supplied data.")
 
     # third, color
-    # check: is color a list?
     if (colors is not None and not isinstance(colors, str) and
             not isinstance(colors, dict) and len(colors) > 1):
         colors = {condition: color for condition, color
                   in zip(conditions, colors)}
 
+    cmap_label = ""
     if cmap is not None:
         if not isinstance(cmap, str) and len(cmap) == 2:
             cmap_label, cmap = cmap
-        else:
-            cmap_label = ""
-
-    # dealing with a split legend
-    if split_legend is None:
-        split_legend = cmap is not None  # default to True iff cmap is given
-    if split_legend is True:
-        if colors is None:
-            raise ValueError(
-                "If `split_legend` is True, `colors` must not be None.")
-        # mpl 1.3 requires us to split it like this. with recent mpl,
-        # we could use the label parameter of the Line2D
-        legend_lines, legend_labels = list(), list()
-        if cmap is None:  # ... one set of lines for the colors
-            for color in sorted(colors.keys()):
-                line = mlines.Line2D([], [], linestyle="-",
-                                     color=colors[color])
-                legend_lines.append(line)
-                legend_labels.append(color)
-        if len(list(linestyles)) > 1:  # ... one set for the linestyle
-            for style, s in linestyles.items():
-                line = mlines.Line2D([], [], color='k', linestyle=s)
-                legend_lines.append(line)
-                legend_labels.append(style)
 
     styles, the_colors, color_conds, color_order, colors_are_float =\
         _setup_styles(data_dict.keys(), styles, cmap, colors, linestyles)
@@ -2066,52 +2191,23 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             any_negative = True
 
         # plot the confidence interval if available
-        if _ci_fun is not None:
+        if ci_fun is not None:
             ci_ = ci_dict[condition]
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
                             zorder=9, color=styles[condition]['c'], alpha=.3,
                             clip_on=False)
 
-    # truncate the y axis
-    orig_ymin, orig_ymax = ax.get_ylim()
-    if not any_positive:
-        orig_ymax = 0
-    if not any_negative:
-        orig_ymin = 0
+    # ylims
+    _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
+                                    truncate_yaxis,  truncate_xaxis,
+                                    invert_y, vlines, tmin, tmax, unit)
 
-    ax.set_ylim(orig_ymin if ymin is None else ymin,
-                orig_ymax if ymax is None else ymax)
-
-    fraction = 2 if ax.get_ylim()[0] >= 0 else 3
-
-    if truncate_yaxis is not False:
-        _, ymax_bound = _truncate_yaxis(
-            ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
-            any_positive, any_negative, truncate_yaxis)
-    else:
-        if truncate_yaxis is True and ymin is not None and ymin > 0:
-            warn("ymin is all-positive, not truncating yaxis")
-        ymax_bound = ax.get_ylim()[-1]
-
+    # title
     title = _set_title_multiple_electrodes(
         title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
     ax.set_title(title)
 
-    current_ymin = ax.get_ylim()[0]
-
-    # plot v lines
-    if invert_y is True and current_ymin < 0:
-        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
-    else:
-        upper_v, lower_v = ax.get_ylim()[0], ymax_bound
-    if vlines:
-        ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
-                  linewidth=1., zorder=1)
-
-    _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
-                     truncate_xaxis)
-
-    # and now for 3 "legends" ..
+    # 2 legends.
     # a head plot showing the sensors that are being plotted
     if show_sensors:
         _validate_type(show_sensors, (np.int, bool, str, type(None)),
@@ -2120,48 +2216,14 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             warn("Cannot find channel coordinates in the supplied Evokeds. "
                  "Not showing channel locations.")
         else:
-            if show_sensors is True:
-                ymin, ymax = np.abs(ax.get_ylim())
-                show_sensors = "lower right" if ymin > ymax else "upper right"
+            _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
+                                  show_sensors, ax)
 
-            pos = _auto_topomap_coords(one_evoked.info, pos_picks,
-                                       ignore_overlap=True, to_sphere=True)
-            head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
-            pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
-
-            show_sensors = _check_loc_legal(show_sensors, "show_sensors")
-            _plot_legend(pos, ["k"] * len(picks), ax, list(), outlines,
-                         show_sensors, size=25)
-
-    # the condition legend
-    if len(conditions) > 1 and show_legend is not False:
-        show_legend = _check_loc_legal(show_legend, "show_legend")
-        legend_params = dict(loc=show_legend, frameon=True)
-        if split_legend:
-            if len(legend_lines) > 1:
-                ax.legend(legend_lines, legend_labels,  # see above: mpl 1.3
-                          ncol=1 + (len(legend_lines) // 4), **legend_params)
-        else:
-            ax.legend(ncol=1 + (len(conditions) // 5), **legend_params)
-
-    # the colormap, if `cmap` is provided
-    if split_legend and cmap is not None:
-        # plot the colorbar ... complicated cause we don't have a heatmap
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        divider = make_axes_locatable(ax)
-        ax_cb = divider.append_axes("right", size="5%", pad=0.05)
-        if colors_are_float:
-            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none',
-                         aspect=.05)
-            color_ticks = np.array(list(set(colors.values()))) * 100
-            ax_cb.set_yticks(color_ticks)
-            ax_cb.set_yticklabels(color_ticks)
-        else:
-            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
-            ax_cb.set_yticks(np.arange(len(the_colors)))
-            ax_cb.set_yticklabels(np.array(color_conds)[color_order])
-        ax_cb.yaxis.tick_right()
-        ax_cb.set(xticks=(), ylabel=cmap_label)
+    # condition legend
+    _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
+                             colors_are_float, the_colors, colors,
+                             color_conds, color_order, cmap_label,
+                             linestyles, ax)
 
     plt_show(show)
     return ax.figure

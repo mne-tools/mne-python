@@ -20,6 +20,7 @@ class Backends3D(str, Enum):
 
     ipyvolume = 'ipyvolume'
     mayavi = 'mayavi'
+    vtki = 'vtki'
 
     @classmethod
     def get_backend_based_on_env_and_defaults(cls):

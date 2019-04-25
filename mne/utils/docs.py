@@ -63,11 +63,47 @@ docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
 # Inverses
 docdict['depth'] = """
 depth : None | float | dict
+    How to weight (or normalize) the forward using a depth prior.
     If float (default 0.8), it acts as the depth weighting exponent (``exp``)
-    to use (must be between 0 and 1). None is equivalent to 0, meaning no depth
-    weighting is performed. Can also be a `dict` containing additional keyword
-    arguments to pass to :func:`mne.forward.compute_depth_prior` (see docstring
-    for details and defaults).
+    to use, which must be between 0 and 1. None is equivalent to 0, meaning
+    no depth weighting is performed. It can also be a `dict` containing
+    keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
+    (see docstring for details and defaults).
+"""
+
+# Forward
+docdict['on_missing'] = """
+on_missing : str
+        Behavior when ``stc`` has vertices that are not in ``fwd``.
+        Can be "ignore", "warn"", or "raise"."""
+
+# Simulation
+docdict['random_state'] = """
+random_state : None | int | ~numpy.random.RandomState
+    The random generator state used for blink, ECG, and sensor
+    noise randomization. Default is None, which does not set the seed.
+"""
+docdict['interp'] = """
+interp : str
+    Either 'hann', 'cos2' (default), 'linear', or 'zero', the type of
+    forward-solution interpolation to use between forward solutions
+    at different head positions.
+"""
+docdict['head_pos'] = """
+head_pos : None | str | dict | tuple | array
+    Name of the position estimates file. Should be in the format of
+    the files produced by MaxFilter. If dict, keys should
+    be the time points and entries should be 4x4 ``dev_head_t``
+    matrices. If None, the original head position (from
+    ``info['dev_head_t']``) will be used. If tuple, should have the
+    same format as data returned by `head_pos_to_trans_rot_t`.
+    If array, should be of the form returned by
+    :func:`mne.chpi.read_head_pos`.
+"""
+docdict['n_jobs'] = """
+n_jobs : int
+    The number of jobs to run in parallel (default 1).
+    Requires the joblib package.
 """
 
 # Finalize

@@ -537,11 +537,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         self.subject = _check_subject(None, subject, False)
 
     def __repr__(self):  # noqa: D105
-        if isinstance(self.vertices, list):
-            nv = sum([len(v) for v in self.vertices])
-        else:
-            nv = self.vertices.size
-        s = "%d vertices" % nv
+        s = "%d vertices" % (sum(len(v) for v in self._vertices_list),)
         if self.subject is not None:
             s += ", subject : %s" % self.subject
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)

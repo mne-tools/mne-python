@@ -49,12 +49,20 @@ from ..annotations import Annotations, _combine_annotations, _sync_onset
 from ..annotations import _ensure_annotation_object
 
 
+def _set_pandas_dtype(df, columns, dtype):
+    """Try to set the right columns to dtype."""
+    for column in columns:
+        df[column] = df[column].astype(dtype)
+        logger.info('Converting "%s" to "%s"...' % (column, dtype))
+
+
 class ToDataFrameMixin(object):
     """Class to add to_data_frame capabilities to certain classes."""
 
     @fill_doc
     def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
-                      scalings=None, copy=True, start=None, stop=None):
+                      scalings=None, copy=True, start=None, stop=None,
+                      long_format=False):
         """Export data in tabular structure as a pandas DataFrame.
 
         Columns and indices will depend on the object being converted.
@@ -85,6 +93,14 @@ class ToDataFrameMixin(object):
             If it is a Raw object, this defines a stop index for creating
             the dataframe from a slice. The times will be interpolated from the
             index and the sampling rate of the signal.
+        long_format : bool
+            If True, the dataframe is returned in long format where each row
+            is one observation of the signal at a unique coordinate of
+            channels, time points, epochs and conditions. The number of
+            factors depends on the data container. For convenience,
+            a `ch_type` column is added when using this option that will
+            facilitate subsetting the resulting dataframe.
+            Defaults to False.
 
         Returns
         -------
@@ -100,6 +116,7 @@ class ToDataFrameMixin(object):
 
         pd = _check_pandas_installed()
         mindex = list()
+        ch_map = None
         # Treat SourceEstimates special because they don't have the same info
         if isinstance(self, _BaseSourceEstimate):
             if self.subject is None:
@@ -149,19 +166,20 @@ class ToDataFrameMixin(object):
                 data = data.T
                 col_names = [self.ch_names[k] for k in picks]
 
-            types = [channel_type(self.info, idx) for idx in picks]
-            n_channel_types = 0
-            ch_types_used = []
+            ch_types = [channel_type(self.info, idx) for idx in picks]
+            ch_map = dict(
+                zip([self.info['ch_names'][pp] for pp in picks],
+                    ch_types))
 
+            ch_types_used = list()
             scalings = _handle_default('scalings', scalings)
-            for t in scalings.keys():
-                if t in types:
-                    n_channel_types += 1
-                    ch_types_used.append(t)
+            for tt in scalings.keys():
+                if tt in ch_types:
+                    ch_types_used.append(tt)
 
-            for t in ch_types_used:
-                scaling = scalings[t]
-                idx = [i for i in range(len(picks)) if types[i] == t]
+            for tt in ch_types_used:
+                scaling = scalings[tt]
+                idx = [ii for ii in range(len(picks)) if ch_types[ii] == tt]
                 if len(idx) > 0:
                     data[:, idx] *= scaling
         else:
@@ -187,12 +205,30 @@ class ToDataFrameMixin(object):
         for i, (k, v) in enumerate(mindex):
             df.insert(i, k, v)
         if index is not None:
-            if 'time' in index:
-                logger.info('Converting time column to int64...')
-                df['time'] = df['time'].astype(np.int64)
+            if 'time' in index and not long_format:
+                _set_pandas_dtype(df, ['time'], np.int64)
             df.set_index(index, inplace=True)
         if all(i in default_index for i in index):
-            df.columns.name = 'signal'
+            if isinstance(self, _BaseSourceEstimate):
+                df.columns.name = 'source'
+            else:
+                df.columns.name = 'channel'
+
+        if long_format:
+            df = df.stack().reset_index()
+            columns = list(df.columns)
+            sig_idx = columns.index(0)
+            columns[sig_idx] = 'observation'
+            df.columns = columns
+
+            if not isinstance(self, _BaseSourceEstimate):
+                df['ch_type'] = df.channel.map(ch_map)
+
+            columns = list(df.columns)
+            to_factor = [
+                cc for cc in columns if cc not in ['observation', 'time']]
+            _set_pandas_dtype(df, to_factor, 'category')
+
         return df
 
 
@@ -1627,12 +1663,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             tmax = max_time
 
         if tmin > tmax:
-            raise ValueError('tmin must be less than tmax')
+            raise ValueError('tmin (%s) must be less than tmax (%s)'
+                             % (tmin, tmax))
         if tmin < 0.0:
-            raise ValueError('tmin must be >= 0')
+            raise ValueError('tmin (%s) must be >= 0' % (tmin,))
         elif tmax > max_time:
-            raise ValueError('tmax must be less than or equal to the max raw '
-                             'time (%0.4f sec)' % max_time)
+            raise ValueError('tmax (%s) must be less than or equal to the max '
+                             'time (%0.4f sec)' % (tmax, max_time))
 
         smin, smax = np.where(_time_mask(self.times, tmin, tmax,
                                          sfreq=self.info['sfreq']))[0][[0, -1]]

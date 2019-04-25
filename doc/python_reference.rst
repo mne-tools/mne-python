@@ -183,6 +183,7 @@ Datasets
    brainstorm.bst_raw.data_path
    eegbci.load_data
    fetch_aparc_sub_parcellation
+   fetch_fsaverage
    fetch_hcp_mmp_parcellation
    hf_sef.data_path
    kiloword.data_path
@@ -440,6 +441,7 @@ Events
    :toctree: generated/
 
    define_target_events
+   shift_time_events
 
 :py:mod:`mne.epochs`:
 
@@ -702,6 +704,7 @@ Source Space Data
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
+   label.select_sources
    grow_labels
    label_sign_flip
    labels_to_stc
@@ -891,6 +894,9 @@ Simulation
 .. autosummary::
    :toctree: generated/
 
+   add_chpi
+   add_ecg
+   add_eog
    add_noise
    simulate_evoked
    simulate_raw
@@ -953,6 +959,7 @@ Realtime
 
    FieldTripClient
    LSLClient
+   MockLSLStream
    MockRtClient
    RtEpochs
    RtClient

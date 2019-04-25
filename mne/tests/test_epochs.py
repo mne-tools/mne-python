@@ -434,6 +434,12 @@ def test_decim():
         assert_equal(epochs.info['sfreq'], sfreq_new)
         assert_array_equal(epochs.times, expected_times)
 
+        # test picks when getting data
+        picks = [3, 4, 7]
+        d1 = epochs.get_data(picks=picks)
+        d2 = epochs.get_data()[:, picks]
+        assert_array_equal(d1, d2)
+
 
 def test_base_epochs():
     """Test base epochs class."""
@@ -1640,6 +1646,15 @@ def test_to_data_frame():
         # test that non-indexed data were present as categorial variables
         assert_array_equal(sorted(df.reset_index().columns[:3]),
                            sorted(['time', 'condition', 'epoch']))
+
+    df = epochs.to_data_frame(long_format=True)
+    assert(len(df) == epochs.get_data().size)
+    assert("time" in df.columns)
+    assert("condition" in df.columns)
+    assert("channel" in df.columns)
+    assert("epoch" in df.columns)
+    assert("ch_type" in df.columns)
+    assert("observation" in df.columns)
 
 
 def test_epochs_proj_mixin():

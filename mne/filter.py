@@ -2242,7 +2242,6 @@ class _Interp2(object):
         assert len(set(self._count.values())) == 1
         self._n_samp = n_samp
         self.interp = self.interp
-        self._chunks = np.concatenate((np.arange(0, n_samp, 10000), [n_samp]))
 
     @property
     def interp(self):
@@ -2256,7 +2255,7 @@ class _Interp2(object):
                              % (known_types, interp))
         self._interp = interp
         if self.n_samp is not None:
-            if self._interp == 'zero':
+            if self._interp == 'zero' or np.isinf(self.n_samp):  # ZOH
                 self._interpolators = None
             else:
                 if self._interp == 'linear':
@@ -2267,24 +2266,16 @@ class _Interp2(object):
                     interp = np.hanning(self.n_samp * 2 + 1)[self.n_samp:-1]
                 self._interpolators = np.array([interp, 1 - interp])
 
-    def interpolate(self, key, data, out, picks=None, data_idx=None):
+    def interpolate(self, key, data, out, picks=None, interp_sl=None):
         """Interpolate."""
         picks = slice(None) if picks is None else picks
+        interp_sl = slice(None) if interp_sl is None else interp_sl
         # Process data in large chunks to save on memory
-        for start, stop in zip(self._chunks[:-1], self._chunks[1:]):
-            time_sl = slice(start, stop)
-            if data_idx is not None:
-                # This is useful e.g. when using circular access to the data.
-                # This prevents STC blowups in raw data simulation.
-                data_sl = data[:, data_idx[time_sl]]
-            else:
-                data_sl = data[:, time_sl]
-            this_data = np.dot(self._last[key], data_sl)
-            if self._interpolators is not None:
-                this_data *= self._interpolators[0][time_sl]
-            out[picks, time_sl] += this_data
-            if self._interpolators is not None:
-                this_data = np.dot(self._current[key], data_sl)
-                this_data *= self._interpolators[1][time_sl]
-                out[picks, time_sl] += this_data
-            del this_data
+        this_data = np.dot(self._last[key], data)
+        if self._interpolators is not None:
+            this_data *= self._interpolators[0][interp_sl]
+        out[picks, ] += this_data
+        if self._interpolators is not None:
+            this_data = np.dot(self._current[key], data)
+            this_data *= self._interpolators[1][interp_sl]
+            out[picks, :] += this_data
