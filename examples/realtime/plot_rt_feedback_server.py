@@ -21,6 +21,7 @@ for a real experiment.
 #
 # License: BSD (3-clause)
 
+import subprocess
 import sys
 import time
 
@@ -37,7 +38,7 @@ import mne
 from mne.datasets import sample
 from mne.utils import running_subprocess
 from mne.realtime import StimServer, MockRtClient
-from mne.decoding import Vectorizer, FilterEstimator
+from mne.decoding import Vectorizer
 
 print(__doc__)
 
@@ -59,29 +60,23 @@ rng = np.random.RandomState(0)
 with StimServer(port=4218) as stim_server:
 
     # The channels to be used while decoding
-    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=False,
-                           stim=False, exclude=raw.info['bads'])
+    picks = mne.pick_types(raw.info, meg='grad')
 
     rt_client = MockRtClient(raw)
 
     # Constructing the pipeline for classification
     # don't highpass filter because of short signal length of epochs
-    filt = FilterEstimator(raw.info, None, 40,
-                           # keep all channels that are picked from the
-                           # RtClient
-                           picks=np.arange(len(picks), dtype=int))
     scaler = preprocessing.StandardScaler()
     vectorizer = Vectorizer()
     clf = SVC(C=1, kernel='linear')
-    concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
+    concat_classifier = Pipeline([('vector', vectorizer),
                                   ('scaler', scaler), ('svm', clf)])
     ev_list = list(rng.randint(3, 5, n_start))  # some random starting events
     score_lv, score_rv, score_x = [], [], []
 
     command = [sys.executable, 'rt_feedback_client.py']
-    with running_subprocess(command, after='terminate',
-                            stdout=None, stderr=None):
-        stim_server.start(verbose=True)
+    with running_subprocess(command, after='kill',
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE):
         for ii in range(n_trials):
             # Tell the stim_client about the next stimuli
             stim_server.add_trigger(ev_list[ii])

@@ -375,6 +375,9 @@ def reset_warnings(gallery_conf, fname):
         category=Warning)
     warnings.filterwarnings(  # deal with other modules having bad imports
         'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
+    warnings.filterwarnings(  # realtime
+        'ignore', message=".*unclosed file.*", category=ResourceWarning)
+    warnings.filterwarnings('ignore', message='Exception ignored in.*')
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)
