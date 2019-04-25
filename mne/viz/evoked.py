@@ -13,6 +13,7 @@
 from copy import deepcopy
 from functools import partial
 from numbers import Integral
+from typing import Iterable
 
 import numpy as np
 
@@ -1959,8 +1960,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         If dict, keys must be of type str.
     %(picks_all_data)s
 
-        * If picks is None, the global field power will be plotted
-          for all data channels. Otherwise, picks will be averaged.
+        * If picks is None or a (collection of) data channel types, the
+          global field power will be plotted for all data channels.
+          Otherwise, picks will be averaged.
         * If multiple channel types are selected, one
           figure will be returned for each channel type.
         * If the selected channels are gradiometers, the signal from
@@ -2129,8 +2131,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
-    if gfp is None and (picks in _DATA_CH_TYPES_SPLIT or
-                        all(pick in _DATA_CH_TYPES_SPLIT for pick in picks)):
+    if gfp is None and (picks is None or (
+            picks in list(_DATA_CH_TYPES_SPLIT) + ['meg'] or
+            (isinstance(picks, Iterable) and
+             all(pick == 'meg' or pick in _DATA_CH_TYPES_SPLIT
+                 for pick in picks)))):
         gfp = True
 
     picks_was_str_title_was_none = False

@@ -327,6 +327,13 @@ def test_plot_compare_evokeds():
         plot_compare_evokeds(contrasts, cmap='summer')
     plt.close('all')
 
+    figs = plot_compare_evokeds(red, picks="meg", gfp=None)
+    for fig in figs:
+        assert "GFP" in fig.axes[0].get_title()
+    figs = plot_compare_evokeds(red, picks="meg", gfp=False)
+    for fig in figs:
+        assert "GFP" not in fig.axes[0].get_title()
+
     figs = plot_compare_evokeds(contrasts, axes="topo")
     for fig in figs:
         assert len(fig.axes[0].lines) == len(contrasts)
