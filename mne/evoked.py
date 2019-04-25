@@ -837,7 +837,13 @@ def combine_evoked(all_evoked, weights):
     """Merge evoked data by weighted addition or subtraction.
 
     Data should have the same channels and the same time instants.
-    Subtraction can be performed by passing negative weights (e.g., [1, -1]).
+    Subtraction can be performed by calling
+    ``combine_evoked([evoked1, -evoked2], 'equal')``
+
+    .. Warning::
+        If you provide an array of weights instead of using `'equal'` or
+        `'nave'`, strange things may happen with your resulting signal
+        amplitude and/or `.nave` attribute.
 
     Parameters
     ----------
