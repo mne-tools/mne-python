@@ -129,9 +129,12 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     command : list of str | str
         Command to run as subprocess (see :class:`python:subprocess.Popen`).
     after : str
-        Can be "wait" or "terminate" which will call
-        :meth:`~python:subprocess.Popen.wait` or
-        :meth:`~python:subprocess.Popen.terminate`.
+        Can be:
+
+        - "wait" to use :meth:`~python:subprocess.Popen.wait`
+        - "terminate" to use :meth:`~python:subprocess.Popen.terminate`
+        - "kill" to use :meth:`~python:subprocess.Popen.kill`
+
     %(verbose)s
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
@@ -142,7 +145,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
         The process.
     """
     _validate_type(after, str, 'after')
-    _check_option('after', after, ['wait', 'terminate'])
+    _check_option('after', after, ['wait', 'terminate', 'kill'])
     for stdxxx, sys_stdxxx, thresh in (
             ['stderr', sys.stderr, logging.ERROR],
             ['stdout', sys.stdout, logging.WARNING]):
@@ -178,10 +181,8 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
         logger.error('Command not found: %s' % command_name)
         raise
     yield p
-    if after == 'wait':
-        p.wait()
-    else:  # 'terminate'
-        p.terminate()
+    getattr(p, after)()
+    p.wait()
 
 
 def _clean_names(names, remove_whitespace=False, before_dash=True):

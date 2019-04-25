@@ -15,10 +15,12 @@ get_data_as_epoch function.
 #
 # License: BSD (3-clause)
 
-import numpy as np
-import matplotlib.pyplot as plt
+import os.path as op
 import subprocess
 import time
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.realtime import FieldTripClient
@@ -27,11 +29,11 @@ from mne.utils import running_subprocess
 
 print(__doc__)
 
-# start a subprocess for neuromag2ft
+# user should provide info and list of bad channels because
+# FieldTrip header object does not provide them
 data_path = mne.datasets.sample.data_path()
-
-# user must provide list of bad channels because
-# FieldTrip header object does not provide that
+info = mne.io.read_info(op.join(data_path, 'MEG', 'sample',
+                                'sample_audvis_raw.fif'))
 bads = ['MEG 2443', 'EEG 053']
 
 fig, ax = plt.subplots(1)
@@ -40,23 +42,20 @@ speedup = 10
 command = ["neuromag2ft", "--file",
            "{}/MEG/sample/sample_audvis_raw.fif".format(data_path),
            "--speed", str(speedup)]
-with running_subprocess(command, after='terminate',
+with running_subprocess(command, after='kill',
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE):
     with FieldTripClient(host='localhost', port=1972,
-                         tmax=10, wait_max=5) as rt_client:
-
-        # get measurement info guessed by MNE-Python
-        raw_info = rt_client.get_measurement_info()
+                         tmax=10, wait_max=5, info=info) as rt_client:
 
         # select gradiometers
-        picks = mne.pick_types(raw_info, meg='grad', eeg=False, eog=True,
+        picks = mne.pick_types(info, meg='grad', eeg=False, eog=True,
                                stim=False, include=[], exclude=bads)
 
         n_fft = 256  # the FFT size. Ideally a power of 2
         n_samples = 2048  # time window on which to compute FFT
 
         # make sure at least one epoch is available
-        time.sleep(n_samples / raw_info['sfreq'])
+        time.sleep(n_samples / info['sfreq'])
 
         for ii in range(5):
             epoch = rt_client.get_data_as_epoch(n_samples=n_samples,
@@ -68,8 +67,8 @@ with running_subprocess(command, after='terminate',
             freqs = freqs[freq_mask]
             log_psd = 10 * np.log10(psd[0])
 
-            tmin = epoch.events[0][0] / raw_info['sfreq']
-            tmax = (epoch.events[0][0] + n_samples) / raw_info['sfreq']
+            tmin = epoch.events[0][0] / info['sfreq']
+            tmax = (epoch.events[0][0] + n_samples) / info['sfreq']
 
             if ii == 0:
                 im = ax.imshow(log_psd[:, freq_mask].T, aspect='auto',
