@@ -10,18 +10,19 @@ jobs:
         - run:
             name: Set BASH_ENV
             command: |
-              echo "set -e" >> $BASH_ENV;
-              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV;
-              echo "export DISPLAY=:99" >> $BASH_ENV;
-              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV;
-              echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV;
-              if [ "${DEPS}" == "" ]; then
-                echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV;
-                echo "export PATH=${MNE_ROOT}/bin:$PATH" >> $BASH_ENV;
-                curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
-                echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV;
-                echo "export NEUROMAG2FT_ROOT=${PWD}/minimal_cmds/bin" >> $BASH_ENV;
-              fi;
+              echo "set -e" >> $BASH_ENV
+              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV
+              export MNE_ROOT=${PWD}/minimal_cmds
+              echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              echo "export PATH=${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
+              curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
+              echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
+              echo "export NEUROMAG2FT_ROOT=${PWD}/minimal_cmds/bin" >> $BASH_ENV
+              echo "BASH_ENV:"
+              cat $BASH_ENV
         - run:
             name: check neuromag2ft
             command: |
