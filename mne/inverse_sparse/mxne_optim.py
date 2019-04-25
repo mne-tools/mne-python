@@ -420,7 +420,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
             #         overwrite_a=True)
             gemm2(alpha=1., beta=1., a=X_j.T, b=G_j.T, c=R.T,
                   overwrite_c=True)
-                # R += np.dot(G_j, X_j)
+            # R += np.dot(G_j, X_j)
             X_j_new += X_j
         # Q can we accelerate the computation of this norm ?
         # it seems very slow regarding the operation done
