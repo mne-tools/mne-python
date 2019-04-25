@@ -40,6 +40,13 @@ for subfolder in ['layouts', 'montages']:
     print(sorted(os.listdir(os.path.join(data_dir, subfolder))))
 
 ###############################################################################
+# .. note::
+#
+#     If you are interested in how the information about the sensor postions
+#     can be computed in a general way ("Where do they come from?!"), the
+#     `eeg_positions <https://github.com/sappelhoff/eeg_positions>`_
+#     repository provides transparent code and documentation to this end.
+#
 # *Layouts* give sensor positions in 2 dimensions (defined by ``x``, ``y``,
 # ``width``, and ``height`` values for each sensor), and are primarily used for
 # illustrative purposes (i.e., making diagrams of approximate sensor
