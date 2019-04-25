@@ -2336,11 +2336,12 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
                                     if invert_y else ylabel_height)
 
+    # this section is very long because the axes can become very small
+    # with topo plotting. This interferes with boundaries if the epoch is short
     vlines = [] if vlines is None else vlines
     xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
-    axes.set_xticks(xticks)
-    x_extrema = [t for t in xticks if tmax >= t >= tmin]
-    if len(x_extrema) == 0:  # can happen with one time point
+    x_extrema = [t for t in xticks if tmax >= t and t >= tmin]
+    if len(x_extrema) < 2:  # can happen with one time point
         x_extrema = [tmin, tmax]
     if truncate_xaxis is True:
         axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
@@ -2350,6 +2351,30 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.spines["top"].set_color('none')
     axes.spines["left"].set_zorder(0)
 
+    plotmin, plotmax = axes.spines["bottom"].get_bounds()
+    plotted_xticks = [t for t in xticks if plotmax > t and t > plotmin]
+    if len(plotted_xticks) < 2:
+        max_t = max(tmax, abs(tmin))
+        if max_t >= 1:
+            lone_tick = 1
+        elif max_t >= .5:
+            lone_tick = .5
+        elif max_t >= .25:
+            lone_tick = .25
+        elif max_t >= .1:
+            lone_tick = .1
+        else:
+            lone_tick = max_t * .9
+
+        if abs(plotmin) < plotmax:
+            xticks = xticks + [lone_tick]
+            axes.spines["bottom"].set_bounds(0, lone_tick)
+        else:
+            xticks = [-lone_tick] + xticks
+            axes.spines["bottom"].set_bounds(lone_tick, 0)
+
+    axes.set_xticks(xticks)
+    
     # finishing touches
     if invert_y:
         axes.invert_yaxis()

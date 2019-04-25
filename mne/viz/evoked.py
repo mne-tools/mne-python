@@ -1696,7 +1696,7 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
 
 def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
                              colors_are_float, the_colors, colors, color_conds,
-                             color_order, cmap_label, linestyles, ax):
+                             color_order, cmap_label, linestyles, ax, do_topo):
     """Show condition legend for line plot. Helper for plot_compare_evokeds."""
     import matplotlib.lines as mlines
 
@@ -1723,12 +1723,20 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
 
     # the condition legend
     if len(conditions) > 1 and show_legend is not False:
+        show_legend_orig = show_legend
         show_legend = _check_loc_legal(show_legend, "show_legend")
         legend_params = dict(loc=show_legend, frameon=True)
+
+        # override if topoplot and default loc
+        if do_topo and (isinstance(show_legend_orig, bool)
+                        and show_legend_orig):
+            del legend_params["loc"]
+            legend_params["bbox_to_anchor"] = (-.5, .75)
         if split_legend:
             if len(legend_lines) > 1:
-                ax.legend(legend_lines, legend_labels,  # see above: mpl 1.3
-                          ncol=1 + (len(legend_lines) // 4), **legend_params)
+                ax.legend(
+                    legend_lines, legend_labels,  # see above: mpl 1.3
+                    ncol=1 + (len(legend_lines) // 4), **legend_params)
         else:
             ax.legend(ncol=1 + (len(conditions) // 5), **legend_params)
 
@@ -2124,7 +2132,7 @@ g
     try:  # set GFP to True for string picks
         if gfp is None and isinstance(picks, str) or isinstance(picks[0], str):
             gfp = True
-    except IndexError:  # if picks is not indexable, i.e., not a list (of str)
+    except (IndexError, TypeError):  # if picks is not (a list of) str
         pass
 
     picks_was_str_title_was_none = False
@@ -2136,8 +2144,9 @@ g
 
     picks = _picks_to_idx(info, picks, allow_empty=True)
     if len(picks) == 0:
-        logger.info("No picks, plotting the GFP ...")
-        gfp = True
+        if axes != "topo" or gfp != False:
+            logger.info("No picks, plotting the GFP ...")
+            gfp = True
         picks = _pick_data_channels(info, with_ref_meg=False)
 
     if picks_was_str_title_was_none and gfp:
@@ -2233,7 +2242,7 @@ g
     if do_topo:
         from .topo import iter_topography
         from functools import partial
-        fig = plt.figure(figsize=(16, 12))
+        fig = plt.figure(figsize=(18, 14))
 
         def click_func(
                 ax_, pick_, evokeds=evokeds, gfp=gfp, colors=colors,
@@ -2253,7 +2262,7 @@ g
         axes = list(iter_topography(
             info, layout=None, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
-            axis_spinecolor='k', layout_scale=.95))
+            axis_spinecolor='k', layout_scale=.925))
     all_ch_names = info["ch_names"]
     del info
 
@@ -2300,8 +2309,11 @@ g
     del evokeds
 
     if do_topo:
+        ax_anchors = np.array([np.array(ax_.get_position())[0]
+                               for ax_, _ in axes])
+        left, bottom = ax_anchors[:, 0].max(), ax_anchors[:, 1].min()
         (x0, y0), (x1, y1) = np.array(ax.get_position())
-        ax = plt.axes([.85, 0, x1 - x0, y1 - y0])
+        ax = plt.axes([left, bottom + .05, x1 - x0, y1 - y0])
         axes.append((ax, -1))
         picks.append(0)
 
@@ -2351,7 +2363,8 @@ g
         conditions, show_legend, split_legend, cmap, colors_are_float,
         the_colors, colors if not split_legend else colors_for_split_legend,
         color_conds, color_order, cmap_label,
-        linestyles if not split_legend else styles_for_split_legend, ax_)
+        linestyles if not split_legend else styles_for_split_legend, ax_,
+        do_topo)
 
     if do_topo:
         # we need the lines for the legends, but then we can kill them
