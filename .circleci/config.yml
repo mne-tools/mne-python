@@ -16,13 +16,16 @@ jobs:
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV;
               echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV;
               if [ "${DEPS}" == "" ]; then
-                export MNE_ROOT="${PWD}/minimal_cmds";
-                export PATH=${MNE_ROOT}/bin:$PATH;
+                echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV;
+                echo "export PATH=${MNE_ROOT}/bin:$PATH" >> $BASH_ENV;
                 curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
-                export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH;
-                export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
-                mne_surf2bem --version;
+                echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV;
+                echo "export NEUROMAG2FT_ROOT=${PWD}/minimal_cmds/bin" >> $BASH_ENV;
               fi;
+        - run:
+            name: check neuromag2ft
+            command: |
+              neuromag2ft --version
 
         - run:
             name: Merge with upstream
