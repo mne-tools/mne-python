@@ -862,24 +862,32 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     """
     scalings = _handle_default('scalings', scalings)
 
+    # make a copy because we discard non-data channels and scale the data
     epochs = epochs.copy()
+    # use layout to subset channels present in epochs object
     if layout is None:
         layout = find_layout(epochs.info)
     ch_names = set(layout.names) & set(epochs.ch_names)
     idxs = [epochs.ch_names.index(ch_name) for ch_name in ch_names]
     epochs = epochs.pick(idxs)
+    # iterate over a sequential index to get lists of chan. type & scale coef.
     ch_idxs = range(epochs.info['nchan'])
     ch_types = [channel_type(epochs.info, idx) for idx in ch_idxs]
     scale_coeffs = [scalings.get(ch_type, 1) for ch_type in ch_types]
+    # scale the data
     epochs._data *= np.array(scale_coeffs)[:, np.newaxis]
     data = epochs.get_data()
+    # get vlims for each channel type
     vlim_dict = dict()
     for ch_type in set(ch_types):
         this_data = data[:, np.where(np.array(ch_types) == ch_type)]
         vlim_dict[ch_type] = _setup_vmin_vmax(this_data, vmin, vmax)
     vlim_array = np.array([vlim_dict[ch_type] for ch_type in ch_types])
+    # only show colorbar if we have a single channel type
     if colorbar is None:
         colorbar = (len(set(ch_types)) == 1)
+    # if colorbar=True, we know we have only 1 channel type so all entries
+    # in vlim_array are the same, just take the first one
     if colorbar and vmin is None and vmax is None:
         vmin, vmax = vlim_array[0]
 
