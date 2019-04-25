@@ -19,7 +19,7 @@ import numpy as np
 from ..io.pick import (channel_type, _pick_data_channels,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
-                       _PICK_TYPES_DATA_DICT, _picks_to_idx)
+                       _PICK_TYPES_DATA_DICT, _picks_to_idx, pick_info)
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
@@ -2013,7 +2013,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         If ``cmap`` is a tuple of length 2, the first item must be
         a string which will become the colorbar label, and the second one
         must indicate a colormap, e.g. ::
-
+g
             cmap=('conds', 'viridis'), colors=dict(cond1=1 cond2=2, cond3=3),
 
     vlines : "auto" | list of float
@@ -2124,7 +2124,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     try:  # set GFP to True for string picks
         if gfp is None and isinstance(picks, str) or isinstance(picks[0], str):
             gfp = True
-    except TypeError:  # if picks is not an iterable
+    except IndexError:  # if picks is not indexable, i.e., not a list (of str)
         pass
 
     picks_was_str_title_was_none = False
@@ -2160,6 +2160,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         gfp = False
         do_topo = True
         show_sensors = False
+        if show_legend is None:
+            show_legend = "lower right"
         if len(picks) > 70:
             logger.info("Warning: plotting to a topographical layout with "
                         "> 70 sensors. This can be extremely slow. For a "
@@ -2227,6 +2229,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         ch_names = evokeds[cond][0].ch_names
         picks = range(len(ch_names))
 
+    info = pick_info(info, picks, True)
     if do_topo:
         from .topo import iter_topography
         from functools import partial
@@ -2238,18 +2241,19 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 ci=ci, truncate_yaxis=truncate_yaxis,
                 truncate_xaxis=truncate_xaxis, ylim=ylim, invert_y=invert_y,
                 show_sensors=show_sensors, show_legend=show_legend,
-                split_legend=split_legend):
+                split_legend=split_legend, picks=picks):
             plot_compare_evokeds(
                 evokeds=evokeds, gfp=gfp, colors=colors, linestyles=linestyles,
                 styles=styles, cmap=cmap, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, truncate_xaxis=truncate_xaxis,
                 ylim=ylim, invert_y=invert_y, show_sensors=show_sensors,
                 show_legend=show_legend, split_legend=split_legend,
-                show=True, picks=pick_, axes=ax_)
+                show=True, picks=picks[pick_], axes=ax_)
 
         axes = list(iter_topography(
-            info, layout=None, on_pick=click_func, fig=fig, fig_facecolor='w',
-            axis_facecolor='w', axis_spinecolor='k', layout_scale=.95))
+            info, layout=None, on_pick=click_func,
+            fig=fig, fig_facecolor='w', axis_facecolor='w',
+            axis_spinecolor='k', layout_scale=.95))
     all_ch_names = info["ch_names"]
     del info
 
@@ -2297,7 +2301,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     if do_topo:
         (x0, y0), (x1, y1) = np.array(ax.get_position())
-        ax = plt.axes([0, 0, x1 - x0, y1 - y0])
+        ax = plt.axes([.85, 0, x1 - x0, y1 - y0])
         axes.append((ax, -1))
         picks.append(0)
 

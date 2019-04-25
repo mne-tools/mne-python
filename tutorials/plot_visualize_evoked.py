@@ -177,7 +177,8 @@ mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
 # topoplot. Again, clicking on a sensor opens a single-sensor plot.
 
 mne.viz.plot_compare_evokeds(evoked_dict, picks="eeg", colors=colors,
-                             linestyles=linestyles, split_legend=True)
+                             linestyles=linestyles, split_legend=True,
+                             axes="topo")
 
 ###############################################################################
 # We can also plot the activations as arrow maps on top of the topoplot.
