@@ -497,7 +497,8 @@ class SourceSimulator():
         # Arbitrary chunk size, can be modified later to something else
         # Loop over chunks of 1 second - or, maximum sample size.
         # Can be modified to a different value.
-        for start_sample in np.arange(0, self.nb_samples,
-                                      self._chk_duration, dtype=int):
-            yield (self.get_stc(start_sample, self._chk_duration),
-                   self.get_stim_channel(start_sample, self._chk_duration))
+        nb_samples = self.nb_samples
+        for start_sample in range(0, nb_samples, self._chk_duration):
+            chk_duration = min(self._chk_duration, nb_samples - start_sample)
+            yield (self.get_stc(start_sample, chk_duration),
+                   self.get_stim_channel(start_sample, chk_duration))

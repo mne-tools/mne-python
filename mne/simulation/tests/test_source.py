@@ -356,6 +356,7 @@ def test_source_simulator():
 
     counter = 0
     for stc, stim in ss:
+        assert (stc.data.shape[1] == 6)
         counter += 1
     assert counter == 1
 
