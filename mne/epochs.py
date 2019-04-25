@@ -958,7 +958,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
-                        colorbar=True, order=None, cmap='RdBu_r',
+                        colorbar=None, order=None, cmap='RdBu_r',
                         layout_scale=.95, title=None, scalings=None,
                         border='none', fig_facecolor='k', fig_background=None,
                         font_color='w', show=True):
