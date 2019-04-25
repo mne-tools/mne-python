@@ -3,15 +3,9 @@ import warnings
 import numpy as np
 from surfer.utils import mesh_edges, smoothing_matrix
 
-# catch the warnings from ipyvolume
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import ipyvolume as ipv
-    import ipywidgets as widgets
-
-    from .colormap import _calculate_lut
-    from .view import views_dict
-    from .surface import Surface
+from .colormap import _calculate_lut
+from .view import views_dict
+from .surface import Surface
 
 
 class Brain(object):
@@ -197,13 +191,9 @@ class Brain(object):
                                      y=self.geo[h].coords[:, 1],
                                      z=self.geo[h].coords[:, 2],
                                      triangles=self.geo[h].faces,
-                                     color=self.geo[h].grey_curv)
+                                     color=self.geo[h].grey_curv)                                     
 
                 self._hemi_meshes[h + '_' + v] = mesh
-        # contains ipv specific logic, should be changes for
-        # the sake of generality
-        # it was also used to mimic hemi="split" behavior from mayavi
-        # self._add_title()
 
     def add_data(self, array, min=None, max=None, thresh=None,
                  colormap="auto", alpha=1,
@@ -463,18 +453,6 @@ class Brain(object):
     @property
     def hemis(self):
         return self._hemis
-
-    def _add_title(self):
-        u"""Add title to the current figure."""
-        if self._title is None:
-            title = self._subject_id.capitalize()
-        else:
-            title = self._title
-
-        title_w = widgets.HTML('<p style="color: %s">' % self._foreground +
-                               '<b>%s</b></p>' % title)
-        hboxes = (widgets.HBox(f_row) for f_row in self._renderers)
-        ipv.gcc().children = (title_w, *hboxes)
 
     def _check_hemi(self, hemi):
         u"""Check for safe single-hemi input, returns str."""
