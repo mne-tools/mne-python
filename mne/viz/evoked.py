@@ -2207,7 +2207,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 evokeds, picks=picks_, gfp=gfp, colors=colors,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
-                axes=ax, title=title_, show=show))
+                show_legend=show_legend, show_sensors=show_sensors,
+                axes=ax, title=title_, split_legend=split_legend, show=show))
         return figs
 
     # From now on there is only 1 channel type
@@ -2264,6 +2265,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     title = _set_title_multiple_electrodes(
         title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
 
+    colors_for_split_legend, styles_for_split_legend = (
+        deepcopy(colors), deepcopy(linestyles))
     (styles, colors, the_colors, color_conds, color_order, colors_are_float,
      cmap_label, cmap) = _finish_styles_plot_comp_evoked(
          styles, colors, linestyles, conditions, cmap)
@@ -2340,10 +2343,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                                   show_sensors, ax_)
 
     # condition legend
-    _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
-                             colors_are_float, the_colors, colors,
-                             color_conds, color_order, cmap_label,
-                             linestyles, ax_)
+    _evoked_condition_legend(
+        conditions, show_legend, split_legend, cmap, colors_are_float,
+        the_colors, colors if not split_legend else colors_for_split_legend,
+        color_conds, color_order, cmap_label,
+        linestyles if not split_legend else styles_for_split_legend, ax_)
 
     if do_topo:
         # we need the lines for the legends, but then we can kill them
