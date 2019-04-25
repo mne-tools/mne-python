@@ -2131,7 +2131,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     if gfp is None and (picks in _DATA_CH_TYPES_SPLIT or
                         all(pick in _DATA_CH_TYPES_SPLIT for pick in picks)):
-            gfp = True
+        gfp = True
 
     picks_was_str_title_was_none = False
     picks = [] if picks is None else picks
