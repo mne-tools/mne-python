@@ -825,8 +825,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     vmax : float
         The max value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
-    colorbar : bool
-        Display or not a colorbar.
+    colorbar : bool | None
+        Display or not a colorbar. If ``None`` (the default) a colorbar will be
+        shown only if all channels are of the same type.
     order : None | array of int | callable
         If not None, order is used to reorder the epochs on the y-axis
         of the image. If it's an array of int it should be of length
@@ -859,6 +860,13 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     -------
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
+
+    Notes
+    -----
+    In an interactive Python session, this plot will be interactive; clicking
+    on a channel image will pop open a larger view of the image; this image
+    will always have a colorbar even when the topo plot does not (because it
+    shows multiple sensor types).
     """
     scalings = _handle_default('scalings', scalings)
 
