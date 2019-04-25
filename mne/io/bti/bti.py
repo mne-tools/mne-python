@@ -61,9 +61,9 @@ class _bytes_io_mock_context():
         pass
 
 
-def _foo_bti(idx_points, dig_points,
-             convert=False, use_hpi=False,
-             bti_dev_t=False, dev_ctf_t=False):
+def _make_bti_dig_points(idx_points, dig_points,
+                         convert=False, use_hpi=False,
+                         bti_dev_t=False, dev_ctf_t=False):
 
     if convert:
         logger.info('... putting digitization points in Neuromag c'
@@ -197,15 +197,7 @@ def _read_head_shape(fname):
         idx_points = read_double_matrix(fid, BTI.DATA_N_IDX_POINTS, 3)
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
-    # import pdb; pdb.set_trace()
     return idx_points, dig_points
-
-
-def _flip_fiducials(idx_points_nm):
-    """Adjust order of fiducials to Neuromag."""
-    # XXX presumably swap LPA and RPA
-    idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
-    return idx_points_nm
 
 
 def _check_nan_dev_head_t(dev_ctf_t):
@@ -1042,6 +1034,28 @@ class RawBTi(BaseRaw):
                 _mult_cal_one(data_view, one, idx, cals, mult)
 
 
+def _make_bti_digitization(
+        info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
+
+    if head_shape_fname:
+        logger.info('... Reading digitization points from %s' %
+                    head_shape_fname)
+
+        idx_points, dig_points = _read_head_shape(head_shape_fname)
+        info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
+            idx_points, dig_points, convert, use_hpi, bti_dev_t, dev_ctf_t)
+    else:
+        logger.info('... no headshape file supplied, doing nothing.')
+        info['dig'] = None
+        dev_head_t = Transform('meg', 'head', trans=None)
+        ctf_head_t = Transform('ctf_head', 'head', trans=None)
+
+    info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
+                ctf_head_t=ctf_head_t)
+
+    return info
+
+
 def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                   translation, convert, ecg_ch, eog_ch, rename_channels=True,
                   sort_by_ch_name=True):
@@ -1229,21 +1243,8 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     info['chs'] = chs
 
     # ### Dig stuff
-    if head_shape_fname:
-        logger.info('... Reading digitization points from %s' %
-                    head_shape_fname)
-
-        idx_points, dig_points = _read_head_shape(head_shape_fname)
-        info['dig'], dev_head_t, ctf_head_t = _foo_bti(
-            idx_points, dig_points, convert, use_hpi, bti_dev_t, dev_ctf_t)
-    else:
-        logger.info('... no headshape file supplied, doing nothing.')
-        info['dig'] = None
-        dev_head_t = Transform('meg', 'head', trans=None)
-        ctf_head_t = Transform('ctf_head', 'head', trans=None)
-
-    info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
-                ctf_head_t=ctf_head_t)
+    info = _make_bti_digitization(
+        info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t)
 
     logger.info(
         'Currently direct inclusion of 4D weight tables is not supported.'

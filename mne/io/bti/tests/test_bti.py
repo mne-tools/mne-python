@@ -14,7 +14,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
-from mne.io.bti.bti import _foo_bti
+from mne.io.bti.bti import _make_bti_dig_points
 from mne.io.bti.bti import (_read_config,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,
@@ -244,8 +244,8 @@ def test_no_conversion():
         assert_array_equal(raw_info['ctf_head_t']['trans'], np.eye(4))
 
         idx_points, dig_points = _read_head_shape(hs)
-        dig, t, _ = _foo_bti(idx_points, dig_points, convert=False,
-                             use_hpi=False)
+        dig, t, _ = _make_bti_dig_points(idx_points, dig_points, convert=False,
+                                         use_hpi=False)
 
         assert_array_equal(t['trans'], np.eye(4))
 
@@ -299,7 +299,7 @@ def test_setup_headshape():
     """Test reading bti headshape."""
     for hs in hs_fnames:
         idx_points, dig_points = _read_head_shape(hs)
-        dig, t, _ = _foo_bti(idx_points, dig_points)
+        dig, t, _ = _make_bti_dig_points(idx_points, dig_points)
 
         expected = {'kind', 'ident', 'r'}
         found = set(reduce(lambda x, y: list(x) + list(y),
