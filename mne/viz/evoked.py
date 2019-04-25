@@ -2132,7 +2132,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
     if gfp is None and (picks is None or (
-            picks in list(_DATA_CH_TYPES_SPLIT) + ['meg'] or
+            (picks == 'meg' or picks in _DATA_CH_TYPES_SPLIT) or
             (isinstance(picks, Iterable) and
              all(pick == 'meg' or pick in _DATA_CH_TYPES_SPLIT
                  for pick in picks)))):
