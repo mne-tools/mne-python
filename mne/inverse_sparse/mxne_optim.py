@@ -339,15 +339,17 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     alpha_lc = alpha / lipschitz_constant
 
-    # I understand it is not very clear to call ger and gemm here
+    # I understand it is not very clear to call gemm and gemm2 here
     # however it is faster to call it only once
-    ger = linalg.get_blas_funcs("ger", [G[:, 0], X[0, :]])
+    # ger = linalg.get_blas_funcs("ger", [G[:, 0], X[0, :]])
     gemm = linalg.get_blas_funcs("gemm", [R.T, G[:, 0:n_orient]])
+    gemm2 = linalg.get_blas_funcs("gemm", [X[0:n_orient, :].T,
+                                  G[:, 0:n_orient].T])
     one_ovr_lc = 1 / lipschitz_constant
 
     for i in range(maxit):
-        _bcd(G, X, R, active_set, one_ovr_lc,
-            n_orient, n_positions, alpha_lc, ger, gemm)
+        _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
+             alpha_lc, gemm, gemm2)
 
         if (i + 1) % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
@@ -369,7 +371,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
 
 def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-         alpha_lc, ger, gemm):
+         alpha_lc, gemm, gemm2):
     """Implements one full pass of Block Coordinate Descent (BCD) over the
     regression coefficients X.
     This function was speeded up using scipy.linalg.get_blas_funcs.
@@ -413,9 +415,11 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
         was_non_zero = X_j[0, 0] != 0
         # was_non_zero = np.any(X_j)
         if was_non_zero:
-            for o in range(n_orient):
-                ger(alpha=1., y=G_j[:, o], x=X_j[o, :], a=R.T,
-                    overwrite_a=True)
+            # for o in range(n_orient):
+            #     ger(alpha=1., y=G_j[:, o], x=X_j[o, :], a=R.T,
+            #         overwrite_a=True)
+            gemm2(alpha=1., beta=1., a=X_j.T, b=G_j.T, c=R.T,
+                  overwrite_c=True)
                 # R += np.dot(G_j, X_j)
             X_j_new += X_j
         # Q can we accelerate the computation of this norm ?
@@ -430,9 +434,11 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
             shrink = max(1.0 - alpha_lc[j] / block_norm, 0.0)
             X_j_new *= shrink
             # R -= G_j @ X_j
-            for o in range(n_orient):
-                ger(alpha=-1., y=G_j[:, o], x=X_j_new[o, :], a=R.T,
-                    overwrite_a=True)
+            # for o in range(n_orient):
+            #     ger(alpha=-1., y=G_j[:, o], x=X_j_new[o, :], a=R.T,
+            #         overwrite_a=True)
+            gemm2(alpha=-1., beta=1., a=X_j_new.T, b=G_j.T, c=R.T,
+                  overwrite_c=True)
             X_j[:] = X_j_new
             active_set[idx] = True
 
