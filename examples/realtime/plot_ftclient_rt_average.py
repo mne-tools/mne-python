@@ -45,8 +45,8 @@ print(__doc__)
 # user should provide info and list of bad channels because
 # FieldTrip header object does not provide them
 data_path = mne.datasets.sample.data_path()
-info = mne.read_info(op.join(data_path, 'MEG', 'sample',
-                             'sample_audvis_raw.fif'))
+info = mne.io.read_info(op.join(data_path, 'MEG', 'sample',
+                                'sample_audvis_raw.fif'))
 
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
