@@ -346,7 +346,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     one_ovr_lc = 1 / lipschitz_constant
 
     for i in range(maxit):
-        bcd(G, X, R, active_set, one_ovr_lc,
+        _bcd(G, X, R, active_set, one_ovr_lc,
             n_orient, n_positions, alpha_lc, ger, gemm)
 
         if (i + 1) % dgap_freq == 0:
@@ -368,18 +368,47 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     return X, active_set, E
 
 
-def bcd(
-        G, X, R, active_set, one_ovr_lc,
-        n_orient, n_positions, alpha_lc, ger, gemm):
+def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
+         alpha_lc, ger, gemm):
+    """Implements one full pass of Block Coordinate Descent (BCD) over the
+    regression coefficients X.
+    This function was speeded up using scipy.linalg.get_blas_funcs.
+
+    Parameters
+    ----------
+    G : array, shape (n_sensors, n_active)
+        The gain matrix a.k.a. lead field.
+    X : array, shape (n_sources, n_times)
+        Sources.
+    R : array, shape (n_sensors, n_times)
+        The residuals: R = M - G @ X.
+    active_set : array of bool, shape (n_sources, )
+        Mask of active sources.
+    one_ovr_lc : array, shape (n_sources, )
+        One over the lipschitz constants.
+    n_orient : int
+        Number of dipoles per locations (typically 1 or 3).
+    n_positions : int
+    alpha_lc: array, shape (n_sources, )
+        alpha * (Lipschitz constants).
+    ger: function
+        Low level blas function to fastly multiply rank one matrices.
+    gemm: function
+        Low level blas function to fastly multiply matrix time matrix.
+
+    Returns
+    -------
+    None:
+        All the modifications are done in place.
+    """
     X_j_new = np.zeros_like(X[0:n_orient, :])
 
     for j in range(n_positions):
         idx = slice(j * n_orient, (j + 1) * n_orient)
         G_j = G[:, idx]
         X_j = X[idx]
-        gemm(
-            alpha=one_ovr_lc[j], beta=0.,
-            a=R.T, b=G_j, c=X_j_new.T, overwrite_c=True)
+        gemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
+             overwrite_c=True)
         # Mathurin's trick to avoid checking all the entries
         was_non_zero = X_j[0, 0] != 0
         # was_non_zero = np.any(X_j)
