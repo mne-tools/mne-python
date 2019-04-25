@@ -319,8 +319,6 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1,
                            dgap_freq=10):
     """Solve L21 inverse problem with block coordinate descent."""
-    # First make G fortran for faster access to blocks of columns
-    G = np.asfortranarray(G)
 
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
@@ -342,14 +340,30 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     # I understand it is not very clear to call gemm and gemm2 here
     # however it is faster to call it only once
     # ger = linalg.get_blas_funcs("ger", [G[:, 0], X[0, :]])
-    gemm = linalg.get_blas_funcs("gemm", [R.T, G[:, 0:n_orient]])
-    gemm2 = linalg.get_blas_funcs("gemm", [X[0:n_orient, :].T,
-                                  G[:, 0:n_orient].T])
+    gemm = linalg.get_blas_funcs("gemm", [G[:, 0:n_orient].T, R])
+    gemm2 = linalg.get_blas_funcs("gemm", [G[:, 0:n_orient],
+                                  X[0:n_orient, :]])
+    # gemm = linalg.get_blas_funcs("gemm", [R.T, G[:, 0:n_orient]])
+    # gemm2 = linalg.get_blas_funcs("gemm", [X[0:n_orient, :].T,
+    #                               G[:, 0:n_orient].T])
     one_ovr_lc = 1 / lipschitz_constant
+
+    # First make G fortran for faster access to blocks of columns
+    G = np.asfortranarray(G)
+    # storing list of contiguous arrays
+    list_G_j_c = []
+    for j in range(n_positions):
+        idx = slice(j * n_orient, (j + 1) * n_orient)
+        list_G_j_c.append(np.ascontiguousarray(G[:, idx]))
+    # X = np.asfortranarray(X)
+    # R = np.asfortranarray(R)
+    assert X.flags.c_contiguous
+    assert R.flags.c_contiguous
+    assert G.flags.f_contiguous
 
     for i in range(maxit):
         _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-             alpha_lc, gemm, gemm2)
+             alpha_lc, gemm, gemm2, list_G_j_c)
 
         if (i + 1) % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
@@ -371,7 +385,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
 
 def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
-         alpha_lc, gemm, gemm2):
+         alpha_lc, gemm, gemm2, list_G_j_c):
     """Implements one full pass of Block Coordinate Descent (BCD) over the
     regression coefficients X.
     This function was speeded up using scipy.linalg.get_blas_funcs.
@@ -403,14 +417,21 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     None:
         All the modifications are done in place.
     """
-    X_j_new = np.zeros_like(X[0:n_orient, :])
+    X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
 
-    for j in range(n_positions):
+
+    # for j in range(n_positions):
+    for j, G_j_c in enumerate(list_G_j_c):
         idx = slice(j * n_orient, (j + 1) * n_orient)
         G_j = G[:, idx]
         X_j = X[idx]
-        gemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
+        gemm(alpha=one_ovr_lc[j], beta=0.,
+             a=R.T, b=G_j, c=X_j_new.T,
              overwrite_c=True)
+        # gemm(alpha=one_ovr_lc[j], beta=0., a=G_c[:, idx].T, b=R, c=X_j_new,
+        #      overwrite_c=True)
+        # gemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
+        #      overwrite_c=True)
         # Mathurin's trick to avoid checking all the entries
         was_non_zero = X_j[0, 0] != 0
         # was_non_zero = np.any(X_j)
@@ -419,8 +440,11 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
             #     ger(alpha=1., y=G_j[:, o], x=X_j[o, :], a=R.T,
             #         overwrite_a=True)
             gemm2(alpha=1., beta=1., a=X_j.T,
-                  b=np.asfortranarray(G_j.T), c=R.T,
+                  b=G_j_c.T, c=R.T,
                   overwrite_c=True)
+            # gemm2(alpha=1., beta=1., a=X_j.T,
+            #       b=np.asfortranarray(G_j.T), c=R.T,
+            #       overwrite_c=True)
             # R += np.dot(G_j, X_j)
             X_j_new += X_j
         # Q can we accelerate the computation of this norm ?
@@ -438,7 +462,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
             # for o in range(n_orient):
             #     ger(alpha=-1., y=G_j[:, o], x=X_j_new[o, :], a=R.T,
             #         overwrite_a=True)
-            gemm2(alpha=-1., beta=1., a=X_j_new.T, b=G_j.T, c=R.T,
+            gemm2(alpha=-1., beta=1., a=X_j_new.T, b=G_j_c.T, c=R.T,
                   overwrite_c=True)
             X_j[:] = X_j_new
             active_set[idx] = True
