@@ -120,13 +120,16 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
 
 
 @contextmanager
-def running_subprocess(command, verbose=None, *args, **kwargs):
+def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     """Context manager to do something with a command running via Popen.
 
     Parameters
     ----------
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
+    after : str
+        Can be "wait" or "terminate" which will call Popen.wait() or
+        Popen.terminate()
     %(verbose)s
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
@@ -136,6 +139,9 @@ def running_subprocess(command, verbose=None, *args, **kwargs):
     p : instance of Popen
         The process.
     """
+    if after not in ['wait', 'terminate']:
+        raise ValueError('The argument ''after'' must be one'
+                         ' of ''wait'' or ''terminate'', got %s' % after)
     for stdxxx, sys_stdxxx, thresh in (
             ['stderr', sys.stderr, logging.ERROR],
             ['stdout', sys.stdout, logging.WARNING]):
@@ -171,7 +177,10 @@ def running_subprocess(command, verbose=None, *args, **kwargs):
         logger.error('Command not found: %s' % command_name)
         raise
     yield p
-    p.wait()
+    if after == 'wait':
+        p.wait()
+    else:
+        p.terminate()
 
 
 def _clean_names(names, remove_whitespace=False, before_dash=True):

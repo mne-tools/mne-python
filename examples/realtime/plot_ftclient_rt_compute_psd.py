@@ -34,11 +34,14 @@ data_path = mne.datasets.sample.data_path()
 bads = ['MEG 2443', 'EEG 053']
 
 fig, ax = plt.subplots(1)
+
+speedup = 10
 command = ["neuromag2ft", "--file",
-           "{}/MEG/sample/sample_audvis_raw.fif".format(data_path)]
-with running_subprocess(command, verbose=False):
+           "{}/MEG/sample/sample_audvis_raw.fif".format(data_path),
+           "--speed", str(speedup)]
+with running_subprocess(command, after='terminate', verbose=False):
     with FieldTripClient(host='localhost', port=1972,
-                         tmax=150, wait_max=10) as rt_client:
+                         tmax=10, wait_max=5) as rt_client:
 
         # get measurement info guessed by MNE-Python
         raw_info = rt_client.get_measurement_info()
@@ -53,7 +56,7 @@ with running_subprocess(command, verbose=False):
         # make sure at least one epoch is available
         time.sleep(n_samples / raw_info['sfreq'])
 
-        for ii in range(20):
+        for ii in range(5):
             epoch = rt_client.get_data_as_epoch(n_samples=n_samples,
                                                 picks=picks)
             psd, freqs = psd_welch(epoch, fmin=2, fmax=200, n_fft=n_fft)
@@ -83,4 +86,4 @@ with running_subprocess(command, verbose=False):
             plt.title('continuous power spectrum (t = %0.2f sec to %0.2f sec)'
                       % (tmin, tmax), fontsize=10)
 
-            plt.pause(0.5)
+            plt.pause(0.5 / speedup)
