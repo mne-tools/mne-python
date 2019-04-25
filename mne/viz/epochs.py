@@ -6,6 +6,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Stefan Repplinger <stefan.repplinger@ovgu.de>
 #
 # License: Simplified BSD
 
@@ -1279,7 +1280,6 @@ def _plot_traces(params):
         ylim = ax.get_ylim()[0]
         offsets = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
         ax.set_yticks(offsets)
-        print(offsets)
         labels = [''] * 20
         ch_plotted = 0
         for ch_type in chan_types_split:
@@ -1287,7 +1287,7 @@ def _plot_traces(params):
             if ch_type in params['types']:
                 labels[2 + ch_plotted * 4] = 0.
                 for idx, idx_tick in enumerate([1+ch_plotted*4, 3+ch_plotted*4]):
-# TODO stuck here, there a serious problem with the scaling
+# TODO stuck here, there is a serious problem with the scaling
                     labels[idx_tick] = ([-1.25, 1.25][idx] * \
                                        params['scalings'][ch_type] * \
                                        scale * factor)
