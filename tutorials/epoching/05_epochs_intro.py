@@ -124,6 +124,7 @@ print(epochs.event_id)
 epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
                     preload=True)
 print(epochs.event_id)
+del raw  # we're done with raw, free up some memory
 
 ###############################################################################
 # .. note::
@@ -176,7 +177,7 @@ print(epochs[:10])
 # :func:`mne.read_epochs_eeglab` and :func:`mne.read_epochs_kit`.
 
 epochs.save('saved-audiovisual-epo.fif', overwrite=True)
-epochs_from_file = mne.read_epochs('saved-audiovisual-epo.fif')
+epochs_from_file = mne.read_epochs('saved-audiovisual-epo.fif', preload=False)
 
 ###############################################################################
 # The MNE-Python naming convention for epochs files is that the file basename
