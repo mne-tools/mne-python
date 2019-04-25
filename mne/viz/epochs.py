@@ -750,6 +750,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         coloring scheme as :func:`mne.viz.plot_events`.
 
         .. versionadded:: 0.14.0
+    order : array of str | None
+        Order in which to plot channel types.
+
+        .. versionadded:: 0.18.0
     show : bool
         Show figure if True. Defaults to True
     block : bool
