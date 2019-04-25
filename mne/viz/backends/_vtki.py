@@ -34,22 +34,32 @@ class _Projection(object):
 class _Renderer(object):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name="VTKI Scene", show=False):
+                 name="VTKI Scene", show=False, notebook=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
+        self.notebook = notebook
         self.name = name
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
-            self.plotter = vtki.Plotter(window_size=size,
-                                        off_screen=self.off_screen)
+            args = {'window_size': size,
+                    'off_screen': self.off_screen}
+            if notebook:
+                self.plotter = vtki.BackgroundPlotter(**args)
+            else:
+                self.plotter = vtki.Plotter(**args)
             self.plotter.background_color = bgcolor
             # this is a hack to avoid using a deleled ren_win
             self.plotter._window_size = size
         else:
             # import basic properties
-            self.plotter = vtki.Plotter(window_size=fig._window_size,
-                                        off_screen=fig.off_screen)
+            args = {'window_size': fig._window_size,
+                    'off_screen': fig.off_screen}
+            if notebook:
+                self.plotter = vtki.BackgroundPlotter(**args)
+            else:
+                self.plotter = vtki.Plotter(**args)
+
             # import background
             self.plotter.background_color = fig.background_color
             # import actors
@@ -68,12 +78,23 @@ class _Renderer(object):
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
         vertices = np.c_[x, y, z]
+        n_colors = len(color)
+        n_vertices = len(vertices)
         n_triangles = len(triangles)
         triangles = np.c_[np.full(n_triangles, 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
+            rgba = False
+            scalars = None
+            if n_colors == n_vertices:
+                scalars = np.c_[color, np.ones(n_vertices)]
+                scalars = (scalars * 255).astype('ubyte')
+                color = None
+                rgba = True
+
             pd = vtki.PolyData(vertices, triangles)
-            self.plotter.add_mesh(mesh=pd, color=color, opacity=opacity,
+            self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
+                                  rgba=rgba, opacity=opacity,
                                   backface_culling=backface_culling)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
@@ -213,7 +234,10 @@ class _Renderer(object):
                               color=color)
 
     def show(self):
-        self.plotter.show(title=self.name)
+        if self.notebook:
+            self.plotter.show()
+        else:
+            self.plotter.show(title=self.name)
 
     def close(self):
         self.plotter.close()
