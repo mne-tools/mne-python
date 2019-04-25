@@ -174,7 +174,7 @@ script:
       fi;
     # Test run_tests_if_main
     - if [ "${DEPS}" == "nodata" ]; then
-        cd mne/tests; python test_evoked.py;
+        python mne/tests/test_evoked.py;
       fi;
     - echo pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
     - pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
