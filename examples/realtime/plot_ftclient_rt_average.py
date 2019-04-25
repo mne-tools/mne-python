@@ -6,14 +6,14 @@ Compute real-time evoked responses with FieldTrip client
 This example demonstrates how to connect the MNE real-time
 system to the Fieldtrip buffer using FieldTripClient class.
 
-This example was tested in simulation mode
+This example was tested in simulation mode:
 
-neuromag2ft --file MNE-sample-data/MEG/sample/sample_audvis_raw.fif
+.. code-block:: console
 
-using a modified version of neuromag2ft available at
+    $ neuromag2ft --file MNE-sample-data/MEG/sample/sample_audvis_raw.fif
 
-https://staff.washington.edu/larsoner/minimal_cmds.tar.gz
-
+using a modified version of ``neuromag2ft`` available
+`here <https://staff.washington.edu/larsoner/minimal_cmds.tar.gz>`__
 to run the FieldTrip buffer. Then running this example acquires the
 data on the client side.
 
@@ -56,7 +56,8 @@ speedup = 10
 command = ["neuromag2ft", "--file",
            "{}/MEG/sample/sample_audvis_raw.fif".format(data_path),
            "--speed", str(speedup)]
-with running_subprocess(command, after='terminate', verbose=False):
+with running_subprocess(command, after='terminate',
+                        stdout=None, stderr=None):
     with FieldTripClient(host='localhost', port=1972,
                          tmax=30, wait_max=5) as rt_client:
 
