@@ -154,6 +154,7 @@ def test_plot_epochs_image():
                   picks=[1, 2])
     pytest.raises(ValueError, epochs.plot_image, units={"hi": 1},
                   scalings={"ho": 1})
+    assert len(epochs.plot_image(picks=["eeg", "mag", "grad"])) < 6
     epochs.load_data().pick_types(meg='mag')
     epochs.info.normalize_proj()
     epochs.plot_image(group_by='type', combine='mean')

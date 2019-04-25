@@ -14,6 +14,7 @@ from .. import pick_channels
 from ..utils import logger, verbose, fill_doc
 from ..epochs import BaseEpochs
 from ..event import _find_events
+from ..io.pick import _picks_to_idx
 
 
 @fill_doc
@@ -351,7 +352,7 @@ class RtEpochs(BaseEpochs):
     next = __next__
 
     @verbose
-    def _get_data(self, out=True, verbose=None):
+    def _get_data(self, out=True, picks=None,  verbose=None):
         """
         Return all data as numpy array.
 
@@ -359,6 +360,7 @@ class RtEpochs(BaseEpochs):
         ----------
         out : bool
             Return the data.
+        %(picks_all)s
         verbose: bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -381,6 +383,9 @@ class RtEpochs(BaseEpochs):
 
             data = np.array(epochs)
 
+            if picks is not None:
+                picks = _picks_to_idx(self.info, picks)
+                data = data[:, picks]
             return data
 
     def _process_raw_buffer(self, raw_buffer):

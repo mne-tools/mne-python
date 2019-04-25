@@ -20,7 +20,6 @@ The steps we use are:
    :depth: 1
 
 .. _bst_omega: https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega
-.. _bst_resting: https://neuroimage.usc.edu/brainstorm/Tutorials/Resting
 
 Preprocessing
 -------------

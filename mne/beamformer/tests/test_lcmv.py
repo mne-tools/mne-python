@@ -10,6 +10,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_array_less)
 
 import mne
+from mne import convert_forward_solution, read_forward_solution
 from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv, Beamformer,
@@ -36,8 +37,8 @@ reject = dict(grad=4000e-13, mag=4e-12)
 
 
 def _read_forward_solution_meg(*args, **kwargs):
-    fwd = mne.read_forward_solution(*args)
-    fwd = mne.convert_forward_solution(fwd, **kwargs)
+    fwd = read_forward_solution(*args)
+    fwd = convert_forward_solution(fwd, **kwargs)
     return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
@@ -446,6 +447,15 @@ def test_make_lcmv(tmpdir, reg, proj):
                         noise_cov=noise_cov)
     assert_array_equal(filters['weights'], 0)
 
+    # Test condition where one channel type is picked
+    # (avoid "grad data rank (13) did not match the noise rank (None)")
+    data_cov_grad = mne.pick_channels_cov(
+        data_cov, [ch_name for ch_name in epochs.info['ch_names']
+                   if ch_name.endswith(('2', '3'))])
+    assert len(data_cov_grad['names']) > 4
+    make_lcmv(epochs.info, forward_fixed, data_cov_grad, reg=0.01,
+              noise_cov=noise_cov)
+
 
 @testing.requires_testing_data
 def test_lcmv_raw():
@@ -746,16 +756,19 @@ def test_lcmv_reg_proj(proj, weight_norm):
         assert_allclose(stc_cov.data.std(), 0.12, rtol=0.1)
 
 
-@pytest.mark.parametrize('reg, weight_norm, use_cov, lower, upper', [
-    (0.05, 'unit-noise-gain', True, 96, 98),
+@pytest.mark.parametrize('reg, weight_norm, use_cov, depth, lower, upper', [
     # the 0 reg is not so stable, can produce a wide range of scores
-    (0.00, 'unit-noise-gain', True, 44, 90),
-    (0.05, 'nai', True, 96, 98),
-    (0.05, None, True, 96, 98),
-    (0.05, 'unit-noise-gain', False, 83, 86),
+    (0.00, 'unit-noise-gain', True, None, 44, 90),
+    (0.05, 'unit-noise-gain', True, None, 97, 98),
+    (0.05, 'nai', True, None, 96, 98),
+    (0.05, 'nai', True, 0.8, 96, 98),
+    (0.05, None, True, None, 74, 76),
+    (0.05, None, True, 0.8, 90, 93),  # depth improves weight_norm=None
+    (0.05, 'unit-noise-gain', False, None, 83, 86),
+    (0.05, 'unit-noise-gain', False, 0.8, 83, 86),  # depth same for wn != None
 ])
 def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
-                                 lower, upper):
+                                 depth, lower, upper):
     """Test localization bias for fixed-orientation LCMV."""
     evoked, fwd, noise_cov, data_cov, want = bias_params_fixed
     if not use_cov:
@@ -763,27 +776,32 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         noise_cov = None
     assert data_cov['data'].shape[0] == len(data_cov['names'])
     loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
-                                       noise_cov)).data
+                                       noise_cov, depth=depth,
+                                       weight_norm=weight_norm)).data
     loc = np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper
 
 
-@pytest.mark.parametrize('reg, pick_ori, weight_norm, use_cov, lower, upper', [
-    (0.05, 'vector', 'unit-noise-gain', True, 36, 39),
-    (0.05, 'vector', 'nai', True, 36, 39),
-    (0.05, 'vector', None, True, 12, 14),
-    # (0.00, 'vector', 'unit-noise-gain', True, 43, 46),  # complex eig
-    (0.05, 'max-power', 'unit-noise-gain', True, 20, 24),
-    (0.05, 'max-power', 'nai', True, 20, 24),
-    (0.05, 'max-power', None, True, 7, 9),
-    # (0., 'max-power', 'unit-noise-gain', True, 37, 40),  # complex eig
-    (0.05, 'vector', 'unit-noise-gain', False, 23, 25),
-    (0.05, 'max-power', 'unit-noise-gain', False, 17, 19),
-])
+@pytest.mark.parametrize(
+    'reg, pick_ori, weight_norm, use_cov, depth, lower, upper', [
+        (0.05, 'vector', 'unit-noise-gain', True, None, 36, 39),
+        (0.05, 'vector', 'unit-noise-gain', False, None, 23, 25),
+        (0.05, 'vector', 'nai', True, None, 36, 39),
+        (0.05, 'vector', None, True, None, 12, 14),
+        (0.05, 'vector', None, True, 0.8, 39, 43),
+        # (0.00, 'vector', 'unit-noise-gain', True, None, 43, 46),  # complex
+        (0.05, 'max-power', 'unit-noise-gain', True, None, 20, 24),
+        # (0., 'max-power', 'unit-noise-gain', True, None, 37, 40),  # complex
+        (0.05, 'max-power', 'unit-noise-gain', False, None, 17, 19),
+        (0.05, 'max-power', 'nai', True, None, 20, 24),
+        (0.05, 'max-power', None, True, None, 7, 9),
+        (0.05, 'max-power', None, True, 0.8, 16, 19),
+        (0.05, None, None, True, 0.8, 40, 42),
+    ])
 def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
-                                use_cov, lower, upper):
+                                use_cov, depth, lower, upper):
     """Test localization bias for free-orientation LCMV."""
     evoked, fwd, noise_cov, data_cov, want = bias_params_free
     if not use_cov:
@@ -791,11 +809,31 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
         noise_cov = None
     loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
                                        noise_cov, pick_ori=pick_ori,
-                                       weight_norm=weight_norm)).data
+                                       weight_norm=weight_norm,
+                                       depth=depth)).data
     loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper
+
+
+@pytest.mark.parametrize('weight_norm', ('nai', 'unit-noise-gain'))
+@pytest.mark.parametrize('pick_ori', ('vector', 'max-power', None))
+def test_depth_does_not_matter(bias_params_free, weight_norm, pick_ori):
+    """Test that depth weighting does not matter for normalized filters."""
+    evoked, fwd, noise_cov, data_cov, _ = bias_params_free
+    data = apply_lcmv(evoked, make_lcmv(
+        evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
+        weight_norm=weight_norm, depth=0.)).data
+    data_depth = apply_lcmv(evoked, make_lcmv(
+        evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
+        weight_norm=weight_norm, depth=1.)).data
+    assert data.shape == data_depth.shape
+    for d1, d2 in zip(data, data_depth):
+        # Sign flips can change when nearly orthogonal to the normal direction
+        d2 *= np.sign(np.dot(d1.ravel(), d2.ravel()))
+        atol = np.linalg.norm(d1) * 1e-7
+        assert_allclose(d1, d2, atol=atol)
 
 
 run_tests_if_main()

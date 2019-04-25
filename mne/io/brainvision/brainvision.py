@@ -326,7 +326,13 @@ def _str_to_meas_date(date_str):
     if date_str in ['0', '00000000000000000000']:
         return None
 
-    meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+    try:
+        meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+    except ValueError as e:
+        if 'does not match format' in str(e):
+            return None
+        else:
+            raise
 
     # We need list of unix time in milliseconds and as second entry
     # the additional amount of microseconds
@@ -477,7 +483,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         match = re.findall(regexp, line.strip())
 
         # Always take first measurement date we find
-        if match and match[0] != '00000000000000000000':
+        if match:
             date_str = match[0]
             info['meas_date'] = _str_to_meas_date(date_str)
             break

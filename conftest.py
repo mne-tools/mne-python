@@ -22,16 +22,13 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
+from mne.fixes import _get_args
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
 fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-# turn anything that uses testing data into an auto-skipper by
-# setting params=[testing_param]
-testing_param = pytest.param('t', marks=pytest.mark.skipif(
-    testing._testing._skip_testing_data(), reason='Requires testing dataset'))
 
 
 @pytest.fixture(scope='session')
@@ -39,7 +36,10 @@ def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
     # "force" should not really be necessary but should not hurt
-    matplotlib.use('agg', force=True)  # don't pop up windows
+    kwargs = dict()
+    if 'warn' in _get_args(matplotlib.use):
+        kwargs['warn'] = False
+    matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
     import matplotlib.pyplot as plt
     assert plt.get_backend() == 'agg'
     # overwrite some params that can horribly slow down tests that
@@ -62,7 +62,7 @@ def matplotlib_config():
         mlab.options.backend = 'test'
 
 
-@pytest.fixture(scope='function', params=[testing_param])
+@pytest.fixture(scope='function', params=[testing._pytest_param()])
 def evoked():
     """Get evoked data."""
     evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
@@ -71,7 +71,7 @@ def evoked():
     return evoked
 
 
-@pytest.fixture(scope='function', params=[testing_param])
+@pytest.fixture(scope='function', params=[testing._pytest_param()])
 def noise_cov():
     return mne.read_cov(fname_cov)
 
@@ -110,8 +110,10 @@ def _bias_params(evoked, noise_cov, fwd):
     return evoked, fwd, noise_cov, data_cov, want
 
 
-@pytest.fixture(scope="module",
-                params=["mayavi"])
+@pytest.fixture(scope="module", params=[
+    "mayavi",
+    "vtki",
+])
 def backend_name(request):
     yield request.param
 
@@ -119,9 +121,12 @@ def backend_name(request):
 @pytest.yield_fixture
 def backends_3d(backend_name):
     from mne.viz.backends.renderer import _use_test_3d_backend
-    from mne.viz.backends.tests._utils import has_not_mayavi
+    from mne.viz.backends.tests._utils import has_mayavi, has_vtki
     if backend_name == 'mayavi':
-        if has_not_mayavi():
+        if not has_mayavi():
             pytest.skip("Test skipped, requires mayavi.")
+    elif backend_name == 'vtki':
+        if not has_vtki():
+            pytest.skip("Test skipped, requires vtki.")
     with _use_test_3d_backend(backend_name):
         yield

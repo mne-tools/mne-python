@@ -18,7 +18,7 @@ def test_config(tmpdir):
     assert (get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
-    assert (len(set_config(None, None)) > 10)  # tuple of valid keys
+    assert (len(get_config('')) > 10)  # tuple of valid keys
     with pytest.warns(RuntimeWarning, match='non-standard'):
         set_config(key, None, home_dir=tempdir, set_env=False)
     assert (get_config(key, home_dir=tempdir) is None)

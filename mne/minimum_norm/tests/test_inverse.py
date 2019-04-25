@@ -15,7 +15,7 @@ from mne.datasets import testing
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
-from mne.forward import restrict_forward_to_stc, apply_forward
+from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
@@ -209,7 +209,7 @@ def test_warn_inverse_operator(evoked, noise_cov):
 
 
 @pytest.mark.slowtest
-def test_make_inverse_operator(evoked):
+def test_make_inverse_operator_loose(evoked):
     """Test MNE inverse computation (precomputed and non-precomputed)."""
     # Test old version of inverse computation starting from forward operator
     noise_cov = read_cov(fname_cov)
@@ -222,7 +222,8 @@ def test_make_inverse_operator(evoked):
                 evoked.info, fwd_op, noise_cov, loose=0.2, depth=0.8,
                 limit_depth_chs=False, verbose=True)
     log = log.getvalue()
-    assert 'rank 302 (3 small eigenvalues omitted)' in log
+    assert 'MEG: rank 302 computed' in log
+    assert 'limit = 1/%d' % fwd_op['nsource'] in log
     _compare_io(my_inv_op)
     assert_equal(inverse_operator['units'], 'Am')
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
@@ -233,7 +234,7 @@ def test_make_inverse_operator(evoked):
                                           loose='auto', depth=0.8,
                                           fixed=False, verbose=True)
     log = log.getvalue()
-    assert 'rank 302 (3 small eigenvalues omitted)' in log
+    assert 'MEG: rank 302 computed from 305' in log
     _compare_io(my_inv_op)
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
                              rtol=1e-3, atol=1e-5)
@@ -250,8 +251,11 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
                                      fname_bem, eeg=True, mindist=5.0)
     fwd_orig = convert_forward_solution(fwd_orig, surf_ori=True)
     depth = dict(exp=0.8, limit_depth_chs=False)
-    inv_orig = make_inverse_operator(evoked.info, fwd_orig, noise_cov,
-                                     loose=0.2, depth=depth)
+    with catch_logging() as log:
+        inv_orig = make_inverse_operator(evoked.info, fwd_orig, noise_cov,
+                                         loose=0.2, depth=depth, verbose=True)
+    log = log.getvalue()
+    assert 'limit = 1/%s' % fwd_orig['nsource'] in log
     stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,
@@ -294,9 +298,10 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
 
 
 @pytest.mark.parametrize('method, lower, upper, depth', [
-    ('MNE', 75, 80, dict(limit_depth_chs=False)),
-    ('MNE', 83, 87, 0.8),
-    ('MNE', 89, 92, dict(limit_depth_chs='whiten')),
+    ('MNE', 54, 57, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
+    ('MNE', 75, 80, dict(limit_depth_chs=False)),  # ancient MNE default
+    ('MNE', 83, 87, 0.8),  # MNE default
+    ('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
     ('dSPM', 96, 98, 0.8),
     ('sLORETA', 100, 100, 0.8),
     ('eLORETA', 100, 100, 0.8)])
@@ -313,28 +318,33 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     assert lower <= perc <= upper, method
 
 
-@pytest.mark.parametrize('method, lower, upper', [
-    ('MNE', 25, 35),
-    ('dSPM', 25, 35),
-    ('sLORETA', 35, 40),
-    ('eLORETA', 40, 45)])
-def test_localization_bias_loose(bias_params_free, method, lower, upper):
+@pytest.mark.parametrize('method, lower, upper, depth', [
+    ('MNE', 32, 35, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
+    ('MNE', 78, 81, 0.8),  # MNE default
+    ('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
+    ('dSPM', 85, 87, 0.8),
+    ('sLORETA', 100, 100, 0.8),
+    ('eLORETA', 97, 100, 0.8)])
+def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
+                                 depth):
     """Test inverse localization bias for loose minimum-norm solvers."""
-    evoked, fwd, noise_cov, _, want = bias_params_free
-    inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.2,
-                                     depth=0.8)
-    loc = apply_inverse(evoked, inv_free, lambda2, method,
-                        pick_ori='vector').data
-    loc = np.linalg.norm(loc, axis=1)
+    evoked, fwd, noise_cov, _, want = bias_params_fixed
+    fwd = convert_forward_solution(fwd, surf_ori=False, force_fixed=False)
+    assert not is_fixed_orient(fwd)
+    inv_loose = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.2,
+                                      depth=depth)
+    loc = apply_inverse(evoked, inv_loose, lambda2, method).data
+    assert (loc >= 0).all()
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper, method
 
 
 @pytest.mark.parametrize('method, lower, upper, kwargs, depth', [
-    ('MNE', 35, 40, {}, dict(limit_depth_chs=False)),
-    ('MNE', 45, 55, {}, 0.8),
-    ('MNE', 65, 70, {}, dict(limit_depth_chs='whiten')),
+    ('MNE', 21, 24, {}, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS
+    ('MNE', 35, 40, {}, dict(limit_depth_chs=False)),  # ancient default
+    ('MNE', 45, 55, {}, 0.8),  # MNE default
+    ('MNE', 65, 70, {}, dict(limit_depth_chs='whiten')),  # sparse default
     ('dSPM', 40, 45, {}, 0.8),
     ('sLORETA', 90, 95, {}, 0.8),
     ('eLORETA', 90, 95, dict(method_params=dict(force_equal=True)), 0.8),
@@ -517,7 +527,7 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
             evoked.info, fwd, noise_cov, depth=0., fixed=True,
             use_cps=False, verbose=True)
     log = log.getvalue()
-    assert 'rank 302 (3 small eigenvalues omitted)' in log
+    assert 'MEG: rank 302 computed from 305' in log
     assert 'EEG channels: 0' in repr(inv_op)
     assert 'MEG channels: 305' in repr(inv_op)
     del fwd_fixed

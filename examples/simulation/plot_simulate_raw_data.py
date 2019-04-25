@@ -3,8 +3,8 @@
 Generate simulated raw data
 ===========================
 
-This example generates raw data by repeating a desired source
-activation multiple times.
+This example generates raw data by repeating a desired source activation
+multiple times.
 """
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Mark Wronkiewicz <wronk.mark@gmail.com>
@@ -16,29 +16,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import read_source_spaces, find_events, Epochs, compute_covariance
+from mne import find_events, Epochs, compute_covariance, make_ad_hoc_cov
 from mne.datasets import sample
-from mne.simulation import simulate_sparse_stc, simulate_raw
+from mne.simulation import (simulate_sparse_stc, simulate_raw,
+                            add_noise, add_ecg, add_eog)
 
 print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
-src_fname = data_path + '/subjects/sample/bem/sample-oct-6-src.fif'
-bem_fname = (data_path +
-             '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif')
+fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 
 # Load real data as the template
 raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference(projection=True)
-raw = raw.crop(0., 30.)  # 30 sec is enough
 
 ##############################################################################
 # Generate dipole time series
 n_dipoles = 4  # number of dipoles to create
 epoch_duration = 2.  # duration of each epoch/event
 n = 0  # harmonic number
+rng = np.random.RandomState(0)  # random state (make reproducible)
 
 
 def data_fun(times):
@@ -56,9 +54,10 @@ def data_fun(times):
 
 
 times = raw.times[:int(raw.info['sfreq'] * epoch_duration)]
-src = read_source_spaces(src_fname)
+fwd = mne.read_forward_solution(fwd_fname)
+src = fwd['src']
 stc = simulate_sparse_stc(src, n_dipoles=n_dipoles, times=times,
-                          data_fun=data_fun, random_state=0)
+                          data_fun=data_fun, random_state=rng)
 # look at our source data
 fig, ax = plt.subplots(1)
 ax.plot(times, 1e9 * stc.data.T)
@@ -67,15 +66,18 @@ mne.viz.utils.plt_show()
 
 ##############################################################################
 # Simulate raw data
-raw_sim = simulate_raw(raw, stc, trans_fname, src, bem_fname, cov='simple',
-                       iir_filter=[0.2, -0.2, 0.04], ecg=True, blink=True,
-                       n_jobs=1, verbose=True)
+raw_sim = simulate_raw(raw.info, [stc] * 10, forward=fwd, cov=None,
+                       verbose=True)
+cov = make_ad_hoc_cov(raw_sim.info)
+add_noise(raw_sim, cov, iir_filter=[0.2, -0.2, 0.04], random_state=rng)
+add_ecg(raw_sim, random_state=rng)
+add_eog(raw_sim, random_state=rng)
 raw_sim.plot()
 
 ##############################################################################
 # Plot evoked data
 events = find_events(raw_sim)  # only 1 pos, so event number == 1
-epochs = Epochs(raw_sim, events, 1, -0.2, epoch_duration)
+epochs = Epochs(raw_sim, events, 1, tmin=-0.2, tmax=epoch_duration)
 cov = compute_covariance(epochs, tmax=0., method='empirical',
                          verbose='error')  # quick calc
 evoked = epochs.average()

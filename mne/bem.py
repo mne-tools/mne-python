@@ -253,16 +253,19 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
     return
 
 
-def _check_complete_surface(surf, copy=False):
+def _check_complete_surface(surf, copy=False, incomplete='raise'):
     surf = complete_surface_info(surf, copy=copy, verbose=False)
     fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
     if len(fewer) > 0:
-        raise RuntimeError('Surface %s has topological defects: %d / %d '
-                           'vertices have fewer than three neighboring '
-                           'triangles [%s]'
-                           % (_surf_name[surf['id']],
-                              len(fewer), surf['ntri'],
-                              ', '.join(str(f) for f in fewer)))
+        msg = ('Surface %s has topological defects: %d / %d '
+               'vertices have fewer than three neighboring '
+               'triangles [%s]' % (_surf_name[surf['id']],
+                                   len(fewer), surf['ntri'],
+                                   ', '.join(str(f) for f in fewer)))
+        if incomplete == 'raise':
+            raise RuntimeError(msg)
+        else:
+            warn(msg)
     return surf
 
 
@@ -499,7 +502,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
     for surf, id_ in zip(surfs, ids):
         # Do topology checks (but don't save data) to fail early
         surf['id'] = id_
-        _check_complete_surface(surf, copy=True)
+        _check_complete_surface(surf, copy=True, incomplete=incomplete)
         surf['coord_frame'] = surf.get('coord_frame', FIFF.FIFFV_COORD_MRI)
         surf.update(np=len(surf['rr']), ntri=len(surf['tris']))
         if rescale:
@@ -1025,7 +1028,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, verbose=None):
+                       show=False, copy=False, verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
     Parameters
@@ -1050,6 +1053,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
         .. versionadded:: 0.12
 
+    copy : bool
+        If True (default False), use copies instead of symlinks for surfaces
+        (if they do not already exist).
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Notes
@@ -1128,7 +1136,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
             else:
                 if op.exists(surf_out):
                     os.remove(surf_out)
-                _symlink(surf_ws_out, surf_out)
+                _symlink(surf_ws_out, surf_out, copy)
                 skip_symlink = False
 
         if skip_symlink:
@@ -1707,7 +1715,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   flash_path=None, verbose=None):
+                   flash_path=None, copy=False, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
@@ -1725,6 +1733,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         within the subject reconstruction is used.
 
         .. versionadded:: 0.13.0
+    copy : bool
+        If True (default False), use copies instead of symlinks for surfaces
+        (if they do not already exist).
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Notes
@@ -1855,7 +1868,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         else:
             if op.exists(surf):
                 os.remove(surf)
-            _symlink(op.join(flash_bem_dir, op.basename(surf)), surf)
+            _symlink(op.join(flash_bem_dir, op.basename(surf)), surf, copy)
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
@@ -1882,12 +1895,16 @@ def _check_bem_size(surfs):
              surfs[0]['np'])
 
 
-def _symlink(src, dest):
-    """Create a relative symlink."""
-    src = op.relpath(src, op.dirname(dest))
-    try:
-        os.symlink(src, dest)
-    except OSError:
-        warn('Could not create symbolic link %s. Check that your partition '
-             'handles symbolic links. The file will be copied instead.' % dest)
+def _symlink(src, dest, copy=False):
+    """Create a relative symlink (or just copy)."""
+    if not copy:
+        src_link = op.relpath(src, op.dirname(dest))
+        try:
+            os.symlink(src_link, dest)
+        except OSError:
+            warn('Could not create symbolic link %s. Check that your '
+                 'partition handles symbolic links. The file will be copied '
+                 'instead.' % dest)
+            copy = True
+    if copy:
         shutil.copy(src, dest)

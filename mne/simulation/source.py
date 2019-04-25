@@ -213,7 +213,8 @@ def simulate_sparse_stc(src, n_dipoles, times,
     return stc
 
 
-def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
+def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
+                 allow_overlap=False):
     """Simulate sources time courses from waveforms and labels.
 
     This function generates a source estimate with extended sources by
@@ -235,6 +236,10 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
         Function to apply to the label values to obtain the waveform
         scaling for each vertex in the label. If None (default), uniform
         scaling is used.
+    allow_overlap : bool
+        Allow overlapping labels or not. Default value is False
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -265,38 +270,45 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
             data = np.outer(values_sel, stc_data[i])
         else:
             data = np.tile(stc_data[i], (len(src_sel), 1))
+        # If overlaps are allowed, deal with them
+        if allow_overlap:
+            # Search for duplicate vertex indices
+            # in the existing vertex matrix vertex.
+            duplicates = []
+            for src_ind, vertex_ind in enumerate(src_sel):
+                ind = np.where(vertex_ind == vertno[hemi_ind])[0]
+                if len(ind) > 0:
+                    assert (len(ind) == 1)
+                    # Add the new data to the existing one
+                    stc_data_extended[hemi_ind][ind[0]] += data[src_ind]
+                    duplicates.append(src_ind)
+            # Remove the duplicates from both data and selected vertices
+            data = np.delete(data, duplicates, axis=0)
+            src_sel = list(np.delete(np.array(src_sel), duplicates))
+        # Extend the existing list instead of appending it so that we can
+        # index its elements
+        vertno[hemi_ind].extend(src_sel)
+        stc_data_extended[hemi_ind].extend(np.atleast_2d(data))
 
-        vertno[hemi_ind].append(src_sel)
-        stc_data_extended[hemi_ind].append(np.atleast_2d(data))
-
-    # format the vertno list
-    for idx in (0, 1):
-        if len(vertno[idx]) > 1:
-            vertno[idx] = np.concatenate(vertno[idx])
-        elif len(vertno[idx]) == 1:
-            vertno[idx] = vertno[idx][0]
     vertno = [np.array(v) for v in vertno]
-    for v, hemi in zip(vertno, ('left', 'right')):
-        d = len(v) - len(np.unique(v))
-        if d > 0:
-            raise RuntimeError('Labels had %s overlaps in the %s hemisphere, '
-                               'they must be non-overlapping' % (d, hemi))
-
+    if not allow_overlap:
+        for v, hemi in zip(vertno, ('left', 'right')):
+            d = len(v) - len(np.unique(v))
+            if d > 0:
+                raise RuntimeError('Labels had %s overlaps in the %s '
+                                   'hemisphere, '
+                                   'they must be non-overlapping' % (d, hemi))
     # the data is in the order left, right
     data = list()
-    if len(vertno[0]) != 0:
-        idx = np.argsort(vertno[0])
-        vertno[0] = vertno[0][idx]
-        data.append(np.concatenate(stc_data_extended[0])[idx])
-
-    if len(vertno[1]) != 0:
-        idx = np.argsort(vertno[1])
-        vertno[1] = vertno[1][idx]
-        data.append(np.concatenate(stc_data_extended[1])[idx])
-
-    data = np.concatenate(data)
+    for i in range(2):
+        if len(stc_data_extended[i]) != 0:
+            stc_data_extended[i] = np.vstack(stc_data_extended[i])
+            # Order the indices of each hemisphere
+            idx = np.argsort(vertno[i])
+            data.append(stc_data_extended[i][idx])
+            vertno[i] = vertno[i][idx]
 
     subject = src[0].get('subject_his_id')
-    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep,
-                         subject=subject)
+    stc = SourceEstimate(np.concatenate(data), vertices=vertno, tmin=tmin,
+                         tstep=tstep, subject=subject)
     return stc

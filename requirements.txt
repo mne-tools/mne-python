@@ -28,4 +28,5 @@ neo
 xlrd
 pydocstyle
 flake8
-# pylsl>=1.13.1  Needs https://github.com/labstreaminglayer/liblsl-Python/issues/6
+vtki
+pylsl>=1.12
