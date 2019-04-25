@@ -2129,11 +2129,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
-    try:  # set GFP to True for string picks
-        if gfp is None and isinstance(picks, str) or isinstance(picks[0], str):
+    if gfp is None and (picks in _DATA_CH_TYPES_SPLIT or
+                        all(pick in _DATA_CH_TYPES_SPLIT for pick in picks)):
             gfp = True
-    except (IndexError, TypeError):  # if picks is not (a list of) str
-        pass
 
     picks_was_str_title_was_none = False
     picks = [] if picks is None else picks
