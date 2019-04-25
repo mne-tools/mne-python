@@ -958,7 +958,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ch_types = list(_get_channel_types(epochs.info))    # list of unique channel types
     if order is None:
         order = _DATA_CH_TYPES_ORDER_DEFAULT
-    inds = [pick_idx for order_type in order for pick_idx, ch_type in zip(picks,types) if order_type==ch_type]
+    inds = [pick_idx for order_type in order
+            for pick_idx, ch_type in zip(picks,types) if order_type==ch_type]
     types = sorted(types, key=order.index)
     if not len(inds) == len(picks):
         raise RuntimeError('Some channels not classified. Please'
@@ -1222,10 +1223,10 @@ def _plot_traces(params):
                                           set(_DATA_CH_TYPES_SPLIT),
                                           key=params['order'].index)
                 ylim = ax.get_ylim()[0]
-                offsets = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
+                ticks = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
                 offset_pos = np.arange(2, len(chan_types_split)*4, 4)
                 if ch_type in chan_types_split:
-                    offset = offsets[offset_pos[chan_types_split.index(ch_type)]]
+                    offset = ticks[offset_pos[chan_types_split.index(ch_type)]]
                 else:
                     lines[line_idx].set_segments(list())
             else:
@@ -1280,19 +1281,20 @@ def _plot_traces(params):
                                   set(_DATA_CH_TYPES_SPLIT),
                                   key=params['order'].index)
         ylim = ax.get_ylim()[0]
-        ticks = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
+        ticks = np.arange(0, ylim+1, ylim/(4*len(chan_types_split)))
+        offset_pos = np.arange(2, (len(chan_types_split)*4)+1, 4)
         ax.set_yticks(ticks)
         labels = [''] * 20
         labels = [0 if idx in range(2, len(labels), 4) else label
                   for idx, label in enumerate(labels)]
-        chan_plotted = 0
-        for chan_type in chan_types_split:
-            for idx, idx_tick in enumerate([1+chan_plotted*4, 3+chan_plotted*4]):
-                ticklim_diff = ticks[idx_tick]-ticks[idx_tick+[+2, -2][idx]]
-                labels[idx_tick] = (ticklim_diff *
+        for idx_chan, chan_type in enumerate(chan_types_split):
+            tick_top, tick_bottom = 1+idx_chan*4, 3+idx_chan*4
+            offset = ticks[offset_pos[idx_chan]]
+            for tick_pos in [tick_top, tick_bottom]:
+                tickoffset_diff = ticks[tick_pos]-offset
+                labels[tick_pos] = (tickoffset_diff *
                                     params['scalings'][chan_type] *
                                     factor * scalings_default[chan_type])
-            chan_plotted += 1
         # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
         for li, label in enumerate(labels):
             if isinstance(label, float) and float(str(label)) != round(label):
