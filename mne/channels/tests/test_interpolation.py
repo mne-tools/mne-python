@@ -12,6 +12,7 @@ from mne.utils import run_tests_if_main
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+raw_fname_ctf = op.join(base_dir, 'test_ctf_raw.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
@@ -153,6 +154,41 @@ def test_interpolation_meg():
     evoked.info.normalize_proj()
     data2 = evoked.interpolate_bads(origin='auto').data[pick]
     assert np.corrcoef(data1, data2)[0, 1] > thresh
+
+
+def _this_interpol(inst, ref_meg=False):
+    from mne.channels.interpolation import _interpolate_bads_meg
+    _interpolate_bads_meg(inst, ref_meg=ref_meg, mode='fast')
+    return inst
+
+
+def test_interpolate_meg_ctf():
+    """Test interpolation of MEG channels from CTF system."""
+    thresh = .7
+    tol = .05  # assert the new interpol correlates at least .05 "better"
+    bad = 'MLC22-2622'  # select a good channel to test the interpolation
+
+    raw = io.read_raw_fif(raw_fname_ctf, preload=True)  # 3 secs
+    raw.apply_gradient_compensation(3)
+
+    # Show that we have to exclude ref_meg for interpolating CTF MEG-channels
+    # (fixed in #5965):
+    raw.info['bads'] = [bad]
+    pick_bad = pick_channels(raw.info['ch_names'], raw.info['bads'])
+    data_orig = raw[pick_bad, :][0]
+    # mimic old behavior (the ref_meg-arg in _interpolate_bads_meg only serves
+    # this purpose):
+    data_interp_refmeg = _this_interpol(raw, ref_meg=True)[pick_bad, :][0]
+    # new:
+    data_interp_no_refmeg = _this_interpol(raw, ref_meg=False)[pick_bad, :][0]
+
+    R = dict()
+    R['no_refmeg'] = np.corrcoef(data_orig, data_interp_no_refmeg)[0, 1]
+    R['with_refmeg'] = np.corrcoef(data_orig, data_interp_refmeg)[0, 1]
+
+    print('Corrcoef of interpolated with original channel: ', R)
+    assert R['no_refmeg'] > R['with_refmeg'] + tol
+    assert R['no_refmeg'] > thresh
 
 
 @testing.requires_testing_data
