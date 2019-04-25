@@ -840,8 +840,10 @@ def combine_evoked(all_evoked, weights):
     Subtraction can be performed by calling
     ``combine_evoked([evoked1, -evoked2], 'equal')``
 
-    .. Warning:: If you pass negative weights, it
-        can give unexpected results. Use at your own risk.
+    .. Warning::
+        If you provide an array of weights instead of using `'equal'` or
+        `'nave'`, strange things may happen with your resulting signal
+        amplitude and/or `.nave` attribute.
 
     Parameters
     ----------
