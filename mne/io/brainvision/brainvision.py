@@ -256,8 +256,9 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    if np.size(_read_vmrk(fname)) > 0:
-        onset, duration, description, date_str = _read_vmrk(fname)
+    markers = _read_vmrk(fname)
+    if len(markers) > 0:
+        onset, duration, description, date_str = markers
         orig_time = _str_to_meas_date(date_str)
 
         if sfreq == 'auto':
