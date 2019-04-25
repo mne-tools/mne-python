@@ -812,7 +812,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
 
     Parameters
     ----------
-    epochs : instance of Epochs
+    epochs : instance of :class:`~mne.Epochs`
         The epochs.
     layout: instance of Layout
         System specific sensor positions.
@@ -850,7 +850,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         The figure face color. Defaults to black.
     fig_background : None | array
         A background image for the figure. This must be a valid input to
-        `matplotlib.pyplot.imshow`. Defaults to None.
+        :func:`matplotlib.pyplot.imshow`. Defaults to None.
     font_color : color
         The color of tick labels in the colorbar. Defaults to white.
     show : bool
@@ -858,7 +858,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
+    fig : instance of :class:`matplotlib.figure.Figure`
         Figure distributing one image per channel across sensor topography.
 
     Notes
