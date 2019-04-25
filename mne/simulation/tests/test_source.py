@@ -297,8 +297,7 @@ def test_source_simulator():
     mylabels = []
     src_vertices = []
     for i, vert in enumerate(label_vertices):
-        new_label = Label(vertices=vert,
-                          hemi=hemis[i])
+        new_label = Label(vertices=vert, hemi=hemis[i])
         mylabels.append(new_label)
         src_vertices.append(np.intersect1d(
                             src[hemi_to_ind[hemis[i]]]['vertno'],
@@ -343,19 +342,20 @@ def test_source_simulator():
     stim_channel = ss.get_stim_channel()
 
     # Stim channel data must have the same size as stc time samples
-    assert(len(stim_channel) == stc.data.shape[1])
+    assert len(stim_channel) == stc.data.shape[1]
 
     stim_channel = ss.get_stim_channel(0, 0)
-    assert(len(stim_channel) == 0)
+    assert len(stim_channel) == 0
 
-    assert (np.all(stc.vertices[0] == verts_lh))
-    assert (np.all(stc.vertices[1] == verts_rh))
+    assert np.all(stc.vertices[0] == verts_lh)
+    assert np.all(stc.vertices[1] == verts_rh)
     assert_array_almost_equal(stc.lh_data, output_data_lh)
     assert_array_almost_equal(stc.rh_data, output_data_rh)
     assert_array_almost_equal(stc.data, output_data)
 
     counter = 0
     for stc, stim in ss:
+        assert stc.data.shape[1] == 6
         counter += 1
     assert counter == 1
 
