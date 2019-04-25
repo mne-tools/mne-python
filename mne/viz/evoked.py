@@ -1832,7 +1832,7 @@ def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
 
 
 def _calculate_ci_and_mean(evokeds, conditions, scaling, picks, ci_fun, gfp):
-    """Caluclate time series and CI, potentially aggregating over sensors."""
+    """Calculate time series and CI, potentially aggregating over sensors."""
     ci_dict, data_dict = dict(), dict()
 
     for cond in conditions:
@@ -2317,7 +2317,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     all_data.append({cond: np.zeros(d.shape) for cond, d in data_dict.items()})
     all_cis.append({cond: np.zeros(np.array(d).shape)
-                        for cond, d in ci_dict.items()})
+                    for cond, d in ci_dict.items()})
 
     for picks_, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:

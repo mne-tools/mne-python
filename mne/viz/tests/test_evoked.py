@@ -341,7 +341,7 @@ def test_plot_compare_evokeds():
     red.crop(0.01, 0.01)
     assert len(red.times) == 1
     plot_compare_evokeds(red)
-    plt.close('all')    
+    plt.close('all')
 
 
 @testing.requires_testing_data

@@ -2374,7 +2374,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
             axes.spines["bottom"].set_bounds(lone_tick, 0)
 
     axes.set_xticks(xticks)
-    
+
     # finishing touches
     if invert_y:
         axes.invert_yaxis()
