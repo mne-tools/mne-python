@@ -2124,6 +2124,13 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     picks = [] if picks is None else picks
     if title is None and picks in _DATA_CH_TYPES_SPLIT:
         title = _handle_default('titles')[picks]
+
+    try:  # set GFP to True for string picks
+        if gfp is None and isinstance(picks, str) or isinstance(picks[0], str):
+            gfp = True
+    except TypeError:  # if picks is not an iterable
+        pass
+
     picks = _picks_to_idx(info, picks, allow_empty=True)
     if len(picks) == 0:
         logger.info("No picks, plotting the GFP ...")
