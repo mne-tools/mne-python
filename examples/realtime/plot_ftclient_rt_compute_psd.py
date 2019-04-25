@@ -22,64 +22,65 @@ import time
 import mne
 from mne.realtime import FieldTripClient
 from mne.time_frequency import psd_welch
-from mne.utils import run_subprocess
+from mne.utils import running_subprocess
 
 print(__doc__)
 
 # start a subprocess for neuromag2ft
 data_path = mne.datasets.sample.data_path()
-run_subprocess(["neuromag2ft", "--file",
-                "{}/MEG/sample/sample_audvis_raw.fif".format(data_path)])
 
 # user must provide list of bad channels because
 # FieldTrip header object does not provide that
 bads = ['MEG 2443', 'EEG 053']
 
 fig, ax = plt.subplots(1)
-with FieldTripClient(host='localhost', port=1972,
-                     tmax=150, wait_max=10) as rt_client:
+command = ["neuromag2ft", "--file",
+           "{}/MEG/sample/sample_audvis_raw.fif".format(data_path)]
+with running_subprocess(command, verbose=False):
+    with FieldTripClient(host='localhost', port=1972,
+                         tmax=150, wait_max=10) as rt_client:
 
-    # get measurement info guessed by MNE-Python
-    raw_info = rt_client.get_measurement_info()
+        # get measurement info guessed by MNE-Python
+        raw_info = rt_client.get_measurement_info()
 
-    # select gradiometers
-    picks = mne.pick_types(raw_info, meg='grad', eeg=False, eog=True,
-                           stim=False, include=[], exclude=bads)
+        # select gradiometers
+        picks = mne.pick_types(raw_info, meg='grad', eeg=False, eog=True,
+                               stim=False, include=[], exclude=bads)
 
-    n_fft = 256  # the FFT size. Ideally a power of 2
-    n_samples = 2048  # time window on which to compute FFT
+        n_fft = 256  # the FFT size. Ideally a power of 2
+        n_samples = 2048  # time window on which to compute FFT
 
-    # make sure at least one epoch is available
-    time.sleep(n_samples / raw_info['sfreq'])
+        # make sure at least one epoch is available
+        time.sleep(n_samples / raw_info['sfreq'])
 
-    for ii in range(20):
-        epoch = rt_client.get_data_as_epoch(n_samples=n_samples, picks=picks)
-        psd, freqs = psd_welch(epoch, fmin=2, fmax=200, n_fft=n_fft)
+        for ii in range(20):
+            epoch = rt_client.get_data_as_epoch(n_samples=n_samples,
+                                                picks=picks)
+            psd, freqs = psd_welch(epoch, fmin=2, fmax=200, n_fft=n_fft)
 
-        cmap = 'RdBu_r'
-        freq_mask = freqs < 150
-        freqs = freqs[freq_mask]
-        log_psd = 10 * np.log10(psd[0])
+            cmap = 'RdBu_r'
+            freq_mask = freqs < 150
+            freqs = freqs[freq_mask]
+            log_psd = 10 * np.log10(psd[0])
 
-        tmin = epoch.events[0][0] / raw_info['sfreq']
-        tmax = (epoch.events[0][0] + n_samples) / raw_info['sfreq']
+            tmin = epoch.events[0][0] / raw_info['sfreq']
+            tmax = (epoch.events[0][0] + n_samples) / raw_info['sfreq']
 
-        if ii == 0:
-            im = ax.imshow(log_psd[:, freq_mask].T, aspect='auto',
-                           origin='lower', cmap=cmap)
+            if ii == 0:
+                im = ax.imshow(log_psd[:, freq_mask].T, aspect='auto',
+                               origin='lower', cmap=cmap)
 
-            ax.set_yticks(np.arange(0, len(freqs), 10))
-            ax.set_yticklabels(freqs[::10].round(1))
-            ax.set_xlabel('Frequency (Hz)')
-            ax.set_xticks(np.arange(0, len(picks), 30))
-            ax.set_xticklabels(picks[::30])
-            ax.set_xlabel('MEG channel index')
-            im.set_clim()
-        else:
-            im.set_data(log_psd[:, freq_mask].T)
+                ax.set_yticks(np.arange(0, len(freqs), 10))
+                ax.set_yticklabels(freqs[::10].round(1))
+                ax.set_xlabel('Frequency (Hz)')
+                ax.set_xticks(np.arange(0, len(picks), 30))
+                ax.set_xticklabels(picks[::30])
+                ax.set_xlabel('MEG channel index')
+                im.set_clim()
+            else:
+                im.set_data(log_psd[:, freq_mask].T)
 
-        plt.title('continuous power spectrum (t = %0.2f sec to %0.2f sec)'
-                  % (tmin, tmax), fontsize=10)
+            plt.title('continuous power spectrum (t = %0.2f sec to %0.2f sec)'
+                      % (tmin, tmax), fontsize=10)
 
-        plt.pause(0.5)
-plt.close()
+            plt.pause(0.5)
