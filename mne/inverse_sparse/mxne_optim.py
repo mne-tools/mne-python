@@ -370,6 +370,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     return X, active_set, E
 
 
+@profile
 def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
          alpha_lc, gemm, gemm2):
     """Implements one full pass of Block Coordinate Descent (BCD) over the
@@ -418,7 +419,8 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
             # for o in range(n_orient):
             #     ger(alpha=1., y=G_j[:, o], x=X_j[o, :], a=R.T,
             #         overwrite_a=True)
-            gemm2(alpha=1., beta=1., a=X_j.T, b=G_j.T, c=R.T,
+            gemm2(alpha=1., beta=1., a=X_j.T,
+                  b=np.asfortranarray(G_j.T), c=R.T,
                   overwrite_c=True)
             # R += np.dot(G_j, X_j)
             X_j_new += X_j
