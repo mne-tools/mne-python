@@ -11,22 +11,21 @@ import importlib
 from contextlib import contextmanager
 import sys
 
-from ._utils import _get_backend_based_on_env_and_defaults, VALID_3D_BACKENDS
+from ._utils import Backends3D
 from ...utils import logger
-from ...utils.check import _check_option
 
 try:
     MNE_3D_BACKEND
     MNE_3D_BACKEND_TEST_DATA
 except NameError:
-    MNE_3D_BACKEND = _get_backend_based_on_env_and_defaults()
+    MNE_3D_BACKEND = Backends3D.get_backend_based_on_env_and_defaults()
     MNE_3D_BACKEND_TEST_DATA = None
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
-if MNE_3D_BACKEND == 'mayavi':
+if MNE_3D_BACKEND == Backends3D.mayavi:
     from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == 'ipyvolume':
+elif MNE_3D_BACKEND == Backends3D.ipyvolume:
     from ._ipyvolume import _Renderer  # lgtm # noqa: F401
 
 
@@ -41,7 +40,7 @@ def set_3d_backend(backend_name):
     backend_name : str
         The 3d backend to select.
     """
-    _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
+    Backends3D.check_backend(backend_name)
     global MNE_3D_BACKEND
     MNE_3D_BACKEND = backend_name
     importlib.reload(sys.modules[__name__])

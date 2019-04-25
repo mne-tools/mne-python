@@ -104,6 +104,21 @@ class Brain(object):
         The overlays.
     """
 
+    def __new__(cls, *args, **kwargs):
+        """Prepare a class instance.
+
+        Provides backward compatability with PySurfer and mayavi.
+        """
+        from ..backends.renderer import get_3d_backend
+        from ..backends._utils import Backends3D
+
+        if get_3d_backend() == Backends3D.mayavi:
+            from surfer import Brain
+            # enables support for mayavi-based rendering
+            return Brain(*args, **kwargs)
+        else:
+            return super().__new__(cls)
+
     def __init__(self, subject_id, hemi, surf, title=None,
                  cortex='classic', alpha=1.0, size=800, background=(0, 0, 0),
                  foreground=None, figure=None, subjects_dir=None,
@@ -190,13 +205,13 @@ class Brain(object):
         # it was also used to mimic hemi="split" behavior from mayavi
         # self._add_title()
 
-    def add_data(self, array, fmin=None, fmax=None, thresh=None,
+    def add_data(self, array, min=None, max=None, thresh=None,
                  colormap="auto", alpha=1,
                  vertices=None, smoothing_steps=None, time=None,
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 fmid=None, center=None, transparent=None, verbose=None):
+                 mid=None, center=None, transparent=None, verbose=None):
         u"""Display data from a numpy array on the surface.
 
         This provides a similar interface to
@@ -206,7 +221,7 @@ class Brain(object):
         (i.e., a timecourse) or five-dimensional data (i.e., a
         vector-valued timecourse).
 
-        .. note:: ``fmin`` sets the low end of the colormap, and is separate
+        .. note:: ``min`` sets the low end of the colormap, and is separate
                   from thresh (this is a different convention from
                   :meth:`surfer.Brain.add_overlay`).
 
@@ -219,23 +234,23 @@ class Brain(object):
             If vectors with no time dimension are desired, consider using a
             singleton (e.g., ``np.newaxis``) to create a "time" dimension
             and pass ``time_label=None``(vector values are not supported).
-        fmin : float
+        min : float
             Min value in colormap (uses real min if None).
-        fmid : float
-            Intermediate value in colormap (middle between fmin and fmax
+        mid : float
+            Intermediate value in colormap (middle between min and max
             if None).
-        fmax : float
+        max : float
             Max value in colormap (uses real max if None).
         thresh : None or float
             Not supported yet.
             if not None, values below thresh will not be visible
         center : float or None
             if not None, center of a divergent colormap, changes the meaning of
-            fmin, fmax and fmid.
+            min, max and mid.
         transparent : bool
             Not supported yet.
-            if True: use a linear transparency between fmin and fmid and make
-            values below fmin fully transparent (symmetrically for divergent
+            if True: use a linear transparency between min and mid and make
+            values below min fully transparent (symmetrically for divergent
             colormaps)
         colormap : str, list of colors, or array
             name of matplotlib colormap to use, a list of matplotlib colors,
@@ -335,24 +350,24 @@ class Brain(object):
             act_data = array
 
         if center is None:
-            if fmin is None:
-                fmin = array.min() if array.size > 0 else 0
-            if fmax is None:
-                fmax = array.max() if array.size > 0 else 1
+            if min is None:
+                min = array.min() if array.size > 0 else 0
+            if max is None:
+                max = array.max() if array.size > 0 else 1
         else:
-            if fmin is None:
-                fmin = 0
-            if fmax is None:
-                fmax = np.abs(center - array).max() if array.size > 0 else 1
-        if fmid is None:
-            fmid = (fmin + fmax) / 2.
-        _check_limits(fmin, fmid, fmax, extra='')
+            if min is None:
+                min = 0
+            if max is None:
+                max = np.abs(center - array).max() if array.size > 0 else 1
+        if mid is None:
+            mid = (min + max) / 2.
+        _check_limits(min, mid, max, extra='')
         self._data['alpha'] = alpha
         self._data['colormap'] = colormap
         self._data['center'] = center
-        self._data['fmin'] = fmin
-        self._data['fmid'] = fmid
-        self._data['fmax'] = fmax
+        self._data['min'] = min
+        self._data['mid'] = mid
+        self._data['max'] = max
 
         lut = self.update_lut()
 
@@ -372,8 +387,8 @@ class Brain(object):
             smooth_mat = None
 
         # data mapping into [0, 1] interval
-        dt_max = fmax
-        dt_min = fmin if center is None else -1 * fmax
+        dt_max = max
+        dt_min = min if center is None else -1 * max
         k = 1 / (dt_max - dt_min)
         b = 1 - k * dt_max
         act_data = k * act_data + b
@@ -407,28 +422,28 @@ class Brain(object):
         u"""Display widget."""
         self._renderers[0][0].show()
 
-    def update_lut(self, fmin=None, fmid=None, fmax=None):
+    def update_lut(self, min=None, mid=None, max=None):
         u"""Update color map.
 
         Parameters
         ----------
-        fmin : float | None
+        min : float | None
             Min value in colormap.
-        fmid : float | None
-            Intermediate value in colormap (middle between fmin and
-            fmax).
-        fmax : float | None
+        mid : float | None
+            Intermediate value in colormap (middle between min and
+            max).
+        max : float | None
             Max value in colormap.
         """
         alpha = self._data['alpha']
         center = self._data['center']
         colormap = self._data['colormap']
-        fmin = self._data['fmin'] if fmin is None else fmin
-        fmid = self._data['fmid'] if fmid is None else fmid
-        fmax = self._data['fmax'] if fmax is None else fmax
+        min = self._data['min'] if min is None else min
+        mid = self._data['mid'] if mid is None else mid
+        max = self._data['max'] if max is None else max
 
-        lut = _calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
-                             fmax=fmax, center=center)
+        lut = _calculate_lut(colormap, alpha=alpha, fmin=min, fmid=mid,
+                             fmax=max, center=center)
         self._data['lut'] = lut
         return lut
 
@@ -475,11 +490,11 @@ class Brain(object):
         return hemi
 
 
-def _check_limits(fmin, fmid, fmax, extra='f'):
+def _check_limits(min, mid, max, extra='f'):
     u"""Check for monotonicity."""
-    if fmin >= fmid:
+    if min >= mid:
         raise ValueError('%smin must be < %smid, got %0.4g >= %0.4g'
-                         % (extra, extra, fmin, fmid))
-    if fmid >= fmax:
+                         % (extra, extra, min, mid))
+    if mid >= max:
         raise ValueError('%smid must be < %smax, got %0.4g >= %0.4g'
-                         % (extra, extra, fmid, fmax))
+                         % (extra, extra, mid, max))

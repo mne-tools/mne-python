@@ -6,16 +6,37 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
+from enum import Enum
 
 from ...utils import get_config
 from ...utils.check import _check_option
 
+
 DEFAULT_3D_BACKEND = 'mayavi'
-VALID_3D_BACKENDS = ['mayavi', 'ipyvolume']
 
 
-def _get_backend_based_on_env_and_defaults():
-    backend = get_config(key='MNE_3D_BACKEND', default=DEFAULT_3D_BACKEND)
-    _check_option('MNE_3D_BACKEND', backend, VALID_3D_BACKENDS)
+class Backends3D(str, Enum):
+    """Enumeration of valid 3D backends."""
 
-    return backend
+    ipyvolume = 'ipyvolume'
+    mayavi = 'mayavi'
+
+    @classmethod
+    def get_backend_based_on_env_and_defaults(cls):
+        """Read MNE-Python preferences from environment or config file."""
+        backend = get_config(key='MNE_3D_BACKEND', default=DEFAULT_3D_BACKEND)
+        cls.check_backend(backend)
+
+        return backend
+
+    @classmethod
+    def check_backend(cls, backend_value):
+        """Check the value of the backend against a list of valid options.
+
+        Parameters
+        ----------
+        backend_value: str
+            Provided by user backend value.
+        """
+        valid_values = tuple(b.value for b in cls)
+        _check_option('MNE_3D_BACKEND', backend_value, valid_values)
