@@ -370,7 +370,6 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     return X, active_set, E
 
 
-@profile
 def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
          alpha_lc, gemm, gemm2):
     """Implements one full pass of Block Coordinate Descent (BCD) over the
