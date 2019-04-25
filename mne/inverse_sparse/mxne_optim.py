@@ -419,8 +419,6 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     """
     X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
 
-
-    # for j in range(n_positions):
     for j, G_j_c in enumerate(list_G_j_c):
         idx = slice(j * n_orient, (j + 1) * n_orient)
         G_j = G[:, idx]
