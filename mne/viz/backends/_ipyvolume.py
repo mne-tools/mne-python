@@ -496,6 +496,5 @@ def _color2rgba(color, opacity):
         # not numpy array
         color = np.array(color)
         np.append(color, opacity)
-    
-    return color
 
+    return color

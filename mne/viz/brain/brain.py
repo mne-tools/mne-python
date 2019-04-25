@@ -3,15 +3,14 @@ import warnings
 import numpy as np
 from surfer.utils import mesh_edges, smoothing_matrix
 
-with warnings.catch_warnings():  # catch the ipyvolume warnings
+# catch the warnings from ipyvolume
+with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import ipyvolume as ipv
     import ipywidgets as widgets
-    from pythreejs import (BlendFactors, BlendingMode, Equations,
-                           ShaderMaterial, Side)
 
     from .colormap import _calculate_lut
-    from .view import views_dict, ColorBar
+    from .view import views_dict
     from .surface import Surface
 
 
@@ -114,12 +113,15 @@ class Brain(object):
             raise ValueError('Options for parameter "cortex" ' +
                              'is not yet supported.')
 
+        if hemi == 'split':
+            raise ValueError('Option hemi="split" is not suppoerted yet.')
+
         if figure is not None:
             raise ValueError('figure parameter is not supported yet.')
 
         if interaction is not None:
             raise ValueError('"interaction" parameter is not supported.')
-        
+
         from ..backends.renderer import _Renderer
 
         self._foreground = foreground
@@ -185,7 +187,8 @@ class Brain(object):
                 self._hemi_meshes[h + '_' + v] = mesh
         # contains ipv specific logic, should be changes for
         # the sake of generality
-        # self._add_title() 
+        # it was also used to mimic hemi="split" behavior from mayavi
+        # self._add_title()
 
     def add_data(self, array, fmin=None, fmax=None, thresh=None,
                  colormap="auto", alpha=1,
