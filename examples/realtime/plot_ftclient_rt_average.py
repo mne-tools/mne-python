@@ -31,7 +31,7 @@ responses using moving averages.
 # License: BSD (3-clause)
 
 import matplotlib.pyplot as plt
-from mne.utils import run_subprocess
+from mne.utils import running_subprocess
 
 import mne
 from mne.viz import plot_events
@@ -41,8 +41,6 @@ print(__doc__)
 
 # start a subprocess for neuromag2ft
 data_path = mne.datasets.sample.data_path()
-run_subprocess(["neuromag2ft", "--file",
-                "{}/MEG/sample/sample_audvis_raw.fif".format(data_path)])
 
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
@@ -54,47 +52,48 @@ bads = ['MEG 2443', 'EEG 053']
 plt.ion()  # make plot interactive
 _, ax = plt.subplots(2, 1, figsize=(8, 8))  # create subplots
 
-with FieldTripClient(host='localhost', port=1972,
-                     tmax=150, wait_max=10) as rt_client:
+command = ["neuromag2ft", "--file",
+           "{}/MEG/sample/sample_audvis_raw.fif".format(data_path)]
+with running_subprocess(command, verbose=False):
+    with FieldTripClient(host='localhost', port=1972,
+                         tmax=150, wait_max=10) as rt_client:
 
-    # get measurement info guessed by MNE-Python
-    raw_info = rt_client.get_measurement_info()
+        # get measurement info guessed by MNE-Python
+        raw_info = rt_client.get_measurement_info()
 
-    # select gradiometers
-    picks = mne.pick_types(raw_info, meg='grad', eeg=False, eog=True,
-                           stim=True, exclude=bads)
+        # select gradiometers
+        picks = mne.pick_types(raw_info, meg='grad', eeg=False, eog=True,
+                               stim=True, exclude=bads)
 
-    # create the real-time epochs object
-    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax,
-                         stim_channel='STI 014', picks=picks,
-                         reject=dict(grad=4000e-13, eog=150e-6),
-                         decim=1, isi_max=10.0, proj=None)
+        # create the real-time epochs object
+        rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax,
+                             stim_channel='STI 014', picks=picks,
+                             reject=dict(grad=4000e-13, eog=150e-6),
+                             decim=1, isi_max=10.0, proj=None)
 
-    # start the acquisition
-    rt_epochs.start()
+        # start the acquisition
+        rt_epochs.start()
 
-    for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        print("Just got epoch %d" % (ii + 1))
+        for ii, ev in enumerate(rt_epochs.iter_evoked()):
+            print("Just got epoch %d" % (ii + 1))
 
-        ev.pick_types(meg=True, eog=False)
-        if ii == 0:
-            evoked = ev
-        else:
-            evoked = mne.combine_evoked([evoked, ev], weights='nave')
+            ev.pick_types(meg=True, eog=False)
+            if ii == 0:
+                evoked = ev
+            else:
+                evoked = mne.combine_evoked([evoked, ev], weights='nave')
 
-        ax[0].cla()
-        ax[1].cla()  # clear axis
+            ax[0].cla()
+            ax[1].cla()  # clear axis
 
-        plot_events(rt_epochs.events[-5:], sfreq=ev.info['sfreq'],
-                    first_samp=-rt_client.tmin_samp, axes=ax[0])
+            plot_events(rt_epochs.events[-5:], sfreq=ev.info['sfreq'],
+                        first_samp=-rt_client.tmin_samp, axes=ax[0])
 
-        # plot on second subplot
-        evoked.plot(axes=ax[1], selectable=False, time_unit='s')
-        ax[1].set_title('Evoked response for gradiometer channels'
-                        '(event_id = %d)' % event_id)
+            # plot on second subplot
+            evoked.plot(axes=ax[1], selectable=False, time_unit='s')
+            ax[1].set_title('Evoked response for gradiometer channels'
+                            '(event_id = %d)' % event_id)
 
-        plt.pause(0.05)
-        plt.draw()
-
-    rt_epochs.stop()
-    plt.close()
+            plt.pause(0.05)
+            plt.draw()
+        rt_epochs.stop()

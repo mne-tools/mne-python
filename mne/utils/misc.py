@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import contextmanager
 import fnmatch
 import inspect
 from io import StringIO
@@ -99,6 +100,42 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     stderr : str
         Stderr returned by the process.
     """
+    with running_subprocess(command, *args, **kwargs) as p:
+        pass
+
+    stdout_, stderr = p.communicate()
+    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
+    stderr = u'' if stderr is None else stderr.decode('utf-8')
+    output = (stdout_, stderr)
+
+    if p.returncode:
+        print(output)
+        err_fun = subprocess.CalledProcessError.__init__
+        if 'output' in _get_args(err_fun):
+            raise subprocess.CalledProcessError(p.returncode, command, output)
+        else:
+            raise subprocess.CalledProcessError(p.returncode, command)
+
+    return output
+
+
+@contextmanager
+def running_subprocess(command, verbose=None, *args, **kwargs):
+    """Context manager to do something with a command running via Popen.
+
+    Parameters
+    ----------
+    command : list of str | str
+        Command to run as subprocess (see subprocess.Popen documentation).
+    %(verbose)s
+    *args, **kwargs : arguments
+        Additional arguments to pass to subprocess.Popen.
+
+    Returns
+    -------
+    p : instance of Popen
+        The process.
+    """
     for stdxxx, sys_stdxxx, thresh in (
             ['stderr', sys.stderr, logging.ERROR],
             ['stdout', sys.stdout, logging.WARNING]):
@@ -133,20 +170,8 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
             command_name = command[0]
         logger.error('Command not found: %s' % command_name)
         raise
-    stdout_, stderr = p.communicate()
-    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
-    stderr = u'' if stderr is None else stderr.decode('utf-8')
-    output = (stdout_, stderr)
-
-    if p.returncode:
-        print(output)
-        err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in _get_args(err_fun):
-            raise subprocess.CalledProcessError(p.returncode, command, output)
-        else:
-            raise subprocess.CalledProcessError(p.returncode, command)
-
-    return output
+    yield p
+    p.wait()
 
 
 def _clean_names(names, remove_whitespace=False, before_dash=True):
