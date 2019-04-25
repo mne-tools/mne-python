@@ -52,11 +52,13 @@ bads = ['MEG 2443', 'EEG 053']
 plt.ion()  # make plot interactive
 _, ax = plt.subplots(2, 1, figsize=(8, 8))  # create subplots
 
+speedup = 10
 command = ["neuromag2ft", "--file",
-           "{}/MEG/sample/sample_audvis_raw.fif".format(data_path)]
-with running_subprocess(command, verbose=False):
+           "{}/MEG/sample/sample_audvis_raw.fif".format(data_path),
+           "--speed", str(speedup)]
+with running_subprocess(command, after='terminate', verbose=False):
     with FieldTripClient(host='localhost', port=1972,
-                         tmax=150, wait_max=10) as rt_client:
+                         tmax=30, wait_max=5) as rt_client:
 
         # get measurement info guessed by MNE-Python
         raw_info = rt_client.get_measurement_info()
@@ -69,7 +71,7 @@ with running_subprocess(command, verbose=False):
         rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax,
                              stim_channel='STI 014', picks=picks,
                              reject=dict(grad=4000e-13, eog=150e-6),
-                             decim=1, isi_max=10.0, proj=None)
+                             decim=1, isi_max=2.0, proj=None)
 
         # start the acquisition
         rt_epochs.start()
@@ -94,6 +96,6 @@ with running_subprocess(command, verbose=False):
             ax[1].set_title('Evoked response for gradiometer channels'
                             '(event_id = %d)' % event_id)
 
-            plt.pause(0.05)
+            plt.pause(0.05 / speedup)
             plt.draw()
         rt_epochs.stop()

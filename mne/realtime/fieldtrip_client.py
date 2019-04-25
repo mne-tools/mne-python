@@ -134,6 +134,9 @@ class FieldTripClient(_BaseClient):
 
         return self
 
+    def _disconnect(self):
+        self.client.stop_receive_thread()
+
     def _create_info(self):
         """Create a minimal Info dictionary for epoching, averaging, etc."""
         if self.info is None:
