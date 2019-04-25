@@ -87,7 +87,10 @@ class _Renderer(object):
             rgba = False
             scalars = None
             if n_colors == n_vertices:
-                scalars = np.c_[color, np.ones(n_vertices)]
+                if color.shape[1] == 3:
+                    scalars = np.c_[color, np.ones(n_vertices)]
+                else:
+                    scalars = color
                 scalars = (scalars * 255).astype('ubyte')
                 color = None
                 rgba = True
