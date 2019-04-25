@@ -823,8 +823,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     vmax : float
         The max value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
-    colorbar : bool
-        Display or not a colorbar.
+    colorbar : bool | None
+        Display or not a colorbar. If ``None`` (the default) a colorbar will be
+        shown only if all channels are of the same type.
     order : None | array of int | callable
         If not None, order is used to reorder the epochs on the y-axis
         of the image. If it's an array of int it should be of length
