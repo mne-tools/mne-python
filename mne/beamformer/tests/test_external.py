@@ -60,6 +60,7 @@ def _get_bf_data(save_fieldtrip=False):
 
 @testing.requires_testing_data
 def test_lcmv_fieldtrip():
+    """Test LCMV vs fieldtrip output."""
     evoked, data_cov, fwd = _get_bf_data()
 
     # beamformer types to be tested: unit-gain (vector and scalar) and
