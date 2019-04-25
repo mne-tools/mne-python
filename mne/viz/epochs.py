@@ -1287,8 +1287,7 @@ def _plot_traces(params):
             if ch_type in params['types']:
                 labels[2 + ch_plotted * 4] = 0.
                 for idx, idx_tick in enumerate([1+ch_plotted*4, 3+ch_plotted*4]):
-# TODO stuck here, there is a serious problem with the scaling
-                    labels[idx_tick] = ([-1.25, 1.25][idx] * \
+                    labels[idx_tick] = ((offsets[idx_tick]-offsets[idx_tick+[+2, -2][idx]]) * \
                                        params['scalings'][ch_type] * \
                                        scale * factor)
                 ch_plotted += 1
