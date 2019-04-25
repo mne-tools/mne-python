@@ -8,7 +8,7 @@
 import numpy as np
 from scipy import linalg
 
-from ..io.pick import pick_channels_evoked, pick_info
+from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
 from ..utils import logger, verbose, _check_info_inv
 from ..dipole import Dipole
 from ._compute_beamformer import _prepare_beamformer_input
@@ -46,8 +46,10 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     """
     info = pick_info(info, picks)
     del picks
-    is_free_ori, _, _, _, G, whitener, _, _ = _prepare_beamformer_input(
+    is_free_ori, info, _, _, G, whitener, _, _ = _prepare_beamformer_input(
         info, forward, noise_cov=noise_cov, rank=None)
+    forward = pick_channels_forward(forward, info['ch_names'], ordered=True)
+    del info
 
     gain = forward['sol']['data'].copy()
 
