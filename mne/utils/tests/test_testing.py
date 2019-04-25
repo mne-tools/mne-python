@@ -36,37 +36,6 @@ def test_buggy_mkl():
     pytest.raises(RuntimeError, bar, 1, 2, 3)
 
 
-def test_run_tests_if_main():
-    """Test run_tests_if_main functionality."""
-    x = []
-
-    def test_a():
-        x.append(True)
-
-    @pytest.mark.skipif(True)
-    def test_b():
-        return
-
-    try:
-        __name__ = '__main__'
-        run_tests_if_main(measure_mem=False)  # dual meas causes problems
-
-        def test_c():
-            raise RuntimeError
-
-        try:
-            __name__ = '__main__'
-            run_tests_if_main(measure_mem=False)  # dual meas causes problems
-        except RuntimeError:
-            pass
-        else:
-            raise RuntimeError('Error not raised')
-    finally:
-        del __name__
-    assert (len(x) == 2)
-    assert (x[0] and x[1])
-
-
 def test_tempdir():
     """Test TempDir."""
     tempdir2 = _TempDir()
