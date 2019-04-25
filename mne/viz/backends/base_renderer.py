@@ -7,27 +7,27 @@
 #
 # License: Simplified BSD
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractclassmethod
 
 
-class _BaseRenderer(ABC):
-    @abstractmethod
+class _BaseRenderer(metaclass=ABCMeta):
+    @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False):
         """Set up the scene."""
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def scene(self):
         """Return scene handle."""
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def set_interactive(self):
         """Enable interactive mode."""
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
         """Add a mesh in the scene.
@@ -55,7 +55,7 @@ class _BaseRenderer(ABC):
         """
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
         """Add a contour in the scene.
@@ -83,7 +83,7 @@ class _BaseRenderer(ABC):
         """
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False):
@@ -112,7 +112,7 @@ class _BaseRenderer(ABC):
         """
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
         """Add sphere in the scene.
@@ -134,7 +134,7 @@ class _BaseRenderer(ABC):
         """
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
@@ -180,7 +180,7 @@ class _BaseRenderer(ABC):
         """
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         """Add test in the scene.
 
@@ -199,17 +199,17 @@ class _BaseRenderer(ABC):
         """
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def show(self):
         """Render the scene."""
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def close(self):
         """Close the scene."""
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
         """Configure the camera of the scene.
@@ -227,12 +227,12 @@ class _BaseRenderer(ABC):
         """
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def screenshot(self):
         """Take a screenshot of the scene."""
         pass
 
-    @abstractmethod
+    @abstractclassmethod
     def project(self, xyz, ch_names):
         """Convert 3d points to a 2d perspective.
 

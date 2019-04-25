@@ -291,6 +291,40 @@ def copy_function_doc_to_method_doc(source):
     return wrapper
 
 
+def copy_base_doc_to_subclass_doc(source):
+    """Use the docstring from a parent class methods in derived class.
+
+    The docstring of the source class methods is prepended to the
+    docstring of the methods of the class wrapped by this decorator.
+
+    Parameters
+    ----------
+    source : Parent class
+        Class to copy the docstring from
+
+    Returns
+    -------
+    wrapper : Derived class
+        The decorated class
+    """
+    def wrapper(subclass):
+        methodList = [method for method in dir(source)
+                      if callable(getattr(source, method))]
+        for method_name in methodList:
+            # discard private methods
+            if method_name[0] == '_':
+                continue
+            base_method = getattr(source, method_name)
+            sub_method = getattr(subclass, method_name)
+            if base_method is not None and sub_method is not None:
+                doc = base_method.__doc__
+                if sub_method.__doc__ is not None:
+                    doc += '\n' + sub_method.__doc__
+                sub_method.__doc__ = doc
+        return subclass
+    return wrapper
+
+
 def linkcode_resolve(domain, info):
     """Determine the URL corresponding to a Python object.
 

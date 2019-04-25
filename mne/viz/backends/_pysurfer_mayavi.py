@@ -20,7 +20,7 @@ import numpy as np
 from .base_renderer import _BaseRenderer
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
-                      copy_function_doc_to_method_doc)
+                      copy_base_doc_to_subclass_doc)
 
 
 class _Projection(object):
@@ -45,6 +45,7 @@ class _Projection(object):
             self.pts.visible = state
 
 
+@copy_base_doc_to_subclass_doc(_BaseRenderer)
 class _Renderer(_BaseRenderer):
     """Class managing rendering scene.
 
@@ -56,7 +57,6 @@ class _Renderer(_BaseRenderer):
         Mayavi scene handle.
     """
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False):
         self.mlab = _import_mlab()
@@ -67,18 +67,15 @@ class _Renderer(_BaseRenderer):
         if show is False:
             _toggle_mlab_render(self.fig, False)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def scene(self):
         return self.fig
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.set_interactive)
     def set_interactive(self):
         from tvtk.api import tvtk
         if self.fig.scene is not None:
             self.fig.scene.interactor.interactor_style = \
                 tvtk.InteractorStyleTerrain()
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.mesh)
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
         with warnings.catch_warnings(record=True):  # traits
@@ -91,7 +88,6 @@ class _Renderer(_BaseRenderer):
             surface.actor.property.backface_culling = backface_culling
             return surface
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.contour)
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
@@ -101,7 +97,6 @@ class _Renderer(_BaseRenderer):
                 opacity=opacity, figure=self.fig)
             cont.module_manager.scalar_lut_manager.lut.table = colormap
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.surface)
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False):
@@ -115,7 +110,6 @@ class _Renderer(_BaseRenderer):
                 surface.module_manager.scalar_lut_manager.lut.table = colormap
             surface.actor.property.backface_culling = backface_culling
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.sphere)
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
         if center.ndim == 1:
@@ -132,7 +126,6 @@ class _Renderer(_BaseRenderer):
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.quiver3d)
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
@@ -158,22 +151,18 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.text)
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text(x, y, text, width=width, color=color,
                            figure=self.fig)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.show)
     def show(self):
         if self.fig is not None:
             _toggle_mlab_render(self.fig, True)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.close)
     def close(self):
         self.mlab.close(self.fig)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.set_camera)
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
         with warnings.catch_warnings(record=True):  # traits
@@ -181,12 +170,10 @@ class _Renderer(_BaseRenderer):
                 self.mlab.view(azimuth, elevation, distance,
                                focalpoint=focalpoint, figure=self.fig)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.screenshot)
     def screenshot(self):
         with warnings.catch_warnings(record=True):  # traits
             return self.mlab.screenshot(self.fig)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.project)
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.fig, xyz)
         xy = dict(zip(ch_names, xy))

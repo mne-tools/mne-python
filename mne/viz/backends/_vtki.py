@@ -15,7 +15,7 @@ import vtki
 import warnings
 import numpy as np
 from .base_renderer import _BaseRenderer
-from ...utils import copy_function_doc_to_method_doc
+from ...utils import copy_base_doc_to_subclass_doc
 
 
 class _Projection(object):
@@ -39,6 +39,7 @@ class _Projection(object):
         self.pts.SetVisibility(state)
 
 
+@copy_base_doc_to_subclass_doc(_BaseRenderer)
 class _Renderer(_BaseRenderer):
     """Class managing rendering scene.
 
@@ -52,7 +53,6 @@ class _Renderer(_BaseRenderer):
         Name of the window.
     """
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="VTKI Scene", show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
@@ -79,15 +79,12 @@ class _Renderer(_BaseRenderer):
             self.plotter.camera_position = fig.camera_position
             self.plotter.reset_camera()
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def scene(self):
         return self.plotter
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def set_interactive(self):
         self.plotter.enable_terrain_style()
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
         vertices = np.c_[x, y, z]
@@ -99,7 +96,6 @@ class _Renderer(_BaseRenderer):
             self.plotter.add_mesh(mesh=pd, color=color, opacity=opacity,
                                   backface_culling=backface_culling)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
         from matplotlib import cm
@@ -123,7 +119,6 @@ class _Renderer(_BaseRenderer):
                                   cmap=cmap,
                                   opacity=opacity)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False):
@@ -149,7 +144,6 @@ class _Renderer(_BaseRenderer):
                                   cmap=cmap,
                                   backface_culling=backface_culling)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
         sphere = vtk.vtkSphereSource()
@@ -165,7 +159,6 @@ class _Renderer(_BaseRenderer):
                                   color=color, opacity=opacity,
                                   backface_culling=backface_culling)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
@@ -236,21 +229,17 @@ class _Renderer(_BaseRenderer):
                                       opacity=opacity,
                                       backface_culling=backface_culling)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         self.plotter.add_text(text, position=(x, y),
                               font_size=int(width * 100),
                               color=color)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def show(self):
         self.plotter.show(title=self.name)
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def close(self):
         self.plotter.close()
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
                    focalpoint=(0, 0, 0)):
         phi = _deg2rad(azimuth)
@@ -263,11 +252,9 @@ class _Renderer(_BaseRenderer):
             position, focalpoint, [0, 0, 1]]
         self.plotter.reset_camera()
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def screenshot(self):
         return self.plotter.screenshot()
 
-    @copy_function_doc_to_method_doc(_BaseRenderer.scene)
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.plotter, xyz)
         xy = dict(zip(ch_names, xy))
