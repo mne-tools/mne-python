@@ -2021,7 +2021,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         If ``cmap`` is a tuple of length 2, the first item must be
         a string which will become the colorbar label, and the second one
         must indicate a colormap, e.g. ::
-g
+
             cmap=('conds', 'viridis'), colors=dict(cond1=1 cond2=2, cond3=3),
 
     vlines : "auto" | list of float
