@@ -285,7 +285,6 @@ def test_source_simulator():
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
     src = fwd['src']
     hemi_to_ind = {'lh': 0, 'rh': 1}
-    tmin = 0
     tstep = 1. / 6.
 
     label_vertices = [[], [], []]
@@ -336,7 +335,7 @@ def test_source_simulator():
     output_data_rh = np.tile(data_rh_wf, (len(src_vertices[2]), 1))
     output_data = np.vstack([output_data_lh, output_data_rh])
 
-    ss = SourceSimulator(src, tmin, tstep)
+    ss = SourceSimulator(src, tstep)
     for i in range(3):
         ss.add_data(mylabels[i], wfs[i], events[i])
 
@@ -346,7 +345,7 @@ def test_source_simulator():
     # Stim channel data must have the same size as stc time samples
     assert(len(stim_channel) == stc.data.shape[1])
 
-    stim_channel = ss.get_stim_channel(0., 0.)
+    stim_channel = ss.get_stim_channel(0, 0)
     assert(len(stim_channel) == 0)
 
     assert (np.all(stc.vertices[0] == verts_lh))
@@ -360,7 +359,7 @@ def test_source_simulator():
         counter += 1
     assert counter == 1
 
-    half_ss = SourceSimulator(src, tmin, tstep, duration=0.5)
+    half_ss = SourceSimulator(src, tstep, duration=0.5)
     for i in range(3):
         half_ss.add_data(mylabels[i], wfs[i], events[i])
     half_stc = half_ss.get_stc()
