@@ -76,7 +76,7 @@ with StimServer(port=4218) as stim_server:
     concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
                                   ('scaler', scaler), ('svm', clf)])
     ev_list = list(rng.randint(3, 5, n_start))  # some random starting events
-    score_c1, score_c2, score_x = [], [], []
+    score_lv, score_rv, score_x = [], [], []
 
     command = [sys.executable, 'rt_feedback_client.py']
     with running_subprocess(command, after='terminate',
@@ -109,25 +109,21 @@ with StimServer(port=4218) as stim_server:
                 y_pred = concat_classifier.fit(X_train,
                                                y_train).predict(X_test)
                 cm = confusion_matrix(y_test, y_pred)
-                score_c1.append(float(cm[0, 0]) / sum(cm, 1)[0] * 100)
-                score_c2.append(float(cm[1, 1]) / sum(cm, 1)[1] * 100)
+                score_lv.append(float(cm[0, 0]) / sum(cm, 1)[0] * 100)
+                score_rv.append(float(cm[1, 1]) / sum(cm, 1)[1] * 100)
                 score_x.append(ii + 1)
 
-                # do something if one class is decoded better than the other
-                if score_c1[-1] < score_c2[-1]:
-                    ev_list.append(3)  # adding more LV to future simulations
-                else:
-                    ev_list.append(4)  # adding more RV to future simulations
+                # add events for the lower-performing class
+                ev_list.append(3 if score_lv[-1] < score_rv[-1] else 4)
                 print('Trial %d accuracy: %0.1f%%'
-                      % (ii + 1, np.mean([score_c1[-1], score_c2[-1]])))
+                      % (ii + 1, np.mean([score_lv[-1], score_rv[-1]])))
 
                 # Now plot the accuracy
-                lh = ax.plot(score_x[-2:], score_c1[-2:],
-                             c='r', marker='o', ls='-')[0]
-                rh = ax.plot(score_x[-2:], score_c2[-2:],
-                             c='b', marker='o', ls='-')[0]
-                ax.set(ylim=[0, 100], xticks=score_x,
-                       xlim=[score_x[0], score_x[-1]])
-                ax.legend((lh, rh), ('LV', 'RV'), loc='upper left')
+                lvh = ax.plot(score_x[-2:], score_lv[-2:],
+                              c='r', marker='o', ls='-')[0]
+                rvh = ax.plot(score_x[-2:], score_rv[-2:],
+                              c='b', marker='o', ls='-')[0]
+                ax.set(ylim=[0, 100])
+                ax.legend((lvh, rvh), ('LV', 'RV'), loc='upper left')
                 plt.draw()
                 plt.pause(0.01)
