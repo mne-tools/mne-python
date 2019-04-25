@@ -701,7 +701,8 @@ def _epochs_axes_onclick(event, params):
 @fill_doc
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
-                show=True, block=False, decim='auto', noise_cov=None):
+                show=True, block=False, decim='auto', noise_cov=None,
+                butterfly=False):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -821,7 +822,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
-                               event_colors=event_colors)
+                               event_colors=event_colors, butterfly=butterfly)
     _prepare_projectors(params)
     _layout_figure(params)
 
@@ -1275,9 +1276,10 @@ def _plot_traces(params):
         chan_types_split = sorted(set(params['ch_types']) &
                                   set(_DATA_CH_TYPES_SPLIT),
                                   key=params['order'].index)
-        offsets = np.arange(0, ax.get_ylim()[0],
-                            ax.get_ylim()[0]/(4*len(chan_types_split)))
+        ylim = ax.get_ylim()[0]
+        offsets = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
         ax.set_yticks(offsets)
+        print(offsets)
         labels = [''] * 20
         ch_plotted = 0
         for ch_type in chan_types_split:
@@ -1285,9 +1287,10 @@ def _plot_traces(params):
             if ch_type in params['types']:
                 labels[2 + ch_plotted * 4] = 0.
                 for idx, idx_tick in enumerate([1+ch_plotted*4, 3+ch_plotted*4]):
-                    labels[idx_tick] = [-1.25, 1.25][idx] * \
+# TODO stuck here, there a serious problem with the scaling
+                    labels[idx_tick] = ([-1.25, 1.25][idx] * \
                                        params['scalings'][ch_type] * \
-                                       scale * factor
+                                       scale * factor)
                 ch_plotted += 1
         # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
         for li, label in enumerate(labels):

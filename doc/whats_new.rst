@@ -18,7 +18,7 @@ Current
 
 Changelog
 ~~~~~~~~~
-- Add ``butterfly`` argument to :func:`mne.viz.plot_epochs` and offer seperated butterfly traces for non-meg (seeg, eeg, ecog) data by `Stefan Repplinger`_ and `Èric Larson`_
+- Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer seperated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Èric Larson`_
 
 - Add ``fmin`` and ``fmax`` argument to :meth:`mne.time_frequency.AverageTFR.crop` and to :meth:`mne.time_frequency.EpochsTFR.crop` to crop TFR objects along frequency axis by `Dirk Gütlin`_
 
@@ -169,6 +169,8 @@ Bug
 
 API
 ~~~
+
+- Add ``_DATA_CH_TYPES_ORDER_DEFAULT`` to :func:``mne.io.pick`` as a reference to the default order of channel types by `Stefan Repplinger`_
 
 - Add ``overwrite`` parameter in :func:`mne.Epochs.save` by `Katarina Slama`_
 
