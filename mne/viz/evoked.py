@@ -2209,12 +2209,28 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     if do_topo:
         from .topo import iter_topography
-        ## fixme: do on_pick
+        from functools import partial
         fig = plt.figure(figsize=(16, 12))
-        axes = list(iter_topography(info, layout=None, on_pick=None, fig=fig,
-                                    fig_facecolor='w', axis_facecolor='w',
-                                    axis_spinecolor='k', layout_scale=.9))
-    ch_names = info["ch_names"]
+
+        def click_func(
+                ax_, pick_, evokeds=evokeds, gfp=gfp, colors=colors,
+                linestyles=linestyles, styles=styles, cmap=cmap, vlines=vlines,
+                ci=ci, truncate_yaxis=truncate_yaxis,
+                truncate_xaxis=truncate_xaxis, ylim=ylim, invert_y=invert_y,
+                show_sensors=show_sensors, show_legend=show_legend,
+                split_legend=split_legend):
+            plot_compare_evokeds(
+                evokeds=evokeds, gfp=gfp, colors=colors, linestyles=linestyles,
+                styles=styles, cmap=cmap, vlines=vlines, ci=ci,
+                truncate_yaxis=truncate_yaxis, truncate_xaxis=truncate_xaxis,
+                ylim=ylim, invert_y=invert_y, show_sensors=show_sensors,
+                show_legend=show_legend, split_legend=split_legend,
+                show=True, picks=pick_, axes=ax_)
+
+        axes = list(iter_topography(
+            info, layout=None, on_pick=click_func, fig=fig, fig_facecolor='w',
+            axis_facecolor='w', axis_spinecolor='k', layout_scale=.95))
+    all_ch_names = info["ch_names"]
     del info
 
     ymin, ymax = ylim.get(ch_type, [None, None])
@@ -2269,7 +2285,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     for picks_, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
-            title = ch_names[idx]
+            title = all_ch_names[idx]
         any_positive_, any_negative_ = _plot_compare_evokeds(
             ax, data, conditions, times, ci_fun is not None,
             cis,  styles, title, all_positive, do_topo)
@@ -2290,6 +2306,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             ax_, any_positive, any_negative, ymin, ymax,
             truncate_yaxis, truncate_xaxis, invert_y, vlines, tmin, tmax, unit,
             skip_axlabel=idx != -1 if do_topo else False)
+        ax_.patch.set_alpha(0)
 
     # 2 legends.
     # a head plot showing the sensors that are being plotted

@@ -336,6 +336,9 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(red)
     plt.close('all')
 
+    plot_compare_evokeds(red, axes="topo")
+    plt.close("all")
+
 
 @testing.requires_testing_data
 def test_plot_ctf():
