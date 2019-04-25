@@ -524,7 +524,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,
               bn.y_t + bn.y_s * len(epochs.events))
     this_data = data[:, ch_idx, :]
-    vmin, vmax = None, None if vlim_array is None else vlim_array[ch_index]
+    vmin, vmax = None, None if vlim_array is None else vlim_array[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
