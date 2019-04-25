@@ -700,8 +700,8 @@ def _epochs_axes_onclick(event, params):
 
 @fill_doc
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
-                title=None, events=None, event_colors=None, show=True,
-                block=False, decim='auto', noise_cov=None):
+                title=None, events=None, event_colors=None, order=None,
+                show=True, block=False, decim='auto', noise_cov=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -812,7 +812,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   use_noise_cov=noise_cov is not None)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
-                               title, picks, events=events,
+                               title, picks, events=events, order=order,
                                event_colors=event_colors)
     _prepare_projectors(params)
     _layout_figure(params)
