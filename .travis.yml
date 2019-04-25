@@ -177,6 +177,8 @@ script:
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;
+    # test run_tests_if_main()
+    - cd mne/tests; python test_epochs.py
 
 after_script:
     # Need to run from source dir to exectue "git" commands
