@@ -50,7 +50,7 @@ from ..annotations import _ensure_annotation_object
 
 
 def _set_pandas_dtype(df, columns, dtype):
-    """Try to set the right columns to dtype"""
+    """Try to set the right columns to dtype."""
     for column in columns:
         df[column] = df[column].astype(dtype)
         logger.info('Converting "%s" to "%s"...' % (column, dtype))
@@ -224,13 +224,10 @@ class ToDataFrameMixin(object):
             if not isinstance(self, _BaseSourceEstimate):
                 df['ch_type'] = df.channel.map(ch_map)
 
-            if hasattr(pd.api.types, 'CategoricalDtype'):
-                columns = list(df.columns)
-                to_factor = [
-                    cc for cc in columns if cc not in ['observation', 'time']]
-                _set_pandas_dtype(df, to_factor, 'category')
-            else:
-                logger.warning("I could not convert the dtype to category")
+            columns = list(df.columns)
+            to_factor = [
+                cc for cc in columns if cc not in ['observation', 'time']]
+            _set_pandas_dtype(df, to_factor, 'category')
 
         return df
 

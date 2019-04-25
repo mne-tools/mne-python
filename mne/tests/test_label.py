@@ -1,3 +1,5 @@
+from itertools import product
+
 import glob
 import os
 import os.path as op
@@ -17,7 +19,8 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  write_labels_to_annot, split_label, spatial_tris_connectivity,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
-from mne.label import Label, _blend_colors, label_sign_flip, _load_vert_pos
+from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
+                       select_sources)
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main)
 from mne.label import _n_colors
@@ -931,3 +934,51 @@ def test_label_center_of_mass():
 
 
 run_tests_if_main()
+
+
+@testing.requires_testing_data
+def test_select_sources():
+    """Test the selection of sources for simulation."""
+    subject = 'sample'
+    label_file = op.join(subjects_dir, subject, 'label', 'aparc',
+                         'temporalpole-rh.label')
+
+    # Regardless of other parameters, using extent 0 should always yield a
+    # a single source.
+    tp_label = read_label(label_file)
+    tp_label.values[:] = 1
+    labels = ['lh', tp_label]
+    locations = ['random', 'center']
+    for label, location in product(labels, locations):
+        label = select_sources(
+            subject, label, location, extent=0, subjects_dir=subjects_dir)
+        assert (len(label.vertices) == 1)
+
+    # As we increase the extent, the new region should contain the previous
+    # one.
+    label = select_sources(subject, 'lh', 0, extent=0,
+                           subjects_dir=subjects_dir)
+    for extent in range(1, 3):
+        new_label = select_sources(subject, 'lh', 0, extent=extent * 2,
+                                   subjects_dir=subjects_dir)
+        assert (set(new_label.vertices) > set(label.vertices))
+        assert (new_label.hemi == 'lh')
+        label = new_label
+
+    # With a large enough extent and not allowing growing outside the label,
+    # every vertex of the label should be in the region.
+    label = select_sources(subject, tp_label, 0, extent=30,
+                           grow_outside=False, subjects_dir=subjects_dir)
+    assert (set(label.vertices) == set(tp_label.vertices))
+
+    # Without this restriction, we should get new vertices.
+    label = select_sources(subject, tp_label, 0, extent=30,
+                           grow_outside=True, subjects_dir=subjects_dir)
+    assert (set(label.vertices) > set(tp_label.vertices))
+
+    # Other parameters are taken into account.
+    label = select_sources(subject, tp_label, 0, extent=10,
+                           grow_outside=False, subjects_dir=subjects_dir,
+                           name='mne')
+    assert (label.name == 'mne')
+    assert (label.hemi == 'rh')
