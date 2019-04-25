@@ -1728,8 +1728,8 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
         legend_params = dict(loc=show_legend, frameon=True)
 
         # override if topoplot and default loc
-        if do_topo and (isinstance(show_legend_orig, bool)
-                        and show_legend_orig):
+        if do_topo and (
+                isinstance(show_legend_orig, bool) and show_legend_orig):
             del legend_params["loc"]
             legend_params["bbox_to_anchor"] = (-.5, .75)
         if split_legend:
@@ -2140,11 +2140,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if title is None and picks in _DATA_CH_TYPES_SPLIT:
         title = _handle_default('titles')[picks]
         if gfp:
-            picks_was_str_title_was_none = True            
+            picks_was_str_title_was_none = True
 
     picks = _picks_to_idx(info, picks, allow_empty=True)
     if len(picks) == 0:
-        if axes != "topo" or gfp != False:
+        if axes != "topo" or gfp is not False:
             logger.info("No picks, plotting the GFP ...")
             gfp = True
         picks = _pick_data_channels(info, with_ref_meg=False)
@@ -2241,7 +2241,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     info = pick_info(info, picks, True)
     if do_topo:
         from .topo import iter_topography
-        from functools import partial
         fig = plt.figure(figsize=(18, 14))
 
         def click_func(
@@ -2291,7 +2290,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # if we have a dict/list of lists, we compute the grand average and the CI
     # (per sensor if topo, otherwise aggregating over sensors)
     if not do_topo:
-#        picks = [picks]
         axes = [(ax, 0) for ax in axes]
     else:
         picks = list(picks)
@@ -2318,15 +2316,15 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         picks.append(0)
 
     all_data.append({cond: np.zeros(d.shape) for cond, d in data_dict.items()})
-    all_cis.append({cond: np.zeros(d.shape)
+    all_cis.append({cond: np.zeros(np.array(d).shape)
                         for cond, d in ci_dict.items()})
 
     for picks_, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
         any_positive_, any_negative_ = _plot_compare_evokeds(
-            ax, data, conditions, times, ci_fun is not None,
-            cis,  styles, title, all_positive, do_topo)
+            ax, data, conditions, times, ci_fun is not None, cis,  styles,
+            title, all_positive, do_topo)
         if any_positive_:
             any_positive = True
         if any_negative_:
