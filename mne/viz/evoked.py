@@ -1800,7 +1800,7 @@ def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
     from .. import Evoked
     if picks is None:
         picks = Ellipsis
-    if not isinstance(evoked, Evoked):
+    if not isinstance(evoked, Evoked):  # ... it is a list of evokeds
         data = np.array([e.data[picks, :] * scaling for e in evoked])
     else:
         data = evoked.data[np.newaxis, picks] * scaling
@@ -1821,6 +1821,22 @@ def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
         return data, ci
     else:
         return data,
+
+
+def _calculate_ci_and_mean(evokeds, conditions, scaling, picks, ci_fun, gfp):
+    """Caluclate time series and CI, potentially aggregating over sensors."""
+    ci_dict, data_dict = dict(), dict()
+
+    for cond in conditions:
+        this_evokeds = evokeds[cond]
+        # this will fail if evokeds do not have the same structure
+        # (e.g. channel count)
+        res = _get_data_and_ci(this_evokeds, scaling=scaling, picks=picks,
+                               ci_fun=ci_fun, gfp=gfp)
+        data_dict[cond] = res[0]
+        if ci_fun is not None:
+            ci_dict[cond] = res[-1]
+    return data_dict, ci_dict
 
 
 def _get_ci_function_for_evokeds(ci):
@@ -1910,22 +1926,6 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
         ax.set_title(title)
 
     return any_positive, any_negative
-
-
-def _calculate_ci_and_mean(evokeds, conditions, scaling, picks, ci_fun, gfp):
-    """Caluclate time series and CI, potentially aggregating over sensors."""
-    ci_dict, data_dict = dict(), dict()
-
-    for cond in conditions:
-        this_evokeds = evokeds[cond]
-        # this will fail if evokeds do not have the same structure
-        # (e.g. channel count)
-        res = _get_data_and_ci(this_evokeds, scaling=scaling, picks=picks,
-                               ci_fun=ci_fun, gfp=gfp)
-        data_dict[cond] = res[0]
-        if ci_fun is not None:
-            ci_dict[cond] = res[-1]
-    return data_dict, ci_dict
 
 
 @fill_doc
@@ -2121,21 +2121,27 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
-    picks = [] if picks is None else picks
-    if title is None and picks in _DATA_CH_TYPES_SPLIT:
-        title = _handle_default('titles')[picks]
-
     try:  # set GFP to True for string picks
         if gfp is None and isinstance(picks, str) or isinstance(picks[0], str):
             gfp = True
     except TypeError:  # if picks is not an iterable
         pass
 
+    picks_was_str_title_was_none = False
+    picks = [] if picks is None else picks
+    if title is None and picks in _DATA_CH_TYPES_SPLIT:
+        title = _handle_default('titles')[picks]
+        if gfp:
+            picks_was_str_title_was_none = True            
+
     picks = _picks_to_idx(info, picks, allow_empty=True)
     if len(picks) == 0:
         logger.info("No picks, plotting the GFP ...")
         gfp = True
         picks = _pick_data_channels(info, with_ref_meg=False)
+
+    if picks_was_str_title_was_none and gfp:
+        title += " (GFP)"
 
     _validate_type(picks, (list, np.ndarray), "picks",
                    "list or np.array of integers")
@@ -2154,6 +2160,12 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         gfp = False
         do_topo = True
         show_sensors = False
+        if len(picks) > 70:
+            logger.info("Warning: plotting to a topographical layout with "
+                        "> 70 sensors. This can be extremely slow. For a "
+                        "Faster alternative, consider using "
+                        ":func:`mne.viz.plot_topo`, which is optimized for "
+                        "speed.")
 
     # deal with picks: infer indices and names
     if gfp is True:
@@ -2263,7 +2275,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # if we have a dict/list of lists, we compute the grand average and the CI
     # (per sensor if topo, otherwise aggregating over sensors)
     if not do_topo:
-        picks = [picks]
+#        picks = [picks]
         axes = [(ax, 0) for ax in axes]
     else:
         picks = list(picks)
