@@ -7,6 +7,7 @@ from scipy.io import savemat
 from mne.datasets import testing
 from mne.beamformer import make_lcmv, apply_lcmv
 from mne.beamformer.tests.test_lcmv import _get_data
+from mne.utils import run_tests_if_main
 
 
 data_path = testing.data_path(download=False)
@@ -59,6 +60,7 @@ def _get_bf_data(save_fieldtrip=False):
     return evoked, data_cov, fwd
 
 
+@testing.requires_testing_data
 def test_lcmv_fieldtrip():
     evoked, data_cov, fwd = _get_bf_data()
 
@@ -90,4 +92,4 @@ def test_lcmv_fieldtrip():
         assert pearson[0, 1] >= 0.99
 
 
-test_lcmv_fieldtrip()
+run_tests_if_main()
