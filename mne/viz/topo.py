@@ -825,7 +825,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         fT for magnetometers and fT/cm for gradiometers.
     colorbar : bool | None
         Whether to display a colorbar or not. If ``None`` a colorbar will be
-        shown only if all channels are of the same type. Defaults to None.
+        shown only if all channels are of the same type. Defaults to ``None``.
     order : None | array of int | callable
         If not None, order is used to reorder the epochs on the y-axis
         of the image. If it's an array of int it should be of length
@@ -841,18 +841,18 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         Title of the figure.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If
-        None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        ``None``, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     border : str
         matplotlib borders style to be used for each sensor plot.
     fig_facecolor : color
         The figure face color. Defaults to black.
     fig_background : None | array
         A background image for the figure. This must be a valid input to
-        :func:`matplotlib.pyplot.imshow`. Defaults to None.
+        :func:`matplotlib.pyplot.imshow`. Defaults to ``None``.
     font_color : color
         The color of tick labels in the colorbar. Defaults to white.
     show : bool
-        Whether to show the figure. Defaults to True.
+        Whether to show the figure. Defaults to ``True``.
 
     Returns
     -------
