@@ -686,8 +686,22 @@ def dummy_annotation_csv_file(tmpdir_factory):
     return fname
 
 
+@pytest.fixture(scope='session')
+def dummy_broken_annotation_csv_file(tmpdir_factory):
+    """Create csv file for testing."""
+    content = ("onset,duration,description\n"
+               "1.,1.0,AA\n"
+               "3.,2.425,BB")
+
+    fname = tmpdir_factory.mktemp('data').join('annotations_broken.csv')
+    fname.write(content)
+    return fname
+
+
 @requires_version('pandas', '0.16')
-def test_io_annotation_csv(dummy_annotation_csv_file, tmpdir_factory):
+def test_io_annotation_csv(dummy_annotation_csv_file,
+                           dummy_broken_annotation_csv_file,
+                           tmpdir_factory):
     """Test CSV input/output."""
     annot = read_annotations(str(dummy_annotation_csv_file))
     assert annot.orig_time == 1038942071.7201
@@ -706,6 +720,10 @@ def test_io_annotation_csv(dummy_annotation_csv_file, tmpdir_factory):
     annot.save(fname)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
+
+    # Test broken .csv that does not use timestamps
+    with pytest.warns(RuntimeWarning, match='save your CSV as a TXT'):
+        annot2 = read_annotations(str(dummy_broken_annotation_csv_file))
 
 
 # Test for IO with .txt files

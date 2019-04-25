@@ -2871,3 +2871,18 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                 assert_(name in src1.info, '"%s" missing' % name)
             else:
                 assert_(name not in src1.info, '"%s" should not exist' % name)
+
+
+def _set_source_space_vertices(src, vertices):
+    """Reset the list of source space vertices."""
+    assert len(src) == len(vertices)
+    for s, v in zip(src, vertices):
+        s['inuse'].fill(0)
+        s['nuse'] = len(v)
+        s['vertno'] = np.array(v)
+        s['inuse'][s['vertno']] = 1
+        s['use_tris'] = np.array([[]], int)
+        s['nuse_tri'] = np.array([0])
+        # This will fix 'patch_info' and 'pinfo'
+        _adjust_patch_info(s, verbose=False)
+    return src

@@ -8,16 +8,16 @@
 # License: BSD (3-clause)
 import numpy as np
 
-from ..utils import (logger, verbose, warn, _reg_pinv, _check_info_inv,
-                     _check_channels_spatial_filter, _check_one_ch_type,
-                     _check_rank, _check_option)
+from ..utils import (logger, verbose, warn, _check_one_ch_type,
+                     _check_channels_spatial_filter, _check_rank,
+                     _check_option)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
-                                  _compute_beamformer,
-                                  _check_src_type, Beamformer)
+                                  _compute_beamformer, _check_src_type,
+                                  Beamformer)
 
 
 @verbose
@@ -205,20 +205,26 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     # Determine how to normalize the leadfield
     if normalize_fwd:
         if inversion == 'single':
-            fwd_norm = 'dipole'
+            combine_xyz = False
         else:
-            fwd_norm = 'vertex'
+            combine_xyz = 'fro'
+        exp = 1.  # turn on depth weighting with exponent 1
     else:
-        fwd_norm = None  # No normalization
+        exp = None  # turn off depth weighting entirely
+        combine_xyz = False
 
-    picks = _check_info_inv(info=info, forward=forward)
-    _, ch_names, proj, vertices, G, nn = _prepare_beamformer_input(
-        info, forward, label, picks=picks, pick_ori=pick_ori,
-        fwd_norm=fwd_norm,
-    )
+    _check_one_ch_type('dics', info, forward)
+
+    # pick info, get gain matrix, etc.
+    _, info, proj, vertices, G, _, nn, orient_std = _prepare_beamformer_input(
+        info, forward, label, pick_ori,
+        combine_xyz=combine_xyz, exp=exp)
+    subject = _subject_from_forward(forward)
+    src_type = _get_src_type(forward['src'], vertices)
+    del forward
+    ch_names = list(info['ch_names'])
+
     csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
-
-    _check_one_ch_type(info, picks, None, 'dics')
 
     logger.info('Computing DICS spatial filters...')
     Ws = []
@@ -238,13 +244,11 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         # compute spatial filter
         W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                                 reduce_rank, rank=rank, inversion=inversion,
-                                nn=nn)
+                                nn=nn, orient_std=orient_std)
         Ws.append(W)
 
     Ws = np.array(Ws)
 
-    subject = _subject_from_forward(forward)
-    src_type = _get_src_type(forward['src'], vertices)
     filters = Beamformer(
         kind='DICS', weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
         vertices=vertices, subject=subject, pick_ori=pick_ori,
@@ -492,97 +496,6 @@ def apply_dics_csd(csd, filters, verbose=None):
                       src_type=filters['src_type'], tmin=0, tstep=1,
                       subject=subject, warn_text=warn_text),
             frequencies)
-
-
-def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
-                    label=None, picks=None, pick_ori=None, real_filter=False,
-                    verbose=None):
-    """Old implementation of Dynamic Imaging of Coherent Sources (DICS)."""
-    from scipy import linalg  # Local import to keep 'import mne' fast
-
-    if len(noise_csd.frequencies) > 1 or len(data_csd.frequencies) > 1:
-        raise ValueError('CSD matrix object should only contain one '
-                         'frequency.')
-
-    is_free_ori, _, proj, vertno, G, _ =\
-        _prepare_beamformer_input(info, forward, label, picks, pick_ori)
-
-    Cm = data_csd.get_data(index=0)
-    Cm_noise = noise_csd.get_data(index=0)
-
-    # Take real part of Cm to compute real filters
-    if real_filter:
-        Cm = Cm.real
-
-    # Tikhonov regularization using reg parameter to control for
-    # trade-off between spatial resolution and noise sensitivity
-    # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-    Cm_inv, _ = _reg_pinv(Cm, reg, rank=None)
-    del Cm
-
-    # Compute spatial filters
-    W = np.dot(G.T, Cm_inv)
-    n_orient = 3 if is_free_ori else 1
-    n_sources = G.shape[1] // n_orient
-
-    for k in range(n_sources):
-        Wk = W[n_orient * k: n_orient * k + n_orient]
-        Gk = G[:, n_orient * k: n_orient * k + n_orient]
-        Ck = np.dot(Wk, Gk)
-
-        if is_free_ori:
-            # Free source orientation
-            Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
-        else:
-            # Fixed source orientation
-            Wk /= Ck
-
-        # Noise normalization
-        noise_norm = np.dot(np.dot(Wk.conj(), Cm_noise), Wk.T)
-        noise_norm = np.abs(noise_norm).trace()
-        Wk /= np.sqrt(noise_norm)
-
-    # Pick source orientation normal to cortical surface
-    if pick_ori == 'normal':
-        W = W[2::3]
-        is_free_ori = False
-
-    if isinstance(data, np.ndarray) and data.ndim == 2:
-        data = [data]
-        return_single = True
-    else:
-        return_single = False
-
-    subject = _subject_from_forward(forward)
-    for i, M in enumerate(data):
-        if len(M) != len(picks):
-            raise ValueError('data and picks must have the same length')
-
-        if not return_single:
-            logger.info("Processing epoch : %d" % (i + 1))
-
-        # Apply SSPs
-        if info['projs']:
-            M = np.dot(proj, M)
-
-        # project to source space using beamformer weights
-        if is_free_ori:
-            sol = np.dot(W, M)
-            logger.info('combining the current components...')
-            sol = combine_xyz(sol)
-        else:
-            # Linear inverse: do not delay computation due to non-linear abs
-            sol = np.dot(W, M)
-
-        tstep = 1.0 / info['sfreq']
-        if np.iscomplexobj(sol):
-            sol = np.abs(sol)  # XXX : STC cannot contain (yet?) complex values
-
-        src_type = _get_src_type(forward['src_type'], vertno)
-        yield _make_stc(sol, vertices=vertno, src_type=src_type, tmin=tmin,
-                        tstep=tstep, subject=subject)
-
-    logger.info('[done]')
 
 
 @verbose

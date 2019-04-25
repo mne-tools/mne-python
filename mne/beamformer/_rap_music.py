@@ -8,8 +8,7 @@
 import numpy as np
 from scipy import linalg
 
-from ..io.pick import pick_channels_evoked, _picks_to_idx
-from ..cov import compute_whitener
+from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
 from ..utils import logger, verbose, _check_info_inv
 from ..dipole import Dipole
 from ._compute_beamformer import _prepare_beamformer_input
@@ -45,19 +44,16 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         selected active dipoles and their estimated orientation.
         Computed only if return_explained_data is True.
     """
-    picks = _picks_to_idx(info, picks)
-    is_free_ori, ch_names, proj, vertno, G, _ = _prepare_beamformer_input(
-        info, forward, label=None, picks=picks, pick_ori=None)
+    info = pick_info(info, picks)
+    del picks
+    is_free_ori, info, _, _, G, whitener, _, _ = _prepare_beamformer_input(
+        info, forward, noise_cov=noise_cov, rank=None)
+    forward = pick_channels_forward(forward, info['ch_names'], ordered=True)
+    del info
 
-    gain = G.copy()
+    gain = forward['sol']['data'].copy()
 
-    # Handle whitening + data covariance
-    whitener, _ = compute_whitener(noise_cov, info, picks)
-    if info['projs']:
-        whitener = np.dot(whitener, proj)
-
-    # whiten the leadfield and the data
-    G = np.dot(whitener, G)
+    # whiten the data (leadfield already whitened)
     data = np.dot(whitener, data)
 
     eig_values, eig_vectors = linalg.eigh(np.dot(data, data.T))

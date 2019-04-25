@@ -1288,11 +1288,9 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     eig[:-rank] = 0.0
     mask[:-rank] = False
 
-    logger.info('Setting small %s eigenvalues to zero.' % ch_type)
-    if not pca:  # No PCA case.
-        logger.info('Not doing PCA for %s.' % ch_type)
-    else:
-        logger.info('Doing PCA for %s.' % ch_type)
+    logger.info('    Setting small %s eigenvalues to zero (%s)'
+                % (ch_type, 'using PCA' if pca else 'without PCA'))
+    if pca:  # No PCA case.
         # This line will reduce the actual number of variables in data
         # and leadfield to the true rank.
         eigvec = eigvec[:-rank].copy()

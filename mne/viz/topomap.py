@@ -2135,7 +2135,7 @@ def plot_layout(layout, picks=None, show=True):
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
-    %(picks_all)s
+    %(picks_nostr)s
     show : bool
         Show figure if True. Defaults to True.
 
