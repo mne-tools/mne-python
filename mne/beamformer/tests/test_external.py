@@ -11,6 +11,7 @@ from mne.utils import run_tests_if_main
 
 
 data_path = testing.data_path(download=False)
+ft_data_path = op.join(data_path, 'fieldtrip', 'beamformer')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
@@ -22,9 +23,6 @@ fname_event = op.join(data_path, 'MEG', 'sample',
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 reject = dict(grad=4000e-13, mag=4e-12)
-
-# where FieldTrip data should be saved to / imported from
-ft_data_path = ' '
 
 
 def _get_bf_data(save_fieldtrip=False):
