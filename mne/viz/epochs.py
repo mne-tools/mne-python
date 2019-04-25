@@ -811,7 +811,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     """
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
+    print(scalings)
     scalings = _handle_default('scalings_plot_raw', scalings)
+    print(scalings)
     decim, data_picks = _handle_decim(epochs.info.copy(), decim, None)
     projs = epochs.info['projs']
     noise_cov = _check_cov(noise_cov, epochs.info)
@@ -1274,23 +1276,22 @@ def _plot_traces(params):
     if butterfly:
         factor = -1. / params['butterfly_scale']
         scalings_default = _handle_default('scalings')
-        chan_types_split = sorted(set(params['ch_types']) &
+        chan_types_split = sorted(set(params['types']) &
                                   set(_DATA_CH_TYPES_SPLIT),
                                   key=params['order'].index)
         ylim = ax.get_ylim()[0]
-        offsets = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
-        ax.set_yticks(offsets)
+        ticks = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
+        ax.set_yticks(ticks)
         labels = [''] * 20
+        labels = [0 if idx in range(2, len(labels), 4) else label
+                  for idx, label in enumerate(labels)]
         ch_plotted = 0
         for ch_type in chan_types_split:
-            scale = scalings_default[ch_type]
-            if ch_type in params['types']:
-                labels[2 + ch_plotted * 4] = 0.
-                for idx, idx_tick in enumerate([1+ch_plotted*4, 3+ch_plotted*4]):
-                    labels[idx_tick] = ((offsets[idx_tick]-offsets[idx_tick+[+2, -2][idx]]) * \
-                                       params['scalings'][ch_type] * \
-                                       scale * factor)
-                ch_plotted += 1
+            for idx, idx_tick in enumerate([1+ch_plotted*4, 3+ch_plotted*4]):
+                labels[idx_tick] = ((ticks[idx_tick]-ticks[idx_tick+[+2, -2][idx]]) * \
+                                    params['scalings'][ch_type] * \
+                                    scalings_default[ch_type] * factor)
+            ch_plotted += 1
         # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
         for li, label in enumerate(labels):
             if isinstance(label, float) and float(str(label)) != round(label):
