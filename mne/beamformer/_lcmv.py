@@ -19,7 +19,7 @@ from ..utils import (logger, verbose, warn, _validate_type, _reg_pinv,
 from ..utils import _check_one_ch_type, _check_rank, _check_info_inv
 from .. import Epochs
 from ._compute_beamformer import (
-    _check_proj_match, _prepare_beamformer_input,
+    _check_proj_match, _prepare_beamformer_input, _compute_power,
     _compute_beamformer, _check_src_type, Beamformer)
 
 
@@ -396,6 +396,49 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
                       tmin=tmin, max_ori_out=max_ori_out)
 
     return next(stc)
+
+
+def apply_lcmv_cov(data_cov, filters, verbose=None):
+    """Apply Linearly Constrained  Minimum Variance (LCMV) beamformer weights.
+
+    Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
+    to a data covariance matrix to estimate source power.
+
+    NOTE : This implementation has not been heavily tested so please
+    report any issue or suggestions.
+
+    Parameters
+    ----------
+    data_cov : Instance of Covariance.
+        Data covariance matrix
+    filters : instance of Beamformer
+        LCMV spatial filter (beamformer weights).
+        Filter weights returned from :func:`make_lcmv`.
+    %(verbose)s
+
+    Returns
+    -------
+    stc : SourceEstimate | VolSourceEstimate
+        Source power.
+
+    See Also
+    --------
+    make_lcmv, apply_lcmv, apply_lcmv_epochs, apply_lcmv_raw
+    """
+    sel = _check_channels_spatial_filter(data_cov.ch_names, filters)
+    sel_names = [data_cov.ch_names[ii] for ii in sel]
+    data_cov = pick_channels_cov(data_cov, sel_names)
+
+    n_orient = filters['weights'].shape[0] // filters['nsource']
+    source_power = _compute_power(data_cov['data'], filters['weights'],
+                                  n_orient)
+
+    # compatibility with 0.16, add src_type as None if not present:
+    filters, warn_text = _check_src_type(filters)
+
+    return(_make_stc(source_power, vertices=filters['vertices'], tmin=0.,
+                     tstep=1., subject=filters['subject'],
+                     source_nn=filters['source_nn'], warn_text=warn_text))
 
 
 @verbose
