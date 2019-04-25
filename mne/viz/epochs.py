@@ -811,9 +811,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     """
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
-    print(scalings)
     scalings = _handle_default('scalings_plot_raw', scalings)
-    print(scalings)
     decim, data_picks = _handle_decim(epochs.info.copy(), decim, None)
     projs = epochs.info['projs']
     noise_cov = _check_cov(noise_cov, epochs.info)
@@ -1218,12 +1216,13 @@ def _plot_traces(params):
             break
         elif ch_idx < len(params['ch_names']):
             if butterfly:
+                # determine offsets for signal traces
                 ch_type = params['types'][ch_idx]
                 chan_types_split = sorted(set(params['ch_types']) &
                                           set(_DATA_CH_TYPES_SPLIT),
                                           key=params['order'].index)
-                offsets = np.arange(0, ax.get_ylim()[0],
-                                    ax.get_ylim()[0]/(4*len(chan_types_split)))
+                ylim = ax.get_ylim()[0]
+                offsets = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
                 offset_pos = np.arange(2, len(chan_types_split)*4, 4)
                 if ch_type in chan_types_split:
                     offset = offsets[offset_pos[chan_types_split.index(ch_type)]]
@@ -1274,6 +1273,7 @@ def _plot_traces(params):
     params['ax2'].set_xlim(params['times'][0],
                            params['times'][0] + params['duration'], False)
     if butterfly:
+        # compute labels for ticks surrounding the trace offset
         factor = -1. / params['butterfly_scale']
         scalings_default = _handle_default('scalings')
         chan_types_split = sorted(set(params['types']) &
@@ -1285,13 +1285,14 @@ def _plot_traces(params):
         labels = [''] * 20
         labels = [0 if idx in range(2, len(labels), 4) else label
                   for idx, label in enumerate(labels)]
-        ch_plotted = 0
-        for ch_type in chan_types_split:
-            for idx, idx_tick in enumerate([1+ch_plotted*4, 3+ch_plotted*4]):
-                labels[idx_tick] = ((ticks[idx_tick]-ticks[idx_tick+[+2, -2][idx]]) * \
-                                    params['scalings'][ch_type] * \
-                                    scalings_default[ch_type] * factor)
-            ch_plotted += 1
+        chan_plotted = 0
+        for chan_type in chan_types_split:
+            for idx, idx_tick in enumerate([1+chan_plotted*4, 3+chan_plotted*4]):
+                ticklim_diff = ticks[idx_tick]-ticks[idx_tick+[+2, -2][idx]]
+                labels[idx_tick] = (ticklim_diff *
+                                    params['scalings'][chan_type] *
+                                    factor * scalings_default[chan_type])
+            chan_plotted += 1
         # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
         for li, label in enumerate(labels):
             if isinstance(label, float) and float(str(label)) != round(label):
