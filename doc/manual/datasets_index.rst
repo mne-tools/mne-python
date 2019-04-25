@@ -34,7 +34,7 @@ For convenience, we provide a function to separately download and extract the
 
 .. topic:: Examples
 
-    :ref:`sphx_glr_auto_tutorials_plot_eeg_no_mri.py`
+    :ref:`plot_eeg_no_mri`
 
 Brainstorm
 ==========
