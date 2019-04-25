@@ -17,6 +17,7 @@ get_data_as_epoch function.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import subprocess
 import time
 
 import mne
@@ -39,7 +40,8 @@ speedup = 10
 command = ["neuromag2ft", "--file",
            "{}/MEG/sample/sample_audvis_raw.fif".format(data_path),
            "--speed", str(speedup)]
-with running_subprocess(command, after='terminate', verbose=False):
+with running_subprocess(command, after='terminate',
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE):
     with FieldTripClient(host='localhost', port=1972,
                          tmax=10, wait_max=5) as rt_client:
 

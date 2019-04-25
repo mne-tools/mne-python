@@ -18,6 +18,7 @@ import traceback
 
 import numpy as np
 
+from ..utils import _check_option, _validate_type
 from ..fixes import _get_args
 from ._logging import logger, verbose, warn
 
@@ -126,10 +127,11 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     Parameters
     ----------
     command : list of str | str
-        Command to run as subprocess (see subprocess.Popen documentation).
+        Command to run as subprocess (see :class:`python:subprocess.Popen`).
     after : str
-        Can be "wait" or "terminate" which will call Popen.wait() or
-        Popen.terminate()
+        Can be "wait" or "terminate" which will call
+        :meth:`~python:subprocess.Popen.wait` or
+        :meth:`~python:subprocess.Popen.terminate`.
     %(verbose)s
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
@@ -139,9 +141,8 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     p : instance of Popen
         The process.
     """
-    if after not in ['wait', 'terminate']:
-        raise ValueError('The argument ''after'' must be one'
-                         ' of ''wait'' or ''terminate'', got %s' % after)
+    _validate_type(after, str, 'after')
+    _check_option('after', after, ['wait', 'terminate'])
     for stdxxx, sys_stdxxx, thresh in (
             ['stderr', sys.stderr, logging.ERROR],
             ['stdout', sys.stdout, logging.WARNING]):
@@ -179,7 +180,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     yield p
     if after == 'wait':
         p.wait()
-    else:
+    else:  # 'terminate'
         p.terminate()
 
 
