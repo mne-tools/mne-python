@@ -284,7 +284,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
 
     See Also
     --------
-    make_lcmv, apply_lcmv_raw, apply_lcmv_epochs
+    make_lcmv, apply_lcmv_raw, apply_lcmv_epochs, apply_lcmv_cov
     """
     _check_reference(evoked)
 
@@ -331,7 +331,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
 
     See Also
     --------
-    make_lcmv, apply_lcmv_raw, apply_lcmv
+    make_lcmv, apply_lcmv_raw, apply_lcmv, apply_lcmv_cov
     """
     _check_reference(epochs)
 
@@ -382,7 +382,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
 
     See Also
     --------
-    make_lcmv, apply_lcmv_epochs, apply_lcmv
+    make_lcmv, apply_lcmv_epochs, apply_lcmv, apply_lcmv_cov
     """
     _check_reference(raw)
 
