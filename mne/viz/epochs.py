@@ -18,7 +18,8 @@ import numpy as np
 from ..utils import (verbose, get_config, set_config, logger, warn, _pl,
                      fill_doc)
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
-                       _picks_to_idx, _DATA_CH_TYPES_SPLIT)
+                       _picks_to_idx, _DATA_CH_TYPES_SPLIT,
+                       _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -950,7 +951,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     types = [channel_type(epochs.info, ch) for ch in picks] # channel type string for every channel
     ch_types = list(_get_channel_types(epochs.info))    # list of unique channel types
     if order is None:
-        order = [*scalings.keys()]
+        order = _DATA_CH_TYPES_ORDER_DEFAULT
     types = sorted(types, key=order.index)
     inds = [idx for order_type in order for idx, ch_type in zip(picks,types)
             if order_type==ch_type]
@@ -1277,7 +1278,7 @@ def _plot_traces(params):
             if ch_type in params['types']:
                 labels[2 + ch_plotted * 4] = 0.
                 for idx, idx_tick in enumerate([1+ch_plotted*4, 3+ch_plotted*4]):
-                    labels[idx_tick] = [-1, 1][idx] * \
+                    labels[idx_tick] = [-1.25, 1.25][idx] * \
                                        params['scalings'][ch_type] * \
                                        scale * factor
                 ch_plotted += 1
@@ -1671,6 +1672,7 @@ def _prepare_butterfly(params):
         ax.set_yticks(ticks)
         used_types = 0
         params['offsets'] = [ticks[2]]
+        # checking which annotations are displayed
         ann = params['ann']
         annotations = [child for child in params['ax2'].get_children()
                         if isinstance(child, mpl.text.Annotation)]

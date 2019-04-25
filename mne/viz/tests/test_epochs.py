@@ -188,7 +188,7 @@ def test_plot_butterfly():
     rng = np.random.RandomState(0)
     n_epochs, n_channels, n_times = 50, 30, 20
     sfreq = 1000.
-    data = rng.randn(n_epochs, n_channels, n_times)
+    data = np.sin(rng.randn(n_epochs, n_channels, n_times))
     events = np.array([np.arange(n_epochs), [0] * n_epochs, np.ones([n_epochs],
                        dtype=np.int)]).T
     chanlist = ['eeg' if chan < n_channels//3 else 'ecog'
