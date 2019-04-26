@@ -2270,7 +2270,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 show=True, picks=picks[pick_], axes=ax_)
 
         layout = find_layout(info)
-        # shift everything to the rightby 15% of one axes width
+        # shift everything to the right by 15% of one axes width
         layout.pos[:, 0] += layout.pos[0, 2] * .15
         axes = list(iter_topography(
             info, layout=layout, on_pick=click_func,
@@ -2319,7 +2319,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     del evokeds
 
     if do_topo:
-        picks.append(-1)
+        picks.append(-1)  # so the loops don't terminate prematurely
 
     # add empty data (all zeros) for the legend axis
     all_data.append({cond: np.zeros(d.shape) for cond, d in data_dict.items()})
