@@ -336,6 +336,8 @@ Changelog
 
 - Handle different time vectors in topography plots using :func:`mne.viz.plot_evoked_topo` by `Jussi Nurminen`_
 
+- Speed up :func:`mne.inverse_sparse.mixed_norm` if the :solver: parameter is set to `bcd` using :func:`scipy.linalg.get_blas_funcs` by `Quentin Bertrand`_
+
 Bug
 ~~~
 
@@ -3322,5 +3324,7 @@ of commits):
 .. _Ivana Kojcic: https://github.com/ikojcic
 
 .. _Nikolas Chalas: https://github.com/Nichalas
+
+.. _Quentin Bertrand: https://github.com/QB3
 
 .. _Alexander Kovrig: https://github.com/OpenSatori
