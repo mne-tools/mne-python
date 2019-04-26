@@ -99,7 +99,7 @@ class Brain(object):
     def __new__(cls, *args, **kwargs):
         """Prepare a class instance.
 
-        Provides backward compatability with PySurfer and mayavi.
+        Provides backward compatibility with PySurfer and mayavi.
         """
         from ..backends.renderer import get_3d_backend
         from ..backends._utils import Backends3D
