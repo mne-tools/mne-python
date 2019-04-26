@@ -4,6 +4,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
+#          Oleh Kozynets <ok7mailbox@gmail.com>
 #
 # License: Simplified BSD
 
