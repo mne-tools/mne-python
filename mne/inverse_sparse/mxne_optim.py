@@ -341,7 +341,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     # so it is called only once
     # gemm and gemm2 are 2 functions (callable) for matrix multiplication
     # Two different functions are called because
-    # matrix multiplications are performed on matricies with different shapes
+    # matrix multiplications are performed on matrices with different shapes
     gemm = linalg.get_blas_funcs("gemm", [R.T, G[:, 0:n_orient]])
     gemm2 = linalg.get_blas_funcs("gemm", [X[0:n_orient, :].T,
                                   np.asfortranarray(G[:, 0:n_orient].T)])
