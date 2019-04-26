@@ -179,7 +179,7 @@ class Brain(object):
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
                  verbose=None):
-        u"""Display data from a numpy array on the surface.
+        r"""Display data from a numpy array on the surface.
 
         This provides a similar interface to
         :meth:`surfer.Brain.add_overlay`, but it displays
