@@ -174,7 +174,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
     cond_idx = [np.where(ev == epochs.event_id[k])[0] for k in conditions]
 
     info = pick_info(epochs.info, picks)
-    data = epochs.get_data()[:, picks]
+    data = epochs.get_data(picks=picks)
 
     # Scale (z-score) the data by channel type
     # XXX the z-scoring is applied outside the CV, which is not standard.

@@ -6,6 +6,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Stefan Repplinger <stefan.repplinger@ovgu.de>
 #
 # License: Simplified BSD
 
@@ -17,8 +18,10 @@ import numpy as np
 
 from ..utils import (verbose, get_config, set_config, logger, warn, _pl,
                      fill_doc)
+from ..utils.check import _is_numeric
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
-                       _picks_to_idx)
+                       _picks_to_idx, _DATA_CH_TYPES_SPLIT,
+                       _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -166,7 +169,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if combine is not None:
         ts_args["show_sensors"] = False
 
-    if picks is None:
+    if picks is None or not _is_numeric(picks):
         picks = _picks_to_idx(epochs.info, picks)
         if group_by is None:
             logger.info("No picks and no groupby, showing the first five "
@@ -178,6 +181,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if "invert_y" in ts_args:
         raise NotImplementedError("'invert_y' found in 'ts_args'. "
                                   "This is currently not implemented.")
+
+    times = epochs.times
 
     manual_ylims = "ylim" in ts_args
     vlines = ts_args.get(
@@ -228,15 +233,16 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # combine/construct list for plotting
     groups = _pick_and_combine(epochs, combine, all_picks, all_ch_types, names)
-    # each entry of groups is: (data, ch_type, evoked, name)
+    # each entry of groups is: (epochs, ch_type, evoked, name)
 
     # prepare the image - required for uniform vlims
     vmins, vmaxs = dict(), dict()
     for group in groups:
         epochs, ch_type = group[:2]
+        data = epochs.get_data()[:, 0, :]
         group.extend(_prepare_epochs_image_im_data(
-            epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
-            scalings[ch_type], ts_args))
+            data, times, ch_type, overlay_times, order, sigma,
+            vmin, vmax, scalings[ch_type], ts_args))
         if vmin is None or vmax is None:  # equalize across groups
             this_vmin, this_vmax, this_ylim = group[-3:]
             if vmin is None and (this_vmin < vmins.get(ch_type, 1)):
@@ -247,8 +253,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # plot
     figs, axes_list = list(), list()
     ylims = {ch_type: (1., -1.) for ch_type in all_ch_types}
-    for (epochs_, ch_type, ax_name, name, data, overlay_times, vmin, vmax,
-         ts_args) in groups:
+    for (epochs_, ch_type, ax_name, name, data, overlay_times,
+         vmin, vmax, ts_args) in groups:
         vmin, vmax = vmins.get(ch_type, vmin), vmaxs.get(ch_type, vmax)
         these_axes = axes[ax_name] if isinstance(axes, dict) else axes
         axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar,
@@ -257,9 +263,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         title_ = ((ax_name if isinstance(axes, dict) else name)
                   if title is None else title)
         this_fig = _plot_epochs_image(
-            epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
-            unit=units[ch_type], ch_type=ch_type, cmap=cmap,
-            axes_dict=axes_dict, title=title_, overlay_times=overlay_times,
+            data, times, style_axes=True, epochs=epochs_, vmin=vmin, vmax=vmax,
+            colorbar=colorbar, show=False, unit=units[ch_type], cmap=cmap,
+            ax=axes_dict, title=title_, overlay_times=overlay_times,
             evoked=evoked, ts_args=ts_args)
         figs.append(this_fig)
 
@@ -268,7 +274,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             evoked_ax = axes_dict["evoked"]
             this_min, this_max = evoked_ax.get_ylim()
             curr_min, curr_max = ylims[ch_type]
-            ylims[ch_type] = min(curr_min, this_min), max(curr_max, this_max),
+            ylims[ch_type] = min(curr_min, this_min), max(curr_max, this_max)
 
     if evoked is True:  # adjust ylims
         for group, axes_dict in zip(groups, axes_list):
@@ -289,7 +295,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                     ax.vlines(line, this_ymin, max_height, colors='k',
                               linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
-
     plt_show(show)
     return figs
 
@@ -393,13 +398,8 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
     return to_plot_list  # epochs, ch_type, name, axtitle
 
 
-def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
-                                  sigma, vmin, vmax, scaling, ts_args):
-    """Preprocess epochs image (sort, filter). Helper for plot_epochs_image."""
-    from scipy import ndimage
-
-    # data transforms - sorting, scaling, smoothing
-    data = epochs.get_data()[:, 0, :]
+def _order_epochs(data, times, order=None, overlay_times=None):
+    """Sort image - e.g., epochs data (2D/3D). Helper for plot_epochs_image."""
     n_epochs = len(data)
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
@@ -411,13 +411,13 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
         overlay_times = np.array(overlay_times)
         times_min = np.min(overlay_times)
         times_max = np.max(overlay_times)
-        if ((times_min < epochs.times[0]) or (times_max > epochs.times[-1])):
+        if ((times_min < times[0]) or (times_max > times[-1])):
             warn('Some values in overlay_times fall outside of the epochs '
                  'time interval (between %s s and %s s)'
-                 % (epochs.times[0], epochs.times[-1]))
+                 % (times[0], times[-1]))
 
     if callable(order):
-        order = order(epochs.times, data)
+        order = order(times, data)
     if order is not None and (len(order) != n_epochs):
         raise ValueError(("`order` must be None, callable or an array as long "
                           "as the data. Got " + str(type(order))))
@@ -428,27 +428,49 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
         if overlay_times is not None:
             overlay_times = overlay_times[order]
 
-    if sigma > 0.:
-        data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
+    return data, overlay_times
 
-    # setup lims and cmap
+
+def _set_image_lims_and_scale(data, scaling=1, vmin=None, vmax=None):
+    """Set up vlims for an image (2D or 3D). Helper for plot_epochs_image."""
     scale_vmin = True if (vmin is None or callable(vmin)) else False
     scale_vmax = True if (vmax is None or callable(vmax)) else False
     vmin, vmax = _setup_vmin_vmax(
         data, vmin, vmax, norm=(data.min() >= 0) and (vmin is None))
-    if not scale_vmin:
-        vmin /= scaling
-    if not scale_vmax:
-        vmax /= scaling
+    if scale_vmin:
+        vmin *= scaling
+    if scale_vmax:
+        vmax *= scaling
+    return data * scaling, vmin, vmax
 
-    ylim = dict()
-    ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0], title='',
+
+def _prepare_tsargs_for_epochs_image(ts_args):
+    """Set default parameters for evoked plot for plot_epochs_image."""
+    ts_args_ = dict(colors={"cond": "black"}, ylim=dict(), picks=[0], title='',
                     truncate_yaxis=False, truncate_xaxis=False, show=False)
     ts_args_.update(**ts_args)
     ts_args_["vlines"] = []
+    return ts_args_
 
-    return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,
-            ts_args_]
+
+def _prepare_epochs_image_im_data(data, times, ch_type, overlay_times, order,
+                                  sigma, vmin, vmax, scaling, ts_args):
+    """Preprocess epochs image (sort, filter). Helper for plot_epochs_image."""
+    from scipy import ndimage
+
+    # data transforms - sorting, scaling, smoothing
+    data, overlay_times = _order_epochs(data, times, order, overlay_times)
+
+    # smooth the image: add a gaussian blur, making adjacent epochs
+    # more similar to each other
+    if sigma > 0.:
+        data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
+
+    data, vmin, vmax = _set_image_lims_and_scale(data, scaling, vmin, vmax)
+
+    ts_args = _prepare_tsargs_for_epochs_image(ts_args)
+
+    return [data, overlay_times, vmin, vmax, ts_args]
 
 
 def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
@@ -493,52 +515,59 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
     return axes_dict
 
 
-def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
-                       colorbar=False, show=False, unit=None, cmap=None,
-                       axes_dict=None, overlay_times=None, title=None,
-                       evoked=False, ts_args=None):
+def _plot_epochs_image(data, times, style_axes=True, epochs=None,
+                       vmin=None, vmax=None, colorbar=False, show=False,
+                       unit=None, cmap=None, ax=None, overlay_times=None,
+                       title=None, evoked=False, ts_args=None):
     """Plot epochs image. Helper function for plot_epochs_image."""
     if cmap is None:
         cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
 
-    # Plot
+    # handle axes
+    if isinstance(ax, dict):
+        ax_im = ax["image"]
+    else:
+        ax_im = ax
+        evoked, colorbar = False, False
+    fig = ax_im.get_figure()
+
     # draw the image
-    ax = axes_dict["image"]
-    fig = ax.get_figure()
     cmap = _setup_cmap(cmap)
     n_epochs = len(data)
-    extent = [1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs]
-    im = ax.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
-                   origin='lower', interpolation='nearest', extent=extent)
+    extent = [1e3 * times[0], 1e3 * times[-1], 0, n_epochs]
+    im = ax_im.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
+                      origin='lower', interpolation='nearest', extent=extent)
+
+    # optional things
+    if style_axes:
+        ax_im.set_title(title)
+        ax_im.set_ylabel('Epochs')
+        ax_im.axis('auto')
+        ax_im.axis('tight')
+        ax_im.axvline(0, color='k', linewidth=1, linestyle='--')
+
     if overlay_times is not None:
-        ax.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
-                linewidth=2)
-    ax.set_title(title)
-    ax.set_ylabel('Epochs')
-    ax.axis('auto')
-    ax.axis('tight')
-    if overlay_times is not None:
-        ax.set_xlim(1e3 * epochs.times[0], 1e3 * epochs.times[-1])
-    ax.axvline(0, color='k', linewidth=1, linestyle='--')
+        ax_im.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
+                   linewidth=2)
+        ax_im.set_xlim(1e3 * times[0], 1e3 * times[-1])
 
     # draw the evoked
     if evoked:
         from mne.viz import plot_compare_evokeds
-        plot_compare_evokeds(
-            {"cond": list(epochs.iter_evoked())}, axes=axes_dict["evoked"],
-            **ts_args)
-        axes_dict["evoked"].set_xlim(epochs.times[[0, -1]])
-        ax.set_xticks(())
+        plot_compare_evokeds({"cond": list(epochs.iter_evoked())},
+                             axes=ax["evoked"], **ts_args)
+        ax["evoked"].set_xlim(epochs.times[[0, -1]])
+        ax_im.set_xticks(())
 
     # draw the colorbar
     if colorbar:
         import matplotlib.pyplot as plt
-        cbar = plt.colorbar(im, cax=axes_dict['colorbar'])
+        cbar = plt.colorbar(im, cax=ax['colorbar'])
         cbar.ax.set_ylabel(unit + "\n\n", rotation=270)
         if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
+            ax_im.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)
-    fig._axes_dict = axes_dict  # storing this here for easy access later
+    fig._axes_dict = ax  # storing this here for easy access later
 
     # finish
     plt_show(show)
@@ -700,8 +729,9 @@ def _epochs_axes_onclick(event, params):
 
 @fill_doc
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
-                title=None, events=None, event_colors=None, show=True,
-                block=False, decim='auto', noise_cov=None):
+                title=None, events=None, event_colors=None, order=None,
+                show=True, block=False, decim='auto', noise_cov=None,
+                butterfly=False):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -750,6 +780,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         coloring scheme as :func:`mne.viz.plot_events`.
 
         .. versionadded:: 0.14.0
+    order : array of str | None
+        Order in which to plot channel types.
+
+        .. versionadded:: 0.18.0
     show : bool
         Show figure if True. Defaults to True
     block : bool
@@ -777,6 +811,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         consider using :meth:`mne.Evoked.plot_white`.
 
         .. versionadded:: 0.16.0
+    butterfly : bool
+        Whether to directly call the butterfly view.
+
+        .. versionadded:: 0.18.0
 
     Returns
     -------
@@ -812,8 +850,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   use_noise_cov=noise_cov is not None)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
-                               title, picks, events=events,
-                               event_colors=event_colors)
+                               title, picks, events=events, order=order,
+                               event_colors=event_colors, butterfly=butterfly)
     _prepare_projectors(params)
     _layout_figure(params)
 
@@ -933,7 +971,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=None, event_colors=None,
-                               order=None):
+                               order=None, butterfly=False):
     """Set up the mne_browse_epochs window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -941,44 +979,29 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     from matplotlib.colors import colorConverter
     epochs = params['epochs']
 
+    # Reorganize channels
     picks = _picks_to_idx(epochs.info, picks)
     picks = sorted(picks)
-    # Reorganize channels
-    inds = list()
-    types = list()
-    for t in ['grad', 'mag']:
-        idxs = pick_types(params['info'], meg=t, ref_meg=False, exclude=[])
-        if len(idxs) < 1:
-            continue
-        mask = np.in1d(idxs, picks, assume_unique=True)
-        inds.append(idxs[mask])
-        types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr']:
-        idxs = pick_types(params['info'], meg=False, ref_meg=False, fnirs=t,
-                          exclude=[])
-        if len(idxs) < 1:
-            continue
-        mask = np.in1d(idxs, picks, assume_unique=True)
-        inds.append(idxs[mask])
-        types += [t] * len(inds[-1])
-    pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
+    # channel type string for every channel
+    types = [channel_type(epochs.info, ch) for ch in picks]
+    # list of unique channel types
+    ch_types = list(_get_channel_types(epochs.info))
     if order is None:
-        order = ['eeg', 'seeg', 'ecog', 'eog', 'ecg', 'emg', 'ref_meg', 'stim',
-                 'resp', 'misc', 'chpi', 'syst', 'ias', 'exci']
-    for ch_type in order:
-        pick_kwargs[ch_type] = True
-        idxs = pick_types(params['info'], **pick_kwargs)
-        if len(idxs) < 1:
-            continue
-        mask = np.in1d(idxs, picks, assume_unique=True)
-        inds.append(idxs[mask])
-        types += [ch_type] * len(inds[-1])
-        pick_kwargs[ch_type] = False
-    inds = np.concatenate(inds).astype(int)
+        order = _DATA_CH_TYPES_ORDER_DEFAULT
+    inds = [pick_idx for order_type in order
+            for pick_idx, ch_type in zip(picks, types)
+            if order_type == ch_type]
+    if len(ch_types) > len(order):
+        ch_missing = [ch_type for ch_type in ch_types if ch_type not in order]
+        ch_missing = np.unique(ch_missing)
+        raise RuntimeError('%s are in picks but not in order.'
+                           ' Please specify all channel types picked.' %
+                           (str(ch_missing)))
+    types = sorted(types, key=order.index)
     if not len(inds) == len(picks):
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
-    ch_names = [params['info']['ch_names'][x] for x in inds]
+    ch_names = [params['info']['ch_names'][idx] for idx in inds]
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -1111,7 +1134,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ax_vscroll': ax_vscroll,
                    'vsel_patch': vsel_patch,
                    'hsel_patch': hsel_patch,
-                   'lines': lines,
+                   'lines': lines,  # vertical lines for segmentation
                    'projs': projs,
                    'ch_names': ch_names,
                    'n_channels': n_channels,
@@ -1135,7 +1158,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'inds': inds,
                    'vert_lines': list(),
                    'vertline_t': vertline_t,
-                   'butterfly': False,
+                   'butterfly': butterfly,
                    'text': text,
                    'ax_help_button': ax_help_button,  # needed for positioning
                    'help_button': help_button,  # reference needed for clicks
@@ -1145,7 +1168,10 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'events': events,
                    'event_colors': event_colors,
                    'ev_lines': list(),
-                   'ev_texts': list()})
+                   'ev_texts': list(),
+                   'ann': list(),  # list for butterfly view annotations
+                   'order': order,
+                   'ch_types': ch_types})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -1197,17 +1223,19 @@ def _plot_traces(params):
     params['text'].set_visible(False)
     ax = params['ax']
     butterfly = params['butterfly']
+    offsets = params['offsets']
+    lines = params['lines']
+    epochs = params['epochs']
+
     if butterfly:
         ch_start = 0
         n_channels = len(params['picks'])
         data = params['data'] * params['butterfly_scale']
+        _prepare_butterfly(params)
     else:
         ch_start = params['ch_start']
         n_channels = params['n_channels']
         data = params['data'] * params['scale_factor']
-    offsets = params['offsets']
-    lines = params['lines']
-    epochs = params['epochs']
 
     n_times = len(epochs.times)
     tick_list = list()
@@ -1226,17 +1254,16 @@ def _plot_traces(params):
             break
         elif ch_idx < len(params['ch_names']):
             if butterfly:
+                # determine offsets for signal traces
                 ch_type = params['types'][ch_idx]
-                if ch_type == 'grad':
-                    offset = offsets[0]
-                elif ch_type == 'mag':
-                    offset = offsets[1]
-                elif ch_type == 'eeg':
-                    offset = offsets[2]
-                elif ch_type == 'eog':
-                    offset = offsets[3]
-                elif ch_type == 'ecg':
-                    offset = offsets[4]
+                chan_types_split = sorted(set(params['ch_types']) &
+                                          set(_DATA_CH_TYPES_SPLIT),
+                                          key=params['order'].index)
+                ylim = ax.get_ylim()[0]
+                ticks = np.arange(0, ylim, ylim / (4 * len(chan_types_split)))
+                offset_pos = np.arange(2, len(chan_types_split) * 4, 4)
+                if ch_type in chan_types_split:
+                    offset = ticks[offset_pos[chan_types_split.index(ch_type)]]
                 else:
                     lines[line_idx].set_segments(list())
             else:
@@ -1284,50 +1311,31 @@ def _plot_traces(params):
     params['ax2'].set_xlim(params['times'][0],
                            params['times'][0] + params['duration'], False)
     if butterfly:
+        # compute labels for ticks surrounding the trace offset
         factor = -1. / params['butterfly_scale']
+        scalings_default = _handle_default('scalings')
+        chan_types_split = sorted(set(params['types']) &
+                                  set(_DATA_CH_TYPES_SPLIT),
+                                  key=params['order'].index)
+        ylim = ax.get_ylim()[0]
+        ticks = np.arange(0, ylim + 1, ylim / (4 * len(chan_types_split)))
+        offset_pos = np.arange(2, (len(chan_types_split) * 4) + 1, 4)
+        ax.set_yticks(ticks)
         labels = [''] * 20
-        ticks = ax.get_yticks()
-        idx_offset = 1
-        # XXX eventually these scale factors should use "scalings"
-        # of some sort
-        if 'grad' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[0]) *
-                               params['scalings']['grad'] *
-                               1e13 * factor)
-            idx_offset += 4
-        if 'mag' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[1]) *
-                               params['scalings']['mag'] *
-                               1e15 * factor)
-            idx_offset += 4
-        if 'eeg' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[2]) *
-                               params['scalings']['eeg'] *
-                               1e6 * factor)
-            idx_offset += 4
-        if 'eog' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[3]) *
-                               params['scalings']['eog'] *
-                               1e6 * factor)
-            idx_offset += 4
-        if 'ecg' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[4]) *
-                               params['scalings']['ecg'] *
-                               1e6 * factor)
+        labels = [0 if idx in range(2, len(labels), 4) else label
+                  for idx, label in enumerate(labels)]
+        for idx_chan, chan_type in enumerate(chan_types_split):
+            tick_top, tick_bottom = 1 + idx_chan * 4, 3 + idx_chan * 4
+            offset = ticks[offset_pos[idx_chan]]
+            for tick_pos in [tick_top, tick_bottom]:
+                tickoffset_diff = ticks[tick_pos] - offset
+                labels[tick_pos] = (tickoffset_diff *
+                                    params['scalings'][chan_type] *
+                                    factor * scalings_default[chan_type])
         # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
         for li, label in enumerate(labels):
-            if isinstance(label, float) and float(str(label)) == round(label):
-                labels[li] = int(round(label))
+            if isinstance(label, float) and float(str(label)) != round(label):
+                labels[li] = round(label, 2)
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
@@ -1671,11 +1679,12 @@ def _plot_onkey(event, params):
         params['data'] = np.zeros((len(params['data']), params['duration']))
         params['plot_update_proj_callback'](params)
     elif event.key == 'b':
+        params['butterfly'] = not params['butterfly']
         if params['fig_options'] is not None:
             plt.close(params['fig_options'])
             params['fig_options'] = None
         _prepare_butterfly(params)
-        _plot_traces(params)
+        params['plot_fun']()
     elif event.key == 'w':
         params['use_noise_cov'] = not params['use_noise_cov']
         _plot_update_epochs_proj(params)
@@ -1694,66 +1703,45 @@ def _plot_onkey(event, params):
 def _prepare_butterfly(params):
     """Set up butterfly plot."""
     from matplotlib.collections import LineCollection
-    butterfly = not params['butterfly']
-    if butterfly:
-        types = {'grad', 'mag', 'eeg', 'eog', 'ecg'} & set(params['types'])
-        if len(types) < 1:
+    import matplotlib as mpl
+    if params['butterfly']:
+        units = _handle_default('units')
+        chan_types = sorted(set(params['types']) & set(params['order']),
+                            key=params['order'].index)
+        if len(chan_types) < 1:
             return
         params['ax_vscroll'].set_visible(False)
         ax = params['ax']
         labels = ax.yaxis.get_ticklabels()
         for label in labels:
             label.set_visible(True)
-        ylim = (5. * len(types), 0.)
-        ax.set_ylim(ylim)
-        offset = ylim[0] / (4. * len(types))
-        ticks = np.arange(0, ylim[0], offset)
+        offsets = np.arange(0, ax.get_ylim()[0],
+                            ax.get_ylim()[0] / (4 * len(chan_types)))
+        ticks = offsets
         ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
         ax.set_yticks(ticks)
         used_types = 0
         params['offsets'] = [ticks[2]]
-        if 'grad' in types:
-            pos = (0, 1 - (ticks[2] / ylim[0]))
-            params['ax2'].annotate('Grad (fT/cm)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
+        # checking which annotations are displayed and removing them
+        ann = params['ann']
+        annotations = [child for child in params['ax2'].get_children()
+                       if isinstance(child, mpl.text.Annotation)]
+        for annote in annotations:
+            annote.remove()
+        ann[:] = list()
+        assert len(params['ann']) == 0
+        titles = _handle_default('titles')
+        for chan_type in chan_types:
+            unit = units[chan_type]
+            pos = (0, 1 - (ticks[2 + 4 * used_types] / ax.get_ylim()[0]))
+            ann.append(params['ax2'].annotate(
+                '%s (%s)' % (titles[chan_type], unit), xy=pos,
+                xytext=(-70, 0), ha='left', size=12, va='center',
+                xycoords='axes fraction', rotation=90,
+                textcoords='offset points'))
             used_types += 1
-        params['offsets'].append(ticks[2 + used_types * 4])
-        if 'mag' in types:
-            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
-            params['ax2'].annotate('Mag (fT)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-        params['offsets'].append(ticks[2 + used_types * 4])
-        if 'eeg' in types:
-            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
-            params['ax2'].annotate('EEG (uV)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-        params['offsets'].append(ticks[2 + used_types * 4])
-        if 'eog' in types:
-            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
-            params['ax2'].annotate('EOG (uV)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-        params['offsets'].append(ticks[2 + used_types * 4])
-        if 'ecg' in types:
-            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
-            params['ax2'].annotate('ECG (uV)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-
         while len(params['lines']) < len(params['picks']):
-            lc = LineCollection(list(), antialiased=True, linewidths=0.5,
+            lc = LineCollection(list(), antialiased=True, linewidths=.5,
                                 zorder=3, picker=3.)
             ax.add_collection(lc)
             params['lines'].append(lc)
@@ -1773,7 +1761,6 @@ def _prepare_butterfly(params):
         offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['ax'].set_yticks(params['offsets'])
-    params['butterfly'] = butterfly
 
 
 def _onpick(event, params):

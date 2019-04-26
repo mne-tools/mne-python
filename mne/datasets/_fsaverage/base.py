@@ -72,14 +72,14 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
 
     fsaverage_data_parts = {
         'root.zip': dict(
-            url='https://osf.io/3bxqt/download?revision=1',
-            hash_='98fd27539b7a2b02e3d98398179ae378',
+            url='https://osf.io/3bxqt/download?revision=2',
+            hash_='5133fe92b7b8f03ae19219d5f46e4177',
             manifest=op.join(FSAVERAGE_MANIFEST_PATH, 'root.txt'),
             destination=op.join(subjects_dir),
         ),
         'bem.zip': dict(
-            url='https://osf.io/7ve8g/download?revision=1',
-            hash_='07c3ccde63121f5e82d1fc20e3194497',
+            url='https://osf.io/7ve8g/download?revision=2',
+            hash_='608c438af6a15a19b66232323088b32d',
             manifest=op.join(FSAVERAGE_MANIFEST_PATH, 'bem.txt'),
             destination=op.join(subjects_dir, 'fsaverage'),
         ),
@@ -98,7 +98,7 @@ def _get_create_subjects_dir(subjects_dir):
     from ..utils import _get_path
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
     if subjects_dir is None:
-        subjects_dir = _get_path(None, '', 'montage coregistration')
+        subjects_dir = _get_path(None, 'MNE_DATA', 'montage coregistration')
         subjects_dir = op.join(subjects_dir, 'MNE-fsaverage-data')
         os.makedirs(subjects_dir, exist_ok=True)
     return subjects_dir

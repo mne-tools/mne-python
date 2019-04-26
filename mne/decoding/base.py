@@ -388,6 +388,10 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
+        Note that when using an estimator which inherently returns
+        multidimensional output - in particular, SlidingEstimator
+        or GeneralizingEstimator - you should set the scorer
+        there, not here.
     cv : int, cross-validation generator | iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:

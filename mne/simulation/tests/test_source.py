@@ -242,4 +242,39 @@ def test_simulate_sparse_stc_single_hemi():
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
 
 
+@testing.requires_testing_data
+def test_simulate_stc_labels_overlap():
+    """Test generation of source estimate, overlapping labels."""
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
+    labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
+                         '%s.label' % label)) for label in label_names]
+    mylabels = []
+    for i, label in enumerate(labels):
+        new_label = Label(vertices=label.vertices,
+                          pos=label.pos,
+                          values=2 * i * np.ones(len(label.values)),
+                          hemi=label.hemi,
+                          comment=label.comment)
+        mylabels.append(new_label)
+    # Adding the last label twice
+    mylabels.append(new_label)
+
+    n_times = 10
+    tmin = 0
+    tstep = 1e-3
+
+    stc_data = np.ones((len(mylabels), n_times))
+
+    # Test false
+    with pytest.raises(RuntimeError, match='must be non-overlapping'):
+        simulate_stc(fwd['src'], mylabels, stc_data, tmin, tstep,
+                     allow_overlap=False)
+    # test True
+    stc = simulate_stc(fwd['src'], mylabels, stc_data, tmin, tstep,
+                       allow_overlap=True)
+    assert_equal(stc.subject, 'sample')
+    assert (stc.data.shape[1] == n_times)
+    # Some of the elements should be equal to 2 since we have duplicate labels
+    assert (2 in stc.data)
+
 run_tests_if_main()

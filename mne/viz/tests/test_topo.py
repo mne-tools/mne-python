@@ -192,6 +192,14 @@ def test_plot_topo_image_epochs():
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.64))
     assert num_figures_before + 1 == len(plt.get_fignums())
+    # test for auto-showing a colorbar when only 1 sensor type
+    ep = epochs.copy().pick_types(meg=False, eeg=True)
+    fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None,
+                                 cmap=cmap)
+    ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
+    qm_cmap = [y.cmap for x in ax for y in x.get_children()
+               if isinstance(y, matplotlib.collections.QuadMesh)]
+    assert qm_cmap[0] is cmap
     plt.close('all')
 
 

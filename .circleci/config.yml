@@ -10,11 +10,23 @@ jobs:
         - run:
             name: Set BASH_ENV
             command: |
-              echo "set -e" >> $BASH_ENV;
-              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV;
-              echo "export DISPLAY=:99" >> $BASH_ENV;
-              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV;
-              echo "export PATH=~/.local/bin:$PATH" >> $BASH_ENV;
+              echo "set -e" >> $BASH_ENV
+              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              export MNE_ROOT=${PWD}/minimal_cmds
+              echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
+              curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
+              echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
+              echo "export NEUROMAG2FT_ROOT=${PWD}/minimal_cmds/bin" >> $BASH_ENV
+              echo "BASH_ENV:"
+              cat $BASH_ENV
+        - run:
+            name: check neuromag2ft
+            command: |
+              neuromag2ft --version
+
         - run:
             name: Merge with upstream
             command: |
@@ -94,7 +106,7 @@ jobs:
                 echo html_stable > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
-                FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
+                FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/master) $CIRCLE_BRANCH);
                 if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
                   FNAMES="tutorials/plot_mne_dspm_source_localization.py tutorials/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/plot_sensors_decoding.py tutorials/plot_stats_cluster_spatio_temporal.py tutorials/plot_visualize_evoked.py "${FNAMES};
                   python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";

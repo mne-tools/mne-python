@@ -704,6 +704,7 @@ Source Space Data
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
+   label.select_sources
    grow_labels
    label_sign_flip
    labels_to_stc
@@ -893,6 +894,9 @@ Simulation
 .. autosummary::
    :toctree: generated/
 
+   add_chpi
+   add_ecg
+   add_eog
    add_noise
    simulate_evoked
    simulate_raw

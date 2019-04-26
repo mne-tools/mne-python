@@ -33,13 +33,13 @@ from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
-                            find_source_space_hemi,
+                            find_source_space_hemi, _set_source_space_vertices,
                             _write_source_spaces_to_fid)
-from ..source_estimate import VolSourceEstimate
+from ..source_estimate import _BaseSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose,
+                     run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option)
 from ..label import Label
 from ..fixes import einsum
@@ -593,11 +593,11 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         surf_ori = True
 
     if any([src['type'] == 'vol' for src in fwd['src']]) and force_fixed:
-        warn('Forward operator was generated with sources from a '
-             'volume source space. Conversion to fixed orientation is not '
-             'possible. Setting force_fixed to False. surf_ori is ignored for '
-             'volume source spaces.')
-        force_fixed = False
+        raise ValueError(
+            'Forward operator was generated with sources from a '
+            'volume source space. Conversion to fixed orientation is not '
+            'possible. Consider using a discrete source space if you have '
+            'meaningful normal orientations.')
 
     if surf_ori:
         if use_cps:
@@ -1033,27 +1033,21 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
 def _restrict_gain_matrix(G, info):
     """Restrict gain matrix entries for optimal depth weighting."""
     # Figure out which ones have been used
-    if not (len(info['chs']) == G.shape[0]):
-        raise ValueError("G.shape[0] and length of info['chs'] do not match: "
-                         "%d != %d" % (G.shape[0], len(info['chs'])))
-    sel = pick_types(info, meg='grad', ref_meg=False, exclude=[])
-    if len(sel) > 0:
-        G = G[sel]
-        logger.info('    %d planar channels' % len(sel))
-    else:
-        sel = pick_types(info, meg='mag', ref_meg=False, exclude=[])
+    if len(info['chs']) != G.shape[0]:
+        raise ValueError('G.shape[0] (%d) and length of info["chs"] (%d) '
+                         'do not match' % (G.shape[0], len(info['chs'])))
+    for meg, eeg, kind in (
+            ('grad', False, 'planar'),
+            ('mag', False, 'magnetometer or axial gradiometer'),
+            (False, True, 'EEG')):
+        sel = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
         if len(sel) > 0:
-            G = G[sel]
-            logger.info('    %d magnetometer or axial gradiometer '
-                        'channels' % len(sel))
-        else:
-            sel = pick_types(info, meg=False, eeg=True, exclude=[])
-            if len(sel) > 0:
-                G = G[sel]
-                logger.info('    %d EEG channels' % len(sel))
-            else:
-                warn('Could not find MEG or EEG channels')
-    return G
+            logger.info('    %d %s channels' % (len(sel), kind))
+            break
+    else:
+        warn('Could not find MEG or EEG channels to limit depth channels')
+        sel = slice(None)
+    return G[sel]
 
 
 @verbose
@@ -1120,7 +1114,7 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         compute_depth_prior(..., limit=10., limit_depth_chs=True,
                             combine_xyz='spectral')
 
-    In sparse solvers, the values are::
+    In sparse solvers and LCMV, the values are::
 
         compute_depth_prior(..., limit=None, limit_depth_chs='whiten',
                             combine_xyz='fro')
@@ -1169,7 +1163,8 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         if not isinstance(noise_cov, Covariance):
             raise ValueError('With limit_depth_chs="whiten", noise_cov must be'
                              ' a Covariance, got %s' % (type(noise_cov),))
-    _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
+    if combine_xyz is not False:  # private / expert option
+        _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
 
     # If possible, pick best depth-weighting channels
     if limit_depth_chs is True:
@@ -1180,9 +1175,9 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         G = np.dot(whitener, G)
 
     # Compute the gain matrix
-    if is_fixed_ori or combine_xyz == 'fro':
+    if is_fixed_ori or combine_xyz in ('fro', False):
         d = np.sum(G ** 2, axis=0)
-        if not is_fixed_ori:
+        if not (is_fixed_ori or combine_xyz is False):
             d = d.reshape(-1, 3).sum(axis=1)
         # Spherical leadfield can be zero at the center
         d[d == 0.] = np.min(d[d != 0.])
@@ -1201,6 +1196,8 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:
+        if not is_fixed_ori and combine_xyz is False:
+            patch_areas = np.repeat(patch_areas, 3)
         d /= patch_areas ** 2
         logger.info('    Patch areas taken into account in the depth '
                     'weighting')
@@ -1211,10 +1208,9 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         weight_limit = limit ** 2
         if limit_depth_chs is False:
             # match old mne-python behavor
-            ind = np.argmin(ws)
-            n_limit = ind
-            limit = ws[ind] * weight_limit
-            wpp = (np.minimum(w / limit, 1)) ** exp
+            # we used to do ind = np.argmin(ws), but this is 0 by sort above
+            n_limit = 0
+            limit = ws[0] * weight_limit
         else:
             # match C code behavior
             limit = ws[-1]
@@ -1229,33 +1225,55 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
                        np.sqrt(limit / ws[0])))
         scale = 1.0 / limit
         logger.info('    scale = %g exp = %g' % (scale, exp))
-        wpp = np.minimum(w / limit, 1) ** exp
-    else:
-        wpp = w ** exp
+        w = np.minimum(w / limit, 1)
+    depth_prior = w ** exp
 
-    depth_prior = wpp if is_fixed_ori else np.repeat(wpp, 3)
+    if not (is_fixed_ori or combine_xyz is False):
+        depth_prior = np.repeat(depth_prior, 3)
 
     return depth_prior
 
 
-def _stc_src_sel(src, stc):
+def _stc_src_sel(src, stc, on_missing='raise',
+                 extra=', likely due to forward calculations'):
     """Select the vertex indices of a source space using a source estimate."""
-    if isinstance(stc, VolSourceEstimate):
-        vertices = [stc.vertices]
+    if isinstance(stc, list):
+        vertices = stc
     else:
-        vertices = stc.vertices
+        assert isinstance(stc, _BaseSourceEstimate)
+        vertices = stc._vertices_list
+    del stc
     if not len(src) == len(vertices):
         raise RuntimeError('Mismatch between number of source spaces (%s) and '
                            'STC vertices (%s)' % (len(src), len(vertices)))
-    src_sels = []
-    offset = 0
+    src_sels, stc_sels, out_vertices = [], [], []
+    src_offset = stc_offset = 0
     for s, v in zip(src, vertices):
-        src_sel = np.intersect1d(s['vertno'], v)
-        src_sel = np.searchsorted(s['vertno'], src_sel)
-        src_sels.append(src_sel + offset)
-        offset += len(s['vertno'])
+        joint_sel = np.intersect1d(s['vertno'], v)
+        src_sels.append(np.searchsorted(s['vertno'], joint_sel) + src_offset)
+        src_offset += len(s['vertno'])
+        idx = np.searchsorted(v, joint_sel)
+        stc_sels.append(idx + stc_offset)
+        stc_offset += len(v)
+        out_vertices.append(np.array(v)[idx])
     src_sel = np.concatenate(src_sels)
-    return src_sel
+    stc_sel = np.concatenate(stc_sels)
+    assert len(src_sel) == len(stc_sel) == sum(len(v) for v in out_vertices)
+
+    n_stc = sum(len(v) for v in vertices)
+    n_joint = len(src_sel)
+    if n_joint != n_stc:
+        msg = ('Only %i of %i SourceEstimate %s found in '
+               'source space%s'
+               % (n_joint, n_stc, 'vertex' if n_stc == 1 else 'vertices',
+                  extra))
+        if on_missing == 'raise':
+            raise RuntimeError(msg)
+        elif on_missing == 'warn':
+            warn(msg)
+        else:
+            assert on_missing == 'ignore'
+    return src_sel, stc_sel, out_vertices
 
 
 def _fill_measurement_info(info, fwd, sfreq):
@@ -1282,7 +1300,8 @@ def _fill_measurement_info(info, fwd, sfreq):
 
 
 @verbose
-def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
+def _apply_forward(fwd, stc, start=None, stop=None, on_missing='raise',
+                   verbose=None):
     """Apply forward model and return data, times, ch_names."""
     if not is_fixed_orient(fwd):
         raise ValueError('Only fixed-orientation forward operators are '
@@ -1301,19 +1320,13 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
              'correct if currents (in units of Am) are used.'
              % (1e9 * max_cur))
 
-    src_sel = _stc_src_sel(fwd['src'], stc)
-    if isinstance(stc, VolSourceEstimate):
-        n_src = len(stc.vertices)
-    else:
-        n_src = sum([len(v) for v in stc.vertices])
-    if len(src_sel) != n_src:
-        raise RuntimeError('Only %i of %i SourceEstimate vertices found in '
-                           'fwd' % (len(src_sel), n_src))
-
+    src_sel, stc_sel, _ = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
     gain = fwd['sol']['data'][:, src_sel]
+    # save some memory if possible
+    stc_sel = slice(None) if len(stc_sel) == len(stc.data) else stc_sel
 
     logger.info('Projecting source estimate to sensor space...')
-    data = np.dot(gain, stc.data[:, start:stop])
+    data = np.dot(gain, stc.data[stc_sel, start:stop])
     logger.info('[done]')
 
     times = deepcopy(stc.times[start:stop])
@@ -1323,7 +1336,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 @verbose
 def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
-                  verbose=None):
+                  on_missing='raise', verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
     The sensor space data is computed for all channels present in fwd. Use
@@ -1353,6 +1366,9 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
         orientations when converting to fixed orientation (if necessary).
 
         .. versionadded:: 0.15
+    %(on_missing)s Default is "raise".
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -1373,7 +1389,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     # project the source estimate to the sensor space
     if not is_fixed_orient(fwd):
         fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=use_cps)
-    data, times = _apply_forward(fwd, stc, start, stop)
+    data, times = _apply_forward(fwd, stc, start, stop, on_missing=on_missing)
 
     # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
@@ -1390,7 +1406,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
 
 @verbose
 def apply_forward_raw(fwd, stc, info, start=None, stop=None,
-                      verbose=None):
+                      on_missing='raise', verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
     The sensor space data is computed for all channels present in fwd. Use
@@ -1414,6 +1430,9 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
+    %(on_missing)s Default is "raise".
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -1432,7 +1451,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                              'info.' % ch_name)
 
     # project the source estimate to the sensor space
-    data, times = _apply_forward(fwd, stc, start, stop)
+    data, times = _apply_forward(fwd, stc, start, stop, on_missing=on_missing)
 
     sfreq = 1.0 / stc.tstep
     info = _fill_measurement_info(info, fwd, sfreq)
@@ -1448,7 +1467,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     return raw
 
 
-def restrict_forward_to_stc(fwd, stc):
+@fill_doc
+def restrict_forward_to_stc(fwd, stc, on_missing='ignore'):
     """Restrict forward operator to active sources in a source estimate.
 
     Parameters
@@ -1457,6 +1477,9 @@ def restrict_forward_to_stc(fwd, stc):
         Forward operator.
     stc : instance of SourceEstimate
         Source estimate.
+    %(on_missing)s Default is "ignore".
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -1467,8 +1490,21 @@ def restrict_forward_to_stc(fwd, stc):
     --------
     restrict_forward_to_label
     """
+    _validate_type(on_missing, str, 'on_missing')
+    _check_option('on_missing', on_missing, ('ignore', 'warn', 'raise'))
+    src_sel, _, vertices = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
+    del stc
+    return _restrict_forward_to_src_sel(fwd, src_sel)
+
+
+def _restrict_forward_to_src_sel(fwd, src_sel):
     fwd_out = deepcopy(fwd)
-    src_sel = _stc_src_sel(fwd['src'], stc)
+    # figure out the vertno we are keeping
+    idx_sel = np.concatenate([[[si] * len(s['vertno']), s['vertno']]
+                              for si, s in enumerate(fwd['src'])], axis=-1)
+    assert idx_sel.ndim == 2 and idx_sel.shape[0] == 2
+    assert idx_sel.shape[1] == fwd['nsource']
+    idx_sel = idx_sel[:, src_sel]
 
     fwd_out['source_rr'] = fwd['source_rr'][src_sel]
     fwd_out['nsource'] = len(src_sel)
@@ -1501,14 +1537,9 @@ def restrict_forward_to_stc(fwd, stc):
     if fwd['sol_grad'] is not None:
         fwd_out['_orig_sol_grad'] = fwd['_orig_sol_grad'][:, idx_grad]
 
-    for i in range(2):
-        fwd_out['src'][i]['vertno'] = stc.vertices[i]
-        fwd_out['src'][i]['nuse'] = len(stc.vertices[i])
-        fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
-        fwd_out['src'][i]['inuse'].fill(0)
-        fwd_out['src'][i]['inuse'][stc.vertices[i]] = 1
-        fwd_out['src'][i]['use_tris'] = np.array([[]], int)
-        fwd_out['src'][i]['nuse_tri'] = np.array([0])
+    vertices = [idx_sel[1][idx_sel[0] == si]
+                for si in range(len(fwd_out['src']))]
+    _set_source_space_vertices(fwd_out['src'], vertices)
 
     return fwd_out
 

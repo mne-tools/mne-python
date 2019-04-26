@@ -83,6 +83,8 @@ class LSLClient(_BaseClient):
             yield np.vstack(samples).T
 
     def _connect(self):
+        # To use this function with an LSL stream which has a 'name' but no
+        # 'source_id', change the keyword in pylsl.resolve_byprop accordingly.
         pylsl = _check_pylsl_installed(strict=True)
         stream_info = pylsl.resolve_byprop('source_id', self.host,
                                            timeout=self.wait_max)[0]

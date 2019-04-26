@@ -18,6 +18,25 @@ Current
 
 Changelog
 ~~~~~~~~~
+- Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
+
+- :meth:`mne.Epochs.get_data` now takes a ``picks`` parameter by `Jona Sassenhagen`_
+
+- :func:`~mne.viz.plot_compare_evokeds` will generate topo plots if ``axes='topo'`` by `Jona Sassenhagen`_
+
+- ``mne.viz.iter_topography`` can yield an additional axis, e.g., for plotting legends by `Jona Sassenhagen`_ and `Daniel McCloy`_
+
+- Default plot title reflects channel type when ``picks`` is a channel type in :func:`~mne.viz.plot_compare_evokeds` by `Daniel McCloy`_
+
+- Color scale limits in :func:`~mne.viz.plot_topo_image_epochs` are now computed separately per channel type in combined mag/grad plots, by `Daniel McCloy`_
+
+- :func:`mne.simulation.simulate_stc` now allows for label overlaps by `Nathalie Gayraud`_, and `Ivana Kojcic`_
+
+- Add ``long_format`` option to the pandas dataframe exporters, e.g :meth:`mne.Epochs.to_data_frame` by `Denis Engemann`_
+
+- Add example on how to load standard montage :ref:`plot_montage` by `Joan Massich`_
+
+- Add new tutorial on :ref:`plot_eeg_no_mri` by `Alex Gramfort`_, and `Joan Massich`_
 
 - Add convenience ``fsaverage`` subject dataset fetcher / updater :func:`mne.datasets.fetch_fsaverage` by `Eric Larson`_
 
@@ -57,7 +76,11 @@ Changelog
 
 - Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
 
-- Add support for using :class:`mne.Info` and ``duration`` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
+- Add :func:`mne.label.select_sources` to simplify the selection of sources within a label, by `Samuel Deslauriers-Gauthier`_
+
+- Add support for using :class:`mne.Info` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
+
+- Add support for passing an iterable and stim channel values using ``stc`` parameter of :func:`mne.simulation.simulate_raw` by `Eric Larson`_
 
 - Add ``overlap`` argument to :func:`mne.make_fixed_length_events` by `Eric Larson`_
 
@@ -68,6 +91,8 @@ Changelog
 - Add option to improve rendering in :ref:`gen_mne_coreg` for modern graphics cards by `Eric Larson`_
 
 - Add :func:`mne.preprocessing.mark_flat` to automate marking of flat channels and segments of raw data by `Eric Larson`_
+
+- Add support for CUDA-based correlation computations and progress bars in :class:`mne.decoding.ReceptiveField` by `Eric Larson`_
 
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
@@ -93,6 +118,8 @@ Changelog
 
 - Add additional depth weighting options for inverse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) by `Eric Larson`_
 
+- Add depth weighting to LCMV beamformers via ``depth`` argument in :func:`mne.beamformer.make_lcmv` by `Eric Larson`_
+
 - Allow toggling of DC removal in :meth:`mne.io.Raw.plot` by pressing the 'd' key by `Clemens Brunner`_
 
 - Improved clicking in :meth:`mne.io.Raw.plot` (left click on trace toggles bad, left click on background sets green line, right click anywhere removes green line) by `Clemens Brunner`_
@@ -105,11 +132,15 @@ Changelog
 
 Bug
 ~~~
+- Fix :func:`mne.io.read_raw_brainvision` to accomodate vmrk files which do not have any annotations by `Alexander Kovrig`_
+
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
 - Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
 
 - Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
+
+- Fix bug with ``weight_norm='unit-gain'`` in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Britta Westner`_
 
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
@@ -173,6 +204,8 @@ Bug
 API
 ~~~
 
+- Deprecate ``cov, iir_params, blink, ecg, chpi, random_state`` and support for :class:`mne.io.Raw` instance inputs in :func:`mne.simulation.simulate_raw`; use :func:`mne.simulation.add_noise`, :func:`mne.simulation.add_ecg`, :func:`mne.simulation.add_eog`, and :func:`mne.simulation.add_chpi` by `Eric Larson`_
+
 - Add ``overwrite`` parameter in :func:`mne.Epochs.save` by `Katarina Slama`_
 
 - Add ``stim_channel`` parameter in :func:`mne.io.read_raw_cnt` to toggle stim channel synthesis by `Joan Massich`_
@@ -180,6 +213,8 @@ API
 - Python 2 is no longer supported; MNE-Python now requires Python 3.5+, by `Eric Larson`_
 
 - A new class :class:`mne.VolVectorSourceEstimate` is returned by :func:`mne.minimum_norm.apply_inverse` (and related functions) when a volume source space and ``pick_ori='vector'`` is used, by `Eric Larson`_
+
+- Converting a forward solution with a volume source space to fixed orientation using :func:`mne.convert_forward_solution` now raises an error, by `Eric Larson`_
 
 - ``raw.estimate_rank`` has been deprecated and will be removed in 0.19 in favor of :func:`mne.compute_rank`  by `Eric Larson`_
 
@@ -3278,12 +3313,18 @@ of commits):
 
 .. _Antoine Gauthier: https://github.com/Okamille
 
+.. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
+
 .. _Sebastian Castano: https://github.com/jscastanoc
 
 .. _Katarina Slama: https://katarinaslama.github.io
 
 .. _Bruno Nicenboim: http://nicenboim.org
 
+.. _Ivana Kojcic: https://github.com/ikojcic
+
 .. _Nikolas Chalas: https://github.com/Nichalas
 
 .. _Quentin Bertrand: https://github.com/QB3
+
+.. _Alexander Kovrig: https://github.com/OpenSatori

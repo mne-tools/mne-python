@@ -395,6 +395,7 @@ this package. You can also find a gallery of these examples in the
     auto_tutorials/plot_source_alignment.rst
     auto_tutorials/plot_forward.rst
     auto_tutorials/plot_compute_covariance.rst
+    auto_tutorials/plot_eeg_no_mri.rst
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_mne_solutions.rst
     auto_tutorials/plot_dipole_fit.rst
@@ -658,12 +659,13 @@ this package. You can also find a gallery of these examples in the
 .. toctree::
     :maxdepth: 1
 
-    auto_examples/realtime/ftclient_rt_average.rst
-    auto_examples/realtime/ftclient_rt_compute_psd.rst
+    auto_examples/realtime/plot_ftclient_rt_average.rst
+    auto_examples/realtime/plot_ftclient_rt_compute_psd.rst
     auto_examples/realtime/plot_compute_rt_average.rst
     auto_examples/realtime/plot_compute_rt_decoder.rst
+    auto_examples/realtime/plot_lslclient_rt.rst
+    auto_examples/realtime/plot_rt_feedback_server.rst
     auto_examples/realtime/rt_feedback_client.rst
-    auto_examples/realtime/rt_feedback_server.rst
 
 .. raw:: html
 
