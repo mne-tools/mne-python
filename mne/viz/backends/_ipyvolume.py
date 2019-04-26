@@ -195,6 +195,12 @@ class _Renderer(_BaseRenderer):
                    focalpoint=(0, 0, 0)):
         ipv.view(azimuth=azimuth, elevation=elevation, distance=distance)
 
+    def screenshot(self):
+        pass
+
+    def project(self):
+        pass
+
 
 def _create_sphere(rows, cols, radius, offset=True):
     verts = np.empty((rows + 1, cols, 3), dtype=np.float32)
