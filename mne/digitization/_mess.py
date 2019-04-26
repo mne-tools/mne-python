@@ -120,24 +120,24 @@ def _foo_read_pos(nas, lpa, rpa, hpi, extra):
 
 ##############################################################################
 # From bti
-def _make_bti_dig_points(idx_points, dig_points,
+
+def _make_bti_dig_points(nasion, lpa, rpa, hpi, extra,
                          convert=False, use_hpi=False,
                          bti_dev_t=False, dev_ctf_t=False):
 
+    idx_points = np.vstack([lpa, rpa, nasion, hpi])
     if convert:
-        logger.info('... putting digitization points in Neuromag c'
-                    'oordinates')
-        trans = get_ras_to_neuromag_trans(nasion=idx_points[2, :],
-                                          lpa=idx_points[0, :],
-                                          rpa=idx_points[1, :])
+        logger.info('... putting digitization points in Neuromag '
+                    'coordinates')
+        trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     else:
         trans = None
 
     ctf_head_t = Transform(fro='ctf_head', to='head', trans=trans)
 
-    if dig_points is not None:
-        # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
-        all_points = np.r_[idx_points, dig_points]
+    if extra is not None:
+        # extra = apply_trans(ctf_head_t['trans'], extra)
+        all_points = np.vstack([idx_points, extra])
     else:
         all_points = idx_points
 

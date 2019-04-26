@@ -241,8 +241,10 @@ def test_no_conversion():
         assert_array_equal(raw_info['ctf_head_t']['trans'], np.eye(4))
 
         idx_points, dig_points = _read_head_shape(hs)
-        dig, t, _ = _make_bti_dig_points(idx_points, dig_points, convert=False,
-                                         use_hpi=False)
+        nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
+        hpi = idx_points[3:len(idx_points), :]
+        dig, t, _ = _make_bti_dig_points(nasion, lpa, rpa, hpi, dig_points,
+                                         convert=False, use_hpi=False)
 
         assert_array_equal(t['trans'], np.eye(4))
 
@@ -296,7 +298,9 @@ def test_setup_headshape():
     """Test reading bti headshape."""
     for hs in hs_fnames:
         idx_points, dig_points = _read_head_shape(hs)
-        dig, t, _ = _make_bti_dig_points(idx_points, dig_points)
+        nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
+        hpi = idx_points[3:len(idx_points), :]
+        dig, t, _ = _make_bti_dig_points(nasion, lpa, rpa, hpi, dig_points)
 
         expected = {'kind', 'ident', 'r'}
         found = set(reduce(lambda x, y: list(x) + list(y),

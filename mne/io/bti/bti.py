@@ -997,8 +997,19 @@ def _make_bti_digitization(
                     head_shape_fname)
 
         idx_points, dig_points = _read_head_shape(head_shape_fname)
+
+        nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
+        hpi = idx_points[3:len(idx_points), :]
+
+        # XXX: refactor assert to make sure we do not screw up
+        np.testing.assert_array_equal(
+            np.vstack([lpa, rpa, nasion, hpi]),
+            idx_points
+        )
+
         info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
-            idx_points, dig_points, convert, use_hpi, bti_dev_t, dev_ctf_t)
+            nasion, lpa, rpa, hpi, dig_points,
+            convert, use_hpi, bti_dev_t, dev_ctf_t)
     else:
         logger.info('... no headshape file supplied, doing nothing.')
         info['dig'] = None
