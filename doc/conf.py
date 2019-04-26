@@ -421,7 +421,7 @@ sphinx_gallery_conf = {
 build_dev_html = False
 if not build_dev_html:
     sphinx_gallery_conf.update({
-        'binder': {'org': 'jasmainak',
+        'binder': {'org': 'mne-tools',
                    'repo': 'mne-tools.github.io',
                    'branch': 'master',
                    'binderhub_url': 'https://mybinder.org',
