@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 from surfer.utils import mesh_edges, smoothing_matrix
 
@@ -191,7 +189,7 @@ class Brain(object):
                                      y=self.geo[h].coords[:, 1],
                                      z=self.geo[h].coords[:, 2],
                                      triangles=self.geo[h].faces,
-                                     color=self.geo[h].grey_curv)                                     
+                                     color=self.geo[h].grey_curv)
 
                 self._hemi_meshes[h + '_' + v] = mesh
 

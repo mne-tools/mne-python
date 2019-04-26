@@ -30,3 +30,7 @@ pydocstyle
 flake8
 vtki
 pylsl>=1.12
+bqplot
+ipyvolume
+pythreejs
+ipywidgets>=7.4
