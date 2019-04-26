@@ -346,6 +346,7 @@ jobs:
                   echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
                   rm -Rf stable;
                   cp -a /tmp/build/html_stable stable;
+                  cp -a stable/binder binder;
                   git add -A;
                   git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
                 fi;
