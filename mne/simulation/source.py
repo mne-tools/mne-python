@@ -336,6 +336,8 @@ class SourceSimulator():
     ----------
     duration : float
         The duration of the simulation in seconds.
+    n_times : int
+        The number of time samples of the simulation.
     """
 
     def __init__(self, src, tstep=1e-3, duration=None):
@@ -357,8 +359,8 @@ class SourceSimulator():
         return self._duration
 
     @property
-    def nb_samples(self):
-        """Number of samples in the simulation"""
+    def n_times(self):
+        """Number of time samples in the simulation"""
         return int(self.duration / self._tstep)
 
     def add_data(self, label, waveform, events):
@@ -400,7 +402,7 @@ class SourceSimulator():
         self._last_samples = np.array([self._events[i, 0] + len(w)
                                       for i, w in enumerate(self._waveforms)])
 
-    def get_stim_channel(self, start_sample=0, nb_samples=None):
+    def get_stim_channel(self, start_sample=0, stop_sample=None):
         """Get the stim channel from the provided data.
 
         Returns the stim channel data according to the simulation parameters
@@ -411,25 +413,27 @@ class SourceSimulator():
         ----------
         start_sample : int
             First sample in chunk. Default is 0.
-        nb_samples : int
-            Number of samples in the stc data. If both start_sample and
-            nb_samples are not specified, the entire duration is used.
+        stop_sample : int | None
+            The stop sample of the returned stc. This sample is not part of the
+            output to follow slicing semantics. If None, then all samples past
+            start_sample is returned.
 
         Returns
         -------
-        stim_data : 1-d array of int
+        stim_data : array of int, shape (stop_sample - start_sample,)
             The stimulation channel data.
         """
-        if nb_samples is None:
-            nb_samples = self.nb_samples - start_sample
+        if stop_sample is None:
+            stop_sample = self.n_times
+        n_samples = stop_sample - start_sample
 
-        end_sample = start_sample + nb_samples
         # Initialize the stim data array
-        stim_data = np.zeros(nb_samples, dtype=int)
+        stim_data = np.zeros(n_samples, dtype=int)
 
         # Select only events in the time chunk
-        stim_ind = np.where(np.logical_and(self._events[:, 0] >= start_sample,
-                                           self._events[:, 0] < end_sample))[0]
+        stim_ind = np.where(np.logical_and(
+            self._events[:, 0] >= start_sample,
+            self._events[:, 0] < stop_sample))[0]
 
         if len(stim_ind) > 0:
             relative_ind = self._events[stim_ind, 0].astype(int) - start_sample
@@ -437,7 +441,7 @@ class SourceSimulator():
 
         return stim_data
 
-    def get_stc(self, start_sample=0, nb_samples=None):
+    def get_stc(self, start_sample=0, stop_sample=None):
         """Simulate a SourceEstimate from the provided data.
 
         Returns a SourceEstimate object constructed according to the simulation
@@ -449,9 +453,10 @@ class SourceSimulator():
         ----------
         start_sample : int
             First sample in chunk. Default is 0.
-        nb_samples : int
-            Number of samples in the stc data. If the number of samples is not
-            provided, it will contain the remaining samples after start_sample.
+        stop_sample : int | None
+            The stop sample of the returned stc. This sample is not part of the
+            output to follow slicing semantics. If None, then all samples past
+            start_sample is returned.
 
         Returns
         -------
@@ -461,16 +466,18 @@ class SourceSimulator():
         if len(self._labels) == 0:
             raise ValueError('No simulation parameters were found. Please use '
                              'function add_data to add simulation parameters.')
-        if nb_samples is None:
-            nb_samples = self.nb_samples - start_sample
+        if stop_sample is None:
+            stop_sample = self.n_times
 
-        end_sample = start_sample + nb_samples
+        n_samples = stop_sample - start_sample
+
         # Initialize the stc_data array
-        stc_data = np.zeros((len(self._labels), nb_samples))
+        stc_data = np.zeros((len(self._labels), n_samples))
 
         # Select only the indices that have events in the time chunk
         ind = np.where(np.logical_and(self._last_samples >= start_sample,
-                                      self._events[:, 0] < end_sample))[0]
+                                      self._events[:, 0] < stop_sample))[0]
+
         # Loop only over the items that are in the time chunk
         subset_waveforms = [self._waveforms[i] for i in ind]
         for i, (waveform, event) in enumerate(zip(subset_waveforms,
@@ -479,14 +486,18 @@ class SourceSimulator():
             # According to the corresponding event
             wf_start = event[0]
             wf_stop = self._last_samples[ind[i]]
+
             # Recover the indices of the event that should be in the chunk
             waveform_ind = np.in1d(np.arange(wf_start, wf_stop),
-                                   np.arange(start_sample, end_sample))
+                                   np.arange(start_sample, stop_sample))
+
             # Recover the indices that correspond to the overlap
-            stc_ind = np.in1d(np.arange(start_sample, end_sample),
+            stc_ind = np.in1d(np.arange(start_sample, stop_sample),
                               np.arange(wf_start, wf_stop))
+
             # add the resulting waveform chunk to the corresponding label
             stc_data[ind[i]][stc_ind] += waveform[waveform_ind]
+
         stc = simulate_stc(self._src, self._labels, stc_data,
                            start_sample * self._tstep, self._tstep,
                            allow_overlap=True)
@@ -497,8 +508,8 @@ class SourceSimulator():
         # Arbitrary chunk size, can be modified later to something else
         # Loop over chunks of 1 second - or, maximum sample size.
         # Can be modified to a different value.
-        nb_samples = self.nb_samples
+        nb_samples = self.n_times
         for start_sample in range(0, nb_samples, self._chk_duration):
-            chk_duration = min(self._chk_duration, nb_samples - start_sample)
-            yield (self.get_stc(start_sample, chk_duration),
-                   self.get_stim_channel(start_sample, chk_duration))
+            stop_sample = min(start_sample + self._chk_duration, nb_samples)
+            yield (self.get_stc(start_sample, stop_sample),
+                   self.get_stim_channel(start_sample, stop_sample))
