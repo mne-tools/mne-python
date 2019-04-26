@@ -1778,12 +1778,12 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
 
     fraction = 2 if ax.get_ylim()[0] >= 0 else 3
 
-    if truncate_yaxis is not False:
+    if truncate_yaxis:
         _, ymax_bound = _truncate_yaxis(
             ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
             any_positive, any_negative, truncate_yaxis)
     else:
-        if truncate_yaxis is True and ymin is not None and ymin > 0:
+        if ymin is not None and ymin > 0:
             warn("ymin is all-positive, not truncating yaxis")
         ymax_bound = ax.get_ylim()[-1]
 
@@ -1791,7 +1791,7 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
 
     # plot v lines
     # Why 'invert_y'? Many EEG people plot negative values up for ... reasons
-    if invert_y is True and current_ymin < 0:
+    if invert_y and (current_ymin < 0):
         upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
     else:
         upper_v, lower_v = ax.get_ylim()[0], ymax_bound
@@ -1941,7 +1941,7 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
                          vlines="auto", ci=0.95, truncate_yaxis="max_ticks",
-                         truncate_xaxis=True, ylim=dict(), invert_y=False,
+                         truncate_xaxis=True, ylim=None, invert_y=False,
                          show_sensors=None, show_legend=True,
                          split_legend=False, axes=None, title=None, show=True):
     """Plot evoked time courses for one or more conditions and/or channels.
@@ -2052,8 +2052,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     ylim : dict | None
         ylim for plots (after scaling has been applied). e.g.
         ylim = dict(eeg=[-20, 20])
-        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
-        for each channel equals the pyplot default.
+        Valid keys are eeg, mag, grad, misc. If ``None``, the ylim parameter
+        for each channel equals the pyplot default. Defaults to ``None``.
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
@@ -2161,7 +2161,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         _validate_type(entry, 'int', "entries of picks", "integers")
 
     if len(picks) == 0:
-        raise ValueError("No valid channels were found to plot the GFP. " +
+        raise ValueError("No valid channels were found to plot the GFP. "
                          "Use 'picks' instead to select them manually.")
 
     if ylim is None:
@@ -2182,7 +2182,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                         "speed.")
 
     # deal with picks: infer indices and names
-    if gfp is True:
+    if gfp:
         if show_sensors is None:
             show_sensors = False  # don't show sensors for GFP
         ch_names = ['Global Field Power']
@@ -2216,7 +2216,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         figs = list()
         for t, ax in zip(ch_types, axes):
             picks_ = picks_by_types[t]
-            title_ = "GFP, " + t if (title is None and gfp is True) else title
+            title_ = "GFP, " + t if (title is None and gfp) else title
             figs.append(plot_compare_evokeds(
                 evokeds, picks=picks_, gfp=gfp, colors=colors,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
@@ -2229,7 +2229,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     assert len(ch_types) == 1
     ch_type = ch_types[0]
 
-    all_positive = gfp  # True if not gfp, False if gfp
+    all_positive = gfp
     pos_picks = picks  # keep locations to pick for plotting
     if ch_type == "grad" and len(picks) > 1:
         logger.info('Combining all planar gradiometers with RMSE.')
@@ -2241,7 +2241,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         ch_names = evokeds[cond][0].ch_names
         picks = range(len(ch_names))
 
-    info = pick_info(info, picks, True)
+    info = pick_info(info, pos_picks, True)
+    all_ch_names = ch_names if ch_type == 'grad' else info['ch_names']
     if do_topo:
         from .topo import iter_topography
         fig = plt.figure(figsize=(18, 14))
@@ -2265,7 +2266,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             info, layout=None, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
             axis_spinecolor='k', layout_scale=.925))
-    all_ch_names = info["ch_names"]
     del info
 
     ymin, ymax = ylim.get(ch_type, [None, None])
@@ -2278,7 +2278,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     # title
     title = _set_title_multiple_electrodes(
-        title, "average" if gfp is False else "gfp", ch_names, ch_type=ch_type)
+        title, ('gfp' if gfp else 'average'), ch_names, ch_type=ch_type)
 
     colors_for_split_legend, styles_for_split_legend = (
         deepcopy(colors), deepcopy(linestyles))
@@ -2304,20 +2304,22 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             evokeds, conditions, scaling, [picks_], ci_fun, gfp)
         # we now have dicts for data ('evokeds' - grand averaged Evoked's)
         # and the CI ('ci_array') with cond name labels
-#        return data_dict, ci_dict
         all_data.append(data_dict)
         all_cis.append(ci_dict)
     del evokeds
 
     if do_topo:
+        # ax_anchors are left, bottom coords of axis (in figure coords)
         ax_anchors = np.array([np.array(ax_.get_position())[0]
                                for ax_, _ in axes])
         left, bottom = ax_anchors[:, 0].max(), ax_anchors[:, 1].min()
-        (x0, y0), (x1, y1) = np.array(ax.get_position())
-        ax = plt.axes([left, bottom + .05, x1 - x0, y1 - y0])
-        axes.append((ax, -1))
-        picks.append(0)
+        # add an axis for the legend
+        (lef, bot), (wid, hei) = np.array(ax.get_position())
+        legend_ax = plt.axes([left, bottom + .05, wid - lef, hei - bot])
+        axes.append((legend_ax, -1))
+        picks.append(-1)
 
+    # add empty data (all zeros) for the legend axis
     all_data.append({cond: np.zeros(d.shape) for cond, d in data_dict.items()})
     all_cis.append({cond: np.zeros(np.array(d).shape)
                     for cond, d in ci_dict.items()})
@@ -2325,8 +2327,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     for picks_, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
+        if idx == -1:
+            # do something here to suppress drawing of fake data on the legend
+            pass
         any_positive_, any_negative_ = _plot_compare_evokeds(
-            ax, data, conditions, times, ci_fun is not None, cis,  styles,
+            ax, data, conditions, times, ci_fun is not None, cis, styles,
             title, all_positive, do_topo)
         if any_positive_:
             any_positive = True
@@ -2341,10 +2346,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     # ylims
     for ax_, idx in axes:
+        skip_axlabel = do_topo and (idx != -1)
         _set_ylims_plot_compare_evokeds(
             ax_, any_positive, any_negative, ymin, ymax,
             truncate_yaxis, truncate_xaxis, invert_y, vlines, tmin, tmax, unit,
-            skip_axlabel=idx != -1 if do_topo else False)
+            skip_axlabel=skip_axlabel)
         ax_.patch.set_alpha(0)
 
     # 2 legends.
