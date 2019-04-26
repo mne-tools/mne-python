@@ -361,5 +361,15 @@ def test_source_simulator(_get_fwd_labels):
                        'should match'):
         ss.add_data(mylabels[0], wfs[:2], events)
 
+    # Verify that the chunks have the correct length.
+    source_simulator = SourceSimulator(src, tstep=tstep, duration=10 * tstep)
+    source_simulator.add_data(mylabels[0], np.array([1, 1, 1]), [[0, 0, 0]])
+
+    source_simulator._chk_duration = 6  # Quick hack to get short chunks.
+    stcs = [stc for stc, _ in source_simulator]
+    assert len(stcs) == 2
+    assert stcs[0].data.shape[1] == 6
+    assert stcs[1].data.shape[1] == 4
+
 
 run_tests_if_main()
