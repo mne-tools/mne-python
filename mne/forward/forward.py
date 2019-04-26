@@ -1033,27 +1033,21 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
 def _restrict_gain_matrix(G, info):
     """Restrict gain matrix entries for optimal depth weighting."""
     # Figure out which ones have been used
-    if not (len(info['chs']) == G.shape[0]):
-        raise ValueError("G.shape[0] and length of info['chs'] do not match: "
-                         "%d != %d" % (G.shape[0], len(info['chs'])))
-    sel = pick_types(info, meg='grad', ref_meg=False, exclude=[])
-    if len(sel) > 0:
-        G = G[sel]
-        logger.info('    %d planar channels' % len(sel))
-    else:
-        sel = pick_types(info, meg='mag', ref_meg=False, exclude=[])
+    if len(info['chs']) != G.shape[0]:
+        raise ValueError('G.shape[0] (%d) and length of info["chs"] (%d) '
+                         'do not match' % (G.shape[0], len(info['chs'])))
+    for meg, eeg, kind in (
+            ('grad', False, 'planar'),
+            ('mag', False, 'magnetometer or axial gradiometer'),
+            (False, True, 'EEG')):
+        sel = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
         if len(sel) > 0:
-            G = G[sel]
-            logger.info('    %d magnetometer or axial gradiometer '
-                        'channels' % len(sel))
-        else:
-            sel = pick_types(info, meg=False, eeg=True, exclude=[])
-            if len(sel) > 0:
-                G = G[sel]
-                logger.info('    %d EEG channels' % len(sel))
-            else:
-                warn('Could not find MEG or EEG channels')
-    return G
+            logger.info('    %d %s channels' % (len(sel), kind))
+            break
+    else:
+        warn('Could not find MEG or EEG channels to limit depth channels')
+        sel = slice(None)
+    return G[sel]
 
 
 @verbose
@@ -1120,7 +1114,7 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         compute_depth_prior(..., limit=10., limit_depth_chs=True,
                             combine_xyz='spectral')
 
-    In sparse solvers, the values are::
+    In sparse solvers and LCMV, the values are::
 
         compute_depth_prior(..., limit=None, limit_depth_chs='whiten',
                             combine_xyz='fro')
@@ -1169,7 +1163,8 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         if not isinstance(noise_cov, Covariance):
             raise ValueError('With limit_depth_chs="whiten", noise_cov must be'
                              ' a Covariance, got %s' % (type(noise_cov),))
-    _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
+    if combine_xyz is not False:  # private / expert option
+        _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
 
     # If possible, pick best depth-weighting channels
     if limit_depth_chs is True:
@@ -1180,9 +1175,9 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         G = np.dot(whitener, G)
 
     # Compute the gain matrix
-    if is_fixed_ori or combine_xyz == 'fro':
+    if is_fixed_ori or combine_xyz in ('fro', False):
         d = np.sum(G ** 2, axis=0)
-        if not is_fixed_ori:
+        if not (is_fixed_ori or combine_xyz is False):
             d = d.reshape(-1, 3).sum(axis=1)
         # Spherical leadfield can be zero at the center
         d[d == 0.] = np.min(d[d != 0.])
@@ -1201,6 +1196,8 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:
+        if not is_fixed_ori and combine_xyz is False:
+            patch_areas = np.repeat(patch_areas, 3)
         d /= patch_areas ** 2
         logger.info('    Patch areas taken into account in the depth '
                     'weighting')
@@ -1211,10 +1208,9 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         weight_limit = limit ** 2
         if limit_depth_chs is False:
             # match old mne-python behavor
-            ind = np.argmin(ws)
-            n_limit = ind
-            limit = ws[ind] * weight_limit
-            wpp = (np.minimum(w / limit, 1)) ** exp
+            # we used to do ind = np.argmin(ws), but this is 0 by sort above
+            n_limit = 0
+            limit = ws[0] * weight_limit
         else:
             # match C code behavior
             limit = ws[-1]
@@ -1229,11 +1225,11 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
                        np.sqrt(limit / ws[0])))
         scale = 1.0 / limit
         logger.info('    scale = %g exp = %g' % (scale, exp))
-        wpp = np.minimum(w / limit, 1) ** exp
-    else:
-        wpp = w ** exp
+        w = np.minimum(w / limit, 1)
+    depth_prior = w ** exp
 
-    depth_prior = wpp if is_fixed_ori else np.repeat(wpp, 3)
+    if not (is_fixed_ori or combine_xyz is False):
+        depth_prior = np.repeat(depth_prior, 3)
 
     return depth_prior
 
@@ -1494,11 +1490,21 @@ def restrict_forward_to_stc(fwd, stc, on_missing='ignore'):
     --------
     restrict_forward_to_label
     """
-    fwd_out = deepcopy(fwd)
     _validate_type(on_missing, str, 'on_missing')
     _check_option('on_missing', on_missing, ('ignore', 'warn', 'raise'))
     src_sel, _, vertices = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
     del stc
+    return _restrict_forward_to_src_sel(fwd, src_sel)
+
+
+def _restrict_forward_to_src_sel(fwd, src_sel):
+    fwd_out = deepcopy(fwd)
+    # figure out the vertno we are keeping
+    idx_sel = np.concatenate([[[si] * len(s['vertno']), s['vertno']]
+                              for si, s in enumerate(fwd['src'])], axis=-1)
+    assert idx_sel.ndim == 2 and idx_sel.shape[0] == 2
+    assert idx_sel.shape[1] == fwd['nsource']
+    idx_sel = idx_sel[:, src_sel]
 
     fwd_out['source_rr'] = fwd['source_rr'][src_sel]
     fwd_out['nsource'] = len(src_sel)
@@ -1531,6 +1537,8 @@ def restrict_forward_to_stc(fwd, stc, on_missing='ignore'):
     if fwd['sol_grad'] is not None:
         fwd_out['_orig_sol_grad'] = fwd['_orig_sol_grad'][:, idx_grad]
 
+    vertices = [idx_sel[1][idx_sel[0] == si]
+                for si in range(len(fwd_out['src']))]
     _set_source_space_vertices(fwd_out['src'], vertices)
 
     return fwd_out

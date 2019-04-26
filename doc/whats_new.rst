@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- :func:`mne.simulation.simulate_stc` now allows for label overlaps by `Nathalie Gayraud`_, and `Ivana Kojcic`_
+
 - Add ``long_format`` option to the pandas dataframe exporters, e.g :meth:`mne.Epochs.to_data_frame` by `Denis Engemann`_
 
 - Add example on how to load standard montage :ref:`plot_montage` by `Joan Massich`_
@@ -63,6 +65,8 @@ Changelog
 
 - Add :func:`mne.labels_to_stc` to facilitate working with label data, by `Eric Larson`_
 
+- Add :func:`mne.label.select_sources` to simplify the selection of sources within a label, by `Samuel Deslauriers-Gauthier`_
+
 - Add support for using :class:`mne.Info` in :func:`mne.simulation.simulate_raw` instead of :class:`mne.io.Raw` by `Eric Larson`_
 
 - Add support for passing an iterable and stim channel values using ``stc`` parameter of :func:`mne.simulation.simulate_raw` by `Eric Larson`_
@@ -102,6 +106,8 @@ Changelog
 - Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
 
 - Add additional depth weighting options for inverse solvers (e.g., :func:`mne.inverse_sparse.gamma_map` and :func:`mne.inverse_sparse.mixed_norm`) by `Eric Larson`_
+
+- Add depth weighting to LCMV beamformers via ``depth`` argument in :func:`mne.beamformer.make_lcmv` by `Eric Larson`_
 
 - Allow toggling of DC removal in :meth:`mne.io.Raw.plot` by pressing the 'd' key by `Clemens Brunner`_
 
@@ -3290,10 +3296,14 @@ of commits):
 
 .. _Antoine Gauthier: https://github.com/Okamille
 
+.. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
+
 .. _Sebastian Castano: https://github.com/jscastanoc
 
 .. _Katarina Slama: https://katarinaslama.github.io
 
 .. _Bruno Nicenboim: http://nicenboim.org
+
+.. _Ivana Kojcic: https://github.com/ikojcic
 
 .. _Nikolas Chalas: https://github.com/Nichalas

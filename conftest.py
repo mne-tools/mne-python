@@ -22,6 +22,7 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
+from mne.fixes import _get_args
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -35,7 +36,10 @@ def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
     # "force" should not really be necessary but should not hurt
-    matplotlib.use('agg', force=True)  # don't pop up windows
+    kwargs = dict()
+    if 'warn' in _get_args(matplotlib.use):
+        kwargs['warn'] = False
+    matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
     import matplotlib.pyplot as plt
     assert plt.get_backend() == 'agg'
     # overwrite some params that can horribly slow down tests that
