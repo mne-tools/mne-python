@@ -173,6 +173,8 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
         Can be ``'auto'``, which means a head-digitization-based origin
         fit. Default is ``(0., 0., 0.04)``.
     %(verbose)s
+    ref_meg : bool
+        Should always be False; only exists for testing purpose.
     """
     picks_meg = pick_types(inst.info, meg=True, eeg=False,
                            ref_meg=ref_meg, exclude=[])
