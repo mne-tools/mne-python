@@ -34,31 +34,28 @@ class _Projection(object):
 class _Renderer(object):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name="VTKI Scene", show=False, notebook=False):
+                 name="VTKI Scene", show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
-        self.notebook = notebook
         self.name = name
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
-            args = {'window_size': size,
-                    'off_screen': self.off_screen}
-            if notebook:
-                self.plotter = vtki.BackgroundPlotter(**args)
-            else:
-                self.plotter = vtki.Plotter(**args)
+            kwargs = {'window_size': size,
+                      'off_screen': self.off_screen,
+                      'notebook': False}
+
+            self.plotter = vtki.Plotter(**kwargs)
             self.plotter.background_color = bgcolor
             # this is a hack to avoid using a deleled ren_win
             self.plotter._window_size = size
         else:
             # import basic properties
-            args = {'window_size': fig._window_size,
-                    'off_screen': fig.off_screen}
-            if notebook:
-                self.plotter = vtki.BackgroundPlotter(**args)
-            else:
-                self.plotter = vtki.Plotter(**args)
+            kwargs = {'window_size': fig._window_size,
+                      'off_screen': fig.off_screen,
+                      'notebook': False}
+
+            self.plotter = vtki.Plotter(**kwargs)
 
             # import background
             self.plotter.background_color = fig.background_color
@@ -237,10 +234,7 @@ class _Renderer(object):
                               color=color)
 
     def show(self):
-        if self.notebook:
-            self.plotter.show()
-        else:
-            self.plotter.show(title=self.name)
+        self.plotter.show(title=self.name)
 
     def close(self):
         self.plotter.close()
