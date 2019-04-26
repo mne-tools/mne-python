@@ -20,6 +20,16 @@ Changelog
 ~~~~~~~~~
 - Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
 
+- :meth:`mne.Epochs.get_data` now takes a ``picks`` parameter by `Jona Sassenhagen`_
+
+- :func:`~mne.viz.plot_compare_evokeds` will generate topo plots if ``axes='topo'`` by `Jona Sassenhagen`_
+
+- :func:`mne.viz.iter_topography` can yield an additional axis, e.g., for plotting legends by `Jona Sassenhagen`_ and `Daniel McCloy`_
+
+- Default plot title reflects channel type when ``picks`` is a channel type in :func:`~mne.viz.plot_compare_evokeds` by `Daniel McCloy`_
+
+- Color scale limits in :func:`~mne.viz.plot_topo_image_epochs` are now computed separately per channel type in combined mag/grad plots, by `Daniel McCloy`_
+
 - :func:`mne.simulation.simulate_stc` now allows for label overlaps by `Nathalie Gayraud`_, and `Ivana Kojcic`_
 
 - Add ``long_format`` option to the pandas dataframe exporters, e.g :meth:`mne.Epochs.to_data_frame` by `Denis Engemann`_
