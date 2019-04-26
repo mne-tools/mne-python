@@ -1,5 +1,7 @@
 """Do not look at this !! or blame Teon !!!."""
-from ..utils import warn
+from ..utils import logger, warn
+import numpy as np
+
 
 ##########################################
 # Things that should be common to every reader
@@ -11,6 +13,8 @@ from ..transforms import apply_trans
 from ..transforms import als_ras_trans
 from ..transforms import get_ras_to_neuromag_trans
 from ..transforms import Transform
+from ..transforms import combine_transforms
+from ..transforms import invert_transform
 from ..coreg import fit_matched_points, _decimate_points
 
 ##########################################
@@ -21,6 +25,7 @@ from ..io.kit.constants import KIT
 from ..io.kit.coreg import read_mrk
 
 
+##############################################################################
 # From mne.io.kit
 def _set_dig_kit(mrk, elp, hsp):
     """Add landmark points and head shape data to the KIT instance.
@@ -94,6 +99,7 @@ def _set_dig_kit(mrk, elp, hsp):
     return dig_points, dev_head_t
 
 
+##############################################################################
 # From artemis123 (we have modified the function a bit)
 def _foo_read_pos(nas, lpa, rpa, hpi, extra):
     # move into MNE head coords
@@ -111,3 +117,49 @@ def _foo_read_pos(nas, lpa, rpa, hpi, extra):
 
     return _make_dig_points(nasion=nas, lpa=lpa, rpa=rpa,
                             hpi=hpi, extra_points=extra)
+
+##############################################################################
+# From bti
+def _make_bti_dig_points(idx_points, dig_points,
+                         convert=False, use_hpi=False,
+                         bti_dev_t=False, dev_ctf_t=False):
+
+    if convert:
+        logger.info('... putting digitization points in Neuromag c'
+                    'oordinates')
+        trans = get_ras_to_neuromag_trans(nasion=idx_points[2, :],
+                                          lpa=idx_points[0, :],
+                                          rpa=idx_points[1, :])
+    else:
+        trans = None
+
+    ctf_head_t = Transform(fro='ctf_head', to='head', trans=trans)
+
+    if dig_points is not None:
+        # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
+        all_points = np.r_[idx_points, dig_points]
+    else:
+        all_points = idx_points
+
+    if convert:
+        all_points = apply_trans(ctf_head_t['trans'],
+                                 all_points).astype(np.float32)
+
+    my_hpi = None if not use_hpi else all_points[3:len(idx_points), :]
+    info_dig = _make_dig_points(nasion=all_points[2, :],
+                                lpa=all_points[0, :],
+                                rpa=all_points[1, :],
+                                hpi=my_hpi,
+                                extra_points=all_points[len(idx_points):, :],)
+
+    logger.info('... Computing new device to head transform.')
+    # DEV->CTF_DEV->CTF_HEAD->HEAD
+    if convert:
+        t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
+                               'meg', 'ctf_head')
+        dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
+    else:
+        dev_head_t = Transform('meg', 'head', trans=None)
+    logger.info('Done.')
+
+    return info_dig, dev_head_t, ctf_head_t  # ctf_head_t should not be needed
