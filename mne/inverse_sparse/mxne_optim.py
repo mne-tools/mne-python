@@ -336,15 +336,16 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     alpha_lc = alpha / lipschitz_constant
 
+    # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
-    # It is better to call gemm and gemm2 here
+    # It is better to call gemm here
     # so it is called only once
     gemm = linalg.get_blas_funcs("gemm", [R.T, G[:, 0:n_orient]])
     one_ovr_lc = 1. / lipschitz_constant
 
-    # First make G fortran for faster access to blocks of columns
-    assert X.flags.c_contiguous
-    assert R.flags.c_contiguous
+    # assert that all the multiplied matrices are fortran contiguous
+    assert X.T.flags.f_contiguous
+    assert R.T.flags.f_contiguous
     assert G.flags.f_contiguous
     # storing list of contiguous arrays
     list_G_j_c = []
