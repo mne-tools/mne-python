@@ -24,7 +24,7 @@ Changelog
 
 - :func:`~mne.viz.plot_compare_evokeds` will generate topo plots if ``axes='topo'`` by `Jona Sassenhagen`_
 
-- :func:`mne.viz.iter_topography` can yield an additional axis, e.g., for plotting legends by `Jona Sassenhagen`_ and `Daniel McCloy`_
+- ``mne.viz.iter_topography`` can yield an additional axis, e.g., for plotting legends by `Jona Sassenhagen`_ and `Daniel McCloy`_
 
 - Default plot title reflects channel type when ``picks`` is a channel type in :func:`~mne.viz.plot_compare_evokeds` by `Daniel McCloy`_
 
