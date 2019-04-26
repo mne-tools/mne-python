@@ -337,7 +337,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     alpha_lc = alpha / lipschitz_constant
 
     # It is better to call gemm and gemm2 here
-    # however it is faster to call it only once
+    # so it is called only once
     gemm = linalg.get_blas_funcs("gemm", [G[:, 0:n_orient].T, R])
     gemm2 = linalg.get_blas_funcs("gemm", [G[:, 0:n_orient],
                                   X[0:n_orient, :]])
