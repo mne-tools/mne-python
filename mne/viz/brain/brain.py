@@ -193,13 +193,13 @@ class Brain(object):
 
                 self._hemi_meshes[h + '_' + v] = mesh
 
-    def add_data(self, array, min=None, max=None, thresh=None,
-                 colormap="auto", alpha=1,
+    def add_data(self, array, min=None, mid=None, max=None, thresh=None,
+                 center=None, transparent=None, colormap="auto", alpha=1,
                  vertices=None, smoothing_steps=None, time=None,
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 mid=None, center=None, transparent=None, verbose=None):
+                 verbose=None):
         u"""Display data from a numpy array on the surface.
 
         This provides a similar interface to

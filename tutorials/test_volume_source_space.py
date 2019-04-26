@@ -22,7 +22,7 @@ info = raw.info
 volume_labels = ['Left-Cerebral-Cortex', 'Right-Cerebral-Cortex']
 
 src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
-                                    mri='aseg.mgz')#, volume_label=volume_labels)
+                                    mri='aseg.mgz')
 
 conductivity = (0.3,)  # for single layer
 # conductivity = (0.3, 0.006, 0.3)  # for three layers
