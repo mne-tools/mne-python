@@ -228,6 +228,12 @@ def copy_function_doc_to_method_doc(source):
     """
     def wrapper(func):
         doc = source.__doc__.split('\n')
+        if len(doc) == 1:
+            doc = doc[0]
+            if func.__doc__ is not None:
+                doc += func.__doc__
+            func.__doc__ = doc
+            return func
 
         # Find parameter block
         for line, text in enumerate(doc[:-2]):
@@ -282,6 +288,40 @@ def copy_function_doc_to_method_doc(source):
             doc += func.__doc__
         func.__doc__ = doc
         return func
+    return wrapper
+
+
+def copy_base_doc_to_subclass_doc(source):
+    """Use the docstring from a parent class methods in derived class.
+
+    The docstring of the source class methods is prepended to the
+    docstring of the methods of the class wrapped by this decorator.
+
+    Parameters
+    ----------
+    source : Parent class
+        Class to copy the docstring from
+
+    Returns
+    -------
+    wrapper : Derived class
+        The decorated class
+    """
+    def wrapper(subclass):
+        methodList = [method for method in dir(source)
+                      if callable(getattr(source, method))]
+        for method_name in methodList:
+            # discard private methods
+            if method_name[0] == '_':
+                continue
+            base_method = getattr(source, method_name)
+            sub_method = getattr(subclass, method_name)
+            if base_method is not None and sub_method is not None:
+                doc = base_method.__doc__
+                if sub_method.__doc__ is not None:
+                    doc += '\n' + sub_method.__doc__
+                sub_method.__doc__ = doc
+        return subclass
     return wrapper
 
 
