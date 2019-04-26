@@ -54,16 +54,15 @@ RUN pip install vtk && \
     pip install numpy && \
     pip install scipy && \
     pip install pyqt5 && \
-    pip install xvfbwrapper && \
-    pip install mayavi
-
+    pip install xvfbwrapper
     
 RUN pip install ipywidgets && \
     pip install pillow && \
     pip install scikit-learn && \
     pip install nibabel && \
     pip install pysurfer && \
-    pip install mne
+    pip install https://api.github.com/repos/mne-tools/mne-python/zipball/master && \
+    pip install vtki
 
 RUN git init . && \
     git remote add origin https://github.com/mne-tools/mne-python.git && \

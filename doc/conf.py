@@ -422,7 +422,11 @@ if not build_dev_html:
                    'branch': 'master',
                    'binderhub_url': 'https://mybinder.org',
                    'notebooks_dir': 'stable/notebooks',
-                   'dependencies': 'binder/Dockerfile'}
+                   'dependencies': 'binder/Dockerfile',
+                   'first_notebook_cell': ("%matplotlib inline\n"
+                                           "from mne.viz import "
+                                           "set_3d_backend\n"
+                                           "set_3d_backend('vtki')")}
     })
 
 ##############################################################################
