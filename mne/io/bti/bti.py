@@ -150,7 +150,17 @@ def _read_head_shape(fname):
         idx_points = read_double_matrix(fid, BTI.DATA_N_IDX_POINTS, 3)
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
-    return idx_points, dig_points
+    # XXX : reorder to lpa, rpa, nasion so = is direct.
+    nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
+    hpi = idx_points[3:len(idx_points), :]
+
+    # XXX: refactor assert to make sure we do not screw up
+    np.testing.assert_array_equal(
+        np.vstack([lpa, rpa, nasion, hpi]),
+        idx_points
+    )
+
+    return nasion, lpa, rpa, hpi, dig_points
 
 
 def _check_nan_dev_head_t(dev_ctf_t):
@@ -996,17 +1006,7 @@ def _make_bti_digitization(
         logger.info('... Reading digitization points from %s' %
                     head_shape_fname)
 
-        idx_points, dig_points = _read_head_shape(head_shape_fname)
-
-        nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
-        hpi = idx_points[3:len(idx_points), :]
-
-        # XXX: refactor assert to make sure we do not screw up
-        np.testing.assert_array_equal(
-            np.vstack([lpa, rpa, nasion, hpi]),
-            idx_points
-        )
-
+        nasion, lpa, rpa, hpi, dig_points = _read_head_shape(head_shape_fname)
         info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
             nasion, lpa, rpa, hpi, dig_points,
             convert, use_hpi, bti_dev_t, dev_ctf_t)
