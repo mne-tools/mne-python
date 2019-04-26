@@ -319,7 +319,6 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1,
                            dgap_freq=10):
     """Solve L21 inverse problem with block coordinate descent."""
-
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
     n_positions = n_sources // n_orient
@@ -384,8 +383,9 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
 def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
          alpha_lc, gemm, gemm2, list_G_j_c):
-    """Implements one full pass of Block Coordinate Descent (BCD) over the
-    regression coefficients X.
+    """Implement one full pass of BCD.
+
+    BCD stands for Block Coordinate Descent.
     This function was speeded up using scipy.linalg.get_blas_funcs.
 
     Parameters
