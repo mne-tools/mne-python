@@ -50,10 +50,12 @@ class MockLSLStream(object):
         return self
 
     def __enter__(self):
+        """Enter the context manager."""
         self.start()
         return self
 
     def __exit__(self, type_, value, traceback):
+        """Exit the context manager."""
         self.stop()
 
     def _initiate_stream(self):
