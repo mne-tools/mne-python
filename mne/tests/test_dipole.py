@@ -414,4 +414,4 @@ def test_confidence(tmpdir):
                             rtol=1.5e-1, err_msg=key)
 
 
-run_tests_if_main(False)
+run_tests_if_main()
