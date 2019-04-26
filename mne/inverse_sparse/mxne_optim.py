@@ -399,7 +399,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     n_orient : int
         Number of dipoles per positions (typically 1 or 3).
     n_positions : int
-        Number of sources position.
+        Number of source positions.
     alpha_lc: array, shape (n_positions, )
         alpha * (Lipschitz constants).
     gemm: callable
