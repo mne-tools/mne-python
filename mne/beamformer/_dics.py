@@ -208,8 +208,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
             if weight_norm == 'unit-noise-gain':
                 raise ValueError('The computation of a unit-noise-gain '
                                  'beamformer with inversion="single" is not '
-                                 'stable with depth normalization, set depth '
-                                 'to 0.')
+                                 'stable with depth normalization, set  '
+                                 'normalize_fwd to False.')
             combine_xyz = False
         else:
             combine_xyz = 'fro'
