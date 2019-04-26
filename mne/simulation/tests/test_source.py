@@ -289,10 +289,10 @@ def test_source_simulator(_get_fwd_labels):
 
     wfs = [[], [], []]
 
-    wfs[0] = np.array([0, 1., 0])
-    wfs[1] = [np.array([0, 1., 0]),
+    wfs[0] = np.array([0, 1., 0])  # 1d array
+    wfs[1] = [np.array([0, 1., 0]),  # list
               np.array([0, 1.5, 0])]
-    wfs[2] = np.array([1, 1, 1.])
+    wfs[2] = np.array([[1, 1, 1.]])  # 2d array
 
     events = [[], [], []]
     events[0] = np.array([[0, 0, 1], [3, 0, 1]])

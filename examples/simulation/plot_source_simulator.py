@@ -3,8 +3,8 @@
 Generate simulated source data
 ==============================
 
-This example illustrates how to use the mne.simulation.SourceSimulator class
-to generate source estimates and raw data. It is meant to be a brief
+This example illustrates how to use the :class:`mne.simulation.SourceSimulator`
+class to generate source estimates and raw data. It is meant to be a brief
 introduction and only highlights the simplest use case.
 
 """
@@ -32,7 +32,7 @@ subject = 'sample'
 # First, we get an info structure from the test subject.
 evoked_fname = op.join(data_path, 'MEG', subject, 'sample_audvis-ave.fif')
 info = mne.io.read_info(evoked_fname)
-tstep = 1 / info['sfreq']
+tstep = 1. / info['sfreq']
 
 # To simulate sources, we also need a source space. It can be obtained from the
 # forward solution of the sample subject.
@@ -52,15 +52,16 @@ label = mne.label.select_sources(
     subjects_dir=subjects_dir)
 
 # Define the time course of the activity for each source of the region to
-# activate. Here we use a sine wave.
-source_time_series = np.sin(np.linspace(0, 4 * np.pi, 100)) * 10e-9
+# activate. Here we use a sine wave at 18 Hz with a peak amplitude
+# of 10 nAm.
+source_time_series = np.sin(2. * np.pi * 18. * np.arange(100) * tstep) * 10e-9
 
 # Define when the activity occurs using events. The first column is the sample
 # of the event, the second is not used, and the third is the event id. Here the
 # events occur every 200 samples.
-nb_events = 50
-events = np.zeros((nb_events, 3))
-events[:, 0] = np.arange(100, 200 * nb_events + 1, 200)  # Events sample.
+n_events = 50
+events = np.zeros((n_events, 3))
+events[:, 0] = 100 + 200 * np.arange(n_events)  # Events sample.
 events[:, 2] = 1  # All events have the sample id.
 
 # Create simulated source activity. Here we use a SourceSimulator whose
