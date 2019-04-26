@@ -2311,7 +2311,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
 
     # style the spines/axes
     axes.spines["top"].set_position('zero')
-    if truncate_xaxis is True:
+    if truncate_xaxis:
         axes.spines["top"].set_smart_bounds(True)
     else:
         axes.spines['top'].set_bounds(tmin, tmax)
@@ -2336,44 +2336,34 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
                                     if invert_y else ylabel_height)
 
-    # this section is very long because the axes can become very small
-    # with topo plotting. This interferes with boundaries if the epoch is short
+    # the axes can become very small with topo plotting. This prevents the
+    # x-axis from shrinking to length zero if truncate_xaxis=True, by adding
+    # new ticks that are nice round numbers close to (but less extreme than)
+    # tmin and tmax
     vlines = [] if vlines is None else vlines
     xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
-    x_extrema = [t for t in xticks if tmax >= t and t >= tmin]
-    if len(x_extrema) < 2:  # can happen with one time point
-        x_extrema = [tmin, tmax]
-    if truncate_xaxis is True:
-        axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    ticks_in_range = [t for t in xticks if tmax >= t >= tmin]
+    if len(ticks_in_range) < 2:
+        def log_fix(tval):
+            exp = np.log10(np.abs(tval))
+            return np.sign(tval) * 10 ** (np.fix(exp) - (exp < 0))
+        tlims = np.array([tmin, tmax])
+        temp_ticks = log_fix(tlims)
+        closer_idx = np.argmin(np.abs(tlims - temp_ticks))
+        further_idx = np.argmax(np.abs(tlims - temp_ticks))
+        start_stop = [temp_ticks[closer_idx], tlims[further_idx]]
+        step = np.sign(np.diff(start_stop)) * np.max(np.abs(temp_ticks))
+        tts = np.arange(*start_stop, step)
+        ticks_in_range = sorted(ticks_in_range + [tts[0]] + [tts[-1]])
+
+    if truncate_xaxis:
+        axes.spines['bottom'].set_bounds(ticks_in_range[0], ticks_in_range[-1])
     else:
         axes.spines['bottom'].set_bounds(tmin, tmax)
     if ymin >= 0:
         axes.spines["top"].set_color('none')
     axes.spines["left"].set_zorder(0)
-
-    plotmin, plotmax = axes.spines["bottom"].get_bounds()
-    plotted_xticks = [t for t in xticks if plotmax > t and t > plotmin]
-    if len(plotted_xticks) < 2:
-        max_t = max(tmax, abs(tmin))
-        if max_t >= 1:
-            lone_tick = 1
-        elif max_t >= .5:
-            lone_tick = .5
-        elif max_t >= .25:
-            lone_tick = .25
-        elif max_t >= .1:
-            lone_tick = .1
-        else:
-            lone_tick = max_t * .9
-
-        if abs(plotmin) < plotmax:
-            xticks = xticks + [lone_tick]
-            axes.spines["bottom"].set_bounds(0, lone_tick)
-        else:
-            xticks = [-lone_tick] + xticks
-            axes.spines["bottom"].set_bounds(lone_tick, 0)
-
-    axes.set_xticks(xticks)
+    axes.set_xticks(ticks_in_range)
 
     # finishing touches
     if invert_y:
