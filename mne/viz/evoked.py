@@ -2272,6 +2272,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         layout = find_layout(info)
         # shift everything to the right by 15% of one axes width
         layout.pos[:, 0] += layout.pos[0, 2] * .15
+        # fixme: prevent having to loop over the axes multiple times
         axes = list(iter_topography(
             info, layout=layout, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
