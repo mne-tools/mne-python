@@ -364,7 +364,7 @@ class SourceSimulator(object):
         return int(self.duration / self._tstep)
 
     def add_data(self, label, waveform, events):
-        """Add data to the simulation
+        """Add data to the simulation.
 
         Data should be added in the form of a triplet of
         Label (Where) - Waveform(s) (What) - Event(s) (When)
@@ -425,7 +425,7 @@ class SourceSimulator(object):
 
         Returns
         -------
-        stim_data : array of int, shape (stop_sample - start_sample,)
+        stim_data : ndarray of int, shape (n_samples,)
             The stimulation channel data.
         """
         if stop_sample is None:
@@ -510,6 +510,7 @@ class SourceSimulator(object):
         return stc
 
     def __iter__(self):
+        """Iterate over 1 second STCs."""
         # Arbitrary chunk size, can be modified later to something else
         # Loop over chunks of 1 second - or, maximum sample size.
         # Can be modified to a different value.
