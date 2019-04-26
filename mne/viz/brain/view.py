@@ -1,9 +1,6 @@
 from collections import namedtuple
 import sys
 
-from bqplot import Axis, ColorScale, Figure, HeatMap, LinearScale
-import ipyvolume as ipv
-import ipywidgets as widgets
 import numpy as np
 
 
@@ -38,6 +35,9 @@ class TimeViewer(object):
     """
 
     def __init__(self, brain):
+        import ipyvolume as ipv
+        import ipywidgets as widgets
+
         if brain.data['time'] is None:
             raise ValueError('Brain class instance does not have time data.')
 
@@ -80,6 +80,7 @@ class TimeViewer(object):
 
     def show(self):
         u"""Display widget."""
+        import ipyvolume as ipv
         ipv.show()
 
     def _get_label(self, time):
@@ -116,6 +117,10 @@ class ColorBar(object):
     """
 
     def __init__(self, brain):
+        from bqplot import Axis, ColorScale, Figure, HeatMap, LinearScale
+        import ipyvolume as ipv
+        import ipywidgets as widgets
+
         self._brain = brain
         self._input_fmin = None
         self._input_fmid = None
@@ -233,6 +238,8 @@ class ColorBar(object):
 
     def _add_inputs(self):
         u"""Add inputs and update button."""
+        import ipywidgets as widgets
+
         val_min = self._brain.data['fmin']
         val_mid = self._brain.data['fmid']
         val_max = self._brain.data['fmax']

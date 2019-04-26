@@ -1,5 +1,4 @@
 import numpy as np
-from surfer.utils import mesh_edges, smoothing_matrix
 
 from .colormap import _calculate_lut
 from .view import views_dict
@@ -314,6 +313,8 @@ class Brain(object):
             raise ValueError('"vector_alpha" is not supported yet.')
         if verbose is not None:
             raise ValueError('"verbose" is not supported yet.')
+
+        from surfer.utils import mesh_edges, smoothing_matrix
 
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)

@@ -1,5 +1,3 @@
-from matplotlib import cm
-from matplotlib.colors import ListedColormap
 import numpy as np
 
 
@@ -46,6 +44,9 @@ def _calculate_lut(lim_cmap, alpha, fmin, fmid, fmax, center=None):
     cmap : matplotlib.ListedColormap
         Color map with transparency channel.
     """
+    from matplotlib import cm
+    from matplotlib.colors import ListedColormap
+
     if center is None:
         # 'hot' or another linear color map
         ctrl_pts = (fmin, fmid, fmax)

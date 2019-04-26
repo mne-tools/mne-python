@@ -1,8 +1,6 @@
 from os import path as path
 
-from nibabel import freesurfer
 import numpy as np
-from surfer.utils import _check_units, _compute_normals, _get_subjects_dir
 
 
 class Surface(object):
@@ -65,6 +63,8 @@ class Surface(object):
                  subjects_dir=None,
                  offset=None,
                  units='mm'):
+        from surfer.utils import _check_units, _get_subjects_dir
+
         hemis = ('lh', 'rh')
 
         if hemi not in hemis:
@@ -102,6 +102,9 @@ class Surface(object):
         -------
         None
         """
+        from nibabel import freesurfer
+        from surfer.utils import _compute_normals
+
         surf_path = path.join(self.data_path, 'surf',
                               '%s.%s' % (self.hemi, self.surf))
         coords, faces = freesurfer.read_geometry(surf_path)
@@ -141,6 +144,7 @@ class Surface(object):
 
     def load_curvature(self):
         """Load in curvature values from the ?h.curv file."""
+        from nibabel import freesurfer
         curv_path = path.join(self.data_path, 'surf', '%s.curv' % self.hemi)
         self.curv = freesurfer.read_morph_data(curv_path)
         self.bin_curv = np.array(self.curv > 0, np.int)
@@ -161,6 +165,7 @@ class Surface(object):
         argument.
 
         """
+        from nibabel import freesurfer
         label = freesurfer.read_label(path.join(self.data_path,
                                                 'label',
                                                 '%s.%s.label' %
