@@ -301,6 +301,8 @@ Changelog
 
 - Handle different time vectors in topography plots using :func:`mne.viz.plot_evoked_topo` by `Jussi Nurminen`_
 
+- Speed up :func:`_mixed_norm_solver_bcd` (called by :func:`mixed_norm` if the :solver: parameter is set to `bcd`) using :func:`func:scipy.linalg.get_blas_func`.
+
 Bug
 ~~~
 
@@ -499,6 +501,7 @@ People who contributed to this release  (in alphabetical order):
 * 	Marijn van Vliet
 * 	Mikolaj Magnuski
 * 	Peter J. Molfese
+*   Quentin Bertrand
 * 	Sam Perry
 * 	Sara Sommariva
 * 	Sergey Antopolskiy
@@ -3283,3 +3286,5 @@ of commits):
 .. _Bruno Nicenboim: http://nicenboim.org
 
 .. _Nikolas Chalas: https://github.com/Nichalas
+
+.. _Quentin Bertrand: https://github.com/QB3
