@@ -353,7 +353,7 @@ class SourceSimulator():
         """Duration of the simulation"""
         # If not, the precomputed maximum last sample is used
         if self._duration is None:
-            return int(np.max(self._last_samples) * self._tstep)
+            return np.max(self._last_samples) * self._tstep
         return self._duration
 
     @property
