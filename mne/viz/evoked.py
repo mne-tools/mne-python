@@ -36,7 +36,8 @@ from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _set_contour_locator)
-from ..channels.layout import _pair_grad_sensors, _auto_topomap_coords
+from ..channels.layout import (_pair_grad_sensors, _auto_topomap_coords,
+                               find_layout)
 
 
 def _butterfly_onpick(event, params):
@@ -1760,6 +1761,12 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
         ax_cb.yaxis.tick_right()
         ax_cb.set(xticks=(), ylabel=cmap_label)
 
+    if do_topo:
+        # we need the lines for the legends, but then we can kill them
+        ax.lines.clear()
+        ax.set_title("")
+        del ax.texts[-1]
+
 
 def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
                                     truncate_yaxis,  truncate_xaxis, invert_y,
@@ -2262,10 +2269,13 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 show_legend=show_legend, split_legend=split_legend,
                 show=True, picks=picks[pick_], axes=ax_)
 
+        layout = find_layout(info)
+        # shift everything to the rightby 15% of one axes width
+        layout.pos[:, 0] += layout.pos[0, 2] * .15
         axes = list(iter_topography(
-            info, layout=None, on_pick=click_func,
+            info, layout=layout, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
-            axis_spinecolor='k', layout_scale=.925))
+            axis_spinecolor='k', layout_scale=.925, do_legend=True))
     del info
 
     ymin, ymax = ylim.get(ch_type, [None, None])
@@ -2309,14 +2319,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     del evokeds
 
     if do_topo:
-        # ax_anchors are left, bottom coords of axis (in figure coords)
-        ax_anchors = np.array([np.array(ax_.get_position())[0]
-                               for ax_, _ in axes])
-        left, bottom = ax_anchors[:, 0].max(), ax_anchors[:, 1].min()
-        # add an axis for the legend
-        (lef, bot), (wid, hei) = np.array(ax.get_position())
-        legend_ax = plt.axes([left, bottom + .05, wid - lef, hei - bot])
-        axes.append((legend_ax, -1))
         picks.append(-1)
 
     # add empty data (all zeros) for the legend axis
@@ -2352,6 +2354,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             truncate_yaxis, truncate_xaxis, invert_y, vlines, tmin, tmax, unit,
             skip_axlabel=skip_axlabel)
         ax_.patch.set_alpha(0)
+        if do_topo and idx != -1:
+            ax_.set_yticklabels([])
+            ax_.set_xticklabels([])
 
     # 2 legends.
     # a head plot showing the sensors that are being plotted
@@ -2372,12 +2377,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         color_conds, color_order, cmap_label,
         linestyles if not split_legend else styles_for_split_legend, ax_,
         do_topo)
-
-    if do_topo:
-        # we need the lines for the legends, but then we can kill them
-        ax_.lines.clear()
-        ax_.set_title("")
-        del ax_.texts[-1]
 
     plt_show(show)
     return ax.figure
