@@ -156,6 +156,11 @@ def test_plot_topo():
                         evoked.times)
     plt.close('all')
 
+    for ax, idx in iter_topography(evoked.info):  # brief test with false
+        ax.plot([0, 1, 2])
+        break
+    plt.close('all')
+
 
 def test_plot_topo_single_ch():
     """Test single channel topoplot with time cursor."""
