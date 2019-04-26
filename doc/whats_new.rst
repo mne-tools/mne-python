@@ -121,7 +121,7 @@ Changelog
 
 Bug
 ~~~
-- Fix :meth:`mne.io.brainvision.brainvision._read_annotations_brainvision` to accomodate vmrk files which do not have any annotations by `Alexander Kovrig`_
+- Fix :func:`mne.io.read_raw_brainvision` to accomodate vmrk files which do not have any annotations by `Alexander Kovrig`_
 
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
