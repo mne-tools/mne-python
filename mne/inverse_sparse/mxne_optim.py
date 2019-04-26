@@ -382,7 +382,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     """Implement one full pass of BCD.
 
     BCD stands for Block Coordinate Descent.
-    This function was speeded up using scipy.linalg.get_blas_funcs.
+    This function make use of scipy.linalg.get_blas_funcs to speed reasons.
 
     Parameters
     ----------
