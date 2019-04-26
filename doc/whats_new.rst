@@ -186,6 +186,8 @@ Bug
 
 - Fix :func:`mne.io.read_raw_egi` when cropping non-preloaded EGI MFF data by `Alex Gramfort`_
 
+- Fix :meth:`mne.io.Raw.interpolate_bads` for interpolating CTF MEG channels when reference sensors are present by `jeythekey`_
+
 API
 ~~~
 
