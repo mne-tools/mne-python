@@ -51,6 +51,8 @@ Changelog
 
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
 
+- Add :class:`mne.simulation.SourceSimulator` class to simplify simulating SourceEstimates, by `Samuel Deslauriers-Gauthier`_, `Kostiantyn Maksymenko`_, `Nathalie Gayraud`_, `Ivana Kojcic`_, `Alex Gramfort`_, and `Eric Larson`_
+
 - :func:`mne.io.read_raw_edf` now detects analog stim channels labeled ``'STATUS'`` and sets them as stim channel. :func:`mne.io.read_raw_edf` no longer synthesize TAL annotations into stim channel but stores them in ``raw.annotations`` when reading by `Joan Massich`_
 
 - Add `mne.simulation.add_noise` for ad-hoc noise addition to `io.Raw`, `Epochs`, and `Evoked` instances, by `Eric Larson`_
@@ -3307,3 +3309,5 @@ of commits):
 .. _Ivana Kojcic: https://github.com/ikojcic
 
 .. _Nikolas Chalas: https://github.com/Nichalas
+
+.. _Kostiantyn Maksymenko: https://github.com/makkostya
