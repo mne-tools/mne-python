@@ -187,7 +187,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
     click_func = show_func if click_func is None else click_func
     on_pick = partial(click_func, tmin=tmin, tmax=tmax, vmin=vmin,
                       vmax=vmax, ylim=ylim, x_label=x_label,
-                      y_label=y_label, colorbar=colorbar)
+                      y_label=y_label)
 
     if axes is None:
         fig = plt.figure()
@@ -481,11 +481,13 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
 def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
                      epochs=None, sigma=None, order=None, scalings=None,
                      vline=None, x_label=None, y_label=None, colorbar=False,
-                     cmap='RdBu_r'):
+                     cmap='RdBu_r', vlim_array=None):
     """Plot erfimage on sensor topography."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
-    this_data = data[:, ch_idx, :].copy() * scalings[ch_idx]
+    this_data = data[:, ch_idx, :]
+    if vlim_array is not None:
+        vmin, vmax = vlim_array[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -512,7 +514,8 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
 def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                              data=None, epochs=None, sigma=None, order=None,
                              scalings=None, vline=None, x_label=None,
-                             y_label=None, colorbar=False, cmap='RdBu_r'):
+                             y_label=None, colorbar=False, cmap='RdBu_r',
+                             vlim_array=None):
     """Plot erfimage topography using a single axis."""
     from scipy import ndimage
     _compute_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
@@ -520,7 +523,8 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,
               bn.y_t + bn.y_s * len(epochs.events))
-    this_data = data[:, ch_idx, :].copy() * scalings[ch_idx]
+    this_data = data[:, ch_idx, :]
+    vmin, vmax = (None, None) if vlim_array is None else vlim_array[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -798,7 +802,7 @@ def _plot_update_evoked_topo_proj(params, bools):
 
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
-                           vmax=None, colorbar=True, order=None, cmap='RdBu_r',
+                           vmax=None, colorbar=None, order=None, cmap='RdBu_r',
                            layout_scale=.95, title=None, scalings=None,
                            border='none', fig_facecolor='k',
                            fig_background=None, font_color='w', show=True):
@@ -806,7 +810,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
 
     Parameters
     ----------
-    epochs : instance of Epochs
+    epochs : instance of :class:`~mne.Epochs`
         The epochs.
     layout: instance of Layout
         System specific sensor positions.
@@ -819,8 +823,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     vmax : float
         The max value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
-    colorbar : bool
-        Display or not a colorbar.
+    colorbar : bool | None
+        Whether to display a colorbar or not. If ``None`` a colorbar will be
+        shown only if all channels are of the same type. Defaults to ``None``.
     order : None | array of int | callable
         If not None, order is used to reorder the epochs on the y-axis
         of the image. If it's an array of int it should be of length
@@ -836,40 +841,69 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         Title of the figure.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If
-        None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        ``None``, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     border : str
         matplotlib borders style to be used for each sensor plot.
     fig_facecolor : color
         The figure face color. Defaults to black.
     fig_background : None | array
         A background image for the figure. This must be a valid input to
-        `matplotlib.pyplot.imshow`. Defaults to None.
+        :func:`matplotlib.pyplot.imshow`. Defaults to ``None``.
     font_color : color
         The color of tick labels in the colorbar. Defaults to white.
     show : bool
-        Show figure if True.
+        Whether to show the figure. Defaults to ``True``.
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
+    fig : instance of :class:`matplotlib.figure.Figure`
         Figure distributing one image per channel across sensor topography.
+
+    Notes
+    -----
+    In an interactive Python session, this plot will be interactive; clicking
+    on a channel image will pop open a larger view of the image; this image
+    will always have a colorbar even when the topo plot does not (because it
+    shows multiple sensor types).
     """
     scalings = _handle_default('scalings', scalings)
-    data = epochs.get_data()
-    scale_coeffs = list()
-    for idx in range(epochs.info['nchan']):
-        ch_type = channel_type(epochs.info, idx)
-        scale_coeffs.append(scalings.get(ch_type, 1))
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
+    # make a copy because we discard non-data channels and scale the data
+    epochs = epochs.copy()
+    # use layout to subset channels present in epochs object
     if layout is None:
         layout = find_layout(epochs.info)
+    ch_names = set(layout.names) & set(epochs.ch_names)
+    idxs = [epochs.ch_names.index(ch_name) for ch_name in ch_names]
+    epochs = epochs.pick(idxs)
+    # iterate over a sequential index to get lists of chan. type & scale coef.
+    ch_idxs = range(epochs.info['nchan'])
+    ch_types = [channel_type(epochs.info, idx) for idx in ch_idxs]
+    scale_coeffs = [scalings.get(ch_type, 1) for ch_type in ch_types]
+    # scale the data
+    epochs._data *= np.array(scale_coeffs)[:, np.newaxis]
+    data = epochs.get_data()
+    # get vlims for each channel type
+    vlim_dict = dict()
+    for ch_type in set(ch_types):
+        this_data = data[:, np.where(np.array(ch_types) == ch_type)]
+        vlim_dict[ch_type] = _setup_vmin_vmax(this_data, vmin, vmax)
+    vlim_array = np.array([vlim_dict[ch_type] for ch_type in ch_types])
+    # only show colorbar if we have a single channel type
+    if colorbar is None:
+        colorbar = (len(set(ch_types)) == 1)
+    # if colorbar=True, we know we have only 1 channel type so all entries
+    # in vlim_array are the same, just take the first one
+    if colorbar and vmin is None and vmax is None:
+        vmin, vmax = vlim_array[0]
 
     show_func = partial(_erfimage_imshow_unified, scalings=scale_coeffs,
                         order=order, data=data, epochs=epochs, sigma=sigma,
-                        cmap=cmap)
+                        cmap=cmap, vlim_array=vlim_array)
+
     erf_imshow = partial(_erfimage_imshow, scalings=scale_coeffs, order=order,
-                         data=data, epochs=epochs, sigma=sigma, cmap=cmap)
+                         data=data, epochs=epochs, sigma=sigma, cmap=cmap,
+                         vlim_array=vlim_array, colorbar=True)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
                      click_func=erf_imshow, show_func=show_func, layout=layout,

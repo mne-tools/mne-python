@@ -250,7 +250,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 elif inversion == 'matrix':
                     # Invert for all dipoles simultaneously using matrix
                     # inversion.
-                    norm = linalg.pinv(Ck, 0.1)
+                    norm = linalg.pinv2(Ck)
                 # Reapply source covariance after inversion
                 norm *= sk
                 norm *= sk[:, np.newaxis]

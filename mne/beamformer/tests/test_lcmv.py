@@ -208,7 +208,7 @@ def test_make_lcmv(tmpdir, reg, proj):
         max_stc = stc.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert 0.09 < tmax < 0.12, tmax
+        assert 0.08 < tmax < 0.14, tmax
         assert 0.9 < np.max(max_stc) < 3., np.max(max_stc)
 
         if fwd is forward:
@@ -225,9 +225,9 @@ def test_make_lcmv(tmpdir, reg, proj):
             tmax = stc_normal.times[np.argmax(max_stc)]
 
             lower = 0.04 if proj else 0.025
-            assert lower < tmax < 0.13, tmax
+            assert lower < tmax < 0.14, tmax
             lower = 3e-7 if proj else 2e-7
-            assert lower < np.max(max_stc) < 5e-7, np.max(max_stc)
+            assert lower < np.max(max_stc) < 3e-6, np.max(max_stc)
 
             # No weight normalization was applied, so the amplitude of normal
             # orientation results should always be smaller than free
@@ -260,7 +260,7 @@ def test_make_lcmv(tmpdir, reg, proj):
             mean_stc_max_pow = \
                 stc_max_power.extract_label_time_course(label, fwd['src'],
                                                         mode='mean')
-            assert_array_less(np.abs(mean_stc - mean_stc_max_pow), 0.6)
+            assert_array_less(np.abs(mean_stc - mean_stc_max_pow), 1.0)
 
         # Test NAI weight normalization:
         filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg,
@@ -748,12 +748,12 @@ def test_lcmv_reg_proj(proj, weight_norm):
         # None always represents something not normalized, reflecting channel
         # weights
         for stc in (stc_nocov, stc_cov):
-            assert_allclose(stc.data.std(), 1.4e-8, rtol=0.1)
+            assert_allclose(stc.data.std(), 2.8e-8, rtol=0.1)
     else:
         assert weight_norm == 'unit-noise-gain'
         # Channel scalings depend on presence of noise_cov
         assert_allclose(stc_nocov.data.std(), 5.3e-13, rtol=0.1)
-        assert_allclose(stc_cov.data.std(), 0.12, rtol=0.1)
+        assert_allclose(stc_cov.data.std(), 0.13, rtol=0.1)
 
 
 @pytest.mark.parametrize('reg, weight_norm, use_cov, depth, lower, upper', [
@@ -787,7 +787,7 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper', [
         (0.05, 'vector', 'unit-noise-gain', True, None, 36, 39),
-        (0.05, 'vector', 'unit-noise-gain', False, None, 23, 25),
+        (0.05, 'vector', 'unit-noise-gain', False, None, 11, 13),
         (0.05, 'vector', 'nai', True, None, 36, 39),
         (0.05, 'vector', None, True, None, 12, 14),
         (0.05, 'vector', None, True, 0.8, 39, 43),
