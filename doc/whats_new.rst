@@ -18,7 +18,7 @@ Current
 
 Changelog
 ~~~~~~~~~
-- Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Èric Larson`_
+- Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
 
 - :func:`mne.simulation.simulate_stc` now allows for label overlaps by `Nathalie Gayraud`_, and `Ivana Kojcic`_
 
