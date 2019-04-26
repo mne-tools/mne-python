@@ -138,10 +138,12 @@ def test_plot_topo():
     # Test RMS plot of grad pairs
     picked_evoked.plot_topo(merge_grads=True, background_color='w')
     plt.close('all')
-    for ax, idx in iter_topography(evoked.info):
+    for ax, idx in iter_topography(evoked.info, do_legend=True):
         ax.plot(evoked.data[idx], color='red')
         # test status bar message
-        assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
+        if idx != -1:
+            assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
+    assert idx == -1
     plt.close('all')
     cov = read_cov(cov_fname)
     cov['projs'] = []
