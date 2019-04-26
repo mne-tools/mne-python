@@ -121,6 +121,8 @@ Changelog
 
 Bug
 ~~~
+- Fix :func:`mne.io.brainvision.brainvision._read_annotations_brainvision` to accomodate vmrk files which do not have any annotations by `Alexander Kovrig`_
+
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
 - Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
