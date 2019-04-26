@@ -869,7 +869,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     scalings = _handle_default('scalings', scalings)
 
     # make a copy because we discard non-data channels and scale the data
-    epochs = epochs.copy()
+    epochs = epochs.copy().load_data()
     # use layout to subset channels present in epochs object
     if layout is None:
         layout = find_layout(epochs.info)
