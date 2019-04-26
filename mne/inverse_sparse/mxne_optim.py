@@ -397,7 +397,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     one_ovr_lc : array, shape (n_positions, )
         One over the lipschitz constants.
     n_orient : int
-        Number of dipoles per locations (typically 1 or 3).
+        Number of dipoles per positions (typically 1 or 3).
     n_positions : int
         Number of sources position.
     alpha_lc: array, shape (n_positions, )
