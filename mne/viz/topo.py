@@ -25,7 +25,7 @@ from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
-                    axis_spinecolor='k', layout_scale=None, do_legend=False):
+                    axis_spinecolor='k', layout_scale=None, legend=False):
     """Create iterator over channel positions.
 
     This function returns a generator that unpacks into
@@ -58,7 +58,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     layout_scale: float | None
         Scaling factor for adjusting the relative size of the layout
         on the canvas. If None, nothing will be scaled.
-    do_legend: bool
+    legend: bool
         If True, an additional axis is created in the bottom right corner
         that can be used to, e.g., construct a legend. The index of this
         axis will be -1.
@@ -75,7 +75,8 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     """
     return _iter_topography(info, layout, on_pick, fig, fig_facecolor,
                             axis_facecolor, axis_spinecolor, layout_scale,
-                            do_legend=do_legend)
+                            legend=legend)
+
 
 def _legend_axis(pos):
     """Add a legend axis to the bottom right."""
@@ -88,7 +89,7 @@ def _legend_axis(pos):
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                      axis_facecolor='k', axis_spinecolor='k',
                      layout_scale=None, unified=False, img=False, axes=None,
-                     do_legend=False):
+                     legend=False):
     """Iterate over topography.
 
     Has the same parameters as iter_topography, plus:
@@ -152,11 +153,12 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
         if not unified:  # old, slow way
             ax = plt.axes(pos[idx])
             ax.patch.set_facecolor(axis_facecolor)
-            plt.setp(list(ax.spines.values()), color=axis_spinecolor)
-            if not do_legend:
+            for spine in ax.spines.values():
+                spine.set_color(axis_spinecolor)
+            if not legend:
                 ax.set(xticklabels=[], yticklabels=[])
-                plt.setp(ax.get_xticklines(), visible=False)
-                plt.setp(ax.get_yticklines(), visible=False)
+                for tick in ax.get_xticklines() + ax.get_yticklines():
+                    tick.set_visible(False)
             ax._mne_ch_name = name
             ax._mne_ch_idx = ch_idx
             ax._mne_ax_face_color = axis_facecolor
@@ -167,7 +169,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                        _mne_ch_name=name, _mne_ch_idx=ch_idx,
                        _mne_ax_face_color=axis_facecolor)
             axs.append(ax)
-    if not unified and do_legend:
+    if not unified and legend:
         ax = _legend_axis(pos)
         yield ax, -1
 

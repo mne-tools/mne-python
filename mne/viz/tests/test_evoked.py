@@ -321,7 +321,7 @@ def test_plot_compare_evokeds():
                          split_legend=None)
     with pytest.raises(ValueError, match="If `split_legend` is True"):
         plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    with pytest.raises(ValueError, match='more than'):
+    with pytest.raises(ValueError, match='Please supply colors manually'):
         plot_compare_evokeds([red] * 20)
     with pytest.raises(ValueError, match='must specify the colors'):
         plot_compare_evokeds(contrasts, cmap='summer')

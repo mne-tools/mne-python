@@ -138,7 +138,7 @@ def test_plot_topo():
     # Test RMS plot of grad pairs
     picked_evoked.plot_topo(merge_grads=True, background_color='w')
     plt.close('all')
-    for ax, idx in iter_topography(evoked.info, do_legend=True):
+    for ax, idx in iter_topography(evoked.info, legend=True):
         ax.plot(evoked.data[idx], color='red')
         # test status bar message
         if idx != -1:

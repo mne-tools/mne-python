@@ -1732,8 +1732,8 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
         # override if topoplot and default loc
         if do_topo and (
                 isinstance(show_legend_orig, bool) and show_legend_orig):
-            del legend_params["loc"]
-            legend_params["bbox_to_anchor"] = (-.5, .75)
+            legend_params["loc"] = "lower right"
+            legend_params["bbox_to_anchor"] = (1, 1)
         if split_legend:
             if len(legend_lines) > 1:
                 ax.legend(
@@ -2272,11 +2272,12 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         layout = find_layout(info)
         # shift everything to the right by 15% of one axes width
         layout.pos[:, 0] += layout.pos[0, 2] * .15
+        layout.pos[:, 1] += layout.pos[0, 3] * .15
         # fixme: prevent having to loop over the axes multiple times
         axes = list(iter_topography(
             info, layout=layout, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
-            axis_spinecolor='k', layout_scale=.925, do_legend=True))
+            axis_spinecolor='k', layout_scale=.925, legend=True))
     del info
 
     ymin, ymax = ylim.get(ch_type, [None, None])
