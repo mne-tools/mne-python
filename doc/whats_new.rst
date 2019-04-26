@@ -3309,3 +3309,5 @@ of commits):
 .. _Ivana Kojcic: https://github.com/ikojcic
 
 .. _Nikolas Chalas: https://github.com/Nichalas
+
+.. _Alexander Kovrig: https://github.com/OpenSatori
