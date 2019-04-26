@@ -64,10 +64,11 @@ RUN pip install ipywidgets && \
     pip install https://api.github.com/repos/mne-tools/mne-python/zipball/master && \
     pip install vtki
 
+
 RUN git init . && \
-    git remote add origin https://github.com/mne-tools/mne-python.git && \
-    git fetch origin gh-pages && \
-    git checkout gh-pages
+    git remote add origin https://github.com/jasmainak/mne-python.git && \
+    git fetch origin master && \
+    git checkout master
 
 RUN ipython -c "import mne; print(mne.datasets.sample.data_path(verbose=False))"
 
