@@ -1,11 +1,13 @@
 """Core visualization operations based on ipyvolume."""
-
-import ipyvolume as ipv
+import warnings
 import numpy as np
 from .base_renderer import _BaseRenderer
-from pythreejs import (BlendFactors, BlendingMode, Equations, ShaderMaterial,
-                       Side)
 from ...utils import copy_base_doc_to_subclass_doc
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import ipyvolume as ipv
+    from pythreejs import (BlendFactors, BlendingMode, Equations,
+                           ShaderMaterial, Side)
 
 
 @copy_base_doc_to_subclass_doc(_BaseRenderer)
