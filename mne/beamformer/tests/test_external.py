@@ -1,3 +1,7 @@
+# Authors: Britta Westner <britta.wstnr@gmail.com>
+#
+# License: BSD (3-clause)
+
 # preparing everything:
 import mne
 import numpy as np
