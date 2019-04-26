@@ -96,7 +96,6 @@ def test_fieldtrip_rtepochs(free_tcp_port, tmpdir):
 @requires_neuromag2ft
 def test_fieldtrip_client(free_tcp_port):
     """Test fieldtrip_client."""
-
     neuromag2ft_fname = op.realpath(op.join(os.environ['NEUROMAG2FT_ROOT'],
                                             'neuromag2ft'))
     # Works with neuromag2ft-3.0.2
