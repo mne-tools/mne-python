@@ -27,7 +27,7 @@ from ._logging import (verbose, logger, set_log_level, set_log_file,
 from .misc import (run_subprocess, _pl, _clean_names, _Counter, pformat,
                    _explain_exception, _get_argvalues, sizeof_fmt)
 from .progressbar import ProgressBar
-from ._testing import (_memory_usage, run_tests_if_main, requires_sklearn,
+from ._testing import (run_tests_if_main, requires_sklearn,
                        requires_version, requires_nibabel, requires_mayavi,
                        requires_good_network, requires_mne, requires_pandas,
                        requires_h5py, traits_test, requires_pysurfer,
