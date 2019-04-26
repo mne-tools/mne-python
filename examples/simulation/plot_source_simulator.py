@@ -2,6 +2,11 @@
 ==============================
 Generate simulated source data
 ==============================
+
+This example illustrates how to use the mne.simulation.SourceSimulator class
+to generate source estimates and raw data. It is meant to be a brief
+introduction and only highlights the simplest use case.
+
 """
 # Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
@@ -21,12 +26,12 @@ print(__doc__)
 # This will download the data if it not already on your machine. We also set
 # the subjects directory so we don't need to give it to functions.
 data_path = sample.data_path()
-mne.set_config('SUBJECTS_DIR', op.join(data_path, 'subjects'))
+subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
 
 # First, we get an info structure from the test subject.
-ave_filename = op.join(data_path, 'MEG', subject, 'sample_audvis-ave.fif')
-info = mne.io.read_info(ave_filename)
+evoked_fname = op.join(data_path, 'MEG', subject, 'sample_audvis-ave.fif')
+info = mne.io.read_info(evoked_fname)
 tstep = 1 / info['sfreq']
 
 # To simulate sources, we also need a source space. It can be obtained from the
@@ -38,12 +43,13 @@ src = fwd['src']
 
 # To select a region to activate, we use the caudal middle frontal to grow
 # a region of interest.
-atlas = mne.read_labels_from_annot(subject)
-selected_label = next(l for l in atlas if l.name == 'caudalmiddlefrontal-lh')
+selected_label = mne.read_labels_from_annot(
+    subject, regexp='caudalmiddlefrontal-lh', subjects_dir=subjects_dir)[0]
 location = 'center'  # Use the center of the region as a seed.
 extent = 10.  # Extent in mm of the region.
 label = mne.label.select_sources(
-    subject, selected_label, location=location, extent=extent)
+    subject, selected_label, location=location, extent=extent,
+    subjects_dir=subjects_dir)
 
 # Define the time course of the activity for each source of the region to
 # activate. Here we use a sine wave.

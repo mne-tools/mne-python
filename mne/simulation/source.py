@@ -477,14 +477,14 @@ class SourceSimulator():
                                                   self._events[ind])):
             # We retrieve the first and last sample of each waveform
             # According to the corresponding event
-            wf_begin = event[0]
-            wf_end = self._last_samples[ind[i]]
+            wf_start = event[0]
+            wf_stop = self._last_samples[ind[i]]
             # Recover the indices of the event that should be in the chunk
-            waveform_ind = np.in1d(np.arange(wf_begin, wf_end),
+            waveform_ind = np.in1d(np.arange(wf_start, wf_stop),
                                    np.arange(start_sample, end_sample))
             # Recover the indices that correspond to the overlap
             stc_ind = np.in1d(np.arange(start_sample, end_sample),
-                              np.arange(wf_begin, wf_end))
+                              np.arange(wf_start, wf_stop))
             # add the resulting waveform chunk to the corresponding label
             stc_data[ind[i]][stc_ind] += waveform[waveform_ind]
         stc = simulate_stc(self._src, self._labels, stc_data,
