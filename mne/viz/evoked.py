@@ -1816,6 +1816,7 @@ def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
     from .. import Evoked
     if picks is None:
         picks = Ellipsis
+    picks = np.array(picks).flatten()
     if not isinstance(evoked, Evoked):  # ... it is a list of evokeds
         data = np.array([e.data[picks, :] * scaling for e in evoked])
     else:
@@ -2306,6 +2307,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # (per sensor if topo, otherwise aggregating over sensors)
     if not do_topo:
         axes = [(ax, 0) for ax in axes]
+        if not (isinstance(picks, Iterable) and
+                isinstance(picks[0], Iterable)):
+            picks = [picks]  # because we iterate over it
     else:
         picks = list(picks)
 
@@ -2313,7 +2317,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     any_positive, any_negative = False, False
     for picks_, (ax, idx) in zip(picks, axes):
         data_dict, ci_dict = _calculate_ci_and_mean(
-            evokeds, conditions, scaling, [picks_], ci_fun, gfp)
+            evokeds, conditions, scaling, picks_, ci_fun, gfp)
         # we now have dicts for data ('evokeds' - grand averaged Evoked's)
         # and the CI ('ci_array') with cond name labels
         all_data.append(data_dict)
