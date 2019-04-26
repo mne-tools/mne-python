@@ -426,7 +426,7 @@ if not build_dev_html:
                    'branch': 'master',
                    'binderhub_url': 'https://mybinder.org',
                    'notebooks_dir': 'stable/notebooks',
-                   'dependencies': 'binder/Dockerfile'}
+                   'dependencies': 'Dockerfile'}
     })
 
 ##############################################################################
