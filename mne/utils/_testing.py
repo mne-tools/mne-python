@@ -13,7 +13,6 @@ from io import StringIO
 from shutil import rmtree
 import sys
 import tempfile
-import time
 import traceback
 from unittest import SkipTest
 import warnings
@@ -24,20 +23,6 @@ from scipy import linalg
 
 from ._logging import warn
 from .numerics import object_diff
-
-
-def _memory_usage(*args, **kwargs):
-    if isinstance(args[0], tuple):
-        args[0][0](*args[0][1], **args[0][2])
-    elif not isinstance(args[0], int):  # can be -1 for current use
-        args[0]()
-    return [-1]
-
-
-try:
-    from memory_profiler import memory_usage
-except ImportError:
-    memory_usage = _memory_usage
 
 
 def nottest(f):
@@ -274,61 +259,15 @@ def traits_test(test_func):
 
 
 @nottest
-def run_tests_if_main(measure_mem=False):
+def run_tests_if_main():
     """Run tests in a given file if it is run as a script."""
     local_vars = inspect.currentframe().f_back.f_locals
-    if not local_vars.get('__name__', '') == '__main__':
+    if local_vars.get('__name__', '') != '__main__':
         return
-    # we are in a "__main__"
-    try:
-        import faulthandler
-        faulthandler.enable()
-    except Exception:
-        pass
-    with warnings.catch_warnings(record=True):  # memory_usage internal dep.
-        mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
-    if mem >= 0:
-        print('Memory consumption after import: %s' % mem)
-    t0 = time.time()
-    peak_mem, peak_name = mem, 'import'
-    max_elapsed, elapsed_name = 0, 'N/A'
-    count = 0
-    for name in sorted(list(local_vars.keys()), key=lambda x: x.lower()):
-        val = local_vars[name]
-        if name.startswith('_'):
-            continue
-        elif callable(val) and name.startswith('test'):
-            count += 1
-            doc = val.__doc__.strip() if val.__doc__ else name
-            sys.stdout.write('%s ... ' % doc)
-            sys.stdout.flush()
-            try:
-                t1 = time.time()
-                if measure_mem:
-                    with warnings.catch_warnings(record=True):  # dep warn
-                        mem = int(round(max(memory_usage((val, (), {})))))
-                else:
-                    val()
-                    mem = -1
-                if mem >= peak_mem:
-                    peak_mem, peak_name = mem, name
-                mem = (', mem: %s MB' % mem) if mem >= 0 else ''
-                elapsed = int(round(time.time() - t1))
-                if elapsed >= max_elapsed:
-                    max_elapsed, elapsed_name = elapsed, name
-                sys.stdout.write('time: %0.3f sec%s\n' % (elapsed, mem))
-                sys.stdout.flush()
-            except Exception as err:
-                if 'skiptest' in err.__class__.__name__.lower():
-                    sys.stdout.write('SKIP (%s)\n' % str(err))
-                    sys.stdout.flush()
-                else:
-                    raise
-    elapsed = int(round(time.time() - t0))
-    sys.stdout.write('Total: %s tests\n• %0.3f sec (%0.3f sec for %s)\n• '
-                     'Peak memory %s MB (%s)\n'
-                     % (count, elapsed, max_elapsed, elapsed_name, peak_mem,
-                        peak_name))
+    import pytest
+    code = pytest.main([local_vars['__file__'], '-v'])
+    if code:
+        raise AssertionError('pytest finished with errors (%d)' % (code,))
 
 
 class ArgvSetter(object):

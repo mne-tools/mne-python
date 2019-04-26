@@ -6,6 +6,8 @@ Actual implementation of _Renderer and _Projection classes.
 
 import numpy as np
 import warnings
+from .base_renderer import _BaseRenderer
+from ...utils import copy_base_doc_to_subclass_doc
 with warnings.catch_warnings():  # catch the VisPy warnings
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from vispy import scene
@@ -41,7 +43,8 @@ class _Projection(object):
             self.pts.visible = state
 
 
-class _Renderer(object):
+@copy_base_doc_to_subclass_doc(_BaseRenderer)
+class _Renderer(_BaseRenderer):
     """Class managing rendering scene.
 
     Attributes
@@ -93,40 +96,13 @@ class _Renderer(object):
                                               parent=self.view.scene)
 
     def scene(self):
-        """Return scene handle."""
         return self.canvas
 
     def set_interactive(self):
-        """Enable interactive mode."""
         self.view.camera.interactive = True
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=True,
              backface_culling=False, offset=None, **kwargs):
-        """Add a mesh in the scene.
-
-        Parameters
-        ----------
-        x: array, shape (n_vertices,)
-           The array containing the X component of the vertices.
-        y: array, shape (n_vertices,)
-           The array containing the Y component of the vertices.
-        z: array, shape (n_vertices,)
-           The array containing the Z component of the vertices.
-        triangles: array, shape (n_polygons, 3)
-           The array containing the indices of the polygons.
-        color: tuple
-            The color of the mesh: (red, green, blue).
-        opacity: float
-            The opacity of the mesh.
-        shading: bool
-            If True, enable the mesh shading.
-        backface_culling: bool
-            If True, enable backface culling on the mesh.
-        offset: float | None
-            The offset used for surface color blending.
-        kwargs: args
-            Unused (kept for compatibility).
-        """
         so = 'smooth' if shading else None
         vertices = np.column_stack((x, y, z)).astype(np.float32)
         mesh = scene.visuals.Mesh(vertices=vertices, faces=triangles,
@@ -145,31 +121,6 @@ class _Renderer(object):
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, offset=None):
-        """Add a contour in the scene.
-
-        Parameters
-        ----------
-        surface: surface object
-            The mesh to use as support for contour.
-        scalars: ndarray, shape (n_vertices)
-            The scalar valued associated to the vertices.
-        contours: int | list
-             Specifying a list of values will only give the requested contours.
-        line_width: float
-            The width of the lines.
-        opacity: float
-            The opacity of the contour.
-        vmin: float | None
-            vmin is used to scale the colormap.
-            If None, the min of the data will be used
-        vmax: float | None
-            vmax is used to scale the colormap.
-            If None, the max of the data will be used
-        colormap:
-            The colormap to use.
-        offset: float | None
-            The offset used for surface color blending.
-        """
         vertices = surface['rr']
         tris = surface['tris']
 
@@ -201,31 +152,6 @@ class _Renderer(object):
     def surface(self, surface, color=(0.7, 0.7, 0.7), opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False, offset=None):
-        """Add a surface in the scene.
-
-        Parameters
-        ----------
-        surface: surface object
-            The information describing the surface.
-        color: tuple
-            The color of the surface: (red, green, blue).
-        opacity: float
-            The opacity of the surface.
-        vmin: float | None
-            vmin is used to scale the colormap.
-            If None, the min of the data will be used
-        vmax: float | None
-            vmax is used to scale the colormap.
-            If None, the max of the data will be used
-        colormap:
-            The colormap to use.
-        scalars: ndarray, shape (n_vertices,)
-            The scalar valued associated to the vertices.
-        backface_culling: bool
-            If True, enable backface culling on the surface.
-        offset: float | None
-            The offset used for surface color blending.
-        """
         mesh = None
         vertices = np.array(surface['rr']).astype(np.float32)
         faces = np.array(surface['tris']).astype(np.uint32)
@@ -261,21 +187,6 @@ class _Renderer(object):
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
-        """Add sphere in the scene.
-
-        Parameters
-        ----------
-        center: ndarray, shape(n_center, 3)
-            The list of centers to use for the sphere(s).
-        color: tuple
-            The color of the sphere(s): (red, green, blue).
-        scale: float
-            The scale of the sphere(s).
-        opacity: float
-            The opacity of the sphere(s).
-        backface_culling: bool
-            If True, enable backface culling on the sphere(s).
-        """
         from vispy.geometry import create_sphere
         from vispy.util.transforms import translate
 
@@ -324,45 +235,6 @@ class _Renderer(object):
                  resolution=8, glyph_height=None, glyph_center=None,
                  glyph_resolution=None, opacity=1.0, scale_mode='none',
                  scalars=None, backface_culling=False):
-        """Add quiver3d in the scene.
-
-        Parameters
-        ----------
-        x: array, shape (n_quivers,)
-            The X component of the position of the quiver.
-        y: array, shape (n_quivers,)
-            The Y component of the position of the quiver.
-        z: array, shape (n_quivers,)
-            The Z component of the position of the quiver.
-        u: array, shape (n_quivers,)
-            The last X component of the quiver.
-        v: array, shape (n_quivers,)
-            The last Y component of the quiver.
-        w: array, shape (n_quivers,)
-            The last Z component of the quiver.
-        color: tuple
-            The color of the quiver: (red, green, blue).
-        scale: float
-            The scale of the quiver.
-        mode: 'arrow', 'cone' or 'cylinder'
-            The type of the quiver.
-        resolution: float
-            The resolution of the arrow.
-        glyph_height: float
-            The height of the glyph used with the quiver.
-        glyph_center: tuple
-            The center of the glyph used with the quiver: (x, y, z).
-        glyph_resolution: float
-            The resolution of the glyph used with the quiver.
-        opacity: float
-            The opacity of the quiver.
-        scale_mode: 'vector', 'scalar' or 'none'
-            The scaling mode for the glyph.
-        scalars: array, shape (n_quivers,) | None
-            The optional scalar data to use.
-        backface_culling: bool
-            If True, enable backface culling on the quiver.
-        """
         source = np.column_stack((x, y, z))
         destination = source + np.column_stack((u, v, w))
         arr_pos = np.array(list(zip(source, destination)))
@@ -416,21 +288,6 @@ class _Renderer(object):
         return 0
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
-        """Add test in the scene.
-
-        Parameters
-        ----------
-        x: float
-            The X component to use as position of the text.
-        y: float
-            The Y component to use as position of the text.
-        text: str
-            The content of the text.
-        width: float
-            The width of the text.
-        color: tuple
-            The color of the text.
-        """
         # normalize font size
         font_size = 100 * width
         # normalize default placement
@@ -440,31 +297,16 @@ class _Renderer(object):
                            color=color, parent=self.view)
 
     def show(self):
-        """Render the scene."""
         from .renderer import MNE_3D_BACKEND_TEST_DATA
         if MNE_3D_BACKEND_TEST_DATA is None:
             self.canvas.show()
             self.canvas.app.run()
 
     def close(self):
-        """Close the scene."""
         self.canvas.close()
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
-        """Configure the camera of the scene.
-
-        Parameters
-        ----------
-        azimuth: float
-            The azimuthal angle of the camera.
-        elevation: float
-            The zenith angle of the camera.
-        distance: float
-            The distance to the focal point.
-        focalpoint: tuple
-            The focal point of the camera: (x, y, z).
-        """
         if azimuth is not None:
             self.view.camera.azimuth = 90 + azimuth
         if elevation is not None:
@@ -476,19 +318,9 @@ class _Renderer(object):
             self.view.camera.center = focalpoint
 
     def screenshot(self):
-        """Take a screenshot of the scene."""
         return self.canvas.render()
 
     def title(self, text, height, color=(1.0, 1.0, 1.0)):
-        """Add a title to the scene.
-
-        Parameters
-        ----------
-        title: str
-            The title of the scene.
-        height: float
-            The Y component to use as position of the text.
-        """
         # normalize font size
         font_size = 100 * height
         scene.visuals.Text(pos=(0, 0), text=text, font_size=font_size,

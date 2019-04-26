@@ -8,7 +8,7 @@ from ..utils import _check_pylsl_installed
 from ..io import constants
 
 
-class MockLSLStream:
+class MockLSLStream(object):
     """Mock LSL Stream.
 
     Parameters
@@ -45,11 +45,18 @@ class MockLSLStream:
     def stop(self):
         """Stop a mock LSL stream."""
         self._streaming = False
-        self.process.terminate()
-
         print("Stopping stream...")
-
+        self.process.terminate()
         return self
+
+    def __enter__(self):
+        """Enter the context manager."""
+        self.start()
+        return self
+
+    def __exit__(self, type_, value, traceback):
+        """Exit the context manager."""
+        self.stop()
 
     def _initiate_stream(self):
         # outlet needs to be made on the same process

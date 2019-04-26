@@ -280,9 +280,8 @@ evoked2 = mne.read_evokeds(
 # This function can use ``weights='equal'``, which provides a simple
 # element-by-element subtraction (and sets the
 # ``mne.Evoked.nave`` attribute properly based on the underlying number
-# of trials) using either equivalent call:
+# of trials) using:
 
-contrast_a = mne.combine_evoked([evoked1, evoked2], weights=[0.5, -0.5])
 contrast_b = mne.combine_evoked([evoked1, -evoked2], weights='equal')
 print(contrast_b)
 

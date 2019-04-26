@@ -172,6 +172,12 @@ script:
           fi;
         done;
       fi;
+    # Test run_tests_if_main
+    - if [ "${DEPS}" == "nodata" ]; then
+        pip uninstall -yq mne;
+        pip install -e .;
+        python mne/tests/test_evoked.py;
+      fi;
     - echo pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
     - pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
     - if [ "${DEPS}" == "nodata" ]; then

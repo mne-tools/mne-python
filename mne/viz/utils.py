@@ -2147,15 +2147,20 @@ def _setup_butterfly(params):
             inds = params['inds']
             labels = [t for t in _DATA_CH_TYPES_SPLIT + ('eog', 'ecg')
                       if t in types] + ['misc']
-            ticks = np.arange(5, 5 * (len(labels) + 1), 5)
+            last_yval = 5 * (len(labels) + 1)
+            ticks = np.arange(5, last_yval, 5)
             offs = {l: t for (l, t) in zip(labels, ticks)}
-
             params['offsets'] = np.zeros(len(params['types']))
             for ind in inds:
                 params['offsets'][ind] = offs.get(params['types'][ind],
-                                                  5 * (len(labels)))
+                                                  last_yval - 5)
+            # in case there were no non-data channels, skip the final row
+            if (last_yval - 5) not in params['offsets']:
+                ticks = ticks[:-1]
+                labels = labels[:-1]
+                last_yval -= 5
             ax.set_yticks(ticks)
-            params['ax'].set_ylim(5 * (len(labels) + 1), 0)
+            params['ax'].set_ylim(last_yval, 0)
             ax.set_yticklabels(labels)
         else:
             if 'selections' not in params:

@@ -17,8 +17,10 @@ Actual implementation of _Renderer and _Projection classes.
 
 import warnings
 import numpy as np
+from .base_renderer import _BaseRenderer
 from ...surface import _normalize_vectors
-from ...utils import _import_mlab, _validate_type, SilenceStdout
+from ...utils import (_import_mlab, _validate_type, SilenceStdout,
+                      copy_base_doc_to_subclass_doc)
 
 
 class _Projection(object):
@@ -43,7 +45,8 @@ class _Projection(object):
             self.pts.visible = state
 
 
-class _Renderer(object):
+@copy_base_doc_to_subclass_doc(_BaseRenderer)
+class _Renderer(_BaseRenderer):
     """Class managing rendering scene.
 
     Attributes
@@ -56,19 +59,6 @@ class _Renderer(object):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False):
-        """Set up the scene.
-
-        Parameters
-        ----------
-        fig: instance of mayavi.mlab.figure
-            Scene handle.
-        size : tuple
-            The dimensions of the context window: (width, height).
-        bgcolor: tuple
-            The color definition of the background: (red, green, blue).
-        name: str | None
-            The name of the scene.
-        """
         self.mlab = _import_mlab()
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
@@ -78,43 +68,16 @@ class _Renderer(object):
             _toggle_mlab_render(self.fig, False)
 
     def scene(self):
-        """Return scene handle."""
         return self.fig
 
     def set_interactive(self):
-        """Enable interactive mode."""
         from tvtk.api import tvtk
         if self.fig.scene is not None:
             self.fig.scene.interactor.interactor_style = \
                 tvtk.InteractorStyleTerrain()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, offset=None, **kwargs):
-        """Add a mesh in the scene.
-
-        Parameters
-        ----------
-        x: array, shape (n_vertices,)
-           The array containing the X component of the vertices.
-        y: array, shape (n_vertices,)
-           The array containing the Y component of the vertices.
-        z: array, shape (n_vertices,)
-           The array containing the Z component of the vertices.
-        triangles: array, shape (n_polygons, 3)
-           The array containing the indices of the polygons.
-        color: tuple
-            The color of the mesh: (red, green, blue).
-        opacity: float
-            The opacity of the mesh.
-        shading: bool
-            If True, enable the mesh shading.
-        backface_culling: bool
-            If True, enable backface culling on the mesh.
-        offset: float | None
-            Not used, for compatibility.
-        kwargs: args
-            The arguments to pass to triangular_mesh
-        """
+             backface_culling=False, **kwargs):
         with warnings.catch_warnings(record=True):  # traits
             surface = self.mlab.triangular_mesh(x, y, z, triangles,
                                                 color=color,
@@ -127,31 +90,6 @@ class _Renderer(object):
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, offset=None):
-        """Add a contour in the scene.
-
-        Parameters
-        ----------
-        surface: surface object
-            The mesh to use as support for contour.
-        scalars: ndarray, shape (n_vertices,)
-            The scalar valued associated to the vertices.
-        contours: int | list
-             Specifying a list of values will only give the requested contours.
-        line_width: float
-            The width of the lines.
-        opacity: float
-            The opacity of the contour.
-        vmin: float | None
-            vmin is used to scale the colormap.
-            If None, the min of the data will be used
-        vmax: float | None
-            vmax is used to scale the colormap.
-            If None, the max of the data will be used
-        colormap:
-            The colormap to use.
-        offset: float | None
-            Not used, for compatibility.
-        """
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
             cont = self.mlab.pipeline.contour_surface(
@@ -162,31 +100,6 @@ class _Renderer(object):
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
                 backface_culling=False, offset=None):
-        """Add a surface in the scene.
-
-        Parameters
-        ----------
-        surface: surface object
-            The information describing the surface.
-        color: tuple
-            The color of the surface: (red, green, blue).
-        opacity: float
-            The opacity of the surface.
-        vmin: float | None
-            vmin is used to scale the colormap.
-            If None, the min of the data will be used
-        vmax: float | None
-            vmax is used to scale the colormap.
-            If None, the max of the data will be used
-        colormap:
-            The colormap to use.
-        scalars: ndarray, shape (n_vertices,)
-            The scalar valued associated to the vertices.
-        backface_culling: bool
-            If True, enable backface culling on the surface.
-        offset: float | None
-            Not used, for compatibility.
-        """
         # Make a solid surface
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
@@ -199,23 +112,6 @@ class _Renderer(object):
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
-        """Add sphere in the scene.
-
-        Parameters
-        ----------
-        center: ndarray, shape(n_center, 3)
-            The list of centers to use for the sphere(s).
-        color: tuple
-            The color of the sphere(s): (red, green, blue).
-        scale: float
-            The scale of the sphere(s).
-        opacity: float
-            The opacity of the sphere(s).
-        resolution: int
-            The resolution of the sphere.
-        backface_culling: bool
-            If True, enable backface culling on the sphere(s).
-        """
         if center.ndim == 1:
             x = center[0]
             y = center[1]
@@ -235,45 +131,6 @@ class _Renderer(object):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
-        """Add quiver3d in the scene.
-
-        Parameters
-        ----------
-        x: array, shape (n_quivers,)
-            The X component of the position of the quiver.
-        y: array, shape (n_quivers,)
-            The Y component of the position of the quiver.
-        z: array, shape (n_quivers,)
-            The Z component of the position of the quiver.
-        u: array, shape (n_quivers,)
-            The last X component of the quiver.
-        v: array, shape (n_quivers,)
-            The last Y component of the quiver.
-        w: array, shape (n_quivers,)
-            The last Z component of the quiver.
-        color: tuple
-            The color of the quiver: (red, green, blue).
-        scale: float
-            The scale of the quiver.
-        mode: 'arrow', 'cone' or 'cylinder'
-            The type of the quiver.
-        resolution: int
-            The resolution of the arrow.
-        glyph_height: float
-            The height of the glyph used with the quiver.
-        glyph_center: tuple
-            The center of the glyph used with the quiver: (x, y, z).
-        glyph_resolution: float
-            The resolution of the glyph used with the quiver.
-        opacity: float
-            The opacity of the quiver.
-        scale_mode: 'vector', 'scalar' or 'none'
-            The scaling mode for the glyph.
-        scalars: array, shape (n_quivers,) | None
-            The optional scalar data to use.
-        backface_culling: bool
-            If True, enable backface culling on the quiver.
-        """
         with warnings.catch_warnings(record=True):  # traits
             if mode == 'arrow':
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
@@ -296,82 +153,29 @@ class _Renderer(object):
                 quiv.actor.property.backface_culling = backface_culling
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
-        """Add test in the scene.
-
-        Parameters
-        ----------
-        x: float
-            The X component to use as position of the text.
-        y: float
-            The Y component to use as position of the text.
-        text: str
-            The content of the text.
-        width: float
-            The width of the text.
-        color: tuple
-            The color of the text.
-        """
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text(x, y, text, width=width, color=color,
                            figure=self.fig)
 
     def show(self):
-        """Render the scene."""
         if self.fig is not None:
             _toggle_mlab_render(self.fig, True)
 
     def close(self):
-        """Close the scene."""
         self.mlab.close(self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
-        """Configure the camera of the scene.
-
-        Parameters
-        ----------
-        azimuth: float
-            The azimuthal angle of the camera.
-        elevation: float
-            The zenith angle of the camera.
-        distance: float
-            The distance to the focal point.
-        focalpoint: tuple
-            The focal point of the camera: (x, y, z).
-        """
         with warnings.catch_warnings(record=True):  # traits
             with SilenceStdout():  # setting roll
                 self.mlab.view(azimuth, elevation, distance,
                                focalpoint=focalpoint, figure=self.fig)
 
     def screenshot(self):
-        """Take a screenshot of the scene."""
         with warnings.catch_warnings(record=True):  # traits
             return self.mlab.screenshot(self.fig)
 
-    def title(self, text, height, color=(1.0, 1.0, 1.0)):
-        """Add a title to the scene.
-
-        Parameters
-        ----------
-        title: str
-            The title of the scene.
-        height: float
-            The Y component to use as position of the text.
-        """
-        with warnings.catch_warnings(record=True):  # traits
-            self.mlab.title(text, height=height, color=color)
-
     def project(self, xyz, ch_names):
-        """Convert 3d points to a 2d perspective.
-
-        Parameters
-        ----------
-        xyz: array, shape(n_points, 3)
-            The points to project.
-        ch_names: array, shape(_n_points,)
-            Names of the channels.
-        """
         xy = _3d_to_2d(self.fig, xyz)
         xy = dict(zip(ch_names, xy))
         pts = self.fig.children[-1]

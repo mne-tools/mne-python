@@ -295,7 +295,7 @@ intersphinx_mapping = {
     'matplotlib': ('https://matplotlib.org', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
     'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
-    'nibabel': ('http://nipy.org/nibabel', None),
+    'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
@@ -375,6 +375,9 @@ def reset_warnings(gallery_conf, fname):
         category=Warning)
     warnings.filterwarnings(  # deal with other modules having bad imports
         'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
+    warnings.filterwarnings(  # realtime
+        'ignore', message=".*unclosed file.*", category=ResourceWarning)
+    warnings.filterwarnings('ignore', message='Exception ignored in.*')
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)
@@ -423,6 +426,7 @@ numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = False
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
+    'Popen': 'python:subprocess.Popen',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
