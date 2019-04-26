@@ -28,9 +28,6 @@ from mne import pick_types
 from mne.utils import assert_dig_allclose, run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
 
-# from mne.digitization.base import _format_dig_points
-# from mne.digitization import Digitization
-
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
 
 archs = 'linux', 'solaris'
