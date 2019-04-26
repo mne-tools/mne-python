@@ -341,7 +341,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
     gemm = linalg.get_blas_funcs("gemm", [G[:, 0:n_orient].T, R])
     gemm2 = linalg.get_blas_funcs("gemm", [G[:, 0:n_orient],
                                   X[0:n_orient, :]])
-    one_ovr_lc = 1 / lipschitz_constant
+    one_ovr_lc = 1. / lipschitz_constant
 
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
