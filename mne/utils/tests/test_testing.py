@@ -8,7 +8,7 @@ from numpy.testing import assert_equal
 from mne.datasets import testing
 from mne.io import show_fiff
 from mne.utils import (_TempDir, _url_to_local_path, run_tests_if_main,
-                       _memory_usage, buggy_mkl_svd)
+                       buggy_mkl_svd)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -34,37 +34,6 @@ def test_buggy_mkl():
     def bar(c, d, e):
         raise RuntimeError('SVD did not converge')
     pytest.raises(RuntimeError, bar, 1, 2, 3)
-
-
-def test_run_tests_if_main():
-    """Test run_tests_if_main functionality."""
-    x = []
-
-    def test_a():
-        x.append(True)
-
-    @pytest.mark.skipif(True)
-    def test_b():
-        return
-
-    try:
-        __name__ = '__main__'
-        run_tests_if_main(measure_mem=False)  # dual meas causes problems
-
-        def test_c():
-            raise RuntimeError
-
-        try:
-            __name__ = '__main__'
-            run_tests_if_main(measure_mem=False)  # dual meas causes problems
-        except RuntimeError:
-            pass
-        else:
-            raise RuntimeError('Error not raised')
-    finally:
-        del __name__
-    assert (len(x) == 2)
-    assert (x[0] and x[1])
 
 
 def test_tempdir():
@@ -102,13 +71,6 @@ def test_url_to_local_path():
     """Test URL to local path."""
     assert_equal(_url_to_local_path('http://google.com/home/why.html', '.'),
                  op.join('.', 'home', 'why.html'))
-
-
-def test_memory_usage():
-    """Test _memory_usage."""
-    assert _memory_usage(-1)[0] == -1
-    assert _memory_usage((lambda: 0, [], {}))[0] == -1
-    assert _memory_usage(lambda: 0)[0] == -1
 
 
 run_tests_if_main()
