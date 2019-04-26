@@ -192,9 +192,9 @@ def test_plot_butterfly():
     data = np.sin(rng.randn(n_epochs, n_channels, n_times))
     events = np.array([np.arange(n_epochs), [0] * n_epochs, np.ones([n_epochs],
                        dtype=np.int)]).T
-    chanlist = ['eeg' if chan < n_channels//3 else 'ecog'
-                 if chan < n_channels//2 else 'seeg'
-                 for chan in range(n_channels)]
+    chanlist = ['eeg' if chan < n_channels // 3 else 'ecog'
+                if chan < n_channels // 2 else 'seeg'
+                for chan in range(n_channels)]
     info = create_info(n_channels, sfreq, chanlist)
     epochs = EpochsArray(data, info, events)
     fig = epochs.plot(butterfly=True)

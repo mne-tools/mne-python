@@ -274,7 +274,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             evoked_ax = axes_dict["evoked"]
             this_min, this_max = evoked_ax.get_ylim()
             curr_min, curr_max = ylims[ch_type]
-            ylims[ch_type] = min(curr_min, this_min), max(curr_max, this_max),
+            ylims[ch_type] = min(curr_min, this_min), max(curr_max, this_max)
 
     if evoked is True:  # adjust ylims
         for group, axes_dict in zip(groups, axes_list):
@@ -982,12 +982,15 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     # Reorganize channels
     picks = _picks_to_idx(epochs.info, picks)
     picks = sorted(picks)
-    types = [channel_type(epochs.info, ch) for ch in picks] # channel type string for every channel
-    ch_types = list(_get_channel_types(epochs.info))    # list of unique channel types
+    # channel type string for every channel
+    types = [channel_type(epochs.info, ch) for ch in picks]
+    # list of unique channel types
+    ch_types = list(_get_channel_types(epochs.info))
     if order is None:
         order = _DATA_CH_TYPES_ORDER_DEFAULT
     inds = [pick_idx for order_type in order
-            for pick_idx, ch_type in zip(picks,types) if order_type==ch_type]
+            for pick_idx, ch_type in zip(picks, types)
+            if order_type == ch_type]
     types = sorted(types, key=order.index)
     if not len(inds) == len(picks):
         raise RuntimeError('Some channels not classified. Please'
@@ -1160,8 +1163,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'event_colors': event_colors,
                    'ev_lines': list(),
                    'ev_texts': list(),
-                   'ann': list(), # list to store annotations for butterfly view
-                   'order' : order,
+                   'ann': list(),  # list for butterfly view annotations
+                   'order': order,
                    'ch_types': ch_types})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
@@ -1251,8 +1254,8 @@ def _plot_traces(params):
                                           set(_DATA_CH_TYPES_SPLIT),
                                           key=params['order'].index)
                 ylim = ax.get_ylim()[0]
-                ticks = np.arange(0, ylim, ylim/(4*len(chan_types_split)))
-                offset_pos = np.arange(2, len(chan_types_split)*4, 4)
+                ticks = np.arange(0, ylim, ylim / (4 * len(chan_types_split)))
+                offset_pos = np.arange(2, len(chan_types_split) * 4, 4)
                 if ch_type in chan_types_split:
                     offset = ticks[offset_pos[chan_types_split.index(ch_type)]]
                 else:
@@ -1309,17 +1312,17 @@ def _plot_traces(params):
                                   set(_DATA_CH_TYPES_SPLIT),
                                   key=params['order'].index)
         ylim = ax.get_ylim()[0]
-        ticks = np.arange(0, ylim+1, ylim/(4*len(chan_types_split)))
-        offset_pos = np.arange(2, (len(chan_types_split)*4)+1, 4)
+        ticks = np.arange(0, ylim + 1, ylim / (4 * len(chan_types_split)))
+        offset_pos = np.arange(2, (len(chan_types_split) * 4) + 1, 4)
         ax.set_yticks(ticks)
         labels = [''] * 20
         labels = [0 if idx in range(2, len(labels), 4) else label
                   for idx, label in enumerate(labels)]
         for idx_chan, chan_type in enumerate(chan_types_split):
-            tick_top, tick_bottom = 1+idx_chan*4, 3+idx_chan*4
+            tick_top, tick_bottom = 1 + idx_chan * 4, 3 + idx_chan * 4
             offset = ticks[offset_pos[idx_chan]]
             for tick_pos in [tick_top, tick_bottom]:
-                tickoffset_diff = ticks[tick_pos]-offset
+                tickoffset_diff = ticks[tick_pos] - offset
                 labels[tick_pos] = (tickoffset_diff *
                                     params['scalings'][chan_type] *
                                     factor * scalings_default[chan_type])
@@ -1707,7 +1710,7 @@ def _prepare_butterfly(params):
         for label in labels:
             label.set_visible(True)
         offsets = np.arange(0, ax.get_ylim()[0],
-                            ax.get_ylim()[0]/(4*len(chan_types)))
+                            ax.get_ylim()[0] / (4 * len(chan_types)))
         ticks = offsets
         ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
         ax.set_yticks(ticks)
@@ -1716,7 +1719,7 @@ def _prepare_butterfly(params):
         # checking which annotations are displayed and removing them
         ann = params['ann']
         annotations = [child for child in params['ax2'].get_children()
-                        if isinstance(child, mpl.text.Annotation)]
+                       if isinstance(child, mpl.text.Annotation)]
         for annote in annotations:
             annote.remove()
         ann[:] = list()
@@ -1724,12 +1727,12 @@ def _prepare_butterfly(params):
         titles = _handle_default('titles')
         for chan_type in chan_types:
             unit = units[chan_type]
-            pos = (0, 1 - (ticks[2+4*used_types] / ax.get_ylim()[0]))
-            ann.append(params['ax2'].annotate('%s (%s)' % (titles[chan_type], unit),
-                                   xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points'))
+            pos = (0, 1 - (ticks[2 + 4 * used_types] / ax.get_ylim()[0]))
+            ann.append(params['ax2'].annotate(
+                '%s (%s)' % (titles[chan_type], unit), xy=pos,
+                xytext=(-70, 0), ha='left', size=12, va='center',
+                xycoords='axes fraction', rotation=90,
+                textcoords='offset points'))
             used_types += 1
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=True, linewidths=.5,

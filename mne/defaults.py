@@ -14,14 +14,16 @@ DEFAULTS = dict(
     units=dict(mag='fT', grad='fT/cm', eeg='uV', eog='uV', ecg='uV', emg='uV',
                misc='AU', seeg='mV', dipole='nAm', gof='GOF', bio='uV',
                ecog='uV', hbo='uM', hbr='uM'),
+    # scalings for the units
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6, emg=1e6, ecg=1e6,
                   misc=1.0, seeg=1e3, dipole=1e9, gof=1.0, bio=1e6, ecog=1e6,
-                  hbo=1e6, hbr=1e6), # scalings for the units
+                  hbo=1e6, hbr=1e6),
+    # rough guess for a good plot
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                            ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
                            stim=1, resp=1, chpi=1e-4, exci=1, ias=1, syst=1,
                            seeg=1e-4, bio=1e-6, ecog=1e-4, hbo=10e-6,
-                           hbr=10e-6, whitened=10.), # rough guess for a good plot
+                           hbr=10e-6, whitened=10.),
     scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5,  # ~100x scalings
                            seeg=1e1, ecog=1e4, hbo=1e4, hbr=1e4),
     ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
