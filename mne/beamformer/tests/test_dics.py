@@ -115,8 +115,7 @@ def test_make_dics(tmpdir, _load_forward):
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
     epochs, _, csd, _ = _simulate_data(fwd_fixed)
     with pytest.raises(RuntimeError, match='several sensor types'):
-        make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
-                  weight_norm='unit-noise-gain')
+        make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
     epochs.pick_types(meg='grad')
 
     with pytest.raises(ValueError, match="Invalid value for the 'pick_ori'"):
@@ -147,6 +146,9 @@ def test_make_dics(tmpdir, _load_forward):
     with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
         make_dics(epochs.info, fwd_free, csd, reduce_rank=True,
                   pick_ori='max-power', inversion='single')
+    with pytest.raises(ValueError, match='not stable with depth'):
+        make_dics(epochs.info, fwd_free, csd, weight_norm='unit-noise-gain',
+                  inversion='single', normalize_fwd=True)
 
     # Sanity checks on the returned filters
     n_freq = len(csd.frequencies)
@@ -157,7 +159,7 @@ def test_make_dics(tmpdir, _load_forward):
     n_channels = len(epochs.ch_names)
     # Test return values
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
-                        weight_norm='unit-noise-gain')
+                        weight_norm='unit-noise-gain', normalize_fwd=False)
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert np.iscomplexobj(filters['weights'])
     assert filters['csd'] == csd
@@ -169,7 +171,7 @@ def test_make_dics(tmpdir, _load_forward):
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
     assert filters['inversion'] == 'single'
-    assert filters['normalize_fwd']
+    assert not filters['normalize_fwd']
     assert filters['weight_norm'] == 'unit-noise-gain'
     assert 'DICS' in repr(filters)
     assert 'subject "sample"' in repr(filters)
@@ -181,14 +183,16 @@ def test_make_dics(tmpdir, _load_forward):
     # Test picking orientations. Also test weight norming under these different
     # conditions.
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        pick_ori='normal', weight_norm='unit-noise-gain')
+                        pick_ori='normal', weight_norm='unit-noise-gain',
+                        normalize_fwd=False)
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
     _test_weight_norm(filters)
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        pick_ori='max-power', weight_norm='unit-noise-gain')
+                        pick_ori='max-power', weight_norm='unit-noise-gain',
+                        normalize_fwd=False)
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
@@ -289,7 +293,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion):
     reg_ = 5 if inversion == 'matrix' else 1
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         reg=reg_, pick_ori=pick_ori,
-                        inversion=inversion,
+                        inversion=inversion, normalize_fwd=False,
                         weight_norm='unit-noise-gain')
     power, f = apply_dics_csd(csd, filters)
     assert f == [10, 20]
