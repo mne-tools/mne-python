@@ -2327,11 +2327,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     for picks_, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
+        do_ci = ci_fun is not None
         if idx == -1:
-            # do something here to suppress drawing of fake data on the legend
-            pass
+            do_ci = False
         any_positive_, any_negative_ = _plot_compare_evokeds(
-            ax, data, conditions, times, ci_fun is not None, cis, styles,
+            ax, data, conditions, times, do_ci, cis, styles,
             title, all_positive, do_topo)
         if any_positive_:
             any_positive = True
@@ -2375,10 +2375,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     if do_topo:
         # we need the lines for the legends, but then we can kill them
-        ax.lines.clear()
-        ax.patches.clear()
-        ax.set_title("")
-        del ax.texts[-1]
+        ax_.lines.clear()
+        ax_.set_title("")
+        del ax_.texts[-1]
 
     plt_show(show)
     return ax.figure
