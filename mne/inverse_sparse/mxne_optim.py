@@ -418,6 +418,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
         All the modifications are done in place.
     """
     X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
+    # axpy = linalg.get_blas_funcs("axpy", [X_j_new, X_j_new])
 
     for j, G_j_c in enumerate(list_G_j_c):
         idx = slice(j * n_orient, (j + 1) * n_orient)
@@ -444,6 +445,10 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
             #       b=np.asfortranarray(G_j.T), c=R.T,
             #       overwrite_c=True)
             # R += np.dot(G_j, X_j)
+            # axpy(x=X_j_new, y=X_j)
+            # axpy(x=X_j, y=X_j_new)
+            # import ipdb; ipdb.set_trace()
+            # axpy(x=X_j, y=X_j_new)
             X_j_new += X_j
         # Q can we accelerate the computation of this norm ?
         # it seems very slow regarding the operation done
