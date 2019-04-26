@@ -25,7 +25,8 @@ from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
                        ETSContext)
 from .misc import (run_subprocess, _pl, _clean_names, _Counter, pformat,
-                   _explain_exception, _get_argvalues, sizeof_fmt)
+                   _explain_exception, _get_argvalues, sizeof_fmt,
+                   running_subprocess)
 from .progressbar import ProgressBar
 from ._testing import (run_tests_if_main, requires_sklearn,
                        requires_version, requires_nibabel, requires_mayavi,

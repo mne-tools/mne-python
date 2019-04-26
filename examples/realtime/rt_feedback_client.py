@@ -69,4 +69,3 @@ for ii in range(50):
     time.sleep(max(stim_duration - (time.time() - last_stim_time), 0))
 
     print('Stimulus: Fixation Cross')
-    time.sleep(0.25)
