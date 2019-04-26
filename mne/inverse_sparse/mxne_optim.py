@@ -336,15 +336,18 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     alpha_lc = alpha / lipschitz_constant
 
+    G = np.asfortranarray(G)
     # It is better to call gemm and gemm2 here
     # so it is called only once
-    gemm = linalg.get_blas_funcs("gemm", [G[:, 0:n_orient].T, R])
-    gemm2 = linalg.get_blas_funcs("gemm", [G[:, 0:n_orient],
-                                  X[0:n_orient, :]])
+    # gemm and gemm2 are 2 functions (callable) for matrix multiplication
+    # Two different functions are called because
+    # matrix multiplications are performed on matricies with different shapes
+    gemm = linalg.get_blas_funcs("gemm", [R.T, G[:, 0:n_orient]])
+    gemm2 = linalg.get_blas_funcs("gemm", [X[0:n_orient, :].T,
+                                  np.asfortranarray(G[:, 0:n_orient].T)])
     one_ovr_lc = 1. / lipschitz_constant
 
     # First make G fortran for faster access to blocks of columns
-    G = np.asfortranarray(G)
     assert X.flags.c_contiguous
     assert R.flags.c_contiguous
     assert G.flags.f_contiguous
@@ -413,21 +416,17 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
         idx = slice(j * n_orient, (j + 1) * n_orient)
         G_j = G[:, idx]
         X_j = X[idx]
-        gemm(alpha=one_ovr_lc[j], beta=0.,
-             a=R.T, b=G_j, c=X_j_new.T,
+        gemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
              overwrite_c=True)
         # X_j_new = G_j.T @ R
         # Mathurin's trick to avoid checking all the entries
         was_non_zero = X_j[0, 0] != 0
         # was_non_zero = np.any(X_j)
         if was_non_zero:
-            gemm2(alpha=1., beta=1., a=X_j.T,
-                  b=G_j_c.T, c=R.T,
+            gemm2(alpha=1., beta=1., a=X_j.T, b=G_j_c.T, c=R.T,
                   overwrite_c=True)
             # R += np.dot(G_j, X_j)
             X_j_new += X_j
-        # Q can we accelerate the computation of this norm ?
-        # it seems very slow regarding the operation done
         block_norm = sqrt(sum_squared(X_j_new))
         if block_norm <= alpha_lc[j]:
             X_j.fill(0.)
@@ -437,7 +436,7 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
             X_j_new *= shrink
             gemm2(alpha=-1., beta=1., a=X_j_new.T, b=G_j_c.T, c=R.T,
                   overwrite_c=True)
-            # R += np.dot(G_j, X_j_new)
+            # R -= np.dot(G_j, X_j_new)
             X_j[:] = X_j_new
             active_set[idx] = True
 
