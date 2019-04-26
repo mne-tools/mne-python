@@ -39,7 +39,7 @@ class _Projection(object):
         self.pts.SetVisibility(state)
 
 
-@copy_base_doc_to_subclass_doc(_BaseRenderer)
+@copy_base_doc_to_subclass_doc
 class _Renderer(_BaseRenderer):
     """Class managing rendering scene.
 
