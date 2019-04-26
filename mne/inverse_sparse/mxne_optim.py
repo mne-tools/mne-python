@@ -389,11 +389,11 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
     G : array, shape (n_sensors, n_active)
         The gain matrix a.k.a. lead field.
     X : array, shape (n_sources, n_times)
-        Sources.
+        Sources, modified in place.
     R : array, shape (n_sensors, n_times)
-        The residuals: R = M - G @ X.
+        The residuals: R = M - G @ X, modified in place.
     active_set : array of bool, shape (n_sources, )
-        Mask of active sources.
+        Mask of active sources, modified in place.
     one_ovr_lc : array, shape (n_positions, )
         One over the lipschitz constants.
     n_orient : int
