@@ -35,16 +35,16 @@ class Brain(object):
         Title for the window.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
-    size : float or pair of floats
+    size : float | tuple(float, float)
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
     background : tuple(int, int, int)
-        The color definition of the background: (red, green, blue)..
+        The color definition of the background: (red, green, blue).
     foreground : matplotlib color
         Color of the foreground (will be used for colorbars and text).
         None (default) will use black or white depending on the value
         of ``background``.
-    figure : list of ipyvolume.Figure | None | int
+    figure : list of ipyvolume.pylab.figure | None | int
         Not supported yet.
         If None (default), a new window will be created with the appropriate
         views. For single view plots, the figure can be specified as int to
@@ -179,7 +179,7 @@ class Brain(object):
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
                  verbose=None):
-        r"""Display data from a numpy array on the surface.
+        u"""Display data from a numpy array on the surface.
 
         This provides a similar interface to
         :meth:`surfer.Brain.add_overlay`, but it displays
@@ -219,7 +219,7 @@ class Brain(object):
             if True: use a linear transparency between min and mid and make
             values below min fully transparent (symmetrically for divergent
             colormaps)
-        colormap : str, list of colors, or array
+        colormap : str, list of color, or array
             name of matplotlib colormap to use, a list of matplotlib colors,
             or a custom look up table (an n x 4 array coded with RBGA values
             between 0 and 255), the default "auto" chooses a default divergent
