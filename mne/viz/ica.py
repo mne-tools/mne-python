@@ -947,7 +947,6 @@ def _close_event(events, params):
 def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                          title, block):
     """Plot the components as epochs."""
-
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
