@@ -262,7 +262,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
             if pick_ori == 'max-power':
                 # Compute the power
-                if inversion == 'single' and weight_norm == 'unit-noise-gain':
+                if inversion == 'single' and weight_norm is not None:
                     # First make the filters unit gain, then apply them to the
                     # cov matrix to compute power.
                     Wk_norm = Wk / np.sqrt(np.sum(Wk ** 2, axis=1,
