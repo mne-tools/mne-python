@@ -1550,7 +1550,7 @@ def _combine_grad(evoked, picks):
 def _check_loc_legal(loc, what='your choice', default=1):
     """Check if loc is a legal location for MPL subordinate axes."""
     true_default = {"show_legend": 3, "show_sensors": 4}.get(what, default)
-    if isinstance(loc, bool) and loc:
+    if isinstance(loc, (bool, np.bool_)) and loc:
         loc = true_default
     loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
                 'lower right': 4, 'right': 5, 'center left': 6,
