@@ -350,16 +350,14 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
+    assert X.flags.c_contiguous
+    assert R.flags.c_contiguous
+    assert G.flags.f_contiguous
     # storing list of contiguous arrays
     list_G_j_c = []
     for j in range(n_positions):
         idx = slice(j * n_orient, (j + 1) * n_orient)
         list_G_j_c.append(np.ascontiguousarray(G[:, idx]))
-    # X = np.asfortranarray(X)
-    # R = np.asfortranarray(R)
-    assert X.flags.c_contiguous
-    assert R.flags.c_contiguous
-    assert G.flags.f_contiguous
 
     for i in range(maxit):
         _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
@@ -400,25 +398,20 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
         The residuals: R = M - G @ X.
     active_set : array of bool, shape (n_sources, )
         Mask of active sources.
-    one_ovr_lc : array, shape (n_sources, )
+    one_ovr_lc : array, shape (n_positions, )
         One over the lipschitz constants.
     n_orient : int
         Number of dipoles per locations (typically 1 or 3).
     n_positions : int
-    alpha_lc: array, shape (n_sources, )
+        Number of sources position.
+    alpha_lc: array, shape (n_positions, )
         alpha * (Lipschitz constants).
-    ger: function
-        Low level blas function to fastly multiply rank one matrices.
-    gemm: function
+    gemm: callable
         Low level blas function to fastly multiply matrix time matrix.
-
-    Returns
-    -------
-    None:
-        All the modifications are done in place.
+    gemm2: callable
+        Low level blas function to fastly multiply matrix time matrix.
     """
     X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
-    # axpy = linalg.get_blas_funcs("axpy", [X_j_new, X_j_new])
 
     for j, G_j_c in enumerate(list_G_j_c):
         idx = slice(j * n_orient, (j + 1) * n_orient)
@@ -427,28 +420,15 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
         gemm(alpha=one_ovr_lc[j], beta=0.,
              a=R.T, b=G_j, c=X_j_new.T,
              overwrite_c=True)
-        # gemm(alpha=one_ovr_lc[j], beta=0., a=G_c[:, idx].T, b=R, c=X_j_new,
-        #      overwrite_c=True)
-        # gemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
-        #      overwrite_c=True)
+        # X_j_new = G_j.T @ R
         # Mathurin's trick to avoid checking all the entries
         was_non_zero = X_j[0, 0] != 0
         # was_non_zero = np.any(X_j)
         if was_non_zero:
-            # for o in range(n_orient):
-            #     ger(alpha=1., y=G_j[:, o], x=X_j[o, :], a=R.T,
-            #         overwrite_a=True)
             gemm2(alpha=1., beta=1., a=X_j.T,
                   b=G_j_c.T, c=R.T,
                   overwrite_c=True)
-            # gemm2(alpha=1., beta=1., a=X_j.T,
-            #       b=np.asfortranarray(G_j.T), c=R.T,
-            #       overwrite_c=True)
             # R += np.dot(G_j, X_j)
-            # axpy(x=X_j_new, y=X_j)
-            # axpy(x=X_j, y=X_j_new)
-            # import ipdb; ipdb.set_trace()
-            # axpy(x=X_j, y=X_j_new)
             X_j_new += X_j
         # Q can we accelerate the computation of this norm ?
         # it seems very slow regarding the operation done
@@ -457,16 +437,11 @@ def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
             X_j.fill(0.)
             active_set[idx] = False
         else:
-            # Q can we speed up this step ?
-            # it seems very slow regarding the operation done
             shrink = max(1.0 - alpha_lc[j] / block_norm, 0.0)
             X_j_new *= shrink
-            # R -= G_j @ X_j
-            # for o in range(n_orient):
-            #     ger(alpha=-1., y=G_j[:, o], x=X_j_new[o, :], a=R.T,
-            #         overwrite_a=True)
             gemm2(alpha=-1., beta=1., a=X_j_new.T, b=G_j_c.T, c=R.T,
                   overwrite_c=True)
+            # R += np.dot(G_j, X_j_new)
             X_j[:] = X_j_new
             active_set[idx] = True
 
@@ -1207,7 +1182,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                                          lipschitz_constant, phi, phiT,
                                          Z_init=None, n_orient=1, maxit=200,
-                                         tol=1e-8,  dgap_freq=10,
+                                         tol=1e-8, dgap_freq=10,
                                          verbose=None):
 
     n_sensors, n_times = M.shape
