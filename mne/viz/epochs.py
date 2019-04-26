@@ -991,6 +991,12 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     inds = [pick_idx for order_type in order
             for pick_idx, ch_type in zip(picks, types)
             if order_type == ch_type]
+    if len(ch_types) > len(order):
+        ch_missing = [ch_type for ch_type in ch_types if ch_type not in order]
+        ch_missing = np.unique(ch_missing)
+        raise RuntimeError('%s are in picks but not in order.'
+                           ' Please specify all channel types picked.' %
+                           (str(ch_missing)))
     types = sorted(types, key=order.index)
     if not len(inds) == len(picks):
         raise RuntimeError('Some channels not classified. Please'

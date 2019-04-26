@@ -21,7 +21,7 @@ from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn, _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from ..io.pick import pick_types, _picks_to_idx
+from ..io.pick import pick_types, _picks_to_idx, _DATA_CH_TYPES_ORDER_DEFAULT
 from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments
 
@@ -947,6 +947,7 @@ def _close_event(events, params):
 def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                          title, block):
     """Plot the components as epochs."""
+
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
@@ -987,10 +988,14 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                   data_picks=list(), decim=1, whitened_ch_names=(),
                   noise_cov=None)
     params['label_click_fun'] = partial(_label_clicked, params=params)
+    # changing the order to 'misc' before 'eog' and 'ecg'
+    order = list(_DATA_CH_TYPES_ORDER_DEFAULT)
+    order.pop(order.index('misc'))
+    order.insert(order.index('eog'), 'misc')
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
                                title=title, picks=picks,
-                               order=['misc', 'eog', 'ecg'])
+                               order=order)
     params['plot_update_proj_callback'] = _update_epoch_data
     _update_epoch_data(params)
     params['hsel_patch'].set_x(params['t_start'])
