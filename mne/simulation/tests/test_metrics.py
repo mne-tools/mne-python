@@ -9,10 +9,13 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_almost_equal
 import pytest
+from scipy.linalg import norm
 
+from mne import SourceEstimate
 from mne import read_source_spaces
 from mne.datasets import testing
-from mne.simulation import simulate_sparse_stc, source_estimate_quantification
+from mne.simulation import (simulate_sparse_stc, source_estimate_quantification, stc_cosine,
+                            stc_dipole_localization_error)
 from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
@@ -46,5 +49,49 @@ def test_metrics():
     pytest.raises(ValueError, source_estimate_quantification, stc1, stc2,
                   metric='foo')
 
+@testing.requires_testing_data
+def test_cosine_metric():
+    """Test simulation metrics."""
+    src = read_source_spaces(src_fname)
+    vert1 = [src[0]['vertno'][0:1], []]
+    vert2 = [src[0]['vertno'][1:2], []]
+    data1 = np.ones([1, 2])
+    data2 = data1.copy()
+    stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
+    stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
+    stc_est2 = SourceEstimate(data2, vert1, 0, 0.002, subject='sample')
+
+    E_per_sample1 = stc_cosine(stc_true, stc_est1)
+    E_unique1 = stc_cosine(stc_true, stc_est1, per_sample=False)
+
+    E_per_sample2 = stc_cosine(stc_true, stc_est2)
+    E_unique2 = stc_cosine(stc_true, stc_est2, per_sample=False)
+
+
+    # ### Tests to add
+    assert_almost_equal(E_per_sample1, np.zeros(2))
+    assert_almost_equal(E_unique1, 0.)
+    assert_almost_equal(E_per_sample2, np.ones(2))
+    assert_almost_equal(E_unique2, 1.)
+
+
+@testing.requires_testing_data
+def test_dle_metric():
+    """Test simulation metrics."""
+    src = read_source_spaces(src_fname)
+    vert1 = [src[0]['vertno'][0:1], []]
+    vert2 = [src[0]['vertno'][1:2], []]
+    dist = norm(src[0]['rr'][vert1[0]] - src[0]['rr'][vert2[0]])
+    data1 = np.ones([1, 2])
+    data2 = np.array([[0.8, 1]])
+    stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
+    stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
+
+    E_per_sample1 = stc_dipole_localization_error(stc_true, stc_est1, src)
+    # E_unique1 = stc_dipole_localization_error(stc_true, stc_est1, src, threshold='70%', per_sample=False)
+
+    # ### Tests to add
+    assert_almost_equal(E_per_sample1, [norm(src[0]['rr'][vert1[0]]), dist])
+    # assert_almost_equal(E_unique1, dist)
 
 run_tests_if_main()

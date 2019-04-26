@@ -8,7 +8,8 @@ from functools import partial
 import numpy as np
 from scipy.spatial import distance_matrix
 from scipy.linalg import norm
-
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import pairwise_distances
 from ..utils import _check_option
 
 # TODO: Add more localization accuracy functions. For example, distance between
@@ -134,27 +135,50 @@ def _check_threshold(x):
         return x
 
 
-def _dle(p, q, threshold, src, stc):
-    threshold = _check_threshold(threshold)
-    p[np.where(np.abs(p) <= threshold * np.max(np.abs(p)))] = 0
-    q[np.where(np.abs(q) <= threshold * np.max(np.abs(q)))] = 0
+def _dle(p, q, src, stc):
     p = np.sum(p, axis=1)
     q = np.sum(q, axis=1)
-    idx1  = np.nonzero(p)[0]
-    idx2  = np.nonzero(q)[0]
-
+    idx1 = np.nonzero(p)[0]
+    idx2 = np.nonzero(q)[0]
     points = np.empty([0, 3], dtype=float)
     for i in range(2):
         points = np.vstack([points, src[i]['rr'][stc.vertices[i]]])
+    if len(idx1) and len(idx2):
+        D = pairwise_distances(points[idx1], points[idx2])
+        D_min_1 = np.min(D, axis=0)
+        D_min_2 = np.min(D, axis=1)
+        return (np.mean(D_min_1) + np.mean(D_min_2)) / 2.
+    elif len(idx1):
+        return -np.inf
+    else:
+        return np.inf
 
-    D = distance_matrix(points[idx1], points[idx2])
-    D_min_1 = np.min(D, axis=0)
-    D_min_2 = np.min(D, axis=1)
-    return np.mean(D_min_1) + np.mean(D_min_2)
 
 
 def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%', per_sample=True):
     P, Q = _uniform_stc(stc_true, stc_est)
-    func = partial(_dle, threshold=threshold, src=src, stc=P)
+    if isinstance(threshold, str):
+        t = float(threshold.strip('%')) / 100.0
+        P._data[np.where(np.abs(P._data) <= t * np.max(np.abs(P._data)))] = 0
+        Q._data[np.where(np.abs(Q._data) <= t * np.max(np.abs(Q._data)))] = 0
+    else:
+        t = threshold
+        P._data[np.where(np.abs(P._data) <= t)] = 0
+        Q._data[np.where(np.abs(Q._data) <= t)] = 0
+    print(P.data)
+    print(Q.data)
+    func = partial(_dle, src=src, stc=P)
     metric = _apply(func, P, Q, per_sample=per_sample)
     return metric
+
+
+def _roc_auc_score(p, q):
+    return roc_auc_score(np.abs(p) > 0, q)
+
+
+def stc_roc_auc_score(stc_true, stc_est, per_sample=True):
+    P, Q = _uniform_stc(stc_true, stc_est)
+    func = partial(_roc_auc_score)
+    metric = _apply(func, P, Q, per_sample=per_sample)
+    return metric
+
