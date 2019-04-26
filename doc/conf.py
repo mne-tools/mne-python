@@ -411,7 +411,11 @@ sphinx_gallery_conf = {
     'show_memory': True,
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
-    'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml')
+    'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
+    'first_notebook_cell': ("%matplotlib inline\n"
+                            "from mne.viz import "
+                            "set_3d_backend\n"
+                            "set_3d_backend('vtki')")
 }
 
 build_dev_html = False
@@ -422,11 +426,7 @@ if not build_dev_html:
                    'branch': 'master',
                    'binderhub_url': 'https://mybinder.org',
                    'notebooks_dir': 'stable/notebooks',
-                   'dependencies': 'binder/Dockerfile',
-                   'first_notebook_cell': ("%matplotlib inline\n"
-                                           "from mne.viz import "
-                                           "set_3d_backend\n"
-                                           "set_3d_backend('vtki')")}
+                   'dependencies': 'binder/Dockerfile'}
     })
 
 ##############################################################################
