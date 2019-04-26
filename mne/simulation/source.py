@@ -319,7 +319,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
     return stc
 
 
-class SourceSimulator():
+class SourceSimulator(object):
     """Class to generate simulated Source Estimates.
 
     Parameters
@@ -330,7 +330,7 @@ class SourceSimulator():
         Time step between successive samples in data. Default is 0.001 sec.
     duration : float | None
         Time interval during which the simulation takes place in seconds.
-        Default value is computed using existing events and waveform lengths.
+        If None, it is computed using existing events and waveform lengths.
 
     Attributes
     ----------
@@ -375,9 +375,9 @@ class SourceSimulator():
             The label (as created for example by mne.read_label). If the label
             does not match any sources in the SourceEstimate, a ValueError is
             raised.
-        waveform : list | array
+        waveform : array, shape (n_times,) or (n_events, n_times) | list
             The waveform(s) describing the activity on the label vertices.
-            If list, must have the same length as events
+            If list, it must have the same length as events
         events: array of int, shape (n_events, 3)
             Events associated to the waveform(s) to specify when the activity
             should occur.
@@ -387,12 +387,17 @@ class SourceSimulator():
                              'not %s' % type(label))
 
         # If it is not a list then make it one
-        if not isinstance(waveform, list) or len(waveform) == 1:
-            waveform = [waveform] * len(events)
-            # The length is either equal to the length of events, or 1
+        if not isinstance(waveform, list) and np.ndim(waveform) == 2:
+            waveform = list(waveform)
+        if not isinstance(waveform, list) and np.ndim(waveform) == 1:
+            waveform = [waveform]
+        if len(waveform) == 1:
+            waveform = waveform * len(events)
+        # The length is either equal to the length of events, or 1
         if len(waveform) != len(events):
-            raise ValueError('Number of waveforms and events should match '
-                             'or there should be a single waveform')
+            raise ValueError('Number of waveforms and events should match or '
+                             'there should be a single waveform (%d != %d).' %
+                             (len(waveform), len(events)))
         # Update the maximum duration possible based on the events
         self._labels.extend([label] * len(events))
         self._waveforms.extend(waveform)
@@ -407,7 +412,7 @@ class SourceSimulator():
 
         Returns the stim channel data according to the simulation parameters
         which should be added through function add_data. If both start_sample
-        and nb_samples are not specified, the entire duration is used.
+        and stop_sample are not specified, the entire duration is used.
 
         Parameters
         ----------
@@ -446,7 +451,7 @@ class SourceSimulator():
 
         Returns a SourceEstimate object constructed according to the simulation
         parameters which should be added through function add_data. If both
-        start_sample and nb_samples are not specified, the entire duration is
+        start_sample and stop_sample are not specified, the entire duration is
         used.
 
         Parameters
@@ -508,8 +513,8 @@ class SourceSimulator():
         # Arbitrary chunk size, can be modified later to something else
         # Loop over chunks of 1 second - or, maximum sample size.
         # Can be modified to a different value.
-        nb_samples = self.n_times
-        for start_sample in range(0, nb_samples, self._chk_duration):
-            stop_sample = min(start_sample + self._chk_duration, nb_samples)
+        n_times = self.n_times
+        for start_sample in range(0, n_times, self._chk_duration):
+            stop_sample = min(start_sample + self._chk_duration, n_times)
             yield (self.get_stc(start_sample, stop_sample),
                    self.get_stim_channel(start_sample, stop_sample))
