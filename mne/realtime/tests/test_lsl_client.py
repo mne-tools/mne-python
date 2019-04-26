@@ -26,6 +26,8 @@ def test_lsl_client():
     wait_max = 10
 
     raw = read_raw_fif(raw_fname)
+    n_secs = 1
+    raw.crop(n_secs)
     raw_info = raw.info
     sfreq = raw_info['sfreq']
     stream = MockLSLStream(host, raw, ch_type='eeg')
@@ -33,7 +35,7 @@ def test_lsl_client():
 
     with LSLClient(info=raw_info, host=host, wait_max=wait_max) as client:
         client_info = client.get_measurement_info()
-        epoch = client.get_data_as_epoch(n_samples=sfreq)
+        epoch = client.get_data_as_epoch(n_samples=sfreq * n_sec * 2)
 
     assert client_info['nchan'] == raw_info['nchan']
     assert ([ch["ch_name"] for ch in client_info["chs"]] ==
