@@ -8,7 +8,7 @@ from pythreejs import (BlendFactors, BlendingMode, Equations, ShaderMaterial,
 from ...utils import copy_base_doc_to_subclass_doc
 
 
-@copy_base_doc_to_subclass_doc(_BaseRenderer)
+@copy_base_doc_to_subclass_doc
 class _Renderer(_BaseRenderer):
     """Class managing rendering scene created with ipyvolume.
 
