@@ -1724,7 +1724,7 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
                 legend_labels.append(style)
 
     # the condition legend
-    if len(conditions) > 1 and show_legend is not False:
+    if len(conditions) > 1 and bool(show_legend) is not False:
         show_legend_orig = show_legend
         show_legend = _check_loc_legal(show_legend, "show_legend")
         legend_params = dict(loc=show_legend, frameon=True)
