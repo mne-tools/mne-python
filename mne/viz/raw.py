@@ -340,7 +340,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         event_times = event_nums = None
 
     # reorganize the data in plotting order
-# TODO Refactor this according to epochs.py
+    # TODO Refactor this according to epochs.py
     inds = list()
     types = list()
     for t in ['grad', 'mag']:

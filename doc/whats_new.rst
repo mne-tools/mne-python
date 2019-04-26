@@ -18,7 +18,7 @@ Current
 
 Changelog
 ~~~~~~~~~
-- Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer seperated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Èric Larson`_
+- Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Èric Larson`_
 
 - :func:`mne.simulation.simulate_stc` now allows for label overlaps by `Nathalie Gayraud`_, and `Ivana Kojcic`_
 
@@ -189,8 +189,6 @@ Bug
 
 API
 ~~~
-
-- Add ``_DATA_CH_TYPES_ORDER_DEFAULT`` to :func:``mne.io.pick`` as a reference to the default order of channel types by `Stefan Repplinger`_
 
 - Deprecate ``cov, iir_params, blink, ecg, chpi, random_state`` and support for :class:`mne.io.Raw` instance inputs in :func:`mne.simulation.simulate_raw`; use :func:`mne.simulation.add_noise`, :func:`mne.simulation.add_ecg`, :func:`mne.simulation.add_eog`, and :func:`mne.simulation.add_chpi` by `Eric Larson`_
 

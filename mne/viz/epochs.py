@@ -1721,10 +1721,11 @@ def _prepare_butterfly(params):
             annote.remove()
         ann[:] = list()
         assert len(params['ann']) == 0
+        titles = _handle_default('titles')
         for chan_type in chan_types:
             unit = units[chan_type]
             pos = (0, 1 - (ticks[2+4*used_types] / ax.get_ylim()[0]))
-            ann.append(params['ax2'].annotate('%s (%s)' % (chan_type, unit),
+            ann.append(params['ax2'].annotate('%s (%s)' % (titles[chan_type], unit),
                                    xy=pos, xytext=(-70, 0),
                                    ha='left', size=12, va='center',
                                    xycoords='axes fraction', rotation=90,
