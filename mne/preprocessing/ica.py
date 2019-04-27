@@ -909,7 +909,7 @@ class ICA(ContainsMixin):
             # re-append additionally picked ch_info
             ch_info += [k for k in container.info['chs'] if k['ch_name'] in
                         add_channels]
-        info['bads'] = [ch_names[k] for k in list(self.exclude)]
+        info['bads'] = [ch_names[k] for k in self.exclude]
         info['projs'] = []  # make sure projections are removed.
         info._update_redundant()
         info._check_consistency()
@@ -1377,7 +1377,7 @@ class ICA(ContainsMixin):
         if exclude is None:
             return list(set(self.exclude))
         else:
-            return list(set(list(self.exclude) + list(exclude)))
+            return list(set(self.exclude).union(set(exclude)))
             # Allow both self.exclude and exclude to be array-like.
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
@@ -1462,9 +1462,8 @@ class ICA(ContainsMixin):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function."""
-        # We assume
-        # exclude = self._check_exclude(exclude)
-        # has already been called.
+        # We assume exclude = self._check_exclude(exclude)  has already been
+        # called.
 
         _n_pca_comp = self._check_n_pca_components(self.n_pca_components)
 
@@ -2187,8 +2186,7 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
 
         case = (len(found), _pl(found), node.name)
         logger.info('    found %s artifact%s by %s' % case)
-        ica.exclude = list(ica.exclude)
-        ica.exclude += found
+        ica.exclude = list(ica.exclude) + found
 
     logger.info('Artifact indices found:\n    ' + str(ica.exclude).strip('[]'))
     if len(set(ica.exclude)) != len(ica.exclude):
