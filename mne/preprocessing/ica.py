@@ -1609,8 +1609,8 @@ class ICA(ContainsMixin):
                          ecg_ch=None, ecg_score_func='pearsonr',
                          ecg_criterion=0.1, eog_ch=None,
                          eog_score_func='pearsonr',
-                         eog_criterion=0.1, skew_criterion=-1,
-                         kurt_criterion=-1, var_criterion=0,
+                         eog_criterion=0.1, skew_criterion=0,
+                         kurt_criterion=0, var_criterion=-1,
                          add_nodes=None):
         """Run ICA artifacts detection workflow.
 
@@ -1653,7 +1653,7 @@ class ICA(ContainsMixin):
             the name of function supported by ICA or a custom function.
         ecg_criterion : float | int | list-like | slice
             The indices of the sorted skewness scores. If float, sources with
-            scores smaller than the criterion will be dropped. Else, the scores
+            scores greater than the criterion will be dropped. Else, the scores
             sorted in descending order will be indexed accordingly.
             E.g. range(2) would return the two sources with the highest score.
             If None, this step will be skipped.
@@ -1667,25 +1667,25 @@ class ICA(ContainsMixin):
             the name of function supported by ICA or a custom function.
         eog_criterion : float | int | list-like | slice
             The indices of the sorted skewness scores. If float, sources with
-            scores smaller than the criterion will be dropped. Else, the scores
+            scores greater than the criterion will be dropped. Else, the scores
             sorted in descending order will be indexed accordingly.
             E.g. range(2) would return the two sources with the highest score.
             If None, this step will be skipped.
         skew_criterion : float | int | list-like | slice
             The indices of the sorted skewness scores. If float, sources with
-            scores smaller than the criterion will be dropped. Else, the scores
+            scores greater than the criterion will be dropped. Else, the scores
             sorted in descending order will be indexed accordingly.
             E.g. range(2) would return the two sources with the highest score.
             If None, this step will be skipped.
         kurt_criterion : float | int | list-like | slice
             The indices of the sorted skewness scores. If float, sources with
-            scores smaller than the criterion will be dropped. Else, the scores
+            scores greater than the criterion will be dropped. Else, the scores
             sorted in descending order will be indexed accordingly.
             E.g. range(2) would return the two sources with the highest score.
             If None, this step will be skipped.
         var_criterion : float | int | list-like | slice
             The indices of the sorted skewness scores. If float, sources with
-            scores smaller than the criterion will be dropped. Else, the scores
+            scores greater than the criterion will be dropped. Else, the scores
             sorted in descending order will be indexed accordingly.
             E.g. range(2) would return the two sources with the highest score.
             If None, this step will be skipped.
@@ -2184,9 +2184,6 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
             found = list(np.atleast_1d(
                     (-abs(scores)).argsort()[node.criterion]))
             # sort in descending order
-            # or: found = list(np.atleast_1d(
-            # abs(scores).argsort()[::-1][node.criterion]))
-            # less overhead but not 100% (order of same values, nans etc.)
 
         case = (len(found), _pl(found), node.name)
         logger.info('    found %s artifact%s by %s' % case)
@@ -2207,8 +2204,8 @@ def run_ica(raw, n_components, max_pca_components=100,
             random_state=None, picks=None, start=None, stop=None,
             start_find=None, stop_find=None, ecg_ch=None,
             ecg_score_func='pearsonr', ecg_criterion=0.1, eog_ch=None,
-            eog_score_func='pearsonr', eog_criterion=0.1, skew_criterion=-1,
-            kurt_criterion=-1, var_criterion=0, add_nodes=None,
+            eog_score_func='pearsonr', eog_criterion=0.1, skew_criterion=0,
+            kurt_criterion=0, var_criterion=-1, add_nodes=None,
             method='fastica', allow_ref_meg=False, verbose=None):
     """Run ICA decomposition on raw data and identify artifact sources.
 
@@ -2285,7 +2282,7 @@ def run_ica(raw, n_components, max_pca_components=100,
         the name of function supported by ICA or a custom function.
     ecg_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
-        scores smaller than the criterion will be dropped. Else, the scores
+        scores greater than the criterion will be dropped. Else, the scores
         sorted in descending order will be indexed accordingly.
         E.g. range(2) would return the two sources with the highest score.
         If None, this step will be skipped.
@@ -2299,25 +2296,25 @@ def run_ica(raw, n_components, max_pca_components=100,
         the name of function supported by ICA or a custom function.
     eog_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
-        scores smaller than the criterion will be dropped. Else, the scores
+        scores greater than the criterion will be dropped. Else, the scores
         sorted in descending order will be indexed accordingly.
         E.g. range(2) would return the two sources with the highest score.
         If None, this step will be skipped.
     skew_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
-        scores smaller than the criterion will be dropped. Else, the scores
+        scores greater than the criterion will be dropped. Else, the scores
         sorted in descending order will be indexed accordingly.
         E.g. range(2) would return the two sources with the highest score.
         If None, this step will be skipped.
     kurt_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
-        scores smaller than the criterion will be dropped. Else, the scores
+        scores greater than the criterion will be dropped. Else, the scores
         sorted in descending order will be indexed accordingly.
         E.g. range(2) would return the two sources with the highest score.
         If None, this step will be skipped.
     var_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
-        scores smaller than the criterion will be dropped. Else, the scores
+        scores greater than the criterion will be dropped. Else, the scores
         sorted in descending order will be indexed accordingly.
         E.g. range(2) would return the two sources with the highest score.
         If None, this step will be skipped.
