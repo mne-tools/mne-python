@@ -542,7 +542,7 @@ def test_ica_additional(method):
     ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=None,
                          eog_ch=None, skew_criterion=0,
                          var_criterion=None, kurt_criterion=None)
-    assert scores[ica.exclude] == np.max(scores)
+    assert np.abs(scores[ica.exclude]) == np.max(np.abs(scores))
 
     evoked = epochs.average()
     evoked_data = evoked.data.copy()
