@@ -225,11 +225,13 @@ def test_make_dics(tmpdir, _load_forward):
 
     # Test neural-activity-index weight normalization. It should be a scaled
     # version of the unit-noise-gain beamformer.
-    filters_nai = make_dics(epochs.info, fwd_surf, csd, label=label,
-                            weight_norm='nai', normalize_fwd=False)
+    filters_nai = make_dics(
+        epochs.info, fwd_surf, csd, label=label, pick_ori='max-power',
+        weight_norm='nai', normalize_fwd=False)
     w_nai = filters_nai['weights'][0]
-    filters_ung = make_dics(epochs.info, fwd_surf, csd, label=label,
-                            weight_norm='unit-noise-gain', normalize_fwd=False)
+    filters_ung = make_dics(
+        epochs.info, fwd_surf, csd, label=label, pick_ori='max-power',
+        weight_norm='unit-noise-gain', normalize_fwd=False)
     w_ung = filters_ung['weights'][0]
     assert np.allclose(np.corrcoef(np.abs(w_nai).ravel(),
                                    np.abs(w_ung).ravel()), 1)
