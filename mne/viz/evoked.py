@@ -1473,6 +1473,8 @@ def _aux_setup_styles(conditions, style_dict, style, default):
             if tag not in tags:
                 raise ValueError(msg.format(style, tag))
 
+    style_dict = deepcopy(style_dict)
+
     # check condition to style matching, and fill in defaults
     condition_warning = "Condition {0} could not be mapped to a " + style
     style_warning = ". Using the default of {}.".format(default)
@@ -1668,8 +1670,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
                                        "linestyle", "-")
 
     # finally, put it all together
-    if styles is None:
-        styles = dict()
+    styles = dict() if styles is None else deepcopy(styles)
 
     for condition, color, linestyle in zip(conditions, colors, linestyles):
         styles[condition] = styles.get(condition, dict())
@@ -1853,7 +1854,7 @@ def _calculate_ci_and_mean(evokeds, conditions, scaling, picks, ci_fun, gfp):
                                ci_fun=ci_fun, gfp=gfp)
         data_dict[cond] = res[0]
         if ci_fun is not None:
-            ci_dict[cond] = res[-1]
+            ci_dict[cond] = res[1]
     return data_dict, ci_dict
 
 
@@ -1887,12 +1888,7 @@ def _finish_styles_plot_comp_evoked(styles, colors, linestyles, conditions,
     # are pulled from the 'colors' and 'linestyles' dicts via '/'-tag matching
     # unless they are overwritten by entries from a user-provided 'styles'.
 
-    # first, copy to avoid overwriting
-    styles = deepcopy(styles)
-    colors = deepcopy(colors)
-    linestyles = deepcopy(linestyles)
-
-    # second, check if input is valid
+    # check if input is valid
     if isinstance(styles, dict):
         for style_ in styles:
             if style_ not in conditions:
@@ -1900,7 +1896,7 @@ def _finish_styles_plot_comp_evoked(styles, colors, linestyles, conditions,
                                  "conditions. Condition " + style_ +
                                  " was not found in the supplied data.")
 
-    # third, color
+    # color
     if (colors is not None and not isinstance(colors, str) and
             not isinstance(colors, dict) and len(colors) > 1):
         colors = {condition: color for condition, color
@@ -1927,9 +1923,9 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
         d = data_dict[condition].T
         ax.plot(times, d, zorder=1000, label=condition, clip_on=False,
                 **styles[condition])
-        if np.any(d > 0) or all_positive:
+        if any_positive or np.any(d > 0):
             any_positive = True
-        if np.any(d < 0):
+        if any_negative or np.any(d < 0):
             any_negative = True
 
         # plot the confidence interval if available
@@ -1979,7 +1975,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     gfp : bool
         If True, the channel type wise GFP is plotted.
-        If `picks` is an empty list (default), this is set to True.
+        If None and `picks` is None or a (list of) channel type(s), this is set
+        to True.
     colors : list | dict | None
         If a list, will be sequentially used for line colors.
         If a dict, can map evoked keys or '/'-separated (HED) tags to
@@ -2140,6 +2137,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
+    # default to plotting the GFP if all picks are channel type strs
     if gfp is None and (picks is None or (
             (picks == 'meg' or picks in _DATA_CH_TYPES_SPLIT) or
             (isinstance(picks, Iterable) and
@@ -2217,7 +2215,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             axes = (plt.subplots(figsize=(8, 6))[1]
                     for _ in range(len(ch_types)))
     else:
-        axes = ["topo" for _ in ch_types]
+        axes = ["topo"] * len(ch_types)
 
     if len(ch_types) > 1:
         logger.info("Multiple channel types selected, returning one figure "
