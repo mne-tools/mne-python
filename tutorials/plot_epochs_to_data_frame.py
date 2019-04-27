@@ -245,4 +245,6 @@ print(df_long.query("ch_type == 'eeg'").head())
 # Note that some of the columns are transformed to "category" data types.
 print(df_long.dtypes)
 
-# This facilitates seamless processing in other tools like R and ggplot.
+##############################################################################
+# The pandas exporter facilitates processing MNE outputs in R:
+# https://mne-tools.github.io/mne-r/articles/plot_evoked_multilevel_model.html

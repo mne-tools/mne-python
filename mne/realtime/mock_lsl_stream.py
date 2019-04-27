@@ -86,5 +86,5 @@ class MockLSLStream(object):
             mysample = self._raw[:, counter][0].ravel().tolist()
             # now send it and wait for a bit
             outlet.push_sample(mysample)
-            counter += 1
+            counter = 0 if counter == self._raw.last_samp else counter + 1
             time.sleep(self._time_dilation / self._sfreq)
