@@ -106,6 +106,27 @@ n_jobs : int
     Requires the joblib package.
 """
 
+# Simulation metrics
+docdict['metric_stc_true'] = """
+stc_true : instance of (Vol|Mixed)SourceEstimate
+    The source estimates containing correct values.
+"""
+docdict['metric_stc_est'] = """
+stc_est : instance of (Vol|Mixed)SourceEstimate
+    The source estimates containing estimated values
+    e.g. obtained with a source imaging method.
+"""
+docdict['metric_per_sample'] = """
+per_sample : bool
+    If True the metric is computed for each sample
+    separately. If False, the metric is spatio-temporal.
+"""
+docdict['stc_metric'] = """
+metric : float | array, shape (n_times,)
+    The metric. float if per_sample is False, else
+    array with the values computed for each time point.
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)

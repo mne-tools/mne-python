@@ -1,5 +1,7 @@
-# Author: Yousra Bekhti <yousra.bekhti@gmail.com>
-#         Mark Wronkiewicz <wronk@uw.edu>
+# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
+#          Mark Wronkiewicz <wronk@uw.edu>
+#          Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -14,8 +16,9 @@ from scipy.linalg import norm
 from mne import SourceEstimate
 from mne import read_source_spaces
 from mne.datasets import testing
-from mne.simulation import (simulate_sparse_stc, source_estimate_quantification, stc_cosine,
-                            stc_dipole_localization_error)
+from mne.simulation import (simulate_sparse_stc,
+                            source_estimate_quantification,
+                            stc_cosine, stc_dipole_localization_error)
 from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
@@ -49,6 +52,7 @@ def test_metrics():
     pytest.raises(ValueError, source_estimate_quantification, stc1, stc2,
                   metric='foo')
 
+
 @testing.requires_testing_data
 def test_cosine_metric():
     """Test simulation metrics."""
@@ -66,7 +70,6 @@ def test_cosine_metric():
 
     E_per_sample2 = stc_cosine(stc_true, stc_est2)
     E_unique2 = stc_cosine(stc_true, stc_est2, per_sample=False)
-
 
     # ### Tests to add
     assert_almost_equal(E_per_sample1, np.zeros(2))
@@ -93,5 +96,6 @@ def test_dle_metric():
     # ### Tests to add
     assert_almost_equal(E_per_sample1, [norm(src[0]['rr'][vert1[0]]), dist])
     # assert_almost_equal(E_unique1, dist)
+
 
 run_tests_if_main()
