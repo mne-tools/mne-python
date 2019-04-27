@@ -47,9 +47,6 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
-# Instantiating stimulation server
-
-# The with statement is necessary to ensure a clean exit
 fig, ax = plt.subplots(1)
 ax.set(xlabel='Trials', ylabel='Classification score (% correct)',
        title='Real-time feedback')
@@ -57,6 +54,9 @@ isi = 0.01  # this is unrealistic, but will make the example run quickly
 n_trials = 40  # number of trials to simulate
 n_start = 5  # number of trials to run before decoding
 rng = np.random.RandomState(0)
+
+# Instantiating stimulation server
+# The with statement is necessary to ensure a clean exit
 with StimServer(port=4218) as stim_server:
 
     # The channels to be used while decoding
