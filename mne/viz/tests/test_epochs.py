@@ -83,8 +83,9 @@ def test_plot_epochs(capsys):
                   'pageup', 'pagedown', '-', '+', '=',
                   'f11', 'home', '?', 'h', 'o', 'end']
     fig = epochs.plot()
-    for key in keystotest:
-        fig.canvas.key_press_event(key)
+    with pytest.warns(None):  # sometimes matplotlib warns about limits
+        for key in keystotest:
+            fig.canvas.key_press_event(key)
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
     fig.canvas.resize_event()
