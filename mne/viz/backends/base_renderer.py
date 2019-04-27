@@ -29,7 +29,7 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
+             backface_culling=False, offset=None, **kwargs):
         """Add a mesh in the scene.
 
         Parameters
@@ -57,7 +57,7 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
+                vmin=None, vmax=None, colormap=None, offset=None):
         """Add a contour in the scene.
 
         Parameters
@@ -86,7 +86,7 @@ class _BaseRenderer(metaclass=ABCMeta):
     @abstractclassmethod
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
-                backface_culling=False):
+                backface_culling=False, offset=None):
         """Add a surface in the scene.
 
         Parameters
