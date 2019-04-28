@@ -114,6 +114,19 @@ def _apply(func, P, Q, per_sample):
     return metric
 
 
+def _thresholding(stc_true, stc_est, threshold):
+    stc_true._data = np.abs(stc_true._data)
+    stc_est._data = np.abs(stc_est._data)
+    if isinstance(threshold, str):
+        t = _check_threshold(threshold)
+        stc_true._data[stc_true._data <= t * np.max(stc_true._data)] = 0.
+        stc_est._data[stc_est._data <= t * np.max(stc_est._data)] = 0.
+    else:
+        stc_true._data[stc_true._data <= threshold] = 0.
+        stc_est._data[stc_est._data <= threshold] = 0.
+    return stc_true, stc_est
+
+
 def _cosine(x, y):
     p = np.reshape(x, (-1, 1))
     q = np.reshape(y, (-1, 1))
@@ -194,15 +207,7 @@ def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
     %(stc_metric)s
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
-    stc_true._data = np.abs(stc_true._data)
-    stc_est._data = np.abs(stc_est._data)
-    if isinstance(threshold, str):
-        t = _check_threshold(threshold)
-        stc_true._data[stc_true._data <= t * np.max(stc_true._data)] = 0.
-        stc_est._data[stc_est._data <= t * np.max(stc_est._data)] = 0.
-    else:
-        stc_true._data[stc_true._data <= threshold] = 0.
-        stc_est._data[stc_est._data <= threshold] = 0.
+    _thresholding(stc_true, stc_est, threshold)
     func = partial(_dle, src=src, stc=stc_true)
     metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
     return metric
@@ -235,7 +240,123 @@ def stc_roc_auc_score(stc_true, stc_est, per_sample=True):
     -------
     %(stc_metric)s
     """
-    P, Q = _uniform_stc(stc_true, stc_est)
+    stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     func = partial(_roc_auc_score)
-    metric = _apply(func, P, Q, per_sample=per_sample)
+    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    return metric
+
+
+def _f1_score(p, q):
+    from sklearn.metrics import f1_score
+    p = np.sum(p, axis=1)
+    q = np.sum(q, axis=1)
+    return f1_score(np.abs(p) > 0, np.abs(q) > 0)
+
+
+@fill_doc
+def stc_f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
+    """Compute the F1 score, also known as balanced F-score or F-measure
+
+    The F1 score can be interpreted as a weighted average of the precision and recall,
+    where an F1 score reaches its best value at 1 and worst score at 0.
+    The relative contribution of precision and recall to the F1 score are equal.
+    The formula for the F1 score is:
+
+        F1 = 2 * (precision * recall) / (precision + recall)
+
+    Parameters
+    ----------
+    %(metric_stc_true)s
+    %(metric_stc_est)s
+    threshold : float | str
+        The threshold to apply to source estimates before computing
+        the dipole localization error. If a string the threshold is
+        a percentage and it should end with the percent character.
+    %(metric_per_sample)s
+
+    Returns
+    -------
+    %(stc_metric)s
+    """
+    stc_true, stc_est = _uniform_stc(stc_true, stc_est)
+    _thresholding(stc_true, stc_est, threshold)
+    func = partial(_f1_score)
+    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    return metric
+
+
+def _precision_score(p, q):
+    from sklearn.metrics import precision_score
+    p = np.sum(p, axis=1)
+    q = np.sum(q, axis=1)
+    return precision_score(np.abs(p) > 0, np.abs(q) > 0)
+
+
+@fill_doc
+def stc_precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
+    """Compute the precision
+
+    The precision is the ratio ``tp / (tp + fp)`` where ``tp`` is the number of
+    true positives and ``fp`` the number of false positives. The precision is
+    intuitively the ability of the classifier not to label as positive a sample
+    that is negative.
+
+    The best value is 1 and the worst value is 0.
+
+    Parameters
+    ----------
+    %(metric_stc_true)s
+    %(metric_stc_est)s
+    threshold : float | str
+        The threshold to apply to source estimates before computing
+        the dipole localization error. If a string the threshold is
+        a percentage and it should end with the percent character.
+    %(metric_per_sample)s
+
+    Returns
+    -------
+    %(stc_metric)s
+    """
+    stc_true, stc_est = _uniform_stc(stc_true, stc_est)
+    stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
+    func = partial(_precision_score)
+    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    return metric
+
+
+def _recall_score(p, q):
+    from sklearn.metrics import recall_score
+    p = np.sum(p, axis=1)
+    q = np.sum(q, axis=1)
+    return recall_score(np.abs(p) > 0, np.abs(q) > 0)
+
+
+@fill_doc
+def stc_recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
+    """Compute the recall
+
+    The recall is the ratio ``tp / (tp + fn)`` where ``tp`` is the number of
+    true positives and ``fn`` the number of false negatives. The recall is
+    intuitively the ability of the classifier to find all the positive samples.
+
+    The best value is 1 and the worst value is 0.
+
+    Parameters
+    ----------
+    %(metric_stc_true)s
+    %(metric_stc_est)s
+    threshold : float | str
+        The threshold to apply to source estimates before computing
+        the dipole localization error. If a string the threshold is
+        a percentage and it should end with the percent character.
+    %(metric_per_sample)s
+
+    Returns
+    -------
+    %(stc_metric)s
+    """
+    stc_true, stc_est = _uniform_stc(stc_true, stc_est)
+    _thresholding(stc_true, stc_est, threshold)
+    func = partial(_recall_score)
+    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
     return metric
