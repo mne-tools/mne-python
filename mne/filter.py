@@ -44,8 +44,7 @@ def is_power2(num):
 
 
 def next_fast_len(target):
-    """
-    Find the next fast size of input data to `fft`, for zero-padding, etc.
+    """Find the next fast size of input data to `fft`, for zero-padding, etc.
 
     SciPy's FFTPACK has efficient functions for radix {2, 3, 4, 5}, so this
     returns the next composite of the prime factors 2, 3, and 5 which is
@@ -1458,7 +1457,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
 
     Parameters
     ----------
-    x : n-d array
+    x : ndarray
         Signal to resample.
     up : float
         Factor to upsample by.
