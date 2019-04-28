@@ -29,7 +29,7 @@ def is_power2(num):
 
     Returns
     -------
-    b : bool
+    bool
         True if is power of 2.
 
     Examples
@@ -154,7 +154,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
 
     Returns
     -------
-    xf : array, shape (n_signals, n_times)
+    x : array, shape (n_signals, n_times)
         x filtered.
     """
     n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
@@ -334,7 +334,7 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
 
     Parameters
     ----------
-    Fs : float
+    sfreq : float
         Sampling rate in Hz.
     freq : 1d array
         Frequency sampling points in Hz.
@@ -1485,7 +1485,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
 
     Returns
     -------
-    xf : array
+    y : array
         x resampled.
 
     Notes
@@ -1654,7 +1654,7 @@ def detrend(x, order=1, axis=-1):
 
     Returns
     -------
-    xf : array
+    y : array
         x detrended.
 
     Examples
@@ -2029,7 +2029,7 @@ class FilterMixin(object):
         Parameters
         ----------
         sfreq : float
-            New sample rate to use
+            New sample rate to use.
         npad : int | str
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
