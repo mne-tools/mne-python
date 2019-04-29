@@ -560,22 +560,20 @@ def _label_clicked(pos, params):
 _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
 
 
-def _set_psd_plot_params(info, proj, picks, ax, area_mode,
-                         restrict_to_data_channels=True):
+def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
-    picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    if restrict_to_data_channels:
+    if picks is None:  # Only plot standard channel types
         these_data_types = _data_types
-    else:  # restrict to all channels, for which we have any kind of scaling
+    else:  # Allow to plot all channels for which we have any kind of scaling
         scalings_fallback = _handle_default('scalings_plot_raw', None)
         scalings_fallback.pop('whitened')
         these_data_types = tuple(scalings_fallback.keys())
-
+    picks = _picks_to_idx(info, picks)
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -607,7 +605,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode,
             try:
                 scalings_list.append(scalings[pick])
             except KeyError:
-                scalings_list.append(scalings_fallback[pick])*1000  # like misc
+                scalings_list.append(scalings_fallback[pick]) * 1000  # as misc
     if len(picks_list) == 0:
         raise RuntimeError('No data channels found')
     if ax is not None:
@@ -695,8 +693,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  area_mode='std', area_alpha=0.33, n_overlap=0,
                  dB=True, estimate='auto', average=False, show=True, n_jobs=1,
                  line_alpha=None, spatial_colors=None, xscale='linear',
-                 reject_by_annotation=True, restrict_to_data_channels=True,
-                 verbose=None):
+                 reject_by_annotation=True, verbose=None):
     """Plot the power spectral density across channels.
 
     Different channel types are drawn in sub-plots. When the data has been
@@ -723,9 +720,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Default is None, which uses the minimum of 2048 and the
         number of time points.
     %(picks_good_data)s
-        Cannot be None if `ax` is supplied. If both
-        `picks` and `ax` are None, separate subplots will be created for
-        each standard channel type (`mag`, `grad`, and `eeg`).
+        Cannot be None if `ax` is supplied. If both `picks` and `ax` are None,
+        separate subplots will be created for each standard channel type
+        (`mag`, `grad`, `eeg`, 'seeg', 'ecog').
     ax : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     color : str | tuple
@@ -776,10 +773,6 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
-    restrict_to_data_channels : bool
-        Whether to restrict the channels to plot to data channels only ('mag',
-        'grad', 'eeg', 'seeg', 'ecog') or to plot the psd for all picked
-        channels. Defaults to True.
     %(verbose)s
 
     Returns
@@ -796,9 +789,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         spatial_colors = False if average else True
 
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label = _set_psd_plot_params(raw.info, proj, picks, ax, area_mode,
-                                          restrict_to_data_channels=
-                                          restrict_to_data_channels)
+        make_label = _set_psd_plot_params(raw.info, proj, picks, ax, area_mode)
     del ax
     if line_alpha is None:
         line_alpha = 1.0 if average else 0.75

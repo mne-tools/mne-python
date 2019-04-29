@@ -1864,16 +1864,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, estimate='auto', average=None,
                  show=True, n_jobs=1, line_alpha=None, spatial_colors=None,
-                 xscale='linear', reject_by_annotation=True,
-                 restrict_to_data_channels=True, verbose=None):
+                 xscale='linear', reject_by_annotation=True, verbose=None):
         return plot_raw_psd(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
             n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
             area_alpha=area_alpha, n_overlap=n_overlap, dB=dB,
             estimate=estimate, average=average, show=show, n_jobs=n_jobs,
             line_alpha=line_alpha, spatial_colors=spatial_colors,
-            xscale=xscale, reject_by_annotation=reject_by_annotation,
-            restrict_to_data_channels=restrict_to_data_channels)
+            xscale=xscale, reject_by_annotation=reject_by_annotation)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
