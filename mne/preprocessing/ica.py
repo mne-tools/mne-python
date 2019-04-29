@@ -214,7 +214,7 @@ class ICA(ContainsMixin):
         If fit, the whitened matrix to go from PCA space to ICA space.
         Used, in combination with the `pca_components_`, by the methods
         :meth:`ICA.get_sources` and :meth:`ICA.apply` to unmix the observed data.
-    exclude : array_like of int.
+    exclude : array_like of int
         List or np.array of sources indices to exclude when re-mixing the data
         in the :meth:`ICA.apply` method, i.e. artifactual ICA components.
         The components identified manually and by the various automatic
