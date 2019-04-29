@@ -9,7 +9,7 @@ import os.path as op
 from scipy.io import savemat
 
 from mne.datasets import testing
-from mne.beamformer import make_lcmv, apply_lcmv
+from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
 from mne.utils import run_tests_if_main
 
@@ -68,21 +68,25 @@ def test_lcmv_fieldtrip():
     evoked, data_cov, fwd = _get_bf_data()
 
     # beamformer types to be tested: unit-gain (vector and scalar) and
-    # unit-noise-gain
-    bf_types = ['ug_vec', 'ug_scal', 'ung']
-    weight_norms = [None, None, 'unit-noise-gain']
-    pick_oris = [None, 'max-power', 'max-power']
+    # unit-noise-gain (time series and power output [apply_lcmv_cov])
+    bf_types = ['ug_vec', 'ug_scal', 'ung', 'ung_pow']
+    weight_norms = [None, None, 'unit-noise-gain', 'unit-noise-gain']
+    pick_oris = [None, 'max-power', 'max-power', 'max-power']
+    power = [False, False, False, True]
 
-    for bf_type, weight_norm, pick_ori in zip(bf_types, weight_norms,
-                                              pick_oris):
+    for bf_type, weight_norm, pick_ori, pwr in zip(bf_types, weight_norms,
+                                                   pick_oris, power):
 
         # run the MNE-Python beamformer
         filters = make_lcmv(evoked.info, fwd, data_cov=data_cov,
                             noise_cov=None, pick_ori=pick_ori, reg=0.05,
                             weight_norm=weight_norm)
-        stc_mne = apply_lcmv(evoked, filters)
-        # take the absolute value, since orientation is arbitrary by 180 degr.
-        stc_mne.data[:, :] = np.abs(stc_mne.data)
+        if pwr is True:
+            stc_mne = apply_lcmv_cov(data_cov, filters)
+        else:
+            stc_mne = apply_lcmv(evoked, filters)
+            # take the absolute value, since orientation can be flipped
+            stc_mne.data[:, :] = np.abs(stc_mne.data)
 
         # load the FieldTrip output
         ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.stc')
