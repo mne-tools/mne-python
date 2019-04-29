@@ -12,7 +12,7 @@ from copy import deepcopy
 # Create a Bunch class that acts like a struct (mybunch.key = val )
 
 class Bunch(dict):
-    """Dictionnary-like object that exposes its keys as attributes."""
+    """Dictionary-like object that exposes its keys as attributes."""
 
     def __init__(self, **kwargs):  # noqa: D102
         dict.__init__(self, kwargs)
@@ -83,8 +83,8 @@ class NamedInt(Named, int):
         out._name = name
         return out
 
-    def __getnewargs__(obj):
-        return obj._name, int(obj)
+    def __getnewargs__(self):
+        return self._name, int(self)
 
 
 class NamedFloat(Named, float):
@@ -95,5 +95,5 @@ class NamedFloat(Named, float):
         out._name = name
         return out
 
-    def __getnewargs__(obj):
-        return obj._name, float(obj)
+    def __getnewargs__(self):
+        return self._name, float(self)
