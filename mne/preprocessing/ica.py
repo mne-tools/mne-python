@@ -987,10 +987,8 @@ class ICA(ContainsMixin):
                                  'number of time slices.')
             # auto target selection
             if isinstance(inst, BaseRaw):
-                # We need to pass inst, not self for defining sfreq, since the
-                # sfreq when fitting ica (--> self.info['sfreq']) can be
-                # different (usually lower) than the sfreq when scoring sources
-                # (e.g. using the original raw sfreq for this step):
+                # We pass inst, not self, because the sfreq of the data we
+                # use for scoring components can be different:
                 sources, target = _band_pass_filter(inst, sources, target,
                                                     l_freq, h_freq)
 
@@ -2151,6 +2149,13 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
                       add_nodes):
     """Aux Function."""
     from scipy import stats
+
+    if any(isinstance(x, int) for x in [ecg_criterion, eog_criterion,
+                                        skew_criterion, kurt_criterion,
+                                        var_criterion]):
+        warn("BUG-FIX: Sorting of the absolute scores changed from ascending "
+             "to descending for integer ..._criterion-arguments in v 0.18.",
+             SyntaxWarning)
 
     nodes = []
     if ecg_ch is not None:
