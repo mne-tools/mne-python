@@ -7,6 +7,7 @@
 
 
 import os.path as op
+import warnings
 
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -136,10 +137,12 @@ def test_precision_metric():
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     stc_est2 = SourceEstimate(data3, vert3, 0, 0.002, subject='sample')
 
-    E_unique1 = stc_precision_score(stc_true, stc_est1, per_sample=False)
-    E_unique2 = stc_precision_score(stc_true, stc_est2, per_sample=False)
-    E_per_sample1 = stc_precision_score(stc_true, stc_est2)
-    E_per_sample2 = stc_precision_score(stc_true, stc_est2, threshold='70%')
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        E_unique1 = stc_precision_score(stc_true, stc_est1, per_sample=False)
+        E_unique2 = stc_precision_score(stc_true, stc_est2, per_sample=False)
+        E_per_sample1 = stc_precision_score(stc_true, stc_est2)
+        E_per_sample2 = stc_precision_score(stc_true, stc_est2, threshold='70%')
 
     # ### Tests to add
     assert_almost_equal(E_unique1, 0.5)
@@ -188,10 +191,12 @@ def test_f1_metric():
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     stc_est2 = SourceEstimate(data3, vert3, 0, 0.002, subject='sample')
 
-    E_unique1 = stc_f1_score(stc_true, stc_est1, per_sample=False)
-    E_unique2 = stc_f1_score(stc_true, stc_est2, per_sample=False)
-    E_per_sample1 = stc_f1_score(stc_true, stc_est2)
-    E_per_sample2 = stc_f1_score(stc_true, stc_est2, threshold='70%')
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        E_unique1 = stc_f1_score(stc_true, stc_est1, per_sample=False)
+        E_unique2 = stc_f1_score(stc_true, stc_est2, per_sample=False)
+        E_per_sample1 = stc_f1_score(stc_true, stc_est2)
+        E_per_sample2 = stc_f1_score(stc_true, stc_est2, threshold='70%')
     assert_almost_equal(E_unique1, 0.5)
     assert_almost_equal(E_unique2, 1. / 1.5)
     assert_almost_equal(E_per_sample1, [0., 1. / 1.5])

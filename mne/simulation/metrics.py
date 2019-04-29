@@ -145,9 +145,9 @@ def stc_cosine(stc_true, stc_est, per_sample=True):
     -------
     %(stc_metric)s
     """
-    P, Q = _uniform_stc(stc_true, stc_est)
+    stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     func = partial(_cosine)
-    metric = _apply(func, P, Q, per_sample=per_sample)
+    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
     return metric
 
 
