@@ -29,7 +29,7 @@ def is_power2(num):
 
     Returns
     -------
-    bool
+    b : bool
         True if is power of 2.
 
     Examples
