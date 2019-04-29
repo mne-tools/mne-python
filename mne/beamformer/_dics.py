@@ -205,6 +205,11 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     # Determine how to normalize the leadfield
     if normalize_fwd:
         if inversion == 'single':
+            if weight_norm == 'unit-noise-gain':
+                raise ValueError('The computation of a unit-noise-gain '
+                                 'beamformer with inversion="single" is not '
+                                 'stable with depth normalization, set  '
+                                 'normalize_fwd to False.')
             combine_xyz = False
         else:
             combine_xyz = 'fro'

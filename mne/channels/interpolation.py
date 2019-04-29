@@ -157,7 +157,7 @@ def _interpolate_bads_eeg(inst, verbose=None):
 
 @verbose
 def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
-                          verbose=None):
+                          verbose=None, ref_meg=False):
     """Interpolate bad channels from data in good channels.
 
     Parameters
@@ -173,11 +173,13 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
         Can be ``'auto'``, which means a head-digitization-based origin
         fit. Default is ``(0., 0., 0.04)``.
     %(verbose)s
+    ref_meg : bool
+        Should always be False; only exists for testing purpose.
     """
     picks_meg = pick_types(inst.info, meg=True, eeg=False,
-                           ref_meg=True, exclude=[])
+                           ref_meg=ref_meg, exclude=[])
     picks_good = pick_types(inst.info, meg=True, eeg=False,
-                            ref_meg=True, exclude='bads')
+                            ref_meg=ref_meg, exclude='bads')
     meg_ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     bads_meg = [ch for ch in inst.info['bads'] if ch in meg_ch_names]
 

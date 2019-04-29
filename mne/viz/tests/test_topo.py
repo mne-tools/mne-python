@@ -138,10 +138,12 @@ def test_plot_topo():
     # Test RMS plot of grad pairs
     picked_evoked.plot_topo(merge_grads=True, background_color='w')
     plt.close('all')
-    for ax, idx in iter_topography(evoked.info):
+    for ax, idx in iter_topography(evoked.info, legend=True):
         ax.plot(evoked.data[idx], color='red')
         # test status bar message
-        assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
+        if idx != -1:
+            assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
+    assert idx == -1
     plt.close('all')
     cov = read_cov(cov_fname)
     cov['projs'] = []
@@ -152,6 +154,11 @@ def test_plot_topo():
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
                         evoked.times)
+    plt.close('all')
+
+    for ax, idx in iter_topography(evoked.info):  # brief test with false
+        ax.plot([0, 1, 2])
+        break
     plt.close('all')
 
 
@@ -192,6 +199,14 @@ def test_plot_topo_image_epochs():
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.64))
     assert num_figures_before + 1 == len(plt.get_fignums())
+    # test for auto-showing a colorbar when only 1 sensor type
+    ep = epochs.copy().pick_types(meg=False, eeg=True)
+    fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None,
+                                 cmap=cmap)
+    ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
+    qm_cmap = [y.cmap for x in ax for y in x.get_children()
+               if isinstance(y, matplotlib.collections.QuadMesh)]
+    assert qm_cmap[0] is cmap
     plt.close('all')
 
 

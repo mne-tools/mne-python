@@ -4,10 +4,18 @@ Core visualization operations based on VTKi.
 Actual implementation of _Renderer and _Projection classes.
 """
 
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Guillaume Favelier <guillaume.favelier@gmail.com>
+#
+# License: Simplified BSD
+
 import vtk
 import vtki
 import warnings
 import numpy as np
+from .base_renderer import _BaseRenderer
+from ...utils import copy_base_doc_to_subclass_doc
 
 
 class _Projection(object):
@@ -31,7 +39,19 @@ class _Projection(object):
         self.pts.SetVisibility(state)
 
 
-class _Renderer(object):
+@copy_base_doc_to_subclass_doc
+class _Renderer(_BaseRenderer):
+    """Class managing rendering scene.
+
+    Attributes
+    ----------
+    plotter: vtki.Plotter
+        Main VTKI access point.
+    off_screen: bool
+        State of the offscreen.
+    name: str
+        Name of the window.
+    """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="VTKI Scene", show=False):
@@ -125,8 +145,10 @@ class _Renderer(object):
                                   backface_culling=backface_culling)
 
     def sphere(self, center, color, scale, opacity=1.0,
-               backface_culling=False):
+               resolution=8, backface_culling=False):
         sphere = vtk.vtkSphereSource()
+        sphere.SetThetaResolution(resolution)
+        sphere.SetPhiResolution(resolution)
         sphere.Update()
         geom = sphere.GetOutput()
         with warnings.catch_warnings():

@@ -319,12 +319,26 @@ def test_plot_compare_evokeds():
                          ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
     plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
                          split_legend=None)
-    plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    with pytest.raises(ValueError, match='more than [1-9]'):
+    with pytest.raises(ValueError, match="If `split_legend` is True"):
+        plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
+    with pytest.raises(ValueError, match='Please supply colors manually'):
         plot_compare_evokeds([red] * 20)
     with pytest.raises(ValueError, match='must specify the colors'):
         plot_compare_evokeds(contrasts, cmap='summer')
     plt.close('all')
+
+    figs = plot_compare_evokeds(red, picks="meg", gfp=None)
+    for fig in figs:
+        assert "GFP" in fig.axes[0].get_title()
+    figs = plot_compare_evokeds(red, picks="meg", gfp=False)
+    for fig in figs:
+        assert "GFP" not in fig.axes[0].get_title()
+
+    figs = plot_compare_evokeds(contrasts, axes="topo")
+    for fig in figs:
+        assert len(fig.axes[0].lines) == len(contrasts)
+        assert len(fig.axes[-1].lines) == 0
+    plt.close("all")
 
     # smoke test for tmin >= 0 (from mailing list)
     red.crop(0.01, None)

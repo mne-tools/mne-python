@@ -173,6 +173,14 @@ mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
                          background_color='w')
 
 ###############################################################################
+# For small numbers of sensors, it is also possible to create a more refined
+# topoplot. Again, clicking on a sensor opens a single-sensor plot.
+
+mne.viz.plot_compare_evokeds(evoked_dict, picks="eeg", colors=colors,
+                             linestyles=linestyles, split_legend=True,
+                             axes="topo")
+
+###############################################################################
 # We can also plot the activations as arrow maps on top of the topoplot.
 # The arrows represent an estimation of the current flow underneath the MEG
 # sensors. Here, sample number 175 corresponds to the time of the maximum

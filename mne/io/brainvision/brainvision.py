@@ -256,21 +256,26 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    onset, duration, description, date_str = _read_vmrk(fname)
-    orig_time = _str_to_meas_date(date_str)
+    markers = _read_vmrk(fname)
+    if len(markers) > 0:
+        onset, duration, description, date_str = markers
+        orig_time = _str_to_meas_date(date_str)
 
-    if sfreq == 'auto':
-        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-        _, _, _, info = _aux_vhdr_info(vhdr_fname)
-        sfreq = info['sfreq']
+        if sfreq == 'auto':
+            vhdr_fname = op.splitext(fname)[0] + '.vhdr'
+            logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
+            _, _, _, info = _aux_vhdr_info(vhdr_fname)
+            sfreq = info['sfreq']
 
-    onset = np.array(onset, dtype=float) / sfreq
-    duration = np.array(duration, dtype=float) / sfreq
-    annotations = Annotations(onset=onset, duration=duration,
-                              description=description,
-                              orig_time=orig_time)
-
+        onset = np.array(onset, dtype=float) / sfreq
+        duration = np.array(duration, dtype=float) / sfreq
+        annotations = Annotations(onset=onset, duration=duration,
+                                  description=description,
+                                  orig_time=orig_time)
+    else:
+        annotations = Annotations(onset=0, duration=0,
+                                  description=None,
+                                  orig_time=None)
     return annotations
 
 

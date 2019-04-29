@@ -6,12 +6,14 @@
 
 import inspect
 import os.path as op
+from os import unlink
 import shutil
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
+from tempfile import NamedTemporaryFile
 
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, read_annotations
@@ -452,5 +454,19 @@ def test_read_vmrk_annotations():
     annotations_auto = read_annotations(vmrk_path)
     assert_array_equal(annotations.onset, annotations_auto.onset)
 
+    # Test vmrk file without annotations
+    # delete=False is for Windows compatibility
+    with open(vmrk_path) as myfile:
+        head = [next(myfile) for x in range(6)]
+    with NamedTemporaryFile(mode='w+', suffix='.vmrk', delete=False) as temp:
+        for item in head:
+            temp.write(item)
+        temp.seek(0)
+        annotations = read_annotations(temp.name, sfreq=sfreq)
+    try:
+        temp.close()
+        unlink(temp.name)
+    except FileNotFoundError:
+        pass
 
 run_tests_if_main()

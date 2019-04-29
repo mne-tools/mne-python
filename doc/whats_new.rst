@@ -18,6 +18,17 @@ Current
 
 Changelog
 ~~~~~~~~~
+- Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
+
+- :meth:`mne.Epochs.get_data` now takes a ``picks`` parameter by `Jona Sassenhagen`_
+
+- :func:`~mne.viz.plot_compare_evokeds` will generate topo plots if ``axes='topo'`` by `Jona Sassenhagen`_
+
+- ``mne.viz.iter_topography`` can yield an additional axis, e.g., for plotting legends by `Jona Sassenhagen`_ and `Daniel McCloy`_
+
+- Default plot title reflects channel type when ``picks`` is a channel type in :func:`~mne.viz.plot_compare_evokeds` by `Daniel McCloy`_
+
+- Color scale limits in :func:`~mne.viz.plot_topo_image_epochs` are now computed separately per channel type in combined mag/grad plots, by `Daniel McCloy`_
 
 - :func:`mne.simulation.simulate_stc` now allows for label overlaps by `Nathalie Gayraud`_, and `Ivana Kojcic`_
 
@@ -50,6 +61,8 @@ Changelog
 - Add support for FIR filtering in :meth:`mne.io.Raw.plot` and :ref:`gen_mne_browse_raw` by passing ``filtorder=0`` or ``--filtorder 0``, respectively, by `Eric Larson`_
 
 - Add ``chunk_duration`` parameter to :func:`mne.events_from_annotations` to allow multiple events from a single annotation by `Joan Massich`_
+
+- Add :class:`mne.simulation.SourceSimulator` class to simplify simulating SourceEstimates, by `Samuel Deslauriers-Gauthier`_, `Kostiantyn Maksymenko`_, `Nathalie Gayraud`_, `Ivana Kojcic`_, `Alex Gramfort`_, and `Eric Larson`_
 
 - :func:`mne.io.read_raw_edf` now detects analog stim channels labeled ``'STATUS'`` and sets them as stim channel. :func:`mne.io.read_raw_edf` no longer synthesize TAL annotations into stim channel but stores them in ``raw.annotations`` when reading by `Joan Massich`_
 
@@ -121,11 +134,15 @@ Changelog
 
 Bug
 ~~~
+- Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
+
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
 - Fix `feature_names` parameter change after fitting in :class:`mne.decoding.ReceptiveField` by `Jean-Remi King`_
 
 - Fix index error in :func:`mne.io.read_raw_cnt` when creating stim_channel manually by `Joan Massich`_
+
+- Fix bug with ``weight_norm='unit-gain'`` in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Britta Westner`_
 
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
@@ -185,6 +202,8 @@ Bug
 - Fix :func:`mne.io.read_raw_eeglab` incorrectly parsing event durations by `Clemens Brunner`_
 
 - Fix :func:`mne.io.read_raw_egi` when cropping non-preloaded EGI MFF data by `Alex Gramfort`_
+
+- Fix :meth:`mne.io.Raw.interpolate_bads` for interpolating CTF MEG channels when reference sensors are present by `jeythekey`_
 
 API
 ~~~
@@ -320,6 +339,8 @@ Changelog
 - Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv`, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
 
 - Handle different time vectors in topography plots using :func:`mne.viz.plot_evoked_topo` by `Jussi Nurminen`_
+
+- Speed up :func:`mne.inverse_sparse.mixed_norm` if the :solver: parameter is set to `bcd` using :func:`scipy.linalg.get_blas_funcs` by `Quentin Bertrand`_
 
 Bug
 ~~~
@@ -3307,3 +3328,9 @@ of commits):
 .. _Ivana Kojcic: https://github.com/ikojcic
 
 .. _Nikolas Chalas: https://github.com/Nichalas
+
+.. _Quentin Bertrand: https://github.com/QB3
+
+.. _Alexander Kovrig: https://github.com/OpenSatori
+
+.. _Kostiantyn Maksymenko: https://github.com/makkostya
