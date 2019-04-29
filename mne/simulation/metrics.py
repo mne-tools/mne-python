@@ -105,7 +105,7 @@ def _uniform_stc(stc1, stc2):
     return stc1, stc2
 
 
-def _apply(func, P, Q, per_sample):
+def _apply(func, stc_true, stc_est, per_sample):
     """Apply metric to stcs.
 
     Applies a metric to each pair of columns of P and Q
@@ -113,11 +113,12 @@ def _apply(func, P, Q, per_sample):
     directly.
     """
     if per_sample:
-        metric = np.zeros(P.data.shape[1])  # one value per time point
-        for i in range(P.data.shape[1]):
-            metric[i] = func(P.data[:, i:i + 1], Q.data[:, i:i + 1])
+        metric = np.zeros(stc_true.data.shape[1])  # one value per time point
+        for i in range(stc_true.data.shape[1]):
+            metric[i] = func(stc_true.data[:, i:i + 1],
+                             stc_est.data[:, i:i + 1])
     else:
-        metric = func(P.data, Q.data)
+        metric = func(stc_true.data, stc_est.data)
     return metric
 
 
@@ -141,7 +142,7 @@ def _cosine(x, y):
 
 
 @fill_doc
-def stc_cosine(stc_true, stc_est, per_sample=True):
+def stc_cosine_score(stc_true, stc_est, per_sample=True):
     """Compute cosine similarity between 2 source estimates.
 
     Parameters

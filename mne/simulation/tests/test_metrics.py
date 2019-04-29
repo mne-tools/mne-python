@@ -17,9 +17,10 @@ from scipy.linalg import norm
 from mne import SourceEstimate
 from mne import read_source_spaces
 from mne.datasets import testing
+from mne.utils import requires_sklearn
 from mne.simulation import (simulate_sparse_stc,
                             source_estimate_quantification,
-                            stc_cosine, stc_dipole_localization_error,
+                            stc_cosine_score, stc_dipole_localization_error,
                             stc_precision_score, stc_recall_score,
                             stc_f1_score, stc_roc_auc_score)
 from mne.simulation.metrics import (_uniform_stc, _thresholding,
@@ -80,7 +81,7 @@ def test_uniform_and_thresholding():
 
 
 @testing.requires_testing_data
-def test_cosine_metric():
+def test_cosine_score():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:1], []]
@@ -91,11 +92,11 @@ def test_cosine_metric():
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     stc_est2 = SourceEstimate(data2, vert1, 0, 0.002, subject='sample')
 
-    E_per_sample1 = stc_cosine(stc_true, stc_est1)
-    E_unique1 = stc_cosine(stc_true, stc_est1, per_sample=False)
+    E_per_sample1 = stc_cosine_score(stc_true, stc_est1)
+    E_unique1 = stc_cosine_score(stc_true, stc_est1, per_sample=False)
 
-    E_per_sample2 = stc_cosine(stc_true, stc_est2)
-    E_unique2 = stc_cosine(stc_true, stc_est2, per_sample=False)
+    E_per_sample2 = stc_cosine_score(stc_true, stc_est2)
+    E_unique2 = stc_cosine_score(stc_true, stc_est2, per_sample=False)
 
     assert_almost_equal(E_per_sample1, np.zeros(2))
     assert_almost_equal(E_unique1, 0.)
@@ -104,7 +105,7 @@ def test_cosine_metric():
 
 
 @testing.requires_testing_data
-def test_dle_metric():
+def test_dipole_localization_error():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:1], []]
@@ -128,7 +129,8 @@ def test_dle_metric():
 
 
 @testing.requires_testing_data
-def test_precision_metric():
+@requires_sklearn
+def test_precision_score():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:2], []]
@@ -157,7 +159,8 @@ def test_precision_metric():
 
 
 @testing.requires_testing_data
-def test_recall_metric():
+@requires_sklearn
+def test_recall_score():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:2], []]
@@ -183,7 +186,8 @@ def test_recall_metric():
 
 
 @testing.requires_testing_data
-def test_f1_metric():
+@requires_sklearn
+def test_f1_score():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:2], []]
@@ -209,7 +213,8 @@ def test_f1_metric():
 
 
 @testing.requires_testing_data
-def test_roc_auc_metric():
+@requires_sklearn
+def test_roc_auc_score():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:4], []]

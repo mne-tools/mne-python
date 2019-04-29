@@ -18,7 +18,7 @@ Current
 
 Changelog
 ~~~~~~~~~
-- Add :func:`mne.simulation.stc_cosine`, :func:`mne.simulation.roc_auc_score`, :func:`mne.simulation.stc_dipole_localization_error`, :func:`mne.simulation.stc_f1_score`, :func:`mne.simulation.stc_precision_score` and :func:`mne.simulation.stc_recall_score` to compute metrics between source estimators, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
+- Add :func:`mne.simulation.stc_cosine_score`, :func:`mne.simulation.roc_auc_score`, :func:`mne.simulation.stc_dipole_localization_error`, :func:`mne.simulation.stc_f1_score`, :func:`mne.simulation.stc_precision_score` and :func:`mne.simulation.stc_recall_score` to compute metrics between source estimators, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
 
 - Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
 
