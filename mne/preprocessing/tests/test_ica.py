@@ -534,7 +534,7 @@ def test_ica_additional(method):
                              eog_ch=ch_name, skew_criterion=idx,
                              var_criterion=idx, kurt_criterion=idx)
 
-    # Make sure detect_artifacts marks the right compos.
+    # Make sure detect_artifacts marks the right components.
     # For int criterion, the doc says "E.g. range(2) would return the two
     # sources with the highest score". Assert that's what it does.
     # Only test for skew, since it's always the same code.

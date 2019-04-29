@@ -253,8 +253,8 @@ class ICA(ContainsMixin):
               possibly confounding effect of the different whitening/sphering
               methods used in this paper (ZCA vs. PCA).)
               On the other hand, for rank-deficient data such as EEG data after
-              average reference or interpolation, it is  recommended to reduce
-              the dimensionality (by 1 for  average reference and 1 for each
+              average reference or interpolation, it is recommended to reduce
+              the dimensionality (by 1 for average reference and 1 for each
               interpolated channel) for optimal ICA performance (see the
               `EEGLAB wiki <eeglab_wiki_>`_).
 
@@ -987,6 +987,10 @@ class ICA(ContainsMixin):
                                  'number of time slices.')
             # auto target selection
             if isinstance(inst, BaseRaw):
+                # We need to pass inst, not self for defining sfreq, since the
+                # sfreq when fitting ica (--> self.info['sfreq']) can be
+                # different (usually lower) than the sfreq when scoring sources
+                # (e.g. using the original raw sfreq for this step):
                 sources, target = _band_pass_filter(inst, sources, target,
                                                     l_freq, h_freq)
 
@@ -1377,13 +1381,12 @@ class ICA(ContainsMixin):
         if exclude is None:
             return list(set(self.exclude))
         else:
+            # Allow both self.exclude and exclude to be array-like:
             return list(set(self.exclude).union(set(exclude)))
-            # Allow both self.exclude and exclude to be array-like.
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method."""
         _check_preload(raw, "ica.apply")
-        exclude = self._check_exclude(exclude)
 
         if n_pca_components is not None:
             self.n_pca_components = n_pca_components
@@ -1404,7 +1407,6 @@ class ICA(ContainsMixin):
     def _apply_epochs(self, epochs, include, exclude, n_pca_components):
         """Aux method."""
         _check_preload(epochs, "ica.apply")
-        exclude = self._check_exclude(exclude)
 
         picks = pick_types(epochs.info, meg=False, ref_meg=False,
                            include=self.ch_names,
@@ -1434,7 +1436,6 @@ class ICA(ContainsMixin):
 
     def _apply_evoked(self, evoked, include, exclude, n_pca_components):
         """Aux method."""
-        exclude = self._check_exclude(exclude)
         picks = pick_types(evoked.info, meg=False, ref_meg=False,
                            include=self.ch_names,
                            exclude='bads')
@@ -1462,9 +1463,7 @@ class ICA(ContainsMixin):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function."""
-        # We assume exclude = self._check_exclude(exclude)  has already been
-        # called.
-
+        exclude = self._check_exclude(exclude)
         _n_pca_comp = self._check_n_pca_components(self.n_pca_components)
 
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
@@ -1613,7 +1612,7 @@ class ICA(ContainsMixin):
                          add_nodes=None):
         """Run ICA artifacts detection workflow.
 
-        Note. This is still experimental and will most likely change. Over
+        Note. This is still experimental and will most likely change over
         the next releases. For maximum control use the workflow exposed in
         the examples.
 
@@ -1634,7 +1633,10 @@ class ICA(ContainsMixin):
         Parameters
         ----------
         raw : instance of Raw
-            Raw object to draw sources from.
+            Raw object to draw sources from. No components are actually removed
+            here, i.e. ica is not applied to raw in this function. Use
+            `ica.apply()` for this after inspection of the identified
+            components.
         start_find : int | float | None
             First sample to include for artifact search. If float, data will be
             interpreted as time in seconds. If None, data will be used from the
@@ -1651,11 +1653,11 @@ class ICA(ContainsMixin):
             The `score_func` argument passed to ica.find_sources_raw. Either
             the name of function supported by ICA or a custom function.
         ecg_criterion : float | int | list-like | slice
-            The indices of the sorted skewness scores. If float, sources with
-            scores greater than the criterion will be dropped. Else, the scores
-            sorted in descending order will be indexed accordingly.
-            E.g. range(2) would return the two sources with the highest score.
-            If None, this step will be skipped.
+            The indices of the sorted ecg scores. If float, sources with
+            absolute scores greater than the criterion will be dropped. Else,
+            the absolute scores sorted in descending order will be indexed
+            accordingly. E.g. range(2) would return the two sources with the
+            highest absolute score. If None, this step will be skipped.
         eog_ch : list | str | ndarray | None
             The `target` argument or the list of target arguments subsequently
             passed to ica.find_sources_raw. Either the name of the vertical EOG
@@ -1665,29 +1667,29 @@ class ICA(ContainsMixin):
             The `score_func` argument passed to ica.find_sources_raw. Either
             the name of function supported by ICA or a custom function.
         eog_criterion : float | int | list-like | slice
-            The indices of the sorted skewness scores. If float, sources with
-            scores greater than the criterion will be dropped. Else, the scores
-            sorted in descending order will be indexed accordingly.
-            E.g. range(2) would return the two sources with the highest score.
-            If None, this step will be skipped.
+            The indices of the sorted eog scores. If float, sources with
+            absolute scores greater than the criterion will be dropped. Else,
+            the absolute scores sorted in descending order will be indexed
+            accordingly. E.g. range(2) would return the two sources with the
+            highest absolute score. If None, this step will be skipped.
         skew_criterion : float | int | list-like | slice
             The indices of the sorted skewness scores. If float, sources with
-            scores greater than the criterion will be dropped. Else, the scores
-            sorted in descending order will be indexed accordingly.
-            E.g. range(2) would return the two sources with the highest score.
-            If None, this step will be skipped.
+            absolute scores greater than the criterion will be dropped. Else,
+            the absolute scores sorted in descending order will be indexed
+            accordingly. E.g. range(2) would return the two sources with the
+            highest absolute score. If None, this step will be skipped.
         kurt_criterion : float | int | list-like | slice
-            The indices of the sorted skewness scores. If float, sources with
-            scores greater than the criterion will be dropped. Else, the scores
-            sorted in descending order will be indexed accordingly.
-            E.g. range(2) would return the two sources with the highest score.
-            If None, this step will be skipped.
+            The indices of the sorted kurtosis scores. If float, sources with
+            absolute scores greater than the criterion will be dropped. Else,
+            the absolute scores sorted in descending order will be indexed
+            accordingly. E.g. range(2) would return the two sources with the
+            highest absolute score. If None, this step will be skipped.
         var_criterion : float | int | list-like | slice
-            The indices of the sorted skewness scores. If float, sources with
-            scores greater than the criterion will be dropped. Else, the scores
-            sorted in descending order will be indexed accordingly.
-            E.g. range(2) would return the two sources with the highest score.
-            If None, this step will be skipped.
+            The indices of the sorted variance scores. If float, sources with
+            absolute scores greater than the criterion will be dropped. Else,
+            the absolute scores sorted in descending order will be indexed
+            accordingly. E.g. range(2) would return the two sources with the
+            highest absolute score. If None, this step will be skipped.
         add_nodes : list of tuple
             Additional list if tuples carrying the following parameters
             of ica nodes:
@@ -2180,9 +2182,11 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
         if isinstance(node.criterion, float):
             found = list(np.where(np.abs(scores) > node.criterion)[0])
         else:
+            # Sort in descending order; use (-abs()), rather than [::-1] to
+            # keep any NaN values in the end (and also keep the order of same
+            # values):
             found = list(np.atleast_1d((-np.abs(scores)).argsort()
                          [node.criterion]))
-            # sort in descending order
 
         case = (len(found), _pl(found), node.name)
         logger.info('    found %s artifact%s by %s' % case)
@@ -2279,11 +2283,11 @@ def run_ica(raw, n_components, max_pca_components=100,
         The ``score_func`` argument passed to ica.find_sources_raw. Either
         the name of function supported by ICA or a custom function.
     ecg_criterion : float | int | list-like | slice
-        The indices of the sorted skewness scores. If float, sources with
-        scores greater than the criterion will be dropped. Else, the scores
-        sorted in descending order will be indexed accordingly.
-        E.g. range(2) would return the two sources with the highest score.
-        If None, this step will be skipped.
+        The indices of the sorted ecg scores. If float, sources with
+        absolute scores greater than the criterion will be dropped. Else, the
+        absolute scores sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest absolute
+        score. If None, this step will be skipped.
     eog_ch : list | str | ndarray | None
         The ``target`` argument or the list of target arguments subsequently
         passed to ica.find_sources_raw. Either the name of the vertical EOG
@@ -2293,29 +2297,29 @@ def run_ica(raw, n_components, max_pca_components=100,
         The ``score_func`` argument passed to ica.find_sources_raw. Either
         the name of function supported by ICA or a custom function.
     eog_criterion : float | int | list-like | slice
-        The indices of the sorted skewness scores. If float, sources with
-        scores greater than the criterion will be dropped. Else, the scores
-        sorted in descending order will be indexed accordingly.
-        E.g. range(2) would return the two sources with the highest score.
-        If None, this step will be skipped.
+        The indices of the sorted eog scores. If float, sources with
+        absolute scores greater than the criterion will be dropped. Else, the
+        absolute scores sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest absolute
+        score. If None, this step will be skipped.
     skew_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
-        scores greater than the criterion will be dropped. Else, the scores
-        sorted in descending order will be indexed accordingly.
-        E.g. range(2) would return the two sources with the highest score.
-        If None, this step will be skipped.
+        absolute scores greater than the criterion will be dropped. Else, the
+        absolute scores sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest absolute
+        score. If None, this step will be skipped.
     kurt_criterion : float | int | list-like | slice
-        The indices of the sorted skewness scores. If float, sources with
-        scores greater than the criterion will be dropped. Else, the scores
-        sorted in descending order will be indexed accordingly.
-        E.g. range(2) would return the two sources with the highest score.
-        If None, this step will be skipped.
+        The indices of the sorted kurtosis scores. If float, sources with
+        absolute scores greater than the criterion will be dropped. Else, the
+        absolute scores sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest absolute
+        score. If None, this step will be skipped.
     var_criterion : float | int | list-like | slice
-        The indices of the sorted skewness scores. If float, sources with
-        scores greater than the criterion will be dropped. Else, the scores
-        sorted in descending order will be indexed accordingly.
-        E.g. range(2) would return the two sources with the highest score.
-        If None, this step will be skipped.
+        The indices of the sorted variance scores. If float, sources with
+        absolute scores greater than the criterion will be dropped. Else, the
+        absolute scores sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest absolute
+        score. If None, this step will be skipped.
     add_nodes : list of tuple
         Additional list if tuples carrying the following parameters:
         (name : str, target : str | array, score_func : callable,
