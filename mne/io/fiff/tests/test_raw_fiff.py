@@ -1064,7 +1064,7 @@ def test_resample(tmpdir):
     events = find_events(raw)
     raw, events = raw.resample(n_sfreq, events=events, npad='auto')
     # Try index into raw.times with resampled events:
-    raw.times[events[:, 0]-raw.first_samp]
+    raw.times[events[:, 0] - raw.first_samp]
     n_fsamp = int(first_samp * sfreq_ratio)  # how it's calc'd in base.py
     # NB np.round used for rounding event times, which has 0.5 as corner case:
     # https://docs.scipy.org/doc/numpy/reference/generated/numpy.around.html
@@ -1072,8 +1072,8 @@ def test_resample(tmpdir):
         events,
         np.array([[np.round(1 * sfreq_ratio) + n_fsamp, 0, 1],
                   [np.round(10 * sfreq_ratio) + n_fsamp, 0, 1],
-                  [np.minimum(np.round(15 * sfreq_ratio), raw._data.shape[1]
-                   - 1) + n_fsamp, 0, 1]]))
+                  [np.minimum(np.round(15 * sfreq_ratio),
+                              raw._data.shape[1] - 1) + n_fsamp, 0, 1]]))
 
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
