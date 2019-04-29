@@ -917,7 +917,6 @@ Simulation
    stc_recall_score
    stc_roc_auc_score
 
->>>>>>> fixing doc ref and whats new
 
 .. _api_decoding:
 

@@ -20,9 +20,10 @@ from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc,
                             source_estimate_quantification,
                             stc_cosine, stc_dipole_localization_error,
-                            stc_precision_score, stc_recall_score, stc_f1_score,
-                            stc_roc_auc_score)
-from mne.simulation.metrics import _uniform_stc, _thresholding, _check_threshold
+                            stc_precision_score, stc_recall_score,
+                            stc_f1_score, stc_roc_auc_score)
+from mne.simulation.metrics import (_uniform_stc, _thresholding,
+                                    _check_threshold)
 from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
@@ -114,8 +115,10 @@ def test_dle_metric():
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
 
     E_per_sample1 = stc_dipole_localization_error(stc_true, stc_est1, src)
-    E_per_sample2 = stc_dipole_localization_error(stc_true, stc_est1, src, threshold='70%')
-    E_unique = stc_dipole_localization_error(stc_true, stc_est1, src, per_sample=False)
+    E_per_sample2 = stc_dipole_localization_error(stc_true, stc_est1, src,
+                                                  threshold='70%')
+    E_unique = stc_dipole_localization_error(stc_true, stc_est1, src,
+                                             per_sample=False)
 
     # ### Tests to add
     assert_almost_equal(E_per_sample1, [np.inf, dist])
@@ -142,7 +145,8 @@ def test_precision_metric():
         E_unique1 = stc_precision_score(stc_true, stc_est1, per_sample=False)
         E_unique2 = stc_precision_score(stc_true, stc_est2, per_sample=False)
         E_per_sample1 = stc_precision_score(stc_true, stc_est2)
-        E_per_sample2 = stc_precision_score(stc_true, stc_est2, threshold='70%')
+        E_per_sample2 = stc_precision_score(stc_true, stc_est2,
+                                            threshold='70%')
 
     # ### Tests to add
     assert_almost_equal(E_unique1, 0.5)

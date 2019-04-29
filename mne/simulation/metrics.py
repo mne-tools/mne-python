@@ -11,6 +11,7 @@ import numpy as np
 from scipy.linalg import norm
 from ..utils import _check_option, fill_doc
 
+
 # TODO: Add more localization accuracy functions. For example, distance between
 #       true dipole position (in simulated stc) and the centroid of the
 #       estimated activity.
@@ -117,8 +118,10 @@ def _apply(func, P, Q, per_sample):
 def _thresholding(stc_true, stc_est, threshold):
     if isinstance(threshold, str):
         t = _check_threshold(threshold)
-        stc_true._data[np.abs(stc_true._data) <= t * np.max(np.abs(stc_true._data))] = 0.
-        stc_est._data[np.abs(stc_est._data) <= t * np.max(np.abs(stc_est._data))] = 0.
+        stc_true._data[np.abs(stc_true._data) <=
+                       t * np.max(np.abs(stc_true._data))] = 0.
+        stc_est._data[np.abs(stc_est._data) <=
+                      t * np.max(np.abs(stc_est._data))] = 0.
     else:
         stc_true._data[np.abs(stc_true._data) <= threshold] = 0.
         stc_est._data[np.abs(stc_est._data) <= threshold] = 0.
@@ -254,9 +257,10 @@ def _f1_score(p, q):
 def stc_f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
     """Compute the F1 score, also known as balanced F-score or F-measure
 
-    The F1 score can be interpreted as a weighted average of the precision and recall,
-    where an F1 score reaches its best value at 1 and worst score at 0.
-    The relative contribution of precision and recall to the F1 score are equal.
+    The F1 score can be interpreted as a weighted average of the precision
+    and recall, where an F1 score reaches its best value at 1 and worst score
+    at 0. The relative contribution of precision and recall to the F1
+    score are equal.
     The formula for the F1 score is:
 
         F1 = 2 * (precision * recall) / (precision + recall)
