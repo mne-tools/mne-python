@@ -12,7 +12,7 @@ from copy import deepcopy
 # Create a Bunch class that acts like a struct (mybunch.key = val )
 
 class Bunch(dict):
-    """Dictionnary-like object thatexposes its keys as attributes."""
+    """Dictionnary-like object that exposes its keys as attributes."""
 
     def __init__(self, **kwargs):  # noqa: D102
         dict.__init__(self, kwargs)
