@@ -83,7 +83,7 @@ class NamedInt(Named, int):
         out._name = name
         return out
 
-    def __getnewargs__(self):
+    def __getnewargs__(self):  # noqa: D105
         return self._name, int(self)
 
 
@@ -95,5 +95,5 @@ class NamedFloat(Named, float):
         out._name = name
         return out
 
-    def __getnewargs__(self):
+    def __getnewargs__(self):  # noqa: D105
         return self._name, float(self)
