@@ -115,15 +115,13 @@ def _apply(func, P, Q, per_sample):
 
 
 def _thresholding(stc_true, stc_est, threshold):
-    stc_true._data = np.abs(stc_true._data)
-    stc_est._data = np.abs(stc_est._data)
     if isinstance(threshold, str):
         t = _check_threshold(threshold)
-        stc_true._data[stc_true._data <= t * np.max(stc_true._data)] = 0.
-        stc_est._data[stc_est._data <= t * np.max(stc_est._data)] = 0.
+        stc_true._data[np.abs(stc_true._data) <= t * np.max(np.abs(stc_true._data))] = 0.
+        stc_est._data[np.abs(stc_est._data) <= t * np.max(np.abs(stc_est._data))] = 0.
     else:
-        stc_true._data[stc_true._data <= threshold] = 0.
-        stc_est._data[stc_est._data <= threshold] = 0.
+        stc_true._data[np.abs(stc_true._data) <= threshold] = 0.
+        stc_est._data[np.abs(stc_est._data) <= threshold] = 0.
     return stc_true, stc_est
 
 
@@ -168,8 +166,8 @@ def _check_threshold(threshold):
 def _dle(p, q, src, stc):
     """Aux function to compute dipole localization error"""
     from sklearn.metrics import pairwise_distances
-    p = np.sum(p, axis=1)
-    q = np.sum(q, axis=1)
+    p = np.sum(np.abs(p), axis=1)
+    q = np.sum(np.abs(q), axis=1)
     idx1 = np.nonzero(p)[0]
     idx2 = np.nonzero(q)[0]
     points = []
@@ -207,7 +205,7 @@ def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
     %(stc_metric)s
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
-    _thresholding(stc_true, stc_est, threshold)
+    stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
     func = partial(_dle, src=src, stc=stc_true)
     metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
     return metric
@@ -248,9 +246,9 @@ def stc_roc_auc_score(stc_true, stc_est, per_sample=True):
 
 def _f1_score(p, q):
     from sklearn.metrics import f1_score
-    p = np.sum(p, axis=1)
-    q = np.sum(q, axis=1)
-    return f1_score(np.abs(p) > 0, np.abs(q) > 0)
+    p = np.sum(np.abs(p), axis=1)
+    q = np.sum(np.abs(q), axis=1)
+    return f1_score(p > 0, q > 0)
 
 
 @fill_doc
@@ -279,7 +277,7 @@ def stc_f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
     %(stc_metric)s
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
-    _thresholding(stc_true, stc_est, threshold)
+    stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
     func = partial(_f1_score)
     metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
     return metric
@@ -287,9 +285,9 @@ def stc_f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
 def _precision_score(p, q):
     from sklearn.metrics import precision_score
-    p = np.sum(p, axis=1)
-    q = np.sum(q, axis=1)
-    return precision_score(np.abs(p) > 0, np.abs(q) > 0)
+    p = np.sum(np.abs(p), axis=1)
+    q = np.sum(np.abs(q), axis=1)
+    return precision_score(p > 0, q > 0)
 
 
 @fill_doc
@@ -326,9 +324,9 @@ def stc_precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
 def _recall_score(p, q):
     from sklearn.metrics import recall_score
-    p = np.sum(p, axis=1)
-    q = np.sum(q, axis=1)
-    return recall_score(np.abs(p) > 0, np.abs(q) > 0)
+    p = np.sum(np.abs(p), axis=1)
+    q = np.sum(np.abs(q), axis=1)
+    return recall_score(p > 0, q > 0)
 
 
 @fill_doc
@@ -356,7 +354,7 @@ def stc_recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
     %(stc_metric)s
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
-    _thresholding(stc_true, stc_est, threshold)
+    stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
     func = partial(_recall_score)
     metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
     return metric

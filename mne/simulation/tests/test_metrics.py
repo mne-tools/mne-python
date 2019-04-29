@@ -19,7 +19,9 @@ from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc,
                             source_estimate_quantification,
                             stc_cosine, stc_dipole_localization_error,
-                            stc_precision_score, stc_recall_score, stc_f1_score)
+                            stc_precision_score, stc_recall_score, stc_f1_score,
+                            stc_roc_auc_score)
+from mne.simulation.metrics import _uniform_stc, _thresholding, _check_threshold
 from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
@@ -55,6 +57,26 @@ def test_metrics():
 
 
 @testing.requires_testing_data
+def test_uniform_and_thresholding():
+    src = read_source_spaces(src_fname)
+    vert = [src[0]['vertno'][0:1], []]
+    data = np.array([[0.8, -1.]])
+    stc_true = SourceEstimate(data, vert, 0, 0.002, subject='sample')
+    stc_bad = SourceEstimate(data, vert, 0, 0.002, subject='sample')
+    stc_bad.vertices = [stc_bad.vertices[0]]
+    pytest.raises(ValueError, _uniform_stc, stc_true, stc_bad)
+
+    threshold = 0.9
+    stc1, stc2 = _thresholding(stc_true, stc_true, threshold)
+    assert_almost_equal(stc1._data, np.array([[0, -1.]]))
+    assert_almost_equal(stc2._data, np.array([[0, -1.]]))
+    assert_almost_equal(threshold, _check_threshold(threshold))
+
+    threshold = '90'
+    pytest.raises(ValueError, _check_threshold, threshold)
+
+
+@testing.requires_testing_data
 def test_cosine_metric():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
@@ -72,7 +94,6 @@ def test_cosine_metric():
     E_per_sample2 = stc_cosine(stc_true, stc_est2)
     E_unique2 = stc_cosine(stc_true, stc_est2, per_sample=False)
 
-    # ### Tests to add
     assert_almost_equal(E_per_sample1, np.zeros(2))
     assert_almost_equal(E_unique1, 0.)
     assert_almost_equal(E_per_sample2, np.ones(2))
@@ -171,12 +192,25 @@ def test_f1_metric():
     E_unique2 = stc_f1_score(stc_true, stc_est2, per_sample=False)
     E_per_sample1 = stc_f1_score(stc_true, stc_est2)
     E_per_sample2 = stc_f1_score(stc_true, stc_est2, threshold='70%')
-
-    # ### Tests to add
     assert_almost_equal(E_unique1, 0.5)
     assert_almost_equal(E_unique2, 1. / 1.5)
     assert_almost_equal(E_per_sample1, [0., 1. / 1.5])
     assert_almost_equal(E_per_sample2, [1. / 1.5, 1. / 1.5])
+
+
+@testing.requires_testing_data
+def test_roc_auc_metric():
+    """Test simulation metrics."""
+    src = read_source_spaces(src_fname)
+    vert1 = [src[0]['vertno'][0:4], []]
+    vert2 = [src[0]['vertno'][0:4], []]
+    data1 = np.array([[0., 0., 1, 1]]).T
+    data2 = np.array([[0.1, -0.4, 0.35, 0.8]]).T
+    stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
+    stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
+
+    score = stc_roc_auc_score(stc_true, stc_est, per_sample=False)
+    assert_almost_equal(score, 0.75)
 
 
 run_tests_if_main()
