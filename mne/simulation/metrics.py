@@ -224,7 +224,6 @@ def stc_roc_auc_score(stc_true, stc_est, per_sample=True):
     When computing this metric the stc_true must be thresholded
     as any non-zero value will be considered as a positive.
 
-
     The ROC-AUC metric is computed between amplitudes of the source
     estimates, i.e. after taking the absolute values.
 
@@ -262,13 +261,15 @@ def stc_f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
         F1 = 2 * (precision * recall) / (precision + recall)
 
+    Threshold is used first for data binarization.
+
     Parameters
     ----------
     %(metric_stc_true)s
     %(metric_stc_est)s
     threshold : float | str
         The threshold to apply to source estimates before computing
-        the dipole localization error. If a string the threshold is
+        the f1 score. If a string the threshold is
         a percentage and it should end with the percent character.
     %(metric_per_sample)s
 
@@ -301,13 +302,15 @@ def stc_precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
     The best value is 1 and the worst value is 0.
 
+    Threshold is used first for data binarization.
+
     Parameters
     ----------
     %(metric_stc_true)s
     %(metric_stc_est)s
     threshold : float | str
         The threshold to apply to source estimates before computing
-        the dipole localization error. If a string the threshold is
+        the precision. If a string the threshold is
         a percentage and it should end with the percent character.
     %(metric_per_sample)s
 
@@ -339,13 +342,15 @@ def stc_recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
     The best value is 1 and the worst value is 0.
 
+    Threshold is used first for data binarization.
+
     Parameters
     ----------
     %(metric_stc_true)s
     %(metric_stc_est)s
     threshold : float | str
         The threshold to apply to source estimates before computing
-        the dipole localization error. If a string the threshold is
+        the recall. If a string the threshold is
         a percentage and it should end with the percent character.
     %(metric_per_sample)s
 
