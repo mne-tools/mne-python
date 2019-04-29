@@ -9,7 +9,7 @@ from copy import deepcopy
 
 
 ###############################################################################
-# Create a Bunch class that acts like a struct (mybunch.key = val )
+# Create a Bunch class that acts like a struct (mybunch.key = val)
 
 class Bunch(dict):
     """Dictionary-like object that exposes its keys as attributes."""
