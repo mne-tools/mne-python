@@ -66,7 +66,7 @@ def envelope_correlation(data, combine='mean', verbose=None):
     # the data to different workers is roughly the same as the gain of
     # using multiple CPUs. And we require too much GIL for prefer='threading'
     # to help.
-    for epoch_data in data:
+    for ei, epoch_data in enumerate(data):
         if isinstance(epoch_data, _BaseSourceEstimate):
             epoch_data = epoch_data.data
         if epoch_data.ndim != 2:
