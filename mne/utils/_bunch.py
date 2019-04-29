@@ -83,6 +83,9 @@ class NamedInt(Named, int):
         out._name = name
         return out
 
+    def __getnewargs__(obj):
+        return obj._name, int(obj)
+
 
 class NamedFloat(Named, float):
     """Float with a name in __repr__."""
@@ -91,3 +94,6 @@ class NamedFloat(Named, float):
         out = float.__new__(cls, val)
         out._name = name
         return out
+
+    def __getnewargs__(obj):
+        return obj._name, float(obj)
