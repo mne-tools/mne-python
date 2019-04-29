@@ -44,8 +44,7 @@ def is_power2(num):
 
 
 def next_fast_len(target):
-    """
-    Find the next fast size of input data to `fft`, for zero-padding, etc.
+    """Find the next fast size of input data to `fft`, for zero-padding, etc.
 
     SciPy's FFTPACK has efficient functions for radix {2, 3, 4, 5}, so this
     returns the next composite of the prime factors 2, 3, and 5 which is
@@ -154,7 +153,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
 
     Returns
     -------
-    xf : array, shape (n_signals, n_times)
+    x : array, shape (n_signals, n_times)
         x filtered.
     """
     n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
@@ -334,7 +333,7 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
 
     Parameters
     ----------
-    Fs : float
+    sfreq : float
         Sampling rate in Hz.
     freq : 1d array
         Frequency sampling points in Hz.
@@ -1458,7 +1457,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
 
     Parameters
     ----------
-    x : n-d array
+    x : ndarray
         Signal to resample.
     up : float
         Factor to upsample by.
@@ -1485,7 +1484,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
 
     Returns
     -------
-    xf : array
+    y : array
         x resampled.
 
     Notes
@@ -1654,7 +1653,7 @@ def detrend(x, order=1, axis=-1):
 
     Returns
     -------
-    xf : array
+    y : array
         x detrended.
 
     Examples
@@ -2029,7 +2028,7 @@ class FilterMixin(object):
         Parameters
         ----------
         sfreq : float
-            New sample rate to use
+            New sample rate to use.
         npad : int | str
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
