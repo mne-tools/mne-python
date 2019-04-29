@@ -904,6 +904,14 @@ Simulation
    simulate_sparse_stc
    select_source_in_label
    SourceSimulator
+   stc_cosine
+   stc_dipole_localization_error
+   stc_f1_score
+   stc_precision_score
+   stc_recall_score
+   stc_roc_auc_score
+
+>>>>>>> fixing doc ref and whats new
 
 .. _api_decoding:
 
