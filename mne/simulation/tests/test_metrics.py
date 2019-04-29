@@ -60,6 +60,7 @@ def test_metrics():
 
 @testing.requires_testing_data
 def test_uniform_and_thresholding():
+    """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert = [src[0]['vertno'][0:1], []]
     data = np.array([[0.8, -1.]])

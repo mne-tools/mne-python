@@ -70,8 +70,11 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
 
 
 def _uniform_stc(stc1, stc2):
-    """This function returns the stcs with the same vertices by
-    inserting zeros in data for missing vertices."""
+    """Uniform vertices of two stcs.
+
+    This function returns the stcs with the same vertices by
+    inserting zeros in data for missing vertices.
+    """
     if len(stc1.vertices) != len(stc2.vertices):
         raise ValueError('Data in stcs must have the same number of vertices '
                          'components. Got %d != %d.' %
@@ -103,9 +106,12 @@ def _uniform_stc(stc1, stc2):
 
 
 def _apply(func, P, Q, per_sample):
-    """Applies a metric to each pair of columns of P and Q
+    """Apply metric to stcs.
+
+    Applies a metric to each pair of columns of P and Q
     if per_sample is True. Otherwise it applies it to P and Q
-    directly."""
+    directly.
+    """
     if per_sample:
         metric = np.zeros(P.data.shape[1])  # one value per time point
         for i in range(P.data.shape[1]):
@@ -136,7 +142,7 @@ def _cosine(x, y):
 
 @fill_doc
 def stc_cosine(stc_true, stc_est, per_sample=True):
-    """Compute cosine similarity between 2 source estimates
+    """Compute cosine similarity between 2 source estimates.
 
     Parameters
     ----------
@@ -155,7 +161,7 @@ def stc_cosine(stc_true, stc_est, per_sample=True):
 
 
 def _check_threshold(threshold):
-    """Accepts a float or a string that ends with %"""
+    """Accept a float or a string that ends with %."""
     if isinstance(threshold, str):
         if threshold.endswith("%"):
             return float(threshold[:-1]) / 100.0
@@ -167,7 +173,7 @@ def _check_threshold(threshold):
 
 
 def _dle(p, q, src, stc):
-    """Aux function to compute dipole localization error"""
+    """Aux function to compute dipole localization error."""
     from sklearn.metrics import pairwise_distances
     p = np.sum(np.abs(p), axis=1)
     q = np.sum(np.abs(q), axis=1)
@@ -189,7 +195,7 @@ def _dle(p, q, src, stc):
 @fill_doc
 def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
                                   per_sample=True):
-    """Compute dipole localization error (DLE) between 2 source estimates
+    """Compute dipole localization error (DLE) between 2 source estimates.
 
     Parameters
     ----------
@@ -221,7 +227,7 @@ def _roc_auc_score(p, q):
 
 @fill_doc
 def stc_roc_auc_score(stc_true, stc_est, per_sample=True):
-    """Compute ROC AUC between 2 source estimates
+    """Compute ROC AUC between 2 source estimates.
 
     ROC stands for receiver operating curve and AUC is Area under the curve.
     When computing this metric the stc_true must be thresholded
@@ -255,7 +261,7 @@ def _f1_score(p, q):
 
 @fill_doc
 def stc_f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
-    """Compute the F1 score, also known as balanced F-score or F-measure
+    """Compute the F1 score, also known as balanced F-score or F-measure.
 
     The F1 score can be interpreted as a weighted average of the precision
     and recall, where an F1 score reaches its best value at 1 and worst score
@@ -297,7 +303,7 @@ def _precision_score(p, q):
 
 @fill_doc
 def stc_precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
-    """Compute the precision
+    """Compute the precision.
 
     The precision is the ratio ``tp / (tp + fp)`` where ``tp`` is the number of
     true positives and ``fp`` the number of false positives. The precision is
@@ -338,7 +344,7 @@ def _recall_score(p, q):
 
 @fill_doc
 def stc_recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
-    """Compute the recall
+    """Compute the recall.
 
     The recall is the ratio ``tp / (tp + fn)`` where ``tp`` is the number of
     true positives and ``fn`` the number of false negatives. The recall is
