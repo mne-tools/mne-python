@@ -1631,7 +1631,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             events[:, 0] = np.minimum(
                 np.round(events[:, 0] * ratio).astype(int),
-                self._data.shape[1] + self.first_samp
+                self._data.shape[1] + self.first_samp - 1
             )
             return self, events
 
