@@ -919,13 +919,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
-             title=None, events=None, event_colors=None, show=True,
-             block=False, decim='auto', noise_cov=None):
+             title=None, events=None, event_colors=None, order=None,
+             show=True, block=False, decim='auto', noise_cov=None,
+             butterfly=False):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events,
-                           event_colors=event_colors, show=show, block=block,
-                           decim=decim, noise_cov=noise_cov)
+                           event_colors=event_colors, order=order,
+                           show=show, block=block, decim=decim,
+                           noise_cov=noise_cov, butterfly=butterfly)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
@@ -958,7 +960,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
-                        colorbar=True, order=None, cmap='RdBu_r',
+                        colorbar=None, order=None, cmap='RdBu_r',
                         layout_scale=.95, title=None, scalings=None,
                         border='none', fig_facecolor='k', fig_background=None,
                         font_color='w', show=True):

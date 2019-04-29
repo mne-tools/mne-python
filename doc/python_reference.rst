@@ -909,7 +909,7 @@ Simulation
    stc_precision_score
    stc_recall_score
    stc_roc_auc_score
-
+   SourceSimulator
 
 .. _api_decoding:
 

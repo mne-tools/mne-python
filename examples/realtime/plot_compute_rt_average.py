@@ -7,8 +7,8 @@ This example demonstrates how to connect to an MNE Real-time server
 using the RtClient and use it together with RtEpochs to compute
 evoked responses using moving averages.
 
-Note: The MNE Real-time server (mne_rt_server), which is part of mne-cpp,
-has to be running on the same computer.
+.. note:: The MNE Real-time server (mne_rt_server), which is part of mne-cpp,
+          has to be running on the same computer.
 """
 
 
