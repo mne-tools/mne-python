@@ -2110,7 +2110,6 @@ class HilbertMixin(object):
 
         Notes
         -----
-
         **Parameters**
 
         If ``envelope=False``, the analytic signal for the channels defined in
