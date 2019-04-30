@@ -105,6 +105,7 @@ def test_cosine_score():
 
 
 @testing.requires_testing_data
+@requires_sklearn
 def test_dipole_localization_error():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
