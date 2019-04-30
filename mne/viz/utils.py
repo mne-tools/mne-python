@@ -1658,7 +1658,7 @@ def _compute_scalings(scalings, inst):
     else:
         data = inst._data
     if isinstance(inst, BaseEpochs):
-        data = inst._data.reshape([len(inst.ch_names), -1])
+        data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
         if value != 'auto':
