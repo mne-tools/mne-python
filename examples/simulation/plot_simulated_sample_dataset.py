@@ -98,7 +98,7 @@ region_names = list(activations.keys())
 
 #  Define the time course of the activity for each region to activate. We use a
 #  sine wave and it will be the same for all 4 regions.
-source_time_series = np.sin(np.linspace(0, 4 * np.pi, 100)) * 10e-7
+source_time_series = np.sin(np.linspace(0, 4 * np.pi, 100)) * 10e-9
 
 
 # Create simulated source activity.
@@ -120,14 +120,14 @@ region_id = 0
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)
 for i, region_name in enumerate(region_names):
     region_id = i+1
-    for i in range(2):
-        label_name = activations[region_name][i][0]
+    events_tmp = events[np.where(events[:, 2] == region_id)[0], :]
+    for j in range(2):
+        label_name = activations[region_name][j][0]
         label_tmp = mne.read_labels_from_annot(subject, annot,
                                                subjects_dir=subjects_dir,
                                                regexp=label_name,verbose=False)
         label_tmp = label_tmp[0]
-        amplitude_tmp = activations[region_name][i][1]  
-        events_tmp = events[np.where(events[:,2]== region_id)[0],:]
+        amplitude_tmp = activations[region_name][j][1]
         source_simulator.add_data(label_tmp, amplitude_tmp*source_time_series,
                                   events_tmp)
 
