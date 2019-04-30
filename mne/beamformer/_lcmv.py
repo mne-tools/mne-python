@@ -436,8 +436,9 @@ def apply_lcmv_cov(data_cov, filters, verbose=None):
     # compatibility with 0.16, add src_type as None if not present:
     filters, warn_text = _check_src_type(filters)
 
-    return(_make_stc(source_power, vertices=filters['vertices'], tmin=0.,
-                     tstep=1., subject=filters['subject'],
+    return(_make_stc(source_power, vertices=filters['vertices'],
+                     src_type=filters['src_type'], tmin=0., tstep=1.,
+                     subject=filters['subject'],
                      source_nn=filters['source_nn'], warn_text=warn_text))
 
 
