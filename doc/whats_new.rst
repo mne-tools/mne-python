@@ -134,7 +134,7 @@ Changelog
 
 Bug
 ~~~
-- Fix :meth:`mne.viz.utils._compute_scalings` to do channel-wise autoscale by `Stefan Repplinger`_
+- Fix `mne.viz.utils._compute_scalings` to do channel-wise autoscale by `Stefan Repplinger`_
 
 - Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
 
