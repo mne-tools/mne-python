@@ -1,4 +1,3 @@
-.. mne-python
 .. _`mne-python`: http://mne-tools.github.io/mne-python-intro
 .. _`mne-python GitHub`: https://github.com/mne-tools/mne-python
 .. _`mne-python sample dataset`: https://s3.amazonaws.com/mne-python/datasets/MNE-sample-data-processed.tar.gz
@@ -10,3 +9,5 @@
 .. _`MNE-BIDS`: https://mne-tools.github.io/mne-bids/
 .. _`MNE-HCP`: http://mne-tools.github.io/mne-hcp/
 .. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
+.. _`new-mne-issue`: https://github.com/mne-tools/mne-python/issues/new/choose
+.. _`mne-model-pr`: https://github.com/mne-tools/mne-python/pull/6230
