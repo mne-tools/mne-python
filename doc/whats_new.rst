@@ -134,6 +134,8 @@ Changelog
 
 Bug
 ~~~
+- Fix :func:`mne.viz.utils._compute_scalings` to do channel-wise autoscale by `Stefan Repplinger`_
+
 - Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
 
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
