@@ -1,4 +1,3 @@
-
 """
 =========================================
 Simulate raw data from the sample dataset
@@ -45,7 +44,6 @@ fwd_fname = op.join(meg_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 fwd = mne.read_forward_solution(fwd_fname)
 src = fwd['src']
 
-
 ################################################################################
 
 # Load the real raw data and corresponding events.
@@ -58,7 +56,6 @@ event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
 # Events from the experiment.
 events = mne.find_events(raw)
-
 # ##############################################################################
 
 # In order to simulate source time courses, labels of desired active regions
@@ -100,8 +97,9 @@ region_names = list(activations.keys())
 #  sine wave and it will be the same for all 4 regions.
 source_time_series = np.sin(np.linspace(0, 4 * np.pi, 100)) * 10e-9
 
-
-# Create simulated source activity.
+################################################################################
+# Create simulated source activity
+# --------------------------------
 
 # Here, SourceSimulator is used, which allows to specifiy where (label), what
 # (source_time_series), and when (events) event type will occur.
@@ -160,8 +158,9 @@ mne.simulation.add_ecg(raw_sim, random_state=0)
 raw.plot()
 raw_sim.plot(title='Simulated raw data from sample dataset')
 
-
-# Reconstruct simulated source time courses using dSPM inverse operator.
+################################################################################
+# Reconstruct simulated source time courses using dSPM inverse operator
+#----------------------------------------------------------------------
 
 # Here, source time courses for auditory and visual areas are reconstructed
 # separately and their difference is shown. This was done merely for better
