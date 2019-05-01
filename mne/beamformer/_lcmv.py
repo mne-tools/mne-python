@@ -398,6 +398,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
     return next(stc)
 
 
+@verbose
 def apply_lcmv_cov(data_cov, filters, verbose=None):
     """Apply Linearly Constrained  Minimum Variance (LCMV) beamformer weights.
 
