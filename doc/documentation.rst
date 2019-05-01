@@ -729,8 +729,6 @@ this package. You can also find a gallery of these examples in the
     :maxdepth: 1
 
     contributing.rst
-    configure_git.rst
-    customizing_git.rst
 
 .. raw:: html
 

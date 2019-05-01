@@ -11,12 +11,14 @@
 .. git stuff
 .. _git: https://git-scm.com/
 .. _github: https://github.com
+.. _GitHub Help: https://help.github.com
 .. _msysgit: http://code.google.com/p/msysgit/downloads/list
 .. _git-osx-installer: http://code.google.com/p/git-osx-installer/downloads/list
 .. _subversion: http://subversion.tigris.org/
 .. _git cheat sheet: http://github.com/guides/git-cheat-sheet
-.. _pro git book: https://git-scm.com/book/
+.. _pro git book: http://progit.org/
 .. _git svn crash course: http://git-scm.com/course/svn.html
+.. _learn.github: http://learn.github.com/
 .. _network graph visualizer: https://github.com/blog/39-say-hello-to-the-network-graph-visualizer
 .. _git user manual: https://schacon.github.io/git/user-manual.html
 .. _git tutorial: https://schacon.github.io/git/gittutorial.html
@@ -51,27 +53,6 @@
 .. _resolving a merge: https://schacon.github.io/git/user-manual.html#resolving-a-merge
 .. _ipython git workflow: https://web.archive.org/web/*/http://mail.scipy.org/pipermail/ipython-dev/2010-October/006746.html
 
-.. GitHub Help docs
-.. _GitHub Help: https://help.github.com
-.. _github-help-fork: https://help.github.com/en/articles/fork-a-repo
-.. _github-help-clone: https://help.github.com/en/articles/cloning-a-repository
-.. _github-help-push: https://help.github.com/en/articles/pushing-to-a-remote
-.. _github-help-branch: https://help.github.com/en/articles/about-branches
-.. _github-help-pr: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
-.. _github-help-ssh: https://help.github.com/en/articles/connecting-to-github-with-ssh
-.. _github-help-draft-pr: https://help.github.com/en/articles/about-pull-requests#draft-pull-requests
-.. _github-help-convert-draft-pr: https://help.github.com/en/articles/changing-the-stage-of-a-pull-request
-.. _`GitHub Learning Lab`: https://lab.github.com/
-
-.. git clients
-.. _git bash: https://gitforwindows.org/
-.. _GitHub desktop: https://desktop.github.com/
-.. _git-macos-download: https://git-scm.com/download/mac
-.. _git-windows-download: https://git-scm.com/download/win
-.. _git-install-nix: https://git-scm.com/download/linux
-.. _git-install-mac: https://www.atlassian.com/git/tutorials/install-git
-.. _windows subsystem for linux: https://docs.microsoft.com/en-us/windows/wsl/about
-
 .. other stuff
 .. _python: http://www.python.org
 .. _travis: https://travis-ci.org/
@@ -88,6 +69,7 @@
 .. _pysurfer: https://pysurfer.github.io/
 .. _pyDICOM: https://pypi.python.org/pypi/pydicom/
 .. _matplotlib: https://matplotlib.org/
+.. _sphinx: http://sphinx-doc.org/
 .. _pandas: http://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
 
@@ -100,7 +82,6 @@
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
-.. _vscode: https://code.visualstudio.com/
 
 .. installation links
 .. _FreeSurfer: https://surfer.nmr.mgh.harvard.edu/fswiki/
@@ -117,14 +98,10 @@
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.nvidia.com/Download/index.aspx
 
-.. sphinx
-.. _sphinx: http://www.sphinx-doc.org
-.. _sphinx-gallery: https://sphinx-gallery.github.io
-.. _rst: http://sphinx-doc.org/rest.html
-.. _intersphinx: http://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
-
-.. misc
+.. _Sphinx documentation: http://sphinx-doc.org/rest.html
+.. _sphinx gallery documentation: https://sphinx-gallery.github.io
+.. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _Stack Overflow: https://stackoverflow.com/
-.. _`GNU Make`: https://www.gnu.org/software/make/
 
 .. vim: ft=rst
+

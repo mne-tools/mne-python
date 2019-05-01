@@ -13,9 +13,9 @@ Changes are typically made by `forking`_ the MNE-Python repository, making
 changes to your fork (usually by `cloning`_ it to your personal computer,
 making the changes, and then `pushing`_ the local changes up to your fork), and
 finally creating a `pull request`_ to incorporate your changes back into the
-shared "upstream" version of the codebase. The documentation section
-":ref:`dev-setup`" has more details on how best to configure your workflow for
-a smooth experience contributing to MNE-Python.
+shared "upstream" version of the codebase. This `contributing guide`_ has more
+details on how best to configure your workflow for a smooth experience
+contributing to MNE-Python.
 
 Users and contributors to MNE-Python are expected to follow our `code of
 conduct`_.
@@ -31,3 +31,4 @@ conduct`_.
 .. _`pull request`: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
 
 .. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
+.. _`contributing guide`: https://mne-tools.github.io/dev/contributing.html

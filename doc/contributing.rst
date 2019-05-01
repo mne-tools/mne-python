@@ -1,6 +1,4 @@
-.. include:: links.inc
-
-.. contents::
+.. contents:: Page contents
    :local:
    :depth: 2
 
@@ -8,32 +6,27 @@
 
 .. include:: ../CONTRIBUTING.rst
 
-.. TO MERGE
-.. http://martinos.org/mne/stable/configure_git.html#using-github
-
-.. _`dev-setup`:
 
 Overview of contribution process
-================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In general you'll be working with three different copies of the MNE-Python
 codebase: the official copy at https://github.com/mne-tools/mne-python (usually
-called "upstream"), your `fork <github-help-fork>`_ of the upstream repository
-(similar URL, but with your username in place of ``mne-tools``, and usually
-called "origin"), and the local copy of the codebase on your computer. The
-typical contribution process is to:
+called "upstream"), your `fork`_ of the upstream repository (similar URL, but
+with your username in place of ``mne-tools``, and usually called "origin"), and
+the local copy of the codebase on your computer. The typical contribution
+process is to:
 
-1. synchronize your local copy with the upstream
+1. synchronize your local copy with ``upstream``
 
 2. make changes to your local copy
 
-3. `push <github-help-push>`_ your changes to origin (your remote fork of the
-   upstream)
+3. `push`_ your changes to ``origin`` (your remote fork of the upstream)
 
-4. submit a `pull request`_ from your fork into the upstream
+4. submit a `pull request`_ from your fork into ``upstream``
 
-The section :ref:`github-workflow` (below) describes this process in more
-detail.
+The sections :ref:`basic-git` and :ref:`github-workflow` (below) describe this
+process in more detail.
 
 
 Setting up your local environment for MNE-Python development
@@ -46,22 +39,25 @@ To get set up for contributing, make sure you have git installed on your local
 computer:
 
 - On Linux, the command ``sudo apt install git`` is usually sufficient; see the
-  `official download instructions <git-install-nix>`_ for more options.
+  `official Linux instructions`_ for more options.
 
-- On MacOS, download `the .dmg installer here <git-macos-download>`_; Atlassian
-  also offers `more detailed instructions and alternatives <git-install-mac>`_
-  such as using MacPorts or Homebrew.
+- On MacOS, download `the .dmg installer`_; Atlassian also provides `more
+  detailed instructions and alternatives`_ such as using MacPorts or Homebrew.
 
 - On Windows, we recommend `git Bash`_ rather than the `official Windows
-  version of git <git-windows-download>`_, because git Bash provides its own
-  shell that includes many Linux-equivalent command line programs that are
-  useful for development. `GitHub desktop`_ is a GUI alternative to command
-  line git that some users appreciate. Windows 10 also offers the `Windows
-  subsystem for Linux`_ that offers similar functionality to git Bash, but has
-  not been widely tested by MNE-Python developers yet.
+  version of git`_, because git Bash provides its own shell that includes many
+  Linux-equivalent command line programs that are useful for development.
+  Windows 10 also offers the `Windows subsystem for Linux`_ that offers similar
+  functionality to git Bash, but has not been widely tested by MNE-Python
+  developers yet.
 
-The only absolutely necessary configuration step is identifying yourself and
-your contact info:
+.. note::
+
+    `GitHub desktop`_ is a GUI alternative to command line git that some users
+    appreciate; it is available for Windows and MacOS.
+
+Once git is installed, the only absolutely necessary configuration step is
+identifying yourself and your contact info:
 
 .. code-block:: console
 
@@ -73,8 +69,17 @@ and with your local git configuration. It is possible to associate multiple
 emails with a GitHub account, so if you initially set them up with different
 emails, just add the local email to the GitHub account.
 
-Before creating your local copy of the codebase, go to the `MNE-Python GitHub`_
-page and create a fork into your GitHub user account.
+Sooner or later, git is going to ask you what text editor you want it to use
+when writing commit messages, so you might as well configure that now too:
+
+.. code-block:: console
+
+   $ git config --global core.editor emacs    # or vim, or nano, or subl, or...
+
+There are many other ways to customize git's behavior; see `configuring git`_
+for more information. Once you have git installed and configured, and before
+creating your local copy of the codebase, go to the `MNE-Python GitHub`_ page
+and create a `fork`_ into your GitHub user account.
 
 
 Setting up the Python environment
@@ -84,26 +89,55 @@ Setting up the Python environment
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
-    the MNE-Python development team; see discussion `here <other-py-distros>`_.
+    the MNE-Python development team; see discussion :ref:`here
+    <other-py-distros>`.
 
-You can set up your local development environment by starting with the
-`environment file`_ provided in the root of the MNE-Python repository. The
-following commands will create the conda environment:
+The first step is to `clone`_ the MNE-Python repository from your fork, and
+also connect the local copy to the ``upstream`` version of the codebase, so you
+can stay up-to-date with changes from other contributors. First, edit these two
+variables for your situation:
 
 .. code-block:: console
 
-    $ # change these variables for your situation
     $ INSTALL_LOCATION="/opt"
     $ GITHUB_USERNAME="new_mne_contributor"
-    $ PREFERRED_ENVIRONMENT_NAME="mnedev"
-    $ # make a local copy of your fork ("origin")
+
+Then make a local clone of your remote fork ("origin"):
+
+.. code-block:: console
+
     $ cd $INSTALL_LOCATION
     $ git clone https://github.com/$GITHUB_USERNAME/mne-python.git
-    $ # setup a link to the official repository ("upstream")
+
+Finally, set up a link between your local clone and the official repository
+("upstream"):
+
+.. code-block:: console
+
     $ cd mne-python
     $ git remote add upstream git://github.com/mne-tools/mne-python.git
     $ git fetch --all
-    $ # create the conda environment and activate it
+
+.. note::
+
+    We use ``git://`` instead of ``https://`` in the address for the official
+    "upstream" remote repository. ``git://`` addresses are read-only, which
+    means you can *pull* the official repository into your local copy (in order
+    to stay up-to-date with changes made by other contributors) but you cannot
+    *push* anything from your computer directly into the upstream remote.
+    Instead, you must push your changes to your own remote fork first, and then
+    create a pull request from your remote into the upstream remote (and even
+    then, your changes are not automatically accepted into the upstream; the
+    changes must be *approved* by maintainers and then *merged* into upstream).
+
+Next, use the `environment file`_ provided in the root of the MNE-Python
+repository to set up your local development environment. This will install all
+of the dependencies needed for running MNE-Python. The following commands
+create the conda environment:
+
+.. code-block:: console
+
+    $ PREFERRED_ENVIRONMENT_NAME="mnedev"
     $ conda env create -n $PREFERRED_ENVIRONMENT_NAME -f environment.yml
     $ conda activate $PREFERRED_ENVIRONMENT_NAME
 
@@ -117,37 +151,34 @@ following commands will create the conda environment:
     environment file as a starting point for new projects. See ``conda env
     create --help`` for more info.
 
-The environment file installs the stable version of MNE-Python, so next we'll
-remove that and replace it with the clone you just created:
+The environment file installs the *stable* version of MNE-Python, so next we'll
+remove that and replace it with the *development* version (the clone we just
+created):
 
 .. code-block:: console
 
-    $ pip uninstall -y mne  # or: conda remove --force mne
-    $ pip install -e .      # or: python setup.py develop
+    $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
+    $ pip uninstall -y mne               # or: conda remove --force mne
+    $ pip install -e .                   # or: python setup.py develop
 
-Next, we'll do the same thing for Mayavi (one of our 3D plotting backends):
+.. note::
 
-.. code-block:: console
+    The commands ``pip install -e .`` and ``python setup.py develop`` both
+    install a python module into the current environment by creating a link to
+    the source code directory (instead of copying the code to pip's
+    ``site_packages`` directory, which is what normally happens). This means
+    that any edits you make to the MNE-Python source code will be reflected the
+    next time you open a Python interpreter and ``import mne`` (the ``-e`` flag
+    of ``pip`` stands for an "editable" installation).
 
-    $ pip uninstall -y mayavi
-    $ cd $INSTALL_LOCATION
-    $ git clone git://github.com/enthought/mayavi.git
-    $ cd mayavi
-    $ pip install -e .  # or: python setup.py develop
-
-Finally, add a few dependencies that are not needed for running MNE-Python but
-are needed for locally running our test suite or building our documentation:
+Finally, we'll add a few dependencies that are not needed for running
+MNE-Python, but are needed for locally running our test suite or building our
+documentation:
 
 .. code-block:: console
 
     $ pip install sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome memory_profiler
-    $ conda install sphinx-autobuild doc8  # linter for reStructuredText
-
-.. TODO: no longer needed? pip install sphinx-gallery should be fine...
-    $ cd $INSTALL_LOCATION
-    $ git clone git://github.com/sphinx-gallery/sphinx-gallery.git
-    $ cd sphinx-gallery
-    $ pip install -e .
+    $ conda install sphinx-autobuild doc8  # linter packages for reStructuredText (optional)
 
 .. TODO: add this if sphinx-mermaid is officially adopted
     Our documentation includes diagrams that are built automatically from text
@@ -168,17 +199,22 @@ are needed for locally running our test suite or building our documentation:
 
 .. note::
 
-    The commands ``pip install -e .`` and ``python setup.py develop`` both
-    install a python module into the current environment by creating a link to
-    the source code directory (instead of copying the code to pip's
-    ``site_packages`` directory, which is what normally happens. This means
-    that any edits you make to the MNE-Python source code will be reflected the
-    next time you open a Python interpreter and ``import mne`` (the ``-e`` flag
-    of ``pip`` stands for an "editable" installation).
+    Occasionally, a bug emerges in one of the MNE-Python dependencies, and it
+    temporarily becomes necessary to use the current master version of that
+    dependency (until a new stable release is made that contains the bugfix).
+    In such cases, you can do a one-time update of that dependency to its
+    current master using pip + git (as shown for MNE-Python in
+    :ref:`installing_master`). If you anticipate needing to update a dependency
+    frequently, you can install the dependency in the same way you've just
+    installed MNE-Python (i.e., cloning its repository and installing with
+    ``pip install -e .`` from within the cloned repo), and then updating it
+    periodically with ``git pull``.
 
 
-Basic git command reference
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _basic-git:
+
+Basic git commands
+^^^^^^^^^^^^^^^^^^
 
 Learning to work with git can take a long time, because it is a complex and
 powerful tool for managing versions of files across multiple users, each of
@@ -186,68 +222,121 @@ whom have multiple copies of the codebase. We've already seen in the setup
 commands above a few of the basic git commands useful to an MNE-Python
 developer:
 
-.. code-block:: shell
+- :samp:`git clone {<URL_OF_REMOTE_REPO>}` (make a local copy of a repository)
 
-    # make a local copy of a repository:
-    git clone <URL_OF_REMOTE_REPO>
+- :samp:`git remote add {<NICKNAME_OF_REMOTE>} {<URL_OF_REMOTE_REPO>}` (connect
+  a local copy to an additional remote)
 
-    # connect a local copy to an additional remote:
-    git remote add <NICKNAME_OF_REMOTE> <URL_OF_REMOTE_REPO>
+- ``git fetch --all`` (get the current state of connected remote repos)
 
-    # get the current state of connected remote repos:
-    git fetch --all
+Other commands that you will undoubtedly need relate to `branches`_. Branches
+represent multiple copies of the codebase *within a local clone or remote
+repo*. Branches are typically used to experiment with new features while still
+keeping a clean, working copy of the original codebase that you can switch back
+to at any time. The default branch of any repo is always called ``master``, and
+it is recommended that you reserve the ``master`` branch to be that clean copy
+of the working "upstream" codebase. Therefore, if you want to add a new
+feature, you should first synchronize your local ``master`` branch with the
+``upstream`` repository, then create a new branch based off of ``master`` and
+`check it out`_ so that any changes you make will exist on that new branch
+(instead of on ``master``):
+
+.. code-block:: console
+
+    $ git checkout master            # switch to master branch
+    $ git fetch upstream             # get the current state of the upstream repo
+    $ git merge upstream/master      # synchronize local master branch with upstream master branch
+    $ git checkout -b new-feature-x  # create branch "new-feature-x" and check it out
 
 .. note::
 
-    You may have noticed that earlier we used ``git://`` instead of
-    ``https://`` in the address for the official "upstream" remote repository,
-    and in the addresses for mayavi and sphinx-gallery.
-    ``git://`` addresses are read-only, which means you can *pull* the official
-    repository into your local copy (in order to stay up-to-date with changes
-    made by other contributors) but you cannot *push* anything from your
-    computer directly into the upstream remote. Instead, you must push your
-    changes to your own remote fork first, and then create a pull request from
-    your remote into the upstream remote (and even then, your changes are not
-    automatically accepted into the upstream; the changes must be *approved* by
-    maintainers and then *merged* into upstream).
+    You can save some typing by using ``git pull upstream/master`` to replace
+    the ``fetch`` and ``merge`` lines above.
 
-Other commands that you will undoubtedly need relate to `branches
-<github-help-branch>`_. Branches represent multiple copies of the codebase
-*within a local clone or remote repo*. Branches are typically used to
-experiment with new features while still keeping a clean, working copy of the
-original codebase that you can switch back to at any time. The default branch
-of any repo is always called ``master``, and it is recommended that you reserve
-the ``master`` branch to be that clean copy of the working "upstream" codebase.
-Therefore, if you want to add a new feature, you should first create a new
-branch based off of ``master`` and then `check it out <git checkout>`_:
+Now that you're on a new branch, you can fix a bug or add a new feature, add a
+test, update the documentation, etc. When you're done, it's time to organize
+your changes into a series of `commits`_. Commits are like snapshots of the
+repository — actually, more like a description of what has to change to get
+from the most recent snapshot to the current snapshot.
 
-.. code-block:: shell
+Git knows that people often work on multiple changes in multiple files all at
+once, but that ultimately they should separate those changes into sets of
+related changes that are grouped together based on common goals (so that it's
+easier for their colleagues to understand and review the changes). For example,
+you might want to group all the code changes together in one commit, put new
+unit tests in another commit, and changes to the documentation in a third
+commit.  Git makes this easy(ish) with something called the `stage`_ (or
+*staging area*). After you've made some changes to the codebase, you'll have
+what git calls "unstaged changes", which will show up with the `status`_
+command:
 
-    # see what state the local codebase is in
-    git status
+.. code-block:: console
 
-    # view all (local and remote) branches that git knows about
-    git branch --all    # or git branch -a
+    $ # see what state the local copy of the codebase is in
+    $ git status
 
-    # copy the current branch with a new name, and checkout the new branch
-    git checkout -b <NAME_OF_NEW_BRANCH>
+Those unstaged changes can be `added`_ to the stage one by one, by either
+adding a whole file's worth of changes, or by adding only certain lines
+interactively:
 
-Git knows that sometimes you work on multiple changes in multiple files all at
-once, but that ideally you would separate those changes into related
-"changesets" that are grouped together based on common goals. For example, you
-might want to group all the code changes together, separately from unit tests
-or changes to the documentation. One method that git provides for organizing
-your work in that way is the *stage* (or *staging area*).
+.. code-block:: console
 
-Git keeps track of some files and ignores others, depending on whether you have
-`added <git add>`_ the files to the repository. You use the same command (``git
-add``) to tell git to start tracking a new file, or to
+    $ # add a whole file's worth of changes
+    $ # (same command works to add a completely new file):
+    $ git add mne/some_file.py
+    $ # enter interactive staging mode, to add only portions of the file:
+    $ git add -p mne/viz/some_other_file.py
 
-    # add a new file
+Once you've collected all the related changes together on the stage, the ``git
+status`` command will now refer to them as "changes staged for commit". You can
+commit them to the current branch with the `commit`_ command. If you just type
+``git commit`` by itself, git will open the text editor you configured it to
+use so that you can write a *commit message* — a short description of the
+changes you've grouped together in this commit. You can bypass the text editor
+by passing a commit message on the command line with the ``-m`` flag. For
+example, if your first commit adds a new feature, your commit message might be:
 
-`GitHub help`_ website
-`GitHub Learning Lab`_ tutorial series
-`pro git book`_
+.. code-block:: console
+
+    $ git commit -m 'ENH: adds feature X to the Epochs class'
+
+Once you've made the commit, the stage is now empty, and you can repeat the
+cycle, adding the unit tests and documentation changes:
+
+.. code-block:: console
+
+    $ git add mne/tests/some_testing_file.py
+    $ git commit -m 'add test of new feature X of the Epochs class'
+    $ git add -p mne/some_file.py mne/viz/some_other_file.py
+    $ git commit -m 'DOC: update Epochs and BaseEpochs docstrings'
+    $ git add tutorials/new_tutorial_file.py
+    $ git commit -m 'DOC: adds new tutorial about feature X'
+
+When you're done, it's time to run the test suite to make sure your changes
+haven't broken any existing functionality, and to make sure your new test
+covers the lines of code you've added (see :ref:`run-tests` and
+:ref:`build-docs`, below). Once everything looks good, it's time to push your
+changes to your fork:
+
+.. code-block:: console
+
+    $ git push origin new-feature-x
+
+Finally, go to the `MNE-Python GitHub`_ page, click on the pull requests tab,
+click the "new pull request" button, and choose "compare across forks" to
+select your new branch (``new-feature-x``) as the "head repository".  See the
+GitHub help page on `creating a PR from a fork`_ for more information about
+opening pull requests.
+
+If any of the tests failed before you pushed your changes, try to fix them,
+then add and commit the changes that fixed the tests, and push to your fork. If
+you're stuck and can't figure out how to fix the tests, go ahead and push your
+commits to your fork anyway and open a pull request (as described above), then
+in the pull request you should describe how the tests are failing and ask for
+advice about how to fix them.
+
+To learn more about git, check out the `GitHub help`_ website, the `GitHub
+Learning Lab`_ tutorial series, and the `pro git book`_.
 
 
 Connecting to GitHub with SSH (optional)
@@ -259,8 +348,8 @@ key pairs. The private half of your key pair is kept secret on your computer,
 while the public half of your key pair is added to your GitHub account; when
 you connect to GitHub from your computer, the local git client checks the
 remote (public) key against your local (private) key, and grants access your
-account only if the keys fit. GitHub has `several help pages
-<github-help-ssh>`_ that guide you through the process.
+account only if the keys fit. GitHub has `several help pages`_ that guide you
+through the process.
 
 Once you have set up GitHub to use SSH authentication, you should change the
 addresses of your MNE-Python GitHub remotes, from ``https://`` addresses to
@@ -283,8 +372,8 @@ General requirements
 All new functionality must have test coverage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For example, a new :class:`mne.Evoked` method in :doc:`mne/evoked.py` should
-have a corresponding test in :doc:`mne/tests/test_evoked.py`.
+For example, a new :class:`mne.Evoked` method in :file:`mne/evoked.py` should
+have a corresponding test in :file:`mne/tests/test_evoked.py`.
 
 
 All new functionality must be documented
@@ -299,25 +388,26 @@ New API elements should be added to the master reference
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Classes, functions, methods, and attributes cannot be cross-referenced unless
-they are included in :doc:`doc/python_reference.rst <python_reference>`.
+they are included in the :doc:`python_reference`
+(:file:`doc/python_reference.rst`).
 
 
 Describe your changes in the changelog
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Include in your changeset a brief description of the change in the
-:doc:`changelog <doc/whats_new.rst>` (this can be skipped for very minor
-changes like correcting typos in the documentation). Note that there are
-sections of the changelog for each release, and separate subsections for
-bugfixes, new features, and changes to the public API. It is usually best to do
-this *after* your PR is finalized, to avoid merge conflicts (since this file is
-updated with almost every PR).
+:doc:`changelog <whats_new>` (:file:`doc/whats_new.rst`; this can be skipped
+for very minor changes like correcting typos in the documentation). Note that
+there are sections of the changelog for each release, and separate subsections
+for bugfixes, new features, and changes to the public API. It is usually best
+to wait to add a line to the changelog until your PR is finalized, to avoid
+merge conflicts (since the changelog is updated with almost every PR).
 
 
 Test locally before opening pull requests (PRs)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-MNE-Python uses `continuous integration <ci>`_ (CI) to ensure code quality and
+MNE-Python uses `continuous integration`_ (CI) to ensure code quality and
 test across multiple installation targets. However, the CIs are often slower
 than testing locally, especially when other contributors also have open PRs
 (which is basically always the case). Therefore, do not rely on the CIs to
@@ -353,38 +443,42 @@ Code style
 Adhere to standard Python style guidelines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-pep8_ and pyflakes_ are followed with very few exceptions in MNE-Python. From
-the ``mne-python`` root directory, you can check for style violations using
-flake8_ by running:
+All contributions to MNE-Python are checked against style guidelines described
+in `PEP 8`_. We also check for common coding errors (such as variables that are
+defined but never used). We allow very few exceptions to these guidelines, and
+use tools such as pep8_, pyflakes_, and flake8_ to check code style
+automatically. From the :file:`mne-python` root directory, you can check for
+style violations by running:
 
 .. code-block:: console
 
     $ make flake
 
-in the shell. Several text editors also have integrated Python style checking
-(either built-in or with a plugin), which can also catch style errors (and
-train you to make them less frequently). Spyder_ and `Visual Studio Code
-<vscode>`_ are two such editors.
+in the shell. Several text editors or IDEs also have Python style checking,
+which can highlight style errors while you code (and train you to make those
+errors less frequently). This functionality is built-in to the Spyder_ IDE, but
+most editors have plug-ins that provide similar functionality. Search for
+:samp:`python linter <name of your favorite editor>` to learn more.
 
 
 Use consistent variable naming
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Classes should be named using ``CamelCase``. Functions and instances/variables
-should be ``snake_case`` (``n_samples`` rather than ``nsamples``). Avoid
-single-character variable names, unless inside a list- or dict-comprehension or
-generator.
+should use ``snake_case`` (``n_samples`` rather than ``nsamples``). Avoid
+single-character variable names, unless inside a :term:`comprehension <list
+comprehension>` or :ref:`generator <tut-generators>`.
 
 
-Follow `NumPy style`_ for docstrings
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Follow NumPy style for docstrings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In most cases imitating existing docstrings will be sufficient, but consult the
-`Numpy docstring style guidelines <numpy style>`_ for more complicated
-formatting such as embedding example code, citing references, or including
-rendered mathematics. Private function/method docstrings may be brief for
-simple functions/methods, but complete docstrings are appropriate when private
-functions/methods are relatively complex.
+`Numpy docstring style guidelines`_ for more complicated formatting such as
+embedding example code, citing references, or including rendered mathematics.
+Private function/method docstrings may be brief for simple functions/methods,
+but complete docstrings are appropriate when private functions/methods are
+relatively complex.
 
 
 Cross-reference everywhere
@@ -396,22 +490,30 @@ mentioned module, class, function, method, attribute, or documentation page.
 There are sphinx directives for all of these (``:mod:``, ``:class:``,
 ``:func:``, ``:meth:``, ``:attr:``, ``:doc:``) as well as a generic
 cross-reference directive (``:ref:``) for linking to specific sections of a
-documentation page. MNE-Python also uses `intersphinx`_, so you can (and
-should) cross-reference to Python built-in classes and functions as well as API
-elements in NumPy, SciPy, PySurfer, etc. See :doc:`the sphinx configuration
-file <doc/conf.py>` for the list of supported intersphinx projects.
+documentation page. MNE-Python also uses Intersphinx_, so you can (and should)
+cross-reference to Python built-in classes and functions as well as API
+elements in :mod:`NumPy <numpy>`, :mod:`SciPy <scipy>`, etc. See the Sphinx
+configuration file (:file:`doc/conf.py`) for the list of Intersphinx projects
+we link to.
 
 
 Other style guidance
 ~~~~~~~~~~~~~~~~~~~~
+
 - Use single quotes whenever possible.
-- Prefer generators or comprehensions over ``filter``, ``map`` and other
-  functional idioms.
+
+- Prefer :ref:`generators <tut-generators>` or
+  :term:`comprehensions <list comprehension>` over :func:`filter`, :func:`map`
+  and other functional idioms.
+
 - Use explicit functional constructors for builtin containers to improve
-  readability (e.g., :func:`list`, :func:`dict`, :func:`set`).
+  readability (e.g., :ref:`list() <func-list>`, :ref:`dict() <func-dict>`,
+  :ref:`set() <func-set>`).
+
 - Avoid nested functions or class methods if possible — use private functions
   instead.
-- Avoid ``*args`` and ``**kwargs`` in function signatures.
+
+- Avoid ``*args`` and ``**kwargs`` in function/method signatures.
 
 
 Code organization
@@ -422,10 +524,10 @@ Importing
 
 Import modules in this order:
 
-1. builtin
-2. standard scientific (``numpy as np``, ``scipy`` submodules)
+1. Python built-in (``os``, ``copy``, ``functools``, etc)
+2. standard scientific (``numpy as np``, ``scipy.signal``, etc)
 3. others
-4. MNE-Python imports
+4. MNE-Python imports (e.g., ``from .pick import pick_types``)
 
 When importing from other parts of MNE-Python, use relative imports in the main
 codebase and absolute imports in the tutorials and how-to examples. Imports for
@@ -437,7 +539,9 @@ Return types
 ~~~~~~~~~~~~
 
 Methods should modify inplace and return ``self``, functions should return
-copies (where applicable).
+copies (where applicable). Docstrings should always give an informative name
+for the return value, even if the function or method's return value is never
+stored under that name in the code.
 
 
 Vizualization
@@ -488,21 +592,23 @@ a Python interpreter::
     >>> mne.datasets.testing.data_path(verbose=True)  # doctest: +SKIP
 
 
+.. _build-docs:
+
 Building the documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Our documentation (including docstrings in code files) is in `reStructuredText
-<rst>`_ format and is built using `Sphinx`_ and `Sphinx-Gallery`_. The easiest
-way to ensure that your contributions to the documentation are properly
-formatted is to follow the style guidelines on this page, imitate existing
-documentation examples, refer to the Sphinx and Sphinx-Gallery reference
-materials when unsure how to format your contributions, and build the docs
-locally to confirm that everything looks correct before submitting the changes
-in a pull request.
+Our documentation (including docstrings in code files) is in
+reStructuredText_ format and is built using Sphinx_ and `Sphinx-Gallery`_.
+The easiest way to ensure that your contributions to the documentation are
+properly formatted is to follow the style guidelines on this page, imitate
+existing documentation examples, refer to the Sphinx and Sphinx-Gallery
+reference materials when unsure how to format your contributions, and build the
+docs locally to confirm that everything looks correct before submitting the
+changes in a pull request.
 
-You can build the documentation locally using `GNU Make`_ with :doc:`Makefile
-<doc/Makefile>`. From within the ``mne/doc`` directory, a full documentation
-build (of the current code state) can be triggered with
+You can build the documentation locally using `GNU Make`_ with
+:file:`doc/Makefile`. From within the :file:`doc` directory, a full
+documentation build (of the current code state) can be triggered with
 
 .. code-block:: console
 
@@ -511,10 +617,11 @@ build (of the current code state) can be triggered with
 Additional recipes are available that build all docs but do not evaluate the
 python code in the tutorials and how-to examples (``make html_dev-noplot``),
 build all docs but only evaluate a regex-specified subset of the
-examples/tutorials (``PATTERN="insert regex here" make html_dev-pattern``), or
-build the docs for the most recent stable release (``make html_stable``). Run
-``make help`` from the ``mne/doc`` directory for more options, or consult the
-`Sphinx-Gallery`_ documentation for additional details.
+examples/tutorials (:samp:`PATTERN="{insert regex here}" make
+html_dev-pattern`), or build the docs for the most recent stable release
+(``make html_stable``). Run ``make help`` from the :file:`mne/doc` directory
+for more options, or consult the `Sphinx-Gallery`_ documentation for additional
+details.
 
 
 .. _`github-workflow`:
@@ -522,11 +629,18 @@ build the docs for the most recent stable release (``make html_stable``). Run
 GitHub workflow
 ^^^^^^^^^^^^^^^
 
-- Search the `MNE-Python issues page <open-mne-issues>`_ (both open and closed
-  issues) in case someone else has already started work on the same bugfix or
-  feature. If you don't find anything, `open a new issue <new-mne-issue>`_ to
-  discuss changes with maintainers before starting work on your proposed
-  changes.
+Nearly everyone in the community of MNE-Python contributors and maintainers is
+a working scientist, engineer, or student who contributes to MNE-Python in
+their spare time. For that reason, a set of best practices have been adopted to
+streamline the collaboration and review process. Most of these practices are
+common to many open-source software projects, so learning to follow them while
+working on MNE-Python will bear fruit when you contribute to other projects
+down the road. Here are the guidelines:
+
+- Search the `MNE-Python issues page`_ (both open and closed issues) in case
+  someone else has already started work on the same bugfix or feature. If you
+  don't find anything, `open a new issue`_ to discuss changes with maintainers
+  before starting work on your proposed changes.
 
 - Implement only one new feature or bugfix per pull request (PR). Occasionally
   it may make sense to fix a few related bugs at once, but this makes PRs
@@ -535,8 +649,8 @@ GitHub workflow
   to review.
 
 - It is usually better to make PRs *from* branches other than your master
-  branch, so that you can use your master branch to easily get back to the
-  current state of the code if needed (e.g., if you're working on multiple
+  branch, so that you can use your master branch to easily get back to a
+  working state of the code if needed (e.g., if you're working on multiple
   changes at once, or need to pull in recent changes from someone else to get
   your new feature to work properly).
 
@@ -545,29 +659,28 @@ GitHub workflow
   for backports or maintenance bugfixes to the current stable version).
 
 - Don't forget to include in your PR a brief description of the change in the
-  :doc:`changelog <doc/whats_new.rst>`.
+  :doc:`changelog <whats_new>` (:file:`doc/whats_new.rst`).
 
 - Our community uses the following commit tags and conventions:
 
-    - Work-in-progress PRs should be created as `draft PRs
-      <github-help-draft-pr>`_ (preferred method), or failing that, the PR
-      title should begin with ``WIP``
+  - Work-in-progress PRs should be created as `draft PRs`_ and the PR title
+    should begin with ``WIP``
 
-    - When you believe a PR is ready to be reviewed and merged, `convert it
-      from a draft PR to a normal PR <github-help-convert-draft-pr>`_, and
-      change its title to begin with ``MRG``
+  - When you believe a PR is ready to be reviewed and merged, `convert it
+    from a draft PR to a normal PR`_, and change its title to begin with
+    ``MRG``
 
-    - PRs that only affect documentation should additionally be labelled
-      ``DOC``, bugfixes should be labelled ``FIX``, and new features should be
-      labelled ``ENH`` (for "enhancement"). ``STY`` is used for style changes
-      (i.e., improving docstring consistency or formatting without changing its
-      content).
+  - PRs that only affect documentation should additionally be labelled
+    ``DOC``, bugfixes should be labelled ``FIX``, and new features should be
+    labelled ``ENH`` (for "enhancement"). ``STY`` is used for style changes
+    (i.e., improving docstring consistency or formatting without changing its
+    content).
 
-    - the following commit tags are supported: ``[ci skip]``, ``[skip
-      travis]``, ``[skip appveyor]``, ``[skip azp]``, ``[skip circle]``, and
-      ``[circle full]``. These should be used judiciously.
+  - the following commit tags are supported: ``[ci skip]``, ``[skip
+    travis]``, ``[skip appveyor]``, ``[skip azp]``, ``[skip circle]``, and
+    ``[circle full]``. These should be used judiciously.
 
-`This pull request <mne-model-pr>`_ exemplifies many of the conventions listed
+`This sample pull request`_ exemplifies many of the conventions listed
 above: it addresses only one problem; it started with an issue (#6112) to
 discuss the problem and some possible solutions; it is a PR from the user's
 non-master branch into the upstream master branch; it separates different kinds
@@ -575,3 +688,73 @@ of changes into separate commits and uses labels like ``DOC``, ``FIX``, and
 ``STY`` to make it easier for maintainers to review the changeset; etc. If you
 are new to GitHub it can serve as a useful example of what to expect from the
 PR review process.
+
+.. MNE
+
+.. _MNE-Python GitHub: https://github.com/mne-tools/mne-python
+.. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
+.. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
+.. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+.. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
+
+.. git installation
+
+.. _the .dmg installer: https://git-scm.com/download/mac
+.. _official Windows version of git: https://git-scm.com/download/win
+.. _official Linux instructions: https://git-scm.com/download/linux
+.. _more detailed instructions and alternatives: https://www.atlassian.com/git/tutorials/install-git
+.. _Windows subsystem for Linux: https://docs.microsoft.com/en-us/windows/wsl/about
+.. _git bash: https://gitforwindows.org/
+.. _GitHub desktop: https://desktop.github.com/
+
+.. github help pages
+
+.. _GitHub Help: https://help.github.com
+.. _GitHub learning lab: https://lab.github.com/
+.. _fork: https://help.github.com/en/articles/fork-a-repo
+.. _clone: https://help.github.com/en/articles/cloning-a-repository
+.. _push: https://help.github.com/en/articles/pushing-to-a-remote
+.. _branches: https://help.github.com/en/articles/about-branches
+.. _several help pages: https://help.github.com/en/articles/connecting-to-github-with-ssh
+.. _draft PRs: https://help.github.com/en/articles/about-pull-requests#draft-pull-requests
+.. _convert it from a draft PR to a normal PR: https://help.github.com/en/articles/changing-the-stage-of-a-pull-request
+.. _pull request: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
+.. _creating a PR from a fork: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
+
+.. git docs
+
+.. _check it out: https://git-scm.com/docs/git-checkout
+.. _added: https://git-scm.com/docs/git-add
+.. _commits: https://git-scm.com/docs/git-commit
+.. _commit: https://git-scm.com/docs/git-commit
+.. _status: https://git-scm.com/docs/git-status
+
+.. git book
+
+.. _pro git book: https://git-scm.com/book/
+.. _stage: https://git-scm.com/book/en/v2/Git-Tools-Interactive-Staging
+.. _configuring git: https://www.git-scm.com/book/en/v2/Customizing-Git-Git-Configuration
+
+.. sphinx
+
+.. _sphinx: http://www.sphinx-doc.org
+.. _sphinx-gallery: https://sphinx-gallery.github.io
+.. _reStructuredText: http://sphinx-doc.org/rest.html
+.. _intersphinx: http://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+
+.. linting
+
+.. _NumPy docstring style guidelines: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+.. _PEP 8: https://www.python.org/dev/peps/pep-0008/
+.. _pep8: https://pypi.org/project/pep8
+.. _pyflakes: https://pypi.org/project/pyflakes
+.. _Flake8: http://flake8.pycqa.org/
+
+.. misc
+
+.. _anaconda: https://www.anaconda.com/distribution/
+.. _miniconda: https://conda.io/en/latest/miniconda.html
+.. _Spyder: https://www.spyder-ide.org/
+.. _GNU Make: https://www.gnu.org/software/make/
+.. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
+.. _matplotlib: https://matplotlib.org/
