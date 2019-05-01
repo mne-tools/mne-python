@@ -1,12 +1,11 @@
 """
-=============================================
-Compute envelope correlations in source space
-=============================================
+====================================================
+Compute envelope correlations in volume source space
+====================================================
 
 Compute envelope correlations of orthogonalized activity [1]_ [2]_ in source
-space using resting state CTF data.
+space using resting state CTF data in a volume source space.
 """
-# sphinx_gallery_thumbnail_number = 2
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Sheraz Khan <sheraz@khansheraz.com>
@@ -16,29 +15,26 @@ space using resting state CTF data.
 
 import os.path as op
 
-import numpy as np
-import matplotlib.pyplot as plt
-
 import mne
+from mne.beamformer import make_lcmv, apply_lcmv_epochs
 from mne.connectivity import envelope_correlation
-from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
 from mne.preprocessing import compute_proj_ecg, compute_proj_eog
 
 data_path = mne.datasets.brainstorm.bst_resting.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 subject = 'bst_resting'
 trans = op.join(data_path, 'MEG', 'bst_resting', 'bst_resting-trans.fif')
-src = op.join(subjects_dir, subject, 'bem', subject + '-oct-6-src.fif')
 bem = op.join(subjects_dir, subject, 'bem', subject + '-5120-bem-sol.fif')
 raw_fname = op.join(data_path, 'MEG', 'bst_resting',
                     'subj002_spontaneous_20111102_01_AUX.ds')
+crop_to, method = 60., 'lcmv'
 
 ##############################################################################
 # Here we do some things in the name of speed, such as crop (which will
 # hurt SNR) and downsample. Then we compute SSP projectors and apply them.
 
 raw = mne.io.read_raw_ctf(raw_fname, verbose='error')
-raw.crop(0, 60).load_data().pick_types(meg=True, eeg=False).resample(80)
+raw.crop(0, crop_to).load_data().pick_types(meg=True, eeg=False).resample(80)
 raw.apply_gradient_compensation(3)
 projs_ecg, _ = compute_proj_ecg(raw, n_grad=1, n_mag=2)
 projs_eog, _ = compute_proj_eog(raw, n_grad=1, n_mag=2, ch_name='MLT31-4407')
@@ -60,42 +56,34 @@ del raw
 # Compute the forward and inverse
 # -------------------------------
 
-src = mne.read_source_spaces(src)
+# This source space is really far too coarse, but we do this for speed
+# considerations here
+pos = 15.  # 1.5 cm is very broad, done here for speed!
+src = mne.setup_volume_source_space('bst_resting', pos, bem=bem,
+                                    subjects_dir=subjects_dir, verbose=True)
 fwd = mne.make_forward_solution(epochs.info, trans, src, bem)
-inv = make_inverse_operator(epochs.info, fwd, cov)
-del fwd, src
+data_cov = mne.compute_covariance(epochs)
+filters = make_lcmv(epochs.info, fwd, data_cov, 0.05, cov,
+                    pick_ori='max-power', weight_norm='nai')
+del fwd
 
 ##############################################################################
 # Compute label time series and do envelope correlation
 # -----------------------------------------------------
 
-labels = mne.read_labels_from_annot(subject, 'aparc_sub',
-                                    subjects_dir=subjects_dir)
-epochs.apply_hilbert()  # faster to apply in sensor space
-stcs = apply_inverse_epochs(epochs, inv, lambda2=1. / 9., pick_ori='normal',
-                            return_generator=True)
-label_ts = mne.extract_label_time_course(
-    stcs, labels, inv['src'], return_generator=True)
-corr = envelope_correlation(label_ts, verbose=True)
-
-# let's plot this matrix
-fig, ax = plt.subplots(figsize=(4, 4))
-ax.imshow(corr, cmap='viridis', clim=np.percentile(corr, [5, 95]))
-fig.tight_layout()
+epochs.apply_hilbert()  # faster to do in sensor space
+stcs = apply_lcmv_epochs(epochs, filters, return_generator=True)
+corr = envelope_correlation(stcs, verbose=True)
 
 ##############################################################################
 # Compute the degree and plot it
 # ------------------------------
 
-threshold_prop = 0.15  # percentage of strongest edges to keep in the graph
-degree = mne.connectivity.degree(corr, threshold_prop=threshold_prop)
-stc = mne.labels_to_stc(labels, degree)
-stc = stc.in_label(mne.Label(inv['src'][0]['vertno'], hemi='lh') +
-                   mne.Label(inv['src'][1]['vertno'], hemi='rh'))
+degree = mne.connectivity.degree(corr, 0.15)
+stc = mne.VolSourceEstimate(degree, src[0]['vertno'], 0, 1, 'bst_resting')
 brain = stc.plot(
-    clim=dict(kind='percent', lims=[75, 85, 95]), colormap='gnuplot',
-    subjects_dir=subjects_dir, views='dorsal', hemi='both',
-    smoothing_steps=25, time_label='Beta band')
+    src, clim=dict(kind='percent', lims=[75, 85, 95]), colormap='gnuplot',
+    subjects_dir=subjects_dir, mode='glass_brain')
 
 ##############################################################################
 # References

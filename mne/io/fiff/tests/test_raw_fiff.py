@@ -1116,7 +1116,7 @@ def test_hilbert():
     assert raw_filt._data.shape == raw_filt_2._data.shape
     assert_allclose(raw_filt._data[:, 50:-50], raw_filt_2._data[:, 50:-50],
                     atol=1e-13, rtol=1e-2)
-    with pytest.raises(ValueError, match='n_fft must be greater than n_times'):
+    with pytest.raises(ValueError, match='n_fft.*must be at least the number'):
         raw3.apply_hilbert(picks, n_fft=raw3.n_times - 100)
 
     env = np.abs(raw._data[picks, :])
