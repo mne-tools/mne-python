@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _plot_source_alignment:
+
 Source alignment and coordinate frames
 ======================================
 
@@ -37,7 +39,8 @@ src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
 # Understanding coordinate frames
 # -------------------------------
 # For M/EEG source imaging, there are three **coordinate frames** that we must
-# bring into alignment using two 3D `transformation matrices <trans_matrices>`_
+# bring into alignment using two 3D
+# `transformation matrices <trans_matrices_>`_
 # that define how to rotate and translate points in one coordinate frame
 # to their equivalent locations in another.
 #
@@ -179,18 +182,21 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 #
 # For more information, see step by step instructions
 # `in these slides
-# <http://www.slideshare.net/mne-python/mnepython-coregistration>`_.
+# <https://www.slideshare.net/mne-python/mnepython-coregistration>`_.
 # Uncomment the following line to align the data yourself.
 
 # mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
 
 ###############################################################################
+# .. _plot_source_alignment_without_mri:
+#
 # Alignment without MRI
 # ---------------------
 # The surface alignments above are possible if you have the surfaces available
 # from Freesurfer. :func:`mne.viz.plot_alignment` automatically searches for
 # the correct surfaces from the provided ``subjects_dir``. Another option is
-# to use a spherical conductor model. It is passed through ``bem`` parameter.
+# to use a :ref:`spherical conductor model <ch_forward_spherical_model>`. It is
+# passed through ``bem`` parameter.
 
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
 src = mne.setup_volume_source_space(sphere=sphere, pos=10.)
@@ -202,6 +208,6 @@ mne.viz.plot_alignment(
 # It is also possible to use :func:`mne.gui.coregistration`
 # to warp a subject (usually ``fsaverage``) to subject digitization data, see
 # `these slides
-# <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
+# <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
 #
 # .. _trans_matrices: https://en.wikipedia.org/wiki/Transformation_matrix

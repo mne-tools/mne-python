@@ -17,11 +17,10 @@ import numpy as np
 
 from ..transforms import _pol_to_cart, _cart_to_sph
 from ..bem import fit_sphere_to_headshape
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import _clean_names, warn, _check_ch_locs
-from ..externals.six.moves import map
+from ..utils import _clean_names, warn, _check_ch_locs, fill_doc, _check_option
 from .channels import _get_ch_info
 
 
@@ -77,8 +76,9 @@ class Layout(object):
                              '.lout or .lay.')
 
         for ii in range(x.shape[0]):
-            out_str += ('%03d %8.2f %8.2f %8.2f %8.2f %s\n' % (self.ids[ii],
-                        x[ii], y[ii], width[ii], height[ii], self.names[ii]))
+            out_str += ('%03d %8.2f %8.2f %8.2f %8.2f %s\n'
+                        % (self.ids[ii], x[ii], y[ii],
+                           width[ii], height[ii], self.names[ii]))
 
         f = open(fname, 'w')
         f.write(out_str)
@@ -89,20 +89,19 @@ class Layout(object):
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
+    @fill_doc
     def plot(self, picks=None, show=True):
         """Plot the sensor positions.
 
         Parameters
         ----------
-        picks : array-like
-            Indices of the channels to show. If None (default), all the
-            channels are shown.
+        %(picks_nostr)s
         show : bool
             Show figure if True. Defaults to True.
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of matplotlib.figure.Figure
             Figure containing the sensor topography.
 
         Notes
@@ -228,7 +227,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
         this will be the maximum width possible without axes overlapping.
     height : float | None
         Height of sensor axes as a fraction of main figure height. By default,
-        this will be the maximum height possible withough axes overlapping.
+        this will be the maximum height possible without axes overlapping.
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any.
         If 'bads', exclude channels in info['bads'] (default).
@@ -289,6 +288,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     return layout
 
 
+@fill_doc
 def make_grid_layout(info, picks=None, n_col=None):
     """Generate .lout file for custom data, i.e., ICA sources.
 
@@ -297,9 +297,7 @@ def make_grid_layout(info, picks=None, n_col=None):
     info : instance of Info | None
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
-    picks : array-like of int | None
-        The indices of the channels to be included. If None, al misc channels
-        will be included.
+    %(picks_base)s all good misc channels.
     n_col : int | None
         Number of columns to generate. If None, a square grid will be produced.
 
@@ -312,8 +310,7 @@ def make_grid_layout(info, picks=None, n_col=None):
     --------
     make_eeg_layout, generate_2d_layout
     """
-    if picks is None:
-        picks = pick_types(info, misc=True, ref_meg=False, exclude='bads')
+    picks = _picks_to_idx(info, picks, 'misc')
 
     names = [info['chs'][k]['ch_name'] for k in picks]
 
@@ -385,10 +382,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
     layout : Layout instance | None
         None if layout not found.
     """
-    our_types = ' or '.join(['`None`', '`mag`', '`grad`', '`meg`'])
-    if ch_type not in (None, 'meg', 'mag', 'grad', 'eeg'):
-        raise ValueError('Invalid channel type (%s) requested '
-                         '`ch_type` must be %s' % (ch_type, our_types))
+    _check_option('ch_type', ch_type, [None, 'mag', 'grad', 'meg', 'eeg'])
 
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
@@ -598,8 +592,8 @@ def _find_topomap_coords(info, picks, layout=None):
     ----------
     info : instance of Info
         Measurement info.
-    picks : list of int
-        Channel indices to generate topomap coords for.
+    picks : str | list | slice | None
+        None will choose all channels.
     layout : None | instance of Layout
         Enforce using a specific layout. With None, a new map is generated
         and a layout is chosen based on the channels in the picks
@@ -610,8 +604,7 @@ def _find_topomap_coords(info, picks, layout=None):
     coords : array, shape = (n_chs, 2)
         2 dimensional coordinates for each sensor for a topomap plot.
     """
-    if len(picks) == 0:
-        raise ValueError("Need more than 0 channels.")
+    picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
 
     if layout is not None:
         chs = [info['chs'][i] for i in picks]
@@ -634,8 +627,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     ----------
     info : instance of Info
         The measurement info.
-    picks : list of int
-        The channel indices to generate topomap coords for.
+    picks : list | str | slice | None
+        None will pick all channels.
     ignore_overlap : bool
         Whether to ignore overlapping positions in the layout. If False and
         positions overlap, an error is thrown.
@@ -650,6 +643,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     """
     from scipy.spatial.distance import pdist, squareform
 
+    picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
     chs = [info['chs'][i] for i in picks]
 
     # Use channel locations if available
@@ -914,7 +908,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
 
     Parameters
     ----------
-    xy : ndarray (N x 2)
+    xy : ndarray, shape (N, 2)
         The xy coordinates of sensor locations.
     w : float
         The width of each sensor's axis (between 0 and 1)
@@ -929,7 +923,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     ch_indices : list
         Index of each channel - must be a collection of unique integers,
         one index per channel.
-    name : string
+    name : str
         The name of this layout type.
     bg_image : str | ndarray
         The image over which sensor axes will be plotted. Either a path to an
@@ -958,7 +952,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
-        ch_names = ['{0}'.format(i) for i in ch_indices]
+        ch_names = ['{}'.format(i) for i in ch_indices]
 
     if len(ch_names) != len(ch_indices):
         raise ValueError('# channel names and indices must be equal')

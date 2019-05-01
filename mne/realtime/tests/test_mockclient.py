@@ -13,10 +13,6 @@ from mne.utils import run_tests_if_main
 from mne.realtime import MockRtClient, RtEpochs
 from mne.datasets import testing
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
@@ -29,7 +25,7 @@ def _call_base_epochs_public_api(epochs, tmpdir):
     # make sure saving and loading returns the same data
     orig_data = epochs.get_data()
     export_file = tmpdir.join('test_rt-epo.fif')
-    epochs.save(str(export_file))
+    epochs.save(str(export_file), overwrite=True)
     loaded_epochs = read_epochs(str(export_file))
     loaded_data = loaded_epochs.get_data()
     assert orig_data.shape == loaded_data.shape

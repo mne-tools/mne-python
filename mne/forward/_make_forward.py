@@ -8,7 +8,7 @@
 from copy import deepcopy
 import contextlib
 import os
-from os import path as op
+import os.path as op
 
 import numpy as np
 
@@ -26,7 +26,6 @@ from ..source_space import (_ensure_src, _filter_source_spaces,
 from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
-from ..externals.six import string_types
 
 from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
 
@@ -42,9 +41,7 @@ def _read_coil_defs(verbose=None):
 
     Parameters
     ----------
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -192,7 +189,7 @@ def _create_eeg_el(ch, t=None):
 
 def _create_meg_coils(chs, acc, t=None, coilset=None, do_es=False):
     """Create a set of MEG coils in the head coordinate frame."""
-    acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
+    acc = _accuracy_dict[acc] if isinstance(acc, str) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
     coils = [_create_meg_coil(coilset, ch, acc, do_es) for ch in chs]
     _transform_orig_meg_coils(coils, t, do_es=do_es)
@@ -228,7 +225,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
     if allow_none and bem is None:
         return None
     logger.info('')
-    if isinstance(bem, string_types):
+    if isinstance(bem, str):
         logger.info('Setting up the BEM model using %s...\n' % bem_extra)
         bem = read_bem_solution(bem)
     else:
@@ -283,9 +280,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         If True, compute and store ex, ey, ez, and r0_exey.
     do_picking : bool
         If True, pick info and return it.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -367,7 +362,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
     out = (megcoils, compcoils, megnames)
     if do_picking:
-        out = out + (pick_info(info, picks) if nmeg > 0 else None,)
+        out = out + (pick_info(info, picks),)
     return out
 
 
@@ -382,9 +377,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     exclude : list of str | str
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -393,7 +386,6 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     eegnames : list of str
         Name of each prepped EEG electrode
     """
-    eegnames, eegels = [], []
     info_extra = 'info'
 
     # Find EEG electrodes
@@ -542,9 +534,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         with reference channels is not currently supported.
     n_jobs : int
         Number of jobs to run in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -575,9 +565,9 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         bem_extra = 'instance of ConductorModel'
     else:
         bem_extra = bem
-    if not isinstance(info, (Info, string_types)):
+    if not isinstance(info, (Info, str)):
         raise TypeError('info should be an instance of Info or string')
-    if isinstance(info, string_types):
+    if isinstance(info, str):
         info_extra = op.split(info)[1]
         info = read_info(info, verbose=False)
     else:
@@ -628,6 +618,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     return fwd
 
 
+@verbose
 def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
@@ -658,9 +649,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
         is a sphere model.
     n_jobs : int
         Number of jobs to run in parallel (used in making forward solution).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -786,7 +775,7 @@ def use_coil_def(fname):
 
     Returns
     -------
-    context : context manager
+    context : contextmanager
         The context for using the coil definition.
 
     Notes
@@ -801,5 +790,7 @@ def use_coil_def(fname):
     """
     global _extra_coil_def_fname
     _extra_coil_def_fname = fname
-    yield
-    _extra_coil_def_fname = None
+    try:
+        yield
+    finally:
+        _extra_coil_def_fname = None

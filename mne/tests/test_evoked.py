@@ -5,8 +5,9 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
 from copy import deepcopy
+import os.path as op
+import pickle
 
 import numpy as np
 from scipy import fftpack
@@ -21,7 +22,6 @@ from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, requires_pandas, requires_version,
                        run_tests_if_main)
-from mne.externals.six.moves import cPickle as pickle
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -97,9 +97,10 @@ def test_hash_evoked():
     """Test evoked hashing."""
     ave = read_evokeds(fname, 0)
     ave_2 = read_evokeds(fname, 0)
-    assert_equal(hash(ave), hash(ave_2))
+    assert hash(ave) == hash(ave_2)
+    assert ave == ave_2
     # do NOT use assert_equal here, failing output is terrible
-    assert (pickle.dumps(ave) == pickle.dumps(ave_2))
+    assert pickle.dumps(ave) == pickle.dumps(ave_2)
 
     ave_2.data[0, 0] -= 1
     assert hash(ave) != hash(ave_2)
@@ -278,6 +279,13 @@ def test_to_data_frame():
     assert ('time' in df.columns)
     assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
     assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)
+
+    df = ave.to_data_frame(long_format=True)
+    assert(len(df) == ave.data.size)
+    assert("time" in df.columns)
+    assert("channel" in df.columns)
+    assert("ch_type" in df.columns)
+    assert("observation" in df.columns)
 
 
 def test_evoked_proj():

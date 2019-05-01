@@ -126,7 +126,7 @@ for (l_freq, h_freq) in freq_bins:
                              tmin=tmin_plot, tmax=tmax_plot, baseline=None,
                              proj=True)
 
-    noise_cov = compute_covariance(epochs_band, method='shrunk')
+    noise_cov = compute_covariance(epochs_band, method='shrunk', rank=None)
     noise_covs.append(noise_cov)
     del raw_band  # to save memory
 

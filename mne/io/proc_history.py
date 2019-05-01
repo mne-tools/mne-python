@@ -15,8 +15,7 @@ from .write import (start_block, end_block, write_int, write_float,
                     write_float_sparse, write_id)
 from .tag import find_tag
 from .constants import FIFF
-from ..externals.six import text_type, string_types
-from ..utils import warn, logger
+from ..utils import warn
 
 _proc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
               'date', 'experimenter', 'creator']
@@ -28,8 +27,7 @@ _proc_ids = [FIFF.FIFF_PARENT_FILE_ID,
              FIFF.FIFF_CREATOR]
 _proc_writers = [write_id, write_id, write_id,
                  write_int, write_string, write_string]
-_proc_casters = [dict, dict, dict,
-                 np.array, text_type, text_type]
+_proc_casters = [dict, dict, dict, np.array, str, str]
 
 
 def _read_proc_history(fid, tree):
@@ -118,7 +116,7 @@ def _write_proc_history(fid, info):
                     writer(fid, id_, record[key])
             _write_maxfilter_record(fid, record['max_info'])
             if 'smartshield' in record:
-                for ss in record['smartshield']:
+                for _ in record['smartshield']:
                     start_block(fid, FIFF.FIFFB_SMARTSHIELD)
                     # XXX should eventually populate this
                     end_block(fid, FIFF.FIFFB_SMARTSHIELD)
@@ -158,7 +156,7 @@ _sss_ctc_ids = (FIFF.FIFF_BLOCK_ID,
                 FIFF.FIFF_CREATOR,
                 FIFF.FIFF_DECOUPLER_MATRIX)
 _sss_ctc_writers = (write_id, write_int, write_string, write_float_sparse)
-_sss_ctc_casters = (dict, np.array, text_type, csc_matrix)
+_sss_ctc_casters = (dict, np.array, str, csc_matrix)
 
 _sss_cal_keys = ('cal_chans', 'cal_corrs')
 _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
@@ -168,7 +166,7 @@ _sss_cal_casters = (np.array, np.array)
 
 def _read_ctc(fname):
     """Read cross-talk correction matrix."""
-    if not isinstance(fname, string_types) or not op.isfile(fname):
+    if not isinstance(fname, str) or not op.isfile(fname):
         raise ValueError('fname must be a file that exists, not %s' % fname)
     f, tree, _ = fiff_open(fname)
     with f as fid:
@@ -297,52 +295,3 @@ def _write_maxfilter_record(fid, record):
             if key in sss_cal:
                 writer(fid, id_, sss_cal[key])
         end_block(fid, FIFF.FIFFB_SSS_CAL)
-
-
-def _get_sss_rank(sss):
-    """Get SSS rank."""
-    inside = sss['sss_info']['in_order']
-    nfree = (inside + 1) ** 2 - 1
-    nfree -= (len(sss['sss_info']['components'][:nfree]) -
-              sss['sss_info']['components'][:nfree].sum())
-    return nfree
-
-
-def _get_rank_sss(inst):
-    """Look up rank from SSS data.
-
-    .. note::
-        Throws an error if SSS has not been applied.
-
-    Parameters
-    ----------
-    inst : instance of Raw, Epochs or Evoked, or Info
-        Any MNE object with an .info attribute
-
-    Returns
-    -------
-    rank : int
-        The numerical rank as predicted by the number of SSS
-        components.
-    """
-    from .meas_info import Info
-    info = inst if isinstance(inst, Info) else inst.info
-    del inst
-
-    max_infos = list()
-    for proc_info in info.get('proc_history', list()):
-        max_info = proc_info.get('max_info')
-        if max_info is not None:
-            if len(max_info) > 0:
-                max_infos.append(max_info)
-            elif len(max_info) > 1:
-                logger.info('found multiple SSS records. Using the first.')
-            elif len(max_info) == 0:
-                raise ValueError(
-                    'Did not find any SSS record. You should use data-based '
-                    'rank estimate instead')
-    if len(max_infos) > 0:
-        max_info = max_infos[0]
-    else:
-        raise ValueError('There is no `max_info` here. Sorry.')
-    return _get_sss_rank(max_info)

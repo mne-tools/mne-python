@@ -6,14 +6,14 @@ from functools import partial
 import numpy as np
 from scipy.fftpack import ifftshift, fftfreq
 
+from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .externals.six import string_types, integer_types
 from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn,
-                    _check_preload, _validate_type)
+                    _check_preload, _validate_type, _check_option)
 
 # These values from Ifeachor and Jervis.
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
@@ -44,8 +44,7 @@ def is_power2(num):
 
 
 def next_fast_len(target):
-    """
-    Find the next fast size of input data to `fft`, for zero-padding, etc.
+    """Find the next fast size of input data to `fft`, for zero-padding, etc.
 
     SciPy's FFTPACK has efficient functions for radix {2, 3, 4, 5}, so this
     returns the next composite of the prime factors 2, 3, and 5 which is
@@ -141,10 +140,8 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         uncompensated. If 'zero-double', the filter is applied in the
         forward and reverse directions. If 'minimum', a minimum-phase
         filter will be used.
-    picks : array-like of int | None
-        Indices of channels to filter. If None all channels will be
-        filtered. Only supported for 2D (n_channels, n_times) and 3D
-        (n_epochs, n_channels, n_times) data.
+    picks : list | None
+        See calling functions.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
         is installed properly.
@@ -156,7 +153,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
 
     Returns
     -------
-    xf : array, shape (n_signals, n_times)
+    x : array, shape (n_signals, n_times)
         x filtered.
     """
     n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
@@ -203,7 +200,7 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         n_jobs, h, n_fft)
 
     # Process each row separately
-    picks = np.arange(len(x)) if picks is None else picks
+    picks = _picks_to_idx(len(x), picks)
     if n_jobs == 1:
         for p in picks:
             x[p] = _1d_overlap_filter(x[p], len(h), n_edge, phase,
@@ -272,10 +269,9 @@ def _prep_for_filtering(x, copy, picks=None):
         x = x.copy()
     orig_shape = x.shape
     x = np.atleast_2d(x)
+    picks = _picks_to_idx(x.shape[-2], picks)
     x.shape = (np.prod(x.shape[:-1]), x.shape[-1])
-    if picks is None:
-        picks = np.arange(x.shape[0])
-    elif len(orig_shape) == 3:
+    if len(orig_shape) == 3:
         n_epochs, n_channels, n_times = orig_shape
         offset = np.repeat(np.arange(0, n_channels * n_epochs, n_channels),
                            len(picks))
@@ -283,10 +279,7 @@ def _prep_for_filtering(x, copy, picks=None):
     elif len(orig_shape) > 3:
         raise ValueError('picks argument is not supported for data with more'
                          ' than three dimensions')
-    picks = np.array(picks, int).ravel()
-    if not all(0 <= pick < x.shape[0] for pick in picks) or \
-            len(set(picks)) != len(picks):
-        raise ValueError('bad argument for "picks": %s' % (picks,))
+    assert all(0 <= pick < x.shape[0] for pick in picks)  # guaranteed by above
 
     return x, orig_shape, picks
 
@@ -340,7 +333,7 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
 
     Parameters
     ----------
-    Fs : float
+    sfreq : float
         Sampling rate in Hz.
     freq : 1d array
         Frequency sampling points in Hz.
@@ -641,7 +634,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         output = 'ba'
     else:
         output = iir_params.get('output', 'sos')
-        if not isinstance(output, string_types) or output not in ('ba', 'sos'):
+        if not isinstance(output, str) or output not in ('ba', 'sos'):
             raise ValueError('Output must be "ba" or "sos", got %s'
                              % (output,))
         # ensure we have a valid ftype
@@ -694,9 +687,7 @@ def _check_method(method, iir_params, extra_types=()):
     """Parse method arguments."""
     allowed_types = ['iir', 'fir', 'fft'] + list(extra_types)
     _validate_type(method, 'str', 'method')
-    if method not in allowed_types:
-        raise ValueError('method must be one of %s, not "%s"'
-                         % (allowed_types, method))
+    _check_option('method', method, allowed_types)
     if method == 'fft':
         method = 'fir'  # use the better name
     if method == 'iir':
@@ -745,11 +736,9 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : array-like of int | None
-        Indices of channels to filter. If None all channels will be
-        filtered. Currently this is only supported for
-        2D (n_channels, n_times) and 3D (n_epochs, n_channels, n_times)
-        arrays.
+    %(picks_nostr)s
+        Currently this is only supported for 2D (n_channels, n_times) and
+        3D (n_epochs, n_channels, n_times) arrays.
     filter_length : str | int
         Length of the FIR filter to use (if applicable):
 
@@ -823,10 +812,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         Only used for ``method='fir'``.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------
@@ -949,10 +935,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------
@@ -1220,9 +1203,8 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
-    picks : array-like of int | None
-        Indices of channels to filter. If None all channels will be
-        filtered. Only supported for 2D (n_channels, n_times) and 3D
+    %(picks_nostr)s
+        Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
@@ -1259,9 +1241,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         Only used for ``method='fir'``.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1349,8 +1329,10 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     # max taper size chosen because it has an max error < 1e-3:
     # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
     # 0.00099972447657578449
-    # so we use 1000 because it's the first "nice" number bigger than 953:
-    dpss_n_times_max = 1000
+    # so we use 1000 because it's the first "nice" number bigger than 953.
+    # but if we have a new enough scipy,
+    # it's only ~0.175 sec for 8 tapers even with 100000 samples
+    dpss_n_times_max = 100000 if check_version('scipy', '1.1') else 1000
 
     # figure out what tapers to use
     window_fun, eigvals, _ = _compute_mt_params(
@@ -1475,7 +1457,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
 
     Parameters
     ----------
-    x : n-d array
+    x : ndarray
         Signal to resample.
     up : float
         Factor to upsample by.
@@ -1498,13 +1480,11 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         values of the vector, followed by zeros.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    xf : array
+    y : array
         x resampled.
 
     Notes
@@ -1543,7 +1523,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         warn('x has zero length along last axis, returning a copy of x')
         return x.copy()
     bad_msg = 'npad must be "auto" or an integer'
-    if isinstance(npad, string_types):
+    if isinstance(npad, str):
         if npad != 'auto':
             raise ValueError(bad_msg)
         # Figure out reasonable pad that gets us to a power of 2
@@ -1673,7 +1653,7 @@ def detrend(x, order=1, axis=-1):
 
     Returns
     -------
-    xf : array
+    y : array
         x detrended.
 
     Examples
@@ -1706,15 +1686,15 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           filter_length, method, phase, fir_window,
                           fir_design, bands='scalar', reverse=False):
     """Validate and automate filter parameter selection."""
-    if not isinstance(phase, string_types) or phase not in \
+    if not isinstance(phase, str) or phase not in \
             ('linear', 'zero', 'zero-double', 'minimum', ''):
         raise ValueError('phase must be "linear", "zero", "zero-double", '
                          'or "minimum", got "%s"' % (phase,))
-    if not isinstance(fir_window, string_types) or fir_window not in \
+    if not isinstance(fir_window, str) or fir_window not in \
             ('hann', 'hamming', 'blackman', ''):
         raise ValueError('fir_window must be "hamming", "hann", or "blackman",'
                          'got "%s"' % (fir_window,))
-    if not isinstance(fir_design, string_types) or \
+    if not isinstance(fir_design, str) or \
             fir_design not in ('firwin', 'firwin2'):
         raise ValueError('fir_design must be "firwin" or "firwin2", got %s'
                          % (fir_design,))
@@ -1743,7 +1723,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
     else:  # method == 'fir'
         l_stop = h_stop = None
         if l_freq is not None:  # high-pass component
-            if isinstance(l_trans_bandwidth, string_types):
+            if isinstance(l_trans_bandwidth, str):
                 if l_trans_bandwidth != 'auto':
                     raise ValueError('l_trans_bandwidth must be "auto" if '
                                      'string, got "%s"' % l_trans_bandwidth)
@@ -1765,7 +1745,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                  'frequency or reduce the transition '
                                  'bandwidth (l_trans_bandwidth)' % l_stop)
         if h_freq is not None:  # low-pass component
-            if isinstance(h_trans_bandwidth, string_types):
+            if isinstance(h_trans_bandwidth, str):
                 if h_trans_bandwidth != 'auto':
                     raise ValueError('h_trans_bandwidth must be "auto" if '
                                      'string, got "%s"' % h_trans_bandwidth)
@@ -1785,7 +1765,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 raise ValueError('Effective band-stop frequency (%s) is too '
                                  'high (maximum based on Nyquist is %s)'
                                  % (h_stop, sfreq / 2.))
-        if isinstance(filter_length, string_types):
+        if isinstance(filter_length, str):
             filter_length = filter_length.lower()
             if filter_length == 'auto':
                 h_check = h_trans_bandwidth if h_freq is not None else np.inf
@@ -1821,7 +1801,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 filter_length += (filter_length - 1) % 2
             logger.info('Filter length of %s samples (%0.3f sec) selected'
                         % (filter_length, filter_length / sfreq))
-        elif not isinstance(filter_length, integer_types):
+        elif not isinstance(filter_length, int):
             raise ValueError('filter_length must be a str, int, or None, got '
                              '%s' % (type(filter_length),))
 
@@ -1838,7 +1818,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         len_x = x.shape[-1]
         if method != 'fir':
             filter_length = len_x
-        if filter_length > len_x:
+        if filter_length > len_x and not (l_freq is None and h_freq is None):
             warn('filter_length (%s) is longer than the signal (%s), '
                  'distortion is likely. Reduce filter length or filter a '
                  'longer signal.' % (filter_length, len_x))
@@ -1863,10 +1843,7 @@ class FilterMixin(object):
             done using polynomial fits instead of FIR/IIR filtering.
             This parameter is thus used to determine the length of the
             window over which a 5th-order polynomial smoothing is used.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -1881,7 +1858,7 @@ class FilterMixin(object):
         -----
         For Savitzky-Golay low-pass approximation, see:
 
-            https://gist.github.com/Eric89GXL/bbac101d50176611136b
+            https://gist.github.com/larsoner/bbac101d50176611136b
 
 
         .. versionadded:: 0.9.0
@@ -1954,9 +1931,7 @@ class FilterMixin(object):
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        picks : array-like of int | None
-            Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered.
+        %(picks_all_data)s
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -2020,10 +1995,7 @@ class FilterMixin(object):
             values of the vector, followed by zeros. The default is "edge",
             which pads with the edge values of each vector.
             Only used for ``method='fir'``.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -2056,7 +2028,7 @@ class FilterMixin(object):
         Parameters
         ----------
         sfreq : float
-            New sample rate to use
+            New sample rate to use.
         npad : int | str
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
@@ -2073,10 +2045,7 @@ class FilterMixin(object):
             which pads with the edge values of each vector.
 
             .. versionadded:: 0.15
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` :ref:`Logging documentation <tut_logging>` for
-            more). Defaults to self.verbose.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -2132,10 +2101,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
         Low transition bandwidthin Hz. Can be None (default) to use 3 samples.
     h_trans_bandwidth : float
         High transition bandwidth in Hz.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     Returns
     -------
@@ -2192,18 +2158,12 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
 
 
 def _filt_check_picks(info, picks, h_freq, l_freq):
-    from .io.pick import _pick_data_or_ica
-    data_picks = _pick_data_or_ica(info)
+    from .io.pick import _picks_to_idx
     update_info = False
-    if picks is None:
-        picks = data_picks
-        update_info = True
-        # let's be safe.
-        if len(picks) == 0:
-            raise RuntimeError('Could not find any valid channels for '
-                               'your Raw object. Please contact the '
-                               'MNE-Python developers.')
-    elif h_freq is not None or l_freq is not None:
+    # This will pick *all* data channels
+    picks = _picks_to_idx(info, picks, 'data_or_ica', exclude=())
+    if h_freq is not None or l_freq is not None:
+        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=())
         if np.in1d(data_picks, picks).all():
             update_info = True
         else:
@@ -2281,7 +2241,6 @@ class _Interp2(object):
         assert len(set(self._count.values())) == 1
         self._n_samp = n_samp
         self.interp = self.interp
-        self._chunks = np.concatenate((np.arange(0, n_samp, 10000), [n_samp]))
 
     @property
     def interp(self):
@@ -2295,7 +2254,7 @@ class _Interp2(object):
                              % (known_types, interp))
         self._interp = interp
         if self.n_samp is not None:
-            if self._interp == 'zero':
+            if self._interp == 'zero' or np.isinf(self.n_samp):  # ZOH
                 self._interpolators = None
             else:
                 if self._interp == 'linear':
@@ -2306,24 +2265,16 @@ class _Interp2(object):
                     interp = np.hanning(self.n_samp * 2 + 1)[self.n_samp:-1]
                 self._interpolators = np.array([interp, 1 - interp])
 
-    def interpolate(self, key, data, out, picks=None, data_idx=None):
+    def interpolate(self, key, data, out, picks=None, interp_sl=None):
         """Interpolate."""
         picks = slice(None) if picks is None else picks
+        interp_sl = slice(None) if interp_sl is None else interp_sl
         # Process data in large chunks to save on memory
-        for start, stop in zip(self._chunks[:-1], self._chunks[1:]):
-            time_sl = slice(start, stop)
-            if data_idx is not None:
-                # This is useful e.g. when using circular access to the data.
-                # This prevents STC blowups in raw data simulation.
-                data_sl = data[:, data_idx[time_sl]]
-            else:
-                data_sl = data[:, time_sl]
-            this_data = np.dot(self._last[key], data_sl)
-            if self._interpolators is not None:
-                this_data *= self._interpolators[0][time_sl]
-            out[picks, time_sl] += this_data
-            if self._interpolators is not None:
-                this_data = np.dot(self._current[key], data_sl)
-                this_data *= self._interpolators[1][time_sl]
-                out[picks, time_sl] += this_data
-            del this_data
+        this_data = np.dot(self._last[key], data)
+        if self._interpolators is not None:
+            this_data *= self._interpolators[0][interp_sl]
+        out[picks, ] += this_data
+        if self._interpolators is not None:
+            this_data = np.dot(self._current[key], data)
+            this_data *= self._interpolators[1][interp_sl]
+            out[picks, :] += this_data

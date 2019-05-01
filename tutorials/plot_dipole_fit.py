@@ -8,7 +8,7 @@ This shows how to fit a dipole using mne-python.
 
 For a comparison of fits between MNE-C and mne-python, see:
 
-    https://gist.github.com/Eric89GXL/ca55f791200fe1dc3dd2
+    https://gist.github.com/larsoner/ca55f791200fe1dc3dd2
 
 """
 
@@ -59,11 +59,11 @@ mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
                           subject=subject, subjects_dir=subjects_dir)
 
 t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-fig = plot_anat(t1_fname, cut_coords=mri_pos[0], title='Dipole loc.')
+fig_T1 = plot_anat(t1_fname, cut_coords=mri_pos[0], title='Dipole loc.')
 
 template = load_mni152_template()
-fig = plot_anat(template, cut_coords=mni_pos[0],
-                title='Dipole loc. (MNI Space)')
+fig_template = plot_anat(template, cut_coords=mni_pos[0],
+                         title='Dipole loc. (MNI Space)')
 
 ###############################################################################
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF

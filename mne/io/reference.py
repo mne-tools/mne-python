@@ -313,9 +313,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         the average reference is directly applied to the data.
         If ``ref_channels`` is not ``'average'``, ``projection`` must be set to
         ``False`` (the default in this case).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -398,7 +396,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
 @verbose
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
-                          copy=True, verbose=None):
+                          drop_refs=True, copy=True, verbose=None):
     """Re-reference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
@@ -430,12 +428,12 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         This parameter can be used to supply a dictionary (or a dictionary for
         each bipolar channel) containing channel information to merge in,
         overwriting the default values. Defaults to None.
+    drop_refs : bool
+        Whether to drop the anode/cathode channels from the instance.
     copy : bool
         Whether to operate on a copy of the data (True) or modify it in-place
         (False). Defaults to True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -485,7 +483,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
                              'channel using the ch_name parameter.' % ch)
 
     if ch_info is None:
-        ch_info = [{} for an in anode]
+        ch_info = [{} for _ in anode]
     elif not isinstance(ch_info, list):
         ch_info = [ch_info]
     if len(ch_info) != len(anode):
@@ -508,11 +506,10 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     if copy:
         inst = inst.copy()
 
-    rem_ca = list(cathode)
     for i, (an, ca, name, chs) in enumerate(
             zip(anode, cathode, ch_name, new_chs)):
-        if an in anode[i + 1:]:
-            # Make a copy of anode if it's still needed later
+        if an in anode[i + 1:] or an in cathode[i + 1:] or not drop_refs:
+            # Make a copy of the channel if it's still needed later
             # otherwise it's modified inplace
             _copy_channel(inst, an, 'TMP')
             an = 'TMP'
@@ -522,11 +519,10 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         inst.info['chs'][an_idx]['ch_name'] = name
         logger.info('Bipolar channel added as "%s".' % name)
         inst.info._update_redundant()
-        if an in rem_ca:
-            idx = rem_ca.index(an)
-            del rem_ca[idx]
 
-    # Drop remaining cathode channels
-    inst.drop_channels(rem_ca)
+    # Drop remaining channels.
+    if drop_refs:
+        drop_channels = list((set(anode) | set(cathode)) & set(inst.ch_names))
+        inst.drop_channels(drop_channels)
 
     return inst

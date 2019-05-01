@@ -19,16 +19,6 @@ from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.transforms import invert_transform
 from mne.utils import _TempDir, run_tests_if_main, requires_mayavi, traits_test
-from mne.externals.six import string_types
-
-# backend needs to be set early
-try:
-    from traits.etsconfig.api import ETSConfig
-except ImportError:
-    pass
-else:
-    ETSConfig.toolkit = 'qt4'
-
 
 data_path = testing.data_path(download=False)
 raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -137,8 +127,8 @@ def test_coreg_model():
     assert_array_almost_equal(model.rot_z, rot_z)
 
     # info
-    assert (isinstance(model.fid_eval_str, string_types))
-    assert (isinstance(model.points_eval_str, string_types))
+    assert (isinstance(model.fid_eval_str, str))
+    assert (isinstance(model.points_eval_str, str))
 
     # scaling job
     assert not model.can_prepare_bem_model
@@ -309,7 +299,7 @@ def test_coreg_model_with_fsaverage():
     assert_equal(sfrom, 'fsaverage')
     assert_equal(sto, 'scaled')
     assert_allclose(scale, model.parameters[6:9])
-    assert_equal(set(bemsol), set(('inner_skull-bem',)))
+    assert_equal(set(bemsol), {'inner_skull-bem'})
     model.prepare_bem_model = False
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('scaled', False)

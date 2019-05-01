@@ -2,12 +2,11 @@
 
 from .forward import (Forward, read_forward_solution, write_forward_solution,
                       is_fixed_orient, _read_forward_meas_info,
-                      write_forward_meas_info,
+                      _select_orient_forward,
                       compute_orient_prior, compute_depth_prior,
                       apply_forward, apply_forward_raw,
                       restrict_forward_to_stc, restrict_forward_to_label,
-                      average_forward_solutions,
-                      _restrict_gain_matrix, _stc_src_sel,
+                      average_forward_solutions, _stc_src_sel,
                       _fill_measurement_info, _apply_forward,
                       _subject_from_forward, convert_forward_solution,
                       _merge_meg_eeg_fwds, _do_forward_solution)

@@ -13,9 +13,9 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..externals.six import string_types
-from ..utils import _check_type_picks, check_version
-from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
+from ..utils import check_version, fill_doc, _check_option
+from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
+                       _picks_to_idx)
 from ..cov import _check_scalings_user
 
 
@@ -81,7 +81,7 @@ class Scaler(TransformerMixin, BaseEstimator):
     info : instance of Info | None
         The measurement info. Only necessary if ``scalings`` is a dict or
         None.
-    scalings : dict, string, defaults to None.
+    scalings : dict, string, default None.
         Scaling method to be applied to data channel wise.
 
         * if scalings is None (default), scales mag by 1e15, grad by 1e13,
@@ -95,10 +95,10 @@ class Scaler(TransformerMixin, BaseEstimator):
           :class:`sklearn.preprocessing.StandardScaler`
           is used.
 
-    with_mean : boolean, True by default
+    with_mean : boolean, default True
         If True, center the data using mean (or median) before scaling.
         Ignored for channel-type scaling.
-    with_std : boolean, True by default
+    with_std : boolean, default True
         If True, scale the data to unit variance (``scalings='mean'``),
         quantile range (``scalings='median``), or using channel type
         if ``scalings`` is a dict or None).
@@ -114,10 +114,8 @@ class Scaler(TransformerMixin, BaseEstimator):
         if not (scalings is None or isinstance(scalings, (dict, str))):
             raise ValueError('scalings type should be dict, str, or None, '
                              'got %s' % type(scalings))
-        if isinstance(scalings, string_types) and \
-                scalings not in ('mean', 'median'):
-            raise ValueError('Invalid method for scaling, must be "mean" or '
-                             '"median" but got %s' % scalings)
+        if isinstance(scalings, str):
+            _check_option('scalings', scalings, ['mean', 'median'])
         if scalings is None or isinstance(scalings, dict):
             if info is None:
                 raise ValueError('Need to specify "info" if scalings is'
@@ -252,7 +250,7 @@ class Vectorizer(TransformerMixin):
 
         Returns
         -------
-        self : Instance of Vectorizer
+        self : instance of Vectorizer
             Return the modified instance.
         """
         X = np.asarray(X)
@@ -322,6 +320,7 @@ class Vectorizer(TransformerMixin):
         return X.reshape((len(X),) + self.features_shape_)
 
 
+@fill_doc
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method.
 
@@ -339,7 +338,7 @@ class PSDEstimator(TransformerMixin):
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
@@ -347,9 +346,7 @@ class PSDEstimator(TransformerMixin):
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -400,7 +397,7 @@ class PSDEstimator(TransformerMixin):
 
         Returns
         -------
-        psd : array, shape (n_signals, len(freqs)) or (len(freqs),)
+        psd : array, shape (n_signals, n_freqs) or (n_freqs,)
             The computed PSD.
         """
         if not isinstance(epochs_data, np.ndarray):
@@ -414,6 +411,7 @@ class PSDEstimator(TransformerMixin):
         return psd
 
 
+@fill_doc
 class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs.
 
@@ -440,9 +438,7 @@ class FilterEstimator(TransformerMixin):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : array-like of int | None
-        Indices of channels to filter. If None only the data (MEG/EEG)
-        channels will be filtered.
+    %(picks_good_data)s
     filter_length : str (Default: '10s') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
         the filter length used is len(x). Otherwise, if int, overlap-add
@@ -472,14 +468,18 @@ class FilterEstimator(TransformerMixin):
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     See Also
     --------
     TemporalFilter
+
+    Notes
+    -----
+    This is primarily meant for use in conjunction with
+    :class:`mne.realtime.RtEpochs`. In general it is not recommended in a
+    normal processing pipeline as it may result in edge artifacts. Use with
+    caution.
     """
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
@@ -489,7 +489,7 @@ class FilterEstimator(TransformerMixin):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
-        self.picks = _check_type_picks(picks)
+        self.picks = _picks_to_idx(info, picks)
         self.filter_length = filter_length
         self.l_trans_bandwidth = l_trans_bandwidth
         self.h_trans_bandwidth = h_trans_bandwidth
@@ -576,9 +576,9 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    estimator : scikit-learn estimator
+    estimator : instance of sklearn.base.BaseEstimator
         Estimator using some decomposition algorithm.
-    average : bool, defaults to False
+    average : bool, default False
         If True, the estimator is fitted on the average across samples
         (e.g. epochs).
     """
@@ -609,7 +609,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self : Instance of UnsupervisedSpatialFilter
+        self : instance of UnsupervisedSpatialFilter
             Return the modified instance.
         """
         if self.average:
@@ -694,6 +694,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         return X
 
 
+@fill_doc
 class TemporalFilter(TransformerMixin):
     """Estimator to filter data array along the last dimension.
 
@@ -717,9 +718,9 @@ class TemporalFilter(TransformerMixin):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    sfreq : float, defaults to 1.0
+    sfreq : float, default 1.0
         Sampling frequency in Hz.
-    filter_length : str | int, defaults to 'auto'
+    filter_length : str | int, default 'auto'
         Length of the FIR filter to use (if applicable):
 
             * int: specified length in samples.
@@ -748,17 +749,17 @@ class TemporalFilter(TransformerMixin):
             min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
 
         Only used for ``method='fir'``.
-    n_jobs : int | str, defaults to 1
+    n_jobs : int | str, default 1
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
-    method : str, defaults to 'fir'
+    method : str, default 'fir'
         'fir' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict | None, defaults to None
+    iir_params : dict | None, default None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    fir_window : str, defaults to 'hamming'
+    fir_window : str, default 'hamming'
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
     fir_design : str
@@ -768,10 +769,7 @@ class TemporalFilter(TransformerMixin):
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-    verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
 
     See Also
     --------
@@ -807,7 +805,7 @@ class TemporalFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times) or or shape (n_channels, n_times) # noqa
+        X : array, shape (n_epochs, n_channels, n_times) or or shape (n_channels, n_times)
             The data to be filtered over the last dimension. The channels
             dimension can be zero when passing a 2D array.
         y : None
@@ -815,9 +813,9 @@ class TemporalFilter(TransformerMixin):
 
         Returns
         -------
-        self : instance of Filterer
+        self : instance of TemporalFilter
             Returns the modified instance.
-        """
+        """  # noqa: E501
         return self
 
     def transform(self, X):
@@ -825,15 +823,15 @@ class TemporalFilter(TransformerMixin):
 
         Parameters
         ----------
-        X : array, shape (n_epochs, n_channels, n_times) or shape (n_channels, n_times) # noqa
+        X : array, shape (n_epochs, n_channels, n_times) or shape (n_channels, n_times)
             The data to be filtered over the last dimension. The channels
             dimension can be zero when passing a 2D array.
 
         Returns
         -------
-        X : array, shape is same as used in input.
+        X : array
             The data after filtering.
-        """
+        """  # noqa: E501
         X = np.atleast_2d(X)
 
         if X.ndim > 3:

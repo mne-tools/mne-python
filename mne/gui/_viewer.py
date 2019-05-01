@@ -23,7 +23,8 @@ from ..defaults import DEFAULTS
 from ..surface import _project_onto_surface, _normalize_vectors
 from ..source_space import _points_outside_surface
 from ..utils import SilenceStdout
-from ..viz._3d import _create_mesh_surf, _toggle_mlab_render
+from ..viz.backends._pysurfer_mayavi import (_create_mesh_surf,
+                                             _toggle_mlab_render)
 
 
 headview_borders = VGroup(Item('headview', style='custom', show_label=False),
@@ -51,9 +52,6 @@ laggy_float_editor_weight = TextEditor(auto_set=False, enter_set=True,
                                        evaluate=float,
                                        format_func=lambda x: '%0.2f' % x)
 
-laggy_float_editor_scale = TextEditor(auto_set=False, enter_set=True,
-                                      evaluate=float,
-                                      format_func=lambda x: '%0.1f' % x)
 laggy_float_editor_deg = TextEditor(auto_set=False, enter_set=True,
                                     evaluate=float,
                                     format_func=lambda x: '%0.1f' % x)

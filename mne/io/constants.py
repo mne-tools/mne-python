@@ -3,24 +3,9 @@
 #
 # License: BSD (3-clause)
 
+from ..utils._bunch import BunchConstNamed
 
-class Bunch(dict):
-    """Dictionnary-like object thatexposes its keys as attributes."""
-
-    def __init__(self, **kwargs):  # noqa: D102
-        dict.__init__(self, kwargs)
-        self.__dict__ = self
-
-
-class BunchConst(Bunch):
-    """Class to prevent us from re-defining constants (DRY)."""
-
-    def __setattr__(self, attr, val):  # noqa: D105
-        if attr != '__dict__' and hasattr(self, attr):
-            raise AttributeError('Attribute "%s" already set' % attr)
-        super(BunchConst, self).__setattr__(attr, val)
-
-FIFF = BunchConst()
+FIFF = BunchConstNamed()
 
 #
 # FIFF version number in use
@@ -322,7 +307,7 @@ FIFF.FIFFV_MNE_SURF_LEFT_HEMI     = 101
 FIFF.FIFFV_MNE_SURF_RIGHT_HEMI    = 102
 FIFF.FIFFV_MNE_SURF_MEG_HELMET    = 201               # Use this irrespective of the system
 #
-#   These relate to the Isotrak data
+#   These relate to the Isotrak data (enum(point))
 #
 FIFF.FIFFV_POINT_CARDINAL = 1
 FIFF.FIFFV_POINT_HPI      = 2
@@ -330,10 +315,13 @@ FIFF.FIFFV_POINT_EEG      = 3
 FIFF.FIFFV_POINT_ECG      = FIFF.FIFFV_POINT_EEG
 FIFF.FIFFV_POINT_EXTRA    = 4
 FIFF.FIFFV_POINT_HEAD     = 5  # Point on the surface of the head
-
+#
+# Cardinal point types (enum(cardinal_point))
+#
 FIFF.FIFFV_POINT_LPA = 1
 FIFF.FIFFV_POINT_NASION = 2
 FIFF.FIFFV_POINT_RPA = 3
+FIFF.FIFFV_POINT_INION = 4
 #
 #   SSP
 #
@@ -673,7 +661,7 @@ FIFF.FIFFV_MNE_COORD_KIT_HEAD    = FIFF.FIFFV_MNE_COORD_CTF_HEAD
 #   FWD Types
 #
 
-FWD = BunchConst()
+FWD = BunchConstNamed()
 
 FWD.COIL_UNKNOWN                 = 0
 FWD.COILC_UNKNOWN                = 0
@@ -884,6 +872,7 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 # MNE epochs bookkeeping
 FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
 FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
+FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT   = 3802  # rejection and flat params
 
 # MNE annotations
 FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block

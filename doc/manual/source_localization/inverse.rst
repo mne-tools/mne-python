@@ -4,25 +4,16 @@
 The minimum-norm current estimates
 ==================================
 
+This page describes the mathematical concepts and the
+computation of the minimum-norm estimates needed
+in order to obtain the linear inverse operator using
+:func:`mne.minimum_norm.make_inverse_operator`.
+Its usage is presented in the tutorial
+:ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
+
 .. contents:: Contents
    :local:
    :depth: 2
-
-Overview
-########
-
-This page describes the mathematical concepts and the
-computation of the minimum-norm estimates.
-Using the UNIX commands this is accomplished with two programs:
-:ref:`mne_inverse_operator` and :ref:`mne_make_movie` or in Python
-using :func:`mne.minimum_norm.make_inverse_operator`
-and the ``apply`` functions. The use of these functions is
-presented in the tutorial
-:ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
-
-The page starts with a mathematical description of the method.
-The interactive program for inspecting data and inverse solutions,
-:ref:`mne_analyze`, is covered in :ref:`ch_interactive_analysis`.
 
 .. _CBBDJFBJ:
 
@@ -68,6 +59,8 @@ vector by :math:`M`.
 The expected value of the current amplitudes at time *t* is
 then given by :math:`\hat{j}(t) = Mx(t)`, where :math:`x(t)` is
 a vector containing the measured MEG and EEG data values at time *t*.
+
+.. note:: For computational convenience, in MNE-Python the linear inverse operator is not computed explicitly. See :ref:`mne_solution` for mathematical details, and :ref:`CIHCFJEI` for a detailed example.
 
 .. _mne_regularization:
 
@@ -179,15 +172,10 @@ the average variances across the channel groups, and :math:`I^{(k)}` are
 diagonal matrices containing ones at the positions corresponding
 to the channels contained in each channel group.
 
-Using the UNIX tools :ref:`mne_inverse_operator`, the values
-:math:`\varepsilon_k` can be adjusted with the regularization options
-``--magreg`` , ``--gradreg`` , and ``--eegreg`` specified at the time of the
-inverse operator decomposition, see :ref:`inverse_operator`. The convenience script
-:ref:`mne_do_inverse_operator` has the ``--magreg`` and ``--gradreg`` combined to
-a single option, ``--megreg`` , see :ref:`CIHCFJEI`.
-Suggested range of values for :math:`\varepsilon_k` is :math:`0.05 \dotso 0.2`.
+See :ref:`plot_compute_covariance_howto` for details.
 
 .. _mne_solution:
+.. _inverse_operator:
 
 Computation of the solution
 ===========================
@@ -229,6 +217,8 @@ we must have :math:`R \propto 1/L`. With this approach, :math:`\lambda_k` is
 independent of  :math:`L` and, for fixed :math:`\lambda`,
 we see directly that :math:`j(t)` is independent
 of :math:`L`.
+
+.. note:: This is computed using :func:`mne.minimum_norm.make_inverse_operator` and its usage is illustrated in :ref:`CIHCFJEI`.
 
 .. _noise_normalization:
 
@@ -299,16 +289,18 @@ thus expressed as the weighted sum of the 'recolored eigenfields' in :math:`C^{^
 Cortical patch statistics
 =========================
 
-If the ``--cps`` option was used in source space
-creation (see :ref:`setting_up_source_space`) or if mne_add_patch_info described
-in :ref:`mne_add_patch_info` was run manually the source space file
-will contain for each vertex of the cortical surface the information
+``use_cps`` parameter in
+:func:`mne.convert_forward_solution`, and
+:func:`mne.minimum_norm.make_inverse_operator`
+controls whether to use cortical patch statistics (CPS) to define normal orientations
+or not (see :ref:`CHDBBCEJ`).
+The CPS contain for each vertex of the cortical surface the information
 about the source space point closest to it as well as the distance
 from the vertex to this source space point. The vertices for which
 a given source space point is the nearest one define the cortical
 patch associated with with the source space point. Once these data
-are available, it is straightforward to compute the following cortical
-patch statistics (CPS) for each source location :math:`d`:
+are available, it is straightforward to compute the following
+for each source location :math:`d`:
 
 - The average over the normals of at the
   vertices in a patch, :math:`\bar{n_d}`,
@@ -318,6 +310,8 @@ patch statistics (CPS) for each source location :math:`d`:
 
 - The average deviation of the vertex normals in a patch from
   their average, :math:`\sigma_d`, given in degrees.
+
+.. _inverse_orientation_constrains:
 
 The orientation constraints
 ===========================
@@ -332,30 +326,42 @@ the MNE software implements three orientation constraints based
 of the surface normal data:
 
 - Source orientation can be rigidly fixed
-  to the surface normal direction (the ``--fixed`` option).
+  by specifying ``fixed=True`` when calling
+  :func:`mne.minimum_norm.make_inverse_operator`.
+  In such case, the dipole orientations are
+  fixed to be orthogonal to the surface of the cortex, pointing outwards.
   If cortical patch statistics are available the average normal over
   each patch, :math:`\bar{n_d}`, are used to define
   the source orientation. Otherwise, the vertex normal at the source
   space location is employed.
+  See :ref:`plot_dipole_orientations_fixed_orientations`
 
 - A *location independent or fixed loose orientation
-  constraint* (fLOC) can be employed (the ``--loose`` option).
+  constraint* (fLOC) can be employed
+  by specifying ``fixed=False`` and ``loose=1.0`` when calling
+  :func:`mne.minimum_norm.make_inverse_operator`.
   In this approach, a source coordinate system based on the local
   surface orientation at the source location is employed. By default,
   the three columns of the gain matrix G, associated with a given
   source location, are the fields of unit dipoles pointing to the
   directions of the x, y, and z axis of the coordinate system employed
-  in the forward calculation (usually the MEG head coordinate frame).
+  in the forward calculation 
+  (usually the :ref:`MEG head coordinate frame <BJEBIBAI>`).
   For LOC the orientation is changed so that the first two source
   components lie in the plane normal to the surface normal at the source
   location and the third component is aligned with it. Thereafter, the
   variance of the source components tangential to the cortical surface are
-  reduced by a factor defined by the ``--loose`` option.
+  reduced by a factor defined by the ``loose`` parameter.
+  See :ref:`plot_dipole_orientations_fLOC_orientations`
 
 - A *variable loose orientation constraint* (vLOC)
-  can be employed (the ``--loosevar`` option). This is similar
-  to fLOC except that the value given with the ``--loosevar`` option
+  can be employed
+  by specifying ``fixed=False`` and ``loose`` parameters when calling
+  :func:`mne.minimum_norm.make_inverse_operator`.
+  This is similar
+  to fLOC except that the value given with the ``loose`` parameter
   will be multiplied by :math:`\sigma_d`, defined above.
+  See :ref:`plot_dipole_orientations_vLOC_orientations`
 
 .. _depth_weighting:
 
@@ -373,26 +379,11 @@ scaled by a factor
 
 where :math:`g_{1p}`, :math:`g_{2p}`, and :math:`g_{3p}` are the three columns
 of :math:`G` corresponding to source location :math:`p` and :math:`\gamma` is
-the order of the depth weighting, specified with the ``--weightexp`` option
-to mne_inverse_operator . The
-maximal amount of depth weighting can be adjusted ``--weightlimit`` option.
+the order of the depth weighting. 
+The maximal amount of depth weighting can be adjusted with ``depth`` parameter in
+:func:`mne.minimum_norm.make_inverse_operator`. 
 
-.. _mne_fmri_estimates:
-
-fMRI-guided estimates
-=====================
-
-The fMRI weighting in MNE software means that the source-covariance matrix
-is modified to favor areas of significant fMRI activation. For this purpose,
-the fMRI activation map is thresholded first at the value defined by
-the ``--fmrithresh`` option to mne_do_inverse_operator or mne_inverse_operator .
-Thereafter, the source-covariance matrix values corresponding to
-the the sites under the threshold are multiplied by :math:`f_{off}`, set
-by the ``--fmrioff`` option.
-
-It turns out that the fMRI weighting has a strong influence
-on the MNE but the noise-normalized estimates are much less affected
-by it.
+.. XXX: is there any example/tutorial showing the influence of this parameter?
 
 .. _CBBDGIAE:
 
@@ -447,89 +438,3 @@ Generalizing, for any combination of sums and differences, where :math:`w_i = 1`
 we have
 
 .. math::    1 / L_{eff} = \sum_{i = 1}^n {1/{L_i}}
-
-.. _inverse_operator:
-
-Inverse-operator decomposition
-##############################
-
-The program :ref:`mne_inverse_operator` calculates
-the decomposition :math:`A = \tilde{G} R^C = U \Lambda \bar{V^T}`,
-described in :ref:`mne_solution`. It is normally invoked from the convenience
-script :ref:`mne_do_inverse_operator`.
-
-
-.. _movies_and_snapshots:
-
-Producing movies and snapshots
-##############################
-
-:ref:`mne_make_movie` is a program
-for producing movies and snapshot graphics frames without any graphics
-output to the screen. In addition, :ref:`mne_make_movie` can
-produce stc or w files which contain the numerical current estimate
-data in a simple binary format for postprocessing. These files can
-be displayed in :ref:`mne_analyze`,
-see :ref:`ch_interactive_analysis`, utilized in the cross-subject averaging
-process, see :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`,
-and read into Matlab using the MNE Matlab toolbox, see :ref:`ch_matlab`.
-
-
-.. _computing_inverse:
-
-Computing inverse from raw and evoked data
-##########################################
-
-The purpose of the utility :ref:`mne_compute_raw_inverse` is
-to compute inverse solutions from either evoked-response or raw
-data at specified ROIs (labels) and to save the results in a fif
-file which can be viewed with :ref:`mne_browse_raw`,
-read to Matlab directly using the MNE Matlab Toolbox, see :ref:`ch_matlab`,
-or converted to Matlab format using either :ref:`mne_convert_mne_data`,
-:ref:`mne_raw2mat`, or :ref:`mne_epochs2mat`. See
-:ref:`mne_compute_raw_inverse` for command-line options.
-
-.. _implementation_details:
-
-Implementation details
-======================
-
-The fif files output from mne_compute_raw_inverse have
-various fields of the channel information set to facilitate interpretation
-by postprocessing software as follows:
-
-**channel name**
-
-    Will be set to J[xyz] <*number*> ,
-    where the source component is indicated by the coordinat axis name
-    and number is the vertex number, starting from zero, in the complete
-    triangulation of the hemisphere in question.
-
-**logical channel number**
-
-    Will be set to is the vertex number, starting from zero, in the
-    complete triangulation of the hemisphere in question.
-
-**sensor location**
-
-    The location of the vertex in head coordinates or in MRI coordinates,
-    determined by the ``--mricoord`` flag.
-
-**sensor orientation**
-
-    The *x*-direction unit vector will point to the
-    direction of the current. Other unit vectors are set to zero. Again,
-    the coordinate system in which the orientation is expressed depends
-    on the ``--mricoord`` flag.
-
-The ``--align_z`` flag tries to align the signs
-of the signals at different vertices of the label. For this purpose,
-the surface normals within the label are collected into a :math:`n_{vert} \times 3` matrix.
-The preferred orientation will be taken as the first right singular
-vector of this matrix, corresponding to its largest singular value.
-If the dot product of the surface normal of a vertex is negative,
-the sign of the estimates at this vertex are inverted. The inversion
-is reflected in the current direction vector listed in the channel
-information, see above.
-
-.. note:: The raw data files output by :ref:`mne_compute_raw_inverse` can be converted to mat files with :ref:`mne_raw2mat`. Alternatively, the files can be read directly from Matlab using the routines in the MNE Matlab toolbox, see :ref:`ch_matlab`. The evoked data output can be easily read directly from Matlab using the fiff_load_evoked routine in the MNE Matlab toolbox. Both raw data and evoked output files can be loaded into :ref:`mne_browse_raw`, see :ref:`ch_browse`.

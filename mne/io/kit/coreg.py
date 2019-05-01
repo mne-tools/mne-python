@@ -5,12 +5,14 @@
 # License: BSD (3-clause)
 
 from os import SEEK_CUR, path as op
+import pickle
 import re
 from struct import unpack
+
 import numpy as np
+
 from .constants import KIT
 from ..meas_info import _read_dig_points
-from ...externals.six.moves import cPickle as pickle
 
 
 def read_mrk(fname):
@@ -24,7 +26,7 @@ def read_mrk(fname):
 
     Returns
     -------
-    mrk_points : numpy.array, shape = (n_points, 3)
+    mrk_points : ndarray, shape (n_points, 3)
         Marker points in MEG space [m].
     """
     ext = op.splitext(fname)[-1]

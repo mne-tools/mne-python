@@ -38,9 +38,16 @@ Documentation
     });
     </script>
 
-This is where you can learn about all the things you can do with MNE. It contains **background information** and **tutorials** for taking a deep-dive into the techniques that MNE-python covers. You'll find practical information on how to use these methods with your data, and in many cases some high-level concepts underlying these methods.
+This is where you can learn about all the things you can do with MNE. It
+contains **background information** and **tutorials** for taking a deep-dive
+into the techniques that MNE-python covers. You'll find practical information
+on how to use these methods with your data, and in many cases some high-level
+concepts underlying these methods.
 
-There are also **examples**, which contain a short use-case to highlight MNE-functionality and provide inspiration for the many things you can do with this package. You can also find a gallery of these examples in the `examples gallery <auto_examples/index.html>`_.
+There are also **examples**, which contain a short use-case to highlight
+MNE-functionality and provide inspiration for the many things you can do with
+this package. You can also find a gallery of these examples in the
+:ref:`examples gallery <sphx_glr_auto_examples>`.
 
 **See the links below for an introduction to MNE-python, or click one of the sections on this page to see more.**
 
@@ -62,9 +69,9 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    getting_started.rst
-    advanced_setup.rst
-    auto_tutorials/plot_python_intro.rst
+    getting_started
+    advanced_setup
+    auto_tutorials/plot_python_intro
 
 **MNE basics**
 
@@ -115,6 +122,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_object_evoked.rst
     auto_tutorials/plot_object_source_estimate.rst
     auto_tutorials/plot_info.rst
+    auto_tutorials/plot_object_annotations.rst
 
 
 .. raw:: html
@@ -176,6 +184,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_brainstorm_phantom_ctf.rst
     auto_tutorials/plot_brainstorm_phantom_elekta.rst
     auto_tutorials/plot_phantom_4DBTi.rst
+    auto_tutorials/plot_sleep.rst
     auto_examples/datasets/plot_brainstorm_data.rst
     auto_examples/datasets/plot_opm_data.rst
     auto_examples/datasets/plot_megsim_data.rst
@@ -376,7 +385,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_background_freesurfer.rst
     manual/source_localization/forward.rst
     manual/source_localization/inverse.rst
-    auto_tutorials/plot_morph_stc.rst
+    manual/source_localization/morph_stc.rst
 
 **Getting data to source space**
 
@@ -386,13 +395,13 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_source_alignment.rst
     auto_tutorials/plot_forward.rst
     auto_tutorials/plot_compute_covariance.rst
+    auto_tutorials/plot_eeg_no_mri.rst
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_mne_solutions.rst
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_point_spread.rst
     auto_tutorials/plot_dipole_orientations.rst
     auto_tutorials/plot_dics.rst
-    auto_tutorials/plot_background_freesurfer.rst
 
 
 .. raw:: html
@@ -420,6 +429,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
+    auto_examples/datasets/plot_opm_rest_data.rst
     auto_examples/inverse/plot_compute_mne_inverse_epochs_in_label.rst
     auto_examples/inverse/plot_compute_mne_inverse_raw_in_label.rst
     auto_examples/inverse/plot_compute_mne_inverse_volume.rst
@@ -551,7 +561,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    manual/decoding.rst
     auto_tutorials/plot_sensors_decoding.rst
 
 .. raw:: html
@@ -564,7 +573,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 
     auto_examples/decoding/decoding_rsa.rst
     auto_examples/decoding/plot_decoding_csp_eeg.rst
-    auto_examples/decoding/plot_decoding_csp_space.rst
     auto_examples/decoding/plot_decoding_csp_timefreq.rst
     auto_examples/decoding/plot_decoding_spatio_temporal_source.rst
     auto_examples/decoding/plot_decoding_spoc_CMC.rst
@@ -624,6 +632,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/connectivity/plot_cwt_sensor_connectivity.rst
     auto_examples/connectivity/plot_mixed_source_space_connectivity.rst
     auto_examples/connectivity/plot_mne_inverse_coherence_epochs.rst
+    auto_examples/connectivity/plot_mne_inverse_envelope_correlation.rst
     auto_examples/connectivity/plot_mne_inverse_connectivity_spectrum.rst
     auto_examples/connectivity/plot_mne_inverse_label_connectivity.rst
     auto_examples/connectivity/plot_mne_inverse_psi_visual.rst
@@ -650,12 +659,13 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_examples/realtime/ftclient_rt_average.rst
-    auto_examples/realtime/ftclient_rt_compute_psd.rst
+    auto_examples/realtime/plot_ftclient_rt_average.rst
+    auto_examples/realtime/plot_ftclient_rt_compute_psd.rst
     auto_examples/realtime/plot_compute_rt_average.rst
     auto_examples/realtime/plot_compute_rt_decoder.rst
+    auto_examples/realtime/plot_lslclient_rt.rst
+    auto_examples/realtime/plot_rt_feedback_server.rst
     auto_examples/realtime/rt_feedback_client.rst
-    auto_examples/realtime/rt_feedback_server.rst
 
 .. raw:: html
 
@@ -681,6 +691,9 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     manual/c_reference.rst
     manual/gui/analyze.rst
     manual/gui/browse.rst
+    manual/source_localization/c_forward.rst
+    manual/source_localization/c_inverse.rst
+    manual/source_localization/c_morph.rst
     manual/appendix/bem_model.rst
     manual/appendix/c_misc.rst
     manual/appendix/c_release_notes.rst

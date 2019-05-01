@@ -13,10 +13,9 @@ from scipy.io import savemat
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
                            assert_array_less, assert_equal)
-from mne.tests.common import assert_dig_allclose
 from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
                                   get_builtin_montages)
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
@@ -457,17 +456,15 @@ def test_fif_dig_montage():
     _check_roundtrip(dig_montage, fname_temp)
 
     # Make a BrainVision file like the one the user would have had
-    with pytest.warns(RuntimeWarning, match='will be dropped'):
-        raw_bv = read_raw_brainvision(bv_fname, preload=True)
+    raw_bv = read_raw_brainvision(bv_fname, preload=True)
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
-    for ii, ch_name in enumerate(raw_bv.ch_names[:-1]):
+    for ii, ch_name in enumerate(raw_bv.ch_names):
         mapping[ch_name] = 'EEG%03d' % (ii + 1,)
     raw_bv.rename_channels(mapping)
-    for ii, ch_name in enumerate(raw_bv_2.ch_names[:-1]):
+    for ii, ch_name in enumerate(raw_bv_2.ch_names):
         mapping[ch_name] = 'EEG%03d' % (ii + 33,)
     raw_bv_2.rename_channels(mapping)
-    raw_bv.drop_channels(['STI 014'])
     raw_bv.add_channels([raw_bv_2])
 
     for ii in range(2):
@@ -480,8 +477,8 @@ def test_fif_dig_montage():
         # Check the result
         evoked = read_evokeds(evoked_fname)[0]
 
-        assert_equal(len(raw_bv.ch_names), len(evoked.ch_names))
-        for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs']):
+        assert_equal(len(raw_bv.ch_names), len(evoked.ch_names) - 1)
+        for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs'][:-1]):
             assert_equal(ch_py['ch_name'],
                          ch_c['ch_name'].replace('EEG ', 'EEG'))
             # C actually says it's unknown, but it's not (?):

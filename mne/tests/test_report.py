@@ -13,6 +13,7 @@ import shutil
 import numpy as np
 from numpy.testing import assert_equal
 import pytest
+from matplotlib import pyplot as plt
 
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
@@ -21,9 +22,6 @@ from mne.report import Report, open_report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
                        run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
-
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -45,7 +43,6 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 
 def _get_example_figures():
     """Create two example figures."""
-    from matplotlib import pyplot as plt
     fig1 = plt.plot([1, 2], [1, 2])[0].figure
     fig2 = plt.plot([3, 4], [3, 4])[0].figure
     return [fig1, fig2]
@@ -78,7 +75,7 @@ def test_render_report():
     raw.pick_channels(['MEG 0111', 'MEG 0121'])
     raw.del_proj()
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
-    epochs.save(epochs_fname)
+    epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
     epochs.average().crop(0.1, 0.2).save(evoked_fname)
@@ -145,6 +142,11 @@ def test_render_report():
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section('foo', 'caption', 'section')
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section(['foo'], 'caption', 'section')
+
 
 @testing.requires_testing_data
 def test_report_raw_psd_and_date():
@@ -179,7 +181,6 @@ def test_report_raw_psd_and_date():
 def test_render_add_sections():
     """Test adding figures/images to section."""
     tempdir = _TempDir()
-    import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -274,12 +275,12 @@ def test_add_htmls_to_section():
 def test_add_slider_to_section():
     """Test adding a slider with a series of images to mne report."""
     tempdir = _TempDir()
-    from matplotlib import pyplot as plt
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
     figs = _get_example_figures()
-    report.add_slider_to_section(figs, section=section)
+    report.add_slider_to_section(figs, section=section, title='my title')
+    assert report.fnames[0] == 'my title-#-report_slider_section-#-custom'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
     pytest.raises(NotImplementedError, report.add_slider_to_section,
@@ -329,7 +330,7 @@ def test_open_report():
     # Exiting the context block should have triggered saving to HDF5
     assert op.exists(hdf5)
 
-    # Load the HDF5 version of the report and check equivalency
+    # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
     assert report2._fname == hdf5
     assert report2.subjects_dir == report.subjects_dir
@@ -348,7 +349,8 @@ def test_remove():
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'figure1', 'mysection')
-    r.add_figs_to_section(fig1, 'figure1', 'othersection')
+    r.add_slider_to_section([fig1, fig2], title='figure1',
+                            section='othersection')
     r.add_figs_to_section(fig2, 'figure1', 'mysection')
     r.add_figs_to_section(fig2, 'figure2', 'mysection')
 

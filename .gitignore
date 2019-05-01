@@ -1,3 +1,4 @@
+junit-results.xml
 *.pyc
 *.pyo
 *.sh
@@ -37,11 +38,13 @@ MNE-somato-data*
 MNE-spm-face*
 MNE-testing-data*
 MNE-brainstorm-data*
+physionet-sleep-data*
 MEGSIM*
 build
 coverage
 .cache/
 .pytest_cache/
+prof/
 
 dist/
 doc/_build/
@@ -73,3 +76,5 @@ examples/visualization/foobar.html
 *.py#
 *.rst#
 
+.venv/
+venv/

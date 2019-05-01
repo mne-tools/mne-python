@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Functions to make simple plots with M/EEG data."""
 
-from __future__ import print_function
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -25,11 +23,10 @@ from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..surface import read_surface
-from ..externals.six import string_types
 from ..io.proj import make_projector
 from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types
 from ..source_space import read_source_spaces, SourceSpaces
-from ..utils import logger, verbose, get_subjects_dir, warn
+from ..utils import logger, verbose, get_subjects_dir, warn, _check_option
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
@@ -58,15 +55,13 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         type. We show square roots ie. standard deviations.
     show : bool
         Show figure if True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    fig_cov : instance of matplotlib.pyplot.Figure
+    fig_cov : instance of matplotlib.figure.Figure
         The covariance plot.
-    fig_svd : instance of matplotlib.pyplot.Figure | None
+    fig_svd : instance of matplotlib.figure.Figure | None
         The SVD spectra plot of the covariance.
     """
     if exclude == 'bads':
@@ -379,7 +374,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure.
 
     See Also
@@ -410,7 +405,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
             surfaces.append((surf_fname, color))
 
     if brain_surfaces is not None:
-        if isinstance(brain_surfaces, string_types):
+        if isinstance(brain_surfaces, str):
             brain_surfaces = (brain_surfaces,)
         for surf_name in brain_surfaces:
             for hemi in ('lh', 'rh'):
@@ -421,7 +416,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                 else:
                     raise IOError("Surface %s does not exist." % surf_fname)
 
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         if not op.exists(src):
             src_ = op.join(subjects_dir, subject, 'bem', src)
             if op.exists(src_):
@@ -466,7 +461,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         Dictionary of event label (e.g. 'aud_l') and its associated
         event_id value. Label used to plot a legend. If None, no legend is
         drawn.
-    axes : instance of matplotlib.axes.AxesSubplot
+    axes : instance of Axes
        The subplot handle.
     equal_spacing : bool
         Use equal spacing between events in y-axis.
@@ -494,7 +489,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     if event_id is not None:
         # get labels and unique event ids from event_id dict,
         # sorted by value
-        event_id_rev = dict((v, k) for k, v in event_id.items())
+        event_id_rev = {v: k for k, v in event_id.items()}
         conditions, unique_events_id = zip(*sorted(event_id.items(),
                                                    key=lambda x: x[1]))
 
@@ -526,8 +521,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         ev_mask = events[:, 2] == ev
         kwargs = {}
         if event_id is not None:
-            event_label = '{0} ({1})'.format(event_id_rev[ev],
-                                             np.sum(ev_mask))
+            event_label = '{} ({})'.format(event_id_rev[ev], np.sum(ev_mask))
             kwargs['label'] = event_label
         if ev in color:
             kwargs['color'] = color[ev]
@@ -582,9 +576,9 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
 
     Parameters
     ----------
-    dipoles : list of instance of Dipoles
+    dipoles : list of instance of Dipole
         The dipoles whose amplitudes should be shown.
-    colors: list of colors | None
+    colors: list of color | None
         Color to plot with each dipole. If None default colors are used.
     show : bool
         Show figure if True.
@@ -669,7 +663,7 @@ def _get_flim(flim, fscale, freq, sfreq=None):
 
 def _check_fscale(fscale):
     """Check for valid fscale."""
-    if not isinstance(fscale, string_types) or fscale not in ('log', 'linear'):
+    if not isinstance(fscale, str) or fscale not in ('log', 'linear'):
         raise ValueError('fscale must be "log" or "linear", got %s'
                          % (fscale,))
 
@@ -723,7 +717,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     from scipy.signal import freqz, group_delay
     import matplotlib.pyplot as plt
     sfreq = float(sfreq)
-    _check_fscale(fscale)
+    _check_option('fscale', fscale, ['log', 'linear'])
     flim = _get_flim(flim, fscale, freq, sfreq)
     if fscale == 'log':
         omega = np.logspace(np.log10(flim[0]), np.log10(flim[1]), 1000)
@@ -806,7 +800,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         The ideal response frequencies to plot (must be in ascending order).
     gain : array-like or None
         The ideal response gains to plot.
-    axes : instance of matplotlib.axes.AxesSubplot | None
+    axes : instance of Axes | None
         The subplot handle. With None (default), axes are created.
     title : str
         The title to use, (default: '').
@@ -828,7 +822,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure.
 
     See Also
@@ -858,7 +852,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
                          'Nyquist, but got %s for DC' % (freq[0],))
     freq = np.array(freq)
     # deal with semilogx problems @ x=0
-    _check_fscale(fscale)
+    _check_option('fscale', fscale, ['log', 'linear'])
     if fscale == 'log':
         freq[0] = 0.1 * freq[1] if flim is None else min(flim[0], freq[1])
     flim = _get_flim(flim, fscale, freq)
@@ -950,7 +944,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
     Returns
     -------
-    fig : list of matplotlib figures
+    fig : list of Figure
         The figures created by this function.
     """
     import matplotlib.pyplot as plt

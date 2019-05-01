@@ -4,7 +4,6 @@
 #
 # License: Simplified BSD
 
-from .externals.six import string_types
 import logging
 import os
 
@@ -44,9 +43,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         jobs. This should only be used when directly iterating, not when
         using ``split_list`` or :func:`np.array_split`.
         If None (default), do not add a progress bar.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG
+    %(verbose)s INFO or DEBUG
         will print parallel status, others will not.
 
     Returns
@@ -79,7 +76,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
 
         cache_dir = get_config('MNE_CACHE_DIR', None)
-        if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':
+        if isinstance(max_nbytes, str) and max_nbytes == 'auto':
             max_nbytes = get_config('MNE_MEMMAP_MIN_SIZE', None)
 
         if max_nbytes is not None:
@@ -137,7 +134,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
     if not isinstance(n_jobs, int):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
-        elif not isinstance(n_jobs, string_types) or n_jobs != 'cuda':
+        elif not isinstance(n_jobs, str) or n_jobs != 'cuda':
             raise ValueError('n_jobs must be an integer, or "cuda"')
         # else, we have n_jobs='cuda' and this is okay, so do nothing
     elif _force_serial:

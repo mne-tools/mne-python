@@ -8,7 +8,7 @@
 from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import (read_fiducials, write_fiducials, read_info, write_info,
                         _empty_info, _merge_info, _force_update_info, Info,
-                        anonymize_info, _stamp_to_dt)
+                        anonymize_info, _stamp_to_dt, DigPoint)
 
 from .proj import make_eeg_average_ref_proj, Projection
 from .tag import _loc_to_coil_trans, _coil_trans_to_loc, _loc_to_eeg_loc
@@ -30,18 +30,17 @@ from . import eeglab
 from . import pick
 
 from .array import RawArray
-from .brainvision import read_raw_brainvision, read_annotations_brainvision
+from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
-from .edf import read_raw_edf, find_edf_events
+from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf, find_edf_events
 from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
 from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
-from .eeglab import read_raw_eeglab, read_epochs_eeglab, read_events_eeglab
-from .eeglab import read_annotations_eeglab
+from .eeglab import read_raw_eeglab, read_epochs_eeglab
 from .eximia import read_raw_eximia
 from .fieldtrip import (read_raw_fieldtrip, read_epochs_fieldtrip,
                         read_evoked_fieldtrip)

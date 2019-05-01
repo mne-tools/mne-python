@@ -11,27 +11,25 @@
 #
 # License: BSD (3-clause)
 
+import configparser
 import os
 import os.path as op
 import re
 from datetime import datetime
 from math import modf
-from functools import partial
+from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, fill_doc
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
-from ..utils import (_read_segments_file, _synthesize_stim_channel,
-                     _mult_cal_one)
-from ...annotations import Annotations, events_from_annotations
-
-from ...externals.six import StringIO, string_types
-from ...externals.six.moves import configparser
+from ..utils import _read_segments_file, _mult_cal_one, _deprecate_stim_channel
+from ...annotations import Annotations, read_annotations
 
 
+@fill_doc
 class RawBrainVision(BaseRaw):
     """Raw object from Brain Vision EEG file.
 
@@ -59,33 +57,12 @@ class RawBrainVision(BaseRaw):
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    response_trig_shift : int | None
-        An integer that will be added to all response triggers when reading
-        events (stimulus triggers will be unaffected). This parameter was
-        deprecated in version 0.17 and will be removed in 0.18. Use
-        ``trig_shift_by_type={'response': ...}`` instead. If None, response
-        triggers will be ignored. Default is 0 for backwards compatibility,
-        but typically another value or None will be necessary.
-    event_id : dict | None
-        Special events to consider in addition to those that follow the normal
-        BrainVision trigger format ('###' with an optional single character
-        prefix, e.g., "111", "S  1", "R128", "S 21"). If dict, the keys will be
-        mapped to trigger values on the stimulus channel.
-        Example: {'SyncStatus': 1, 'Pulse Artifact': 3}.
-        If None or an empty dict (default), only BrainVision format events are
-        added to the stimulus channel. Keys are case sensitive. "New Segment"
-        markers are always dropped.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-    trig_shift_by_type: dict | None
-        The names of marker types to which an offset should be added.
-        If dict, the keys specify marker types (case is ignored), so that the
-        corresponding value (an integer) will be added to the trigger value of
-        all events of this type. If the value for a key is in the dict is None,
-        all markers of this type will be ignored. If None (default), no offset
-        is added, which may lead to different marker types being mapped to the
-        same event id.
+    stim_channel : False
+        Deprecated, will be removed in 0.19; migrate code to use
+        :func:`mne.events_from_annotations` instead.
+
+        .. versionadded:: 0.17
+    %(verbose)s
 
     See Also
     --------
@@ -95,25 +72,9 @@ class RawBrainVision(BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                 scale=1., preload=False, response_trig_shift=0,
-                 event_id=None, verbose=None,
-                 trig_shift_by_type=None):  # noqa: D107
-        if response_trig_shift != 0:
-            warn(
-                "'response_trig_shift' was deprecated in version "
-                "0.17 and will be removed in 0.18. Use "
-                "trig_shift_by_type={{'response': {} }} instead".format(
-                    response_trig_shift), DeprecationWarning)
-            if trig_shift_by_type and 'response' in (
-                    key.lower() for key in trig_shift_by_type):
-                raise ValueError(
-                    'offset for response markers has been specified twice, '
-                    'both using "trig_shift_by_type" and '
-                    '"response_trig_shift"')
-            else:
-                if trig_shift_by_type is None:
-                    trig_shift_by_type = dict()
-                trig_shift_by_type['response'] = response_trig_shift
+                 scale=1., preload=False, stim_channel=False,
+                 verbose=None):  # noqa: D107
+        _deprecate_stim_channel(stim_channel)
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
@@ -134,14 +95,12 @@ class RawBrainVision(BaseRaw):
                 elif self._order == 'C':  # vectorized, channels, in rows
                     raise NotImplementedError()
             else:
+                n_data_ch = int(info['nchan'])
                 f.seek(0, os.SEEK_END)
                 n_samples = f.tell()
                 dtype_bytes = _fmt_byte_dict[fmt]
                 offsets = None
-                n_samples = n_samples // (dtype_bytes * (info['nchan'] - 1))
-
-        # Create a dummy event channel first
-        self._create_event_ch(np.empty((0, 3)), n_samples)
+                n_samples = n_samples // (dtype_bytes * n_data_ch)
 
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_fname],
@@ -149,37 +108,19 @@ class RawBrainVision(BaseRaw):
             raw_extras=[offsets], orig_units=orig_units)
 
         # Get annotations from vmrk file
-        annots = read_annotations_brainvision(mrk_fname, info['sfreq'])
+        annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
-
-        # Use events_from_annotations to properly set the events
-        trig_shift_by_type = _check_trig_shift_by_type(trig_shift_by_type)
-        dropped_desc = []  # use to collect dropped descriptions
-        event_id = dict() if event_id is None else event_id
-        event_id = partial(_event_id_func, event_id=event_id,
-                           trig_shift_by_type=trig_shift_by_type,
-                           dropped_desc=dropped_desc)
-        events, _ = events_from_annotations(self, event_id)
-        if len(dropped_desc) > 0:
-            dropped = list(set(dropped_desc))
-            warn("{0} event(s) will be dropped, such as {1}. "
-                 "Consider using the event_id parameter to parse events "
-                 "that do not follow the BrainVision format. For more "
-                 "information, see the docstring of read_raw_brainvision."
-                 .format(len(dropped), dropped[:5]))
-        self._create_event_ch(events, n_samples)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         # read data
+        n_data_ch = len(self.ch_names)
         if self._order == 'C':
             _read_segments_c(self, data, idx, fi, start, stop, cals, mult)
-        elif isinstance(self.orig_format, string_types):
+        elif isinstance(self.orig_format, str):
             dtype = _fmt_dtype_dict[self.orig_format]
-            n_data_ch = len(self.ch_names) - 1
             _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
-                                dtype=dtype, n_channels=n_data_ch,
-                                trigger_ch=self._event_ch)
+                                dtype=dtype, n_channels=n_data_ch)
         else:
             offsets = self._raw_extras[fi]
             with open(self._filenames[fi], 'rb') as fid:
@@ -188,45 +129,8 @@ class RawBrainVision(BaseRaw):
                 for ii in range(stop - start):
                     line = fid.readline().decode('ASCII')
                     line = line.strip().replace(',', '.').split()
-                    block[:-1, ii] = list(map(float, line))
-            block[-1] = self._event_ch[start:stop]
+                    block[:n_data_ch, ii] = [float(l) for l in line]
             _mult_cal_one(data, block, idx, cals, mult)
-
-    def _get_brainvision_events(self):
-        """Retrieve the events associated with the Brain Vision Raw object.
-
-        Returns
-        -------
-        events : array, shape (n_events, 3)
-            Events, each row consisting of an (onset, duration, trigger)
-            sequence.
-        """
-        return self._events.copy()
-
-    def _set_brainvision_events(self, events):
-        """Set the events and update the synthesized stim channel.
-
-        Parameters
-        ----------
-        events : array, shape (n_events, 3)
-            Events, each row consisting of an (onset, duration, trigger)
-            sequence.
-        """
-        self._create_event_ch(events)
-
-    def _create_event_ch(self, events, n_samp=None):
-        """Create the event channel."""
-        if n_samp is None:
-            n_samp = self.last_samp - self.first_samp + 1
-        events = np.array(events, int)
-
-        if events.ndim != 2 or events.shape[1] != 3:
-            raise ValueError("[n_events x 3] shaped array required")
-        # update events
-        self._event_ch = _synthesize_stim_channel(events, n_samp)
-        self._events = events
-        if getattr(self, 'preload', False):
-            self._data[-1] = self._event_ch
 
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
@@ -235,14 +139,9 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     dtype = _fmt_dtype_dict[raw.orig_format]
     n_bytes = _fmt_byte_dict[raw.orig_format]
     n_channels = len(raw.ch_names)
-    trigger_ch = raw._event_ch
     block = np.zeros((n_channels, stop - start))
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
         for ch_id in np.arange(n_channels)[idx]:
-            if ch_id == n_channels - 1:  # stim channel
-                stim_ch = trigger_ch[start:stop]
-                block[ch_id] = stim_ch
-                continue
             fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
             block[ch_id] = np.fromfile(fid, dtype, stop - start)
 
@@ -334,99 +233,7 @@ def _read_vmrk(fname):
     return np.array(onset), np.array(duration), np.array(description), date_str
 
 
-def _event_id_func(desc, event_id, trig_shift_by_type, dropped_desc):
-    """Get integers from string description.
-
-    This function can be passed as event_id to events_from_annotations
-    function.
-
-    Parameters
-    ----------
-    desc : str
-        The description of the event.
-    event_id : dict
-        The default mapping from desc to integer.
-    trig_shift_by_type: dict | None
-        The names of marker types to which an offset should be added.
-        If dict, the keys specify marker types (case is ignored), so that the
-        corresponding value (an integer) will be added to the trigger value of
-        all events of this type. If the value for a key is in the dict is None,
-        all markers of this type will be ignored. If None (default), no offset
-        is added, which may lead to different marker types being mapped to the
-        same event id.
-    dropped_desc : list
-        Used to log the dropped descriptions.
-
-    Returns
-    -------
-    trigger : int | None
-        The integer corresponding to the specific event. If None,
-        then a proper integer cannot be found and the event is typically
-        ignored.
-    """
-    mtype, mdesc = desc.split('/')
-    found = False
-    if (mdesc in event_id) or (mtype == "New Segment"):
-        trigger = event_id.get(mdesc, None)
-        found = True
-    else:
-        try:
-            # Match any three digit marker value (padded with whitespace).
-            # In BrainVision Recorder, the markers sometimes have a prefix
-            # depending on the type, e.g., Stimulus=S, Response=R,
-            # Optical=O, ... Note that any arbitrary stimulus type can be
-            # defined. So we match any single character that is not
-            # forbidden by BrainVision Recorder: [^a-z$%\-@/\\|;,:.\s]
-            marker_regexp = r'^[^a-z$%\-@/\\|;,:.\s]{0,1}([\s\d]{2}\d{1})$'
-            trigger = int(re.findall(marker_regexp, mdesc)[0])
-        except IndexError:
-            trigger = None
-
-    if mtype.lower() in trig_shift_by_type:
-        cur_shift = trig_shift_by_type[mtype.lower()]
-        if cur_shift is not None:
-            trigger += cur_shift
-        else:
-            # The trigger has been deliberately shifted to None. Do not
-            # add this to "dropped" so we do not warn about something
-            # that was done deliberately. Just continue with next item.
-            trigger = None
-            found = True
-
-    if trigger is None and not found:
-        dropped_desc.append(desc)
-
-    return trigger
-
-
-def _check_trig_shift_by_type(trig_shift_by_type):
-    """Check the trig_shift_by_type parameter.
-
-    trig_shift_by_type is used to offset event numbers depending
-    of the type of marker (eg. Response, Stimulus).
-    """
-    if trig_shift_by_type is None:
-        trig_shift_by_type = dict()
-    elif not isinstance(trig_shift_by_type, dict):
-        raise TypeError("'trig_shift_by_type' must be None or dict")
-
-    for mrk_type in list(trig_shift_by_type.keys()):
-        cur_shift = trig_shift_by_type[mrk_type]
-        if not isinstance(cur_shift, int) and cur_shift is not None:
-            raise TypeError('shift for type {} must be int or None'.format(
-                mrk_type
-            ))
-        mrk_type_lc = mrk_type.lower()
-        if mrk_type_lc != mrk_type:
-            if mrk_type_lc in trig_shift_by_type:
-                raise ValueError('marker type {} specified twice with'
-                                 'different case'.format(mrk_type_lc))
-            trig_shift_by_type[mrk_type_lc] = cur_shift
-            del trig_shift_by_type[mrk_type]
-    return trig_shift_by_type
-
-
-def read_annotations_brainvision(fname, sfreq='auto'):
+def _read_annotations_brainvision(fname, sfreq='auto'):
     """Create Annotations from BrainVision vrmk.
 
     This function reads a .vrmk file and makes an
@@ -449,21 +256,26 @@ def read_annotations_brainvision(fname, sfreq='auto'):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    onset, duration, description, date_str = _read_vmrk(fname)
-    orig_time = _str_to_meas_date(date_str)
+    markers = _read_vmrk(fname)
+    if len(markers) > 0:
+        onset, duration, description, date_str = markers
+        orig_time = _str_to_meas_date(date_str)
 
-    if sfreq == 'auto':
-        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-        _, _, _, info = _aux_vhdr_info(vhdr_fname)
-        sfreq = info['sfreq']
+        if sfreq == 'auto':
+            vhdr_fname = op.splitext(fname)[0] + '.vhdr'
+            logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
+            _, _, _, info = _aux_vhdr_info(vhdr_fname)
+            sfreq = info['sfreq']
 
-    onset = np.array(onset, dtype=float) / sfreq
-    duration = np.array(duration, dtype=float) / sfreq
-    annotations = Annotations(onset=onset, duration=duration,
-                              description=description,
-                              orig_time=orig_time)
-
+        onset = np.array(onset, dtype=float) / sfreq
+        duration = np.array(duration, dtype=float) / sfreq
+        annotations = Annotations(onset=onset, duration=duration,
+                                  description=description,
+                                  orig_time=orig_time)
+    else:
+        annotations = Annotations(onset=0, duration=0,
+                                  description=None,
+                                  orig_time=None)
     return annotations
 
 
@@ -492,7 +304,7 @@ def _check_mrk_version(header):
             'Brain Vision Data Exchange Marker File, Version 2.0',
             'BrainVision Data Exchange Marker File, Version 1.0']
     if header not in tags:
-        raise ValueError("Currently only support %r, not %r"
+        raise ValueError("Currently, MNE-Python only supports %r, not %r"
                          "Contact MNE-Developers for support."
                          % (str(tags), header))
 
@@ -519,7 +331,13 @@ def _str_to_meas_date(date_str):
     if date_str in ['0', '00000000000000000000']:
         return None
 
-    meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+    try:
+        meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+    except ValueError as e:
+        if 'does not match format' in str(e):
+            return None
+        else:
+            raise
 
     # We need list of unix time in milliseconds and as second entry
     # the additional amount of microseconds
@@ -568,10 +386,7 @@ def _aux_vhdr_info(vhdr_fname):
     else:
         params, settings = settings, ''
     cfg = configparser.ConfigParser()
-    if hasattr(cfg, 'read_file'):  # newer API
-        cfg.read_file(StringIO(params))
-    else:
-        cfg.readfp(StringIO(params))
+    cfg.read_file(StringIO(params))
 
     # get sampling info
     # Sampling interval is given in microsec
@@ -655,8 +470,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             raise NotImplementedError('BrainVision files with ASCII data in '
                                       'vectorized order (i.e. channels in rows'
                                       ') are not supported yet.')
-        fmt = dict((key, cfg.get('ASCII Infos', key))
-                   for key in cfg.options('ASCII Infos'))
+        fmt = {key: cfg.get('ASCII Infos', key)
+               for key in cfg.options('ASCII Infos')}
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)
@@ -673,7 +488,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         match = re.findall(regexp, line.strip())
 
         # Always take first measurement date we find
-        if match and match[0] != '00000000000000000000':
+        if match:
             date_str = match[0]
             info['meas_date'] = _str_to_meas_date(date_str)
             break
@@ -682,7 +497,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         info['meas_date'] = None
 
     # load channel labels
-    nchan = cfg.getint(cinfostr, 'NumberOfChannels') + 1
+    nchan = cfg.getint(cinfostr, 'NumberOfChannels')
     n_samples = None
     if order == 'C':
         try:
@@ -693,7 +508,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             with open(data_fname, 'rb') as fid:
                 fid.seek(0, 2)
                 n_bytes = fid.tell()
-                n_samples = n_bytes // _fmt_byte_dict[fmt] // (nchan - 1)
+                n_samples = n_bytes // _fmt_byte_dict[fmt] // nchan
 
     ch_names = [''] * nchan
     cals = np.empty(nchan)
@@ -737,7 +552,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         for ch in cfg.items('Coordinates'):
             ch_name = ch_dict[ch[0]]
             montage_names.append(ch_name)
-            radius, theta, phi = map(float, ch[1].split(','))
+            radius, theta, phi = [float(c) for c in ch[1].split(',')]
             # 1: radius, 2: theta, 3: phi
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
@@ -754,9 +569,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                  'Setting channel types to misc. To avoid this warning, set '
                  'channel types explicitly.'.format(to_misc))
 
-    ch_names[-1] = 'STI 014'
-    cals[-1] = 1.
-    ranges[-1] = 1.
     if np.isnan(cals).any():
         raise RuntimeError('Missing channel units')
 
@@ -817,7 +629,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         hp_s = '[s]' in header[hp_col]
         lp_s = '[s]' in header[lp_col]
 
-        for i, ch in enumerate(ch_names[:-1], 1):
+        for i, ch in enumerate(ch_names, 1):
             line = re.split(divider, settings[idx + i])
             # double check alignment with channel by using the hw settings
             if idx == idx_amp:
@@ -974,11 +786,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             orig_units)
 
 
+@fill_doc
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                         scale=1., preload=False, response_trig_shift=0,
-                         event_id=None, verbose=None,
-                         trig_shift_by_type=None):
+                         scale=1., preload=False, stim_channel=False,
+                         verbose=None):
     """Reader for Brain Vision EEG file.
 
     Parameters
@@ -1004,32 +816,12 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    response_trig_shift : int | None
-        An integer that will be added to all response triggers when reading
-        events (stimulus triggers will be unaffected). This parameter was
-        deprecated in version 0.17 and will be removed in 0.19. Use
-        ``trig_shift_by_type={'response': ...}`` instead. If None, response
-        triggers will be ignored. Default is 0 for backwards compatibility,
-        but typically another value or None will be necessary.
-    event_id : dict | None
-        Special events to consider in addition to those that follow the normal
-        BrainVision trigger format ('###' with an optional single character
-        prefix). If dict, the keys will be mapped to trigger values on the
-        stimulus channel. Example: {'SyncStatus': 1, 'Pulse Artifact': 3}.
-        If None or an empty dict (default), only BrainVision format events are
-        added to the stimulus channel. Keys are case sensitive. "New Segment"
-        markers are always dropped.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-    trig_shift_by_type : dict | None
-        The names of marker types to which an offset should be added.
-        If dict, the keys specify marker types (case is ignored), so that the
-        corresponding value (an integer) will be added to the trigger value of
-        all events of this type. If the value for a key is in the dict is None,
-        all markers of this type will be ignored. If None (default), no offset
-        is added, which may lead to different marker types being mapped to the
-        same event id.
+    stim_channel : False
+        Deprecated, will be removed in 0.19; migrate code to use
+        :func:`mne.events_from_annotations` instead.
+
+        .. versionadded:: 0.17
+    %(verbose)s
 
     Returns
     -------
@@ -1043,6 +835,4 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,
-                          response_trig_shift=response_trig_shift,
-                          event_id=event_id, verbose=verbose,
-                          trig_shift_by_type=trig_shift_by_type)
+                          stim_channel=stim_channel, verbose=verbose)

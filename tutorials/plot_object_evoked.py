@@ -8,9 +8,11 @@ The :class:`Evoked <mne.Evoked>` data structure is mainly used for storing
 averaged data over trials. In MNE the evoked objects are usually created by
 averaging epochs data with :func:`mne.Epochs.average`.
 """
+# sphinx_gallery_thumbnail_number = 2
 
 import os.path as op
 
+import matplotlib.pyplot as plt
 import mne
 
 ###############################################################################
@@ -62,6 +64,16 @@ print(data.shape)
 # directly.
 print('Data from channel {0}:'.format(evoked.ch_names[10]))
 print(data[10])
+
+###############################################################################
+# In the same vein, we can quickly extract (and, e.g., plot) the GFP as the
+# standard deviation across channels, here shown just for EEG.
+
+gfp = evoked.copy().pick_types(eeg=True, meg=False).data.std(axis=0)
+fig, ax = plt.subplots(1)
+ax.plot(evoked.times, gfp / 1e6)  # scale to uV
+ax.set(xlabel='Time (sec)', ylabel='GFP (uV)')
+fig.tight_layout()
 
 ###############################################################################
 # If you want to import evoked data from some other system and you have it in a

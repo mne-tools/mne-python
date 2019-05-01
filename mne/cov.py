@@ -7,7 +7,6 @@
 from copy import deepcopy
 import itertools as itt
 from math import log
-import operator
 import os
 
 import numpy as np
@@ -15,16 +14,16 @@ from scipy import linalg, sparse
 
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
-                      _needs_eeg_average_ref_proj, _check_projs,
-                      _has_eeg_average_ref_proj)
-from .io import fiff_open
+                      _check_projs, _needs_eeg_average_ref_proj,
+                      _has_eeg_average_ref_proj, _read_proj, _write_proj)
+from .io import fiff_open, RawArray
+
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
-                      _picks_by_type, _pick_data_channels,
+                      _picks_by_type, _pick_data_channels, _picks_to_idx,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
-from .io.meas_info import read_bad_channels, _simplify_info, create_info
-from .io.proj import _read_proj, _write_proj
+from .io.meas_info import read_bad_channels, create_info
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
@@ -32,13 +31,13 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
-from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_version, _time_mask, warn,
-                    copy_function_doc_to_method_doc, _pl)
+from .rank import compute_rank
+from .utils import (check_fname, logger, verbose, check_version, _time_mask,
+                    warn, copy_function_doc_to_method_doc, _pl,
+                    _undo_scaling_cov, _scaled_array, _validate_type,
+                    _check_option)
 from . import viz
 
-from .externals.six.moves import zip
-from .externals.six import string_types
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
 
 
@@ -112,7 +111,7 @@ class Covariance(dict):
     def __init__(self, data, names, bads, projs, nfree, eig=None, eigvec=None,
                  method=None, loglik=None):
         """Init of covariance."""
-        diag = True if data.ndim == 1 else False
+        diag = (data.ndim == 1)
         projs = _check_projs(projs)
         self.update(data=data, dim=len(data), names=names, bads=bads,
                     nfree=nfree, eig=eig, eigvec=eigvec, diag=diag,
@@ -244,9 +243,7 @@ def read_cov(fname, verbose=None):
     fname : string
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
-    verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -280,9 +277,7 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
         Standard_deviation of the diagonal elements. If dict, keys should be
         `grad` for gradiometers, `mag` for magnetometers and `eeg` for EEG
         channels. If None, default values will be used (see Notes).
-    verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -323,7 +318,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
                            method_params=None, cv=3, scalings=None, n_jobs=1,
                            return_estimators=False, reject_by_annotation=True,
-                           verbose=None):
+                           rank=None, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -359,8 +354,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    picks : array-like of int | None (default None)
-        Indices of channels to include (if None, data channels are used).
+    %(picks_good_data_noref)s
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -371,7 +365,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         See :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.12
-    cv : int | sklearn model_selection object (default 3)
+    cv : int | sklearn.model_selection object (default 3)
         The cross validation method. Defaults to 3, which will
         internally trigger by default :class:`sklearn.model_selection.KFold`
         with 3 splits.
@@ -397,10 +391,14 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
 
-        .. versionadded:: 0.14.0
-    verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        .. versionadded:: 0.14
+    %(rank_None)s
+
+        .. versionadded:: 0.17
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
+    %(verbose)s
 
     Returns
     -------
@@ -444,13 +442,14 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
             picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
         pick_mask = slice(None)
+        picks = _picks_to_idx(raw.info, picks)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
                     preload=False, proj=False,
                     reject_by_annotation=reject_by_annotation)
     if method is None:
         method = 'empirical'
-    if isinstance(method, string_types) and method == 'empirical':
+    if isinstance(method, str) and method == 'empirical':
         # potentially *much* more memory efficient to do it the iterative way
         picks = picks[pick_mask]
         data = 0
@@ -483,20 +482,18 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     return compute_covariance(epochs, keep_sample_mean=True, method=method,
                               method_params=method_params, cv=cv,
                               scalings=scalings, n_jobs=n_jobs,
-                              return_estimators=return_estimators)
+                              return_estimators=return_estimators,
+                              rank=rank)
 
 
 def _check_method_params(method, method_params, keep_sample_mean=True,
-                         name='method', allow_auto=True):
+                         name='method', allow_auto=True, rank=None):
     """Check that method and method_params are usable."""
     accepted_methods = ('auto', 'empirical', 'diagonal_fixed', 'ledoit_wolf',
                         'oas', 'shrunk', 'pca', 'factor_analysis', 'shrinkage')
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
-        'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.,
-                           'seeg': 0., 'ecog': 0.,
-                           'hbo': 0., 'hbr': 0.,
-                           'store_precision': False, 'assume_centered': True},
+        'diagonal_fixed': {'store_precision': False, 'assume_centered': True},
         'ledoit_wolf': {'store_precision': False, 'assume_centered': True},
         'oas': {'store_precision': False, 'assume_centered': True},
         'shrinkage': {'shrinkage': 0.1, 'store_precision': False,
@@ -508,8 +505,7 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
     }
 
     for ch_type in _DATA_CH_TYPES_SPLIT:
-        if ch_type not in _method_params['diagonal_fixed']:
-            _method_params['diagonal_fixed'][ch_type] = 0.0
+        _method_params['diagonal_fixed'][ch_type] = 0.1
 
     if isinstance(method_params, dict):
         for key, values in method_params.items():
@@ -523,9 +519,11 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
             raise ValueError('shrinkage must be between 0 and 1, got %s'
                              % (shrinkage,))
 
+    was_auto = False
     if method is None:
         method = ['empirical']
     elif method == 'auto' and allow_auto:
+        was_auto = True
         method = ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
     if not isinstance(method, (list, tuple)):
@@ -536,7 +534,13 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
             'Invalid {name} ({method}). Accepted values (individually or '
             'in a list) are any of "{accepted_methods}" or None.'.format(
                 name=name, method=method, accepted_methods=accepted_methods))
-
+    if not (isinstance(rank, str) and rank == 'full'):
+        if was_auto:
+            method.pop(method.index('factor_analysis'))
+        for method_ in method:
+            if method_ in ('pca', 'factor_analysis'):
+                raise ValueError('%s can so far only be used with rank="full",'
+                                 ' got rank=%r' % (method_, rank))
     if not keep_sample_mean:
         if len(method) != 1 or 'empirical' not in method:
             raise ValueError('`keep_sample_mean=False` is only supported'
@@ -552,7 +556,7 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
                        cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       on_mismatch='raise', verbose=None):
+                       on_mismatch='raise', rank=None, verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stimulus periods
@@ -568,7 +572,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     Parameters
     ----------
-    epochs : instance of Epochs, or a list of Epochs objects
+    epochs : instance of Epochs, or list of Epochs
         The epochs.
     keep_sample_mean : bool (default True)
         If False, the average response over epochs is computed for
@@ -590,29 +594,13 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         perform estimates using multiple methods.
         If 'auto' or a list of methods, the best estimator will be determined
         based on log-likelihood and cross-validation on unseen data as
-        described in [1]_. Valid methods are:
-
-        * ``'empirical'``: the empirical or sample covariance (default)
-        * ``'diagonal_fixed'``: a diagonal regularization based on
-          channel types as in :func:`mne.cov.regularize`.
-        * ``'shrinkage'`` : covariance estimator with fixed shrinkage.
-
-          .. versionadded:: 0.16
-        * ``'ledoit_wolf'``: the Ledoit-Wolf estimator, which uses an
-          empirical formula for the optimal shrinkage value [2]_.
-        * ``'oas'``: the OAS estimator [5]_, which uses a different
-          empricial formula for the optimal shrinkage value.
-
-          .. versionadded:: 0.16
-        * ``'shrunk'``: like 'ledoit_wolf', but with cross-validation
-          for optimal alpha.
-        * ``'pca'``: probabilistic PCA with low rank [3]_.
-        * ``'factor_analysis'``: factor analysis with low rank [4]_.
-
-        If ``'auto'``, this expands to::
+        described in [1]_. Valid methods are 'empirical', 'diagonal_fixed',
+        'shrunk', 'oas', 'ledoit_wolf', 'factor_analysis', 'shrinkage',
+        and 'pca' (see Notes). If ``'auto'``, it expands to::
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
+        ``'factor_analysis'`` is removed when ``rank`` is not 'full'.
         The ``'auto'`` mode is not recommended if there are many
         segments of data, since computation can take a long time.
 
@@ -624,13 +612,13 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         ``{'store_precision': False, 'assume_centered': True} for all methods
         except ``'factor_analysis'`` and ``'pca'``)::
 
-            {'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0},
+            {'diagonal_fixed': {'grad': 0.1, 'mag': 0.1, 'eeg': 0.1, ...},
              'shrinkage': {'shrikage': 0.1},
              'shrunk': {'shrinkage': np.logspace(-4, 0, 30)},
              'pca': {'iter_n_components': None},
              'factor_analysis': {'iter_n_components': None}}
 
-    cv : int | sklearn model_selection object (default 3)
+    cv : int | sklearn.model_selection object (default 3)
         The cross validation method. Defaults to 3, which will
         internally trigger by default :class:`sklearn.model_selection.KFold`
         with 3 splits.
@@ -651,9 +639,13 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         unstable results in covariance calculation, e.g. when data
         have been processed with Maxwell filtering but not transformed
         to the same head position.
-    verbose : bool | str | int | or None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(rank_None)s
+
+        .. versionadded:: 0.17
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
+    %(verbose)s
 
     Returns
     -------
@@ -673,6 +665,39 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     when creating the :class:`Epochs` to ensure that the data are zero mean,
     otherwise the computed covariance matrix will be inaccurate.
 
+    Valid ``method`` strings are:
+
+    * ``'empirical'``
+        The empirical or sample covariance (default)
+    * ``'diagonal_fixed'``
+        A diagonal regularization based on channel types as in
+        :func:`mne.cov.regularize`.
+    * ``'shrinkage'``
+        Fixed shrinkage.
+
+      .. versionadded:: 0.16
+    * ``'ledoit_wolf'``
+        The Ledoit-Wolf estimator, which uses an
+        empirical formula for the optimal shrinkage value [2]_.
+    * ``'oas'``
+        The OAS estimator [5]_, which uses a different
+        empricial formula for the optimal shrinkage value.
+
+      .. versionadded:: 0.16
+    * ``'shrunk'``
+        Like 'ledoit_wolf', but with cross-validation
+        for optimal alpha.
+    * ``'pca'``
+        Probabilistic PCA with low rank [3]_.
+    * ``'factor_analysis'``
+        Factor analysis with low rank [4]_.
+
+    ``'ledoit_wolf'`` and ``'pca'`` are similar to ``'shrunk'`` and
+    ``'factor_analysis'``, respectively, except that they use
+    cross validation (which is useful when samples are correlated, which
+    is often the case for M/EEG data). The former two are not included in
+    the ``'auto'`` mode to avoid redundancy.
+
     For multiple event types, it is also possible to create a
     single :class:`Epochs` object with events obtained using
     :func:`mne.merge_events`. However, the resulting covariance matrix
@@ -684,12 +709,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     automated way. It also allows to select between different alternative
     estimation algorithms which themselves achieve regularization.
     Details are described in [1]_.
-
-    ``'ledoit_wolf'`` and ``'pca'`` are similar to ``'shrunk'`` and
-    ``'factor_analysis'``, respectively, except that they use
-    cross validation (which is useful when samples are correlated, which
-    is often the case for M/EEG data). The former two are not included in
-    the ``'auto'`` mode to avoid redundancy.
 
     For more information on the advanced estimation methods, see
     :ref:`the sklearn manual <sklearn:covariance>`.
@@ -714,7 +733,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     # scale to natural unit for best stability with MEG/EEG
     scalings = _check_scalings_user(scalings)
     method, _method_params = _check_method_params(
-        method, method_params, keep_sample_mean)
+        method, method_params, keep_sample_mean, rank=rank)
     del method_params
 
     # for multi condition support epochs is required to refer to a list of
@@ -739,10 +758,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
              'matrix may be inaccurate')
 
     orig = epochs[0].info['dev_head_t']
-    if not isinstance(on_mismatch, string_types) or \
-            on_mismatch not in ['raise', 'warn', 'ignore']:
-        raise ValueError('on_mismatch must be "raise", "warn", or "ignore", '
-                         'got %s' % on_mismatch)
+    _check_option('on_mismatch', on_mismatch, ['raise', 'warn', 'ignore'])
     for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
         if (orig is None) != (epoch.info['dev_head_t'] is None) or \
@@ -823,7 +839,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     cov_data = _compute_covariance_auto(
         epochs, method=method, method_params=_method_params, info=info,
         cv=cv, n_jobs=n_jobs, stop_early=True, picks_list=picks_list,
-        scalings=scalings)
+        scalings=scalings, rank=rank)
 
     if keep_sample_mean is False:
         cov = cov_data['empirical']['data']
@@ -854,7 +870,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             out = covs
         else:
             out = covs[0]
-            logger.info('selecting best estimator: {0}'.format(out['method']))
+            logger.info('selecting best estimator: {}'.format(out['method']))
     else:
         out = covs[0]
     logger.info('[done]')
@@ -865,9 +881,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 def _check_scalings_user(scalings):
     if isinstance(scalings, dict):
         for k, v in scalings.items():
-            if k not in ('mag', 'grad', 'eeg'):
-                raise ValueError('The keys in `scalings` must be "mag" or'
-                                 '"grad" or "eeg". You gave me: %s' % k)
+            _check_option('the keys in `scalings`', k, ['mag', 'grad', 'eeg'])
     elif scalings is not None and not isinstance(scalings, np.ndarray):
         raise TypeError('scalings must be a dict, ndarray, or None, got %s'
                         % type(scalings))
@@ -875,132 +889,154 @@ def _check_scalings_user(scalings):
     return scalings
 
 
+def _eigvec_subspace(eig, eigvec, mask):
+    """Compute the subspace from a subset of eigenvectors."""
+    # We do the same thing we do with projectors:
+    P = np.eye(len(eigvec)) - np.dot(eigvec[~mask].T, eigvec[~mask])
+    eig, eigvec = linalg.eigh(P)
+    eigvec = eigvec.T
+    return eig, eigvec
+
+
 def _compute_covariance_auto(data, method, info, method_params, cv,
-                             scalings, n_jobs, stop_early, picks_list):
+                             scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
-    _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
-    estimator_cov_info = list()
-    msg = 'Estimating covariance using %s'
+    orig_rank = rank
+    rank = compute_rank(RawArray(data.T, info, copy=None, verbose=False),
+                        rank, scalings, info)
+    with _scaled_array(data.T, picks_list, scalings):
+        C = np.dot(data.T, data)
+        _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True,
+                                      do_compute_rank=False)
+        eigvec = eigvec[mask]
+        data = np.dot(data, eigvec.T)
+        used = np.where(mask)[0]
+        sub_picks_list = [(key, np.searchsorted(used, picks))
+                          for key, picks in picks_list]
+        sub_info = pick_info(info, used) if len(used) != len(mask) else info
+        logger.info('Reducing data rank from %s -> %s'
+                    % (len(mask), eigvec.shape[0]))
+        estimator_cov_info = list()
+        msg = 'Estimating covariance using %s'
 
-    ok_sklearn = check_version('sklearn', '0.15')
-    if not ok_sklearn and (len(method) != 1 or method[0] != 'empirical'):
-        raise ValueError('scikit-learn is not installed, `method` must be '
-                         '`empirical`')
+        ok_sklearn = check_version('sklearn', '0.15')
+        if not ok_sklearn and (len(method) != 1 or method[0] != 'empirical'):
+            raise ValueError('scikit-learn is not installed, `method` must be '
+                             '`empirical`, got %s' % (method,))
 
-    for this_method in method:
-        data_ = data.copy()
-        name = this_method.__name__ if callable(this_method) else this_method
-        logger.info(msg % name.upper())
-        mp = method_params[this_method]
-        _info = None
+        for method_ in method:
+            data_ = data.copy()
+            name = method_.__name__ if callable(method_) else method_
+            logger.info(msg % name.upper())
+            mp = method_params[method_]
+            _info = {}
 
-        if this_method == 'empirical':
-            est = EmpiricalCovariance(**mp)
-            est.fit(data_)
-            estimator_cov_info.append((est, est.covariance_, _info))
-            del est
+            if method_ == 'empirical':
+                est = EmpiricalCovariance(**mp)
+                est.fit(data_)
+                estimator_cov_info.append((est, est.covariance_, _info))
+                del est
 
-        elif this_method == 'diagonal_fixed':
-            est = _RegCovariance(info=info, **mp)
-            est.fit(data_)
-            estimator_cov_info.append((est, est.covariance_, _info))
-            del est
+            elif method_ == 'diagonal_fixed':
+                est = _RegCovariance(info=sub_info, **mp)
+                est.fit(data_)
+                estimator_cov_info.append((est, est.covariance_, _info))
+                del est
 
-        elif this_method == 'ledoit_wolf':
-            from sklearn.covariance import LedoitWolf
-            shrinkages = []
-            lw = LedoitWolf(**mp)
+            elif method_ == 'ledoit_wolf':
+                from sklearn.covariance import LedoitWolf
+                shrinkages = []
+                lw = LedoitWolf(**mp)
 
-            for ch_type, picks in picks_list:
-                lw.fit(data_[:, picks])
-                shrinkages.append((ch_type, lw.shrinkage_, picks))
-            sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
-            sc.fit(data_)
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-            del lw, sc
+                for ch_type, picks in sub_picks_list:
+                    lw.fit(data_[:, picks])
+                    shrinkages.append((ch_type, lw.shrinkage_, picks))
+                sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
+                sc.fit(data_)
+                estimator_cov_info.append((sc, sc.covariance_, _info))
+                del lw, sc
 
-        elif this_method == 'oas':
-            from sklearn.covariance import OAS
-            shrinkages = []
-            oas = OAS(**mp)
+            elif method_ == 'oas':
+                from sklearn.covariance import OAS
+                shrinkages = []
+                oas = OAS(**mp)
 
-            for ch_type, picks in picks_list:
-                oas.fit(data_[:, picks])
-                shrinkages.append((ch_type, oas.shrinkage_, picks))
-            sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
-            sc.fit(data_)
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-            del oas, sc
+                for ch_type, picks in sub_picks_list:
+                    oas.fit(data_[:, picks])
+                    shrinkages.append((ch_type, oas.shrinkage_, picks))
+                sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
+                sc.fit(data_)
+                estimator_cov_info.append((sc, sc.covariance_, _info))
+                del oas, sc
 
-        elif this_method == 'shrinkage':
-            sc = _ShrunkCovariance(**mp)
-            sc.fit(data_)
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-            del sc
+            elif method_ == 'shrinkage':
+                sc = _ShrunkCovariance(**mp)
+                sc.fit(data_)
+                estimator_cov_info.append((sc, sc.covariance_, _info))
+                del sc
 
-        elif this_method == 'shrunk':
-            try:
-                from sklearn.model_selection import GridSearchCV
-            except Exception:  # support sklearn < 0.18
-                from sklearn.grid_search import GridSearchCV
-            from sklearn.covariance import ShrunkCovariance
-            shrinkage = mp.pop('shrinkage')
-            tuned_parameters = [{'shrinkage': shrinkage}]
-            shrinkages = []
-            gs = GridSearchCV(ShrunkCovariance(**mp),
-                              tuned_parameters, cv=cv)
-            for ch_type, picks in picks_list:
-                gs.fit(data_[:, picks])
-                shrinkages.append((ch_type, gs.best_estimator_.shrinkage,
-                                   picks))
-            shrinkages = [c[0] for c in zip(shrinkages)]
-            sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
-            sc.fit(data_)
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-            del shrinkage, sc
+            elif method_ == 'shrunk':
+                try:
+                    from sklearn.model_selection import GridSearchCV
+                except Exception:  # support sklearn < 0.18
+                    from sklearn.grid_search import GridSearchCV
+                from sklearn.covariance import ShrunkCovariance
+                shrinkage = mp.pop('shrinkage')
+                tuned_parameters = [{'shrinkage': shrinkage}]
+                shrinkages = []
+                gs = GridSearchCV(ShrunkCovariance(**mp),
+                                  tuned_parameters, cv=cv, iid=True)
+                for ch_type, picks in sub_picks_list:
+                    gs.fit(data_[:, picks])
+                    shrinkages.append((ch_type, gs.best_estimator_.shrinkage,
+                                       picks))
+                shrinkages = [c[0] for c in zip(shrinkages)]
+                sc = _ShrunkCovariance(shrinkage=shrinkages, **mp)
+                sc.fit(data_)
+                estimator_cov_info.append((sc, sc.covariance_, _info))
+                del shrinkage, sc
 
-        elif this_method == 'pca':
-            pca, _info = _auto_low_rank_model(
-                data_, this_method, n_jobs=n_jobs, method_params=mp, cv=cv,
-                stop_early=stop_early)
-            pca.fit(data_)
-            estimator_cov_info.append((pca, pca.get_covariance(), _info))
-            del pca
+            elif method_ == 'pca':
+                assert orig_rank == 'full'
+                pca, _info = _auto_low_rank_model(
+                    data_, method_, n_jobs=n_jobs, method_params=mp, cv=cv,
+                    stop_early=stop_early)
+                pca.fit(data_)
+                estimator_cov_info.append((pca, pca.get_covariance(), _info))
+                del pca
 
-        elif this_method == 'factor_analysis':
-            fa, _info = _auto_low_rank_model(
-                data_, this_method, n_jobs=n_jobs, method_params=mp, cv=cv,
-                stop_early=stop_early)
-            fa.fit(data_)
-            estimator_cov_info.append((fa, fa.get_covariance(), _info))
-            del fa
-        else:
-            raise ValueError('Oh no! Your estimator does not have'
-                             ' a .fit method')
-        logger.info('Done.')
+            elif method_ == 'factor_analysis':
+                assert orig_rank == 'full'
+                fa, _info = _auto_low_rank_model(
+                    data_, method_, n_jobs=n_jobs, method_params=mp, cv=cv,
+                    stop_early=stop_early)
+                fa.fit(data_)
+                estimator_cov_info.append((fa, fa.get_covariance(), _info))
+                del fa
+            else:
+                raise ValueError('Oh no! Your estimator does not have'
+                                 ' a .fit method')
+            logger.info('Done.')
 
-    estimators, _, _ = zip(*estimator_cov_info)
-    if len(method) > 1:
-        logger.info('Using cross-validation to select the best estimator.')
-        logliks = np.array(
-            [_cross_val(data, e, cv, n_jobs) for e in estimators])
-    else:
-        logliks = [None]
+        if len(method) > 1:
+            logger.info('Using cross-validation to select the best estimator.')
 
-    # undo scaling
-    for c in estimator_cov_info:
-        _undo_scaling_cov(c[1], picks_list, scalings)
-
-    out = dict()
-    estimators, covs, runtime_infos = zip(*estimator_cov_info)
-    cov_methods = [c.__name__ if callable(c) else c for c in method]
-    runtime_infos, covs = list(runtime_infos), list(covs)
-    my_zip = zip(cov_methods, runtime_infos, logliks, covs, estimators)
-    for this_method, runtime_info, loglik, data, est in my_zip:
-        out[this_method] = {'loglik': loglik, 'data': data, 'estimator': est}
-        if runtime_info is not None:
-            out[this_method].update(runtime_info)
+        out = dict()
+        for ei, (estimator, cov, runtime_info) in \
+                enumerate(estimator_cov_info):
+            if len(method) > 1:
+                loglik = _cross_val(data, estimator, cv, n_jobs)
+            else:
+                loglik = None
+            # project back
+            cov = np.dot(eigvec.T, np.dot(cov, eigvec))
+            # undo scaling
+            _undo_scaling_cov(cov, picks_list, scalings)
+            method_ = method[ei]
+            name = method_.__name__ if callable(method_) else method_
+            out[name] = dict(loglik=loglik, data=cov, estimator=estimator)
+            out[name].update(runtime_info)
 
     return out
 
@@ -1010,7 +1046,6 @@ def _gaussian_loglik_scorer(est, X, y=None):
     # compute empirical covariance of the test set
     precision = est.get_precision()
     n_samples, n_features = X.shape
-    log_like = np.zeros(n_samples)
     log_like = -.5 * (X * (np.dot(X, precision))).sum(axis=1)
     log_like -= .5 * (n_features * log(2. * np.pi) - _logdet(precision))
     out = np.mean(log_like)
@@ -1038,11 +1073,9 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
     from sklearn.decomposition import PCA, FactorAnalysis
     if mode == 'factor_analysis':
         est = FactorAnalysis
-    elif mode == 'pca':
-        est = PCA
     else:
-        raise ValueError('Come on, this is not a low rank estimator: %s' %
-                         mode)
+        assert mode == 'pca'
+        est = PCA
     est = est(**method_params)
     est.n_components = 1
     scores = np.empty_like(iter_n_components, dtype=np.float64)
@@ -1067,8 +1100,7 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
         if score != -np.inf:
             scores[ii] = score
 
-        if (ii >= 3 and np.all(np.diff(scores[ii - 3:ii]) < 0.) and
-           stop_early is True):
+        if (ii >= 3 and np.all(np.diff(scores[ii - 3:ii]) < 0) and stop_early):
             # early stop search when loglik has been going down 3 times
             logger.info('early stopping parameter search.')
             break
@@ -1092,11 +1124,12 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 ###############################################################################
 # Sklearn Estimators
 
+
 class _RegCovariance(BaseEstimator):
     """Aux class."""
 
-    def __init__(self, info, grad=0.01, mag=0.01, eeg=0., seeg=0., ecog=0.,
-                 hbo=0., hbr=0., store_precision=False,
+    def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
+                 hbo=0.1, hbr=0.1, store_precision=False,
                  assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
@@ -1128,7 +1161,7 @@ class _RegCovariance(BaseEstimator):
             cov_, self.info, proj=False, exclude='bads',
             grad=self.grad, mag=self.mag, eeg=self.eeg,
             ecog=self.ecog, seeg=self.seeg,
-            hbo=self.hbo, hbr=self.hbr)  # ~proj == important!!
+            hbo=self.hbo, hbr=self.hbr, rank='full')
         self.estimator_.covariance_ = self.covariance_ = cov_.data
         return self
 
@@ -1251,50 +1284,21 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
+    mask = np.ones(len(eig), bool)
     eig[:-rank] = 0.0
+    mask[:-rank] = False
 
-    logger.info('Setting small %s eigenvalues to zero.' % ch_type)
-    if not pca:  # No PCA case.
-        logger.info('Not doing PCA for %s.' % ch_type)
-    else:
-        logger.info('Doing PCA for %s.' % ch_type)
+    logger.info('    Setting small %s eigenvalues to zero (%s)'
+                % (ch_type, 'using PCA' if pca else 'without PCA'))
+    if pca:  # No PCA case.
         # This line will reduce the actual number of variables in data
         # and leadfield to the true rank.
         eigvec = eigvec[:-rank].copy()
-    return eig, eigvec
-
-
-def _get_whitener(noise_cov, info=None, ch_names=None, rank=None,
-                  pca=False, scalings=None, prepared=False):
-    #
-    #   Handle noise cov
-    #
-    if not prepared:
-        noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
-    n_chan = len(noise_cov['eig'])
-
-    #   Omit the zeroes due to projection
-    eig = noise_cov['eig'].copy()
-    nzero = (eig > 0)
-    eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
-    n_nzero = np.sum(nzero)
-
-    whitener = np.zeros((n_chan, 1), dtype=np.float)
-    whitener[nzero, 0] = 1.0 / np.sqrt(eig[nzero])
-    #   Rows of eigvec are the eigenvectors
-    whitener = whitener * noise_cov['eigvec']  # C ** -0.5
-    colorer = np.sqrt(eig) * noise_cov['eigvec'].T  # C ** 0.5
-    if pca:
-        whitener = whitener[nzero]
-        colorer = colorer[:, nzero]
-    logger.info('    Created the whitener using a noise covariance matrix '
-                'with rank %d (%d small eigenvalues omitted)'
-                % (n_nzero, noise_cov['dim'] - np.sum(nzero)))
-    return whitener, colorer, noise_cov, n_nzero
+    return eig, eigvec, mask
 
 
 @verbose
-def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
+def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
                       scalings=None, verbose=None):
     """Prepare noise covariance matrix.
 
@@ -1304,23 +1308,20 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         The noise covariance to process.
     info : dict
         The measurement info (used to get channel types and bad channels).
-    ch_names : list
-        The channel names to be considered.
-    rank : None | int | dict (default None)
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg', 'meg' or any other
-        data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality.
+    ch_names : list | None
+        The channel names to be considered. Can be None to use
+        ``info['ch_names']``.
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
     scalings : dict | None
         Data will be rescaled before rank estimation to improve accuracy.
         If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1328,101 +1329,101 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         A copy of the covariance with the good channels subselected
         and parameters updated.
     """
-    noise_cov_idx = [noise_cov.ch_names.index(c) for c in ch_names]
-    n_chan = len(ch_names)
+    # reorder C and info to match ch_names order
+    noise_cov_idx = list()
+    missing = list()
+    ch_names = info['ch_names'] if ch_names is None else ch_names
+    for c in ch_names:
+        # this could be try/except ValueError, but it is not the preferred way
+        if c in noise_cov.ch_names:
+            noise_cov_idx.append(noise_cov.ch_names.index(c))
+        else:
+            missing.append(c)
+    if len(missing):
+        raise RuntimeError('Not all channels present in noise covariance:\n%s'
+                           % missing)
     if not noise_cov['diag']:
         C = noise_cov.data[np.ix_(noise_cov_idx, noise_cov_idx)]
     else:
         C = np.diag(noise_cov.data[noise_cov_idx])
+    info = pick_info(info, pick_channels(info['ch_names'], ch_names))
+    projs = info['projs'] + noise_cov['projs']
+    noise_cov = Covariance(
+        data=C, names=ch_names, bads=list(noise_cov['bads']),
+        projs=deepcopy(noise_cov['projs']), nfree=noise_cov['nfree'],
+        method=noise_cov.get('method', None),
+        loglik=noise_cov.get('loglik', None))
 
+    eig, eigvec, _ = _smart_eigh(noise_cov, info, rank, scalings, projs,
+                                 ch_names)
+    noise_cov.update(eig=eig, eigvec=eigvec)
+    return noise_cov
+
+
+@verbose
+def _smart_eigh(C, info, rank, scalings=None, projs=None,
+                ch_names=None, proj_subspace=False, do_compute_rank=True,
+                verbose=None):
+    """Compute eigh of C taking into account rank and ch_type scalings."""
     scalings = _handle_default('scalings_cov_rank', scalings)
+    projs = info['projs'] if projs is None else projs
+    ch_names = info['ch_names'] if ch_names is None else ch_names
+    if info['ch_names'] != ch_names:
+        info = pick_info(info, [info['ch_names'].index(c) for c in ch_names])
+    assert info['ch_names'] == ch_names
+    n_chan = len(ch_names)
 
     # Create the projection operator
-    proj, ncomp, _ = make_projector(info['projs'] + noise_cov['projs'],
-                                    ch_names)
+    proj, ncomp, _ = make_projector(projs, ch_names)
+
+    if isinstance(C, Covariance):
+        C = C['data']
     if ncomp > 0:
         logger.info('    Created an SSP operator (subspace dimension = %d)'
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    picks_dict = dict(_picks_by_type(info, meg_combined=True,
-                                     ref_meg=False, exclude='bads'))
+    noise_cov = Covariance(C, ch_names, [], projs, 0)
+    if do_compute_rank:  # if necessary
+        rank = compute_rank(noise_cov, rank, scalings, info)
+    assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
-    ch_names_dict = dict()
-    out_idx_type = dict()
-    for ch_type, ch_picks in picks_dict.items():
-        ch_names_dict[ch_type] = [info['chs'][k]['ch_name'] for k in ch_picks]
-        out_idx_type[ch_type] = [k for k in range(len(C))
-                                 if ch_names[k] in ch_names_dict[ch_type]]
-
-    del picks_dict
-
-    # re-index based on ch_names order
-    ch_names_type = dict()
-    info_picks = dict()
-    for ch_type, ch_picks in out_idx_type.items():
-        ch_names_type[ch_type] = [ch_names[k] for k in ch_picks]
-        info_picks[ch_type] = []
-        if ch_names_type[ch_type]:
-            # as pick_channels return full list if include is []
-            info_picks[ch_type] = pick_channels(info['ch_names'],
-                                                ch_names_type[ch_type])
-
-        assert (len(info_picks[ch_type]) ==
-                len(ch_names_type[ch_type]) ==
-                len(out_idx_type[ch_type]))
-
-    assert(sum((len(v) for k, v in out_idx_type.items())) == n_chan)
-
-    eigvec = np.zeros((n_chan, n_chan))
+    # time saving short-circuit
+    if proj_subspace and sum(rank.values()) == C.shape[0]:
+        return np.ones(n_chan), np.eye(n_chan), np.ones(n_chan, bool)
     eig = np.zeros(n_chan)
-    has_type = dict()
-    for ch_type, ch_picks in out_idx_type.items():
-        has_type[ch_type] = len(ch_picks) > 0
-
-    # Get the specified noise covariance rank
-    ranks_type = {ch_type: None for ch_type in out_idx_type}
-    if rank is not None:
-        if isinstance(rank, dict):
-            for ch_type in out_idx_type:
-                ranks_type[ch_type] = rank.get(ch_type, None)
-        else:
-            ranks_type['meg'] = int(operator.index(rank))
-
-    for ch_type, this_has in has_type.items():
-        if not this_has:
+    eigvec = np.zeros((n_chan, n_chan))
+    mask = np.zeros(n_chan, bool)
+    for ch_type, picks in _picks_by_type(info, meg_combined=True,
+                                         ref_meg=False, exclude='bads'):
+        if len(picks) == 0:
             continue
-        this_picks = out_idx_type[ch_type]
-        this_C = C[np.ix_(this_picks, this_picks)]
-        this_info = pick_info(_simplify_info(info), info_picks[ch_type],
-                              copy=False)
-        this_rank = ranks_type[ch_type]
-        if ranks_type[ch_type] is None:
-            this_rank = _estimate_rank_meeg_cov(this_C, this_info, scalings)
-        eig[this_picks], eigvec[np.ix_(this_picks, this_picks)] = \
-            _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
+        this_C = C[np.ix_(picks, picks)]
 
+        if ch_type not in rank and ch_type in ('mag', 'grad'):
+            this_rank = rank['meg']  # if there is only one or the other
+        else:
+            this_rank = rank[ch_type]
+
+        e, ev, m = _get_ch_whitener(this_C, False, ch_type.upper(), this_rank)
+        if proj_subspace:
+            # Choose the subspace the same way we do for projections
+            e, ev = _eigvec_subspace(e, ev, m)
+        eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
         # XXX : also handle ref for sEEG and ECoG
         if ch_type == 'eeg' and _needs_eeg_average_ref_proj(info) and not \
-                _has_eeg_average_ref_proj(noise_cov['projs']):
+                _has_eeg_average_ref_proj(projs):
             warn('No average EEG reference present in info["projs"], '
                  'covariance may be adversely affected. Consider recomputing '
                  'covariance using with an average eeg reference projector '
                  'added.')
-
-    noise_cov = Covariance(
-        data=C, names=ch_names, bads=list(noise_cov['bads']),
-        projs=deepcopy(noise_cov['projs']),
-        nfree=noise_cov['nfree'], eig=eig, eigvec=eigvec,
-        method=noise_cov.get('method', None),
-        loglik=noise_cov.get('loglik', None))
-    return noise_cov
+    return eig, eigvec, mask
 
 
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
-               verbose=None):
+               rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
     This method works by adding a constant to the diagonal for each
@@ -1445,14 +1446,15 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     mag : float (default 0.1)
         Regularization factor for MEG magnetometers.
     grad : float (default 0.1)
-        Regularization factor for MEG gradiometers.
+        Regularization factor for MEG gradiometers. Must be the same as
+        `mag` if data have been processed with SSS.
     eeg : float (default 0.1)
         Regularization factor for EEG.
     exclude : list | 'bads' (default 'bads')
         List of channels to mark as bad. If 'bads', bads channels
         are extracted from both info['bads'] and cov['bads'].
-    proj : bool (default true)
-        Apply or not projections to keep rank of data.
+    proj : bool (default True)
+        Apply projections to keep rank of data.
     seeg : float (default 0.1)
         Regularization factor for sEEG signals.
     ecog : float (default 0.1)
@@ -1461,8 +1463,18 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for HBO signals.
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
-    verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(rank_None)s
+
+        .. versionadded:: 0.17
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
+    scalings : dict | None
+        Data will be rescaled before rank estimation to improve accuracy.
+        See :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.17
+    %(verbose)s
 
     Returns
     -------
@@ -1475,6 +1487,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     """  # noqa: E501
     cov = cov.copy()
     info._check_consistency()
+    scalings = _handle_default('scalings_cov_rank', scalings)
+    regs = dict(eeg=eeg, seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr)
 
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')
@@ -1483,7 +1497,21 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         exclude = info['bads'] + cov['bads']
 
     picks_dict = {ch_type: [] for ch_type in _DATA_CH_TYPES_SPLIT}
-    picks_dict.update(dict(_picks_by_type(info, exclude=exclude)))
+    meg_combined = 'auto' if rank != 'full' else False
+    picks_dict.update(dict(_picks_by_type(
+        info, meg_combined=meg_combined, exclude=exclude, ref_meg=False)))
+    if len(picks_dict.get('meg', [])) > 0 and rank != 'full':  # combined
+        if mag != grad:
+            raise ValueError('On data where magnetometers and gradiometers '
+                             'are dependent (e.g., SSSed data), mag (%s) must '
+                             'equal grad (%s)' % (mag, grad))
+        logger.info('Regularizing MEG channels jointly')
+        regs['meg'] = mag
+    else:
+        regs.update(mag=mag, grad=grad)
+    if rank != 'full':
+        rank = compute_rank(cov, rank, scalings, info)
+
     info_ch_names = info['ch_names']
     ch_names_by_type = dict()
     for ch_type, picks_type in picks_dict.items():
@@ -1512,35 +1540,40 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         projs = info['projs'] + cov_good['projs']
         projs = activate_proj(projs)
 
-    regs = dict(mag=mag, grad=grad, eeg=eeg,
-                seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr)
-
     for ch_type in idx_cov:
         desc = ch_type.upper()
         idx = idx_cov[ch_type]
+        if len(idx) == 0:
+            continue
         reg = regs[ch_type]
-
-        if len(idx) == 0 or reg == 0.0:
+        if reg == 0.0:
             logger.info("    %s regularization : None" % desc)
             continue
-
         logger.info("    %s regularization : %s" % (desc, reg))
 
         this_C = C[np.ix_(idx, idx)]
-        if proj:
-            this_ch_names = [ch_names[k] for k in idx]
-            P, ncomp, _ = make_projector(projs, this_ch_names)
-            U = linalg.svd(P)[0][:, :-ncomp]
-            if ncomp > 0:
-                logger.info('    Created an SSP operator for %s '
-                            '(dimension = %d)' % (desc, ncomp))
-                this_C = np.dot(U.T, np.dot(this_C, U))
+        U = np.eye(this_C.shape[0])
+        this_ch_names = [ch_names[k] for k in idx]
+        if rank == 'full':
+            if proj:
+                P, ncomp, _ = make_projector(projs, this_ch_names)
+                if ncomp > 0:
+                    # This adjustment ends up being redundant if rank is None:
+                    U = linalg.svd(P)[0][:, :-ncomp]
+                    logger.info('    Created an SSP operator for %s '
+                                '(dimension = %d)' % (desc, ncomp))
+        else:
+            this_picks = pick_channels(info['ch_names'], this_ch_names)
+            this_info = pick_info(info, this_picks)
+            # Here we could use proj_subspace=True, but this should not matter
+            # since this is already in a loop over channel types
+            _, eigvec, mask = _smart_eigh(this_C, this_info, rank)
+            U = eigvec[mask].T
+        this_C = np.dot(U.T, np.dot(this_C, U))
 
         sigma = np.mean(np.diag(this_C))
         this_C.flat[::len(this_C) + 1] += reg * sigma  # modify diag inplace
-        if proj and ncomp > 0:
-            this_C = np.dot(U, np.dot(this_C, U.T))
-
+        this_C = np.dot(U, np.dot(this_C, U.T))
         C[np.ix_(idx, idx)] = this_C
 
     # Put data back in correct locations
@@ -1550,7 +1583,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     return cov
 
 
-def _regularized_covariance(data, reg=None, method_params=None, info=None):
+def _regularized_covariance(data, reg=None, method_params=None, info=None,
+                            rank=None):
     """Compute a regularized covariance from data using sklearn.
 
     This is a convenience wrapper for mne.decoding functions, which
@@ -1574,41 +1608,41 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None):
         method_params = dict(shrinkage=dict(
             shrinkage=reg, assume_centered=True, store_precision=False))
         reg = 'shrinkage'
-    elif not isinstance(reg, string_types):
+    elif not isinstance(reg, str):
         raise ValueError('reg must be a float, str, or None, got %s (%s)'
                          % (reg, type(reg)))
-    method, method_params = _check_method_params(reg, method_params,
-                                                 name='reg', allow_auto=False)
-    info = create_info(data.shape[-2], 1000., 'eeg') if info is None else info
+    method, method_params = _check_method_params(
+        reg, method_params, name='reg', allow_auto=False, rank=rank)
+    # use mag instead of eeg here to avoid the cov EEG projection warning
+    info = create_info(data.shape[-2], 1000., 'mag') if info is None else info
     picks_list = _picks_by_type(info)
     scalings = _handle_default('scalings_cov_rank', None)
     cov = _compute_covariance_auto(
         data.T, method=method, method_params=method_params,
         info=info, cv=None, n_jobs=1, stop_early=True,
-        picks_list=picks_list, scalings=scalings)[reg]['data']
+        picks_list=picks_list, scalings=scalings,
+        rank=rank)[reg]['data']
     return cov
 
 
 @verbose
-def compute_whitener(noise_cov, info, picks=None, rank=None,
-                     scalings=None, return_rank=False,
-                     verbose=None):
+def compute_whitener(noise_cov, info=None, picks=None, rank=None,
+                     scalings=None, return_rank=False, pca=False,
+                     return_colorer=False, verbose=None):
     """Compute whitening matrix.
 
     Parameters
     ----------
     noise_cov : Covariance
         The noise covariance.
-    info : dict
-        The measurement info.
-    picks : array-like of int | None
-        The channels indices to include. If None the MEG and EEG
-        channels in info, except bad channels, are used.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
+    info : dict | None
+        The measurement info. Can be None if `noise_cov` has already been
+        prepared with :func:`prepare_noise_cov`.
+    %(picks_good_data_noref)s
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
     scalings : dict | None
         The rescaling method to be applied. See documentation of
         ``prepare_noise_cov`` for details.
@@ -1616,42 +1650,84 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         If True, return the rank used to compute the whitener.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    pca : bool | str
+        Space to project the data into. Options:
+
+        :data:`python:True`
+            Whitener will be shape (n_nonzero, n_channels).
+        ``'white'``
+            Whitener will be shape (n_channels, n_channels), potentially rank
+            deficient, and have the first ``n_channels - n_nonzero`` rows and
+            columns set to zero.
+        :data:`python:False` (default)
+            Whitener will be shape (n_channels, n_channels), potentially rank
+            deficient, and rotated back to the space of the original data.
+
+        .. versionadded:: 0.18
+    return_colorer : bool
+        If True, return the colorer as well.
+    %(verbose)s
 
     Returns
     -------
-    W : 2d array
+    W : ndarray, shape (n_channels, n_channels) or (n_nonzero, n_channels)
         The whitening matrix.
     ch_names : list
         The channel names.
     rank : int
         Rank reduction of the whitener. Returned only if return_rank is True.
-    """
-    if picks is None:
-        # If this changes, we will need to change _setup_plot_projector, too:
-        picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')
+    colorer : ndarray, shape (n_channels, n_channels) or (n_channels, n_nonzero)
+        The coloring matrix.
+    """  # noqa: E501
+    _validate_type(pca, (str, bool), 'space')
+    _valid_pcas = (True, 'white', False)
+    if pca not in _valid_pcas:
+        raise ValueError('space must be one of %s, got %s'
+                         % (_valid_pcas, pca))
+    if info is None:
+        if 'eig' not in noise_cov:
+            raise ValueError('info can only be None if the noise cov has '
+                             'already been prepared with prepare_noise_cov')
+        ch_names = deepcopy(noise_cov['names'])
+    else:
+        picks = _picks_to_idx(info, picks, with_ref_meg=False)
+        ch_names = [info['ch_names'][k] for k in picks]
+        del picks
+        noise_cov = prepare_noise_cov(
+            noise_cov, info, ch_names, rank, scalings)
 
-    ch_names = [info['ch_names'][k] for k in picks]
+    n_chan = len(ch_names)
+    assert n_chan == len(noise_cov['eig'])
 
-    # XXX this relies on pick_channels, which does not respect order,
-    # so this could create problems if users have reordered their data
-    noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
-    if len(noise_cov['data']) != len(ch_names):
-        missing = list(set(ch_names) - set(noise_cov['names']))
-        raise RuntimeError('Not all channels present in noise covariance:\n%s'
-                           % missing)
+    #   Omit the zeroes due to projection
+    eig = noise_cov['eig'].copy()
+    nzero = (eig > 0)
+    eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
 
-    scalings = _handle_default('scalings_cov_rank', scalings)
-    W, _, noise_cov, n_nzero = _get_whitener(
-        noise_cov, info, ch_names, rank, pca=False, scalings=scalings)
+    W = np.zeros((n_chan, 1), dtype=np.float)
+    W[nzero, 0] = 1.0 / np.sqrt(eig[nzero])
+    #   Rows of eigvec are the eigenvectors
+    W = W * noise_cov['eigvec']  # C ** -0.5
+    C = np.sqrt(eig) * noise_cov['eigvec'].T  # C ** 0.5
+    n_nzero = nzero.sum()
+    logger.info('    Created the whitener using a noise covariance matrix '
+                'with rank %d (%d small eigenvalues omitted)'
+                % (n_nzero, noise_cov['dim'] - n_nzero))
 
-    # Do the back projection
-    W = np.dot(noise_cov['eigvec'].T, W)
+    # Do the requested projection
+    if pca is True:
+        W = W[nzero]
+        C = C[:, nzero]
+    elif pca is False:
+        W = np.dot(noise_cov['eigvec'].T, W)
+        C = np.dot(C, noise_cov['eigvec'])
+
+    # Triage return
     out = W, ch_names
     if return_rank:
         out += (n_nzero,)
+    if return_colorer:
+        out += (C,)
     return out
 
 
@@ -1666,17 +1742,13 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         The evoked data
     noise_cov : instance of Covariance
         The noise covariance
-    picks : array-like of int | None
-        The channel indices to whiten. Can be None to whiten any data channel
-        such as MEG and EEG data.
+    %(picks_good_data)s
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
-    rank : None | int | dict (default None)
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg', 'meg' or any other
-        data channel type such as 'seeg' or 'ecog' can be used
-        to specify the rank for each modality.
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+           Support for 'info' mode.
     scalings : dict | None (default None)
         To achieve reliable rank estimation on multiple sensors,
         sensors have to be rescaled. This parameter controls the
@@ -1685,9 +1757,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1695,15 +1765,13 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         The whitened evoked data.
     """
     evoked = evoked.copy()
-    if picks is None:
-        picks = pick_types(evoked.info, meg=True, eeg=True, seeg=True,
-                           ecog=True)
+    picks = _picks_to_idx(evoked.info, picks)
 
     if diag:
         noise_cov = noise_cov.as_diag()
 
-    W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
-                               rank=rank, scalings=scalings)
+    W, _ = compute_whitener(noise_cov, evoked.info, picks=picks,
+                            rank=rank, scalings=scalings)
 
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
@@ -1873,175 +1941,3 @@ def _write_cov(fid, cov):
 
     #   Done!
     end_block(fid, FIFF.FIFFB_MNE_COV)
-
-
-def _apply_scaling_array(data, picks_list, scalings):
-    """Scale data type-dependently for estimation."""
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
-    if isinstance(scalings, dict):
-        picks_dict = dict(picks_list)
-        scalings = [(picks_dict[k], v) for k, v in scalings.items()
-                    if k in picks_dict]
-        for idx, scaling in scalings:
-            data[idx, :] *= scaling  # F - order
-    else:
-        data *= scalings[:, np.newaxis]  # F - order
-
-
-def _invert_scalings(scalings):
-    if isinstance(scalings, dict):
-        scalings = dict((k, 1. / v) for k, v in scalings.items())
-    elif isinstance(scalings, np.ndarray):
-        scalings = 1. / scalings
-    return scalings
-
-
-def _undo_scaling_array(data, picks_list, scalings):
-    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
-                                                      scalings))
-    return _apply_scaling_array(data, picks_list, scalings)
-
-
-def _apply_scaling_cov(data, picks_list, scalings):
-    """Scale resulting data after estimation."""
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
-    scales = None
-    if isinstance(scalings, dict):
-        n_channels = len(data)
-        covinds = list(zip(*picks_list))[1]
-        assert len(data) == sum(len(k) for k in covinds)
-        assert list(sorted(np.concatenate(covinds))) == list(range(len(data)))
-        scales = np.zeros(n_channels)
-        for ch_t, idx in picks_list:
-            scales[idx] = scalings[ch_t]
-    elif isinstance(scalings, np.ndarray):
-        if len(scalings) != len(data):
-            raise ValueError('Scaling factors and data are of incompatible '
-                             'shape')
-        scales = scalings
-    elif scalings is None:
-        pass
-    else:
-        raise RuntimeError('Arff...')
-    if scales is not None:
-        assert np.sum(scales == 0.) == 0
-        data *= (scales[None, :] * scales[:, None])
-
-
-def _undo_scaling_cov(data, picks_list, scalings):
-    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
-                                                      scalings))
-    return _apply_scaling_cov(data, picks_list, scalings)
-
-
-def _check_scaling_inputs(data, picks_list, scalings):
-    """Aux function."""
-    rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
-
-    scalings_ = None
-    if isinstance(scalings, string_types) and scalings == 'norm':
-        scalings_ = 1. / _compute_row_norms(data)
-    elif isinstance(scalings, dict):
-        rescale_dict_.update(scalings)
-        scalings_ = rescale_dict_
-    elif isinstance(scalings, np.ndarray):
-        scalings_ = scalings
-    elif scalings is None:
-        pass
-    else:
-        raise NotImplementedError("No way! That's not a rescaling "
-                                  'option: %s' % scalings)
-    return scalings_
-
-
-def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
-                                return_singular=False):
-    """Estimate rank for M/EEG data.
-
-    Parameters
-    ----------
-    data : np.ndarray of float, shape(n_channels, n_samples)
-        The M/EEG signals.
-    info : Info
-        The measurement info.
-    scalings : dict | 'norm' | np.ndarray | None
-        The rescaling method to be applied. If dict, it will override the
-        following default dict:
-
-            dict(mag=1e15, grad=1e13, eeg=1e6)
-
-        If 'norm' data will be scaled by channel-wise norms. If array,
-        pre-specified norms will be used. If None, no scaling will be applied.
-    tol : float | str
-        Tolerance. See ``estimate_rank``.
-    return_singular : bool
-        If True, also return the singular values that were used
-        to determine the rank.
-
-    Returns
-    -------
-    rank : int
-        Estimated rank of the data.
-    s : array
-        If return_singular is True, the singular values that were
-        thresholded to determine the rank are also returned.
-    """
-    picks_list = _picks_by_type(info)
-    _apply_scaling_array(data, picks_list, scalings)
-    if data.shape[1] < data.shape[0]:
-        ValueError("You've got fewer samples than channels, your "
-                   "rank estimate might be inaccurate.")
-    out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular)
-    rank = out[0] if isinstance(out, tuple) else out
-    ch_type = ' + '.join(list(zip(*picks_list))[0])
-    logger.info('estimated rank (%s): %d' % (ch_type, rank))
-    _undo_scaling_array(data, picks_list, scalings)
-    return out
-
-
-def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
-                            return_singular=False):
-    """Estimate rank of M/EEG covariance data, given the covariance.
-
-    Parameters
-    ----------
-    data : np.ndarray of float, shape (n_channels, n_channels)
-        The M/EEG covariance.
-    info : Info
-        The measurement info.
-    scalings : dict | 'norm' | np.ndarray | None
-        The rescaling method to be applied. If dict, it will override the
-        following default dict:
-
-            dict(mag=1e12, grad=1e11, eeg=1e5)
-
-        If 'norm' data will be scaled by channel-wise norms. If array,
-        pre-specified norms will be used. If None, no scaling will be applied.
-    tol : float | str
-        Tolerance. See ``estimate_rank``.
-    return_singular : bool
-        If True, also return the singular values that were used
-        to determine the rank.
-
-    Returns
-    -------
-    rank : int
-        Estimated rank of the data.
-    s : array
-        If return_singular is True, the singular values that were
-        thresholded to determine the rank are also returned.
-    """
-    picks_list = _picks_by_type(info)
-    scalings = _handle_default('scalings_cov_rank', scalings)
-    _apply_scaling_cov(data, picks_list, scalings)
-    if data.shape[1] < data.shape[0]:
-        ValueError("You've got fewer samples than channels, your "
-                   "rank estimate might be inaccurate.")
-    out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular)
-    rank = out[0] if isinstance(out, tuple) else out
-    ch_type = ' + '.join(list(zip(*picks_list))[0])
-    logger.info('estimated rank (%s): %d' % (ch_type, rank))
-    _undo_scaling_cov(data, picks_list, scalings)
-    return out

@@ -1,15 +1,15 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 # License: BSD (3-clause)
 
-from ..externals.six.moves import queue
+import queue
 import time
 import socket
-from ..externals.six.moves import socketserver
+import socketserver
 import threading
 
 import numpy as np
 
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fill_doc
 
 
 class _ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -133,10 +133,7 @@ class StimServer(object):
         ----------
         timeout : float
             Maximum time to wait for clients to be added.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
         """
         # Start server
         if not self._running:
@@ -164,10 +161,7 @@ class StimServer(object):
             IP address of the client.
         sock : instance of socket.socket
             The client socket.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
         """
         logger.info("Adding client with ip = %s" % ip)
 
@@ -182,10 +176,7 @@ class StimServer(object):
 
         Parameters
         ----------
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
         """
         logger.info("Shutting down ...")
 
@@ -208,10 +199,7 @@ class StimServer(object):
         ----------
         trigger : int
             The trigger to be added to the queue for sending to StimClient.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         See Also
         --------
@@ -224,6 +212,7 @@ class StimServer(object):
             client['socket']._tx_queue.put(trigger)
 
 
+@fill_doc
 class StimClient(object):
     """Stimulation Client.
 
@@ -237,9 +226,7 @@ class StimClient(object):
         Port to use for the connection.
     timeout : float
         Communication timeout in seconds.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -285,10 +272,7 @@ class StimClient(object):
         ----------
         timeout : float
             maximum time to wait for a valid trigger from the server
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         See Also
         --------
@@ -302,8 +286,8 @@ class StimClient(object):
 
                 # Raise timeout error
                 if current_time > (start_time + timeout):
-                        logger.info("received nothing")
-                        return None
+                    logger.info("received nothing")
+                    return None
 
                 self._sock.send("get trigger".encode('utf-8'))
                 trigger = self._sock.recv(1024)

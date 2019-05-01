@@ -116,6 +116,7 @@ def test_magnetic_dipole():
     assert not np.isfinite(fwd).any()
 
 
+@pytest.mark.timeout(60)  # can take longer than 30 sec on Travis
 @testing.requires_testing_data
 @requires_mne
 def test_make_forward_solution_kit():
@@ -242,6 +243,7 @@ def test_make_forward_solution_discrete():
 
 @testing.requires_testing_data
 @requires_mne
+@pytest.mark.timeout(90)  # can take longer than 60 sec on Travis
 def test_make_forward_solution_sphere():
     """Test making a forward solution with a sphere model."""
     temp_dir = _TempDir()
@@ -371,7 +373,7 @@ def test_make_forward_dipole():
     # Now simulate evoked responses for each of the test dipoles,
     # and fit dipoles to them (sphere model, MEG and EEG)
     times, pos, amplitude, ori, gof = [], [], [], [], []
-    nave = 100  # add a tiny amount of noise to the simulated evokeds
+    nave = 200  # add a tiny amount of noise to the simulated evokeds
     for s in stc:
         evo_test = simulate_evoked(fwd, s, info, cov,
                                    nave=nave, random_state=rng)

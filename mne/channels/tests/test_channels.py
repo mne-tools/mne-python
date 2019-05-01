@@ -236,8 +236,7 @@ def test_1020_selection():
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname = op.join(base_dir, 'test_raw.set')
     loc_fname = op.join(base_dir, 'test_chans.locs')
-    with pytest.warns(RuntimeWarning, match='Events .* dropped'):
-        raw = read_raw_eeglab(raw_fname, montage=loc_fname)
+    raw = read_raw_eeglab(raw_fname, montage=loc_fname)
 
     for input in ("a_string", 100, raw, [1, 2]):
         pytest.raises(TypeError, make_1020_channel_selections, input)
@@ -292,6 +291,15 @@ def test_find_ch_connectivity():
     assert 'MLC11' in ch_names
 
     pytest.raises(ValueError, find_ch_connectivity, raw.info, 'eog')
+
+
+def test_drop_channels():
+    """Test if dropping channels works with various arguments."""
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw.drop_channels(["MEG 0111"])  # list argument
+    raw.drop_channels("MEG 0112")  # str argument
+    pytest.raises(ValueError, raw.drop_channels, ["MEG 0111", 5])
+    pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
 
 
 run_tests_if_main()

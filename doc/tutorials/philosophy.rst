@@ -9,16 +9,16 @@ One of the first things you might be wondering about is how to get your
 data into mne. Assuming that you have unprocessed data, you will probably
 be happy with at least one of these readers:
 
-* :func:`read_raw_fif <mne.io.read_raw_fif>`
-* :func:`read_raw_kit <mne.io.read_raw_kit>`
-* :func:`read_raw_bti <mne.io.read_raw_bti>`
-* :func:`read_raw_ctf <mne.io.read_raw_ctf>`
-* :func:`read_raw_brainvision <mne.io.read_raw_brainvision>`
-* :func:`read_raw_cnt <mne.io.read_raw_cnt>`
-* :func:`read_raw_edf <mne.io.read_raw_edf>`
-* :func:`read_raw_eeglab <mne.io.read_raw_eeglab>`
-* :func:`read_raw_egi <mne.io.read_raw_egi>`
-* :func:`read_raw_nicolet <mne.io.read_raw_nicolet>`
+* :func:`~mne.io.read_raw_fif`
+* :func:`~mne.io.read_raw_kit`
+* :func:`~mne.io.read_raw_bti`
+* :func:`~mne.io.read_raw_ctf`
+* :func:`~mne.io.read_raw_brainvision`
+* :func:`~mne.io.read_raw_cnt`
+* :func:`~mne.io.read_raw_edf`
+* :func:`~mne.io.read_raw_eeglab`
+* :func:`~mne.io.read_raw_egi`
+* :func:`~mne.io.read_raw_nicolet`
 
 They all have in common to return an :class:`mne.io.Raw`-like object.
 See :ref:`ch_convert`.
@@ -87,7 +87,7 @@ Besides ``.ch_names`` another important attribute is ``.info``. It contains
 the channel information and some details about the processing history.
 This is especially relevant if your data cannot be read using the io
 functions listed above. You then need to learn how to create an info.
-See :ref:`tut_info_objects`.
+See :ref:`sphx_glr_auto_tutorials_plot_info.py`.
 
 4. MNE is modular
 -----------------

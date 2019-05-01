@@ -39,8 +39,8 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 # First we compute the noise using empty room recording. Note that you can also
 # use only a part of the recording with tmin and tmax arguments. That can be
 # useful if you use resting state as a noise baseline. Here we use the whole
-# empty room recording to compute the noise covariance (tmax=None is the same
-# as the end of the recording, see :func:`mne.compute_raw_covariance`).
+# empty room recording to compute the noise covariance (``tmax=None`` is the
+# same as the end of the recording, see :func:`mne.compute_raw_covariance`).
 #
 # Keep in mind that you want to match your empty room dataset to your
 # actual MEG data, processing-wise. Ensure that filters
@@ -88,6 +88,8 @@ noise_cov.plot(raw_empty_room.info, proj=True)
 noise_cov_baseline.plot(epochs.info, proj=True)
 
 ###############################################################################
+# .. _plot_compute_covariance_howto:
+#
 # How should I regularize the covariance matrix?
 # ----------------------------------------------
 #
@@ -102,7 +104,8 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # described in [1]_. For this the 'auto' option can be used. With this
 # option cross-validation will be used to learn the optimal regularization:
 
-noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto')
+noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto',
+                                       rank=None)
 
 ###############################################################################
 # This procedure evaluates the noise covariance quantitatively by how well it
@@ -145,7 +148,8 @@ evoked.plot_white(noise_cov_reg, time_unit='s')
 # :ref:`sphx_glr_auto_examples_inverse_plot_covariance_whitening_dspm.py`):
 
 noise_covs = mne.compute_covariance(
-    epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True)
+    epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True,
+    rank=None)
 evoked.plot_white(noise_covs, time_unit='s')
 
 
@@ -156,15 +160,13 @@ evoked.plot_white(noise_covs, time_unit='s')
 
 ##############################################################################
 # Finally, let's have a look at the difference between empty room and
-# event related covariance.
+# event related covariance, hacking the "method" option so that their types
+# are shown in the legend of the plot.
 
-evoked_meg = evoked.copy().pick_types(meg=True, eeg=False)
-noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
+evoked_meg = evoked.copy().pick('meg')
 noise_cov['method'] = 'empty_room'
-noise_cov_meg['method'] = 'baseline'
-
-evoked_meg.plot_white([noise_cov_meg, noise_cov], time_unit='s')
-
+noise_cov_baseline['method'] = 'baseline'
+evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
 
 ##############################################################################
 # Based on the negative log-likelihood, the baseline covariance

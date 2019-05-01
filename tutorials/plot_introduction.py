@@ -60,7 +60,7 @@ See :ref:`install_python_and_mne_python`.
 From raw data to evoked data
 ----------------------------
 
-.. _ipython: http://ipython.scipy.org/
+.. _ipython: https://ipython.org/
 
 Now, launch `ipython`_ (Advanced Python shell) using the QT backend, which
 is best supported across systems:
@@ -151,9 +151,7 @@ raw.plot()
 ##############################################################################
 # Save a segment of 150s of raw data (MEG only):
 
-picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                       exclude='bads')
-raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks,
+raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks='meg',
          overwrite=True)
 
 ##############################################################################
@@ -189,9 +187,10 @@ tmax = 0.5  # end of each epoch (500ms after the trigger)
 raw.info['bads'] += ['MEG 2443', 'EEG 053']
 
 ##############################################################################
-# The variable raw.info['bads'] is just a python list.
+# The variable ``raw.info['bads']`` is just a Python list.
 #
-# Pick the good channels, excluding raw.info['bads']:
+# You can get indices corresponding to the good channels,
+# excluding ``raw.info['bads']``:
 
 picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False,
                        exclude='bads')
@@ -216,7 +215,8 @@ reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 ##############################################################################
 # Read epochs:
 
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                    picks=('meg', 'eeg', 'eog'),  # or could pass "picks" here
                     baseline=baseline, preload=False, reject=reject)
 print(epochs)
 
@@ -240,7 +240,7 @@ io.savemat('epochs_data.mat', dict(epochs_data=epochs_data), oned_as='row')
 # or if you want to keep all the information about the data you can save your
 # epochs in a fif file:
 
-epochs.save('sample-epo.fif')
+epochs.save('sample-epo.fif', overwrite=True)
 
 ##############################################################################
 # and read them later with:
@@ -280,11 +280,10 @@ evoked2 = mne.read_evokeds(
 # This function can use ``weights='equal'``, which provides a simple
 # element-by-element subtraction (and sets the
 # ``mne.Evoked.nave`` attribute properly based on the underlying number
-# of trials) using either equivalent call:
+# of trials) using:
 
-contrast = mne.combine_evoked([evoked1, evoked2], weights=[0.5, -0.5])
-contrast = mne.combine_evoked([evoked1, -evoked2], weights='equal')
-print(contrast)
+contrast_b = mne.combine_evoked([evoked1, -evoked2], weights='equal')
+print(contrast_b)
 
 ##############################################################################
 # To do a weighted sum based on the number of averages, which will give
@@ -293,7 +292,7 @@ print(contrast)
 # you can use ``weights='nave'``:
 
 average = mne.combine_evoked([evoked1, evoked2], weights='nave')
-print(contrast)
+print(average)
 
 ##############################################################################
 # Instead of dealing with mismatches in the number of averages, we can use
@@ -400,6 +399,6 @@ stc.save('mne_dSPM_raw_inverse_Aud')
 # Want to know more ?
 # ^^^^^^^^^^^^^^^^^^^
 #
-# Browse `the examples gallery <auto_examples/index.html>`_.
+# Browse :ref:`the examples gallery <sphx_glr_auto_examples>`.
 
 print("Done!")

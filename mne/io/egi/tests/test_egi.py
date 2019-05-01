@@ -185,4 +185,16 @@ def test_io_egi_pns_mff_bug():
         assert_array_equal(mat_data, raw_data)
 
 
+@requires_testing_data
+def test_io_egi_crop_no_preload():
+    """Test crop non-preloaded EGI MFF data (BUG)."""
+    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
+    raw = read_raw_egi(egi_fname_mff, preload=False)
+    raw.crop(17.5, 20.5)
+    raw.load_data()
+    raw_preload = read_raw_egi(egi_fname_mff, preload=True)
+    raw_preload.crop(17.5, 20.5)
+    raw_preload.load_data()
+    assert_allclose(raw._data, raw_preload._data)
+
 run_tests_if_main()

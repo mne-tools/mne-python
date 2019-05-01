@@ -2,290 +2,179 @@
 
 .. _install_mne_c:
 
-Install MNE-C
--------------
+Installing MNE-C
+================
 
-The MNE-C commands can be downloaded
-`here <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_.
-The :ref:`c_reference` gives an overview of the MNE-C tools.
-
-.. contents:: Contents
+.. contents::
    :local:
    :depth: 1
 
-System requirements and installation
-####################################
+System requirements
+^^^^^^^^^^^^^^^^^^^
 
-The MNE-C runs on Mac OSX and LINUX, and requires:
+MNE-C runs on macOS (version 10.5 "Leopard" or later) and Linux (kernel 2.6.9
+or later). Both 32- and 64-bit operating systems are supported; a PowerPC
+version for macOS can be provided upon request. At least 2 GB of memory is
+required, 4 GB or more is recommended. The software requires at least 80 MB of
+disk space. MATLAB is an optional dependency; the free `MATLAB runtime`_ is
+sufficient. If MATLAB is not present, the utilities ``mne_convert_mne_data``,
+``mne_epochs2mat``, ``mne_raw2mat``, and ``mne_simu`` will not work.
 
-- Mac OSX version 10.5 (Leopard) or later.
-- LINUX kernel 2.6.9 or later
-- On both LINUX and Mac OSX 32-bit and 64-bit Intel platforms
-  are supported. PowerPC version on Mac OSX can be provided upon request.
-- At least 2 GB of memory, 4 GB or more recommended.
-- Disk space required for the MNE software: 80 MB
-- Additional open source software on Mac OSX, see :ref:`BABDBCJE`.
+For boundary-element model (BEM) mesh generation (see :doc:`Creating the BEM
+meshes <manual/appendix/bem_model>`), and for accessing the ``tkmedit`` program
+from ``mne_analyze`` (see :ref:`CACCHCBF`), MNE-C needs access to a working
+installation of :doc:`FreeSurfer <install_freesurfer>`, including the
+environment variables ``FREESURFER_HOME``, ``SUBJECTS_DIR``, and ``SUBJECT``.
 
-The MNE software is distributed as a compressed tar archive
-(Mac OSX and LINUX) or a Mac OSX disk image (dmg).
+.. admonition:: |apple| macOS
+  :class: note
 
-The file names follow the convention:
+  For installation on macOS, you also need:
 
-::
+  - the `XCode developer tools`_.
+  - an X Window System such as XQuartz_. Specifically, you need version 2.7.9
+    of XQuartz; the most current version (2.7.11, as of Feb. 2019) will not
+    work.
+  - the netpbm_ library. The recommended way to get netpbm is to install
+    Homebrew_, and run ``brew install netpbm`` in the Terminal app.
+    Alternatively, if you prefer to use MacPorts_, you can run
+    ``sudo port install netpbm`` in the Terminal app.
 
-  MNE-* <*version*>*- <*rev*> -* <*Operating system*>*-* <*Processor*>*.* <*ext*>*
 
-The present version number is 2.7.4. The <*rev*> field
-is the SVN revision number at the time this package was created.
-The <*Operating system*> field
-is either Linux or MacOSX. The <*processor*> field
-is either i386 or x86_64. The <*ext*> field
-is 'gz' for compressed tar archive files and 'dmg' for
-Mac OSX disk images.
+Downloading and Installing MNE-C
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Installing from a compressed tar archive
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MNE-C is distributed as either a compressed tar archive (.tar.gz) or a macOS
+disk image (.dmg). The `MNE-C download page`_ requires registration with a
+valid email address.  The current stable version is 2.7.3; "nightly" builds of
+the development version are also available on the download page.
 
-Go to the directory where you want the software to be installed:
+To install from the compressed tar archive, change directory to the desired
+install location, and unpack the software using ``tar``:
 
 .. code-block:: console
 
-    $ cd <dir>
+    $ cd <path_to_desired_install_location>
+    $ tar zxvf <path_to_archive_file>
 
-Unpack the tar archive:
-
-.. code-block:: console
-
-    $ tar zxvf <software package>
-
-The name of the software directory under <*dir*> will
-be the same as the package file without the .gz extension.
-
-Installing from a Mac OSX disk image
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-- Double click on the disk image file.
-  A window opens with the installer package ( <*name*> .pkg)
-  inside.
-
-- Double click the the package file. The installer starts.
-
-- Follow the instructions in the installer.
-
-.. note::
-
-    The software will be installed to /Applications/ <*name*> by default.
-    If you want another location, select Choose Folder... on the Select a
-    Destination screen in the installer.
+To install from the macOS disk image, double-click the downloaded .dmg file. In
+the window that opens, double-click the installer package file (.pkg) to launch
+the installer, and follow its instructions. In newer versions of macOS, if you
+see an error that the app is from an untrusted developer, you can override this
+warning by opening it anyway from the Security & Privacy pane within the
+computer's System Preferences.
 
 .. _user_environment:
 
-Setting up MNE-C environment
-############################
+Configuring MNE-C
+^^^^^^^^^^^^^^^^^
 
-Your system-dependent path to the MNE Software will be referred to by
-the environment variable MNE_ROOT. 
+MNE-C requires two environment variables to be defined manually:
 
-Your system-dependent path to MATLAB Software will be referred to by
-the environment variable MATLAB_ROOT.
+- ``MNE_ROOT`` should give the path to the folder where MNE-C is installed
+- ``MATLAB_ROOT`` should give the path to your MATLAB binary (e.g.,
+  ``/opt/MATLAB/R2018b`` or similar).  If you do not have MATLAB or the MATLAB
+  runtime, leave ``MATLAB_ROOT`` undefined.
 
-You can download a free runtime distribution of Matlab with the libraries
-necessary to run Matlab code from,
-https://www.mathworks.com/products/compiler/matlab-runtime.html
-
-If you do not have a Matlab distribution, then leave MATLAB_ROOT undefined.
-Please note however that if Matlab is not available, the utilities
-mne_convert_mne_data, mne_epochs2mat, mne_raw2mat, and mne_simu will not work.
-
-To setup the MNE environment, a script must be sourced into your current shell.
-The result will be that additional environment variables like MNE_LIB_PATH
-will be set in your current shell in order to run the MNE Software.
-
-A note about source-ing scripts with "source" and "." (dot). The hash bang at
-the top of a script tells exec what shell to use by default to interpret the
-script. But the hash bang line is ignored when you source a script via either
-the builtin "source" or "." directive.  So there needs to be a setup script
-compatible with your current shell, i.e., if you use csh you cannot source a
-bash script.  (BTW, the "." (dot) directive will search for the script in 
-$PATH if there is no slash in the script argument while "source" does not 
-search $PATH).
-
-For Bourne or bash compatible shells, e.g., sh/bash/zsh, the script to source
-is ``$MNE_ROOT/bin/mne_setup_sh``.
-
-For C shells, e.g., csh/tcsh, the script to source
-is ``$MNE_ROOT/bin/mne_setup``.
-
-The SHELL variable should already be set in your current shell by your login or
-profile init file.  You can echo $SHELL on the command line to see what type of
-shell you are using with:
+Other environment variables are defined by setup scripts provided with MNE-C.
+You may either run the setup script each time you use MNE-C, or (recommended)
+configure your shell to run it automatically each time you open a terminal. For
+bash compatible shells, e.g., sh/bash/zsh, the script to source is
+``$MNE_ROOT/bin/mne_setup_sh``.  For C shells, e.g., csh/tcsh, the script to
+source is ``$MNE_ROOT/bin/mne_setup``.  If you don't know what shell you are
+using, you can run the following command to find out:
 
 .. code-block:: console
 
     $ echo $SHELL
 
-If the output indicates a POSIX shell ``bash`` or ``sh`` then you should export
-variables and source the bash/sh setup file with three commands:
+To configure MNE-C automatically for ``bash`` or ``sh`` shells, add this to
+your ``.bashrc``:
 
-.. code-block:: console
+.. code-block:: sh
 
-    $ export MNE_ROOT=<MNE>
-    $ export MATLAB_ROOT=<Matlab>
-    $ . $MNE_ROOT/bin/mne_setup_sh
+    export MNE_ROOT=<path_to_MNE>
+    export MATLAB_ROOT=<path_to_MATLAB>
+    source $MNE_ROOT/bin/mne_setup_sh
 
-where ``<MNE>`` is replaced by the absolute path to where you have installed
-the MNE software. This path will be the parent path to the ./bin and ./lib
-subdirecotries in the MNE distribution. Or the command
-"ls $MNE_ROOT/bin/mne_setup_sh" should succeed if you have set MNE_ROOT
-correctly.
+where ``<path_to_MNE>`` and ``<path_to_MATLAB>`` are replaced by the absolute
+paths to MNE-C and MATLAB, respectively. If you don't have MATLAB, you should
+still include the ``export MATLAB_ROOT=`` statement, but leave
+``<path_to_MATLAB>`` blank.
 
-If you do not have a Matlab distribution, then leave MATLAB_ROOT undefined.
+To configure MNE-C automatically for ``zsh``, use the built-in ``emulate``
+command in your ``.zshrc`` file:
 
-For the bash compatible ``zsh`` use the builtin emulate command to source
-the bash/sh setup script (after exporting variables):
+.. code-block:: sh
 
-.. code-block:: console
+    export MNE_ROOT=<path_to_MNE>
+    export MATLAB_ROOT=<path_to_MATLAB>
+    emulate sh -c 'source $MNE_ROOT/bin/mne_setup_sh'
 
-    $ export MNE_ROOT=<MNE>
-    $ export MATLAB_ROOT=<Matlab>
-    $ emulate sh -c 'source $MNE_ROOT/bin/mne_setup_sh'
+To configure MNE-C automatically for ``csh`` or ``tcsh`` shells, the
+corresponding commands in the ``.cshrc`` / ``.tcshrc`` file are:
 
-For ``csh`` or ``tcsh`` shell, the corresponding commands are:
+.. code-block:: tcsh
 
-.. code-block:: console
+    setenv MNE_ROOT <path_to_MNE>
+    setenv MATLAB_ROOT <path_to_MATLAB>
+    source $MNE_ROOT/bin/mne_setup
 
-    $ setenv MNE_ROOT <MNE>
-    $ setenv MATLAB_ROOT <Matlab>
-    $ source $MNE_ROOT/bin/mne_setup
+If you have done this correctly, the command ``ls $MNE_ROOT/bin/mne_setup_sh``
+should succeed when run in a new terminal.
 
+Testing MNE-C installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For BEM mesh generation using the watershed algorithm or
-on the basis of multi-echo FLASH MRI data (see :ref:`create_bem_model`) and
-for accessing the tkmedit program
-from mne_analyze, see :ref:`CACCHCBF`,
-the MNE software needs access to a FreeSurfer license
-and software. Therefore, to use these features it is mandatory that
-you set up the FreeSurfer environment
-as described in the FreeSurfer documentation.
-
-The environment variables relevant to the MNE software are
-listed in :ref:`CIHDGFAA`.
-
-.. tabularcolumns:: |p{0.3\linewidth}|p{0.55\linewidth}|
-.. _CIHDGFAA:
-.. table:: Environment variables
-
-    +-------------------------+--------------------------------------------+
-    | Name of the variable    |   Description                              |
-    +=========================+============================================+
-    | ``MNE_ROOT``            | Location of the MNE software, see above.   |
-    +-------------------------+--------------------------------------------+
-    | ``FREESURFER_HOME``     | Location of the FreeSurfer software.       |
-    |                         | Needed during FreeSurfer reconstruction    |
-    |                         | and if the FreeSurfer MRI viewer is used   |
-    |                         | with mne_analyze, see :ref:`CACCHCBF`.     |
-    +-------------------------+--------------------------------------------+
-    | ``SUBJECTS_DIR``        | Location of the MRI data.                  |
-    +-------------------------+--------------------------------------------+
-    | ``SUBJECT``             | Name of the current subject.               |
-    +-------------------------+--------------------------------------------+
-    | ``MNE_TRIGGER_CH_NAME`` | Name of the trigger channel in raw data,   |
-    |                         | see :ref:`mne_process_raw`.                |
-    +-------------------------+--------------------------------------------+
-    | ``MNE_TRIGGER_CH_MASK`` | Mask to be applied to the trigger channel  |
-    |                         | values, see :ref:`mne_process_raw`.        |
-    +-------------------------+--------------------------------------------+
-
-
-Troubleshooting
-###############
-
-Missing libXp.so.6
-^^^^^^^^^^^^^^^^^^
-
-If when running an MNE command you get an error about a missing library ``libXp.so.6`` such as:
-
-.. code-block:: console
-
-    $ mne_process_raw
-    mne_process_raw: error while loading shared libraries: libXp.so.6: cannot open shared object file: No such file or directory
-
-If you are using Ubuntu Linux and you have admin access to the machine you can do:
-
-.. code-block:: console
-
-    $ sudo add-apt-repository "deb http://security.ubuntu.com/ubuntu precise-security main"
-    $ sudo apt -o Acquire::AllowInsecureRepositories=true -o Acquire::AllowDowngradeToInsecureRepositories=true update
-    $ sudo apt -o APT::Get::AllowUnauthenticated=true install libxp6
-    $ sudo add-apt-repository -r "deb http://security.ubuntu.com/ubuntu precise-security main"
-    $ sudo apt update
-
-.. _BABDBCJE:
-
-Additional options
-##################
-
-Additional software
-^^^^^^^^^^^^^^^^^^^
-
-MNE uses the `Netpbm package <http://netpbm.sourceforge.net/>`_
-to create image files in formats other than tif and rgb from
-``mne_analyze`` and ``mne_browse_raw``.
-This package is usually present on LINUX systems. On Mac OSX, you
-need to install the netpbm package. The recommended way to do this
-is to use the MacPorts Project tools, see http://www.macports.org/:
-
-- If you have not installed the MacPorts
-  software, goto http://www.macports.org/install.php and follow the
-  instructions to install MacPorts.
-
-- Install the netpbm package by saying: ``sudo port install netpbm``
-
-MacPorts requires that you have the XCode developer tools
-and X11 windowing environment installed. X11 is also needed by MNE.
-For Mac OSX Leopard, we recommend using XQuartz (http://xquartz.macosforge.org/).
-As of this writing, XQuartz does not yet exist for SnowLeopard;
-the X11 included with the operating system is sufficient.
-
-.. _CIHIIBDA:
-
-Testing the performance of your OpenGL graphics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The graphics performance of mne_analyze depends
-on your graphics software and hardware configuration. You get the
-best performance if you are using mne_analyze locally
-on a computer and the hardware acceleration capabilities are in
-use. You can check the On GLX... item
-in the help menu of mne_analyze to
-see whether the hardware acceleration is in effect. If the dialog
-popping up says Direct rendering context ,
-you are using hardware acceleration. If this dialog indicates Nondirect rendering context , you are either using software
-emulation locally, rendering to a remote display, or employing VNC
-connection. If you are rendering to a local display and get an indication
-of Nondirect rendering context ,
-software emulation is in effect and you should contact your local
-computer support to enable hardware acceleration for GLX. In some
-cases, this may require acquiring a new graphics display card. Fortunately,
-relatively high-performance OpenGL-capable graphics cards are not expensive.
-
-There is also an utility mne_opengl_test to
-assess the graphics performance more quantitatively. This utility
-renders an inflated brain surface repeatedly, rotating it by 5 degrees
-around the *z* axis between redraws. At each
-revolution, the time spent for the full revolution is reported on
-the terminal window where mne_opengl_test was
-started from. The program renders the surface until the interrupt
-key (usually control-c) is pressed on the terminal window.
-
-mne_opengl_test is located
-in the ``bin`` directory and is thus started as:
+An easy way to verify whether your installation of MNE-C is working is to test
+the OpenGL graphics performance:
 
 .. code-block:: console
 
     $ $MNE_ROOT/bin/mne_opengl_test
 
-On the fastest graphics cards, the time per revolution is
-well below 1 second. If this time longer than 10 seconds either
-the graphics hardware acceleration is not in effect or you need
-a faster graphics adapter.
+This will render an inflated brain surface repeatedly, rotating it by 5 degrees
+around the z-axis between redraws. The time spent for each full revolution is
+printed to the terminal window where ``mne_opengl_test`` was invoked.  Switch
+focus to that terminal window and use the interrupt key (usually control-c) to
+halt the test.
+
+The best graphics performance occurs when MNE-C renders to a local display on a
+computer with hardware acceleration enabled. The ``mne_analyze`` GUI has a menu
+item "On GLX..." in the Help menu; if the GLX dialog says "Direct rendering
+context" then hardware acceleration is in use. If you are rendering to a local
+display and see "Nondirect rendering context", it is recommended that you
+enable hardware acceleration (consult a search engine or your local IT support
+staff for assistance). If you are rendering to a remote display or using a VNC
+connection, "Nondirect rendering context" is normal.
+
+On the fastest graphics cards, the time per revolution in the
+``mne_opengl_test`` is well below 1 second. If your time per revolution is
+longer than 10 seconds, either the graphics hardware acceleration is not in
+effect or you need a faster graphics adapter.
+
+Troubleshooting MNE-C installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If MNE-C can't find ``libxp.so.6``, download libxp6 from
+`ubuntu <https://packages.ubuntu.com/search?keywords=libxp6>`_ or
+`debian <https://packages.debian.org/search?keywords=libxp6>`_ and install with
+``dpkg`` or similar:
+
+.. code-block:: console
+
+    $ sudo dpkg -i libxp6_1.0.2-1ubuntu1_amd64.deb
+
+If MNE-C can't find ``libgfortran.so.1``, you can probably safely link that
+filename to the current version of libfortran that came with your system. On
+a typical 64-bit Ubuntu-like system this would be accomplished by:
+
+.. code-block:: console
+
+    $ cd /usr/lib/x86_64-linux-gnu
+    $ sudo ln -s libgfortran.so.1 $(find . -maxdepth 1 -type f -name libgfortran.so*)
+
+If you encounter other errors installing MNE-C, please send a message to the
+`MNE mailing list`_.
+
+**Next:** :doc:`advanced_setup`

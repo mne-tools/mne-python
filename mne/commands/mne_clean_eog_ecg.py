@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 """Clean a raw file from EOG and ECG artifacts with PCA (ie SSP).
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
+    $ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
+
 """
-from __future__ import print_function
-
 # Authors : Dr Engr. Sheraz Khan,  P.Eng, Ph.D.
 #           Engr. Nandita Shetty,  MS.
 #           Alexandre Gramfort, Ph.D.
@@ -64,7 +65,8 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
 
     kwargs = dict() if quiet else dict(stdout=None, stderr=None)
     if ecg:
-        ecg_events, _, _ = mne.preprocessing.find_ecg_events(raw_in)
+        ecg_events, _, _ = mne.preprocessing.find_ecg_events(
+            raw_in, reject_by_annotation=True)
         print("Writing ECG events in %s" % ecg_event_fname)
         mne.write_events(ecg_event_fname, ecg_events)
         print('Computing ECG projector')

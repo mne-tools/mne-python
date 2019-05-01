@@ -19,7 +19,7 @@ An STC object contains the amplitudes of the sources over time.
 It only stores the amplitudes of activations but
 not the locations of the sources. To get access to the locations
 you need to have the :class:`source space <mne.SourceSpaces>`
-(often abbreviated `src`) used to compute the
+(often abbreviated ``src``) used to compute the
 :class:`forward operator <mne.Forward>` (often abbreviated `fwd`).
 
 See :ref:`tut_forward` for more details on forward modeling, and
@@ -218,7 +218,7 @@ brain.add_text(0.1, 0.9, 'Peak coordinate', 'title', font_size=14)
 # transformed time series obtained from source estimation. For both hemispheres
 # the data is stored separately in ``stc.lh_data`` and ``stc.rh_data`` in form
 # of a :math:`m \times n` matrix, where :math:`m` is the number of spatial
-# locations belonging to that hemishpere and :math:`n` the number of time
+# locations belonging to that hemisphere and :math:`n` the number of time
 # points.
 #
 # ``stc.lh_vertno`` and ``stc.rh_vertno`` correspond to ``src[0]['vertno']``

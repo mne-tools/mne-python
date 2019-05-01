@@ -3,8 +3,7 @@
 Compute LCMV inverse solution in volume source space
 ====================================================
 
-Compute LCMV inverse solution on an auditory evoked dataset in a volume source
-space.
+Compute LCMV beamformer on an auditory evoked dataset in a volume source space.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -38,15 +37,8 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 events = mne.read_events(event_fname)
 
-# Set up pick list: gradiometers and magnetometers, excluding bad channels
-picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
-                       exclude='bads')
-
 # Pick the channels of interest
-raw.pick_channels([raw.ch_names[pick] for pick in picks])
-
-# Re-normalize our empty-room projectors, so they are fine after subselection
-raw.info.normalize_proj()
+raw.pick(['meg', 'eog'])
 
 # Read epochs
 proj = False  # already applied
@@ -63,9 +55,10 @@ evoked.plot_joint(ts_args=dict(time_unit='s'),
 # Compute covariance matrices, fit and apply  spatial filter.
 
 # Read regularized noise covariance and compute regularized data covariance
-noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
+noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk',
+                                   rank=None)
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
-                                  method='shrunk')
+                                  method='shrunk', rank=None)
 
 # Compute weights of free orientation (vector) beamformer with weight
 # normalization (neural activity index, NAI). Providing a noise covariance

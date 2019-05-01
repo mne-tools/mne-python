@@ -1,6 +1,4 @@
 """
-.. _point_spread:
-
 Corrupt known signal with point spread
 ======================================
 
@@ -58,8 +56,9 @@ fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True,
 fwd['info']['bads'] = []
 inv_op = read_inverse_operator(fname_inv)
 
-raw = mne.io.RawFIF(op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis_raw.fif'))
+raw = mne.io.read_raw_fif(op.join(data_path, 'MEG', 'sample',
+                                  'sample_audvis_raw.fif'))
+raw.set_eeg_reference(projection=True)
 events = mne.find_events(raw)
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 epochs = mne.Epochs(raw, events, event_id, baseline=(None, 0), preload=True)

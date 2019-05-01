@@ -13,6 +13,8 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
@@ -23,10 +25,6 @@ from mne.viz.evoked import plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.stats import _parametric_ci
 from mne.datasets import testing
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -68,8 +66,6 @@ def _get_epochs_delayed_ssp():
 
 def test_plot_evoked_cov():
     """Test plot_evoked with noise_cov."""
-    return
-    import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     cov = read_cov(cov_fname)
     cov['projs'] = []  # avoid warnings
@@ -91,7 +87,6 @@ def test_plot_evoked_cov():
 @pytest.mark.slowtest
 def test_plot_evoked():
     """Test evoked.plot."""
-    import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
                       time_unit='s')
@@ -143,7 +138,6 @@ def test_plot_evoked():
 
 def test_plot_evoked_image():
     """Test plot_evoked_image."""
-    import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     evoked.plot_image(proj=True, time_unit='ms')
 
@@ -191,7 +185,6 @@ def test_plot_evoked_image():
 
 def test_plot_white():
     """Test plot_white."""
-    import matplotlib.pyplot as plt
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['projs'] = []  # avoid warnings
@@ -222,7 +215,6 @@ def test_plot_white():
 
 def test_plot_compare_evokeds():
     """Test plot_compare_evokeds."""
-    import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
     evoked = _get_epochs().average()
     # plot_compare_evokeds: test condition contrast, CI, color assignment
@@ -288,7 +280,8 @@ def test_plot_compare_evokeds():
               dict(colors=dict(red=10., blue=-2))]
     for param in params:
         pytest.raises(ValueError, plot_compare_evokeds, evoked, **param)
-    pytest.raises(TypeError, plot_compare_evokeds, evoked, picks='str')
+    pytest.raises(ValueError, plot_compare_evokeds, evoked, picks='str')
+    plot_compare_evokeds(evoked, picks='meg')
     pytest.raises(TypeError, plot_compare_evokeds, evoked, vlines='x')
     plt.close('all')
     # `evoked` must contain Evokeds
@@ -301,6 +294,7 @@ def test_plot_compare_evokeds():
                          ylim=dict(mag=(1, 10)), ci=_parametric_ci,
                          truncate_yaxis='max_ticks', show_sensors=False,
                          show_legend=False)
+    plt.close('all')
 
     # sequential colors
     evokeds = (evoked, blue, red)
@@ -325,11 +319,35 @@ def test_plot_compare_evokeds():
                          ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
     plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
                          split_legend=None)
-    plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    pytest.raises(ValueError, plot_compare_evokeds, [red] * 20)
-    pytest.raises(ValueError, plot_compare_evokeds, contrasts,
-                  cmap='summer')
+    with pytest.raises(ValueError, match="If `split_legend` is True"):
+        plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
+    with pytest.raises(ValueError, match='Please supply colors manually'):
+        plot_compare_evokeds([red] * 20)
+    with pytest.raises(ValueError, match='must specify the colors'):
+        plot_compare_evokeds(contrasts, cmap='summer')
+    plt.close('all')
 
+    figs = plot_compare_evokeds(red, picks="meg", gfp=None)
+    for fig in figs:
+        assert "GFP" in fig.axes[0].get_title()
+    figs = plot_compare_evokeds(red, picks="meg", gfp=False)
+    for fig in figs:
+        assert "GFP" not in fig.axes[0].get_title()
+
+    figs = plot_compare_evokeds(contrasts, axes="topo")
+    for fig in figs:
+        assert len(fig.axes[0].lines) == len(contrasts)
+        assert len(fig.axes[-1].lines) == 0
+    plt.close("all")
+
+    # smoke test for tmin >= 0 (from mailing list)
+    red.crop(0.01, None)
+    assert len(red.times) > 2
+    plot_compare_evokeds(red)
+    # smoke test for one time point (not useful but should not fail)
+    red.crop(0.01, 0.01)
+    assert len(red.times) == 1
+    plot_compare_evokeds(red)
     plt.close('all')
 
 
@@ -350,6 +368,32 @@ def test_plot_ctf():
     evoked = epochs.average()
     evoked.plot_joint(times=[0.1])
     mne.viz.plot_compare_evokeds([evoked, evoked])
+
+    # make sure axes position is "almost" unchanged
+    # when axes were passed to plot_joint by the user
+    times = [0.1, 0.2, 0.3]
+    fig = plt.figure()
+
+    # create custom axes for topomaps, colorbar and the timeseries
+    gs = gridspec.GridSpec(3, 7, hspace=0.5, top=0.8)
+    topo_axes = [fig.add_subplot(gs[0, idx * 2:(idx + 1) * 2])
+                 for idx in range(len(times))]
+    topo_axes.append(fig.add_subplot(gs[0, -1]))
+    ts_axis = fig.add_subplot(gs[1:, 1:-1])
+
+    def get_axes_midpoints(axes):
+        midpoints = list()
+        for ax in axes[:-1]:
+            pos = ax.get_position()
+            midpoints.append([pos.x0 + (pos.width * 0.5),
+                              pos.y0 + (pos.height * 0.5)])
+        return np.array(midpoints)
+
+    midpoints_before = get_axes_midpoints(topo_axes)
+    evoked.plot_joint(times=times, ts_args={'axes': ts_axis},
+                      topomap_args={'axes': topo_axes}, title=None)
+    midpoints_after = get_axes_midpoints(topo_axes)
+    assert (np.linalg.norm(midpoints_before - midpoints_after) < 0.1).all()
 
 
 run_tests_if_main()

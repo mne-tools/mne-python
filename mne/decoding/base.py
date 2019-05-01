@@ -373,8 +373,9 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     Parameters
     ----------
-    estimator : estimator object implementing 'fit'
+    estimator : instance of sklearn.base.BaseEstimator
         The object to use to fit the data.
+        Must implement the 'fit' method.
     X : array-like, shape (n_samples, n_dimensional_features,)
         The data to fit. Can be, for example a list, or an array at least 2d.
     y : array-like, shape (n_samples, n_targets,)
@@ -387,6 +388,10 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
+        Note that when using an estimator which inherently returns
+        multidimensional output - in particular, SlidingEstimator
+        or GeneralizingEstimator - you should set the scorer
+        there, not here.
     cv : int, cross-validation generator | iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
@@ -400,10 +405,10 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         either binary or multiclass,
         :class:`sklearn.model_selection.StratifiedKFold` is used. In all
         other cases, :class:`sklearn.model_selection.KFold` is used.
-    n_jobs : integer, optional
+    n_jobs : int, optional
         The number of CPUs to use to do the computation. -1 means
         'all CPUs'.
-    verbose : integer, optional
+    verbose : int, optional
         The verbosity level.
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.
@@ -470,8 +475,8 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = dict([(k, _index_param_value(X, v, train))
-                      for k, v in fit_params.items()])
+    fit_params = {k: _index_param_value(X, v, train)
+                  for k, v in fit_params.items()}
 
     if parameters is not None:
         estimator.set_params(**parameters)

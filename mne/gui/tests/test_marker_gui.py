@@ -66,7 +66,7 @@ def test_combine_markers_model():
     mrk_io = read_mrk(tgt_fname)
     assert_array_equal(mrk_io, model.mrk3.points)
 
-    # exlude an individual marker
+    # exclude an individual marker
     model.mrk1.use = [1, 2, 3, 4]
     assert_array_equal(model.mrk3.points[0], model.mrk2.points[0])
     assert_array_equal(model.mrk3.points[1:], mrk_avg[1:])

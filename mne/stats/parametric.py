@@ -7,9 +7,7 @@
 import numpy as np
 from functools import reduce
 from string import ascii_uppercase
-
-from ..externals.six import string_types
-from ..utils import warn
+from ..utils import _check_option
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
@@ -59,9 +57,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
        statistical parametric mapping; a new hat avoids a 'haircut'",
        NeuroImage. 2012 Feb 1;59(3):2131-41.
     """
-    if method not in ['absolute', 'relative']:
-        raise ValueError('method must be "absolute" or "relative", not %s'
-                         % method)
+    _check_option('method', method, ['absolute', 'relative'])
     var = np.var(X, axis=0, ddof=1)
     if sigma > 0:
         limit = sigma * np.max(var) if method == 'relative' else sigma
@@ -109,7 +105,6 @@ def f_oneway(*args):
     ----------
     .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
            Statistics". Chapter 14.
-           http://faculty.vassar.edu/lowry/ch14pt1.html
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
 
     """
@@ -142,7 +137,7 @@ def _map_effects(n_factors, effects):
 
     factor_names = list(ascii_uppercase[:n_factors])
 
-    if isinstance(effects, string_types):
+    if isinstance(effects, str):
         if '*' in effects and ':' in effects:
             raise ValueError('Not "*" and ":" permitted in effects')
         elif '+' in effects and ':' in effects:
@@ -157,13 +152,13 @@ def _map_effects(n_factors, effects):
         elif '*' in effects:
             pass  # handle later
         else:
-            raise ValueError('"{0}" is not a valid option for "effects"'
+            raise ValueError('"{}" is not a valid option for "effects"'
                              .format(effects))
     if isinstance(effects, list):
         bad_names = [e for e in effects if e not in factor_names]
         if len(bad_names) > 1:
-            raise ValueError('Effect names: {0} are not valid. They should '
-                             'the first `n_factors` ({1}) characters from the'
+            raise ValueError('Effect names: {} are not valid. They should '
+                             'the first `n_factors` ({}) characters from the'
                              'alphabet'.format(bad_names, n_factors))
 
     indices = list(np.arange(2 ** n_factors - 1))
@@ -175,7 +170,7 @@ def _map_effects(n_factors, effects):
         this_name.sort()
         names.append(':'.join(this_name))
 
-    if effects is None or isinstance(effects, string_types):
+    if effects is None or isinstance(effects, str):
         effects_ = names
     else:
         effects_ = effects
@@ -183,7 +178,7 @@ def _map_effects(n_factors, effects):
     selection = [names.index(sel) for sel in effects_]
     names = [names[sel] for sel in selection]
 
-    if isinstance(effects, string_types):
+    if isinstance(effects, str):
         if '*' in effects:
             # hierarchical order of effects
             # the * based effect can be used as stop index
@@ -275,7 +270,7 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     return F_threshold if len(F_threshold) > 1 else F_threshold[0]
 
 
-def f_mway_rm(data, factor_levels, effects='all', alpha=None,
+def f_mway_rm(data, factor_levels, effects='all',
               correction=False, return_pvals=True):
     """Compute M-way repeated measures ANOVA for fully balanced designs.
 
@@ -307,8 +302,6 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=None,
             * ``'all'``: all effects (equals 'A*B' in a 2 way design)
 
         If list, effect names are used: ``['A', 'B', 'A:B']``.
-    alpha : float
-        This argument is deprecated.
     correction : bool
         The correction method to be employed if one factor has more than two
         levels. If True, sphericity correction using the Greenhouse-Geisser
@@ -335,10 +328,6 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=None,
     .. versionadded:: 0.10
     """
     from scipy.stats import f
-
-    if alpha is not None:
-        warn('alpha is deprecated and will be removed in 0.18.',
-             DeprecationWarning)
 
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]

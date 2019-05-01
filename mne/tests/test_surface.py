@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import os.path as op
 from shutil import copyfile
@@ -49,7 +48,7 @@ def test_helmet():
     for info, n, name in [(read_info(fname_raw), 304, '306m'),
                           (read_info(fname_kit_raw), 304, 'KIT'),
                           (read_info(fname_bti_raw), 304, 'Magnes'),
-                          (read_info(fname_ctf_raw), 343, 'CTF'),
+                          (read_info(fname_ctf_raw), 342, 'CTF'),
                           (new_info, 102, 'unknown'),
                           (artemis_info, 102, 'ARTEMIS123')
                           ]:

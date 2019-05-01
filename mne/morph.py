@@ -12,15 +12,17 @@ from scipy import sparse
 
 from .parallel import parallel_func
 from .source_estimate import (VolSourceEstimate, SourceEstimate,
-                              VectorSourceEstimate, _get_ico_tris)
+                              VolVectorSourceEstimate, VectorSourceEstimate,
+                              _get_ico_tris)
 from .source_space import SourceSpaces
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
-                    warn as warn_, deprecated)
-from .externals.six import string_types
+                    warn as warn_, deprecated, fill_doc, _check_option,
+                    BunchConst)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
+@verbose
 def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                          subjects_dir=None, zooms=5,
                          niter_affine=(100, 100, 10), niter_sdr=(5, 5, 3),
@@ -78,10 +80,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         Morph as a sparse source estimate. Works only with (Vector)
         SourceEstimate. If True the only parameters used are subject_to and
         subject_from, and spacing has to be None. Default is sparse=False.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). The default
-        is verbose=None.
+    %(verbose)s
 
     Notes
     -----
@@ -122,7 +121,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     else:
         src_data, kind = _get_src_data(src)
         subject_from = _check_subject_from(subject_from, src)
-    if not isinstance(subject_to, string_types):
+    if not isinstance(subject_to, str):
         raise TypeError('subject_to must be str, got type %s (%s)'
                         % (type(subject_to), subject_to))
     del src
@@ -222,9 +221,10 @@ def _compute_sparse_morph(vertices_from, subject_from, subject_to,
 _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
     'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
-    'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data']
+    'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data', 'verbose']
 
 
+@fill_doc
 class SourceMorph(object):
     """Morph source space data from one subject to another.
 
@@ -237,10 +237,11 @@ class SourceMorph(object):
     ----------
     subject_from : str | None
         Name of the subject from which to morph as named in the SUBJECTS_DIR.
-    subject_to : str | array | list of two arrays
+    subject_to : str | array | list of array
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
         The default is 'fsaverage'. If morphing a volume source space,
-        subject_to can be the path to a MRI volume.
+        subject_to can be the path to a MRI volume. Can also be a list of
+        two arrays if morphing to hemisphere surfaces.
     kind : str | None
         Kind of source estimate. E.g. 'volume' or 'surface'.
     zooms : float | tuple
@@ -279,6 +280,7 @@ class SourceMorph(object):
         the symmetric diffeomorphic registration (SDR) morph.
     src_data : dict
         Additional source data necessary to perform morphing.
+    %(verbose)s
 
     References
     ----------
@@ -295,7 +297,7 @@ class SourceMorph(object):
     def __init__(self, subject_from, subject_to, kind, zooms,
                  niter_affine, niter_sdr, spacing, smooth, xhemi,
                  morph_mat, vertices_to, shape,
-                 affine, pre_affine, sdr_morph, src_data):
+                 affine, pre_affine, sdr_morph, src_data, verbose=None):
         # universal
         self.subject_from = subject_from
         self.subject_to = subject_to
@@ -318,6 +320,7 @@ class SourceMorph(object):
         self.pre_affine = pre_affine
         # used by both
         self.src_data = src_data
+        self.verbose = verbose
 
     @verbose
     def apply(self, stc_from, output='stc', mri_resolution=False,
@@ -326,10 +329,11 @@ class SourceMorph(object):
 
         Parameters
         ----------
-        stc_from : VolSourceEstimate | SourceEstimate | VectorSourceEstimate
+        stc_from : VolSourceEstimate | VolVectorSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
         output : str
             Can be 'stc' (default), 'nifti1', or 'nifti2'.
+            If a V
         mri_resolution: bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be
@@ -337,10 +341,7 @@ class SourceMorph(object):
         mri_space : bool
             Whether the image to world registration should be in mri space. The
             default is mri_space=mri_resolution.
-        verbose : bool | str | int | None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more). The default is verbose=None.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -358,7 +359,7 @@ class SourceMorph(object):
             raise ValueError('stc_from.subject and '
                              'morph.subject_from must match. (%s != %s)' %
                              (stc.subject, self.subject_from))
-        if not isinstance(output, string_types):
+        if not isinstance(output, str):
             raise TypeError('output must be str, got type %s (%s)'
                             % (type(output), output))
         out = _apply_morph_data(self, stc)
@@ -393,16 +394,12 @@ class SourceMorph(object):
             not end with '.h5'
         overwrite : bool
             If True, overwrite existing file.
-        verbose : bool | str | int | None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
         """
         if not fname.endswith('.h5'):
             fname = '%s-morph.h5' % fname
 
-        out_dict = dict((key, getattr(self, key))
-                        for key in _SOURCE_MORPH_ATTRIBUTES)
+        out_dict = {k: getattr(self, k) for k in _SOURCE_MORPH_ATTRIBUTES}
         for key in ('pre_affine', 'sdr_morph'):  # classes
             if out_dict[key] is not None:
                 out_dict[key] = out_dict[key].__dict__
@@ -412,7 +409,7 @@ class SourceMorph(object):
 ###############################################################################
 # I/O
 def _check_subject_from(subject_from, src):
-    if isinstance(src, string_types):
+    if isinstance(src, str):
         subject_check = src
     elif src is None:  # assume it's correct although dangerous but unlikely
         subject_check = subject_from
@@ -473,15 +470,14 @@ def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
 def _morphed_stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
                            output='nifti1'):
     """Return volume source space as Nifti1Image and/or save to disk."""
+    if isinstance(stc, VolVectorSourceEstimate):
+        stc = stc.magnitude()
     if not isinstance(stc, VolSourceEstimate):
         raise ValueError('Only volume source estimates can be converted to '
                          'volumes')
     _check_dep(nibabel='2.1.0', dipy=False)
 
-    known_types = ('nifti', 'nifti1', 'nifti2')
-    if output not in known_types:
-        raise ValueError('output must be one of %s, got %s'
-                         % (known_types, output))
+    _check_option('output', output, ['nifti', 'nifti1', 'nifti2'])
     if output in ('nifti', 'nifti1'):
         from nibabel import (Nifti1Image as NiftiImage,
                              Nifti1Header as NiftiHeader)
@@ -615,7 +611,6 @@ def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
             raise ValueError(
                 "Cannot infer original voxel size for reslicing... "
                 "set mri_resolution to boolean value or apply morph first.")
-        from mne.io.constants import BunchConst
         # Now deal with the fact that we may have multiple sub-volumes
         inuse = [morph[k]['inuse'] for k in range(len(morph))]
         src_shape = [morph[k]['shape'] for k in range(len(morph))]
@@ -772,7 +767,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
 ###############################################################################
 # Morph for SourceEstimate |  VectorSourceEstimate
 @deprecated("This function is deprecated and will be removed in version 0.19. "
-            "Use morph_mat = mne.compute_source_morph(...)morph_mat")
+            "Use morph_mat = mne.compute_source_morph(...).morph_mat")
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
                          xhemi=False, verbose=None):
@@ -784,7 +779,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Name of the original subject as named in the SUBJECTS_DIR.
     subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    vertices_from : list of arrays of int
+    vertices_from : list of array of int
         Vertices for each hemisphere (LH, RH) for subject_from.
     vertices_to : list of arrays of int
         Vertices for each hemisphere (LH, RH) for subject_to.
@@ -801,9 +796,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes below. The default is
         xhemi=False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). The default
+    %(verbose)s The default
         is verbose=None.
 
     Returns
@@ -916,13 +909,11 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         Path to SUBJECTS_DIR if it is not set in the environment
     n_jobs : int
         Number of jobs to run in parallel. The default is n_jobs=1.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    vertices : list of arrays of int
+    vertices : list of array of int
         Vertex numbers for LH and RH
     """
     # add special case for fsaverage for speed
@@ -992,9 +983,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         Morph map from one subject to the other.
     warn : bool
         If True, warn if not all vertices were used.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). The default
+    %(verbose)s The default
         is verbose=None.
 
     Returns
@@ -1140,9 +1129,16 @@ def _apply_morph_data(morph, stc_from):
         raise ValueError('stc.subject (%s) != morph.subject_from (%s)'
                          % (stc_from.subject, morph.subject_from))
     if morph.kind == 'volume':
+        if isinstance(stc_from, VolSourceEstimate):
+            klass = VolSourceEstimate
+        elif isinstance(stc_from, VolVectorSourceEstimate):
+            klass = VolVectorSourceEstimate
+        else:
+            raise ValueError('stc_from was type %s but must be a volume '
+                             'source estimate' % (type(stc_from),))
         from dipy.align.reslice import reslice
 
-        n_times = stc_from.data.shape[1]
+        n_times = np.prod(stc_from.data.shape[1:])
 
         def _morph_one(stc_one):
             # prepare data to be morphed
@@ -1164,22 +1160,26 @@ def _apply_morph_data(morph, stc_from):
             return img_to
 
         # First get the vertices (vertices_to) you will need the values for
-        stc_ones = VolSourceEstimate(np.ones_like(stc_from.data[:, :1]),
+        stc_ones = VolSourceEstimate(np.ones((stc_from.data.shape[0], 1),
+                                             stc_from.data.dtype),
                                      stc_from.vertices,
                                      tmin=0., tstep=1.)
         img_to = _morph_one(stc_ones)
         vertices_to = np.where(img_to.sum(axis=1) != 0)[0]
         data = np.empty((len(vertices_to), n_times))
+        data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
         # Loop over time points to save memory
         for k in range(n_times):
-            this_stc = VolSourceEstimate(stc_from.data[:, k:k + 1],
-                                         stc_from.vertices,
-                                         tmin=0., tstep=1.)
+            this_stc = VolSourceEstimate(
+                data_from[:, k:k + 1], stc_from.vertices, tmin=0., tstep=1.)
             this_img_to = _morph_one(this_stc)
             data[:, k] = this_img_to[vertices_to, 0]
-        klass = VolSourceEstimate
+        data.shape = (len(vertices_to),) + stc_from.data.shape[1:]
     else:
         assert morph.kind == 'surface'
+        if not isinstance(stc_from, (SourceEstimate, VectorSourceEstimate)):
+            raise ValueError('stc_from was type %s but must be a surface '
+                             'source estimate' % (type(stc_from),))
         morph_mat = morph.morph_mat
         vertices_to = morph.vertices_to
         for hemi, v1, v2 in zip(('left', 'right'),

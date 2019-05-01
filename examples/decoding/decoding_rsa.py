@@ -58,6 +58,7 @@ import mne
 from mne.io import read_raw_fif, concatenate_raws
 from mne.datasets import visual_92_categories
 
+
 print(__doc__)
 
 data_path = visual_92_categories.data_path()
@@ -91,7 +92,8 @@ event_id['0/human bodypart/human/not-face/animal/natural']
 # Read MEG data
 n_runs = 4  # 4 for full data (use less to speed up computations)
 fname = op.join(data_path, 'sample_subject_%i_tsss_mc.fif')
-raws = [read_raw_fif(fname % block) for block in range(n_runs)]
+raws = [read_raw_fif(fname % block, verbose='error')
+        for block in range(n_runs)]  # ignore filename warnings
 raw = concatenate_raws(raws)
 
 events = mne.find_events(raw, min_duration=.002)
@@ -125,7 +127,8 @@ epochs['not-face'].average().plot()
 # Classify using the average signal in the window 50ms to 300ms
 # to focus the classifier on the time interval with best SNR.
 clf = make_pipeline(StandardScaler(),
-                    LogisticRegression(C=1, solver='lbfgs'))
+                    LogisticRegression(C=1, solver='liblinear',
+                                       multi_class='auto'))
 X = epochs.copy().crop(0.05, 0.3).get_data().mean(axis=2)
 y = epochs.events[:, 2]
 

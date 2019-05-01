@@ -39,7 +39,7 @@ raw.set_annotations(mne.Annotations([0], [10], 'BAD'))
 
 ###############################################################################
 # 1) Fit ICA model using the FastICA algorithm.
-# Other available choices are ``picard``, ``infomax`` or ``extended-infomax``.
+# Other available choices are ``picard`` or ``infomax``.
 #
 # .. note:: The default method in MNE is FastICA, which along with Infomax is
 #           one of the most widely used ICA algorithm. Picard is a
@@ -55,8 +55,8 @@ ica = ICA(n_components=0.95, method='fastica', random_state=0, max_iter=100)
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                        stim=False, exclude='bads')
 
-ica.fit(raw, picks=picks, decim=3, reject=dict(mag=4e-12, grad=4000e-13),
-        verbose='warning')  # low iterations -> does not fully converge
+# low iterations -> does not fully converge
+ica.fit(raw, picks=picks, decim=3, reject=dict(mag=4e-12, grad=4000e-13))
 
 # maximum number of components to reject
 n_max_ecg, n_max_eog = 3, 1  # here we don't expect horizontal EOG components
@@ -124,6 +124,6 @@ ica.plot_overlay(raw)  # EOG artifacts remain
 ###############################################################################
 # References
 # ----------
-# .. [1] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
-#        Component Analysis by preconditioning with Hessian approximations.
-#        arXiv:1706.08171
+# .. [1] Ablin P, Cardoso J, Gramfort A (2018). Faster Independent Component
+#        Analysis by Preconditioning With Hessian Approximations.
+#        IEEE Transactions on Signal Processing 66:4040–4049

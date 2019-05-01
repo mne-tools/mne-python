@@ -3,12 +3,12 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import matplotlib
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_equal)
 import pytest
+import matplotlib.pyplot as plt
 
 from mne import find_events, Epochs, pick_types, channels
 from mne.io import read_raw_fif
@@ -16,8 +16,6 @@ from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
 from mne.utils import requires_version, run_tests_if_main
-
-matplotlib.use('Agg')  # for testing don't use X server
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -35,11 +33,46 @@ def test_long_names():
     assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
 
 
+def test_array_copy():
+    """Test copying during construction."""
+    info = create_info(1, 1000.)
+    data = np.empty((1, 1000))
+    # 'auto' (default)
+    raw = RawArray(data, info)
+    assert raw._data is data
+    assert raw.info is not info
+    raw = RawArray(data.astype(np.float32), info)
+    assert raw._data is not data
+    assert raw.info is not info
+    # 'info' (more restrictive)
+    raw = RawArray(data, info, copy='info')
+    assert raw._data is data
+    assert raw.info is not info
+    with pytest.raises(ValueError, match="data copying was not .* copy='info"):
+        RawArray(data.astype(np.float32), info, copy='info')
+    # 'data'
+    raw = RawArray(data, info, copy='data')
+    assert raw._data is not data
+    assert raw.info is info
+    # 'both'
+    raw = RawArray(data, info, copy='both')
+    assert raw._data is not data
+    assert raw.info is not info
+    raw = RawArray(data.astype(np.float32), info, copy='both')
+    assert raw._data is not data
+    assert raw.info is not info
+    # None
+    raw = RawArray(data, info, copy=None)
+    assert raw._data is data
+    assert raw.info is info
+    with pytest.raises(ValueError, match='data copying was not .* copy=None'):
+        RawArray(data.astype(np.float32), info, copy=None)
+
+
 @pytest.mark.slowtest
 @requires_version('scipy', '0.12')
 def test_array_raw():
     """Test creating raw from array."""
-    import matplotlib.pyplot as plt
     # creating
     raw = read_raw_fif(fif_fname).crop(2, 5)
     data, times = raw[:, :]

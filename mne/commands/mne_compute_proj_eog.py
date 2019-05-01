@@ -1,27 +1,28 @@
 #!/usr/bin/env python
 r"""Compute SSP/PCA projections for EOG artifacts.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif \
-                       --l-freq 1 --h-freq 35 \
-                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+    $ mne compute_proj_eog -i sample_audvis_raw.fif \
+                           --l-freq 1 --h-freq 35 \
+                           --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 
 or
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif \
-                       --l-freq 1 --h-freq 35 \
-                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 \
-                       --proj sample_audvis_ecg-proj.fif
+.. code-block:: console
+
+    $ mne compute_proj_eog -i sample_audvis_raw.fif \
+                           --l-freq 1 --h-freq 35 \
+                           --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 \
+                           --proj sample_audvis_ecg-proj.fif
 
 to exclude ECG artifacts from projection computation.
 """
-from __future__ import print_function
-
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
-from mne.externals.six import string_types
 import os
 import sys
 import mne
@@ -185,7 +186,7 @@ def run():
         # append the eog projs, so they are last in the list
         projs = mne.read_proj(proj_fname) + projs
 
-    if isinstance(preload, string_types) and os.path.exists(preload):
+    if isinstance(preload, str) and os.path.exists(preload):
         os.remove(preload)
 
     print("Writing EOG projections in %s" % eog_proj_fname)

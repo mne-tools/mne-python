@@ -7,127 +7,30 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import operator
 
 import numpy as np
 from scipy import linalg
 
-from ..cov import Covariance
-from ..io.constants import FIFF
+from ..cov import Covariance, make_ad_hoc_cov
+from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
 from ..io.proj import make_projector, Projection
-from ..io.pick import (pick_channels_forward, pick_info)
-from ..minimum_norm.inverse import _get_vertno
+from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, warn, verbose, check_fname, _reg_pinv
-from ..channels.channels import _contains_ch_type
+from ..utils import verbose, check_fname, _reg_pinv, _check_option
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
-from ..externals.six import string_types
-
-
-def _check_rank(rank):
-    """Check rank parameter and deal with deprecation."""
-    if isinstance(rank, string_types):
-        # XXX we can use rank='' to deprecate to get to None eventually:
-        # if rank == '':
-        #     warn('The rank parameter default in 0.18 of "full" will change '
-        #          'to None in 0.19, set it explicitly to avoid this warning',
-        #          DeprecationWarning)
-        #     rank = 'full'
-        if rank != 'full':
-            raise ValueError('rank, if str, must be "full", got %s' % (rank,))
-    elif rank is not None and not isinstance(rank, dict):
-        try:
-            rank = int(operator.index(rank))
-        except TypeError:
-            raise TypeError('rank must be None, dict, "full", or int-like, '
-                            'got %s (type %s)' % (rank, type(rank)))
-    return rank
-
-
-def _setup_picks(info, forward, data_cov=None, noise_cov=None):
-    """Return good channels common to forward model and covariance matrices."""
-    # get a list of all channel names:
-    fwd_ch_names = forward['info']['ch_names']
-
-    # handle channels from forward model and info:
-    ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
-
-    # inform about excluding channels:
-    if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
-            (len(set(ch_names).intersection(data_cov['bads'])) > 0)):
-        logger.info('info["bads"] and data_cov["bads"] do not match, '
-                    'excluding bad channels from both.')
-    if (noise_cov is not None and
-            set(info['bads']) != set(noise_cov['bads']) and
-            (len(set(ch_names).intersection(noise_cov['bads'])) > 0)):
-        logger.info('info["bads"] and noise_cov["bads"] do not match, '
-                    'excluding bad channels from both.')
-
-    # handle channels from data cov if data cov is not None
-    # Note: data cov is supposed to be None in tf_lcmv
-    if data_cov is not None:
-        ch_names = _compare_ch_names(ch_names, data_cov.ch_names,
-                                     data_cov['bads'])
-
-    # handle channels from noise cov if noise cov available:
-    if noise_cov is not None:
-        ch_names = _compare_ch_names(ch_names, noise_cov.ch_names,
-                                     noise_cov['bads'])
-
-    picks = [info['ch_names'].index(k) for k in ch_names if k in
-             info['ch_names']]
-    return picks
-
-
-def _compare_ch_names(names1, names2, bads):
-    """Return channel names of common and good channels."""
-    ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
-    return ch_names
-
-
-def _check_one_ch_type(info, picks, noise_cov, method):
-    """Check number of sensor types and presence of noise covariance matrix."""
-    info_pick = pick_info(info, sel=picks)
-    ch_types =\
-        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
-    if method == 'lcmv' and sum(ch_types) > 1 and noise_cov is None:
-        raise ValueError('Source reconstruction with several sensor types '
-                         'requires a noise covariance matrix to be '
-                         'able to apply whitening.')
-    elif method == 'dics' and sum(ch_types) > 1:
-        warn('The use of several sensor types with the DICS beamformer is '
-             'not heavily tested yet.')
-
-
-def _pick_channels_spatial_filter(ch_names, filters):
-    """Return data channel indices to be used with spatial filter.
-
-    Unlike ``pick_channels``, this respects the order of ch_names.
-    """
-    sel = []
-    # first check for channel discrepancies between filter and data:
-    for ch_name in filters['ch_names']:
-        if ch_name not in ch_names:
-            raise ValueError('The spatial filter was computed with channel %s '
-                             'which is not present in the data. You should '
-                             'compute a new spatial filter restricted to the '
-                             'good data channels.' % ch_name)
-    # then compare list of channels and get selection based on data:
-    sel = [ii for ii, ch_name in enumerate(ch_names)
-           if ch_name in filters['ch_names']]
-    return sel
 
 
 def _check_proj_match(info, filters):
     """Check whether SSP projections in data and spatial filter match."""
     proj_data, _, _ = make_projector(info['projs'],
                                      filters['ch_names'])
-    if not np.array_equal(proj_data, filters['proj']):
-            raise ValueError('The SSP projections present in the data '
-                             'do not match the projections used when '
-                             'calculating the spatial filter.')
+    if not np.allclose(proj_data, filters['proj'],
+                       atol=np.finfo(float).eps, rtol=1e-13):
+        raise ValueError('The SSP projections present in the data '
+                         'do not match the projections used when '
+                         'calculating the spatial filter.')
 
 
 def _check_src_type(filters):
@@ -140,95 +43,67 @@ def _check_src_type(filters):
     return filters, warn_text
 
 
-def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
-                              fwd_norm=None):
-    """Input preparation common for all beamformer functions.
+def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
+                              noise_cov=None, rank=None, pca=False, loose=None,
+                              combine_xyz='fro', exp=None, limit=None,
+                              allow_fixed_depth=True, limit_depth_chs=False):
+    """Input preparation common for LCMV, DICS, and RAP-MUSIC."""
+    _check_option('pick_ori', pick_ori,
+                  ('normal', 'max-power', 'vector', None))
 
-    Check input values, prepare channel list and gain matrix. For documentation
-    of parameters, please refer to _apply_lcmv.
-    """
-    is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+    # Restrict forward solution to selected vertices
+    if label is not None:
+        _, src_sel = label_src_vertno_sel(label, forward['src'])
+        forward = _restrict_forward_to_src_sel(forward, src_sel)
 
-    if pick_ori in ['normal', 'max-power', 'vector']:
-        if not is_free_ori:
-            raise ValueError(
-                'Normal or max-power orientation can only be picked '
-                'when a forward operator with free orientation is used.')
-    elif pick_ori is not None:
-        raise ValueError('pick_ori must be one of "normal", "max-power", '
-                         '"vector", or None, got %s' % (pick_ori,))
-    if pick_ori == 'normal' and not forward['surf_ori']:
-        # XXX eventually this could just call convert_forward_solution
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator oriented in surface coordinates is '
-                         'used.')
-    if pick_ori == 'normal' and not forward['src'][0]['type'] == 'surf':
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator with a surface-based source space '
-                         'is used.')
-    # Restrict forward solution to selected channels
-    info_ch_names = [ch['ch_name'] for ch in info['chs']]
-    ch_names = [info_ch_names[k] for k in picks]
-    fwd_ch_names = forward['sol']['row_names']
-    # Keep channels in forward present in info:
-    fwd_ch_names = [ch for ch in fwd_ch_names if ch in info_ch_names]
-    forward = pick_channels_forward(forward, fwd_ch_names)
-    picks_forward = [fwd_ch_names.index(ch) for ch in ch_names]
-
-    # Get gain matrix (forward operator)
+    if loose is None:
+        loose = 0. if is_fixed_orient(forward) else 1.
+    if noise_cov is None:
+        noise_cov = make_ad_hoc_cov(info, std=1.)
+    forward, info_picked, gain, _, orient_prior, _, trace_GRGT, noise_cov, \
+        whitener = _prepare_forward(
+            forward, info, noise_cov, 'auto', loose, rank=rank, pca=pca,
+            use_cps=True, exp=exp, limit_depth_chs=limit_depth_chs,
+            combine_xyz=combine_xyz, limit=limit,
+            allow_fixed_depth=allow_fixed_depth)
+    is_free_ori = not is_fixed_orient(forward)  # could have been changed
     nn = forward['source_nn']
     if is_free_ori:  # take Z coordinate
         nn = nn[2::3]
     nn = nn.copy()
+    vertno = _get_vertno(forward['src'])
     if forward['surf_ori']:
         nn[...] = [0, 0, 1]  # align to local +Z coordinate
-    if label is not None:
-        vertno, src_sel = label_src_vertno_sel(label, forward['src'])
-        nn = nn[src_sel]
+    if pick_ori is not None and not is_free_ori:
+        raise ValueError(
+            'Normal or max-power orientation (got %r) can only be picked when '
+            'a forward operator with free orientation is used.' % (pick_ori,))
+    if pick_ori == 'normal' and not forward['surf_ori']:
+        raise ValueError('Normal orientation can only be picked when a '
+                         'forward operator oriented in surface coordinates is '
+                         'used.')
+    if pick_ori == 'normal' and not forward['src'].kind == 'surface':
+        raise ValueError('Normal orientation can only be picked when a '
+                         'forward operator with a surface-based source space '
+                         'is used.')
+    del forward, info
 
-        if is_free_ori:
-            src_sel = 3 * src_sel
-            src_sel = np.c_[src_sel, src_sel + 1, src_sel + 2]
-            src_sel = src_sel.ravel()
-
-        G = forward['sol']['data'][:, src_sel]
+    # Undo the scaling that MNE prefers
+    scale = np.sqrt((noise_cov['eig'] > 0).sum() / trace_GRGT)
+    gain /= scale
+    if orient_prior is not None:
+        orient_std = np.sqrt(orient_prior)
     else:
-        vertno = _get_vertno(forward['src'])
-        G = forward['sol']['data']
+        orient_std = np.ones(gain.shape[1])
 
-    # Apply SSPs
-    proj, ncomp, _ = make_projector(info['projs'], fwd_ch_names)
-
-    if info['projs']:
-        G = np.dot(proj, G)
-
-    # Pick after applying the projections. This makes a copy of G, so further
-    # operations can be safely done in-place.
-    G = G[picks_forward]
-    proj = proj[np.ix_(picks_forward, picks_forward)]
-
-    # Normalize the leadfield if requested
-    if fwd_norm == 'dipole':  # each orientation separately
-        G /= np.linalg.norm(G, axis=0)
-    elif fwd_norm == 'vertex':  # all three orientations per loc jointly
-        depth_prior = np.sum(G ** 2, axis=0)
-        if is_free_ori:
-            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)
-        # Spherical leadfield can be zero at the center
-        depth_prior[depth_prior == 0.] = np.min(
-            depth_prior[depth_prior != 0.])
-        if is_free_ori:
-            depth_prior = np.repeat(depth_prior, 3)
-        source_weighting = np.sqrt(1. / depth_prior)
-        G *= source_weighting[np.newaxis, :]
-    elif fwd_norm is not None:
-        raise ValueError('Got invalid value for "fwd_norm". Valid '
-                         'values are: "dipole", "vertex" or None.')
-
-    return is_free_ori, ch_names, proj, vertno, G, nn
+    # Get the projector
+    proj, ncomp, _ = make_projector(
+        info_picked['projs'], info_picked['ch_names'])
+    return (is_free_ori, info_picked, proj, vertno, gain, whitener, nn,
+            orient_std)
 
 
-def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
+def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
     """Compute the normalized weights in max-power orientation.
 
     Uses Eq. 4.47 from [1]_.
@@ -245,6 +120,8 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
         Whether to reduce the rank of the filter by one.
     nn : ndarray, shape (3,)
         The source normal.
+    sk : ndarray, shape (3,)
+        The source prior.
 
     Returns
     -------
@@ -272,7 +149,9 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
                 'Consider reducing the rank of the forward operator by using '
                 'reduce_rank=True.'
             )
-    assert Wk.shape[0] == Gk.shape[1] == 3
+    # Reapply source covariance after inversion
+    norm *= sk
+    norm *= sk[:, np.newaxis]
     power = np.dot(norm, np.dot(Wk, Gk))
 
     # Determine orientation of max power
@@ -286,8 +165,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
     max_power_ori = eig_vecs[:, idx_max]
 
     # set the (otherwise arbitrary) sign to match the normal
-    sign = np.sign(np.dot(max_power_ori, nn))
-    sign = 1 if sign == 0 else sign
+    sign = np.sign(np.dot(max_power_ori, nn)) or 1
     max_power_ori *= sign
 
     # Compute the filter in the orientation of max power
@@ -301,7 +179,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn):
 
 
 def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
-                        reduce_rank, rank, inversion, nn):
+                        reduce_rank, rank, inversion, nn, orient_std):
     """Compute a spatial beamformer filter (LCMV or DICS).
 
     For more detailed information on the parameters, see the docstrings of
@@ -323,18 +201,14 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         The source orientation to compute the beamformer in.
     reduce_rank : bool
         Whether to reduce the rank by one during computation of the filter.
-    rank : int | None | 'full'
-        This controls the effective rank of the covariance matrix when
-        computing the inverse. The rank can be set explicitly by specifying an
-        integer value. If ``None``, the rank will be automatically estimated.
-        Since applying regularization will always make the covariance matrix
-        full rank, the rank is estimated before regularization in this case. If
-        'full', the rank will be estimated after regularization and hence
-        will mean using the full rank, unless ``reg=0`` is used.
+    rank : dict | None | 'full' | 'info'
+        See compute_rank.
     inversion : 'matrix' | 'single'
         The inversion scheme to compute the weights.
     nn : ndarray, shape (n_dipoles, 3)
         The source normals.
+    orient_std : ndarray, shape (n_dipoles,)
+        The std of the orientation prior used in weighting the lead fields.
 
     Returns
     -------
@@ -345,46 +219,50 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
     Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
-
-    if (inversion == 'matrix' and pick_ori == 'max-power' and
-            weight_norm in ['unit-noise-gain', 'nai']):
-        Cm_inv_sq = Cm_inv.dot(Cm_inv)
+    Cm_inv_sq = Cm_inv.dot(Cm_inv)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
+    assert orient_std.shape == (G.shape[1],)
     n_sources = G.shape[1] // n_orient
     assert nn.shape == (n_sources, 3)
 
     for k in range(n_sources):
-        Wk = W[n_orient * k: n_orient * k + n_orient]
-        Gk = G[:, n_orient * k: n_orient * k + n_orient]
-
-        # Compute power at the source
-        Ck = np.dot(Wk, Gk)
+        this_sl = slice(n_orient * k, n_orient * k + n_orient)
+        Wk, Gk, sk = W[this_sl], G[:, this_sl], orient_std[this_sl]
 
         if (inversion == 'matrix' and pick_ori == 'max-power' and
                 weight_norm in ['unit-noise-gain', 'nai']):
             # In this case, take a shortcut to compute the filter
-            Wk[:] = _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn[k])
+            Wk[:] = _normalized_weights(
+                Wk, Gk, Cm_inv_sq, reduce_rank, nn[k], sk)
         else:
+            # Compute power at the source
+            Ck = np.dot(Wk, Gk)
+
             # Normalize the spatial filters
             if Wk.ndim == 2 and len(Wk) > 1:
                 # Free source orientation
                 if inversion == 'single':
                     # Invert for each dipole separately using plain division
-                    Wk /= np.diag(Ck)[:, np.newaxis]
+                    with np.errstate(divide='ignore'):
+                        norm = np.diag(1. / np.diag(Ck))
                 elif inversion == 'matrix':
                     # Invert for all dipoles simultaneously using matrix
                     # inversion.
-                    Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+                    norm = linalg.pinv2(Ck)
+                # Reapply source covariance after inversion
+                norm *= sk
+                norm *= sk[:, np.newaxis]
             else:
+                assert Ck.shape == (1, 1)
                 # Fixed source orientation
-                if not np.all(Ck == 0.):
-                    Wk /= Ck
+                norm = np.eye(1) if Ck[0, 0] == 0. else 1. / Ck
+            Wk[:] = np.dot(norm, Wk)
 
             if pick_ori == 'max-power':
                 # Compute the power
-                if inversion == 'single' and weight_norm == 'unit-noise-gain':
+                if inversion == 'single' and weight_norm is not None:
                     # First make the filters unit gain, then apply them to the
                     # cov matrix to compute power.
                     Wk_norm = Wk / np.sqrt(np.sum(Wk ** 2, axis=1,
@@ -400,8 +278,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 max_power_ori = u[:, 0]
 
                 # set the (otherwise arbitrary) sign to match the normal
-                sign = np.sign(np.dot(nn[k], max_power_ori))
-                sign = 1 if sign == 0 else sign  # corner case
+                sign = np.sign(np.dot(nn[k], max_power_ori)) or 1  # avoid 0
                 max_power_ori *= sign
 
                 # Re-compute the filter in the direction of max power
@@ -427,7 +304,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # Estimate noise level based on covariance matrix, taking the
             # first eigenvalue that falls outside the signal subspace or the
             # loading factor used during regularization, whichever is largest.
-            if rank >= len(Cm):
+            if rank > len(Cm):
                 # Covariance matrix is full rank, no noise subspace!
                 # Use the loading factor as noise ceiling.
                 if loading_factor == 0:
@@ -503,10 +380,7 @@ class Beamformer(dict):
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
         overwrite : bool
             If True, overwrite the file (if it exists).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)
         check_fname(fname, self['kind'], (ending,))

@@ -36,7 +36,7 @@
           </div>
 
           <div class="item">
-            <div class="chopper container"><img src="_images/sphx_glr_plot_sensors_decoding_004.png" alt="Decoding" class="carousel-image"></div>
+            <div class="chopper container"><img src="_images/sphx_glr_plot_sensors_decoding_006.png" alt="Decoding" class="carousel-image"></div>
             <div class="container">
               <div class="carousel-caption">
                 <h2>Machine learning</h2>

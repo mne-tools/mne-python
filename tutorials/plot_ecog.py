@@ -57,13 +57,13 @@ mlab.view(200, 70)
 # `snapshot_brain_montage` function.
 
 # We'll once again plot the surface, then take a snapshot.
-fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
-                     surfaces='pial')
+fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
+                             surfaces='pial')
 mlab.view(200, 70)
-xy, im = snapshot_brain_montage(fig, mon)
+xy, im = snapshot_brain_montage(fig_scatter, mon)
 
 # Convert from a dictionary to array to plot
-xy_pts = np.vstack(xy[ch] for ch in info['ch_names'])
+xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 
 # Define an arbitrary "activity" pattern for viz
 activity = np.linspace(100, 200, xy_pts.shape[0])

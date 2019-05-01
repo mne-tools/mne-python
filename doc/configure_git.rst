@@ -31,8 +31,8 @@ However, you can also directly go to the `GitHub help pages
 <https://help.github.com/>`_ which offer a great introduction to git and
 GitHub.
 
-In the present document, we refer to the ``mne-python/master`` branch, as the
-*trunk*.
+In the present document, we refer to the ``mne-python/master`` branch as
+*master*.
 
 .. _forking:
 
@@ -113,7 +113,7 @@ These steps can be broken out to be more explicit as:
    see the URLs for the remote.  They will point to your GitHub fork.
 
    Now you want to connect to the mne-python repository, so you can
-   merge in changes from the trunk:
+   merge in changes from master:
 
    .. code-block:: console
 
@@ -169,7 +169,7 @@ sections.
 * Don't use your ``master`` branch for anything.  Consider deleting it.
 
 * When you are starting a new set of changes, fetch any changes from the
-  trunk, and start a new *feature branch* from that.
+  master, and start a new *feature branch* from that.
 
 * Make a new branch for each separable set of changes -- "one task, one
   branch" (`ipython git workflow`_).
@@ -177,10 +177,11 @@ sections.
 * Name your branch for the purpose of the changes - e.g.
   ``bugfix-for-issue-14`` or ``refactor-database-code``.
 
-* If you can possibly avoid it, avoid merging trunk or any other branches into
+* If you can possibly avoid it, avoid merging master or any other branches into
   your feature branch while you are working.
 
-* If you do find yourself merging from the trunk, consider :ref:`rebase-on-trunk`
+* If you do find yourself merging from the master branch, consider
+  :ref:`rebase-on-master`
 
 * **Ensure all tests still pass**. Make `travis`_ happy.
 
@@ -199,19 +200,19 @@ It may sound strange, but deleting your own ``master`` branch can help reduce
 confusion about which branch you are on.  See `deleting master on github`_ for
 details.
 
-.. _update-mirror-trunk:
+.. _update-mirror-master:
 
-Updating the mirror of trunk
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Updating the mirror of master
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-From time to time you should fetch the upstream (trunk) changes from GitHub:
+From time to time you should fetch the upstream (master) changes from GitHub:
 
 .. code-block:: console
 
    $ git fetch upstream
 
 This will pull down any commits you don't have, and set the remote branches to
-point to the right commit. For example, 'trunk' is the branch referred to by
+point to the right commit. For example, 'master' is the branch referred to by
 (remote/branchname) ``upstream/master`` - and if there have been commits since
 you last checked, ``upstream/master`` will change after you do the fetch.
 
@@ -233,10 +234,10 @@ or ``buxfix-for-issue-42``.
 
 .. code-block:: console
 
-   # Update the mirror of trunk
+   # Update the mirror of master
    $ git fetch upstream
 
-   # Make new feature branch starting at current trunk
+   # Make new feature branch starting at current master
    $ git branch my-new-feature upstream/master
    $ git checkout my-new-feature
 
@@ -350,7 +351,8 @@ When you are ready to ask for someone to review your code and consider a merge:
    how the code should be written (features, style, etc.) that are easier to
    implement from the start.
 
-#. Finally, make `travis`_ happy. Ensure that builds in all four jobs pass. To make code python3 compatible, refer to ``externals/six.py``. Use virtual environments to test code on different python versions. Please remember that `travis`_ only runs a subset of the tests and is thus not a substitute for running the entire test suite locally.
+#. Finally, make `travis`_ happy. Ensure that builds in all four jobs pass.
+   Use virtual environments to test code on different python versions.
 
 #. For the code to be mergeable, please rebase w.r.t master branch.
 
@@ -361,45 +363,45 @@ If you are uncertain about what would or would not be appropriate to contribute
 to MNE, don't hesitate to either send a pull request, or open an issue
 on the mne-python_ GitHub site to discuss potential changes.
 
-.. _rebase-on-trunk:
+.. _rebase-on-master:
 
-Rebasing on trunk
-^^^^^^^^^^^^^^^^^
+Rebasing on master
+^^^^^^^^^^^^^^^^^^
 
 Let's say you thought of some work you'd like to do. You
-:ref:`update-mirror-trunk` and :ref:`make-feature-branch` called
-``cool-feature``. At this stage trunk is at some commit, let's call it E. Now
+:ref:`update-mirror-master` and :ref:`make-feature-branch` called
+``cool-feature``. At this stage master is at some commit, let's call it E. Now
 you make some new commits on your ``cool-feature`` branch, let's call them A,
 B, C. Maybe your changes take a while, or you come back to them after a while.
-In the meantime, trunk has progressed from commit E to commit (say) G::
+In the meantime, master has progressed from commit E to commit (say) G::
 
           A---B---C cool-feature
          /
-    D---E---F---G trunk
+    D---E---F---G master
 
-At this stage you consider merging trunk into your feature branch, and you
+At this stage you consider merging master into your feature branch, and you
 remember that this here page sternly advises you not to do that, because the
 history will get messy. Most of the time you can just ask for a review, and
-not worry that trunk has got a little ahead. But sometimes, the changes in
-trunk might affect your changes, and you need to harmonize them. In this
+not worry that master has got a little ahead. But sometimes, the changes in
+master might affect your changes, and you need to harmonize them. In this
 situation you may prefer to do a rebase.
 
 Rebase takes your changes (A, B, C) and replays them as if they had been made
-to the current state of ``trunk``. In other words, in this case, it takes the
+to the current state of ``master``. In other words, in this case, it takes the
 changes represented by A, B, C and replays them on top of G. After the rebase,
 your history will look like this::
 
                   A'--B'--C' cool-feature
                  /
-    D---E---F---G trunk
+    D---E---F---G master
 
 See `rebase without tears`_ for more detail.
 
-To do a rebase on trunk:
+To do a rebase on master:
 
 .. code-block:: console
 
-    # Update the mirror of trunk
+    # Update the mirror of master
     $ git fetch upstream
 
     # Go to the feature branch
@@ -408,7 +410,7 @@ To do a rebase on trunk:
     # Make a backup in case you mess up
     $ git branch tmp cool-feature
 
-    # Rebase cool-feature onto trunk
+    # Rebase cool-feature onto master
     $ git rebase --onto upstream/master upstream/master cool-feature
 
 In this situation, where you are already on branch ``cool-feature``, the last
@@ -427,26 +429,26 @@ When all looks good you can delete your backup branch:
 If it doesn't look good you may need to have a look at
 :ref:`recovering-from-mess-up`.
 
-If you have made changes to files that have also changed in trunk, this may
+If you have made changes to files that have also changed in master, this may
 generate merge conflicts that you need to resolve - see the `git rebase`_ man
 page for some instructions at the end of the "Description" section. There is
 some related help on merging in the git user manual - see `resolving a
 merge`_.
 
-If your feature branch is already on GitHub and you rebase, you will have to force
-push the branch; a normal push would give an error. If the branch you rebased is
-called ``cool-feature`` and your GitHub fork is available as the remote called ``origin``,
-you use this command to force-push:
+If your feature branch is already on GitHub and you rebase, you will have to
+force push the branch; a normal push would give an error. If the branch you
+rebased is called ``cool-feature`` and your GitHub fork is available as the
+remote called ``origin``, you use this command to force-push:
 
 .. code-block:: console
 
    $ git push -f origin cool-feature
 
-Note that this will overwrite the branch on GitHub, i.e. this is one of the few ways
-you can actually lose commits with git.
-Also note that it is never allowed to force push to the main mne-python repo (typically
-called ``upstream``), because this would re-write commit history and thus cause problems
-for all others.
+Note that this will overwrite the branch on GitHub, i.e. this is one of the few
+ways you can actually lose commits with git.
+Also note that it is never allowed to force push to the main mne-python repo
+(typically called ``upstream``), because this would re-write commit history and
+thus cause problems for all others.
 
 .. _recovering-from-mess-up:
 
@@ -601,8 +603,11 @@ If you want to fetch a pull request to your own fork, replace
 Skipping a build
 ^^^^^^^^^^^^^^^^
 
-The builds when the pull request is in `WIP` state can be safely skipped. The important thing is to ensure that the builds pass when the PR is ready to be merged. To skip a Travis build, add ``[ci skip]`` to the commit message::
+The builds when the pull request is in `WIP` state can be safely skipped. The
+important thing is to ensure that the builds pass when the PR is ready to be
+merged. To skip a Travis build, add ``[ci skip]`` to the commit message::
 
   FIX: some changes [ci skip]
 
-This will help prevent clogging up Travis and Appveyor and also save the environment.
+This will help prevent clogging up Travis and Appveyor and also save the
+environment.

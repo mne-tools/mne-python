@@ -1,8 +1,8 @@
-from __future__ import print_function
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
+from io import BytesIO
 import os
 import os.path as op
 from functools import reduce, partial
@@ -14,19 +14,19 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
-from mne.io.bti.bti import (_read_config, _process_bti_headshape,
+from mne.io.bti.bti import _make_bti_dig_points
+from mne.io.bti.bti import (_read_config,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,
                             _loc_to_coil_trans, _convert_coil_trans,
                             _check_nan_dev_head_t, _rename_channels)
+from mne.io.bti.bti import _read_head_shape
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
-from mne.utils import run_tests_if_main
+from mne.utils import assert_dig_allclose, run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
-from mne.externals import six
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
 
@@ -116,12 +116,12 @@ def test_raw():
         assert len(ex.info['dig']) in (3563, 5154)
         assert_dig_allclose(ex.info, ra.info, limit=100)
         coil1, coil2 = [np.concatenate([d['loc'].flatten()
-                        for d in r_.info['chs'][:NCH]])
+                                        for d in r_.info['chs'][:NCH]])
                         for r_ in (ra, ex)]
         assert_array_almost_equal(coil1, coil2, 7)
 
         loc1, loc2 = [np.concatenate([d['loc'].flatten()
-                      for d in r_.info['chs'][:NCH]])
+                                      for d in r_.info['chs'][:NCH]])
                       for r_ in (ra, ex)]
         assert_allclose(loc1, loc2)
 
@@ -239,7 +239,11 @@ def test_no_conversion():
         assert_array_equal(dev_ctf_t, raw_info['dev_ctf_t']['trans'])
         assert_array_equal(raw_info['dev_head_t']['trans'], np.eye(4))
         assert_array_equal(raw_info['ctf_head_t']['trans'], np.eye(4))
-        dig, t = _process_bti_headshape(hs, convert=False, use_hpi=False)
+
+        idx_points, dig_points = _read_head_shape(hs)
+        dig, t, _ = _make_bti_dig_points(idx_points, dig_points, convert=False,
+                                         use_hpi=False)
+
         assert_array_equal(t['trans'], np.eye(4))
 
         for ii, (old, new, con) in enumerate(zip(
@@ -251,8 +255,7 @@ def test_no_conversion():
             if ii > 10:
                 break
 
-        ch_map = dict((ch['chan_label'],
-                       ch['loc']) for ch in bti_info['chs'])
+        ch_map = {ch['chan_label']: ch['loc'] for ch in bti_info['chs']}
 
         for ii, ch_label in enumerate(raw_info['ch_names']):
             if not ch_label.startswith('A'):
@@ -278,11 +281,11 @@ def test_bytes_io():
         raw = read_raw_bti(pdf, config, hs, convert=True, preload=False)
 
         with open(pdf, 'rb') as fid:
-            pdf = six.BytesIO(fid.read())
+            pdf = BytesIO(fid.read())
         with open(config, 'rb') as fid:
-            config = six.BytesIO(fid.read())
+            config = BytesIO(fid.read())
         with open(hs, 'rb') as fid:
-            hs = six.BytesIO(fid.read())
+            hs = BytesIO(fid.read())
 
         raw2 = read_raw_bti(pdf, config, hs, convert=True, preload=False)
         repr(raw2)
@@ -292,8 +295,10 @@ def test_bytes_io():
 def test_setup_headshape():
     """Test reading bti headshape."""
     for hs in hs_fnames:
-        dig, t = _process_bti_headshape(hs)
-        expected = set(['kind', 'ident', 'r'])
+        idx_points, dig_points = _read_head_shape(hs)
+        dig, t, _ = _make_bti_dig_points(idx_points, dig_points)
+
+        expected = {'kind', 'ident', 'r'}
         found = set(reduce(lambda x, y: list(x) + list(y),
                            [d.keys() for d in dig]))
         assert (not expected - found)
@@ -338,5 +343,6 @@ def test_nan_trans():
                 if convert:
                     t = _loc_to_coil_trans(bti_info['chs'][idx]['loc'])
                     t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+
 
 run_tests_if_main()

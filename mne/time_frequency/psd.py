@@ -5,9 +5,8 @@
 import numpy as np
 
 from ..parallel import parallel_func
-from ..io.pick import _pick_data_channels
+from ..io.pick import _picks_to_idx
 from ..utils import logger, verbose, _time_mask
-from ..fixes import get_spectrogram
 from .multitaper import psd_array_multitaper
 
 
@@ -40,11 +39,10 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     from ..evoked import Evoked
     if not isinstance(inst, (BaseEpochs, BaseRaw, Evoked)):
         raise ValueError('epochs must be an instance of Epochs, Raw, or'
-                         'Evoked. Got type {0}'.format(type(inst)))
+                         'Evoked. Got type {}'.format(type(inst)))
 
     time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
-    if picks is None:
-        picks = _pick_data_channels(inst.info, with_ref_meg=False)
+    picks = _picks_to_idx(inst.info, picks, 'data', with_ref_meg=False)
     if proj:
         # Copy first so it's not modified
         inst = inst.copy().apply_proj()
@@ -55,7 +53,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
         rba = 'NaN' if reject_by_annotation else None
         data = inst.get_data(picks, start, stop + 1, reject_by_annotation=rba)
     elif isinstance(inst, BaseEpochs):
-        data = inst.get_data()[:, picks][:, :, time_mask]
+        data = inst.get_data(picks=picks)[:, :, time_mask]
     else:  # Evoked
         data = inst.data[picks][:, time_mask]
 
@@ -88,9 +86,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         to None, which sets n_per_seg equal to n_fft.
     n_jobs : int
         Number of CPUs to use in the computation.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -104,7 +100,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     -----
     .. versionadded:: 0.14.0
     """
-    spectrogram = get_spectrogram()
+    from scipy.signal import spectrogram
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
@@ -157,7 +153,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
-        If n_per_seg is None, n_fft must be >= number of time points
+        If n_per_seg is None, n_fft must be <= number of time points
         in the data.
     n_overlap : int
         The number of points of overlap between segments. Will be adjusted
@@ -165,9 +161,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_per_seg : int | None
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
-    picks : array-like of int | None
-        The selection of channels to include in the computation.
-        If None, take all channels.
+    %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
     n_jobs : int
@@ -179,9 +173,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -241,22 +233,18 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    picks : array-like of int | None
-        The selection of channels to include in the computation.
-        If None, take all channels.
+    %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
     n_jobs : int
         Number of CPUs to use in the computation.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

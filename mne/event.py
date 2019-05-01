@@ -12,14 +12,13 @@ from os.path import splitext
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type)
+                    _validate_type, _check_option)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.open import fiff_open
 from .io.write import write_int, start_block, start_file, end_block, end_file
 from .io.pick import pick_channels
-from .externals.six import string_types
 
 
 def pick_events(events, include=None, exclude=None, step=False):
@@ -184,7 +183,7 @@ def _read_events_fif(fid, tree):
     if mappings is not None:  # deal with ':' in keys
         m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
               for m in mappings.split(';')]
-        mappings = dict((k, int(v)) for v, k in m_)
+        mappings = {k: int(v) for v, k in m_}
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
@@ -278,8 +277,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn('{0} of {1} events masked'.format(unmasked_len - masked_len,
-                                                   unmasked_len))
+            warn('{} of {} events masked'.format(unmasked_len - masked_len,
+                                                 unmasked_len))
     return event_list
 
 
@@ -578,9 +577,7 @@ def find_events(raw, stim_channel=None, output='onset',
         at t=0s is present.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -716,10 +713,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Mask digital trigger values."""
-    if not isinstance(mask_type, string_types) or \
-            mask_type not in ('not_and', 'and'):
-        raise ValueError('mask_type must be "not_and" or "and", got %s'
-                         % (mask_type,))
+    _check_option('mask_type', mask_type, ['not_and', 'and'])
     if mask is not None:
         _validate_type(mask, "int", "mask", "int or None")
     n_events = len(events)
@@ -755,7 +749,7 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Returns
     -------
-    new_events: array, shape (n_events_out, 3)
+    new_events : array, shape (n_events_out, 3)
         The new events
 
     Examples
@@ -806,7 +800,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     ----------
     events : array, shape=(n_events, 3)
         The events
-    ids : array int
+    ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
         Time-shift event. Use positive value tshift for forward shifting
@@ -820,13 +814,17 @@ def shift_time_events(events, ids, tshift, sfreq):
         The new events.
     """
     events = events.copy()
-    for ii in ids:
-        events[events[:, 2] == ii, 0] += int(tshift * sfreq)
+    if ids is None:
+        mask = slice(None)
+    else:
+        mask = np.in1d(events[:, 2], ids)
+    events[mask, 0] += int(tshift * sfreq)
+
     return events
 
 
 def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
-                             first_samp=True):
+                             first_samp=True, overlap=0.):
     """Make a set of events separated by a fixed duration.
 
     Parameters
@@ -848,6 +846,10 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
         returned events will be combined with event times that already
         have ``raw.first_samp`` added to them, e.g. event times that come
         from :func:`mne.find_events`.
+    overlap : float
+        The overlap between events. Must be ``0 <= overlap < duration``.
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -858,6 +860,11 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(id, int, "id")
     _validate_type(duration, "numeric", "duration")
+    _validate_type(overlap, "numeric", "overlap")
+    duration, overlap = float(duration), float(overlap)
+    if not 0 <= overlap < duration:
+        raise ValueError('overlap must be >=0 but < duration (%s), got %s'
+                         % (duration, overlap))
 
     start = raw.time_as_index(start, use_rounding=True)[0]
     if stop is not None:
@@ -872,7 +879,8 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     # Make sure we don't go out the end of the file:
     stop -= int(np.round(raw.info['sfreq'] * duration))
     # This should be inclusive due to how we generally use start and stop...
-    ts = np.arange(start, stop + 1, raw.info['sfreq'] * duration).astype(int)
+    ts = np.arange(start, stop + 1,
+                   raw.info['sfreq'] * (duration - overlap)).astype(int)
     n_events = len(ts)
     if n_events == 0:
         raise ValueError('No events produced, check the values of start, '
@@ -891,7 +899,7 @@ def concatenate_events(events, first_samps, last_samps):
 
     Parameters
     ----------
-    events : list of arrays
+    events : list of array
         List of event arrays, typically each extracted from a
         corresponding raw file that is being concatenated.
     first_samps : list or array of int
@@ -998,7 +1006,7 @@ class AcqParserFIF(object):
         if 'ERFversion' in self.acq_dict:
             self.compat = False  # DACQ ver >= 3.4
         elif 'ERFncateg' in self.acq_dict:  # probably DACQ < 3.4
-                self.compat = True
+            self.compat = True
         else:
             raise ValueError('Cannot parse acquisition parameters')
         dacq_vars = self._dacq_vars_compat if self.compat else self._dacq_vars
@@ -1054,12 +1062,14 @@ class AcqParserFIF(object):
 
         Parameters
         ----------
-        item : str or list of str
+        item : str | list of str
             Name of the category (comment field in DACQ).
 
         Returns
         -------
-        conds : dict or list of dict, each with following keys:
+        conds : dict | list of dict
+            Each dict should have the following keys:
+
             comment: str
                 The comment field in DACQ.
             state : bool
@@ -1330,7 +1340,9 @@ class AcqParserFIF(object):
 
         Returns
         -------
-        conds_data : dict or list of dict, each with following keys:
+        conds_data : dict or list of dict
+            Each dict has the following keys:
+
             events : array, shape (n_epochs_out, 3)
                 List of zero time points (t0) for the epochs matching the
                 condition. Use as the ``events`` parameter to Epochs. Note

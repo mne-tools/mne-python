@@ -14,7 +14,7 @@ The forward solution
 Overview
 ########
 
-This Chapter covers the definitions of different coordinate
+This page covers the definitions of different coordinate
 systems employed in MNE software and FreeSurfer, the details of
 the computation of the forward solutions, and the associated low-level
 utilities.
@@ -249,144 +249,19 @@ and :math:`y` axis pointing front. The :math:`z` axis
 is, again, normal to the :math:`xy` plane
 with positive direction up.
 
-.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The :math:`x` axis    passes through the nasion and the origin with positive direction    to the front. The :math:`y` axis is perpendicular    to the :math:`x` axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The :math:`z` axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on :math:`y` coordinate axis. The file conversion utilities take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
-
-.. _BEHCGJDD:
-
-Creating a surface-based source space
-#####################################
-
-The fif format source space files containing the dipole locations
-and orientations are created with the utility :ref:`mne_make_source_space`.
-This utility is usually invoked by the convenience script :ref:`mne_setup_source_space`,
-see :ref:`setting_up_source_space`.
-
-
-.. _BJEFEHJI:
-
-Creating a volumetric or discrete source space
-##############################################
-
-In addition to source spaces confined to a surface, the MNE
-software provides some support for three-dimensional source spaces
-bounded by a surface as well as source spaces comprised of discrete,
-arbitrarily located source points. The :ref:`mne_volume_source_space` utility
-assists in generating such source spaces.
-
-
-.. _BEHCACCJ:
-
-Creating the BEM meshes
-#######################
-
-The :ref:`mne_surf2bem` utility
-converts surface triangle meshes from ASCII and FreeSurfer binary
-file formats to the fif format. The resulting fiff file also contains
-conductivity information so that it can be employed in the BEM calculations.
-See command-line options in :ref:`mne_surf2bem`.
-
-.. note:: The utility ``mne_tri2fiff`` previously used for this task has been replaced by :ref:`mne_surf2bem`.
-
-.. note:: The convenience script :ref:`mne_setup_forward_model` described in :ref:`CIHDBFEG` calls :ref:`mne_surf2bem` with the appropriate options.
-
-.. note:: The vertices of all surfaces should be given in the MRI coordinate system.
-
-
-.. _BEHDEFCD:
-
-Tessellation file format
-========================
-
-The format of the text format surface files is the following:
-
-  | <*nvert*>
-  | <*vertex 1*>
-  | <*vertex 2*>
-  | ...
-  | <*vertex nvert*>
-  | <*ntri*>
-  | <*triangle 1*>
-  | <*triangle 2*>
-  | ...
-  | <*triangle ntri*> ,
-
-where <*nvert*> and <*ntri*> are
-the number of vertices and number of triangles in the tessellation,
-respectively.
-
-The format of a vertex entry is
-one of the following:
-
-**x y z**
-
-    The x, y, and z coordinates of the vertex location are given in
-    mm.
-
-**number x y z**
-
-    A running number and the x, y, and z coordinates are given. The running
-    number is not considered by mne_tri2fiff. The nodes must be thus
-    listed in the correct consecutive order.
-
-**x y z nx ny nz**
-
-    The x, y, and z coordinates as well as the approximate vertex normal direction
-    cosines are given.
-
-**number x y z nx ny nz**
-
-    A running number is given in addition to the vertex location and vertex
-    normal.
-
-Each triangle entry consists of the numbers of the vertices
-belonging to a triangle. The vertex numbering starts from one. The
-triangle list may also contain running numbers on each line describing
-a triangle.
-
-.. _BEHCBDDE:
-
-Topology checks
-===============
-
-If the ``--check`` option is specified, the following
-topology checks are performed:
-
-- The completeness of each surface is
-  confirmed by calculating the total solid angle subtended by all
-  triangles from a point inside the triangulation. The result should
-  be very close to :math:`4 \pi`. If the result
-  is :math:`-4 \pi` instead, it is conceivable
-  that the ordering of the triangle vertices is incorrect and the
-  ``--swap`` option should be specified.
-
-- The correct ordering of the surfaces is verified by checking
-  that the surfaces are inside each other as expected. This is accomplished
-  by checking that the sum solid angles subtended by triangles of
-  a surface :math:`S_k` at all vertices of another
-  surface :math:`S_p` which is supposed to be
-  inside it equals :math:`4 \pi`. Naturally, this
-  check is applied only if the model has more than one surface. Since
-  the surface relations are transitive, it is enough to check that
-  the outer skull surface is inside the skin surface and that the
-  inner skull surface is inside the outer skull one.
-
-- The extent of each of the triangulated volumes is checked.
-  If the extent is smaller than 50mm, an error is reported. This
-  may indicate that the vertex coordinates have been specified in
-  meters instead of millimeters.
-
-
-.. _CHDJFHEB:
-
-Computing the BEM geometry data
-###############################
-
-The utility :ref:`mne_prepare_bem_model` computes
-the geometry information for BEM. This utility is usually invoked
-by the convenience script :ref:`mne_setup_forward_model`,
-see :ref:`CIHDBFEG`. The command-line options are listed under
-:ref:`mne_prepare_bem_model`.
-
+.. note:: The above definition is identical to that of the Neuromag MEG/EEG
+          (head) coordinate system. However, in 4-D Neuroimaging and CTF MEG
+          systems the head coordinate frame definition is different. The origin
+          of the coordinate system is at the midpoint of the left and right
+          auricular points. The :math:`x` axis passes through the nasion and the
+          origin with positive direction to the front. The :math:`y` axis is
+          perpendicular to the :math:`x` axis on the and lies in the plane
+          defined by the three fiducial landmarks, positive direction from right
+          to left. The :math:`z` axis is normal to the plane of the landmarks,
+          pointing up. Note that in this convention the auricular points are not
+          necessarily located on :math:`y` coordinate axis. The file conversion
+          utilities take care of these idiosyncrasies and convert all coordinate
+          information to the MNE software head coordinate frame.
 
 .. _BJEIAEIE:
 
@@ -403,6 +278,13 @@ the detectors:
 
 - A unique identifier, which has an one-to-one correspondence
   to the geometrical description of the coil.
+
+.. note:: MNE ships with several coil geometry configurations.
+          They can be found in ``mne/data``.
+          See :ref:`sphx_glr_auto_examples_visualization_plot_meg_sensors.py`
+          for a comparison between different coil geometries, and
+          :ref:`implemented_coil_geometries` for detailed information regarding
+          the files describing Neuromag coil geometries.
 
 The sensor coordinate system
 ============================
@@ -421,7 +303,8 @@ another coordinate transformation to the head-coordinate data to
 bring the coil locations and orientations to the MRI coordinate system.
 
 If :math:`r_0` is a row vector for
-the origin of the local sensor coordinate system and :math:`e_x`, :math:`e_y`, and :math:`e_z` are the row vectors for the
+the origin of the local sensor coordinate system and :math:`e_x`, :math:`e_y`,
+and :math:`e_z` are the row vectors for the
 three orthogonal unit vectors, all given in device coordinates,
 a location of a point :math:`r_C` in sensor coordinates
 is transformed to device coordinates (:math:`r_D`)
@@ -458,356 +341,41 @@ MEG channel, :math:`b_k` can be approximated by:
 
 where :math:`r_{kp}` are a set of :math:`N_k` integration
 points covering the pickup coil loops of the sensor, :math:`B(r_{kp})` is
-the magnetic field due to the current sources calculated at :math:`r_{kp}`, :math:`n_{kp}` are
-the coil normal directions at these points, and :math:`w_{kp}` are
-the weights associated to the integration points. This formula essentially
-presents numerical integration of the magnetic field over the pickup
-loops of sensor :math:`k`.
+the magnetic field due to the current sources calculated at :math:`r_{kp}`,
+:math:`n_{kp}` are the coil normal directions at these points, and
+:math:`w_{kp}` are the weights associated to the integration points. This
+formula essentially presents numerical integration of the magnetic field over
+the pickup loops of sensor :math:`k`.
 
-There are three accuracy levels for the numerical integration
-expressed above. The *simple* accuracy means
-the simplest description of the coil. This accuracy is not used
-in the MNE forward calculations. The *normal* or *recommended* accuracy typically uses
-two integration points for planar gradiometers, one in each half
-of the pickup coil and four evenly distributed integration points
-for magnetometers. This is the default accuracy used by MNE. If
-the ``--accurate`` option is specified, the forward calculation typically employs
-a total of eight integration points for planar gradiometers and
-sixteen for magnetometers. Detailed information about the integration
-points is given in the next section.
-
-Implemented coil geometries
-===========================
-
-This section describes the coil geometries currently implemented
-in Neuromag software. The coil types fall in two general categories:
-
-- Axial gradiometers and planar gradiometers
-  and
-
-- Planar magnetometers.
-
-For axial sensors, the *z* axis of the
-local coordinate system is parallel to the field component detected, *i.e.*,
-normal to the coil plane.For circular coils, the orientation of
-the *x* and *y* axes on the
-plane normal to the z axis is irrelevant. In the square coils employed
-in the Vectorview (TM) system the *x* axis
-is chosen to be parallel to one of the sides of the magnetometer
-coil. For planar sensors, the *z* axis is likewise
-normal to the coil plane and the x axis passes through the centerpoints
-of the two coil loops so that the detector gives a positive signal
-when the normal field component increases along the *x* axis.
-
-:ref:`BGBBHGEC` lists the parameters of the *normal* coil
-geometry descriptions :ref:`CHDBDFJE` lists the *accurate* descriptions. For simple accuracy,
-please consult the coil definition file, see :ref:`BJECIGEB`.
-The columns of the tables contain the following data:
-
-- The number identifying the coil id.
-  This number is used in the coil descriptions found in the FIF files.
-
-- Description of the coil.
-
-- Number of integration points used
-
-- The locations of the integration points in sensor coordinates.
-
-- Weights assigned to the field values at the integration points.
-  Some formulas are listed instead of the numerical values to demonstrate
-  the principle of the calculation. For example, in the normal coil
-  descriptions of the planar gradiometers the weights are inverses
-  of the baseline of the gradiometer to show that the output is in
-  T/m.
-
-.. note:: The coil geometry information is stored in the file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created by the utility mne_list_coil_def , see :ref:`BJEHHJIJ`.
-
-.. XXX : table of normal coil description is missing
-
-.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
-.. _BGBBHGEC:
-.. table:: Normal coil descriptions.
-
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | Id   | Description             | n  | r/mm                             | w                    |
-    +======+=========================+====+==================================+======================+
-    | 2    | Neuromag-122            | 2  | (+/-8.1, 0, 0) mm                | +/-1 ⁄ 16.2mm        | 
-    |      | planar gradiometer      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 2000 | A point magnetometer    | 1  | (0, 0, 0)mm                      | 1                    |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3012 | Vectorview type 1       | 2  | (+/-8.4, 0, 0.3) mm              | +/-1 ⁄ 16.8mm        |
-    |      | planar gradiometer      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3013 | Vectorview type 2       | 2  | (+/-8.4, 0, 0.3) mm              | +/-1 ⁄ 16.8mm        |
-    |      | planar gradiometer      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3022 | Vectorview type 1       | 4  | (+/-6.45, +/-6.45, 0.3)mm        | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3023 | Vectorview type 2       | 4  | (+/-6.45, +/-6.45, 0.3)mm        | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3024 | Vectorview type 3       | 4  | (+/-5.25, +/-5.25, 0.3)mm        | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 2000 | An ideal point          | 1  | (0.0, 0.0, 0.0)mm                | 1                    |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4001 | Magnes WH               | 4  | (+/-5.75, +/-5.75, 0.0)mm        | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4002 | Magnes WH 3600          | 8  | (+/-4.5, +/-4.5, 0.0)mm          | 1/4                  |
-    |      | axial gradiometer       |    | (+/-4.5, +/-4.5, 50.0)mm         | -1/4                 |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4003 | Magnes reference        | 4  | (+/-7.5, +/-7.5, 0.0)mm          | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4004 | Magnes reference        | 8  | (+/-20, +/-20, 0.0)mm            | 1/4                  |
-    |      | gradiometer measuring   |    | (+/-20, +/-20, 135)mm            | -1/4                 |
-    |      | diagonal gradients      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4005 | Magnes reference        | 8  | (87.5, +/-20, 0.0)mm             | 1/4                  |
-    |      | gradiometer measuring   |    | (47.5, +/-20, 0.0)mm             | -1/4                 |
-    |      | off-diagonal gradients  |    | (-87.5, +/-20, 0.0)mm            | 1/4                  |
-    |      |                         |    | (-47.5, +/-20, 0.0)mm            | -1/4                 |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 5001 | CTF 275 axial           | 8  | (+/-4.5, +/-4.5, 0.0)mm          | 1/4                  |
-    |      | gradiometer             |    | (+/-4.5, +/-4.5, 50.0)mm         | -1/4                 |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 5002 | CTF reference           | 4  | (+/-4, +/-4, 0.0)mm              | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 5003 | CTF reference           | 8  | (+/-8.6, +/-8.6, 0.0)mm          | 1/4                  |
-    |      | gradiometer measuring   |    | (+/-8.6, +/-8.6, 78.6)mm         | -1/4                 |
-    |      | diagonal gradients      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-
-.. note:: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
-
-.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.05\linewidth}|p{0.25\linewidth}|p{0.15\linewidth}|
-.. _CHDBDFJE:
-.. table:: Accurate coil descriptions
-
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | Id   | Description             | n  | r/mm                             | w                    |
-    +======+=========================+====+==================================+======================+
-    | 2    | Neuromag-122 planar     | 8  | +/-(8.1, 0, 0) mm                | +/-1 ⁄ 16.2mm        |
-    |      | gradiometer             |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 2000 | A point magnetometer    | 1  | (0, 0, 0) mm                     | 1                    |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3012 | Vectorview type 1       | 2  | (+/-8.4, 0, 0.3) mm              | +/-1 ⁄ 16.8mm        |
-    |      | planar gradiometer      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3013 | Vectorview type 2       | 2  | (+/-8.4, 0, 0.3) mm              | +/-1 ⁄ 16.8mm        |
-    |      | planar gradiometer      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3022 | Vectorview type 1       | 4  | (+/-6.45, +/-6.45, 0.3)mm        | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3023 | Vectorview type 2       | 4  | (+/-6.45, +/-6.45, 0.3)mm        | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 3024 | Vectorview type 3       | 4  | (+/-5.25, +/-5.25, 0.3)mm        | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4001 | Magnes WH magnetometer  | 4  | (+/-5.75, +/-5.75, 0.0)mm        | 1/4                  |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4002 | Magnes WH 3600          | 4  | (+/-4.5, +/-4.5, 0.0)mm          | 1/4                  |
-    |      | axial gradiometer       |    | (+/-4.5, +/-4.5, 0.0)mm          | -1/4                 |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4004 | Magnes reference        | 8  | (+/-20, +/-20, 0.0)mm            | 1/4                  |
-    |      | gradiometer measuring   |    | (+/-20, +/-20, 135)mm            | -1/4                 |
-    |      | diagonal gradients      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 4005 | Magnes reference        | 8  | (87.5, +/-20, 0.0)mm             | 1/4                  |
-    |      | gradiometer measuring   |    | (47.5, +/-20, 0.0)mm             | -1/4                 |
-    |      | off-diagonal gradients  |    | (-87.5, +/-20, 0.0)mm            | 1/4                  |
-    |      |                         |    | (-47.5, +/-20, 0.0)mm            | -1/4                 |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 5001 | CTF 275 axial           | 8  | (+/-4.5, +/-4.5, 0.0)mm          | 1/4                  |
-    |      | gradiometer             |    | (+/-4.5, +/-4.5, 50.0)mm         | -1/4                 |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 5002 | CTF reference           | 4  | (+/-4, +/-4, 0.0)mm              | 1/4                  |
-    |      | magnetometer            |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 5003 | CTF 275 reference       | 8  | (+/-8.6, +/-8.6, 0.0)mm          | 1/4                  |
-    |      | gradiometer measuring   |    | (+/-8.6, +/-8.6, 78.6)mm         | -1/4                 |
-    |      | diagonal gradients      |    |                                  |                      |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 5004 | CTF 275 reference       | 8  | (47.8, +/-8.5, 0.0)mm            | 1/4                  |
-    |      | gradiometer measuring   |    | (30.8, +/-8.5, 0.0)mm            | -1/4                 |
-    |      | off-diagonal gradients  |    | (-47.8, +/-8.5, 0.0)mm           | 1/4                  |
-    |      |                         |    | (-30.8, +/-8.5, 0.0)mm           | -1/4                 |
-    +------+-------------------------+----+----------------------------------+----------------------+
-    | 6001 | MIT KIT system axial    | 8  | (+/-3.875, +/-3.875, 0.0)mm      | 1/4                  |
-    |      | gradiometer             |    | (+/-3.875, +/-3.875, 0.0)mm      | -1/4                 |
-    +------+-------------------------+----+----------------------------------+----------------------+
-
-
-.. _BJECIGEB:
-
-The coil definition file
-========================
-
-The coil geometry information is stored in the text file
-$MNE_ROOT/share/mne/coil_def.dat. In this file, any lines starting
-with the pound sign (#) are comments. A coil definition starts with
-a description line containing the following fields:
-
-** <*class*>**
-
-    This is a number indicating class of this coil. Possible values
-    are listed in :ref:`BJEFABHA`.
-
-** <*id*>**
-
-    Coil id value. This value is listed in the first column of Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`.
-
-** <*accuracy*>**
-
-    The coil representation accuracy. Possible values and their meanings
-    are listed in :ref:`BJEHIBJC`.
-
-** <*np*>**
-
-    Number of integration points in this representation.
-
-** <*size/m*>**
-
-    The size of the coil. For circular coils this is the diameter of
-    the coil and for square ones the side length of the square. This
-    information is mainly included to facilitate drawing of the coil
-    geometry. It should not be employed to infer a coil approximation
-    for the forward calculations.
-
-** <*baseline/m*>**
-
-    The baseline of a this kind of a coil. This will be zero for magnetometer
-    coils. This information is mainly included to facilitate drawing
-    of the coil geometry. It should not be employed to infer a coil
-    approximation for the forward calculations.
-
-** <*description*>**
-
-    Short description of this kind of a coil. If the description contains several
-    words, it is enclosed in quotes.
-
-.. _BJEFABHA:
-
-.. table:: Coil class values
-
-    =======  =======================================================
-    Value    Meaning
-    =======  =======================================================
-    1        magnetometer
-    2        first-order axial gradiometer
-    3        planar gradiometer
-    4        second-order axial gradiometer
-    1000     an EEG electrode (used internally in software only).
-    =======  =======================================================
-
-
-.. tabularcolumns:: |p{0.1\linewidth}|p{0.5\linewidth}|
-.. _BJEHIBJC:
-.. table:: Coil representation accuracies.
-
-    =======  =====================================================================
-    Value    Meaning
-    =======  =====================================================================
-    1        The simplest representation available
-    2        The standard or *normal* representation (see :ref:`BGBBHGEC`)
-    3        The most *accurate* representation available (see :ref:`CHDBDFJE`)
-    =======  =====================================================================
-
-Each coil description line is followed by one or more integration
-point lines, consisting of seven numbers:
-
-** <*weight*>**
-
-    Gives the weight for this integration point (last column in Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`).
-
-** <*x/m*> <*y/m*> <*z/m*>**
-
-    Indicates the location of the integration point (fourth column in Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`).
-
-** <*nx*> <*ny*> <*nz*>**
-
-    Components of a unit vector indicating the field component to be selected.
-    Note that listing a separate unit vector for each integration points
-    allows the implementation of curved coils and coils with the gradiometer
-    loops tilted with respect to each other.
-
-.. _BJEHHJIJ:
-
-Creating the coil definition file
-=================================
-
-The standard coil definition file $MNE_ROOT/share/mne/coil_def.dat
-is included with the MNE software package. The coil definition file
-can be recreated with the utility mne_list_coil_def
-as follows:
-
-mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
 
 .. _CHDDIBAH:
 
 Computing the forward solution
 ##############################
 
-Purpose
-=======
+Examples on how to compute the forward solution using
+:func:`mne.make_forward_solution` can be found
+:ref:`plot_forward_compute_forward_solution` and :ref:`BABCHEJD`.
 
-Instead of using the convenience script :ref:`mne_do_forward_solution` it
-is also possible to invoke the forward solution computation program :ref:`mne_forward_solution` directly.
-In this approach, the convenience of the automatic file naming conventions
-present in :ref:`mne_do_forward_solution` are
-lost. However, there are some special-purpose options available
-in :ref:`mne_forward_solution` only.
-Please refer to :ref:`BABCHEJD` for information on :ref:`mne_do_forward_solution`.
-See :ref:`mne_forward_solution` for command-line options.
-
-Implementation of software gradient compensation
-================================================
-
-As described in :ref:`BEHDDFBI` the CTF and 4D Neuroimaging
-data may have been subjected to noise cancellation employing the
-data from the reference sensor array. Even though these sensor are
-rather far away from the brain sources, mne_forward_solution takes
-them into account in the computations. If the data file specified
-with the ``--meas`` option has software gradient compensation
-activated, mne_forward_solution computes
-the field of at the reference sensors in addition to the main MEG
-sensor array and computes a compensated forward solution using the
-methods described in :ref:`BEHDDFBI`.
-
-.. warning:: If a data file specified with the ``--meas`` option    and that used in the actual inverse computations with mne_analyze and mne_make_movie have    different software gradient compensation states., the forward solution    will be in mismatch with the data to be analyzed and the current    estimates will be slightly erroneous.
+.. note:: Notice that systems such as CTF and 4D Neuroimaging
+          data may have been subjected to noise cancellation employing the
+          data from the reference sensor array. Even though these sensor are
+          rather far away from the brain sources, this can be taken into account
+          using :meth:`mne.io.Raw.apply_gradient_compensation`.
+          See :ref:`plot_brainstorm_phantom_ctf`.
 
 .. _CHDIAFIG:
+.. _ch_forward_spherical_model:
 
-The EEG sphere model definition file
-====================================
+EEG forward solution in the sphere model
+========================================
 
 For the computation of the electric potential distribution
 on the surface of the head (EEG) it is necessary to define the conductivities
 (:math:`\sigma`) and radiuses of the spherically
 symmetric layers. Different sphere models can be specified with
-the ``--eegmodels`` option.
-
-The EEG sphere model definition files may contain comment
-lines starting with a # and model
-definition lines in the following format:
-
- <*name*>: <*radius1*>: <*conductivity1*>: <*radius2*>: <*conductivity2*>:...
-
-When the file is loaded the layers are sorted so that the
-radiuses will be in ascending order and the radius of the outermost
-layer is scaled to 1.0. The scalp radius specified with the ``--eegrad`` option
-is then consulted to scale the model to the correct dimensions.
-Even if the model setup file is not present, a model called Default is
-always provided. This model has the structure given in :ref:`BABEBGDA`
-
+through :func:`mne.make_sphere_model`.
+Here follows the default structure given when calling ``sphere = mne.make_sphere_model()``
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _BABEBGDA:
@@ -822,20 +390,24 @@ always provided. This model has the structure given in :ref:`BABEBGDA`
     Brain     0.90                     0.33
     ========  =======================  =======================
 
-EEG forward solution in the sphere model
-========================================
+Although it is not BEM model per se the ``sphere`` structure
+describes the head geometry so it can be passed as ``bem`` parameter in
+functions such as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment`
+or :func:`mne.make_forward_solution`.
 
-When the sphere model is employed, the computation of the
+When the sphere model is employed to compute the forward model using
+:func:`mne.make_forward_solution`, the computation of the
 EEG solution can be substantially accelerated by using approximation
 methods described by Mosher, Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et
-al.* and references therein). mne_forward_solution approximates
+al.* and references therein). In such scenario, MNE approximates
 the solution with three dipoles in a homogeneous sphere whose locations
 and amplitudes are determined by minimizing the cost function:
 
 .. math::    S(r_1,\dotsc,r_m\ ,\ \mu_1,\dotsc,\mu_m) = \int_{scalp} {(V_{true} - V_{approx})}\,dS
 
 where :math:`r_1,\dotsc,r_m` and :math:`\mu_1,\dotsc,\mu_m` are
-the locations and amplitudes of the approximating dipoles and :math:`V_{true}` and :math:`V_{approx}` are
+the locations and amplitudes of the approximating dipoles and
+:math:`V_{true}` and :math:`V_{approx}` are
 the potential distributions given by the true and approximative
 formulas, respectively. It can be shown that this integral can be
 expressed in closed form using an expansion of the potentials in
@@ -843,39 +415,9 @@ spherical harmonics. The formula is evaluated for the most superficial
 dipoles, *i.e.*, those lying just inside the
 inner skull surface.
 
-.. _BJEFEJJG:
-
-Field derivatives
-=================
-
-If the ``--grad`` option is specified, mne_forward_solution includes
-the derivatives of the forward solution with respect to the dipole
-location coordinates to the output file. Let
-
-.. math::    G_k = [g_{xk} g_{yk} g_{zk}]
-
-be the :math:`N_{chan} \times 3` matrix containing
-the signals produced by three orthogonal dipoles at location :math:`r_k` making
-up :math:`N_{chan} \times 3N_{source}` the gain matrix
-
-.. math::    G = [G_1 \dotso G_{N_{source}}]\ .
-
-With the ``--grad`` option, the output from mne_forward_solution also
-contains the :math:`N_{chan} \times 9N_{source}` derivative matrix
-
-.. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
-
-where
-
-.. math::    D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
-
-where :math:`x_k`, :math:`y_k`, and :math:`z_k` are the location
-coordinates of the :math:`k^{th}` dipole. If
-the dipole orientations are to the cortical normal with the ``--fixed``
-option, the dimensions of :math:`G` and :math:`D` are :math:`N_{chan} \times N_{source}` and :math:`N_{chan} \times 3N_{source}`,
-respectively. Both :math:`G` and :math:`D` can
-be read with the mne_read_forward_solution Matlab
-function, see Table 10.1.
+.. note:: See :ref:`Brainstorm CTF phantom dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
+          :ref:`Brainstorm Elekta phantom dataset tutorial <plt_brainstorm_phantom_elekta_eeg_sphere_geometry>`,
+          and :ref:`plot_source_alignment_without_mri`.
 
 .. _CHDBBFCA:
 
@@ -887,7 +429,8 @@ Purpose
 
 One possibility to make a grand average over several runs
 of a experiment is to average the data across runs and average the
-forward solutions accordingly. For this purpose, :ref:`mne_average_forward_solutions` computes a
-weighted average of several forward solutions. The program averages both
-MEG and EEG forward solutions. Usually the EEG forward solution is
-identical across runs because the electrode locations do not change.
+forward solutions accordingly. For this purpose,
+:func:`mne.average_forward_solutions` computes a weighted average of several
+forward solutions. The function averages both MEG and EEG forward solutions.
+Usually the EEG forward solution is identical across runs because the electrode
+locations do not change.

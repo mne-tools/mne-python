@@ -11,7 +11,8 @@ from mne import (read_events, write_events, make_fixed_length_events,
                  read_evokeds, Epochs, create_info, compute_raw_covariance)
 from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir, run_tests_if_main
-from mne.event import define_target_events, merge_events, AcqParserFIF
+from mne.event import (define_target_events, merge_events, AcqParserFIF,
+                       shift_time_events)
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -219,16 +220,16 @@ def test_find_events():
                        [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
     # testing with mask_type = 'and'
     assert_array_equal(find_events(raw, shortest_event=1, mask=1,
-                       mask_type='and'),
+                                   mask_type='and'),
                        [[1, 0, 1], [3, 0, 1]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=2,
-                       mask_type='and'),
+                                   mask_type='and'),
                        [[2, 0, 2]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=3,
-                       mask_type='and'),
+                                   mask_type='and'),
                        [[1, 0, 1], [2, 1, 2], [3, 2, 3]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=4,
-                       mask_type='and'),
+                                   mask_type='and'),
                        [[4, 0, 4]])
 
     # test empty events channel
@@ -425,6 +426,17 @@ def test_make_fixed_length_events():
     expected = np.cov(data[:, :21216])
     np.testing.assert_allclose(cov['data'], expected, atol=1e-12)
 
+    # overlaps
+    events = make_fixed_length_events(raw, 1, duration=1)
+    assert len(events) == 136
+    events_ol = make_fixed_length_events(raw, 1, duration=1, overlap=0.5)
+    assert len(events_ol) == 271
+    events_ol_2 = make_fixed_length_events(raw, 1, duration=1, overlap=0.9)
+    assert len(events_ol_2) == 1355
+    assert_array_equal(events_ol_2[:, 0], np.unique(events_ol_2[:, 0]))
+    with pytest.raises(ValueError, match='overlap must be'):
+        make_fixed_length_events(raw, 1, duration=1, overlap=1.1)
+
 
 def test_define_events():
     """Test defining response events."""
@@ -529,6 +541,19 @@ def test_acqparser_averaging():
         assert ev_grad.ch_names[::-1] == ev_ref_grad.ch_names
         assert_allclose(ev_grad.data[::-1], ev_ref_grad.data,
                         rtol=0, atol=1e-13)  # tol = 1 fT/cm
+
+
+def test_shift_time_events():
+    """Test events latency shift by a given amount."""
+    events = np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2]])
+    EXPECTED = [1, 2, 3]
+    new_events = shift_time_events(events, ids=None, tshift=1, sfreq=1)
+    assert all(new_events[:, 0] == EXPECTED)
+
+    events = np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2]])
+    EXPECTED = [0, 2, 3]
+    new_events = shift_time_events(events, ids=[1, 2], tshift=1, sfreq=1)
+    assert all(new_events[:, 0] == EXPECTED)
 
 
 run_tests_if_main()

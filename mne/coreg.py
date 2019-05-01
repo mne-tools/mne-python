@@ -5,8 +5,7 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six.moves import configparser
-from .externals.six import string_types
+import configparser
 import fnmatch
 from glob import glob, iglob
 import os
@@ -18,7 +17,6 @@ import shutil
 from functools import reduce
 
 import numpy as np
-from numpy import dot
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
@@ -33,7 +31,6 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
-from .externals.six.moves import zip
 
 # some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
@@ -94,9 +91,9 @@ def coregister_fiducials(info, fiducials, tol=0.01):
     trans : Transform
         The device-MRI transform.
     """
-    if isinstance(info, string_types):
+    if isinstance(info, str):
         info = read_info(info)
-    if isinstance(fiducials, string_types):
+    if isinstance(fiducials, str):
         fiducials, coord_frame_to = read_fiducials(fiducials)
     else:
         coord_frame_to = FIFF.FIFFV_COORD_MRI
@@ -132,9 +129,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -290,7 +285,7 @@ def _trans_from_params(param_info, params):
         x, y, z = params[i:i + 3]
         trans.append(scaling(x, y, z))
 
-    trans = reduce(dot, trans)
+    trans = reduce(np.dot, trans)
     return trans
 
 
@@ -345,7 +340,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
         raise ValueError("src_pts and tgt_pts must have same shape (got "
-                         "{0}, {1})".format(src_pts.shape, tgt_pts.shape))
+                         "{}, {})".format(src_pts.shape, tgt_pts.shape))
     if weights is not None:
         weights = np.array(weights, float)
         if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
@@ -364,7 +359,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         def error(x):
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
-            est = dot(src_pts, trans.T)
+            est = np.dot(src_pts, trans.T)
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -374,8 +369,8 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 0):
         def error(x):
             rx, ry, rz, tx, ty, tz = x
-            trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = np.dot(translation(tx, ty, tz), rotation(rx, ry, rz))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -385,9 +380,10 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 1):
         def error(x):
             rx, ry, rz, tx, ty, tz, s = x
-            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
-                                 scaling(s, s, s)))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = reduce(np.dot, (translation(tx, ty, tz),
+                                    rotation(rx, ry, rz),
+                                    scaling(s, s, s)))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -397,9 +393,10 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 3):
         def error(x):
             rx, ry, rz, tx, ty, tz, sx, sy, sz = x
-            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
-                                 scaling(sx, sy, sz)))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = reduce(np.dot, (translation(tx, ty, tz),
+                                    rotation(rx, ry, rz),
+                                    scaling(sx, sy, sz)))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -421,7 +418,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     if tol is not None:
         if not translate:
             src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-        est_pts = dot(src_pts, trans.T)[:, :3]
+        est_pts = np.dot(src_pts, trans.T)[:, :3]
         err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
         if np.any(err > tol):
             raise RuntimeError("Error exceeds tolerance. Error = %r" % err)
@@ -815,9 +812,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         otherwise it is read from subject_to's config file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     subjects_dir, subject_from, scale, uniform = \
         _scale_params(subject_to, subject_from, scale, subjects_dir)
@@ -920,9 +915,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         Also scale all labels (default True).
     annot : bool
         Copy ``*.annot`` files to the new location (default False).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -1053,9 +1046,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         Number of jobs to run in parallel if recomputing distances (only
         applies if scale is an array of length 3, and will not use more cores
         than there are source spaces).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1115,7 +1106,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
 
     if add_dist:
         logger.info("Recomputing distances, this might take a while")
-        dist_limit = np.asscalar(np.abs(sss[0]['dist_limit']))
+        dist_limit = float(np.abs(sss[0]['dist_limit']))
         add_source_space_distances(sss, dist_limit, n_jobs)
 
     write_source_spaces(dst, sss)

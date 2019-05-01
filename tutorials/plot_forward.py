@@ -12,6 +12,7 @@ concepts for forward modeling. See :ref:`ch_forward`.
 
 """
 
+import os.path as op
 import mne
 from mne.datasets import sample
 data_path = sample.data_path()
@@ -30,22 +31,25 @@ subject = 'sample'
 #
 #    - a ``-trans.fif`` file that contains the coregistration info.
 #    - a source space
-#    - the BEM surfaces
+#    - the :term:`BEM` surfaces
 
 ###############################################################################
 # Compute and visualize BEM surfaces
 # ----------------------------------
 #
-# The BEM surfaces are the triangulations of the interfaces between different
-# tissues needed for forward computation. These surfaces are for example
-# the inner skull surface, the outer skull surface and the outer skill
-# surface.
+# The :term:`BEM` surfaces are the triangulations of the interfaces between
+# different tissues needed for forward computation. These surfaces are for
+# example the inner skull surface, the outer skull surface and the outer skin
+# surface, a.k.a. scalp surface.
 #
 # Computing the BEM surfaces requires FreeSurfer and makes use of either of
 # the two following command line tools:
 #
 #   - :ref:`gen_mne_watershed_bem`
 #   - :ref:`gen_mne_flash_bem`
+#
+# Or by calling in a Python script one of the functions
+# :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
 #
 # Here we'll assume it's already computed. It takes a few minutes per subject.
 #
@@ -66,9 +70,10 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # The coregistration is operation that allows to position the head and the
 # sensors in a common coordinate system. In the MNE software the transformation
 # to align the head and the sensors in stored in a so-called **trans file**.
-# It is a FIF file that ends with -trans.fif. It can be obtained with
-# mne_analyze (Unix tools), mne.gui.coregistration (in Python) or mrilab
-# if you're using a Neuromag system.
+# It is a FIF file that ends with ``-trans.fif``. It can be obtained with
+# :func:`mne.gui.coregistration` (or its convenient command line
+# equivalent :ref:`gen_mne_coreg`), or mrilab if you're using a Neuromag
+# system.
 #
 # For the Python version see :func:`mne.gui.coregistration`
 #
@@ -86,13 +91,25 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
                        surfaces='head-dense')
 
 ###############################################################################
+# .. _plot_forward_source_space:
+#
 # Compute Source Space
 # --------------------
 #
-# The source space defines the position of the candidate source locations.
-# The following code compute such a cortical source space with
-# an OCT-6 resolution.
+# The source space defines the position and orientation of the candidate source
+# locations. There are two types of source spaces:
 #
+# - **source-based** source space when the candidates are confined to a
+#   surface.
+#
+# - **volumetric or discrete** source space when the candidates are discrete,
+#   arbitrarily located source points bounded by the surface.
+#
+# **Source-based** source space is computed using
+# :func:`mne.setup_source_space`, while **volumetric** source space is computed
+# using :func:`mne.setup_volume_source_space`.
+#
+# We will now compute a source-based source space with an OCT-6 resolution.
 # See :ref:`setting_up_source_space` for details on source space definition
 # and spacing parameter.
 
@@ -101,16 +118,45 @@ src = mne.setup_source_space(subject, spacing='oct6',
 print(src)
 
 ###############################################################################
-# ``src`` contains two parts, one for the left hemisphere (4098 locations) and
-# one for the right hemisphere (4098 locations). Sources can be visualized on
-# top of the BEM surfaces.
+# The surface based source space ``src`` contains two parts, one for the left
+# hemisphere (4098 locations) and one for the right hemisphere
+# (4098 locations). Sources can be visualized on top of the BEM surfaces
+# in purple.
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
                  brain_surfaces='white', src=src, orientation='coronal')
 
 ###############################################################################
-# However, only sources that lie in the plotted MRI slices are shown.
-# Let's write a few lines of mayavi to see all sources.
+# To compute a volume based source space defined with a grid of candidate
+# dipoles inside a sphere of radius 90mm centered at (0.0, 0.0, 40.0)
+# you can use the following code.
+# Obviously here, the sphere is not perfect. It is not restricted to the
+# brain and it can miss some parts of the cortex.
+
+sphere = (0.0, 0.0, 40.0, 90.0)
+vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
+                                        sphere=sphere)
+print(vol_src)
+
+mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
+                 brain_surfaces='white', src=vol_src, orientation='coronal')
+
+###############################################################################
+# To compute a volume based source space defined with a grid of candidate
+# dipoles inside the brain (requires the :term:`BEM` surfaces) you can use the
+# following.
+
+surface = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
+vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
+                                        surface=surface)
+print(vol_src)
+
+mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
+                 brain_surfaces='white', src=vol_src, orientation='coronal')
+
+###############################################################################
+# With the surface-based source space only sources that lie in the plotted MRI
+# slices are shown. Let's write a few lines of mayavi to see all sources in 3D.
 
 import numpy as np  # noqa
 from mayavi import mlab  # noqa
@@ -124,7 +170,10 @@ vertidx = np.where(src[0]['inuse'])[0]
 mlab.points3d(surf.x[vertidx], surf.y[vertidx],
               surf.z[vertidx], color=(1, 1, 0), scale_factor=1.5)
 
+
 ###############################################################################
+# .. _plot_forward_compute_forward_solution:
+#
 # Compute forward solution
 # ------------------------
 #
@@ -146,7 +195,7 @@ model = mne.make_bem_model(subject='sample', ico=4,
 bem = mne.make_bem_solution(model)
 
 ###############################################################################
-# Note that the BEM does not involve any use of the trans file. The BEM
+# Note that the :term:`BEM` does not involve any use of the trans file. The BEM
 # only depends on the head geometry and conductivities.
 # It is therefore independent from the MEG data and the head position.
 #

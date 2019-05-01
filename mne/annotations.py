@@ -2,16 +2,18 @@
 #
 # License: BSD (3-clause)
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
+import os.path as op
 import re
 from copy import deepcopy
+from itertools import takewhile
+import collections
 
 import numpy as np
 
-from .utils import _pl, check_fname, _validate_type, verbose, warn, logger
-from .utils import _Counter as Counter
-from .externals.six import string_types
+from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
+                    _check_pandas_installed, _Counter, _mask_to_onsets_offsets)
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
 from .io.constants import FIFF
@@ -20,24 +22,37 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag
 
 
+def _check_o_d_s(onset, duration, description):
+    onset = np.atleast_1d(np.array(onset, dtype=float))
+    if onset.ndim != 1:
+        raise ValueError('Onset must be a one dimensional array, got %s '
+                         '(shape %s).'
+                         % (onset.ndim, onset.shape))
+    duration = np.array(duration, dtype=float)
+    if duration.ndim == 0 or duration.shape == (1,):
+        duration = np.repeat(duration, len(onset))
+    if duration.ndim != 1:
+        raise ValueError('Duration must be a one dimensional array, '
+                         'got %d.' % (duration.ndim,))
+
+    description = np.array(description, dtype=str)
+    if description.ndim == 0 or description.shape == (1,):
+        description = np.repeat(description, len(onset))
+    if description.ndim != 1:
+        raise ValueError('Description must be a one dimensional array, '
+                         'got %d.' % (description.ndim,))
+    if any([';' in desc for desc in description]):
+        raise ValueError('Semicolons in descriptions not supported.')
+
+    if not (len(onset) == len(duration) == len(description)):
+        raise ValueError('Onset, duration and description must be '
+                         'equal in sizes, got %s, %s, and %s.'
+                         % (len(onset), len(duration), len(description)))
+    return onset, duration, description
+
+
 class Annotations(object):
     """Annotation object for annotating segments of raw data.
-
-    Annotations are added to instance of :class:`mne.io.Raw` as an attribute
-    named ``annotations``. To reject bad epochs using annotations, use
-    annotation description starting with 'bad' keyword. The epochs with
-    overlapping bad segments are then rejected automatically by default.
-
-    To remove epochs with blinks you can do::
-
-        >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
-        >>> n_blinks = len(eog_events)  # doctest: +SKIP
-        >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
-        >>> duration = np.repeat(0.5, n_blinks)  # doctest: +SKIP
-        >>> description = ['bad blink'] * n_blinks  # doctest: +SKIP
-        >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
-        >>> raw.set_annotations(annotations)  # doctest: +SKIP
-        >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
 
     Parameters
     ----------
@@ -49,17 +64,39 @@ class Annotations(object):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-    orig_time : float | int | instance of datetime | array of int | None
+    orig_time : float | int | instance of datetime.datetime | array of int | None | str
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
         the annotations with raw data if their acquisiton is started at the
-        same time.
+        same time. If it is a string, it should conform to the ISO8601 format.
+        More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of the
+        ISO8601 format where the delimiter between date and time is ' '.
 
     Notes
     -----
+    Annotations are added to instance of :class:`mne.io.Raw` as the attribute
+    :attr:`raw.annotations <mne.io.Raw.annotations>`.
+
+    To reject bad epochs using annotations, use
+    annotation description starting with 'bad' keyword. The epochs with
+    overlapping bad segments are then rejected automatically by default.
+
+    To remove epochs with blinks you can do:
+
+    >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
+    >>> n_blinks = len(eog_events)  # doctest: +SKIP
+    >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
+    >>> duration = np.repeat(0.5, n_blinks)  # doctest: +SKIP
+    >>> description = ['bad blink'] * n_blinks  # doctest: +SKIP
+    >>> annotations = mne.Annotations(onset, duration, description)  # doctest: +SKIP
+    >>> raw.set_annotations(annotations)  # doctest: +SKIP
+    >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax)  # doctest: +SKIP
+
+    **orig_time**
+
     If ``orig_time`` is None, the annotations are synced to the start of the
     data (0 seconds). Otherwise the annotations are synced to sample 0 and
     ``raw.first_samp`` is taken into account the same way as with events.
@@ -142,45 +179,24 @@ class Annotations(object):
     def __init__(self, onset, duration, description,
                  orig_time=None):  # noqa: D102
         if orig_time is not None:
-            if isinstance(orig_time, datetime):
-                orig_time = float(time.mktime(orig_time.timetuple()))
-            elif not np.isscalar(orig_time):
-                orig_time = orig_time[0] + orig_time[1] / 1000000.
-            else:  # isscalar
-                orig_time = float(orig_time)  # np.int not serializable
+            orig_time = _handle_meas_date(orig_time)
         self.orig_time = orig_time
-
-        onset = np.array(onset, dtype=float)
-        if onset.ndim != 1:
-            raise ValueError('Onset must be a one dimensional array, got %s '
-                             '(shape %s).'
-                             % (onset.ndim, onset.shape))
-        duration = np.array(duration, dtype=float)
-        if isinstance(description, string_types):
-            description = np.repeat(description, len(onset))
-        if duration.ndim != 1:
-            raise ValueError('Duration must be a one dimensional array.')
-        if not (len(onset) == len(duration) == len(description)):
-            raise ValueError('Onset, duration and description must be '
-                             'equal in sizes.')
-        if any([';' in desc for desc in description]):
-            raise ValueError('Semicolons in descriptions not supported.')
-
-        self.onset = onset
-        self.duration = duration
-        self.description = np.array(description, dtype=str)
+        self.onset, self.duration, self.description = _check_o_d_s(
+            onset, duration, description)
+        self._sort()  # ensure we're sorted
 
     def __repr__(self):
         """Show the representation."""
-        kinds = sorted(set('%s' % d.split(' ')[0].lower()
-                           for d in self.description))
-        kinds = ['%s (%s)' % (kind, sum(d.lower().startswith(kind)
-                                        for d in self.description))
-                 for kind in kinds]
+        counter = collections.Counter(self.description)
+        kinds = ['%s (%s)' % k for k in counter.items()]
         kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
         kinds = (': ' if len(kinds) > 0 else '') + kinds
-        return ('<Annotations  |  %s segment%s %s >'
-                % (len(self.onset), _pl(len(self.onset)), kinds))
+        if self.orig_time is None:
+            orig = 'orig_time : None'
+        else:
+            orig = 'orig_time : %s' % datetime.utcfromtimestamp(self.orig_time)
+        return ('<Annotations  |  %s segment%s %s, %s>'
+                % (len(self.onset), _pl(len(self.onset)), kinds, orig))
 
     def __len__(self):
         """Return the number of annotations."""
@@ -206,17 +222,36 @@ class Annotations(object):
                                                  other.orig_time))
         return self.append(other.onset, other.duration, other.description)
 
+    def __iter__(self):
+        """Iterate over the annotations."""
+        for idx in range(len(self.onset)):
+            yield self.__getitem__(idx)
+
+    def __getitem__(self, key):
+        """Propagate indexing and slicing to the underlying numpy structure."""
+        if isinstance(key, int):
+            out_keys = ('onset', 'duration', 'description', 'orig_time')
+            out_vals = (self.onset[key], self.duration[key],
+                        self.description[key], self.orig_time)
+            return collections.OrderedDict(zip(out_keys, out_vals))
+        else:
+            key = list(key) if isinstance(key, tuple) else key
+            return Annotations(onset=self.onset[key],
+                               duration=self.duration[key],
+                               description=self.description[key],
+                               orig_time=self.orig_time)
+
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
 
         Parameters
         ----------
-        onset : float
+        onset : float | array-like
             Annotation time onset from the beginning of the recording in
             seconds.
-        duration : float
+        duration : float | array-like
             Duration of the annotation in seconds.
-        description : str
+        description : str | array-like
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'
 
@@ -224,10 +259,19 @@ class Annotations(object):
         -------
         self : mne.Annotations
             The modified Annotations object.
-        """
+
+        Notes
+        -----
+        The array-like support for arguments allows this to be used similarly
+        to not only ``list.append``, but also
+        `list.extend <https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types>`__.
+        """  # noqa: E501
+        onset, duration, description = _check_o_d_s(
+            onset, duration, description)
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
+        self._sort()
         return self
 
     def copy(self):
@@ -239,19 +283,21 @@ class Annotations(object):
 
         Parameters
         ----------
-        idx : int | list of int
-            Index of the annotation to remove.
+        idx : int | array-like of int
+            Index of the annotation to remove. Can be array-like to
+            remove multiple indices.
         """
         self.onset = np.delete(self.onset, idx)
         self.duration = np.delete(self.duration, idx)
         self.description = np.delete(self.description, idx)
 
     def save(self, fname):
-        """Save annotations to FIF.
+        """Save annotations to FIF, CSV or TXT.
 
         Typically annotations get saved in the FIF file for raw data
         (e.g., as ``raw.annotations``), but this offers the possibility
-        to also save them to disk separately.
+        to also save them to disk separately in different file formats
+        which are easier to share between packages.
 
         Parameters
         ----------
@@ -259,9 +305,25 @@ class Annotations(object):
             The filename to use.
         """
         check_fname(fname, 'annotations', ('-annot.fif', '-annot.fif.gz',
-                                           '_annot.fif', '_annot.fif.gz'))
-        with start_file(fname) as fid:
-            _write_annotations(fid, self)
+                                           '_annot.fif', '_annot.fif.gz',
+                                           '.txt', '.csv'))
+        if fname.endswith(".txt"):
+            _write_annotations_txt(fname, self)
+        elif fname.endswith(".csv"):
+            _write_annotations_csv(fname, self)
+        else:
+            with start_file(fname) as fid:
+                _write_annotations(fid, self)
+
+    def _sort(self):
+        """Sort in place."""
+        # instead of argsort here we use sorted so that it gives us
+        # the onset-then-duration hierarchy
+        vals = sorted(zip(self.onset, self.duration, range(len(self))))
+        order = list(list(zip(*vals))[-1]) if len(vals) else []
+        self.onset = self.onset[order]
+        self.duration = self.duration[order]
+        self.description = self.description[order]
 
     def crop(self, tmin=None, tmax=None, emit_warning=False):
         """Remove all annotation that are outside of [tmin, tmax].
@@ -357,15 +419,35 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
 
 
 def _handle_meas_date(meas_date):
-    """Convert meas_date to seconds."""
+    """Convert meas_date to seconds.
+
+    If `meas_date` is a string, it should conform to the ISO8601 format.
+    More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of the
+    ISO8601 format where the delimiter between date and time is ' '.
+
+    Otherwise, this function returns 0. Note that ISO8601 allows for ' ' or 'T'
+    as delimiters between date and time.
+    """
     if meas_date is None:
         meas_date = 0
+    elif isinstance(meas_date, str):
+        ACCEPTED_ISO8601 = '%Y-%m-%d %H:%M:%S.%f'
+        try:
+            meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+        except ValueError:
+            meas_date = 0
+        else:
+            unix_ref_time = datetime.utcfromtimestamp(0)
+            meas_date = (meas_date - unix_ref_time).total_seconds()
+        meas_date = round(meas_date, 6)  # round that 6th decimal
+    elif isinstance(meas_date, datetime):
+        meas_date = float(time.mktime(meas_date.timetuple()))
     elif not np.isscalar(meas_date):
         if len(meas_date) > 1:
             meas_date = meas_date[0] + meas_date[1] / 1000000.
         else:
             meas_date = meas_date[0]
-    return meas_date
+    return float(meas_date)
 
 
 def _sync_onset(raw, onset, inverse=False):
@@ -384,9 +466,9 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
 
     onsets and ends are inclusive.
     """
-    _validate_type(kinds, (string_types, list, tuple), str(type(kinds)),
+    _validate_type(kinds, (str, list, tuple), str(type(kinds)),
                    "str, list or tuple")
-    if isinstance(kinds, string_types):
+    if isinstance(kinds, str):
         kinds = [kinds]
     else:
         for kind in kinds:
@@ -398,21 +480,30 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         idxs = [idx for idx, desc in enumerate(raw.annotations.description)
                 if any(desc.upper().startswith(kind.upper())
                        for kind in kinds)]
+        # onsets are already sorted
         onsets = raw.annotations.onset[idxs]
         onsets = _sync_onset(raw, onsets)
         ends = onsets + raw.annotations.duration[idxs]
-        order = np.argsort(onsets)
-        onsets = raw.time_as_index(onsets[order], use_rounding=True)
-        ends = raw.time_as_index(ends[order], use_rounding=True)
+        onsets = raw.time_as_index(onsets, use_rounding=True)
+        ends = raw.time_as_index(ends, use_rounding=True)
+    assert (onsets <= ends).all()  # all durations >= 0
     if invert:
-        # We invert the relationship (i.e., get segments that do not satisfy)
-        if len(onsets) == 0 or onsets[0] != 0:
-            onsets = np.concatenate([[0], onsets])
-            ends = np.concatenate([[0], ends])
-        if len(ends) == 1 or ends[-1] != len(raw.times):
-            onsets = np.concatenate([onsets, [len(raw.times)]])
-            ends = np.concatenate([ends, [len(raw.times)]])
-        onsets, ends = ends[:-1], onsets[1:]
+        # We need to eliminate overlaps here, otherwise wacky things happen,
+        # so we carefully invert the relationship
+        mask = np.zeros(len(raw.times), bool)
+        for onset, end in zip(onsets, ends):
+            mask[onset:end] = True
+        mask = ~mask
+        extras = (onsets == ends)
+        extra_onsets, extra_ends = onsets[extras], ends[extras]
+        onsets, ends = _mask_to_onsets_offsets(mask)
+        # Keep ones where things were exactly equal
+        del extras
+        # we could do this with a np.insert+np.searchsorted, but our
+        # ordered-ness should get us it for free
+        onsets = np.sort(np.concatenate([onsets, extra_onsets]))
+        ends = np.sort(np.concatenate([ends, extra_ends]))
+        assert (onsets <= ends).all()
     return onsets, ends
 
 
@@ -430,8 +521,118 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
-def read_annotations(fname):
-    """Read annotations from a FIF file.
+def _write_annotations_csv(fname, annot):
+    pd = _check_pandas_installed(strict=True)
+    meas_date = _handle_meas_date(annot.orig_time)
+    dt = datetime.utcfromtimestamp(meas_date)
+    onsets_dt = [dt + timedelta(seconds=o) for o in annot.onset]
+    df = pd.DataFrame(dict(onset=onsets_dt, duration=annot.duration,
+                           description=annot.description))
+    df.to_csv(fname, index=False)
+
+
+def _write_annotations_txt(fname, annot):
+    content = "# MNE-Annotations\n"
+    if annot.orig_time is not None:
+        meas_date = _handle_meas_date(annot.orig_time)
+        orig_dt = datetime.utcfromtimestamp(meas_date)
+        content += "# orig_time : %s   \n" % orig_dt
+    content += "# onset, duration, description\n"
+
+    data = np.array([annot.onset, annot.duration, annot.description],
+                    dtype=str).T
+    with open(fname, 'wb') as fid:
+        fid.write(content.encode())
+        np.savetxt(fid, data, delimiter=',', fmt="%s")
+
+
+def read_annotations(fname, sfreq='auto', uint16_codec=None):
+    r"""Read annotations from a file.
+
+    This function reads a .fif, .fif.gz, .vrmk, .edf, .txt, .csv or .set file
+    and makes an :class:`mne.Annotations` object.
+
+    Parameters
+    ----------
+    fname : str
+        The filename.
+    sfreq : float | 'auto'
+        The sampling frequency in the file. This parameter is necessary for
+        \*.vmrk files as Annotations are expressed in seconds and \*.vmrk files
+        are in samples. For any other file format, ``sfreq`` is omitted.
+        If set to 'auto' then the ``sfreq`` is taken from the \*.vhdr
+        file that has the same name (without file extension). So data.vrmk
+        looks for sfreq in data.vhdr.
+    uint16_codec : str | None
+        This parameter is only used in EEGLAB (\*.set) and omitted otherwise.
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
+
+    Notes
+    -----
+    The annotations stored in a .csv require the onset columns to be
+    timestamps. If you have onsets as floats (in seconds), you should use the
+    .txt extension.
+    """
+    from .io.brainvision.brainvision import _read_annotations_brainvision
+    from .io.eeglab.eeglab import _read_annotations_eeglab
+    from .io.edf.edf import _read_annotations_edf
+    from .io.cnt.cnt import _read_annotations_cnt
+
+    name = op.basename(fname)
+    if name.endswith(('fif', 'fif.gz')):
+        # Read FiF files
+        ff, tree, _ = fiff_open(fname, preload=False)
+        with ff as fid:
+            annotations = _read_annotations_fif(fid, tree)
+    elif name.endswith('txt'):
+        orig_time = _read_annotations_txt_parse_header(fname)
+        onset, duration, description = _read_annotations_txt(fname)
+        annotations = Annotations(onset=onset, duration=duration,
+                                  description=description,
+                                  orig_time=orig_time)
+
+    elif name.endswith('vmrk'):
+        annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
+
+    elif name.endswith('csv'):
+        annotations = _read_annotations_csv(fname)
+
+    elif name.endswith('cnt'):
+        annotations = _read_annotations_cnt(fname)
+
+    elif name.endswith('set'):
+        annotations = _read_annotations_eeglab(fname,
+                                               uint16_codec=uint16_codec)
+
+    elif name.endswith(('edf', 'bdf', 'gdf')):
+        onset, duration, description = _read_annotations_edf(fname)
+        onset = np.array(onset, dtype=float)
+        duration = np.array(duration, dtype=float)
+        annotations = Annotations(onset=onset, duration=duration,
+                                  description=description,
+                                  orig_time=None)
+
+    elif name.startswith('events_') and fname.endswith('mat'):
+        annotations = _read_brainstorm_annotations(fname)
+    else:
+        raise IOError('Unknown annotation file format "%s"' % fname)
+
+    if annotations is None:
+        raise IOError('No annotation data found in file "%s"' % fname)
+    return annotations
+
+
+def _read_annotations_csv(fname):
+    """Read annotations from csv.
 
     Parameters
     ----------
@@ -440,18 +641,32 @@ def read_annotations(fname):
 
     Returns
     -------
-    annot : instance of Annotations | None
+    annot : instance of Annotations
         The annotations.
     """
-    ff, tree, _ = fiff_open(fname, preload=False)
-    with ff as fid:
-        annotations = _read_annotations(fid, tree)
-    if annotations is None:
-        raise IOError('No annotation data found in file "%s"' % fname)
-    return annotations
+    pd = _check_pandas_installed(strict=True)
+    df = pd.read_csv(fname)
+    orig_time = df['onset'].values[0]
+    try:
+        float(orig_time)
+        warn('It looks like you have provided annotation onsets as floats. '
+             'These will be interpreted as MILLISECONDS. If that is not what '
+             'you want, save your CSV as a TXT file; the TXT reader accepts '
+             'onsets in seconds.')
+    except ValueError:
+        pass
+    orig_time = _handle_meas_date(orig_time)
+    onset_dt = pd.to_datetime(df['onset'])
+    onset = (onset_dt - onset_dt[0]).dt.total_seconds()
+    duration = df['duration'].values.astype(float)
+    description = df['description'].values
+    if orig_time == 0:
+        orig_time = None
+
+    return Annotations(onset, duration, description, orig_time)
 
 
-def read_brainstorm_annotations(fname, orig_time=None):
+def _read_brainstorm_annotations(fname, orig_time=None):
     """Read annotations from a Brainstorm events_ file.
 
     Parameters
@@ -491,7 +706,35 @@ def read_brainstorm_annotations(fname, orig_time=None):
                        orig_time=orig_time)
 
 
-def _read_annotations(fid, tree):
+def _is_iso8601(candidate_str):
+    ISO8601 = r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
+    return re.compile(ISO8601).match(candidate_str) is not None
+
+
+def _read_annotations_txt_parse_header(fname):
+    def is_orig_time(x):
+        return x.startswith('# orig_time :')
+
+    with open(fname) as fid:
+        header = list(takewhile(lambda x: x.startswith('#'), fid))
+
+    orig_values = [h[13:].strip() for h in header if is_orig_time(h)]
+    orig_values = [_handle_meas_date(orig) for orig in orig_values
+                   if _is_iso8601(orig)]
+
+    return None if not orig_values else orig_values[0]
+
+
+def _read_annotations_txt(fname):
+    onset, duration, desc = np.loadtxt(fname, delimiter=',',
+                                       dtype=np.bytes_, unpack=True)
+    onset = [float(o.decode()) for o in onset]
+    duration = [float(d.decode()) for d in duration]
+    desc = [str(d.decode()).strip() for d in desc]
+    return onset, duration, desc
+
+
+def _read_annotations_fif(fid, tree):
     """Read annotations."""
     annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
     if len(annot_data) == 0:
@@ -532,58 +775,16 @@ def _ensure_annotation_object(obj):
                          'mne.Annotations. Got %s.' % obj)
 
 
-@verbose
-def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
-                            verbose=None):
-    """Get events and event_id from an Annotations object.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        The raw data for which Annotations are defined.
-    event_id : dict | Callable | None
-        Dictionary of string keys and integer values as used in mne.Epochs
-        to map annotation descriptions to integer event codes. Only the
-        keys present will be mapped and the annotations with other descriptions
-        will be ignored. Otherwise, a callable that provides an integer given
-        a string or that returns None for an event to ignore.
-        If None, all descriptions of annotations are mapped
-        and assigned arbitrary unique integer values.
-    regexp : str | None
-        Regular expression used to filter the annotations whose
-        descriptions is a match.
-    use_rounding : boolean
-        If True, use rounding (instead of truncation) when converting
-        times to indices. This can help avoid non-unique indices.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more). Defaults to self.verbose.
-
-    Returns
-    -------
-    events : ndarray, shape (n_events, 3)
-        The events.
-    event_id : dict
-        The event_id variable that can be passed to Epochs.
-    """
-    if len(raw.annotations) == 0:
-        return np.empty((0, 3), dtype=int), event_id
-
-    annotations = raw.annotations
-
-    inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
-                             origin=annotations.orig_time) + raw.first_samp
-
-    # Filter out the annotations that do not match regexp
+def _select_annotations_based_on_description(descriptions, event_id, regexp):
+    """Get a collection of descriptions and returns index of selected."""
     regexp_comp = re.compile('.*' if regexp is None else regexp)
 
     if event_id is None:
-        event_id = Counter()
+        event_id = _Counter()
 
     event_id_ = dict()
     dropped = []
-    for desc in annotations.description:
+    for desc in descriptions:
         if desc in event_id_:
             continue
 
@@ -602,17 +803,84 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
             else:
                 dropped.append(desc)
 
-    event_sel = [ii for ii, kk in enumerate(annotations.description)
+    event_sel = [ii for ii, kk in enumerate(descriptions)
                  if kk in event_id_]
 
     if len(event_sel) == 0 and regexp is not None:
         raise ValueError('Could not find any of the events you specified.')
 
-    values = [event_id_[kk] for kk in
-              annotations.description[event_sel]]
-    previous_value = np.zeros(len(event_sel))
-    inds = inds[event_sel]
-    events = np.c_[inds, previous_value, values].astype(int)
+    return event_sel, event_id_
+
+
+@verbose
+def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
+                            chunk_duration=None, verbose=None):
+    """Get events and event_id from an Annotations object.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data for which Annotations are defined.
+    event_id : dict | callable | None
+        Dictionary of string keys and integer values as used in mne.Epochs
+        to map annotation descriptions to integer event codes. Only the
+        keys present will be mapped and the annotations with other descriptions
+        will be ignored. Otherwise, a callable that provides an integer given
+        a string or that returns None for an event to ignore.
+        If None, all descriptions of annotations are mapped
+        and assigned arbitrary unique integer values.
+    regexp : str | None
+        Regular expression used to filter the annotations whose
+        descriptions is a match.
+    use_rounding : boolean
+        If True, use rounding (instead of truncation) when converting
+        times to indices. This can help avoid non-unique indices.
+    chunk_duration: float | None
+        If chunk_duration parameter in events_from_annotations is None, events
+        correspond to the annotation onsets.
+        If not, :func:`mne.events_from_annotations` returns as many events as
+        they fit within the annotation duration spaced according to
+        `chunk_duration`, which is given in seconds.
+    %(verbose)s
+
+    Returns
+    -------
+    events : ndarray, shape (n_events, 3)
+        The events.
+    event_id : dict
+        The event_id variable that can be passed to Epochs.
+    """
+    if len(raw.annotations) == 0:
+        return np.empty((0, 3), dtype=int), event_id
+
+    annotations = raw.annotations
+
+    event_sel, event_id_ = _select_annotations_based_on_description(
+        annotations.description, event_id=event_id, regexp=regexp)
+
+    if chunk_duration is None:
+        inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
+                                 origin=annotations.orig_time) + raw.first_samp
+
+        values = [event_id_[kk] for kk in annotations.description[event_sel]]
+        inds = inds[event_sel]
+    else:
+        inds = values = np.array([]).astype(int)
+        for annot in annotations[event_sel]:
+            _onsets = np.arange(start=annot['onset'],
+                                stop=(annot['onset'] + annot['duration']),
+                                step=chunk_duration)
+            _inds = raw.time_as_index(_onsets,
+                                      use_rounding=use_rounding,
+                                      origin=annotations.orig_time)
+            _inds += raw.first_samp
+            inds = np.append(inds, _inds)
+            _values = np.full(shape=len(_inds),
+                              fill_value=event_id_[annot['description']],
+                              dtype=int)
+            values = np.append(values, _values)
+
+    events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 
     logger.info('Used Annotations descriptions: %s' %
                 (list(event_id_.keys()),))

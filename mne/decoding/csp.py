@@ -15,8 +15,10 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
+from ..utils import fill_doc, _check_option
 
 
+@fill_doc
 class CSP(TransformerMixin, BaseEstimator):
     u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
@@ -28,7 +30,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    n_components : int, defaults to 4
+    n_components : int, default 4
         The number of components to decompose M/EEG signals.
         This number should be set by cross-validation.
     reg : float | str | None (default None)
@@ -41,7 +43,7 @@ class CSP(TransformerMixin, BaseEstimator):
         If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
         are z-scored. If transform_into == 'csp_space', then log must be None.
-    cov_est : 'concat' | 'epoch', defaults to 'concat'
+    cov_est : 'concat' | 'epoch', default 'concat'
         If 'concat', covariance matrices are estimated on concatenated epochs
         for each class.
         If 'epoch', covariance matrices are estimated on each epoch separately
@@ -60,6 +62,9 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+    %(rank_None)s
+
+        .. versionadded:: 0.17
 
     Attributes
     ----------
@@ -92,12 +97,13 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
                  transform_into='average_power', norm_trace=False,
-                 cov_method_params=None):
+                 cov_method_params=None, rank=None):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
         self.n_components = n_components
+        self.rank = rank
 
         self.reg = reg
 
@@ -107,9 +113,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self.cov_est = cov_est
 
         # Init default transform_into
-        if transform_into not in ('average_power', 'csp_space'):
-            raise ValueError('transform_into must be "average_power" or '
-                             '"csp_space".')
+        _check_option('transform_into', transform_into,
+                      ['average_power', 'csp_space'])
         self.transform_into = transform_into
 
         # Init default log
@@ -169,7 +174,8 @@ class CSP(TransformerMixin, BaseEstimator):
                 class_ = np.transpose(X[y == this_class], [1, 0, 2])
                 class_ = class_.reshape(n_channels, -1)
                 cov = _regularized_covariance(
-                    class_, reg=self.reg, method_params=self.cov_method_params)
+                    class_, reg=self.reg, method_params=self.cov_method_params,
+                    rank=self.rank)
                 weight = sum(y == this_class)
             elif self.cov_est == "epoch":
                 class_ = X[y == this_class]
@@ -177,7 +183,8 @@ class CSP(TransformerMixin, BaseEstimator):
                 for this_X in class_:
                     cov += _regularized_covariance(
                         this_X, reg=self.reg,
-                        method_params=self.cov_method_params)
+                        method_params=self.cov_method_params,
+                        rank=self.rank)
                 cov /= len(class_)
                 weight = len(class_)
 
@@ -300,7 +307,7 @@ class CSP(TransformerMixin, BaseEstimator):
         info : instance of Info
             Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
-        components : float | array of floats | None.
+        components : float | array of float | None.
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
@@ -319,7 +326,7 @@ class CSP(TransformerMixin, BaseEstimator):
         vmax : float | callable
             The value specifying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
+            but vmax is not, default np.min(data).
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
             Colormap to use. If tuple, the first value indicates the colormap
@@ -448,7 +455,7 @@ class CSP(TransformerMixin, BaseEstimator):
         info : instance of Info
             Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
-        components : float | array of floats | None.
+        components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
@@ -589,9 +596,9 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     ----------
     X : ndarray, shape (n_epochs, n_channels, n_channels)
         A set of covariance matrices to diagonalize.
-    eps : float, defaults to 1e-6
+    eps : float, default 1e-6
         The tolerance for stopping criterion.
-    max_iter : int, defaults to 1000
+    max_iter : int, default 1000
         The maximum number of iteration to reach convergence.
 
     Returns
@@ -664,6 +671,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     return V, D
 
 
+@fill_doc
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering.
 
@@ -699,6 +707,9 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
+    %(rank_None)s
+
+        .. versionadded:: 0.17
 
     Attributes
     ----------
@@ -724,11 +735,12 @@ class SPoC(CSP):
     """
 
     def __init__(self, n_components=4, reg=None, log=None,
-                 transform_into='average_power', cov_method_params=None):
+                 transform_into='average_power', cov_method_params=None,
+                 rank=None):
         """Init of SPoC."""
         super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
                                    cov_est="epoch", norm_trace=False,
-                                   transform_into=transform_into,
+                                   transform_into=transform_into, rank=rank,
                                    cov_method_params=cov_method_params)
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
@@ -759,7 +771,7 @@ class SPoC(CSP):
         if len(np.unique(y)) < 2:
             raise ValueError("y must have at least two distinct values.")
 
-        # The following code is direclty copied from pyRiemann
+        # The following code is directly copied from pyRiemann
 
         # Normalize target variable
         target = y.astype(np.float64)
@@ -772,7 +784,8 @@ class SPoC(CSP):
         covs = np.empty((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
             covs[ii] = _regularized_covariance(
-                epoch, reg=self.reg, method_params=self.cov_method_params)
+                epoch, reg=self.reg, method_params=self.cov_method_params,
+                rank=self.rank)
 
         C = covs.mean(0)
         Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)

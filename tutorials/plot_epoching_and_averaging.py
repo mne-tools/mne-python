@@ -12,7 +12,8 @@ import mne
 ###############################################################################
 # In MNE, `epochs` refers to a collection of `single trials` or short segments
 # of time locked raw data. If you haven't already, you might want to check out
-# :ref:`tut_epochs_objects`. In this tutorial we take a deeper look into
+# :ref:`sphx_glr_auto_tutorials_plot_object_epochs.py`.
+# In this tutorial we take a deeper look into
 # construction of epochs and averaging the epoch data to evoked instances.
 # First let's read in the raw sample data.
 data_path = mne.datasets.sample.data_path()
@@ -87,8 +88,6 @@ raw.plot(events=events, n_channels=10, order=order)
 tmin, tmax = -0.2, 0.5
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
             'Visual/Left': 3, 'Visual/Right': 4}
-# Only pick MEG and EOG channels.
-picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True)
 
 ###############################################################################
 # Now we have everything we need to construct the epochs. To get some
@@ -111,7 +110,8 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True)
 baseline = (None, 0.0)
 reject = {'mag': 4e-12, 'eog': 200e-6}
 epochs = mne.Epochs(raw, events=events, event_id=event_id, tmin=tmin,
-                    tmax=tmax, baseline=baseline, reject=reject, picks=picks)
+                    tmax=tmax, baseline=baseline, reject=reject,
+                    picks=('meg', 'eog'))  # only include MEG and EOG
 
 ###############################################################################
 # Let's plot the epochs to see the results. The number at the top refers to the
@@ -139,7 +139,7 @@ epochs.plot_drop_log()
 # you might ask. They're different because ``picks`` is simply a list of
 # channel indices and as the epochs were constructed, also a new info structure
 # is created where the channel indices run from 0 to ``epochs.info['nchan']``.
-# See :ref:`tut_info_objects` for more information.
+# See :ref:`sphx_glr_auto_tutorials_plot_info.py` for more information.
 picks = mne.pick_types(epochs.info, meg=True, eog=True)
 evoked_left = epochs['Auditory/Left'].average(picks=picks)
 evoked_right = epochs['Auditory/Right'].average(picks=picks)
@@ -152,7 +152,7 @@ evoked_right = epochs['Auditory/Right'].average(picks=picks)
 epochs_left = epochs['Left']
 
 # ... or to select a very specific subset. This is the same as above:
-evoked_left = epochs['Left/Auditory'].average(picks=picks)
+evoked_left_again = epochs['Left/Auditory'].average(picks=picks)
 
 ###############################################################################
 # .. note::

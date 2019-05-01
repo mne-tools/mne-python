@@ -178,10 +178,8 @@ event_id = {"auditory/left": 1}
 tmin = -0.2  # start of each epoch (200ms before the trigger)
 tmax = 0.5  # end of each epoch (500ms after the trigger)
 baseline = (None, 0)  # means from the first instant to t = 0
-picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                           stim=False, exclude='bads')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks_meg, baseline=baseline, reject=reject,
+                    picks=['meg', 'eog'], baseline=baseline, reject=reject,
                     reject_by_annotation=True)
 
 ###############################################################################

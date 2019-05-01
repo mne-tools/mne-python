@@ -7,21 +7,19 @@
 # License: BSD (3-clause)
 
 import os
-from os import path as op
+import os.path as op
 import glob
 
 import numpy as np
 from copy import deepcopy
-from numpy import sin, cos
 from scipy import linalg
 
-from .fixes import _get_sph_harm, einsum
+from .fixes import einsum
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import check_fname, logger, verbose, _ensure_int
-from .externals.six import string_types
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -40,7 +38,7 @@ _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
                      ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
                      ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
                      unknown=FIFF.FIFFV_COORD_UNKNOWN)
-_frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
+_frame_to_str = {val: key for key, val in _str_to_frame.items()}
 
 _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
                    FIFF.FIFFV_COORD_DEVICE: 'MEG device',
@@ -62,7 +60,7 @@ _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
 
 def _to_const(cf):
     """Convert string or int coord frame into int."""
-    if isinstance(cf, string_types):
+    if isinstance(cf, str):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
@@ -192,8 +190,7 @@ def _find_trans(subject, subjects_dir=None):
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
-                                          '*-trans.fif'))
+    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))
@@ -248,12 +245,12 @@ def rotation(x=0, y=0, z=0):
     r : array, shape = (4, 4)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z, 0],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -276,12 +273,12 @@ def rotation3d(x=0, y=0, z=0):
     r : array, shape = (3, 3)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -395,14 +392,14 @@ def translation(x=0, y=0, z=0):
 
 def _ensure_trans(trans, fro='mri', to='head'):
     """Ensure we have the proper transform."""
-    if isinstance(fro, string_types):
+    if isinstance(fro, str):
         from_str = fro
         from_const = _str_to_frame[fro]
     else:
         from_str = _frame_to_str[fro]
         from_const = fro
     del fro
-    if isinstance(to, string_types):
+    if isinstance(to, str):
         to_str = to
         to_const = _str_to_frame[to]
     else:
@@ -418,8 +415,8 @@ def _ensure_trans(trans, fro='mri', to='head'):
     for ti, this_trans in enumerate(trans):
         if not isinstance(this_trans, Transform):
             raise ValueError('%s None' % err_str)
-        if set([this_trans['from'],
-                this_trans['to']]) == set([from_const, to_const]):
+        if {this_trans['from'],
+                this_trans['to']} == {from_const, to_const}:
             idx.append(ti)
         else:
             misses = '%s->%s' % (_frame_to_str[this_trans['from']],
@@ -434,7 +431,7 @@ def _ensure_trans(trans, fro='mri', to='head'):
 
 def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
-    if isinstance(trans, string_types):
+    if isinstance(trans, str):
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:
@@ -597,7 +594,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
         Transformed source space.
     """
     surf = deepcopy(surf) if copy else surf
-    if isinstance(dest, string_types):
+    if isinstance(dest, str):
         if dest not in _str_to_frame:
             raise KeyError('dest must be one of %s, not "%s"'
                            % (list(_str_to_frame.keys()), dest))
@@ -750,7 +747,6 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
         Array containing partial derivatives in Cartesian coordinates (x, y, z)
     """
     sph_grads = np.c_[g_rad, g_az, g_pol]
-    cart_grads = np.zeros_like(sph_grads)
     c_as, s_as = np.cos(az), np.sin(az)
     c_ps, s_ps = np.cos(pol), np.sin(pol)
     trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
@@ -821,7 +817,7 @@ def _sh_real_to_complex(shs, order):
 
 def _compute_sph_harm(order, az, pol):
     """Compute complex spherical harmonics of spherical coordinates."""
-    sph_harm = _get_sph_harm()
+    from scipy.special import sph_harm
     out = np.empty((len(az), _get_n_moments(order) + 1))
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
@@ -1006,10 +1002,7 @@ class _SphericalSurfaceWarp(object):
             The uniformly-spaced points to match on the two surfaces.
             Can be "ico#" or "oct#" where "#" is an integer.
             The default is "oct5".
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------
@@ -1084,10 +1077,7 @@ class _SphericalSurfaceWarp(object):
             points that were used to generate the model, although ideally
             they will be inside the convex hull formed by the original
             source points.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------

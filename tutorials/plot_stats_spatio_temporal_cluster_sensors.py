@@ -101,7 +101,7 @@ p_accept = 0.01
 
 cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
                                              threshold=threshold, tail=1,
-                                             n_jobs=1,
+                                             n_jobs=1, buffer_size=None,
                                              connectivity=connectivity)
 
 T_obs, clusters, p_values, _ = cluster_stats
@@ -186,6 +186,6 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 # - use an F distribution to compute the threshold by traditional significance
 #   levels. Hint: take a look at :obj:`scipy.stats.f`
 #
-# References
-# ==========
-# .. _fieldtrip website: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test  # noqa
+# .. _fieldtrip website:
+#       http://www.fieldtriptoolbox.org/faq/
+#       how_not_to_interpret_results_from_a_cluster-based_permutation_test

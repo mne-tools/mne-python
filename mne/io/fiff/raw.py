@@ -22,12 +22,13 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
 from ..utils import _mult_cal_one
 
 from ...annotations import (Annotations, _combine_annotations,
-                            _read_annotations)
+                            _read_annotations_fif)
 
 from ...event import AcqParserFIF
-from ...utils import check_fname, logger, verbose, warn
+from ...utils import check_fname, logger, verbose, warn, fill_doc
 
 
+@fill_doc
 class Raw(BaseRaw):
     """Raw data in FIF format.
 
@@ -50,9 +51,7 @@ class Raw(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -68,23 +67,20 @@ class Raw(BaseRaw):
         inverse of the sampling frequency.
     preload : bool
         Indicates whether raw data are in memory.
-    verbose : bool, str, int, or None
-        See above.
-
+    %(verbose)s
     """
 
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
                  verbose=None):  # noqa: D102
         fnames = [op.realpath(fname)]
-        del fname
         split_fnames = []
 
         raws = []
-        for ii, fname in enumerate(fnames):
-            do_check_fname = fname not in split_fnames
+        for ii, this_fname in enumerate(fnames):
+            do_check_fname = this_fname not in split_fnames
             raw, next_fname, buffer_size_sec = \
-                self._read_raw_file(fname, allow_maxshield,
+                self._read_raw_file(this_fname, allow_maxshield,
                                     preload, do_check_fname)
             raws.append(raw)
             if next_fname is not None:
@@ -113,7 +109,7 @@ class Raw(BaseRaw):
                     self.annotations, r.annotations,
                     n_samples, self.first_samp, r.first_samp,
                     r.info['sfreq'], self.info['meas_date'])
-                self.set_annotations(annotations, False)
+                self.set_annotations(annotations, emit_warning=False)
                 n_samples += r.last_samp - r.first_samp + 1
 
         # Add annotations for in-data skips
@@ -153,7 +149,7 @@ class Raw(BaseRaw):
             #   Read the measurement info
 
             info, meas = read_meas_info(fid, tree, clean_bads=True)
-            annotations = _read_annotations(fid, tree)
+            annotations = _read_annotations_fif(fid, tree)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
@@ -419,6 +415,7 @@ def _check_entry(first, nent):
         raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
+@fill_doc
 def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
     """Reader function for Raw FIF data.
 
@@ -441,9 +438,7 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

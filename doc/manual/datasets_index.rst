@@ -25,6 +25,17 @@ as soon as possible after the appearance of the face.
 
 Once the ``data_path`` is known, its contents can be examined using :ref:`IO functions <ch_convert>`.
 
+fsaverage
+=========
+:func:`mne.datasets.fetch_fsaverage`
+
+For convenience, we provide a function to separately download and extract the
+(or update an existing) fsaverage subject.
+
+.. topic:: Examples
+
+    :ref:`sphx_glr_auto_tutorials_plot_eeg_no_mri.py`
+
 Brainstorm
 ==========
 Dataset fetchers for three Brainstorm tutorials are available. Users must agree to the
@@ -39,7 +50,7 @@ Details about the data can be found at the Brainstorm `auditory dataset tutorial
 
 .. topic:: Examples
 
-    * :ref:`Brainstorm auditory dataset tutorial <sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
+    * :ref:`sphx_glr_auto_tutorials_plot_brainstorm_auditory.py`: Partially replicates the original Brainstorm tutorial.
 
 Resting state
 ^^^^^^^^^^^^^
@@ -47,11 +58,19 @@ Resting state
 
 Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_examples_connectivity_plot_mne_inverse_envelope_correlation.py`
+
 Median nerve
 ^^^^^^^^^^^^
 :func:`mne.datasets.brainstorm.bst_raw.data_path`
 
 Details can be found at the Brainstorm `median nerve dataset tutorial`_.
+
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_examples_datasets_plot_brainstorm_data.py`
 
 MEGSIM
 ======
@@ -102,10 +121,10 @@ Do not hesitate to contact MNE-Python developers on the
 `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
 to discuss the possibility to add more publicly available datasets.
 
-.. _auditory dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetAuditory
-.. _resting state dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetResting
-.. _median nerve dataset tutorial: http://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
-.. _SPM faces dataset: http://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
+.. _auditory dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetAuditory
+.. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
+.. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
+.. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
 
 Somatosensory
 =============
@@ -243,7 +262,23 @@ Triggers include:
 .. topic:: Examples
 
     * :ref:`sphx_glr_auto_examples_datasets_plot_opm_data.py`
+    * :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`
 
+The Sleep PolySomnoGraphic Database
+===================================
+:func:`mne.datasets.sleep_physionet.age.fetch_data`
+:func:`mne.datasets.sleep_physionet.temazepam.fetch_data`
+
+The sleep PhysioNet database contains 197 whole-night PolySomnoGraphic sleep
+recordings, containing EEG, EOG, chin EMG, and event markers. Some records also
+contain respiration and body temperature. Corresponding hypnograms (sleep
+patterns) were manually scored by well-trained technicians according to the
+Rechtschaffen and Kales manual, and are also available. If you use these
+data please cite [7]_ and [8]_.
+
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_tutorials_plot_sleep.py`
 
 References
 ==========
@@ -259,3 +294,7 @@ References
 .. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli. Frontiers in Human Neuroscience (2016): 10.
 
 .. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are worth a picture: Snapshots of printed-word processing in an event-related potential megastudy. Psychological science, 2015
+
+.. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000). https://ieeexplore.ieee.org/document/867928
+
+.. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220 [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June 13).

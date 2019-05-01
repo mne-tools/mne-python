@@ -12,7 +12,6 @@ import numpy as np
 from scipy import sparse
 
 from .constants import FIFF
-from ..externals.six import text_type
 from ..externals.jdcal import jd2jcal
 
 
@@ -343,7 +342,7 @@ def _read_string(fid, tag, shape, rlims):
     """Read a string tag."""
     # Always decode to ISO 8859-1 / latin1 (FIFF standard).
     d = _frombuffer_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
-    return text_type(d.tostring().decode('latin1', 'ignore'))
+    return str(d.tostring().decode('latin1', 'ignore'))
 
 
 def _read_complex_float(fid, tag, shape, rlims):

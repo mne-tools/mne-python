@@ -10,7 +10,7 @@ import numbers
 
 import numpy as np
 from .tfr import cwt, morlet
-from ..io.pick import pick_channels
+from ..io.pick import pick_channels, _picks_to_idx
 from ..utils import logger, verbose, warn, copy_function_doc_to_method_doc
 from ..viz.misc import plot_csd
 from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
@@ -158,7 +158,7 @@ class CrossSpectralDensity(object):
 
         Returns
         -------
-        csd : Instance of CrossSpectralDensity
+        csd : instance of CrossSpectralDensity
             The CSD matrix, summed across the given frequency range(s).
         """
         if self._is_sum:
@@ -224,7 +224,7 @@ class CrossSpectralDensity(object):
 
         Returns
         -------
-        csd : Instance of CrossSpectralDensity
+        csd : instance of CrossSpectralDensity
             The CSD matrix, averaged across the given frequency range(s).
         """
         csd = self.sum(fmin, fmax)
@@ -556,9 +556,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : list of str | None
-        The names of the channels to use during CSD computation. Defaults to
-        all good MEG/EEG channels.
+    %(picks_good_data_noref)s
     n_fft : int | None
         Length of the FFT. If ``None``, the exact number of samples between
         ``tmin`` and ``tmax`` will be used.
@@ -567,10 +565,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
         which means the projectors defined in the Epochs object will by copied.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
-    verbose : bool | str | int | None
-        If not ``None``, override default verbose level
-        (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Returns
     -------
@@ -629,10 +624,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
         which means no projectors are stored.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
-    verbose : bool | str | int | None
-        If not ``None``, override default verbose level
-        (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Returns
     -------
@@ -699,9 +691,7 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : list of str | None
-        The ch_names of the channels to use during CSD computation. Defaults to
-        all good MEG/EEG channels.
+    %(picks_good_data_noref)s
     n_fft : int | None
         Length of the FFT. If ``None``, the exact number of samples between
         ``tmin`` and ``tmax`` will be used.
@@ -710,17 +700,14 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD.
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will by copied.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
-    verbose : bool | str | int | None
-        If not ``None``, override default verbose level
-        (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Returns
     -------
@@ -782,17 +769,14 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD.
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means no projectors are stored.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
-    verbose : bool | str | int | None
-        If not ``None``, override default verbose level
-        (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Returns
     -------
@@ -857,9 +841,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
     tmax : float | None
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
-    picks : list of str | None
-        The ch_names of the channels to use during CSD computation. Defaults to
-        all good MEG/EEG channels.
+    %(picks_good_data_noref)s
     n_cycles: float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
@@ -878,10 +860,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
         which means the projectors defined in the Epochs object will be copied.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
-    verbose : bool | str | int | None
-        If not ``None``, override default verbose level
-        (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Returns
     -------
@@ -949,10 +928,7 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
         which means the projectors defined in the Epochs object will be copied.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
-    verbose : bool | str | int | None
-        If not ``None``, override default verbose level
-        (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1019,11 +995,8 @@ def _prepare_csd(epochs, tmin=None, tmax=None, picks=None, projs=None):
         warn('Epochs are not baseline corrected or enough highpass filtered. '
              'Cross-spectral density may be inaccurate.')
 
-    if picks is None:
-        epochs = epochs.copy().pick_types(
-            meg=True, eeg=True, eog=False, ref_meg=False, exclude='bads')
-    else:
-        epochs = epochs.copy().pick_channels(picks)
+    picks = _picks_to_idx(epochs.info, picks, 'data', with_ref_meg=False)
+    epochs = epochs.copy().pick(picks)
 
     if projs is None:
         projs = epochs.info['projs']
@@ -1050,7 +1023,7 @@ def _prepare_csd_array(X, sfreq, t0, tmin, tmax, fmin=None, fmax=None):
     if tmin is None:
         tmin = times.min()
     if tmax <= tmin:
-            raise ValueError('tmax must be larger than tmin')
+        raise ValueError('tmax must be larger than tmin')
     if tmin < times[0] - tstep:
         raise ValueError('tmin should be larger than the smallest data time '
                          'point')
@@ -1095,10 +1068,7 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
         which means the projectors defined in the Epochs object will be copied.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
-    verbose : bool | str | int | None
-        If not ``None``, override default verbose level
-        (see :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Returns
     -------

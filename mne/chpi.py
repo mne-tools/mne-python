@@ -47,8 +47,8 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
-from .utils import verbose, logger, use_log_level, _check_fname, warn
-from .externals.six import string_types
+from .utils import (verbose, logger, use_log_level, _check_fname, warn,
+                    _check_option)
 
 # Eventually we should add:
 #   hpicons
@@ -179,13 +179,13 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
     coil as separate channels in the dataset.
-    HLC001[123]-\\* - nasion
-    HLC002[123]-\\* - lpa
-    HLC003[123]-\\* - rpa
+    HLC001[123]\\* - nasion
+    HLC002[123]\\* - lpa
+    HLC003[123]\\* - rpa
     """
     # Pick channels cooresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
-                                     'HLC00[123][123]-.*')
+                                     'HLC00[123][123].*')
 
     # make sure we get 9 channels
     if len(hpi_picks) != 9:
@@ -259,6 +259,7 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
 
     quats = np.array(quats, np.float64)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
+    quats[:, 0] += raw._first_time
     return quats
 
 
@@ -626,16 +627,14 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
     coil_dev_rrs : ndarray, shape (n_CHPI, 3)
         Fit locations of each cHPI coil in device coordinates
     """
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
     # 0. determine samples to fit.
     if t_win is None:  # use the whole window
         i_win = [0, len(raw.times)]
@@ -674,13 +673,6 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     return coil_dev_rrs, coil_g
 
 
-def _check_too_close(too_close):
-    if not isinstance(too_close, string_types) or \
-            too_close not in ('raise', 'warning', 'info'):
-        raise ValueError('too_close must be "raise", "warning", or "info", '
-                         'got %s (type %s)' % (too_close, type(too_close)))
-
-
 @verbose
 def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                               t_window=0.2, dist_limit=0.005, gof_limit=0.98,
@@ -708,9 +700,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -730,7 +720,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     from scipy.spatial.distance import cdist
     # extract initial geometry from info['hpi_results']
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract hpi system information
     hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])))
@@ -936,9 +926,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -958,7 +946,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
     read_head_pos
     write_head_pos
     """
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract initial geometry from info['hpi_results']
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
@@ -1063,9 +1051,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
     t_window : float
         Time window to use to estimate the amplitudes, default is
         0.2 (200 ms).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

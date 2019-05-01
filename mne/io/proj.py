@@ -8,6 +8,7 @@
 from copy import deepcopy
 from itertools import count
 from math import sqrt
+import warnings
 
 import numpy as np
 from scipy import linalg
@@ -19,7 +20,6 @@ from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..utils import logger, verbose, warn
-from ..externals.six import string_types
 
 
 class Projection(dict):
@@ -100,7 +100,7 @@ class Projection(dict):
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
 
         Notes
@@ -108,9 +108,10 @@ class Projection(dict):
         .. versionadded:: 0.15.0
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
-        return plot_projs_topomap([self], layout, cmap, sensors, colorbar,
-                                  res, size, show, outlines,
-                                  contours, image_interp, axes, info)
+        with warnings.catch_warnings(record=True):  # tight_layout fails
+            return plot_projs_topomap([self], layout, cmap, sensors, colorbar,
+                                      res, size, show, outlines,
+                                      contours, image_interp, axes, info)
 
 
 class ProjMixin(object):
@@ -155,10 +156,7 @@ class ProjMixin(object):
             List with projection vectors.
         remove_existing : bool
             Remove the projection vectors currently in the file.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -270,7 +268,7 @@ class ProjMixin(object):
         -------
         self : instance of Raw | Epochs | Evoked
         """
-        if isinstance(idx, string_types) and idx == 'all':
+        if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
         if any(self.info['projs'][ii]['active'] for ii in idx):
@@ -286,12 +284,12 @@ class ProjMixin(object):
 
         Parameters
         ----------
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | List
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | list
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
-        layout : None | Layout | List of Layouts
+        layout : None | Layout | list of Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct
             layout file is inferred from the data; if no appropriate layout
@@ -305,7 +303,7 @@ class ProjMixin(object):
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
         """
         if self.info['projs'] is not None or len(self.info['projs']) != 0:
@@ -315,7 +313,7 @@ class ProjMixin(object):
                 layout = []
                 if ch_type is None:
                     ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
-                elif isinstance(ch_type, string_types):
+                elif isinstance(ch_type, str):
                     ch_type = [ch_type]
                 for ch in ch_type:
                     if ch in self:
@@ -352,9 +350,7 @@ def _read_proj(fid, node, verbose=None):
         The file descriptor of the open file.
     node : tree node
         The node of the tree where to look.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -699,9 +695,7 @@ def activate_proj(projs, copy=True, verbose=None):
         The projectors.
     copy : bool
         Modify projs in place or operate on a copy.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -732,9 +726,7 @@ def deactivate_proj(projs, copy=True, verbose=None):
         The projectors.
     copy : bool
         Modify projs in place or operate on a copy.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -763,9 +755,7 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
         Measurement info.
     activate : bool
         If True projections are activated.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -839,9 +829,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
         already exists).
     activate : bool
         If True projections are activated.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

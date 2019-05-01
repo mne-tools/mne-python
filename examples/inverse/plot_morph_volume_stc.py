@@ -24,15 +24,12 @@ References
        Evaluating Automated Labeling of Elderly and Neurodegenerative
        Brain, 12(1), 26-41.
 
-.. note:: For a tutorial about morphing see:
-          :ref:`sphx_glr_auto_tutorials_plot_morph_stc.py`.
+.. note:: For a tutorial about morphing see :ref:`ch_morph`.
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #
 # License: BSD (3-clause)
 import os
-
-import matplotlib.pyplot as plt
 
 import nibabel as nib
 import mne
@@ -153,8 +150,6 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = mne.compute_source_morph(inverse_operator['src'],
-                                         subject_from='sample',
-                                         subjects_dir=subjects_dir).apply(stc)
-
-plt.show()
+stc_fsaverage_new = mne.compute_source_morph(
+    inverse_operator['src'], subject_from='sample',
+    subjects_dir=subjects_dir).apply(stc)

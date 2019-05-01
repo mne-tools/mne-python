@@ -9,7 +9,7 @@
    nipy, NIPY, Nipy, etc...
 
 .. git stuff
-.. _git: http://git-scm.com/
+.. _git: https://git-scm.com/
 .. _github: https://github.com
 .. _GitHub Help: https://help.github.com
 .. _msysgit: http://code.google.com/p/msysgit/downloads/list
@@ -51,7 +51,7 @@
 .. _deleting master on github: http://matthew-brett.github.io/pydagogue/gh_delete_master.html
 .. _rebase without tears: http://matthew-brett.github.io/pydagogue/rebase_without_tears.html
 .. _resolving a merge: https://schacon.github.io/git/user-manual.html#resolving-a-merge
-.. _ipython git workflow: http://mail.scipy.org/pipermail/ipython-dev/2010-October/006746.html
+.. _ipython git workflow: https://web.archive.org/web/*/http://mail.scipy.org/pipermail/ipython-dev/2010-October/006746.html
 
 .. other stuff
 .. _python: http://www.python.org
@@ -59,32 +59,49 @@
 .. _linterflake8: https://atom.io/packages/linter-flake8
 
 .. python packages
-.. _pep8: https://pypi.python.org/pypi/pep8
-.. _pyflakes: https://pypi.python.org/pypi/pyflakes
+.. _pep8: https://pypi.org/project/pep8/
+.. _pyflakes: https://pypi.org/project/pyflakes
 .. _coverage: https://pypi.python.org/pypi/coverage
-.. _mayavi: http://mayavi.sourceforge.net/
+.. _mayavi: http://https//docs.enthought.com/mayavi/mayavi/
 .. _nitime: http://nipy.org/nitime/
 .. _joblib: https://pypi.python.org/pypi/joblib
-.. _scikit-learn: http://scikit-learn.org/stable/
-.. _pysurfer: http://pysurfer.github.io/
+.. _scikit-learn: https://scikit-learn.org/stable/
+.. _pysurfer: https://pysurfer.github.io/
 .. _pyDICOM: https://pypi.python.org/pypi/pydicom/
-.. _matplotlib: http://matplotlib.org/
+.. _matplotlib: https://matplotlib.org/
 .. _sphinx: http://sphinx-doc.org/
 .. _pandas: http://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
 
 .. python editors
 .. _atom: https://atom.io/
-.. _Spyder: http://pythonhosted.org/spyder/
-.. _anaconda: http://www.continuum.io/downloads
+.. _Spyder: https://www.spyder-ide.org/
+.. _anaconda: https://www.anaconda.com/distribution/
+.. _miniconda: https://conda.io/en/latest/miniconda.html
+.. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
+.. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
 
-.. _FreeSurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
+.. installation links
+.. _FreeSurfer: https://surfer.nmr.mgh.harvard.edu/fswiki/
+.. _FreeSurfer download page: https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
+.. _netpbm: http://netpbm.sourceforge.net/
+.. _MacPorts: https://www.macports.org/
+.. _Homebrew: https://brew.sh/
+.. _XCode developer tools: http://appstore.com/mac/apple/xcode
+.. _xquartz: https://www.xquartz.org/
+.. _MATLAB runtime: https://www.mathworks.com/products/compiler/matlab-runtime.html
+.. _MNE-C download page: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php
+.. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
+.. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
+.. _NVIDIA proprietary drivers: https://www.nvidia.com/Download/index.aspx
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
-.. _sphinx gallery documentation: http://sphinx-gallery.readthedocs.org/en/latest/advanced_configuration.html
+.. _sphinx gallery documentation: https://sphinx-gallery.github.io
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+.. _Stack Overflow: https://stackoverflow.com/
 
 .. vim: ft=rst
 

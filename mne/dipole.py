@@ -26,16 +26,16 @@ from .forward._make_forward import (_get_trans, _setup_bem,
 from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
 
-from .externals.six import string_types
 from .surface import transform_surface_to, _compute_nearest
-from .bem import _bem_find_surface, _bem_explain_surface
+from .bem import _bem_find_surface, _surf_name
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
-                    check_fname, _pl)
+                    check_fname, _pl, fill_doc, _check_option)
 
 
+@fill_doc
 class Dipole(object):
     u"""Dipole class for sequential dipole fits.
 
@@ -77,6 +77,7 @@ class Dipole(object):
         The number of free parameters for each fit.
 
         .. versionadded:: 0.15
+    %(verbose)s
 
     See Also
     --------
@@ -91,8 +92,10 @@ class Dipole(object):
     position is fixed as a function of time, use :class:`mne.DipoleFixed`.
     """
 
+    @verbose
     def __init__(self, times, pos, amplitude, ori, gof,
-                 name=None, conf=None, khi2=None, nfree=None):  # noqa: D102
+                 name=None, conf=None, khi2=None, nfree=None,
+                 verbose=None):  # noqa: D102
         self.times = np.array(times)
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
@@ -102,6 +105,7 @@ class Dipole(object):
         self.conf = deepcopy(conf) if conf is not None else dict()
         self.khi2 = np.array(khi2) if khi2 is not None else None
         self.nfree = np.array(nfree) if nfree is not None else None
+        self.verbose = verbose
 
     def __repr__(self):  # noqa: D105
         s = "n_times : %s" % len(self.times)
@@ -253,14 +257,11 @@ class Dipole(object):
             Only used if mode equals 'orthoview'.
 
             .. versionadded:: 0.14.0
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
-        fig : instance of mlab.Figure or matplotlib Figure
+        fig : instance of mayavi.mlab.Figure or matplotlib.figure.Figure
             The mayavi figure or matplotlib Figure.
 
         Notes
@@ -359,6 +360,7 @@ def _read_dipole_fixed(fname):
                        comment)
 
 
+@fill_doc
 class DipoleFixed(object):
     """Dipole class for fixed-position dipole fits.
 
@@ -383,9 +385,7 @@ class DipoleFixed(object):
         Last sample.
     comment : str
         The dipole comment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -408,7 +408,7 @@ class DipoleFixed(object):
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
-        self.kind = _aspect_rev.get(str(aspect_kind), 'Unknown')
+        self.kind = _aspect_rev.get(aspect_kind, 'unknown')
         self.first = first
         self.last = last
         self.comment = comment
@@ -451,10 +451,7 @@ class DipoleFixed(object):
             The name of the .fif file. Must end with ``'.fif'`` or
             ``'.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
         """
         check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz',
                                            '_dip.fif', '_dip.fif.gz',),
@@ -496,9 +493,7 @@ def read_dipole(fname, verbose=None):
     ----------
     fname : str
         The name of the .dip or .fif file.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -570,7 +565,7 @@ def _read_dipole_text(fname):
     assert len(handled_fields) == len(required_fields) + len(optional_fields)
     ignored_fields = sorted(set(fields) -
                             set(handled_fields) -
-                            set(['end/ms']))
+                            {'end/ms'})
     if len(ignored_fields) > 0:
         warn('Ignoring extra fields in dipole file: %s' % (ignored_fields,))
     if len(fields) != data.shape[1]:
@@ -635,7 +630,7 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs):
     """Make a guess space inside a sphere or BEM surface."""
     if 'rr' in surf:
         logger.info('Guess surface (%s) is in %s coordinates'
-                    % (_bem_explain_surface(surf['id']),
+                    % (_surf_name[surf['id']],
                        _coord_frame_name(surf['coord_frame'])))
     else:
         logger.info('Making a spherical guess space with radius %7.1f mm...'
@@ -1037,9 +1032,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
 
         .. versionadded:: 0.12
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1089,7 +1082,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # Figure out our inputs
     neeg = len(pick_types(info, meg=False, eeg=True, ref_meg=False,
                           exclude=[]))
-    if isinstance(bem, string_types):
+    if isinstance(bem, str):
         bem_extra = bem
     else:
         bem_extra = repr(bem)
@@ -1173,7 +1166,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         logger.info('Using %s MEG coil definitions.'
                     % ("accurate" if accurate else "standard"))
         fit_n_jobs = n_jobs
-    if isinstance(cov, string_types):
+    if isinstance(cov, str):
         logger.info('Noise covariance  : %s' % (cov,))
         cov = read_cov(cov, verbose=False)
     logger.info('')
@@ -1333,10 +1326,7 @@ def get_phantom_dipoles(kind='vectorview'):
     The Elekta phantoms have a radius of 79.5mm, and HPI coil locations
     in the XY-plane at the axis extrema (e.g., (79.5, 0), (0, -79.5), ...).
     """
-    _valid_types = ('vectorview', 'otaniemi')
-    if not isinstance(kind, string_types) or kind not in _valid_types:
-        raise ValueError('kind must be one of %s, got %s'
-                         % (_valid_types, kind,))
+    _check_option('kind', kind, ['vectorview', 'otaniemi'])
     if kind == 'vectorview':
         # these values were pulled from a scanned image provided by
         # Elekta folks

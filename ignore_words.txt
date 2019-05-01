@@ -16,3 +16,10 @@ delimeters
 delimeter
 nd
 cas
+thes
+ba
+ist
+theses
+od
+fo
+files'

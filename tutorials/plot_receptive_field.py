@@ -34,10 +34,6 @@ modeling with continuous inputs is described in:
        enhance speech intelligibility. Nature Communications, 7, 13654 (2016).
        doi:10.1038/ncomms13654
 
-.. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
-       The Multivariate Temporal Response Function (mTRF) Toolbox:
-       A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-       Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -150,7 +146,7 @@ for ii, ix_delay in enumerate(delays):
     elif ix_delay < 0:
         take[-1] = slice(-ix_delay, None)
         put[-1] = slice(None, ix_delay)
-    X_del[ii][put] = X[take]
+    X_del[ii][tuple(put)] = X[tuple(take)]
 
 # Now set the delayed axis to the 2nd dimension
 X_del = np.rollaxis(X_del, 0, 3)
@@ -169,7 +165,7 @@ for ii, iep in enumerate(X_del):
 X_plt = scale(np.hstack(X[:2]).T).T
 y_plt = scale(np.hstack(y[:2]))
 time = np.arange(X_plt.shape[-1]) / sfreq
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)
+_, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)
 ax1.pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap='Reds')
 ax1.set_title('Input auditory features')
 ax1.set(ylim=[freqs.min(), freqs.max()], ylabel='Frequency (Hz)')
@@ -214,7 +210,7 @@ coefs = best_mod.coef_[0]
 best_pred = best_mod.predict(X_test)[:, 0]
 
 # Plot the original STRF, and the one that we recovered with modeling.
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3), sharey=True, sharex=True)
+_, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3), sharey=True, sharex=True)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax2.pcolormesh(times, rf.feature_names, coefs, **kwargs)
 ax1.set_title('Original STRF')
@@ -285,7 +281,7 @@ mne.viz.tight_layout()
 #           & & &    & -1 & 1\end{matrix}\right]
 #
 # This imposes a smoothness constraint of nearby time samples and/or features.
-# Quoting [5]_:
+# Quoting [3]_:
 #
 #    Tikhonov [identity] regularization (Equation 5) reduces overfitting by
 #    smoothing the TRF estimate in a way that is insensitive to
@@ -356,8 +352,8 @@ mne.viz.tight_layout()
 # Plot the original STRF, and the one that we recovered with modeling.
 rf = models[ix_best_alpha]
 rf_lap = models_lap[ix_best_alpha_lap]
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(9, 3),
-                                    sharey=True, sharex=True)
+_, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(9, 3),
+                                  sharey=True, sharex=True)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax2.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
 ax3.pcolormesh(times, rf_lap.feature_names, rf_lap.coef_[0], **kwargs)
@@ -367,4 +363,3 @@ ax3.set_title('Best Laplacian STRF')
 plt.setp([iax.get_xticklabels() for iax in [ax1, ax2, ax3]], rotation=45)
 plt.autoscale(tight=True)
 mne.viz.tight_layout()
-plt.show()

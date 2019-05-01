@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    = -nWT --keep-going
 SPHINXBUILD   = sphinx-build
 PAPER         =
 
@@ -33,13 +33,7 @@ help:
 	@echo "  doctest          to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf _build/*
-	-rm -rf auto_examples
-	-rm -rf auto_tutorials
-	-rm -rf generated
-	-rm -rf *.stc
-	-rm -rf *.fif
-	-rm -rf *.nii.gz
+	-rm -rf _build auto_examples auto_tutorials generated *.stc *.fif *.nii.gz
 
 html_stable:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html_stable
@@ -112,10 +106,10 @@ changes:
 	@echo "The overview file is in _build/changes."
 
 linkcheck:
-	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) _build/linkcheck
-	@echo
-	@echo "Link check complete; look for any errors in the above output " \
-	      "or in _build/linkcheck/output.txt."
+	@$(SPHINXBUILD) -b linkcheck -D nitpicky=0 -D plot_gallery=0 -D exclude_patterns="cited.rst,whats_new.rst,configure_git.rst" -d _build/doctrees . _build/linkcheck
+
+linkcheck-grep:
+	@! grep -h "^.*:.*: \[\(\(local\)\|\(broken\)\)\]" _build/linkcheck/output.txt
 
 doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) _build/doctest

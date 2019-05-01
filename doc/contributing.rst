@@ -4,8 +4,8 @@
 
 .. _contribute_to_mne:
 
-How to contribute to MNE
-========================
+How to contribute to MNE-python
+===============================
 
 .. contents:: Contents
    :local:
@@ -21,10 +21,35 @@ of the users who use the package.
 page as the maintainers about changes or enhancements before too much
 coding is done saves everyone time and effort!
 
+Installing developer version
+----------------------------
+
+The standard installation procedure can be found on
+:ref:`install_python_and_mne_python` but if you want to install a
+developer version directly from the source code in order to contribute,
+you can follow those steps:
+
+  .. code-block:: console
+
+     $ git clone git@github.com:mne-tools/mne-python.git
+     $ cd mne-python
+     $ conda env create -f environment.yml -n mne-dev
+     $ conda activate mne-dev
+     $ pip install -e .  # or python setup.py develop
+
+Note: -n flag provides the name for the new (development) environment, and
+overrides any name specified in the .yml file.
+To check the installation, you can enter the following commands:
+
+  .. code-block:: console
+
+     $ python -c "import mne; mne.sys_info()"
+     $ python -c "import mne; mne.datasets.testing.data_path(force_update=True)"
+
 Code guidelines
 ---------------
 
-* Standard python style guidelines set by pep8_ and pyflakes_ are followed
+* Standard Python style guidelines set by pep8_ and pyflakes_ are followed
   with very few exceptions. We recommend using an editor that calls out
   style violations automatcally, such as Spyder_. From the MNE code root, you
   can check for violations using flake8_ with:
@@ -56,6 +81,12 @@ Code guidelines
   .. code-block:: console
 
      $ pytest mne/tests/test_evoked.py:test_io_evoked -x --verbose
+
+  Or alternatively:
+  
+  .. code-block:: console
+
+     $ pytest mne/tests/test_evoked.py -k test_io_evoked -x --verbose
 
   Make sure you have the testing dataset, which you can get by doing::
 
@@ -120,9 +151,14 @@ see `Sphinx documentation`_ to learn more about editing them. Our code
 follows the `NumPy docstring standard`_.
 
 Documentation is automatically built remotely during pull requests. If
-you want to also test documentation locally, you will need to install
-``sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome``, and then
-within the ``mne/doc`` directory do:
+you want to also test documentation locally, you will need to install (using
+``conda`` or ``pip`` as preferred):
+
+.. code-block:: console
+
+   $ pip install sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome memory_profiler pillow
+
+and then within the ``mne/doc`` directory do:
 
 .. code-block:: console
 
@@ -161,11 +197,21 @@ use something like this::
         # Do what you have to do with new_param
         return 'foo'
 
+Add the necessary tests to ensure that the warnings are raised properly.
+You can use something like this::
+
+    def test_my_function_depracation():
+        with pytest.deprecated_call(match="my_new_function"):
+            my_deprecated_function()
+
+    def test_old_param_in_my_function_deprecation():
+        with pytest.deprecated_call(match="old_param .* new_param"):
+            my_deprecated_param(old_param='bar')
 
 
 Profiling
 ---------
-To learn more about profiling python codes please see `the scikit learn profiling site <http://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
+To learn more about profiling Python codes please see `the scikit learn profiling site <https://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
 
 .. _troubleshooting:
 

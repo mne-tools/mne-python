@@ -1,7 +1,7 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
 from copy import deepcopy
 import numpy as np
-from ..utils import check_version, logger
+from ..utils import check_version, logger, _check_option
 from . import plot_sensors
 
 
@@ -24,7 +24,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure object.
     """
     from scipy.spatial.distance import cdist
@@ -41,8 +41,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         raise TypeError("montage must be an instance of "
                         "mne.channels.montage.Montage or"
                         "mne.channels.montage.DigMontage")
-    if kind not in ['topomap', '3d']:
-        raise ValueError("kind must be 'topomap' or '3d'")
+    _check_option('kind', kind, ['topomap', '3d'])
 
     if isinstance(montage, Montage):  # check for duplicate labels
         dists = cdist(montage.pos, montage.pos)

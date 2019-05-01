@@ -2,13 +2,11 @@
 #
 # License: BSD (3-clause)
 
-import time
-import os
-import threading
-import subprocess
-import os.path as op
 import contextlib
+import os
+import os.path as op
 import socket
+import time
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -16,16 +14,11 @@ import pytest
 
 from mne import Epochs, find_events, pick_types
 from mne.io import read_raw_fif
-from mne.utils import requires_neuromag2ft
+from mne.utils import requires_neuromag2ft, running_subprocess
 from mne.utils import run_tests_if_main
 from mne.realtime import FieldTripClient, RtEpochs
-from mne.externals.six.moves import queue
 
 from mne.realtime.tests.test_mockclient import _call_base_epochs_public_api
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.realpath(op.join(base_dir, 'test_raw.fif'))
@@ -37,36 +30,6 @@ def free_tcp_port():
     with contextlib.closing(socket.socket()) as free_socket:
         free_socket.bind(('127.0.0.1', 0))
         return free_socket.getsockname()[1]
-
-
-def _run_buffer(kill_signal, server_port):
-    """Start a FieldTrip Buffer from FIF file as a subprocess."""
-    neuromag2ft_fname = op.realpath(op.join(os.environ['NEUROMAG2FT_ROOT'],
-                                    'neuromag2ft'))
-    # Works with neuromag2ft-3.0.2
-    cmd = (neuromag2ft_fname, '--file', raw_fname, '--speed', '8.0',
-           '--bufport', str(server_port))
-
-    # sleep to make sure everything is setup before playback starts
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-    # Let measurement continue for the entire duration
-    kill_signal.get(timeout=40.0)
-    process.terminate()
-    with pytest.warns(None):  # still running
-        process.stderr.close()
-        process.stdout.close()
-        del process
-
-
-def _start_buffer_thread(buffer_port):
-    """Start a FieldTrip Buffer in a background thread."""
-    signal_queue = queue.Queue()
-    thread = threading.Thread(target=_run_buffer,
-                              args=(signal_queue, buffer_port))
-    thread.daemon = True
-    thread.start()
-    return signal_queue
 
 
 @pytest.mark.slowtest
@@ -85,9 +48,13 @@ def test_fieldtrip_rtepochs(free_tcp_port, tmpdir):
     isi_max = (np.max(np.diff(epochs_offline.events[:, 0])) /
                raw.info['sfreq']) + 1.0
 
-    kill_signal = _start_buffer_thread(free_tcp_port)
+    neuromag2ft_fname = op.realpath(op.join(os.environ['NEUROMAG2FT_ROOT'],
+                                            'neuromag2ft'))
+    # Works with neuromag2ft-3.0.2
+    cmd = (neuromag2ft_fname, '--file', raw_fname, '--speed', '8.0',
+           '--bufport', str(free_tcp_port))
 
-    try:
+    with running_subprocess(cmd, after='terminate', verbose=False):
         data_rt = None
         events_ids_rt = None
         with pytest.warns(RuntimeWarning, match='Trying to guess it'):
@@ -124,18 +91,20 @@ def test_fieldtrip_rtepochs(free_tcp_port, tmpdir):
         assert_array_equal(events_ids_rt, epochs_offline.events[:, 2])
         assert_allclose(epochs_rt.get_data(), epochs_offline.get_data(),
                         rtol=1.e-5, atol=1.e-8)  # defaults of np.isclose
-    finally:
-        kill_signal.put(False)  # stop the buffer
 
 
 @requires_neuromag2ft
 def test_fieldtrip_client(free_tcp_port):
     """Test fieldtrip_client."""
-    kill_signal = _start_buffer_thread(free_tcp_port)
+    neuromag2ft_fname = op.realpath(op.join(os.environ['NEUROMAG2FT_ROOT'],
+                                            'neuromag2ft'))
+    # Works with neuromag2ft-3.0.2
+    cmd = (neuromag2ft_fname, '--file', raw_fname, '--speed', '8.0',
+           '--bufport', str(free_tcp_port))
 
     time.sleep(0.5)
 
-    try:
+    with running_subprocess(cmd, after='terminate', verbose=False):
         # Start the FieldTrip buffer
         with pytest.warns(RuntimeWarning):
             with FieldTripClient(host='localhost', port=free_tcp_port,
@@ -167,8 +136,6 @@ def test_fieldtrip_client(free_tcp_port):
         assert n_samples2 == 5
         assert n_channels == len(picks)
         assert n_channels2 == len(picks)
-    finally:
-        kill_signal.put(False)  # stop the buffer
 
 
 run_tests_if_main()

@@ -12,42 +12,31 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-from __future__ import division
-
 import inspect
 from distutils.version import LooseVersion
+from math import log
 import warnings
 
 import numpy as np
-from scipy import linalg, __version__ as sp_version
-
-from .externals.six import string_types, iteritems
+from scipy import linalg
 
 
 ###############################################################################
 # Misc
 
 # helpers to get function arguments
-if hasattr(inspect, 'signature'):  # py35
-    def _get_args(function, varargs=False):
-        params = inspect.signature(function).parameters
-        args = [key for key, param in params.items()
-                if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)]
-        if varargs:
-            varargs = [param.name for param in params.values()
-                       if param.kind == param.VAR_POSITIONAL]
-            if len(varargs) == 0:
-                varargs = None
-            return args, varargs
-        else:
-            return args
-else:
-    def _get_args(function, varargs=False):
-        out = inspect.getargspec(function)  # args, varargs, keywords, defaults
-        if varargs:
-            return out[:2]
-        else:
-            return out[0]
+def _get_args(function, varargs=False):
+    params = inspect.signature(function).parameters
+    args = [key for key, param in params.items()
+            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)]
+    if varargs:
+        varargs = [param.name for param in params.values()
+                   if param.kind == param.VAR_POSITIONAL]
+        if len(varargs) == 0:
+            varargs = None
+        return args, varargs
+    else:
+        return args
 
 
 def _safe_svd(A, **kwargs):
@@ -149,8 +138,8 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
 
 
 ###############################################################################
-# Backporting logsumexp from scipy which is imported from scipy.special (0.1.0.0)
-# instead of scipy.misc
+# Backporting logsumexp from scipy which is imported from scipy.special
+# (1.0.0) instead of scipy.misc
 
 
 def _get_logsumexp():
@@ -162,11 +151,167 @@ def _get_logsumexp():
 
 
 ###############################################################################
-# Backporting scipy.signal.sosfilt (0.17) and sosfiltfilt (0.18)
+# Triaging scipy.signal.windows.compute_dpss
 
+def tridisolve(d, e, b, overwrite_b=True):
+    """Symmetric tridiagonal system solver, from Golub and Van Loan p157.
+
+    .. note:: Copied from NiTime.
+
+    Parameters
+    ----------
+    d : ndarray
+      main diagonal stored in d[:]
+    e : ndarray
+      superdiagonal stored in e[:-1]
+    b : ndarray
+      RHS vector
+
+    Returns
+    -------
+    x : ndarray
+      Solution to Ax = b (if overwrite_b is False). Otherwise solution is
+      stored in previous RHS vector b
+
+    """
+    N = len(b)
+    # work vectors
+    dw = d.copy()
+    ew = e.copy()
+    if overwrite_b:
+        x = b
+    else:
+        x = b.copy()
+    for k in range(1, N):
+        # e^(k-1) = e(k-1) / d(k-1)
+        # d(k) = d(k) - e^(k-1)e(k-1) / d(k-1)
+        t = ew[k - 1]
+        ew[k - 1] = t / dw[k - 1]
+        dw[k] = dw[k] - t * ew[k - 1]
+    for k in range(1, N):
+        x[k] = x[k] - ew[k - 1] * x[k - 1]
+    x[N - 1] = x[N - 1] / dw[N - 1]
+    for k in range(N - 2, -1, -1):
+        x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
+
+    if not overwrite_b:
+        return x
+
+
+def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
+    """Perform an inverse iteration.
+
+    This will find the eigenvector corresponding to the given eigenvalue
+    in a symmetric tridiagonal system.
+
+    ..note:: Copied from NiTime.
+
+    Parameters
+    ----------
+    d : ndarray
+      main diagonal of the tridiagonal system
+    e : ndarray
+      offdiagonal stored in e[:-1]
+    w : float
+      eigenvalue of the eigenvector
+    x0 : ndarray
+      initial point to start the iteration
+    rtol : float
+      tolerance for the norm of the difference of iterates
+
+    Returns
+    -------
+    e: ndarray
+      The converged eigenvector
+    """
+    eig_diag = d - w
+    if x0 is None:
+        x0 = np.random.randn(len(d))
+    x_prev = np.zeros_like(x0)
+    norm_x = np.linalg.norm(x0)
+    # the eigenvector is unique up to sign change, so iterate
+    # until || |x^(n)| - |x^(n-1)| ||^2 < rtol
+    x0 /= norm_x
+    while np.linalg.norm(np.abs(x0) - np.abs(x_prev)) > rtol:
+        x_prev = x0.copy()
+        tridisolve(eig_diag, e, x0)
+        norm_x = np.linalg.norm(x0)
+        x0 /= norm_x
+    return x0
+
+
+def _dpss(N, half_nbw, Kmax):
+    """Compute DPSS windows."""
+    # here we want to set up an optimization problem to find a sequence
+    # whose energy is maximally concentrated within band [-W,W].
+    # Thus, the measure lambda(T,W) is the ratio between the energy within
+    # that band, and the total energy. This leads to the eigen-system
+    # (A - (l1)I)v = 0, where the eigenvector corresponding to the largest
+    # eigenvalue is the sequence with maximally concentrated energy. The
+    # collection of eigenvectors of this system are called Slepian
+    # sequences, or discrete prolate spheroidal sequences (DPSS). Only the
+    # first K, K = 2NW/dt orders of DPSS will exhibit good spectral
+    # concentration
+    # [see http://en.wikipedia.org/wiki/Spectral_concentration_problem]
+
+    # Here I set up an alternative symmetric tri-diagonal eigenvalue
+    # problem such that
+    # (B - (l2)I)v = 0, and v are our DPSS (but eigenvalues l2 != l1)
+    # the main diagonal = ([N-1-2*t]/2)**2 cos(2PIW), t=[0,1,2,...,N-1]
+    # and the first off-diagonal = t(N-t)/2, t=[1,2,...,N-1]
+    # [see Percival and Walden, 1993]
+    nidx = np.arange(N, dtype='d')
+    W = float(half_nbw) / N
+    diagonal = ((N - 1 - 2 * nidx) / 2.) ** 2 * np.cos(2 * np.pi * W)
+    off_diag = np.zeros_like(nidx)
+    off_diag[:-1] = nidx[1:] * (N - nidx[1:]) / 2.
+    # put the diagonals in LAPACK "packed" storage
+    ab = np.zeros((2, N), 'd')
+    ab[1] = diagonal
+    ab[0, 1:] = off_diag[:-1]
+    # only calculate the highest Kmax eigenvalues
+    w = linalg.eigvals_banded(ab, select='i',
+                              select_range=(N - Kmax, N - 1))
+    w = w[::-1]
+
+    # find the corresponding eigenvectors via inverse iteration
+    t = np.linspace(0, np.pi, N)
+    dpss = np.zeros((Kmax, N), 'd')
+    for k in range(Kmax):
+        dpss[k] = tridi_inverse_iteration(diagonal, off_diag, w[k],
+                                          x0=np.sin((k + 1) * t))
+
+    # By convention (Percival and Walden, 1993 pg 379)
+    # * symmetric tapers (k=0,2,4,...) should have a positive average.
+    # * antisymmetric tapers should begin with a positive lobe
+    fix_symmetric = (dpss[0::2].sum(axis=1) < 0)
+    for i, f in enumerate(fix_symmetric):
+        if f:
+            dpss[2 * i] *= -1
+    # rather than test the sign of one point, test the sign of the
+    # linear slope up to the first (largest) peak
+    pk = np.argmax(np.abs(dpss[1::2, :N // 2]), axis=1)
+    for i, p in enumerate(pk):
+        if np.sum(dpss[2 * i + 1, :p]) < 0:
+            dpss[2 * i + 1] *= -1
+
+    return dpss
+
+
+def _get_dpss():
+    try:
+        from scipy.signal.windows import dpss
+    except ImportError:
+        dpss = _dpss
+    return dpss
+
+
+###############################################################################
+# Backporting scipy.signal.sosfiltfilt (0.18)
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
     """copy of SciPy sosfiltfilt"""
+    from scipy.signal import sosfilt, sosfilt_zi
     sos, n_sections = _validate_sos(sos)
 
     # `method` is "pad"...
@@ -205,10 +350,8 @@ def axis_reverse(a, axis=-1):
 
 def _validate_pad(padtype, padlen, x, axis, ntaps):
     """Helper to validate padding for filtfilt"""
-    if padtype not in ['even', 'odd', 'constant', None]:
-        raise ValueError(("Unknown value '%s' given to padtype.  padtype "
-                          "must be 'even', 'odd', 'constant', or None.") %
-                         padtype)
+    from .utils import _check_option  # avoid circular import
+    _check_option('padtype', padtype, ['even', 'odd', 'constant', None])
 
     if padtype is None:
         padlen = 0
@@ -305,64 +448,6 @@ def const_ext(x, n, axis=-1):
     return ext
 
 
-def sosfilt_zi(sos):
-    """Compute an initial state `zi` for the sosfilt function"""
-    from scipy.signal import lfilter_zi
-    sos = np.asarray(sos)
-    if sos.ndim != 2 or sos.shape[1] != 6:
-        raise ValueError('sos must be shape (n_sections, 6)')
-
-    n_sections = sos.shape[0]
-    zi = np.empty((n_sections, 2))
-    scale = 1.0
-    for section in range(n_sections):
-        b = sos[section, :3]
-        a = sos[section, 3:]
-        zi[section] = scale * lfilter_zi(b, a)
-        # If H(z) = B(z)/A(z) is this section's transfer function, then
-        # b.sum()/a.sum() is H(1), the gain at omega=0.  That's the steady
-        # state value of this section's step response.
-        scale *= b.sum() / a.sum()
-
-    return zi
-
-
-def sosfilt(sos, x, axis=-1, zi=None):
-    """Filter data along one dimension using cascaded second-order sections"""
-    from scipy.signal import lfilter
-    x = np.asarray(x)
-
-    sos = np.atleast_2d(sos)
-    if sos.ndim != 2:
-        raise ValueError('sos array must be 2D')
-
-    n_sections, m = sos.shape
-    if m != 6:
-        raise ValueError('sos array must be shape (n_sections, 6)')
-
-    use_zi = zi is not None
-    if use_zi:
-        zi = np.asarray(zi)
-        x_zi_shape = list(x.shape)
-        x_zi_shape[axis] = 2
-        x_zi_shape = tuple([n_sections] + x_zi_shape)
-        if zi.shape != x_zi_shape:
-            raise ValueError('Invalid zi shape.  With axis=%r, an input with '
-                             'shape %r, and an sos array with %d sections, zi '
-                             'must have shape %r.' %
-                             (axis, x.shape, n_sections, x_zi_shape))
-        zf = np.zeros_like(zi)
-
-    for section in range(n_sections):
-        if use_zi:
-            x, zf[section] = lfilter(sos[section, :3], sos[section, 3:],
-                                     x, axis, zi=zi[section])
-        else:
-            x = lfilter(sos[section, :3], sos[section, 3:], x, axis)
-    out = (x, zf) if use_zi else x
-    return out
-
-
 def get_sosfiltfilt():
     """Helper to get sosfiltfilt from scipy"""
     try:
@@ -427,514 +512,12 @@ def minimum_phase(h):
 
 
 ###############################################################################
-# scipy.special.sph_harm ()
-
-def _sph_harm(order, degree, az, pol):
-    """Evaluate point in specified multipolar moment.
-
-    When using, pay close attention to inputs. Spherical harmonic notation for
-    order/degree, and theta/phi are both reversed in original SSS work compared
-    to many other sources. See mathworld.wolfram.com/SphericalHarmonic.html for
-    more discussion.
-
-    Note that scipy has ``scipy.special.sph_harm``, but that function is
-    too slow on old versions (< 0.15) for heavy use.
-
-    Parameters
-    ----------
-    order : int
-        Order of spherical harmonic. (Usually) corresponds to 'm'.
-    degree : int
-        Degree of spherical harmonic. (Usually) corresponds to 'l'.
-    az : float
-        Azimuthal (longitudinal) spherical coordinate [0, 2*pi]. 0 is aligned
-        with x-axis.
-    pol : float
-        Polar (or colatitudinal) spherical coordinate [0, pi]. 0 is aligned
-        with z-axis.
-    norm : bool
-        If True, include normalization factor.
-
-    Returns
-    -------
-    base : complex float
-        The spherical harmonic value.
-    """
-    from scipy.special import lpmv
-    from .preprocessing.maxwell import _sph_harm_norm
-
-    # Error checks
-    if np.abs(order) > degree:
-        raise ValueError('Absolute value of order must be <= degree')
-    # Ensure that polar and azimuth angles are arrays
-    az = np.asarray(az)
-    pol = np.asarray(pol)
-    if (np.abs(az) > 2 * np.pi).any():
-        raise ValueError('Azimuth coords must lie in [-2*pi, 2*pi]')
-    if(pol < 0).any() or (pol > np.pi).any():
-        raise ValueError('Polar coords must lie in [0, pi]')
-    # This is the "seismology" convention on Wikipedia, w/o Condon-Shortley
-    sph = lpmv(order, degree, np.cos(pol)) * np.exp(1j * order * az)
-    sph *= _sph_harm_norm(order, degree)
-    return sph
-
-
-def _get_sph_harm():
-    """Helper to get a usable spherical harmonic function."""
-    if LooseVersion(sp_version) < LooseVersion('0.17.1'):
-        sph_harm = _sph_harm
-    else:
-        from scipy.special import sph_harm
-    return sph_harm
-
-
-###############################################################################
-# Scipy spectrogram (for mne.time_frequency.psd_welch) needed for scipy < 0.16
-
-def _spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
-                nfft=None, detrend='constant', return_onesided=True,
-                scaling='density', axis=-1, mode='psd'):
-    """
-    Compute a spectrogram with consecutive Fourier transforms.
-    Spectrograms can be used as a way of visualizing the change of a
-    nonstationary signal's frequency content over time.
-
-    Parameters
-    ----------
-    x : array_like
-        Time series of measurement values
-    fs : float, optional
-        Sampling frequency of the `x` time series. Defaults to 1.0.
-    window : str or tuple or array_like, optional
-        Desired window to use. See `get_window` for a list of windows and
-        required parameters. If `window` is array_like it will be used
-        directly as the window and its length will be used for nperseg.
-        Defaults to a Tukey window with shape parameter of 0.25.
-    nperseg : int, optional
-        Length of each segment.  Defaults to 256.
-    noverlap : int, optional
-        Number of points to overlap between segments. If None,
-        ``noverlap = nperseg // 8``.  Defaults to None.
-    nfft : int, optional
-        Length of the FFT used, if a zero padded FFT is desired.  If None,
-        the FFT length is `nperseg`. Defaults to None.
-    detrend : str or function or False, optional
-        Specifies how to detrend each segment. If `detrend` is a string,
-        it is passed as the ``type`` argument to `detrend`.  If it is a
-        function, it takes a segment and returns a detrended segment.
-        If `detrend` is False, no detrending is done.  Defaults to 'constant'.
-    return_onesided : bool, optional
-        If True, return a one-sided spectrum for real data. If False return
-        a two-sided spectrum. Note that for complex data, a two-sided
-        spectrum is always returned.
-    scaling : { 'density', 'spectrum' }, optional
-        Selects between computing the power spectral density ('density')
-        where `Pxx` has units of V**2/Hz and computing the power spectrum
-        ('spectrum') where `Pxx` has units of V**2, if `x` is measured in V
-        and fs is measured in Hz.  Defaults to 'density'
-    axis : int, optional
-        Axis along which the spectrogram is computed; the default is over
-        the last axis (i.e. ``axis=-1``).
-    mode : str, optional
-        Defines what kind of return values are expected. Options are ['psd',
-        'complex', 'magnitude', 'angle', 'phase'].
-
-    Returns
-    -------
-    f : ndarray
-        Array of sample frequencies.
-    t : ndarray
-        Array of segment times.
-    Sxx : ndarray
-        Spectrogram of x. By default, the last axis of Sxx corresponds to the
-        segment times.
-
-    See Also
-    --------
-    periodogram: Simple, optionally modified periodogram
-    lombscargle: Lomb-Scargle periodogram for unevenly sampled data
-    welch: Power spectral density by Welch's method.
-    csd: Cross spectral density by Welch's method.
-
-    Notes
-    -----
-    An appropriate amount of overlap will depend on the choice of window
-    and on your requirements. In contrast to welch's method, where the entire
-    data stream is averaged over, one may wish to use a smaller overlap (or
-    perhaps none at all) when computing a spectrogram, to maintain some
-    statistical independence between individual segments.
-    .. versionadded:: 0.16.0
-
-    References
-    ----------
-    .. [1] Oppenheim, Alan V., Ronald W. Schafer, John R. Buck "Discrete-Time
-           Signal Processing", Prentice Hall, 1999.
-    """
-    # Less overlap than welch, so samples are more statisically independent
-    if noverlap is None:
-        noverlap = nperseg // 8
-
-    freqs, time, Pxy = _spectral_helper(x, x, fs, window, nperseg, noverlap,
-                                        nfft, detrend, return_onesided, scaling,
-                                        axis, mode=mode)
-
-    return freqs, time, Pxy
-
-
-def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
-                    noverlap=None, nfft=None, detrend='constant',
-                    return_onesided=True, scaling='spectrum', axis=-1,
-                    mode='psd'):
-    """
-    Calculate various forms of windowed FFTs for PSD, CSD, etc.
-    This is a helper function that implements the commonality between the
-    psd, csd, and spectrogram functions. It is not designed to be called
-    externally. The windows are not averaged over; the result from each window
-    is returned.
-
-    Parameters
-    ---------
-    x : array_like
-        Array or sequence containing the data to be analyzed.
-    y : array_like
-        Array or sequence containing the data to be analyzed. If this is
-        the same object in memoery as x (i.e. _spectral_helper(x, x, ...)),
-        the extra computations are spared.
-    fs : float, optional
-        Sampling frequency of the time series. Defaults to 1.0.
-    window : str or tuple or array_like, optional
-        Desired window to use. See `get_window` for a list of windows and
-        required parameters. If `window` is array_like it will be used
-        directly as the window and its length will be used for nperseg.
-        Defaults to 'hann'.
-    nperseg : int, optional
-        Length of each segment.  Defaults to 256.
-    noverlap : int, optional
-        Number of points to overlap between segments. If None,
-        ``noverlap = nperseg // 2``.  Defaults to None.
-    nfft : int, optional
-        Length of the FFT used, if a zero padded FFT is desired.  If None,
-        the FFT length is `nperseg`. Defaults to None.
-    detrend : str or function or False, optional
-        Specifies how to detrend each segment. If `detrend` is a string,
-        it is passed as the ``type`` argument to `detrend`.  If it is a
-        function, it takes a segment and returns a detrended segment.
-        If `detrend` is False, no detrending is done.  Defaults to 'constant'.
-    return_onesided : bool, optional
-        If True, return a one-sided spectrum for real data. If False return
-        a two-sided spectrum. Note that for complex data, a two-sided
-        spectrum is always returned.
-    scaling : { 'density', 'spectrum' }, optional
-        Selects between computing the cross spectral density ('density')
-        where `Pxy` has units of V**2/Hz and computing the cross spectrum
-        ('spectrum') where `Pxy` has units of V**2, if `x` and `y` are
-        measured in V and fs is measured in Hz.  Defaults to 'density'
-    axis : int, optional
-        Axis along which the periodogram is computed; the default is over
-        the last axis (i.e. ``axis=-1``).
-    mode : str, optional
-        Defines what kind of return values are expected. Options are ['psd',
-        'complex', 'magnitude', 'angle', 'phase'].
-
-    Returns
-    -------
-    freqs : ndarray
-        Array of sample frequencies.
-    t : ndarray
-        Array of times corresponding to each data segment
-    result : ndarray
-        Array of output data, contents dependent on *mode* kwarg.
-
-    References
-    ----------
-    .. [1] Stack Overflow, "Rolling window for 1D arrays in Numpy?",
-        http://stackoverflow.com/a/6811241
-    .. [2] Stack Overflow, "Using strides for an efficient moving average
-        filter", http://stackoverflow.com/a/4947453
-
-    Notes
-    -----
-    Adapted from matplotlib.mlab
-    .. versionadded:: 0.16.0
-    """
-    from scipy import fftpack
-    from scipy.signal import signaltools
-    from scipy.signal.windows import get_window
-
-    if mode not in ['psd', 'complex', 'magnitude', 'angle', 'phase']:
-        raise ValueError("Unknown value for mode %s, must be one of: "
-                         "'default', 'psd', 'complex', "
-                         "'magnitude', 'angle', 'phase'" % mode)
-
-    # If x and y are the same object we can save ourselves some computation.
-    same_data = y is x
-
-    if not same_data and mode != 'psd':
-        raise ValueError("x and y must be equal if mode is not 'psd'")
-
-    axis = int(axis)
-
-    # Ensure we have np.arrays, get outdtype
-    x = np.asarray(x)
-    if not same_data:
-        y = np.asarray(y)
-        outdtype = np.result_type(x,y,np.complex64)
-    else:
-        outdtype = np.result_type(x,np.complex64)
-
-    if not same_data:
-        # Check if we can broadcast the outer axes together
-        xouter = list(x.shape)
-        youter = list(y.shape)
-        xouter.pop(axis)
-        youter.pop(axis)
-        try:
-            outershape = np.broadcast(np.empty(xouter), np.empty(youter)).shape
-        except ValueError:
-            raise ValueError('x and y cannot be broadcast together.')
-
-    if same_data:
-        if x.size == 0:
-            return np.empty(x.shape), np.empty(x.shape), np.empty(x.shape)
-    else:
-        if x.size == 0 or y.size == 0:
-            outshape = outershape + (min([x.shape[axis], y.shape[axis]]),)
-            emptyout = np.rollaxis(np.empty(outshape), -1, axis)
-            return emptyout, emptyout, emptyout
-
-    if x.ndim > 1:
-        if axis != -1:
-            x = np.rollaxis(x, axis, len(x.shape))
-            if not same_data and y.ndim > 1:
-                y = np.rollaxis(y, axis, len(y.shape))
-
-    # Check if x and y are the same length, zero-pad if necessary
-    if not same_data:
-        if x.shape[-1] != y.shape[-1]:
-            if x.shape[-1] < y.shape[-1]:
-                pad_shape = list(x.shape)
-                pad_shape[-1] = y.shape[-1] - x.shape[-1]
-                x = np.concatenate((x, np.zeros(pad_shape)), -1)
-            else:
-                pad_shape = list(y.shape)
-                pad_shape[-1] = x.shape[-1] - y.shape[-1]
-                y = np.concatenate((y, np.zeros(pad_shape)), -1)
-
-    # X and Y are same length now, can test nperseg with either
-    if x.shape[-1] < nperseg:
-        warnings.warn('nperseg = {0:d}, is greater than input length = {1:d}, '
-                      'using nperseg = {1:d}'.format(nperseg, x.shape[-1]))
-        nperseg = x.shape[-1]
-
-    nperseg = int(nperseg)
-    if nperseg < 1:
-        raise ValueError('nperseg must be a positive integer')
-
-    if nfft is None:
-        nfft = nperseg
-    elif nfft < nperseg:
-        raise ValueError('nfft must be greater than or equal to nperseg.')
-    else:
-        nfft = int(nfft)
-
-    if noverlap is None:
-        noverlap = nperseg//2
-    elif noverlap >= nperseg:
-        raise ValueError('noverlap must be less than nperseg.')
-    else:
-        noverlap = int(noverlap)
-
-    # Handle detrending and window functions
-    if not detrend:
-        def detrend_func(d):
-            return d
-    elif not hasattr(detrend, '__call__'):
-        def detrend_func(d):
-            return signaltools.detrend(d, type=detrend, axis=-1)
-    elif axis != -1:
-        # Wrap this function so that it receives a shape that it could
-        # reasonably expect to receive.
-        def detrend_func(d):
-            d = np.rollaxis(d, -1, axis)
-            d = detrend(d)
-            return np.rollaxis(d, axis, len(d.shape))
-    else:
-        detrend_func = detrend
-
-    if isinstance(window, string_types) or type(window) is tuple:
-        win = get_window(window, nperseg)
-    else:
-        win = np.asarray(window)
-        if len(win.shape) != 1:
-            raise ValueError('window must be 1-D')
-        if win.shape[0] != nperseg:
-            raise ValueError('window must have length of nperseg')
-
-    if np.result_type(win,np.complex64) != outdtype:
-        win = win.astype(outdtype)
-
-    if mode == 'psd':
-        if scaling == 'density':
-            scale = 1.0 / (fs * (win*win).sum())
-        elif scaling == 'spectrum':
-            scale = 1.0 / win.sum()**2
-        else:
-            raise ValueError('Unknown scaling: %r' % scaling)
-    else:
-        scale = 1
-
-    if return_onesided is True:
-        if np.iscomplexobj(x):
-            sides = 'twosided'
-        else:
-            sides = 'onesided'
-            if not same_data:
-                if np.iscomplexobj(y):
-                    sides = 'twosided'
-    else:
-        sides = 'twosided'
-
-    if sides == 'twosided':
-        num_freqs = nfft
-    elif sides == 'onesided':
-        if nfft % 2:
-            num_freqs = (nfft + 1)//2
-        else:
-            num_freqs = nfft//2 + 1
-
-    # Perform the windowed FFTs
-    result = _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft)
-    result = result[..., :num_freqs]
-    freqs = fftpack.fftfreq(nfft, 1/fs)[:num_freqs]
-
-    if not same_data:
-        # All the same operations on the y data
-        result_y = _fft_helper(y, win, detrend_func, nperseg, noverlap, nfft)
-        result_y = result_y[..., :num_freqs]
-        result = np.conjugate(result) * result_y
-    elif mode == 'psd':
-        result = np.conjugate(result) * result
-    elif mode == 'magnitude':
-        result = np.absolute(result)
-    elif mode == 'angle' or mode == 'phase':
-        result = np.angle(result)
-    elif mode == 'complex':
-        pass
-
-    result *= scale
-    if sides == 'onesided':
-        if nfft % 2:
-            result[...,1:] *= 2
-        else:
-            # Last point is unpaired Nyquist freq point, don't double
-            result[...,1:-1] *= 2
-
-    t = np.arange(nperseg/2, x.shape[-1] - nperseg/2 + 1, nperseg - noverlap)/float(fs)
-
-    if sides != 'twosided' and not nfft % 2:
-        # get the last value correctly, it is negative otherwise
-        freqs[-1] *= -1
-
-    # we unwrap the phase here to handle the onesided vs. twosided case
-    if mode == 'phase':
-        result = np.unwrap(result, axis=-1)
-
-    result = result.astype(outdtype)
-
-    # All imaginary parts are zero anyways
-    if same_data and mode != 'complex':
-        result = result.real
-
-    # Output is going to have new last axis for window index
-    if axis != -1:
-        # Specify as positive axis index
-        if axis < 0:
-            axis = len(result.shape)-1-axis
-
-        # Roll frequency axis back to axis where the data came from
-        result = np.rollaxis(result, -1, axis)
-    else:
-        # Make sure window/time index is last axis
-        result = np.rollaxis(result, -1, -2)
-
-    return freqs, t, result
-
-
-def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
-    """
-    Calculate windowed FFT, for internal use by scipy.signal._spectral_helper
-    This is a helper function that does the main FFT calculation for
-    _spectral helper. All input valdiation is performed there, and the data
-    axis is assumed to be the last axis of x. It is not designed to be called
-    externally. The windows are not averaged over; the result from each window
-    is returned.
-
-    Returns
-    -------
-    result : ndarray
-        Array of FFT data
-
-    References
-    ----------
-    .. [1] Stack Overflow, "Repeat NumPy array without replicating data?",
-        http://stackoverflow.com/a/5568169
-
-    Notes
-    -----
-    Adapted from matplotlib.mlab
-    .. versionadded:: 0.16.0
-    """
-    from scipy import fftpack
-
-    # Created strided array of data segments
-    if nperseg == 1 and noverlap == 0:
-        result = x[..., np.newaxis]
-    else:
-        step = nperseg - noverlap
-        shape = x.shape[:-1]+((x.shape[-1]-noverlap)//step, nperseg)
-        strides = x.strides[:-1]+(step*x.strides[-1], x.strides[-1])
-        result = np.lib.stride_tricks.as_strided(x, shape=shape,
-                                                 strides=strides)
-
-    # Detrend each data segment individually
-    result = detrend_func(result)
-
-    # Apply window by multiplication
-    result = win * result
-
-    # Perform the fft. Acts on last axis by default. Zero-pads automatically
-    result = fftpack.fft(result, n=nfft)
-
-    return result
-
-
-def get_spectrogram():
-    '''helper function to get relevant spectrogram'''
-    from .utils import check_version
-    if check_version('scipy', '0.16.0'):
-        from scipy.signal import spectrogram
-    else:
-        spectrogram = _spectrogram
-    return spectrogram
-
-
-###############################################################################
 # Misc utilities
 
 def assert_true(expr, msg='False is not True'):
     """Fake assert_true without message"""
     if not expr:
         raise AssertionError(msg)
-
-
-def assert_is(expr1, expr2, msg=None):
-    """Fake assert_is without message"""
-    assert_true(expr2 is expr2, msg)
-
-
-def assert_is_not(expr1, expr2, msg=None):
-    """Fake assert_is_not without message"""
-    assert_true(expr1 is not expr2, msg)
 
 
 def _read_volume_info(fobj):
@@ -983,14 +566,14 @@ def _serialize_volume_info(volume_info):
             strings.append(np.array(volume_info[key], dtype='>i4').tostring())
         elif key in ('valid', 'filename'):
             val = volume_info[key]
-            strings.append('{0} = {1}\n'.format(key, val).encode('utf-8'))
+            strings.append('{} = {}\n'.format(key, val).encode('utf-8'))
         elif key == 'volume':
             val = volume_info[key]
-            strings.append('{0} = {1} {2} {3}\n'.format(
+            strings.append('{} = {} {} {}\n'.format(
                 key, val[0], val[1], val[2]).encode('utf-8'))
         else:
             val = volume_info[key]
-            strings.append('{0} = {1:0.10g} {2:0.10g} {3:0.10g}\n'.format(
+            strings.append('{} = {:0.10g} {:0.10g} {:0.10g}\n'.format(
                 key.ljust(6), val[0], val[1], val[2]).encode('utf-8'))
     return b''.join(strings)
 
@@ -1044,10 +627,6 @@ class BaseEstimator(object):
     @classmethod
     def _get_param_names(cls):
         """Get parameter names for the estimator"""
-        try:
-            from inspect import signature
-        except ImportError:
-            from .externals.funcsigs import signature
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
@@ -1057,7 +636,7 @@ class BaseEstimator(object):
 
         # introspect the constructor arguments to find the model parameters
         # to represent
-        init_signature = signature(init)
+        init_signature = inspect.signature(init)
         # Consider the constructor parameters excluding 'self'
         parameters = [p for p in init_signature.parameters.values()
                       if p.name != 'self' and p.kind != p.VAR_KEYWORD]
@@ -1123,7 +702,7 @@ class BaseEstimator(object):
             # Simple optimisation to gain speed (inspect is slow)
             return self
         valid_params = self.get_params(deep=True)
-        for key, value in iteritems(params):
+        for key, value in params.items():
             split = key.split('__', 1)
             if len(split) > 1:
                 # nested objects case
@@ -1437,6 +1016,95 @@ def _logdet(A):
     return np.sum(np.log(vals))
 
 
+def _infer_dimension_(spectrum, n_samples, n_features):
+    """Infers the dimension of a dataset of shape (n_samples, n_features)
+    The dataset is described by its spectrum `spectrum`.
+    """
+    n_spectrum = len(spectrum)
+    ll = np.empty(n_spectrum)
+    for rank in range(n_spectrum):
+        ll[rank] = _assess_dimension_(spectrum, rank, n_samples, n_features)
+    return ll.argmax()
+
+
+def _assess_dimension_(spectrum, rank, n_samples, n_features):
+    from scipy.special import gammaln
+    if rank > len(spectrum):
+        raise ValueError("The tested rank cannot exceed the rank of the"
+                         " dataset")
+
+    pu = -rank * log(2.)
+    for i in range(rank):
+        pu += (gammaln((n_features - i) / 2.) -
+               log(np.pi) * (n_features - i) / 2.)
+
+    pl = np.sum(np.log(spectrum[:rank]))
+    pl = -pl * n_samples / 2.
+
+    if rank == n_features:
+        pv = 0
+        v = 1
+    else:
+        v = np.sum(spectrum[rank:]) / (n_features - rank)
+        pv = -np.log(v) * n_samples * (n_features - rank) / 2.
+
+    m = n_features * rank - rank * (rank + 1.) / 2.
+    pp = log(2. * np.pi) * (m + rank + 1.) / 2.
+
+    pa = 0.
+    spectrum_ = spectrum.copy()
+    spectrum_[rank:n_features] = v
+    for i in range(rank):
+        for j in range(i + 1, len(spectrum)):
+            pa += log((spectrum[i] - spectrum[j]) *
+                      (1. / spectrum_[j] - 1. / spectrum_[i])) + log(n_samples)
+
+    ll = pu + pl + pv + pp - pa / 2. - rank * log(n_samples) / 2.
+
+    return ll
+
+
+def svd_flip(u, v, u_based_decision=True):
+    if u_based_decision:
+        # columns of u, rows of v
+        max_abs_cols = np.argmax(np.abs(u), axis=0)
+        signs = np.sign(u[max_abs_cols, np.arange(u.shape[1])])
+        u *= signs
+        v *= signs[:, np.newaxis]
+    else:
+        # rows of v, columns of u
+        max_abs_rows = np.argmax(np.abs(v), axis=1)
+        signs = np.sign(v[np.arange(v.shape[0]), max_abs_rows])
+        u *= signs
+        v *= signs[:, np.newaxis]
+    return u, v
+
+
+def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
+    """Use high precision for cumsum and check that final value matches sum
+
+    Parameters
+    ----------
+    arr : array-like
+        To be cumulatively summed as flat
+    axis : int, optional
+        Axis along which the cumulative sum is computed.
+        The default (None) is to compute the cumsum over the flattened array.
+    rtol : float
+        Relative tolerance, see ``np.allclose``
+    atol : float
+        Absolute tolerance, see ``np.allclose``
+    """
+    out = np.cumsum(arr, axis=axis, dtype=np.float64)
+    expected = np.sum(arr, axis=axis, dtype=np.float64)
+    if not np.all(np.isclose(out.take(-1, axis=axis), expected, rtol=rtol,
+                             atol=atol, equal_nan=True)):
+        warnings.warn('cumsum was found to be unstable: '
+                      'its last element does not correspond to sum',
+                      RuntimeWarning)
+    return out
+
+
 ###############################################################################
 # NumPy einsum backward compat (allow "optimize" arg and fix 1.14.0 bug)
 # XXX eventually we should hand-tune our `einsum` calls given our array sizes!
@@ -1451,6 +1119,84 @@ def einsum(*args, **kwargs):
     elif _has_optimize:
         kwargs['optimize'] = False
     return np.einsum(*args, **kwargs)
+
+
+# np.unique has axis kwarg only since 1.13.0. This is used only once in
+# topomap interpolation code to remove duplicates from 2d array along axis 0
+# can be removed once we require NumPy 1.13.0
+
+_has_unique_axis = (LooseVersion(np.__version__) >= '1.13.0')
+
+
+def _remove_duplicate_rows(arr):
+    if _has_unique_axis:
+        return np.unique(arr, axis=0)
+    else:
+        remove = np.zeros(arr.shape[0], dtype='bool')
+        for idx in range(arr.shape[0] - 1):
+            remove[idx + 1:] = ((arr[idx + 1:, :] == arr[[idx], :]).all(axis=1)
+                                | remove[idx + 1:])
+        return arr[~remove, :]
+
+
+###############################################################################
+# csr_matrix.argmax from SciPy 0.19+
+
+def _find_missing_index(ind, n):
+    for k, a in enumerate(ind):
+        if k != a:
+            return k
+
+    k += 1
+    if k < n:
+        return k
+    else:
+        return -1
+
+
+def _sparse_argmax(mat, axis):
+    import scipy
+    if LooseVersion(scipy.__version__) >= '0.19':
+        return mat.argmax(axis)
+    else:
+        op = np.argmax
+        compare = np.greater
+        self = mat
+        if self.shape[axis] == 0:
+            raise ValueError("Can't apply the operation along a zero-sized "
+                             "dimension.")
+
+        if axis < 0:
+            axis += 2
+
+        zero = self.dtype.type(0)
+
+        mat = self.tocsc() if axis == 0 else self.tocsr()
+        mat.sum_duplicates()
+
+        ret_size, line_size = mat._swap(mat.shape)
+        ret = np.zeros(ret_size, dtype=int)
+
+        nz_lines, = np.nonzero(np.diff(mat.indptr))
+        for i in nz_lines:
+            p, q = mat.indptr[i:i + 2]
+            data = mat.data[p:q]
+            indices = mat.indices[p:q]
+            am = op(data)
+            m = data[am]
+            if compare(m, zero) or q - p == line_size:
+                ret[i] = indices[am]
+            else:
+                zero_ind = _find_missing_index(indices, line_size)
+                if m == zero:
+                    ret[i] = min(am, zero_ind)
+                else:
+                    ret[i] = zero_ind
+
+        if axis == 1:
+            ret = ret.reshape(-1, 1)
+
+        return np.asmatrix(ret)
 
 
 ###############################################################################
