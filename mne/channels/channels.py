@@ -1016,13 +1016,8 @@ def read_ch_connectivity(fname, picks=None):
     """Parse FieldTrip neighbors .mat file.
 
     More information on these neighbor definitions can be found on the related
-<<<<<<< HEAD
     FieldTrip documentation pages:
     http://www.fieldtriptoolbox.org/template/neighbours/
-=======
-    `FieldTrip documentation pages
-    <http://www.fieldtrip.org/template/neighbours>`__.
->>>>>>> a0dbca96c3a1dfabb7bf28c298d04684b12e6cc7
 
     Parameters
     ----------
