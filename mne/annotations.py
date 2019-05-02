@@ -870,7 +870,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
             annot_offset = annot['onset'] + annot['duration']
             _onsets = np.arange(start=annot['onset'], stop=annot_offset,
                                 step=chunk_duration)
-            good_events = annot_offset - _onsets >= annot['duration']
+            good_events = annot_offset - _onsets >= chunk_duration
             if good_events.any():
                 _onsets = _onsets[good_events]
                 _inds = raw.time_as_index(_onsets,
