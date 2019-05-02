@@ -2,12 +2,13 @@
 #
 # License: BSD (3-clause)
 
-# preparing everything:
-import mne
-import numpy as np
 import os.path as op
+
+import pytest
+import numpy as np
 from scipy.io import savemat
 
+import mne
 from mne.datasets import testing
 from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
@@ -29,6 +30,7 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
+@pytest.fixture(scope='function', params=[testing._pytest_param()])
 def _get_bf_data(save_fieldtrip=False):
     raw, epochs, evoked, data_cov, _, _, _, _, _, fwd = _get_data(proj=False)
 
@@ -62,41 +64,36 @@ def _get_bf_data(save_fieldtrip=False):
     return evoked, data_cov, fwd
 
 
-@testing.requires_testing_data
-def test_lcmv_fieldtrip():
+# beamformer types to be tested: unit-gain (vector and scalar) and
+# unit-noise-gain (time series and power output [apply_lcmv_cov])
+@pytest.mark.parametrize('bf_type, weight_norm, pick_ori, pwr', [
+    ['ug_vec', None, None, False],
+    ['ug_scal', None, 'max-power', False],
+    ['ung', 'unit-noise-gain', 'max-power', False],
+    ['ung_pow', 'unit-noise-gain', 'max-power', True],
+])
+def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     """Test LCMV vs fieldtrip output."""
-    evoked, data_cov, fwd = _get_bf_data()
+    evoked, data_cov, fwd = _get_bf_data
 
-    # beamformer types to be tested: unit-gain (vector and scalar) and
-    # unit-noise-gain (time series and power output [apply_lcmv_cov])
-    bf_types = ['ug_vec', 'ug_scal', 'ung', 'ung_pow']
-    weight_norms = [None, None, 'unit-noise-gain', 'unit-noise-gain']
-    pick_oris = [None, 'max-power', 'max-power', 'max-power']
-    power = [False, False, False, True]
+    # run the MNE-Python beamformer
+    filters = make_lcmv(evoked.info, fwd, data_cov=data_cov,
+                        noise_cov=None, pick_ori=pick_ori, reg=0.05,
+                        weight_norm=weight_norm)
+    if pwr is True:
+        stc_mne = apply_lcmv_cov(data_cov, filters)
+    else:
+        stc_mne = apply_lcmv(evoked, filters)
+        # take the absolute value, since orientation can be flipped
+        stc_mne.data[:, :] = np.abs(stc_mne.data)
 
-    for bf_type, weight_norm, pick_ori, pwr in zip(bf_types, weight_norms,
-                                                   pick_oris, power):
+    # load the FieldTrip output
+    ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.stc')
+    stc_ft = mne.read_source_estimate(ft_fname)
 
-        # run the MNE-Python beamformer
-        filters = make_lcmv(evoked.info, fwd, data_cov=data_cov,
-                            noise_cov=None, pick_ori=pick_ori, reg=0.05,
-                            weight_norm=weight_norm)
-        if pwr is True:
-            stc_mne = apply_lcmv_cov(data_cov, filters)
-        else:
-            stc_mne = apply_lcmv(evoked, filters)
-            # take the absolute value, since orientation can be flipped
-            stc_mne.data[:, :] = np.abs(stc_mne.data)
-
-        # load the FieldTrip output
-        ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.stc')
-        stc_ft = mne.read_source_estimate(ft_fname)
-
-        # calculate the Pearson correlation between the source solutions:
-        pearson = np.corrcoef(np.concatenate(stc_mne.data),
-                              np.concatenate(stc_ft.data))
-
-        assert pearson[0, 1] >= 0.99
+    # calculate the Pearson correlation between the source solutions:
+    pearson = np.corrcoef(stc_mne.data.ravel(), stc_ft.data.ravel())[0, 1]
+    assert pearson >= 0.99
 
 
 run_tests_if_main()

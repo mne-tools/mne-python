@@ -405,9 +405,6 @@ def apply_lcmv_cov(data_cov, filters, verbose=None):
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
     to a data covariance matrix to estimate source power.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issue or suggestions.
-
     Parameters
     ----------
     data_cov : instance of Covariance.
