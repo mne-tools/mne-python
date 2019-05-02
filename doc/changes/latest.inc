@@ -27,6 +27,8 @@ Changelog
 
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
+- Add option to :func:`mne.compute_rank` to use the maximum consecutive singular value ratio with ``tol='ratio'`` by `Britta Westner`_, `Lauri Parkkonen`_, and `Eric Larson`_
+
 - Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
 
 - Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.

@@ -26,6 +26,8 @@
 
 .. _Christopher Dinh: https://github.com/chdinh
 
+.. _Lauri Parkkonen: https://people.aalto.fi/lauri.parkkonen
+
 .. _Nick Ward: http://www.ucl.ac.uk/ion/departments/sobell/Research/NWard
 
 .. _Tal Linzen: http://tallinzen.net/

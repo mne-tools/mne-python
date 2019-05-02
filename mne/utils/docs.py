@@ -303,6 +303,17 @@ rank : None | dict | 'info' | 'full'
     of :func:`mne.compute_rank` for details."""
 docdict['rank_None'] = docdict['rank'] + 'The default is None.'
 docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+docdict['tol'] = """
+tol : float | 'auto' | 'ratio'
+    Tolerance for singular values to consider non-zero in
+    calculating the rank. Can be 'auto' to use the
+    same thresholding as :func:`scipy.linalg.orth`, or 'ratio'
+    to use the index of maximum consecutive ratio of singular
+    values.
+
+    .. versionchanged:: 0.19
+       Added the 'ratio' option.
+"""
 
 # Inverses
 docdict['depth'] = """

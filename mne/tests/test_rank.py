@@ -30,31 +30,39 @@ data_dir = op.join(testing_path, 'MEG', 'sample')
 mf_fif_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw_sss.fif')
 
 
-def test_estimate_rank():
+@pytest.mark.parametrize('tol', ('auto', 'ratio', 'float32'))
+def test_estimate_rank(tol):
     """Test rank estimation."""
     data = np.eye(10)
-    assert_array_equal(estimate_rank(data, return_singular=True)[1],
+    assert_array_equal(estimate_rank(data, return_singular=True, tol=tol)[1],
                        np.ones(10))
     data[0, 0] = 0
     assert estimate_rank(data) == 9
     pytest.raises(ValueError, estimate_rank, data, 'foo')
 
 
+@testing.requires_testing_data
 @pytest.mark.slowtest
+@pytest.mark.parametrize('fname, ref_meg', [
+    (raw_fname, False),
+    (hp_fif_fname, False),
+    (mf_fif_fname, False),
+    (ctf_fname, False),
+    (ctf_fname, True),
+])
 @pytest.mark.parametrize(
-    'fname, ref_meg', ((raw_fname, False),
-                       (hp_fif_fname, False),
-                       (ctf_fname, False),
-                       (ctf_fname, True)))
-@pytest.mark.parametrize(
-    'scalings', ('norm', dict(mag=1e11, grad=1e9, eeg=1e5)))
-def test_raw_rank_estimation(fname, ref_meg, scalings):
+    'scalings', ('norm', dict(mag=1e11, grad=1e9, eeg=1e5),))
+@pytest.mark.parametrize('tol', (1e-4, 'ratio', 'ratio32'))
+def test_raw_rank_estimation(fname, ref_meg, scalings, tol):
     """Test raw rank estimation."""
-    if ref_meg and scalings != 'norm':
-        # Adjust for CTF data (scale factors are quite different)
-        scalings = dict(mag=1e31, grad=1e11)
+    is_sss = ('anon' in fname or 'chpi' in fname)
+    if is_sss:
+        if tol == 'ratio':
+            pytest.xfail('ratio + SSS fails')
+        if tol == 'ratio32' and is_sss and isinstance(scalings, dict):
+            pytest.xfail('ratio32 + SSS + scalings fails')
     raw = read_raw_fif(fname)
-    raw.crop(0, min(4., raw.times[-1])).load_data()
+    raw.crop(0, min(5., raw.times[-1])).load_data()
     out = _picks_by_type(raw.info, ref_meg=ref_meg, meg_combined=True)
     has_eeg = 'eeg' in raw
     if has_eeg:
@@ -69,24 +77,31 @@ def test_raw_rank_estimation(fname, ref_meg, scalings):
         expected_rank = n_meg + n_eeg
     else:
         expected_rank = _get_rank_sss(raw.info) + n_eeg
-    got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg)
+    got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg,
+                                  tol=tol)
     assert got_rank == expected_rank
     if 'sss' in fname:
         raw.add_proj(compute_proj_raw(raw))
     raw.apply_proj()
     n_proj = len(raw.info['projs'])
     want_rank = expected_rank - (0 if 'sss' in fname else n_proj)
-    got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg)
+    got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg,
+                                  tol=tol)
     assert got_rank == want_rank
 
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('meg', ('separate', 'combined'))
-@pytest.mark.parametrize('rank_method, proj', [('info', True),
-                                               ('info', False),
-                                               (None, True),
-                                               (None, False)])
-def test_cov_rank_estimation(rank_method, proj, meg):
+@pytest.mark.parametrize('proj', (True, False))
+@pytest.mark.parametrize('rank_method, tol', [
+    ('info', 'auto'),
+    ('info', 'auto'),
+    (None, 'auto'),
+    (None, 'auto'),
+    (None, 'ratio'),
+    (None, 'ratio'),
+])
+def test_cov_rank_estimation(rank_method, tol, proj, meg):
     """Test cov rank estimation."""
     # Test that our rank estimation works properly on a simple case
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
@@ -138,7 +153,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 
     for (cov, picks_list, iter_info), scalings in iter_tests:
         rank = compute_rank(cov, rank_method, scalings, iter_info,
-                            proj=proj)
+                            proj=proj, tol=tol)
         rank['all'] = sum(rank.values())
         for ch_type, picks in picks_list:
 
@@ -179,13 +194,15 @@ def test_cov_rank_estimation(rank_method, proj, meg):
             assert rank[ch_type] == expected_rank
 
 
+# "float32" / "ratio32" tol is hopefully temporary until we can fix things
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, rank_orig', ((hp_fif_fname, 120),
                                               (mf_fif_fname, 67)))
 @pytest.mark.parametrize('n_proj, meg', ((0, 'combined'),
                                          (10, 'combined'),
                                          (10, 'separate')))
-def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
+@pytest.mark.parametrize('tol', ('float32', 'ratio32'))
+def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol):
     """Test maxfilter rank lookup."""
     raw = read_raw_fif(fname).crop(0, 5).load_data().pick_types()
     assert raw.info['projs'] == []
@@ -202,13 +219,13 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
     data_orig = raw[:][0]
 
     # degenerate cases
-    with pytest.raises(ValueError, match='tol must be'):
+    with pytest.raises(ValueError, match="Invalid value for the 'tol'"):
         _estimate_rank_raw(raw, tol='foo')
     with pytest.raises(TypeError, match='must be a string or a number'):
         _estimate_rank_raw(raw, tol=None)
 
     allowed_rank = [rank_orig if meg == 'separate' else rank]
-    if fname == mf_fif_fname:
+    if tol != 'ratio32' and fname == mf_fif_fname:
         # Here we permit a -1 because for mf_fif_fname we miss by 1, which is
         # probably acceptable. If we use the entire duration instead of 5 sec
         # this problem goes away, but the test is much slower.
@@ -219,7 +236,6 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
     rank_new = _estimate_rank_raw(raw)
     assert rank_new in allowed_rank
 
-    tol = 'float32'  # temporary option until we can fix things
     rank_new = _estimate_rank_raw(raw, tol=tol)
     assert rank_new in allowed_rank
     rank_new = _estimate_rank_raw(raw, scalings=dict(), tol=tol)
@@ -229,7 +245,8 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
                                  verbose='debug')
     assert rank_new in allowed_rank
     # XXX default scalings mis-estimate sometimes :(
-    if fname == hp_fif_fname:
+    # but the ratio32 mode does not
+    if tol != 'ratio32' and fname == hp_fif_fname:
         allowed_rank.append(allowed_rank[0] - 2)
     rank_new = _compute_rank_int(raw, None, tol=tol, verbose='debug')
     assert rank_new in allowed_rank

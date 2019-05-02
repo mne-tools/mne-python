@@ -13,7 +13,7 @@ from .io.pick import (_picks_by_type, pick_info, pick_channels_cov,
                       _picks_to_idx)
 from .io.proj import make_projector
 from .utils import (logger, _compute_row_norms, _pl, _validate_type,
-                    _apply_scaling_cov, _undo_scaling_cov,
+                    _scaled_cov, _check_option,
                     _scaled_array, warn, _check_rank, verbose)
 
 
@@ -30,12 +30,7 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
     ----------
     data : array
         Data to estimate the rank of (should be 2-dimensional).
-    tol : float | 'auto'
-        Tolerance for singular values to consider non-zero in
-        calculating the rank. The singular values are calculated
-        in this method such that independent data are expected to
-        have singular value around one. Can be 'auto' to use the
-        same thresholding as ``scipy.linalg.orth``.
+    %(tol)s
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
@@ -63,6 +58,33 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         return rank
 
 
+def _ratio_rank(s, ratio):
+    # Allow computing singular values as if we had been in float32
+    # precision, otherwise e.g. SSS->write->read->proj will create a
+    # larger shelf in the singular value curve
+    dtype = np.float32 if ratio == 'ratio32' else np.float64
+    min_ = np.finfo(dtype).eps * s[0]
+    ratios = -np.diff(np.log(np.maximum(s, min_)))
+    # Restrict it not to be in the first 10% of components. Should be
+    # reasonable for M/EEG data. Without this, we must set the ratio
+    # below much higher, which then is problematic for other data.
+    start = int(round(0.1 * len(s)))
+    ratios[:start] = 1.
+    idx = ratios.argmax()
+    this_ratio = ratios[idx]
+    # Add a minimum requirement for what we consider a real
+    # ratio difference. This magical number was chosen based on
+    # what would get the test_rank tests to pass :(
+    if this_ratio < 2:
+        idx = len(s) - 1
+        logger.info(
+            'Maximum ratio %0.1f, using %d' % (this_ratio, idx))
+    else:
+        logger.info(
+            'Using ratio %0.1f at index %d' % (this_ratio, idx))
+    return idx + 1
+
+
 def _estimate_rank_from_s(s, tol='auto'):
     """Estimate the rank of a matrix from its singular values.
 
@@ -70,11 +92,8 @@ def _estimate_rank_from_s(s, tol='auto'):
     ----------
     s : list of float
         The singular values of the matrix.
-    tol : float | 'auto'
-        Tolerance for singular values to consider non-zero in calculating the
-        rank. Can be 'auto' to use the same thresholding as
-        ``scipy.linalg.orth`` (assuming np.float64 datatype) adjusted
-        by a factor of 2.
+    tol : float | str
+        See ``estimate_rank``.
 
     Returns
     -------
@@ -82,8 +101,11 @@ def _estimate_rank_from_s(s, tol='auto'):
         The estimated rank.
     """
     if isinstance(tol, str):
-        if tol not in ('auto', 'float32'):
-            raise ValueError('tol must be "auto" or float, got %r' % (tol,))
+        _check_option('tol', tol, ('auto', 'float32', 'ratio', 'ratio32'),
+                      'Must be "auto", "ratio", or a float')
+        # Short-circuit for ratio mode
+        if tol in ('ratio', 'ratio32'):
+            return _ratio_rank(s, tol)
         # XXX this should be float32 probably due to how we save and
         # load data, but it breaks test_make_inverse_operator (!)
         # The factor of 2 gets test_compute_covariance_auto_reg[None]
@@ -145,7 +167,10 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    picks_list = _picks_by_type(info)
+    picks_list = _picks_by_type(info, ref_meg=True)
+    n_chan = sum(len(p[1]) for p in picks_list)
+    # This should hold, otherwise we did something wrong earlier
+    assert data.shape[0] == n_chan == info['nchan']
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
@@ -192,16 +217,15 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     """
     picks_list = _picks_by_type(info)
     scalings = _handle_default('scalings_cov_rank', scalings)
-    _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
-    out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular)
+    with _scaled_cov(data, picks_list, scalings):
+        out = estimate_rank(data, tol=tol, norm=False,
+                            return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
     logger.info('    Estimated rank (%s): %d' % (ch_type, rank))
-    _undo_scaling_cov(data, picks_list, scalings)
     return out
 
 
@@ -285,8 +309,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         The measurement info used to compute the covariance. It is
         only necessary if inst is a Covariance object (since this does
         not provide ``inst.info``).
-    tol : float | str
-        Tolerance. See ``estimate_rank``.
+    %(tol)s
     proj : bool
         If True, all projs in ``inst`` and ``info`` will be applied or
         considered when ``rank=None`` or ``rank='info'``.
@@ -304,7 +327,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
 
     :data:`python:None` (default)
         Rank will be estimated from the data after proper scaling of
-        different channel types.
+        different channel types based on the value of ``tol``.
     ``'info'``
         Rank is inferred from `info`. If data have been processed
         with Maxwell filtering, the Maxwell filtering header is used.
@@ -318,6 +341,11 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         number of good channels. If a `Covariance` is passed, this can make
         sense if it has been (possibly improperly) regularized without taking
         into account the true data rank.
+
+    When using ``tol='ratio'``, the first 10%% of consecutive singular value
+    ratios are not considered in case there are a few large signals in the
+    data, and ratios are only considered that are greater than ``2.``.
+    If no ratios meet this criteria, the data are considered full rank.
 
     .. versionadded:: 0.18
     """

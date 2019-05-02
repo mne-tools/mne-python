@@ -377,6 +377,16 @@ def _undo_scaling_cov(data, picks_list, scalings):
     return _apply_scaling_cov(data, picks_list, scalings)
 
 
+@contextmanager
+def _scaled_cov(data, picks_list, scalings):
+    """Scale, use, unscale array."""
+    _apply_scaling_cov(data, picks_list=picks_list, scalings=scalings)
+    try:
+        yield
+    finally:
+        _undo_scaling_cov(data, picks_list=picks_list, scalings=scalings)
+
+
 def _check_scaling_inputs(data, picks_list, scalings):
     """Aux function."""
     rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
