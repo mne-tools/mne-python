@@ -25,6 +25,32 @@ from ..io.kit.constants import KIT
 from ..io.kit.coreg import read_mrk
 
 
+def _bar(nasion, lpa, rpa, hpi, extra, convert=True):
+
+    if convert:
+        neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        nasion = apply_trans(neuromag_trans, nasion)
+        lpa = apply_trans(neuromag_trans, lpa)
+        rpa = apply_trans(neuromag_trans, rpa)
+
+        if hpi is not None:
+            hpi = apply_trans(neuromag_trans, hpi)
+
+        extra = apply_trans(neuromag_trans, extra).astype(np.float32)
+    else:
+        neuromag_trans = None
+
+    ctf_head_t = Transform(fro='ctf_head', to='head', trans=neuromag_trans)
+
+    info_dig = _make_dig_points(nasion=nasion,
+                                lpa=lpa,
+                                rpa=rpa,
+                                hpi=hpi,
+                                extra_points=extra)
+
+    return info_dig, ctf_head_t
+
+
 ##############################################################################
 # From mne.io.kit
 def _set_dig_kit(mrk, elp, hsp):
@@ -103,63 +129,25 @@ def _set_dig_kit(mrk, elp, hsp):
 # From artemis123 (we have modified the function a bit)
 def _foo_read_pos(nas, lpa, rpa, hpi, extra):
     # move into MNE head coords
-    if ((nas is not None) and (lpa is not None) and (rpa is not None)):
-        neuromag_trans = get_ras_to_neuromag_trans(nas, lpa, rpa)
-        nas = apply_trans(neuromag_trans, nas)
-        lpa = apply_trans(neuromag_trans, lpa)
-        rpa = apply_trans(neuromag_trans, rpa)
+    dig_points, _ = _bar(nas, lpa, rpa, hpi, extra)
+    return dig_points
 
-        if hpi is not None:
-            hpi = apply_trans(neuromag_trans, hpi)
-
-        if extra is not None:
-            extra = apply_trans(neuromag_trans, extra)
-
-    return _make_dig_points(nasion=nas, lpa=lpa, rpa=rpa,
-                            hpi=hpi, extra_points=extra)
 
 ##############################################################################
 # From bti
-
 def _make_bti_dig_points(nasion, lpa, rpa, hpi, extra,
                          convert=False, use_hpi=False,
                          bti_dev_t=False, dev_ctf_t=False):
 
-    idx_points = np.vstack([lpa, rpa, nasion, hpi])
-    if convert:
-        logger.info('... putting digitization points in Neuromag '
-                    'coordinates')
-        trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-    else:
-        trans = None
+    _hpi = hpi if use_hpi else None
+    info_dig, ctf_head_t = _bar(nasion, lpa, rpa, _hpi, extra,
+                                convert)
 
-    ctf_head_t = Transform(fro='ctf_head', to='head', trans=trans)
-
-    if extra is not None:
-        # extra = apply_trans(ctf_head_t['trans'], extra)
-        all_points = np.vstack([idx_points, extra])
-    else:
-        all_points = idx_points
-
-    if convert:
-        all_points = apply_trans(ctf_head_t['trans'],
-                                 all_points).astype(np.float32)
-
-    my_hpi = None if not use_hpi else all_points[3:len(idx_points), :]
-    info_dig = _make_dig_points(nasion=all_points[2, :],
-                                lpa=all_points[0, :],
-                                rpa=all_points[1, :],
-                                hpi=my_hpi,
-                                extra_points=all_points[len(idx_points):, :],)
-
-    logger.info('... Computing new device to head transform.')
-    # DEV->CTF_DEV->CTF_HEAD->HEAD
     if convert:
         t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
                                'meg', 'ctf_head')
         dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
     else:
         dev_head_t = Transform('meg', 'head', trans=None)
-    logger.info('Done.')
 
     return info_dig, dev_head_t, ctf_head_t  # ctf_head_t should not be needed

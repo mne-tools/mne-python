@@ -4,6 +4,7 @@
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
+import numpy as np
 from ..transforms import _coord_frame_name
 from ..io.constants import FIFF
 from ..utils._bunch import MNEObjectsList
@@ -72,7 +73,7 @@ class DigPoint(dict):
         elif any([self[_] != other[_] for _ in my_keys]):
             return False
         else:
-            return all(self['r'] == other['r'])
+            return np.allclose(self['r'], other['r'])
 
 
 class Digitization(MNEObjectsList):
