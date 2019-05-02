@@ -867,18 +867,21 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     else:
         inds = values = np.array([]).astype(int)
         for annot in annotations[event_sel]:
-            _onsets = np.arange(start=annot['onset'],
-                                stop=(annot['onset'] + annot['duration']),
+            annot_offset = annot['onset'] + annot['duration']
+            _onsets = np.arange(start=annot['onset'], stop=annot_offset,
                                 step=chunk_duration)
-            _inds = raw.time_as_index(_onsets,
-                                      use_rounding=use_rounding,
-                                      origin=annotations.orig_time)
-            _inds += raw.first_samp
-            inds = np.append(inds, _inds)
-            _values = np.full(shape=len(_inds),
-                              fill_value=event_id_[annot['description']],
-                              dtype=int)
-            values = np.append(values, _values)
+            good_events = annot_offset - _onsets >= annot['duration']
+            if good_events.any():
+                _onsets = _onsets[good_events]
+                _inds = raw.time_as_index(_onsets,
+                                          use_rounding=use_rounding,
+                                          origin=annotations.orig_time)
+                _inds += raw.first_samp
+                inds = np.append(inds, _inds)
+                _values = np.full(shape=len(_inds),
+                                  fill_value=event_id_[annot['description']],
+                                  dtype=int)
+                values = np.append(values, _values)
 
     events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 
