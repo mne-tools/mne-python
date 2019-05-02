@@ -357,9 +357,6 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
     on raw data.
 
-    NOTE : This implementation has not been heavily tested so please
-    report any issue or suggestions.
-
     Parameters
     ----------
     raw : mne.io.Raw
