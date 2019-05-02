@@ -336,7 +336,7 @@ def _compute_power(Cm, W, n_orient):
 
     Parameters
     ----------
-    Cm : ndarray, shape (nchannels, nchannels)
+    Cm : ndarray, shape (n_channels, n_channels)
         Data covariance matrix or CSD matrix.
     W : ndarray, shape (nvertices*norient, nchannels)
         Beamformer weights.

@@ -407,7 +407,7 @@ def apply_lcmv_cov(data_cov, filters, verbose=None):
 
     Parameters
     ----------
-    data_cov : instance of Covariance.
+    data_cov : instance of Covariance
         Data covariance matrix
     filters : instance of Beamformer
         LCMV spatial filter (beamformer weights).
