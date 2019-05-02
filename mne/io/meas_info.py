@@ -34,6 +34,7 @@ from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _check_option)
 from .. import __version__
 from ..digitization.base import _format_dig_points
+from ..digitization import Digitization
 from .compensator import get_current_comp
 
 # XXX: most probably the functions needing this, should go somewhere else
@@ -159,6 +160,7 @@ def _unique_channel_names(ch_names):
 
 
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
+# XXX: Digitization, Docstrings need a pass changing lists for Digitization
 class Info(dict):
     """Measurement information.
 
@@ -805,6 +807,7 @@ def _write_dig_points(fname, dig_points):
         raise ValueError(msg)
 
 
+# XXX: all points are supposed to be in FIFFV_COORD_HEAD
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                      extra_points=None, dig_ch_pos=None):
     """Construct digitizer info for the info.
@@ -826,8 +829,8 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
 
     Returns
     -------
-    dig : list
-        List of digitizer points to be added to the info['dig'].
+    dig : Digitization
+        A container of DigPoints to be added to the info['dig'].
     """
     dig = []
     if lpa is not None:
@@ -882,7 +885,8 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
             dig.append({'r': dig_ch_pos[key], 'ident': ident,
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    return _format_dig_points(dig)
+
+    return Digitization(_format_dig_points(dig))
 
 
 @verbose
@@ -1335,7 +1339,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
     #   All kinds of auxliary stuff
-    info['dig'] = dig
+    info['dig'] = Digitization(_format_dig_points(dig))
     info['bads'] = bads
     info._update_redundant()
     if clean_bads:
