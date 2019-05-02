@@ -30,3 +30,11 @@ def test_digitization_constructor(data):
 
     dig[0]['kind'] = data[0]['kind'] - 1  # modify something in dig
     assert dig != data
+
+
+def test_delete_elements():
+    """Test deleting some Digitization elements."""
+    dig = Digitization(digpoints_list)
+    original_length = len(dig)
+    del dig[0]
+    assert len(dig) == original_length - 1

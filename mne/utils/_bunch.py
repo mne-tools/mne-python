@@ -96,12 +96,9 @@ def _named_subclass(klass):
 class NamedInt(_Named, int):
     """Int with a name in __repr__."""
 
-    pass
-
 
 class NamedFloat(_Named, float):
     """Float with a name in __repr__."""
-    pass
 
 
 class MNEObjectsList(MutableSequence):
@@ -142,7 +139,7 @@ class MNEObjectsList(MutableSequence):
     def __setitem__(self, index, value):  # noqa: D105
         self._items[index] = value
 
-    def __delitem__(self, index, value):  # noqa: D105
+    def __delitem__(self, index):  # noqa: D105
         del self._items[index]
 
     def insert(self, index, value):  # noqa: D102
