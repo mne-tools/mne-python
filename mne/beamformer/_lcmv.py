@@ -285,6 +285,10 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     See Also
     --------
     make_lcmv, apply_lcmv_raw, apply_lcmv_epochs, apply_lcmv_cov
+
+    Notes
+    -----
+    .. versionadded:: 0.18
     """
     _check_reference(evoked)
 
