@@ -104,8 +104,8 @@ def _set_dig_kit(mrk, elp, hsp):
     if isinstance(mrk, str):
         mrk = read_mrk(mrk)
 
-    hsp = apply_trans(als_ras_trans, hsp)
-    elp = apply_trans(als_ras_trans, elp)
+    # hsp = apply_trans(als_ras_trans, hsp)
+    # elp = apply_trans(als_ras_trans, elp)
     mrk = apply_trans(als_ras_trans, mrk)
 
     nasion, lpa, rpa = elp[:3]
