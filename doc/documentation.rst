@@ -471,6 +471,7 @@ this package. You can also find a gallery of these examples in the
 
     auto_examples/simulation/plot_simulate_evoked_data.rst
     auto_examples/simulation/plot_simulate_raw_data.rst
+    auto_examples/simulation/plot_simulated_raw_data_using_subject_anatomy.rst
 
 .. raw:: html
 
