@@ -1,4 +1,6 @@
 """
+.. _ex-opm-somatosensory:
+
 Optically pumped magnetometer (OPM) data
 ========================================
 

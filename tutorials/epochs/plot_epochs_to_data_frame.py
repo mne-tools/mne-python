@@ -1,4 +1,6 @@
 """
+.. _tut-epochs-dataframe:
+
 =================================
 Export epochs to Pandas DataFrame
 =================================

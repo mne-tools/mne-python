@@ -77,7 +77,7 @@ evoked_r_aud.plot_topomap(times=times, ch_type='mag', time_unit='s')
 evoked_r_aud.plot_topomap(times='peaks', ch_type='mag', time_unit='s')
 
 ###############################################################################
-# See :ref:`sphx_glr_auto_examples_visualization_plot_evoked_topomap.py` for
+# See :ref:`ex-evoked-topomap` for
 # more advanced topomap plotting options. You can also take a look at the
 # documentation of :func:`mne.Evoked.plot_topomap` or simply write
 # ``evoked_r_aud.plot_topomap?`` in your Python console to see the different
@@ -139,7 +139,7 @@ evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
 # We plot a MEG channel with a strong auditory response.
 #
 # For move advanced plotting using :func:`mne.viz.plot_compare_evokeds`.
-# See also :ref:`sphx_glr_auto_tutorials_plot_metadata_epochs.py`.
+# See also :ref:`tut-epochs-metadata`.
 conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]
 evoked_dict = dict()
 for condition in conditions:
@@ -195,7 +195,7 @@ mne.viz.plot_arrowmap(evoked_l_aud_mag.data[:, 175], evoked_l_aud_mag.info)
 # and scalp surface.
 #
 # To do this, we need coregistration information. See
-# :ref:`tut_forward` for more details. Here we just illustrate usage.
+# :ref:`tut-forward` for more details. Here we just illustrate usage.
 
 subjects_dir = data_path + '/subjects'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-sleep-stage-classif:
+
 Sleep stage classification from polysomnography (PSG) data
 ==========================================================
 

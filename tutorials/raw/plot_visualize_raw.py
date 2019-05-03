@@ -1,4 +1,6 @@
 """
+.. _tut-viz-raw:
+
 Visualize Raw data
 ==================
 

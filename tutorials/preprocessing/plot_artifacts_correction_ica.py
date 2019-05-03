@@ -1,4 +1,6 @@
 """
+.. _tut-artifact-ica:
+
 Artifact Correction with ICA
 ============================
 
@@ -35,7 +37,7 @@ raw.filter(1., None, n_jobs=1, fir_design='firwin')
 
 ###############################################################################
 # Before applying artifact correction please learn about your actual artifacts
-# by reading :ref:`sphx_glr_auto_tutorials_plot_artifacts_detection.py`.
+# by reading :ref:`tut-artifact-detection`.
 #
 # .. warning:: ICA is sensitive to low-frequency drifts and therefore
 #              requires the data to be high-pass filtered prior to fitting.
@@ -292,8 +294,7 @@ eog_component = reference_ica.get_components()[:, eog_inds[0]]
 #
 # You can also use SSP to correct for artifacts. It is a bit simpler and
 # faster but also less precise than ICA and requires that you know the event
-# timing of your artifact.
-# See :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`.
+# timing of your artifact. See :ref:`tut-artifact-ssp`.
 
 ###############################################################################
 # References

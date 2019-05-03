@@ -36,7 +36,7 @@ Changelog
 
 - Add example on how to load standard montage :ref:`plot_montage` by `Joan Massich`_
 
-- Add new tutorial on :ref:`plot_eeg_no_mri` by `Alex Gramfort`_, and `Joan Massich`_
+- Add new tutorial on :ref:`tut-eeg-fsaverage-source-modeling` by `Alex Gramfort`_, and `Joan Massich`_
 
 - Add :meth:`mne.Epochs.apply_hilbert` and :meth:`mne.Evoked.apply_hilbert` by `Eric Larson`_
 
@@ -50,7 +50,7 @@ Changelog
 
 - Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
 
-- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_sleep.py` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
+- Add new tutorial on :ref:`tut-sleep-stage-classif` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
 
 - Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
 
@@ -1210,7 +1210,7 @@ Changelog
 
 - Add ``yscale`` keyword argument to :meth:`mne.time_frequency.AverageTFR.plot` that allows specifying whether to present the frequency axis in linear (``'linear'``) or log (``'log'``) scale. The default value is ``'auto'`` which detects whether frequencies are log-spaced and sets yscale to log. Added by `Mikołaj Magnuski`_
 
-- Add :ref:`Representational Similarity Analysis (RSA) <rsa_noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
+- Add :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
 
 - Add support for NeuroScan files with event type 3 in :func:`mne.io.read_raw_cnt` by `Marijn van Vliet`_
 

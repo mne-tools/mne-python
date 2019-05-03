@@ -1,4 +1,6 @@
 """
+.. _tut-inverse-methods:
+
 Source localization with MNE/dSPM/sLORETA/eLORETA
 =================================================
 
@@ -168,7 +170,7 @@ del stc_vec
 # the source space.
 #
 # For more information about dipole orientations, see
-# :ref:`sphx_glr_auto_tutorials_plot_dipole_orientations.py`.
+# :ref:`tut-dipole-orientations`.
 
 ###############################################################################
 # Now let's look at each solver:

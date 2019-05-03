@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-dipole-orientations:
+
 The role of dipole orientations in distributed source localization
 ==================================================================
 

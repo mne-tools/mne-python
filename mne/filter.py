@@ -614,9 +614,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     (array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]), [1, 0], 0)
 
     For more information, see the tutorials
-    :ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`
-    and
-    :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
+    :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """  # noqa: E501
     from scipy.signal import iirfilter, iirdesign
     known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
@@ -830,9 +828,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     Notes
     -----
     For more information, see the tutorials
-    :ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`
-    and
-    :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
+    :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """
     if not isinstance(data, np.ndarray):
         raise ValueError('data must be an array')

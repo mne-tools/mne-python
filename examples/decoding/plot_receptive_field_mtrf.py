@@ -1,4 +1,6 @@
 """
+.. _ex-receptive-field-mtrf:
+
 =========================================
 Receptive Field Estimation and Prediction
 =========================================

@@ -7,7 +7,7 @@ Decoding (MVPA)
    :local:
    :depth: 3
 
-.. include:: ../git_links.inc
+.. include:: ../../git_links.inc
 
 Design philosophy
 =================

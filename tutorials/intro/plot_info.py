@@ -1,4 +1,6 @@
 """
+.. _tut-info-class:
+
 The :class:`~mne.Info` data structure
 =====================================
 

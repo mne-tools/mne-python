@@ -1,4 +1,6 @@
 """
+.. _tut-artifact-detection:
+
 Introduction to artifacts and artifact detection
 ================================================
 
@@ -47,14 +49,11 @@ to detect the artifacts: it just depends on the data properties and your
 own preferences.
 
 In this tutorial we show how to detect artifacts visually and automatically.
-For how to correct artifacts by rejection see
-:ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py`.
+For how to correct artifacts by rejection see :ref:`tut-artifact-rejection`.
 To discover how to correct certain artifacts by filtering see
-:ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`
-and to learn how to correct artifacts
+:ref:`tut-filter-resample` and to learn how to correct artifacts
 with subspace methods like SSP and ICA see
-:ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`
-and :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ica.py`.
+:ref:`tut-artifact-ssp` and :ref:`tut-artifact-ica`.
 
 
 Artifacts Detection
@@ -97,7 +96,7 @@ raw.plot_psd(tmax=np.inf, fmax=250)
 # biological artifacts such as ECG. These can be most easily detected in the
 # time domain using MNE helper functions
 #
-# See :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
+# See :ref:`tut-filter-resample`.
 
 ###############################################################################
 # ECG
@@ -133,6 +132,6 @@ average_eog.plot_joint(**joint_kwargs)
 # to artifacts.
 #
 # Consider the following tutorials for correcting this class of artifacts:
-#     - :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`
-#     - :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ica.py`
-#     - :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_ssp.py`
+# - :ref:`tut-filter-resample`
+# - :ref:`tut-artifact-ica`
+# - :ref:`tut-artifact-ssp`

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-brainstorm-auditory:
+
 ====================================
 Brainstorm auditory tutorial dataset
 ====================================

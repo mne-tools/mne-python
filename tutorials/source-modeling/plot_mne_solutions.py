@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-mne-fixed-free:
+
 ===============================
 Computing various MNE solutions
 ===============================

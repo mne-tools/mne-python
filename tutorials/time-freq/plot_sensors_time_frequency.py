@@ -1,5 +1,5 @@
 """
-.. _tut_sensors_time_frequency:
+.. _tut-sensors-time-freq:
 
 =============================================
 Frequency and time-frequency sensors analysis

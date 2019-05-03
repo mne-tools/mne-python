@@ -1,5 +1,5 @@
 """
-.. _tut_forward:
+.. _tut-forward:
 
 Head model and forward computation
 ==================================

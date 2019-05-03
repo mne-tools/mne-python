@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _disc-stats:
+
 =====================
 Statistical inference
 =====================
@@ -657,4 +659,4 @@ plt.show()
 #        addressing problems of smoothing, threshold dependence, and
 #        localisation in cluster inference", NeuroImage 44 (2009) 83-98.
 #
-# .. include:: ../tutorial_links.inc
+# .. include:: ../../tutorial_links.inc

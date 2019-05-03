@@ -1,4 +1,5 @@
 """
+.. _tut-epochs-metadata:
 
 ================================================
 Pandas querying and metadata with Epochs objects
@@ -6,7 +7,7 @@ Pandas querying and metadata with Epochs objects
 
 Demonstrating pandas-style string querying with Epochs metadata.
 For related uses of :class:`mne.Epochs`, see the starting tutorial
-:ref:`sphx_glr_auto_tutorials_plot_object_epochs.py`.
+:ref:`tut-epochs-class`.
 
 Sometimes you may have a complex trial structure that cannot be easily
 summarized as a set of unique integers. In this case, it may be useful to use

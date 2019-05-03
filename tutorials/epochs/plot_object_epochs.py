@@ -1,5 +1,5 @@
 """
-.. _tut_epochs_objects:
+.. _tut-epochs-class:
 
 The :class:`Epochs <mne.Epochs>` data structure: epoched data
 =============================================================
@@ -162,6 +162,6 @@ plt.tight_layout()
 
 ###############################################################################
 # To export and manipulate Epochs using Pandas see
-# :ref:`sphx_glr_auto_tutorials_plot_epochs_to_data_frame.py`,
+# :ref:`tut-epochs-dataframe`,
 # or to work directly with metadata in MNE-Python see
-# :ref:`sphx_glr_auto_tutorials_plot_metadata_epochs.py`.
+# :ref:`tut-epochs-metadata`.

@@ -18,8 +18,7 @@ import numpy as np
 # ------------------------------------------------------
 #
 # .. note:: for full documentation on the :class:`~mne.Info` object, see
-#           :ref:`sphx_glr_auto_tutorials_plot_info.py`. See also
-#           :ref:`sphx_glr_auto_examples_io_plot_objects_from_arrays.py`.
+#           :ref:`tut-info-class`. See also :ref:`ex-array-classes`.
 #
 # Normally, :class:`mne.Info` objects are created by the various
 # :ref:`data import functions <ch_convert>`.

@@ -1,4 +1,6 @@
 """
+.. _tut-timefreq-twoway-anova:
+
 ====================================================================
 Mass-univariate twoway repeated measures ANOVA on single trial power
 ====================================================================

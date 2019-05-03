@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-.. _plot_eeg_no_mri:
+.. _tut-eeg-fsaverage-source-modeling:
 
 EEG forward operator with a template MRI
 ========================================

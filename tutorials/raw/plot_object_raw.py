@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-raw-class:
+
 The :class:`~mne.io.Raw` data structure: continuous data
 ========================================================
 
@@ -7,7 +9,7 @@ Continuous data is stored in objects of type :class:`~mne.io.Raw`.
 The core data structure is simply a 2D numpy array (channels × samples)
 (in memory or loaded on demand) combined with an
 :class:`~mne.Info` object (`.info` attribute)
-(see :ref:`sphx_glr_auto_tutorials_plot_info.py`).
+(see :ref:`tut-info-class`).
 
 The most common way to load continuous data is from a .fif file. For more
 information on :ref:`loading data from other formats <ch_convert>`, or
@@ -44,7 +46,7 @@ print('%s channels x %s samples' % (raw.info['nchan'], len(raw.times)))
 # Information about the channels contained in the :class:`~mne.io.Raw`
 # object is contained in the :class:`~mne.Info` attribute.
 # This is essentially a dictionary with a number of relevant fields (see
-# :ref:`sphx_glr_auto_tutorials_plot_info.py`).
+# :ref:`tut-info-class`).
 
 
 ###############################################################################

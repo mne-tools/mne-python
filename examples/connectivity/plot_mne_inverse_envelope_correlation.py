@@ -1,4 +1,6 @@
 """
+.. _ex-envelope-correlation:
+
 =============================================
 Compute envelope correlations in source space
 =============================================

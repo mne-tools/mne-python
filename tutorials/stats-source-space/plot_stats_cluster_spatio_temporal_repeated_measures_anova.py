@@ -181,7 +181,7 @@ n_conditions = 4
 #
 # .. note:: For further details on this ANOVA function consider the
 #           corresponding
-#           :ref:`time-frequency tutorial <sphx_glr_auto_tutorials_plot_stats_cluster_time_frequency_repeated_measures_anova.py>`.  # noqa: E501
+#           :ref:`time-frequency tutorial <tut-timefreq-twoway-anova>`.
 
 
 def stat_fun(*args):

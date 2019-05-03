@@ -1,4 +1,6 @@
 """
+.. _ex-array-classes:
+
 =====================================
 Creating MNE objects from data arrays
 =====================================
