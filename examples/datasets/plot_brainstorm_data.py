@@ -1,4 +1,6 @@
 """
+.. _ex-brainstorm-raw:
+
 =====================================
 Brainstorm raw (median nerve) dataset
 =====================================

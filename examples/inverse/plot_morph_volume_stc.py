@@ -1,4 +1,6 @@
 """
+.. _ex-morph-volume:
+
 ================================
 Morph volumetric source estimate
 ================================

@@ -1,6 +1,6 @@
 """
 
-.. _rsa_noplot:
+.. _ex-rsa-noplot:
 
 ====================================
 Representational Similarity Analysis

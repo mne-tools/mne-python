@@ -1,4 +1,6 @@
 """
+.. _ex-megsim:
+
 ===========================================
 MEGSIM experimental and simulation datasets
 ===========================================

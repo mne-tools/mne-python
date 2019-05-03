@@ -1,4 +1,6 @@
 """
+.. _ex-decoding-csp-eeg:
+
 ===========================================================================
 Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 ===========================================================================

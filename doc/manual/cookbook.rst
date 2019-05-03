@@ -145,8 +145,7 @@ Rejection using annotations
 The reject keyword of :class:`mne.Epochs` is used for rejecting bad epochs
 based on peak-to-peak thresholds. Bad segments of data can also be rejected
 by marking segments of raw data with annotations. See
-:ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_rejection.py`
-and :class:`mne.Annotations` for more .
+:ref:`tut-artifact-rejection` and :class:`mne.Annotations` for more .
 
 Once the :class:`mne.Epochs` are constructed, they can be averaged to obtain
 :class:`mne.Evoked` data as::
@@ -175,7 +174,7 @@ Cortical surface reconstruction with FreeSurfer
 The first processing stage is the creation of various surface
 reconstructions with FreeSurfer. The recommended FreeSurfer workflow
 is summarized on the `FreeSurfer wiki pages <https://surfer.nmr.mgh.harvard.edu/fswiki/RecommendedReconstruction>`_. See
-also this information :ref:`sphx_glr_auto_tutorials_plot_background_freesurfer.py`.
+also this information :ref:`tut-freesurfer`.
 
 .. _setting_up_source_space:
 
