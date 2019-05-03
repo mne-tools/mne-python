@@ -9,6 +9,8 @@ Installing MNE-Python
    :local:
    :depth: 1
 
+.. _install-python:
+
 Installing Python
 ^^^^^^^^^^^^^^^^^
 

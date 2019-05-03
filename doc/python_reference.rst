@@ -999,6 +999,19 @@ Logging and Configuration
    sys_info
    verbose
 
+:py:mod:`mne.utils`:
+
+.. currentmodule:: mne.utils
+
+.. automodule:: mne.utils
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   deprecated
+
 :py:mod:`mne.cuda`:
 
 .. currentmodule:: mne.cuda

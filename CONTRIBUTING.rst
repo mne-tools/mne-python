@@ -13,7 +13,7 @@ Changes are typically made by `forking`_ the MNE-Python repository, making
 changes to your fork (usually by `cloning`_ it to your personal computer,
 making the changes, and then `pushing`_ the local changes up to your fork), and
 finally creating a `pull request`_ to incorporate your changes back into the
-shared "upstream" version of the codebase. This `contributing guide`_ has more
+shared "upstream" version of the codebase. The `contributing guide`_ has more
 details on how best to configure your workflow for a smooth experience
 contributing to MNE-Python.
 

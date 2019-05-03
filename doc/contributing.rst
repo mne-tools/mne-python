@@ -4,18 +4,52 @@
 
 .. _contributing:
 
-.. include:: ../CONTRIBUTING.rst
+Contributing to MNE-Python
+==========================
+
+.. NOTE: this first section (up until "overview of contribution process") is
+   basically a copy/paste of CONTRIBUTING.rst from the repository root, with
+   one sentence deleted to avoid self-referential linking. Changes made here
+   should be mirrored there, and vice-versa.
+
+MNE-Python is maintained by a community of scientists and research labs, and
+accepts contributions in the form of bug reports, fixes, feature additions, and
+documentation improvements (even just typo corrections). The best way to start
+contributing is by `opening an issue`_ on our GitHub page to tell us about
+errors you are encountering or to discuss your ideas for changes. For general
+troubleshooting, you can also write to the `MNE mailing list`_ or chat with
+developers on the `MNE gitter channel`_.
+
+Changes are typically made by `forking`_ the MNE-Python repository, making
+changes to your fork (usually by `cloning`_ it to your personal computer,
+making the changes, and then `pushing`_ the local changes up to your fork), and
+finally creating a `pull request`_ to incorporate your changes back into the
+shared "upstream" version of the codebase.
+
+Users and contributors to MNE-Python are expected to follow our `code of
+conduct`_.
+
+.. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
+.. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
+.. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
+
+.. _`forking`: https://help.github.com/en/articles/fork-a-repo
+.. _`cloning`: https://help.github.com/en/articles/cloning-a-repository
+.. _`pushing`: https://help.github.com/en/articles/pushing-to-a-remote
+.. _`pull request`: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
+
+.. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
 
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In general you'll be working with three different copies of the MNE-Python
-codebase: the official copy at https://github.com/mne-tools/mne-python (usually
-called "upstream"), your `fork`_ of the upstream repository (similar URL, but
-with your username in place of ``mne-tools``, and usually called "origin"), and
-the local copy of the codebase on your computer. The typical contribution
-process is to:
+codebase: the official remote copy at https://github.com/mne-tools/mne-python
+(usually called ``upstream``), your remote `fork`_ of the upstream repository
+(similar URL, but with your username in place of ``mne-tools``, and usually
+called ``origin``), and the local copy of the codebase on your computer. The
+typical contribution process is to:
 
 1. synchronize your local copy with ``upstream``
 
@@ -35,6 +69,11 @@ Setting up your local environment for MNE-Python development
 Configuring git
 ^^^^^^^^^^^^^^^
 
+.. sidebar:: Git GUI alternative
+
+    `GitHub desktop`_ is a GUI alternative to command line git that some users
+    appreciate; it is available for |windows| Windows and |apple| MacOS.
+
 To get set up for contributing, make sure you have git installed on your local
 computer:
 
@@ -51,10 +90,6 @@ computer:
   functionality to git Bash, but has not been widely tested by MNE-Python
   developers yet.
 
-.. note::
-
-    `GitHub desktop`_ is a GUI alternative to command line git that some users
-    appreciate; it is available for Windows and MacOS.
 
 Once git is installed, the only absolutely necessary configuration step is
 identifying yourself and your contact info:
@@ -82,27 +117,41 @@ creating your local copy of the codebase, go to the `MNE-Python GitHub`_ page
 and create a `fork`_ into your GitHub user account.
 
 
-Setting up the Python environment
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up the development environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. note::
+.. sidebar:: Supported Python environments
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
     the MNE-Python development team; see discussion :ref:`here
-    <other-py-distros>`.
+    <other-py-distros>`. These instructions use  ``conda`` where possible;
+    experts may replace those lines with some combination of ``git`` and
+    ``pip``.
 
-The first step is to `clone`_ the MNE-Python repository from your fork, and
-also connect the local copy to the ``upstream`` version of the codebase, so you
-can stay up-to-date with changes from other contributors. First, edit these two
-variables for your situation:
+These instructions will set up a Python environment that is separated from your
+system-level Python and any other managed Python environments on your computer.
+This lets you switch between different versions of Python (MNE-Python requires
+version 3.5 or higher) and also switch between the stable and development
+versions of MNE-Python (so you can, for example, use the same computer to
+analyze your data with the stable release, and also work with the latest
+development version to fix bugs or add new features). If you've already
+followed the :ref:`installation instructions <install-python>` for the stable
+version of MNE-Python, after this you'll end up with two environments: ``mne``
+(stable version) and ``mnedev`` (development version).
+
+Once you have a working Python environment, the first step is to `clone`_ the
+MNE-Python repository from your remote fork, and also connect the local copy to
+the ``upstream`` version of the codebase, so you can stay up-to-date with
+changes from other contributors. First, edit these two variables for your
+situation:
 
 .. code-block:: console
 
     $ INSTALL_LOCATION="/opt"
     $ GITHUB_USERNAME="new_mne_contributor"
 
-Then make a local clone of your remote fork ("origin"):
+Then make a local clone of your remote fork (``origin``):
 
 .. code-block:: console
 
@@ -110,7 +159,19 @@ Then make a local clone of your remote fork ("origin"):
     $ git clone https://github.com/$GITHUB_USERNAME/mne-python.git
 
 Finally, set up a link between your local clone and the official repository
-("upstream"):
+(``upstream``):
+
+.. sidebar:: Remote URLs in git
+
+    Here we use ``git://`` instead of ``https://`` in the URL for the
+    ``upstream`` remote repository. ``git://`` URLs are read-only, so you can
+    *pull* changes from ``upstream`` into your local copy (to stay up-to-date
+    with changes from other contributors) but you cannot *push* changes from
+    your computer into the ``upstream`` remote. Instead, you must push your
+    changes to your own remote fork (``origin``) first, and then create a pull
+    request from your remote into the upstream remote. In :ref:`a later section
+    <github-ssh>` you'll see a third kind of remote URL for connecting to
+    GitHub using SSH.
 
 .. code-block:: console
 
@@ -118,58 +179,34 @@ Finally, set up a link between your local clone and the official repository
     $ git remote add upstream git://github.com/mne-tools/mne-python.git
     $ git fetch --all
 
-.. note::
-
-    We use ``git://`` instead of ``https://`` in the address for the official
-    "upstream" remote repository. ``git://`` addresses are read-only, which
-    means you can *pull* the official repository into your local copy (in order
-    to stay up-to-date with changes made by other contributors) but you cannot
-    *push* anything from your computer directly into the upstream remote.
-    Instead, you must push your changes to your own remote fork first, and then
-    create a pull request from your remote into the upstream remote (and even
-    then, your changes are not automatically accepted into the upstream; the
-    changes must be *approved* by maintainers and then *merged* into upstream).
-
 Next, use the `environment file`_ provided in the root of the MNE-Python
 repository to set up your local development environment. This will install all
-of the dependencies needed for running MNE-Python. The following commands
-create the conda environment:
+of the dependencies needed for running MNE-Python. The environment name "mne"
+is built-in to the environment file, so we'll override that on the command line
+by passing our preferred name ("mnedev") after the ``-n`` flag. See ``conda env
+create --help`` for more info.
 
 .. code-block:: console
 
-    $ PREFERRED_ENVIRONMENT_NAME="mnedev"
-    $ conda env create -n $PREFERRED_ENVIRONMENT_NAME -f environment.yml
-    $ conda activate $PREFERRED_ENVIRONMENT_NAME
+    $ conda env create -n mnedev -f environment.yml
+    $ conda activate mnedev
 
-.. note::
-
-    When using the environment file to install with Anaconda or Miniconda, the
-    name of the environment (``mne``) is built into the environment file
-    itself, but can be changed on the command line with the ``-n`` flag (as
-    shown above). This is helpful when maintaining separate environments for
-    stable and development versions of MNE-Python, or when using the
-    environment file as a starting point for new projects. See ``conda env
-    create --help`` for more info.
-
-The environment file installs the *stable* version of MNE-Python, so next we'll
-remove that and replace it with the *development* version (the clone we just
-created):
+The environment file installed the *stable* version of MNE-Python, so next
+we'll remove that and replace it with the *development* version (the clone we
+just created with git):
 
 .. code-block:: console
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
     $ pip uninstall -y mne               # or: conda remove --force mne
-    $ pip install -e .                   # or: python setup.py develop
+    $ pip install -e .
 
-.. note::
-
-    The commands ``pip install -e .`` and ``python setup.py develop`` both
-    install a python module into the current environment by creating a link to
-    the source code directory (instead of copying the code to pip's
-    ``site_packages`` directory, which is what normally happens). This means
-    that any edits you make to the MNE-Python source code will be reflected the
-    next time you open a Python interpreter and ``import mne`` (the ``-e`` flag
-    of ``pip`` stands for an "editable" installation).
+The command ``pip install -e .`` installs a python module into the current
+environment by creating a link to the source code directory (instead of
+copying the code to pip's ``site_packages`` directory, which is what normally
+happens). This means that any edits you make to the MNE-Python source code will
+be reflected the next time you open a Python interpreter and ``import mne``
+(the ``-e`` flag of ``pip`` stands for an "editable" installation).
 
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite or building our
@@ -197,19 +234,6 @@ documentation:
     $ yarn add mermaid.cli
     $ pip install sphinxcontrib-mermaid
 
-.. note::
-
-    Occasionally, a bug emerges in one of the MNE-Python dependencies, and it
-    temporarily becomes necessary to use the current master version of that
-    dependency (until a new stable release is made that contains the bugfix).
-    In such cases, you can do a one-time update of that dependency to its
-    current master using pip + git (as shown for MNE-Python in
-    :ref:`installing_master`). If you anticipate needing to update a dependency
-    frequently, you can install the dependency in the same way you've just
-    installed MNE-Python (i.e., cloning its repository and installing with
-    ``pip install -e .`` from within the cloned repo), and then updating it
-    periodically with ``git pull``.
-
 
 .. _basic-git:
 
@@ -235,7 +259,7 @@ repo*. Branches are typically used to experiment with new features while still
 keeping a clean, working copy of the original codebase that you can switch back
 to at any time. The default branch of any repo is always called ``master``, and
 it is recommended that you reserve the ``master`` branch to be that clean copy
-of the working "upstream" codebase. Therefore, if you want to add a new
+of the working ``upstream`` codebase. Therefore, if you want to add a new
 feature, you should first synchronize your local ``master`` branch with the
 ``upstream`` repository, then create a new branch based off of ``master`` and
 `check it out`_ so that any changes you make will exist on that new branch
@@ -243,12 +267,12 @@ feature, you should first synchronize your local ``master`` branch with the
 
 .. code-block:: console
 
-    $ git checkout master            # switch to master branch
-    $ git fetch upstream             # get the current state of the upstream repo
-    $ git merge upstream/master      # synchronize local master branch with upstream master branch
-    $ git checkout -b new-feature-x  # create branch "new-feature-x" and check it out
+    $ git checkout master            # switch to local master branch
+    $ git fetch upstream             # get the current state of the remote upstream repo
+    $ git merge upstream/master      # synchronize local master branch with remote upstream master branch
+    $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
-.. note::
+.. sidebar:: Alternative
 
     You can save some typing by using ``git pull upstream/master`` to replace
     the ``fetch`` and ``merge`` lines above.
@@ -272,8 +296,7 @@ command:
 
 .. code-block:: console
 
-    $ # see what state the local copy of the codebase is in
-    $ git status
+    $ git status    # see what state the local copy of the codebase is in
 
 Those unstaged changes can be `added`_ to the stage one by one, by either
 adding a whole file's worth of changes, or by adding only certain lines
@@ -281,10 +304,9 @@ interactively:
 
 .. code-block:: console
 
-    $ # add a whole file's worth of changes
-    $ # (same command works to add a completely new file):
-    $ git add mne/some_file.py
-    $ # enter interactive staging mode, to add only portions of the file:
+    $ git add mne/some_file.py      # add all the changes you made to this file
+    $ git add mne/some_new_file.py  # add a completely new file in its entirety
+    $ # enter interactive staging mode, to add only portions of a file:
     $ git add -p mne/viz/some_other_file.py
 
 Once you've collected all the related changes together on the stage, the ``git
@@ -320,6 +342,8 @@ changes to your fork:
 
 .. code-block:: console
 
+    $ # push local changes to remote branch origin/new-feature-x
+    $ # (this will create the remote branch if it doesn't already exist)
     $ git push origin new-feature-x
 
 Finally, go to the `MNE-Python GitHub`_ page, click on the pull requests tab,
@@ -338,6 +362,8 @@ advice about how to fix them.
 To learn more about git, check out the `GitHub help`_ website, the `GitHub
 Learning Lab`_ tutorial series, and the `pro git book`_.
 
+
+.. _github-ssh:
 
 Connecting to GitHub with SSH (optional)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -384,10 +410,18 @@ well as how-to examples or longer tutorials for major contributions. Docstrings
 for private functions may be more sparse, but should not be omitted.
 
 
-New API elements should be added to the master reference
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Avoid API changes when possible
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Classes, functions, methods, and attributes cannot be cross-referenced unless
+Changes to the public API (e.g., class/function/method names and signatures)
+should not be made lightly, as they can break existing user scripts. Changes to
+the API require a deprecation cycle (with warnings) so that users have time to
+adapt their code before API changes become default behavior. See
+:class:`mne.utils.deprecated` for usage. Bug fixes (when something isn't doing
+what it says it will do) do not require a deprecation cycle.
+
+Note that any new API elements should be added to the master reference;
+classes, functions, methods, and attributes cannot be cross-referenced unless
 they are included in the :doc:`python_reference`
 (:file:`doc/python_reference.rst`).
 
@@ -411,11 +445,9 @@ MNE-Python uses `continuous integration`_ (CI) to ensure code quality and
 test across multiple installation targets. However, the CIs are often slower
 than testing locally, especially when other contributors also have open PRs
 (which is basically always the case). Therefore, do not rely on the CIs to
-catch bugs and style errors for you; run the tests locally instead before
-opening a new PR and before each time you push additional changes to an
-already-open PR. See the :ref:`testing <run-tests>` section (below) for
-examples of how to run tests locally, and make sure you have the testing
-dataset installed.
+catch bugs and style errors for you; :ref:`run the tests locally <run-tests>`
+instead before opening a new PR and before each time you push additional
+changes to an already-open PR.
 
 
 Make tests fast and thorough
@@ -433,7 +465,7 @@ example that reports which lines within ``mne.viz`` are missed when running
 
     $ pytest --cov=mne.viz --cov-report=term-missing mne/viz/tests/test_evoked.py mne/viz/tests/test_topo.py
 
-You can also use ``pytest --durations=20`` to ensure new or modified tests will
+You can also use ``pytest --durations=5`` to ensure new or modified tests will
 not slow down the test suite too much.
 
 
@@ -478,7 +510,12 @@ In most cases imitating existing docstrings will be sufficient, but consult the
 embedding example code, citing references, or including rendered mathematics.
 Private function/method docstrings may be brief for simple functions/methods,
 but complete docstrings are appropriate when private functions/methods are
-relatively complex.
+relatively complex. To run some basic tests on documentation, you can use:
+
+.. code-block:: console
+
+    $ pytest mne/tests/test_docstring_parameters
+    $ make docstyle
 
 
 Cross-reference everywhere
@@ -495,6 +532,14 @@ cross-reference to Python built-in classes and functions as well as API
 elements in :mod:`NumPy <numpy>`, :mod:`SciPy <scipy>`, etc. See the Sphinx
 configuration file (:file:`doc/conf.py`) for the list of Intersphinx projects
 we link to.
+
+.. warning::
+
+    Some API elements have multiple exposure points (for example,
+    ``mne.set_config`` and ``mne.utils.set_config``). For cross-references to
+    work, they must match an entry in :file:`doc/python_reference.rst` (thus
+    ``:func:`mne.set_config``` will work but ``:func:`mne.utils.set_config```
+    will not).
 
 
 Other style guidance
@@ -607,21 +652,25 @@ docs locally to confirm that everything looks correct before submitting the
 changes in a pull request.
 
 You can build the documentation locally using `GNU Make`_ with
-:file:`doc/Makefile`. From within the :file:`doc` directory, a full
-documentation build (of the current code state) can be triggered with
+:file:`doc/Makefile`. From within the :file:`doc` directory, you can test
+formatting and linking by running:
 
 .. code-block:: console
 
-   $ make html_dev
+    $ make html_dev-noplot
 
-Additional recipes are available that build all docs but do not evaluate the
-python code in the tutorials and how-to examples (``make html_dev-noplot``),
-build all docs but only evaluate a regex-specified subset of the
-examples/tutorials (:samp:`PATTERN="{insert regex here}" make
-html_dev-pattern`), or build the docs for the most recent stable release
-(``make html_stable``). Run ``make help`` from the :file:`mne/doc` directory
-for more options, or consult the `Sphinx-Gallery`_ documentation for additional
-details.
+This will build the documentation *except* it will format (but not execute) the
+tutorial and example files. If you have created or modified an example or
+tutorial, you should instead run
+:samp:`PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>} make html_dev-pattern` to render
+all the documentation and additionaly execute just your example or tutorial (so
+you can make sure it runs successfully and generates the output / figures you
+expect).
+
+After either of these commands completes, ``make show`` will open the
+locally-rendered documentation site in your browser. Additional ``make``
+recipes are available; run ``make help`` from the :file:`doc` directory or
+consult the `Sphinx-Gallery`_ documentation for additional details.
 
 
 .. _`github-workflow`:
@@ -677,17 +726,16 @@ down the road. Here are the guidelines:
     content).
 
   - the following commit tags are supported: ``[ci skip]``, ``[skip
-    travis]``, ``[skip appveyor]``, ``[skip azp]``, ``[skip circle]``, and
-    ``[circle full]``. These should be used judiciously.
+    travis]``, ``[skip appveyor]``, ``[skip circle]``, and ``[circle full]``.
+    These should be used judiciously.
 
-`This sample pull request`_ exemplifies many of the conventions listed
-above: it addresses only one problem; it started with an issue (#6112) to
-discuss the problem and some possible solutions; it is a PR from the user's
-non-master branch into the upstream master branch; it separates different kinds
-of changes into separate commits and uses labels like ``DOC``, ``FIX``, and
-``STY`` to make it easier for maintainers to review the changeset; etc. If you
-are new to GitHub it can serve as a useful example of what to expect from the
-PR review process.
+`This sample pull request`_ exemplifies many of the conventions listed above:
+it addresses only one problem; it started with an issue to discuss the problem
+and some possible solutions; it is a PR from the user's non-master branch into
+the upstream master branch; it separates different kinds of changes into
+separate commits and uses labels like ``DOC``, ``FIX``, and ``STY`` to make it
+easier for maintainers to review the changeset; etc. If you are new to GitHub
+it can serve as a useful example of what to expect from the PR review process.
 
 .. MNE
 
