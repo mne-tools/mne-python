@@ -663,9 +663,9 @@ This will build the documentation *except* it will format (but not execute) the
 tutorial and example files. If you have created or modified an example or
 tutorial, you should instead run
 :samp:`PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>} make html_dev-pattern` to render
-all the documentation and additionaly execute just your example or tutorial (so
-you can make sure it runs successfully and generates the output / figures you
-expect).
+all the documentation and additionally execute just your example or tutorial
+(so you can make sure it runs successfully and generates the output / figures
+you expect).
 
 After either of these commands completes, ``make show`` will open the
 locally-rendered documentation site in your browser. Additional ``make``
