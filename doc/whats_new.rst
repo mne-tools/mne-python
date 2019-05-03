@@ -211,6 +211,14 @@ Bug
 
 - Fix :meth:`mne.io.Raw.interpolate_bads` for interpolating CTF MEG channels when reference sensors are present by `jeythekey`_
 
+- Fix a bug in :meth:`mne.io.Raw.resample`, where resampling events could result in indices > n_times-1, by `jeythekey`_
+
+- Fix :meth:`mne.preprocessing.ICA.score_sources` to use the ``sfreq`` of the raw data to filter rather than the ``sfreq`` when the ICA was fit, by `jeythekey`_
+
+- Fix a bug in :class:`mne.preprocessing.ICA`, where manually setting the attribute ``ICA.exclude`` to an np.array resulted in the removal of random components when later also providing the ``exclude`` argument to any ``apply...``-method, by `jeythekey`_
+
+- Ascending changed to descending sorting of scores for integer ``..._criterion`` arguments in :func:`mne.preprocessing.ICA.detect_artifacts` and :func:`mne.preprocessing.run_ica`, as it used to  be documented; the docstring in these functions was corrected for float ``..._criterion`` arguments, by `jeythekey`_
+
 API
 ~~~
 
