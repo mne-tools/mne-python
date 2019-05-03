@@ -214,7 +214,7 @@ class ICA(ContainsMixin):
         If fit, the whitened matrix to go from PCA space to ICA space.
         Used, in combination with the `pca_components_`, by the methods
         :meth:`ICA.get_sources` and :meth:`ICA.apply` to unmix the observed data.
-    exclude : array_like of int
+    exclude : array-like of int
         List or np.array of sources indices to exclude when re-mixing the data
         in the :meth:`ICA.apply` method, i.e. artifactual ICA components.
         The components identified manually and by the various automatic
@@ -2149,13 +2149,6 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
                       add_nodes):
     """Aux Function."""
     from scipy import stats
-
-    if any(isinstance(x, int) for x in [ecg_criterion, eog_criterion,
-                                        skew_criterion, kurt_criterion,
-                                        var_criterion]):
-        warn("BUG-FIX: Sorting of the absolute scores changed from ascending "
-             "to descending for integer ..._criterion-arguments in v 0.18.",
-             SyntaxWarning)
 
     nodes = []
     if ecg_ch is not None:
