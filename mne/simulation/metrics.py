@@ -225,7 +225,7 @@ def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
     -------
     %(stc_metric)s
 
-     References
+    References
     ----------
     .. [1] Maksymenko K., Giusiano B., Roehri N., Bénar CG and Badier JM
            (2017), Strategies for statistical thresholding of source
