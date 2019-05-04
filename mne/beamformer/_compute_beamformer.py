@@ -331,6 +331,36 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     return W
 
 
+def _compute_power(Cm, W, n_orient):
+    """Use beamformer filters to compute source power.
+
+    Parameters
+    ----------
+    Cm : ndarray, shape (n_channels, n_channels)
+        Data covariance matrix or CSD matrix.
+    W : ndarray, shape (nvertices*norient, nchannels)
+        Beamformer weights.
+
+    Returns
+    -------
+    power : ndarray, shape (nvertices,)
+        Source power.
+    """
+    n_sources = W.shape[0] // n_orient
+
+    source_power = np.zeros(n_sources)
+    for k in range(n_sources):
+        Wk = W[n_orient * k: n_orient * k + n_orient]
+        power = Wk.dot(Cm).dot(Wk.T)
+
+        if n_orient > 1:  # Pool the orientations
+            source_power[k] = np.abs(power.trace())
+        else:
+            source_power[k] = np.abs(power)
+
+    return source_power
+
+
 class Beamformer(dict):
     """A computed beamformer.
 

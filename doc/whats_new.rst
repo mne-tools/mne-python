@@ -18,8 +18,11 @@ Current
 
 Changelog
 ~~~~~~~~~
+
 - Add :func:`mne.simulation.stc_cosine_score`, :func:`mne.simulation.stc_roc_auc_score`, :func:`mne.simulation.stc_dipole_localization_error`, :func:`mne.simulation.stc_f1_score`, :func:`mne.simulation.stc_precision_score` and :func:`mne.simulation.stc_recall_score` to compute metrics between source estimates, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
 
+- :func:`mne.beamformer.apply_lcmv_cov` returns static source power after supplying a data covariance matrix to the beamformer filter by `Britta Westner`_ and `Marijn van Vliet`_
+  
 - Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
 
 - :meth:`mne.Epochs.get_data` now takes a ``picks`` parameter by `Jona Sassenhagen`_
@@ -38,7 +41,9 @@ Changelog
 
 - Add example on how to load standard montage :ref:`plot_montage` by `Joan Massich`_
 
-- Add new tutorial on :ref:`plot_eeg_no_mri` by `Alex Gramfort`_, and `Joan Massich`_
+- Add new tutorial on :ref:`tut-eeg-fsaverage-source-modeling` by `Alex Gramfort`_, and `Joan Massich`_
+
+- Add :meth:`mne.Epochs.apply_hilbert` and :meth:`mne.Evoked.apply_hilbert` by `Eric Larson`_
 
 - Add convenience ``fsaverage`` subject dataset fetcher / updater :func:`mne.datasets.fetch_fsaverage` by `Eric Larson`_
 
@@ -50,7 +55,7 @@ Changelog
 
 - Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
 
-- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_sleep.py` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
+- Add new tutorial on :ref:`tut-sleep-stage-classif` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
 
 - Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
 
@@ -136,6 +141,8 @@ Changelog
 
 Bug
 ~~~
+- Fix :meth:`mne.Epochs.plot` with ``scalings='auto'`` to properly compute channel-wise scalings by `Stefan Repplinger`_
+
 - Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
 
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
@@ -206,6 +213,14 @@ Bug
 - Fix :func:`mne.io.read_raw_egi` when cropping non-preloaded EGI MFF data by `Alex Gramfort`_
 
 - Fix :meth:`mne.io.Raw.interpolate_bads` for interpolating CTF MEG channels when reference sensors are present by `jeythekey`_
+
+- Fix a bug in :meth:`mne.io.Raw.resample`, where resampling events could result in indices > n_times-1, by `jeythekey`_
+
+- Fix :meth:`mne.preprocessing.ICA.score_sources` to use the ``sfreq`` of the raw data to filter rather than the ``sfreq`` when the ICA was fit, by `jeythekey`_
+
+- Fix a bug in :class:`mne.preprocessing.ICA`, where manually setting the attribute ``ICA.exclude`` to an np.array resulted in the removal of random components when later also providing the ``exclude`` argument to any ``apply...``-method, by `jeythekey`_
+
+- Ascending changed to descending sorting of scores for integer ``..._criterion`` arguments in :func:`mne.preprocessing.ICA.detect_artifacts` and :func:`mne.preprocessing.run_ica`, as it used to  be documented; the docstring in these functions was corrected for float ``..._criterion`` arguments, by `jeythekey`_
 
 API
 ~~~
@@ -1208,7 +1223,7 @@ Changelog
 
 - Add ``yscale`` keyword argument to :meth:`mne.time_frequency.AverageTFR.plot` that allows specifying whether to present the frequency axis in linear (``'linear'``) or log (``'log'``) scale. The default value is ``'auto'`` which detects whether frequencies are log-spaced and sets yscale to log. Added by `Mikołaj Magnuski`_
 
-- Add :ref:`Representational Similarity Analysis (RSA) <rsa_noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
+- Add :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
 
 - Add support for NeuroScan files with event type 3 in :func:`mne.io.read_raw_cnt` by `Marijn van Vliet`_
 

@@ -1,4 +1,6 @@
 """
+.. _ex-envelope-correlation:
+
 =============================================
 Compute envelope correlations in source space
 =============================================
@@ -50,7 +52,7 @@ cov = mne.compute_raw_covariance(raw)  # compute before band-pass of interest
 ##############################################################################
 # Now we band-pass filter our data and create epochs.
 
-raw.filter(14, 30, n_jobs='cuda')
+raw.filter(14, 30)
 events = mne.make_fixed_length_events(raw, duration=5.)
 epochs = mne.Epochs(raw, events=events, tmin=0, tmax=5.,
                     baseline=None, reject=dict(mag=8e-13), preload=True)
@@ -71,6 +73,7 @@ del fwd, src
 
 labels = mne.read_labels_from_annot(subject, 'aparc_sub',
                                     subjects_dir=subjects_dir)
+epochs.apply_hilbert()  # faster to apply in sensor space
 stcs = apply_inverse_epochs(epochs, inv, lambda2=1. / 9., pick_ori='normal',
                             return_generator=True)
 label_ts = mne.extract_label_time_course(

@@ -651,6 +651,7 @@ Inverse Solutions
    apply_lcmv
    apply_lcmv_epochs
    apply_lcmv_raw
+   apply_lcmv_cov
    make_dics
    apply_dics
    apply_dics_csd

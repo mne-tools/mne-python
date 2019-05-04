@@ -1054,7 +1054,7 @@ def test_resample(tmpdir):
 
     # test resampling events: this should no longer give a warning
     # we often have first_samp != 0, include it here too
-    stim = [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0]
+    stim = [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1]  # an event at end
     # test is on half the sfreq, but should work with trickier ones too
     o_sfreq, sfreq_ratio = len(stim), 0.5
     n_sfreq = o_sfreq * sfreq_ratio
@@ -1063,13 +1063,17 @@ def test_resample(tmpdir):
                    first_samp=first_samp)
     events = find_events(raw)
     raw, events = raw.resample(n_sfreq, events=events, npad='auto')
+    # Try index into raw.times with resampled events:
+    raw.times[events[:, 0] - raw.first_samp]
     n_fsamp = int(first_samp * sfreq_ratio)  # how it's calc'd in base.py
     # NB np.round used for rounding event times, which has 0.5 as corner case:
     # https://docs.scipy.org/doc/numpy/reference/generated/numpy.around.html
     assert_array_equal(
         events,
         np.array([[np.round(1 * sfreq_ratio) + n_fsamp, 0, 1],
-                  [np.round(10 * sfreq_ratio) + n_fsamp, 0, 1]]))
+                  [np.round(10 * sfreq_ratio) + n_fsamp, 0, 1],
+                  [np.minimum(np.round(15 * sfreq_ratio),
+                              raw._data.shape[1] - 1) + n_fsamp, 0, 1]]))
 
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
@@ -1112,7 +1116,7 @@ def test_hilbert():
     assert raw_filt._data.shape == raw_filt_2._data.shape
     assert_allclose(raw_filt._data[:, 50:-50], raw_filt_2._data[:, 50:-50],
                     atol=1e-13, rtol=1e-2)
-    with pytest.raises(ValueError, match='n_fft must be greater than n_times'):
+    with pytest.raises(ValueError, match='n_fft.*must be at least the number'):
         raw3.apply_hilbert(picks, n_fft=raw3.n_times - 100)
 
     env = np.abs(raw._data[picks, :])

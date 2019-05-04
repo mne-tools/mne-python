@@ -521,7 +521,7 @@ def test_ica_additional(method):
         assert (ica.n_components_ == len(scores))
 
     # check univariate stats
-    scores = ica.score_sources(raw, score_func=stats.skew)
+    scores = ica.score_sources(raw, start=0, stop=50, score_func=stats.skew)
     # check exception handling
     pytest.raises(ValueError, ica.score_sources, raw,
                   target=np.arange(1))
@@ -533,6 +533,16 @@ def test_ica_additional(method):
         ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=ch_name,
                              eog_ch=ch_name, skew_criterion=idx,
                              var_criterion=idx, kurt_criterion=idx)
+
+    # Make sure detect_artifacts marks the right components.
+    # For int criterion, the doc says "E.g. range(2) would return the two
+    # sources with the highest score". Assert that's what it does.
+    # Only test for skew, since it's always the same code.
+    ica.exclude = []
+    ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=None,
+                         eog_ch=None, skew_criterion=0,
+                         var_criterion=None, kurt_criterion=None)
+    assert np.abs(scores[ica.exclude]) == np.max(np.abs(scores))
 
     evoked = epochs.average()
     evoked_data = evoked.data.copy()

@@ -1,4 +1,6 @@
 """
+.. _ex-inverse-volume:
+
 =======================================================================
 Compute MNE-dSPM inverse solution on evoked data in volume source space
 =======================================================================

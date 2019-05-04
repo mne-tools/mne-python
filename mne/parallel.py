@@ -18,8 +18,8 @@ else:
 
 
 @verbose
-def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
-                  total=None, verbose=None):
+def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
+                  total=None, prefer=None, verbose=None):
     """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
@@ -43,6 +43,11 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         jobs. This should only be used when directly iterating, not when
         using ``split_list`` or :func:`np.array_split`.
         If None (default), do not add a progress bar.
+    prefer : str | None
+        If str, can be "processes" or "threads". See :class:`joblib.Parallel`.
+        Ignored if the joblib version is too old to support this.
+
+        .. versionadded:: 0.18
     %(verbose)s INFO or DEBUG
         will print parallel status, others will not.
 
@@ -94,6 +99,8 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         # create keyword arguments for Parallel
         kwargs = {'verbose': 5 if should_print and total is None else 0}
         kwargs['pre_dispatch'] = pre_dispatch
+        if 'prefer' in p_args:
+            kwargs['prefer'] = prefer
 
         if joblib_mmap:
             if cache_dir is None:

@@ -32,9 +32,9 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
-from ..filter import (filter_data, notch_filter, resample, next_fast_len,
+from ..filter import (filter_data, notch_filter, resample,
                       _resample_stim_channels, _filt_check_picks,
-                      _filt_update_info)
+                      _filt_update_info, _check_fun, HilbertMixin)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, _pl, fill_doc,
@@ -263,21 +263,10 @@ class TimeMixin(object):
         return index.astype(int)
 
 
-def _check_fun(fun, d, *args, **kwargs):
-    """Check shapes."""
-    want_shape = d.shape
-    d = fun(d, *args, **kwargs)
-    if not isinstance(d, np.ndarray):
-        raise TypeError('Return value must be an ndarray')
-    if d.shape != want_shape:
-        raise ValueError('Return data must have shape %s not %s'
-                         % (want_shape, d.shape))
-    return d
-
-
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin):
+              InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin,
+              HilbertMixin):
     """Base class for Raw data.
 
     Parameters
@@ -1116,88 +1105,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return self
 
     @verbose
-    def apply_hilbert(self, picks=None, envelope=False, n_jobs=1, n_fft='auto',
-                      verbose=None):
-        """Compute analytic signal or envelope for a subset of channels.
-
-        If envelope=False, the analytic signal for the channels defined in
-        "picks" is computed and the data of the Raw object is converted to
-        a complex representation (the analytic signal is complex valued).
-
-        If envelope=True, the absolute value of the analytic signal for the
-        channels defined in "picks" is computed, resulting in the envelope
-        signal.
-
-        .. warning: Do not use ``envelope=True`` if you intend to compute
-                    an inverse solution from the raw data. If you want to
-                    compute the envelope in source space, use
-                    ``envelope=False`` and compute the envelope after the
-                    inverse solution has been obtained.
-
-        .. note:: If envelope=False, more memory is required since the
-                  original raw data as well as the analytic signal have
-                  temporarily to be stored in memory.
-
-        .. note:: If n_jobs > 1, more memory is required as
-                  ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
-
-        Parameters
-        ----------
-        %(picks_all_data_noref)s
-        envelope : bool (default: False)
-            Compute the envelope signal of each channel.
-        n_jobs: int
-            Number of jobs to run in parallel.
-        n_fft : int | None | str
-            Points to use in the FFT for Hilbert transformation. The signal
-            will be padded with zeros before computing Hilbert, then cut back
-            to original length. If None, n == self.n_times. If 'auto',
-            the next highest fast FFT length will be use.
-        %(verbose_meth)s
-
-        Returns
-        -------
-        self : instance of Raw
-            The raw object with transformed data.
-
-        Notes
-        -----
-        The analytic signal "x_a(t)" of "x(t)" is::
-
-            x_a = F^{-1}(F(x) 2U) = x + i y
-
-        where "F" is the Fourier transform, "U" the unit step function,
-        and "y" the Hilbert transform of "x". One usage of the analytic
-        signal is the computation of the envelope signal, which is given by
-        "e(t) = abs(x_a(t))". Due to the linearity of Hilbert transform and the
-        MNE inverse solution, the enevlope in source space can be obtained
-        by computing the analytic signal in sensor space, applying the MNE
-        inverse, and computing the envelope in source space.
-
-        Also note that the n_fft parameter will allow you to pad the signal
-        with zeros before performing the Hilbert transform. This padding
-        is cut off, but it may result in a slightly different result
-        (particularly around the edges). Use at your own risk.
-        """
-        if n_fft is None:
-            n_fft = len(self.times)
-        elif isinstance(n_fft, str):
-            if n_fft != 'auto':
-                raise ValueError('n_fft must be an integer, string, or None, '
-                                 'got %s' % (type(n_fft),))
-            n_fft = next_fast_len(len(self.times))
-        n_fft = int(n_fft)
-        if n_fft < self.n_times:
-            raise ValueError("n_fft must be greater than n_times")
-        if envelope is True:
-            dtype = None
-        else:
-            dtype = np.complex64
-        return self.apply_function(_my_hilbert, picks, dtype, n_jobs, n_fft,
-                                   envelope=envelope)
-
-    @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
@@ -1335,9 +1242,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Notes
         -----
         For more information, see the tutorials
-        :ref:`sphx_glr_auto_tutorials_plot_background_filtering.py`
-        and
-        :ref:`sphx_glr_auto_tutorials_plot_artifacts_correction_filtering.py`.
+        :ref:`disc-filtering` and :ref:`tut-filter-resample`.
         """
         _check_preload(self, 'raw.filter')
         update_info, picks = _filt_check_picks(self.info, picks,
@@ -1631,7 +1536,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             events[:, 0] = np.minimum(
                 np.round(events[:, 0] * ratio).astype(int),
-                self._data.shape[1] + self.first_samp
+                self._data.shape[1] + self.first_samp - 1
             )
             return self, events
 
@@ -2529,33 +2434,6 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 
     buf = buf / np.ravel(cals)[:, None]
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
-
-
-def _my_hilbert(x, n_fft=None, envelope=False):
-    """Compute Hilbert transform of signals w/ zero padding.
-
-    Parameters
-    ----------
-    x : array, shape (n_times)
-        The signal to convert
-    n_fft : int
-        Size of the FFT to perform, must be at least ``len(x)``.
-        The signal will be cut back to original length.
-    envelope : bool
-        Whether to compute amplitude of the hilbert transform in order
-        to return the signal envelope.
-
-    Returns
-    -------
-    out : array, shape (n_times)
-        The hilbert transform of the signal, or the envelope.
-    """
-    from scipy.signal import hilbert
-    n_x = x.shape[-1]
-    out = hilbert(x, N=n_fft)[:n_x]
-    if envelope is True:
-        out = np.abs(out)
-    return out
 
 
 def _check_raw_compatibility(raw):

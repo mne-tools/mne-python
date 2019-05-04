@@ -17,7 +17,7 @@ from ..source_estimate import _make_stc, _get_src_type
 from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
-                                  Beamformer)
+                                  Beamformer, _compute_power)
 
 
 @verbose
@@ -483,22 +483,15 @@ def apply_dics_csd(csd, filters, verbose=None):
         Cm = Cm[csd_picks, :][:, csd_picks]
         W = filters['weights'][i]
 
-        for k in range(n_sources):
-            Wk = W[n_orient * k: n_orient * k + n_orient]
-            power = Wk.dot(Cm).dot(Wk.T)
-
-            if n_orient > 1:  # Pool the orientations
-                source_power[k, i] = np.abs(power.trace())
-            else:
-                source_power[k, i] = np.abs(power)
+        source_power[:, i] = _compute_power(Cm, W, n_orient)
 
     logger.info('[done]')
 
     # compatibility with 0.16, add src_type as None if not present:
     filters, warn_text = _check_src_type(filters)
 
-    return (_make_stc(source_power.reshape(-1, n_freqs), vertices=vertices,
-                      src_type=filters['src_type'], tmin=0, tstep=1,
+    return (_make_stc(source_power, vertices=vertices,
+                      src_type=filters['src_type'], tmin=0., tstep=1.,
                       subject=subject, warn_text=warn_text),
             frequencies)
 

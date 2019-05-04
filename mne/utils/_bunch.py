@@ -9,10 +9,10 @@ from copy import deepcopy
 
 
 ###############################################################################
-# Create a Bunch class that acts like a struct (mybunch.key = val )
+# Create a Bunch class that acts like a struct (mybunch.key = val)
 
 class Bunch(dict):
-    """Dictionnary-like object thatexposes its keys as attributes."""
+    """Dictionary-like object that exposes its keys as attributes."""
 
     def __init__(self, **kwargs):  # noqa: D102
         dict.__init__(self, kwargs)
@@ -51,8 +51,13 @@ class BunchConstNamed(BunchConst):
         super().__setattr__(attr, val)
 
 
-class Named(object):
+class _Named(object):
     """Provide shared methods for giving named-representation subclasses."""
+
+    def __new__(cls, name, val):  # noqa: D102,D105
+        out = _named_subclass(cls).__new__(cls, val)
+        out._name = name
+        return out
 
     def __str__(self):  # noqa: D105
         return '%s (%s)' % (super().__str__(), self._name)
@@ -74,20 +79,25 @@ class Named(object):
             setattr(result, k, deepcopy(v, memo))
         return result
 
+    def __getnewargs__(self):  # noqa: D105
+        return self._name, _named_subclass(self)(self)
 
-class NamedInt(Named, int):
+
+def _named_subclass(klass):
+    if not isinstance(klass, type):
+        klass = klass.__class__
+    subklass = klass.mro()[-2]
+    assert subklass in (int, float)
+    return subklass
+
+
+class NamedInt(_Named, int):
     """Int with a name in __repr__."""
 
-    def __new__(cls, name, val):  # noqa: D102,D105
-        out = int.__new__(cls, val)
-        out._name = name
-        return out
+    pass
 
 
-class NamedFloat(Named, float):
+class NamedFloat(_Named, float):
     """Float with a name in __repr__."""
 
-    def __new__(cls, name, val):  # noqa: D102,D105
-        out = float.__new__(cls, val)
-        out._name = name
-        return out
+    pass

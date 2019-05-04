@@ -1974,8 +1974,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     # Plot initial figure
     fig, (axes, ax_time) = plt.subplots(2)
     ax_time.plot(stc.times, stc.data[loc_idx].T, color='k')
-    ax_time.set(xlim=stc.times[[0, -1]],
-                xlabel='Time (s)', ylabel='Activation')
+    if len(stc.times) > 1:
+        ax_time.set(xlim=stc.times[[0, -1]])
+    ax_time.set(xlabel='Time (s)', ylabel='Activation')
     lx = ax_time.axvline(stc.times[idx], color='g')
     axes.set(xticks=[], yticks=[])
     fig.tight_layout()
