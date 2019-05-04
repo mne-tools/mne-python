@@ -210,6 +210,13 @@ def test_chunk_duration():
                                                 use_rounding=False)
     assert_array_equal(events, expected_events)
 
+    # test chunk durations that do not fit equally in annotation duration
+    expected_events = np.zeros((3, 3))
+    expected_events[:, -1] = 1
+    expected_events[:, 0] = np.arange(0, 9, step=3)
+    events, events_id = events_from_annotations(raw, chunk_duration=3.)
+    assert_array_equal(events, expected_events)
+
 
 def test_crop_more():
     """Test more cropping."""
