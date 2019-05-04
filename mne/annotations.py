@@ -836,11 +836,12 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
     chunk_duration: float | None
-        If chunk_duration parameter in events_from_annotations is None, events
-        correspond to the annotation onsets.
+        Chunk duration in seconds. If ``chunk_duration`` is set to None
+        (default), generated events correspond to the annotation onsets.
         If not, :func:`mne.events_from_annotations` returns as many events as
         they fit within the annotation duration spaced according to
-        `chunk_duration`, which is given in seconds.
+        ``chunk_duration``. As a consequence annotations with duration shorter
+        than ``chunk_duration`` will not contribute events.
     %(verbose)s
 
     Returns
