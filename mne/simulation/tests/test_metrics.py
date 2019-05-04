@@ -86,7 +86,7 @@ def test_cosine_score():
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:1], []]
     vert2 = [src[0]['vertno'][1:2], []]
-    data1 = np.ones([1, 2])
+    data1 = np.ones((1, 2))
     data2 = data1.copy()
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
@@ -112,7 +112,7 @@ def test_dipole_localization_error():
     vert1 = [src[0]['vertno'][0:1], []]
     vert2 = [src[0]['vertno'][1:2], []]
     dist = norm(src[0]['rr'][vert1[0]] - src[0]['rr'][vert2[0]])
-    data1 = np.ones([1, 2])
+    data1 = np.ones((1, 2))
     data2 = np.array([[0.8, 1]])
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
@@ -137,8 +137,8 @@ def test_precision_score():
     vert1 = [src[0]['vertno'][0:2], []]
     vert2 = [src[0]['vertno'][1:3], []]
     vert3 = [src[0]['vertno'][0:1], []]
-    data1 = np.ones([2, 2])
-    data2 = np.ones([2, 2])
+    data1 = np.ones((2, 2))
+    data2 = np.ones((2, 2))
     data3 = np.array([[0.8, 1]])
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
@@ -167,8 +167,8 @@ def test_recall_score():
     vert1 = [src[0]['vertno'][0:2], []]
     vert2 = [src[0]['vertno'][1:3], []]
     vert3 = [src[0]['vertno'][0:1], []]
-    data1 = np.ones([2, 2])
-    data2 = np.ones([2, 2])
+    data1 = np.ones((2, 2))
+    data2 = np.ones((2, 2))
     data3 = np.array([[0.8, 1]])
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
@@ -194,8 +194,8 @@ def test_f1_score():
     vert1 = [src[0]['vertno'][0:2], []]
     vert2 = [src[0]['vertno'][1:3], []]
     vert3 = [src[0]['vertno'][0:1], []]
-    data1 = np.ones([2, 2])
-    data2 = np.ones([2, 2])
+    data1 = np.ones((2, 2))
+    data2 = np.ones((2, 2))
     data3 = np.array([[0.8, 1]])
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')

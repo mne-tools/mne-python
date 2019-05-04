@@ -108,12 +108,12 @@ def _uniform_stc(stc1, stc2):
 def _apply(func, stc_true, stc_est, per_sample):
     """Apply metric to stcs.
 
-    Applies a metric to each pair of columns of P and Q
-    if per_sample is True. Otherwise it applies it to P and Q
+    Applies a metric to each pair of columns of stc_true and stc_est
+    if per_sample is True. Otherwise it applies it to stc_true and stc_est
     directly.
     """
     if per_sample:
-        metric = np.zeros(stc_true.data.shape[1])  # one value per time point
+        metric = np.empty(stc_true.data.shape[1])  # one value per time point
         for i in range(stc_true.data.shape[1]):
             metric[i] = func(stc_true.data[:, i:i + 1],
                              stc_est.data[:, i:i + 1])
@@ -196,7 +196,18 @@ def _dle(p, q, src, stc):
 @fill_doc
 def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
                                   per_sample=True):
-    """Compute dipole localization error (DLE) between 2 source estimates.
+    r"""Compute dipole localization error (DLE) between 2 source estimates.
+
+    .. math::
+
+        DLE = \frac{1}{2Q}\sum_{k \in I} \min_{l \in \hat{I}}{||r_k - r_l||}
+        + \frac{1}{2\hat{Q}}\sum_{l \in \hat{I}} \min_{k \in I}{||r_k - r_l||},
+
+    where :math:`I` and :math:`\hat{I}` denote respectively the original and
+    estimated indexes of active sources, :math:`Q` and :math:`\hat{Q}` are
+    the numbers of original and estimated active sources.
+    :math:`r_k` denotes the position of the k-th source dipole in space
+    and :math:`||\cdot||` is an Euclidean norm in :math:`\mathbb{R}^3`.
 
     Parameters
     ----------
@@ -213,6 +224,20 @@ def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
     Returns
     -------
     %(stc_metric)s
+
+     References
+    ----------
+    .. [1] Maksymenko K., Giusiano B., Roehri N., Bénar CG and Badier JM
+           (2017), Strategies for statistical thresholding of source
+           localization maps in magnetoencephalography and estimating source
+           extent. Journal of Neuroscience Methods 290, 95 – 10
+    .. [2] Becker H., Albera L., Comon P., Nunes JC, Gribonval R., Fleureau J.,
+           Guillotel P. and Merlet I. (2017), SISSY: An efficient and automatic
+           algorithm for the analysis of EEG sources based on structured
+           sparsity. NeuroImage 157, 157-172
+    .. [3] Yao, J., Dewald, J. P. A. (2005), Evaluation of different cortical
+           source localization methods using simulated and experimental
+           EEG data. NeuroImage 25 (2), 369–382.
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
