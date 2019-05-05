@@ -319,6 +319,7 @@ def test_plot_compare_evokeds():
     plt.close('all')
     # test axes='topo'
     figs = plot_compare_evokeds(evoked_dict, axes='topo', legend=True)
+
     for fig in figs:
         assert len(fig.axes[0].lines) == len(evoked_dict)
     # old tests

@@ -1828,7 +1828,7 @@ def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,
     return (data,) if ci_fun is None else (data, ci)
 
 
-def _get_ci_function_pce(ci):
+def _get_ci_function_pce(ci, do_topo=False):
     """Get confidence interval function for plot_compare_evokeds."""
     if ci is None:
         return None
@@ -1840,7 +1840,8 @@ def _get_ci_function_pce(ci):
         ci = 0.95
     if isinstance(ci, float):
         from ..stats import _ci
-        return partial(_ci, ci=ci, method='bootstrap')
+        method = 'parametric' if do_topo else 'bootstrap'
+        return partial(_ci, ci=ci, method=method)
     else:
         raise TypeError('"ci" must be None, bool, float or callable, got {}'
                         .format(type(ci).__name__))
