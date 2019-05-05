@@ -1,0 +1,54 @@
+﻿DATA_PARAMETERS START
+   DataFormat           = FLOAT
+   DataGuid             = {0B86B22B-1A49-411A-9657-4A4BDA3D3ED8}
+   DataExtension        = dat
+   CurrentSessionLabel  = 
+   DataByteOrder        = INTEL
+   DataSampOrder        = SAMP
+   AmplifierInfo        = 
+   Comments             = 
+   NumSessions          =  1
+   CurrentSession       =  0
+   FrequencyDomain      =  0
+   NumSamples           =  5000
+   NumTrials            =  1
+   NumChannels          =  3
+   NumGroups            =  1
+   NumMagGroups         =  0
+   NumElGroups          =  1
+   IntOffset            =  0
+   NumLinesSkip         =  0
+   NumColumnsSkip       =  0
+   DecimalSymbol        =  0
+   DigLengthUnit        = -1
+   DigColX              =  1
+   DigColY              =  2
+   DigColZ              =  3
+   DigColLabel          =  4
+   DigDirX              = -1
+   DigDirY              = -1
+   DigDirZ              = -1
+   StartYear            =  2015
+   StartMonth           =  3
+   StartDay             =  19
+   StartHour            =  8
+   StartMin             =  4
+   StartSec             =  11280
+   StartMillisec        =  0
+   StartOffsetUTCMin    =  9999
+   SampleTimeUsec       =  2000
+   SampleFreqHz         =  500
+   TriggerOffsetUsec    =  0
+   TriggerOffsetHz      =  0
+   StimIntervalUsec     =  0
+DATA_PARAMETERS END
+
+DEVICE_PARAMETERS START
+   DataUnit             = uV
+   NumChanThisGroup     =  3
+   NumSensorsThisGroup  =  3
+   CommonOffset         =  0
+   NumRefChannels       =  0
+   CommonScale          =  1
+DEVICE_PARAMETERS END
+

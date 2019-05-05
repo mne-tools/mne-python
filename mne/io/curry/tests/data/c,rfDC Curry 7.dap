@@ -1,0 +1,107 @@
+﻿DATA_PARAMETERS START
+   DataFormat           = FLOAT
+   DataGuid             = {0B86B22B-1A49-411A-9657-4A4BDA3D3ED8}
+   DataExtension        = dat
+   CurrentSessionLabel  = 
+   DataByteOrder        = INTEL
+   DataSampOrder        = SAMP
+   AmplifierInfo        = 
+   Comments             = 
+   NumSessions          =  1
+   CurrentSession       =  0
+   FrequencyDomain      =  0
+   NumSamples           =  15258
+   NumTrials            =  1
+   NumChannels          =  194
+   NumGroups            =  3
+   NumMagGroups         =  1
+   NumElGroups          =  1
+   IntOffset            =  0
+   NumLinesSkip         =  0
+   NumColumnsSkip       =  0
+   DecimalSymbol        =  0
+   DigLengthUnit        = -1
+   DigColX              =  1
+   DigColY              =  2
+   DigColZ              =  3
+   DigColLabel          =  4
+   DigDirX              = -1
+   DigDirY              = -1
+   DigDirZ              = -1
+   StartYear            =  0
+   StartMonth           =  0
+   StartDay             =  0
+   StartHour            = -1
+   StartMin             =  0
+   StartSec             =  0
+   StartMillisec        =  0
+   StartOffsetUTCMin    =  9999
+   SampleTimeUsec       =  1966.066
+   SampleFreqHz         =  508.6299
+   TriggerOffsetUsec    = -10000
+   TriggerOffsetHz      =  0
+   StimIntervalUsec     =  0
+DATA_PARAMETERS END
+
+DEVICE_PARAMETERS_MAG1 START
+   DataUnit             = fT
+   NumChanThisGroup     =  148
+   NumSensorsThisGroup  =  164
+   CommonOffset         =  0
+   NumRefChannels       =  0
+   CommonScale          =  1
+DEVICE_PARAMETERS_MAG1 END
+
+DEVICE_PARAMETERS START
+   DataUnit             = uV
+   NumChanThisGroup     =  31
+   NumSensorsThisGroup  =  31
+   CommonOffset         =  0
+   NumRefChannels       =  0
+   CommonScale          =  1
+DEVICE_PARAMETERS END
+
+DEVICE_PARAMETERS_OTHERS START
+   DataUnit             = uV
+   NumChanThisGroup     =  15
+   NumSensorsThisGroup  =  15
+   CommonOffset         =  0
+   NumRefChannels       =  0
+   CommonScale          =  1
+DEVICE_PARAMETERS_OTHERS END
+
+TRIGGER_FLAGS_OTHERS START
+   ListDescription      = Trigger
+   ListUnits            = 
+   ListNrColumns        =  1
+   ListNrRows           =  15
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  0
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+TRIGGER_FLAGS_OTHERS END
+
+TRIGGER_FLAGS_OTHERS START_LIST	# Do not edit!
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+TRIGGER_FLAGS_OTHERS END_LIST
+

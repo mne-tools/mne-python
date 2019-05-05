@@ -1,0 +1,101 @@
+﻿DATA_PARAMETERS START
+   DataGuid             = {0B86B22B-1A49-411A-9657-4A4BDA3D3ED8}
+   CurrentSessionLabel  = 
+   DataByteOrder        = INTEL
+   DataSampOrder        = SAMP
+   AmplifierInfo        = 
+   Comments             = 
+   FileHistory          = 1 file:¶	C:\Users\wagner\Desktop\mne-testing-data-master\BDF\test_bdf_stim_channel.bdf  59 kB 5000 samples 29.08.2018 15:39:42¶¶1 EEG group, 3 channels¶5000 samples, 500.0 Hz sampling rate¶duration: 00:00:10.0, start latency / trigger offset: 0.0 ms¶¶18 events, 4 event types¶¶EEG group 1: 3 channels, reference: <None>¶
+   FileVersion          =  800
+   NumSessions          =  1
+   CurrentSession       =  0
+   DataFormat           =  6
+   FrequencyDomain      =  0
+   NumSamples           =  5000
+   NumTrials            =  1
+   NumChannels          =  3
+   NumGroups            =  1
+   NumMagGroups         =  0
+   NumElGroups          =  1
+   NumLinesSkip         =  0
+   NumColumnsSkip       =  0
+   DecimalSymbol        =  0
+   StartYear            =  2015
+   StartMonth           =  3
+   StartDay             =  19
+   StartHour            =  8
+   StartMin             =  4
+   StartSec             =  11280
+   StartMillisec        =  0
+   StartOffsetUTCMin    =  9999
+   SampleTimeUsec       =  2000
+   SampleFreqHz         =  500
+   TriggerOffsetUsec    =  0
+   TriggerOffsetHz      =  0
+DATA_PARAMETERS END
+
+DEVICE_PARAMETERS START
+   DataUnit             = uV
+   NumChanThisGroup     =  3
+   NumSensorsThisGroup  =  3
+   CommonOffset         =  0
+   NumRefChannels       =  0
+   CommonScale          =  1
+DEVICE_PARAMETERS END
+
+LABELS START
+   ListDescription      = SensorLabels
+   ListUnits            = 
+   ListNrColumns        =  260
+   ListNrRows           =  3
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  5
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+LABELS END
+
+LABELS START_LIST	# Do not edit!
+C3
+C4
+Cz
+LABELS END_LIST
+
+GEOMETRY START
+   HelmetSystem         =  0
+   PlanarSensors        =  0
+   SensorShape          = -1
+   SensorOrder          =  0
+   SensorStatus         =  6
+   SensorDiameterXMm    =  10
+   SensorDiameterYMm    =  10
+GEOMETRY END
+
+SENSORS START
+   ListDescription      = Sensors
+   ListUnits            = mm
+   ListNrColumns        =  3
+   ListNrRows           =  3
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  1
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+SENSORS END
+
+SENSORS START_LIST	# Do not edit!
+  71	-17.6	 116.7
+ -71	-18.4	 114.6
+ -1	-23.3	 156.4
+SENSORS END_LIST
+

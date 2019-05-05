@@ -1,0 +1,106 @@
+﻿NUMBERS START
+   ListDescription      = SensorNumbers
+   ListUnits            = 
+   ListNrColumns        =  1
+   ListNrRows           =  3
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  0
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+NUMBERS END
+
+NUMBERS START_LIST	# Do not edit!
+  1
+  2
+  3
+NUMBERS END_LIST
+
+LABELS START
+   ListDescription      = SensorLabels
+   ListUnits            = 
+   ListNrColumns        =  260
+   ListNrRows           =  3
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  5
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+LABELS END
+
+LABELS START_LIST	# Do not edit!
+C3
+C4
+Cz
+LABELS END_LIST
+
+GEOMETRY START
+   HelmetSystem         =  0
+   PlanarSensors        =  0
+   SensorShape          = -1
+   SensorOrder          =  0
+   SensorStatus         =  6
+   SensorDiameterXMm    =  10
+   SensorDiameterYMm    =  10
+   SystemCenterXMm      =  1e+009
+   SystemCenterYMm      =  1e+009
+   SystemCenterZMm      =  1e+009
+   BaselengthMm         = -1
+GEOMETRY END
+
+SENSORS START
+   ListDescription      = Sensors
+   ListUnits            = mm
+   ListNrColumns        =  3
+   ListNrRows           =  3
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  1
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+SENSORS END
+
+SENSORS START_LIST	# Do not edit!
+  71	-17.6	 116.7
+ -71	-18.4	 114.6
+ -1	-23.3	 156.4
+SENSORS END_LIST
+
+TRANSFORM START
+   ListDescription      = SensorStatus
+   ListUnits            = 
+   ListNrColumns        =  1
+   ListNrRows           =  3
+   ListNrTimepts        =  1
+   ListNrBlocks         =  1
+   ListBinary           =  0
+   ListType             =  0
+   ListTrafoType        =  0
+   ListGridType         =  2
+   ListFirstColumn      =  1
+   ListIndexMin         = -1
+   ListIndexMax         = -1
+   ListIndexAbsMax      = -1
+TRANSFORM END
+
+TRANSFORM START_LIST	# Do not edit!
+  6
+  6
+  6
+TRANSFORM END_LIST
+
