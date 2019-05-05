@@ -287,7 +287,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         deviations are plotted for the spectrum. For example 2.5 will plot 2.5
         standard deviation above/below.
         For the ERP/ERF, by default, plot the 95 percent parametric confidence
-        interval is calculated. To change this, use ``ci`` in ``ts_args`` in `>
+        interval is calculated. To change this, use ``ci`` in ``ts_args`` in
+        ``image_args`` (see below).
     topomap_args : dict | None
         Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
         additional arguments. Defaults to None.
