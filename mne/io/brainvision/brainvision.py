@@ -836,3 +836,17 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,
                           stim_channel=stim_channel, verbose=verbose)
+
+
+def _bv_parser(description, add_for_r=1000):
+    """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
+    if description.startswith("Stimulus") or description.startswith("Response"):
+        try:
+            split_on = "S" if description.startswith("Stimulus") else "R"
+            code = int(description.split(split_on)[-1].lstrip())
+            if split_on == "R":
+                code += add_for_r
+            return code
+        except ValueError:  # probably not coercable to int
+            pass
+    return None

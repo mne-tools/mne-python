@@ -821,7 +821,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | callable | None
+    event_id : dict | callable | None | 'auto'
         Dictionary of string keys and integer values as used in mne.Epochs
         to map annotation descriptions to integer event codes. Only the
         keys present will be mapped and the annotations with other descriptions
@@ -829,6 +829,12 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         a string or that returns None for an event to ignore.
         If None, all descriptions of annotations are mapped
         and assigned arbitrary unique integer values.
+        If 'auto', use an appropriate parser if the raw instance corresponds
+        to any of the supported types (currently, only Brainvision files -
+        i.e., RawBrainVision - are supported; in this case, Stimulus events
+        will be stripped to their integer part, Response events will be mapped
+        to their integer part + 1000, and all other events dropped); otherwise
+        as None.
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
@@ -855,6 +861,13 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         return np.empty((0, 3), dtype=int), event_id
 
     annotations = raw.annotations
+
+    if event_id == "auto":
+        from .io.brainvision import RawBrainVision
+        if isinstance(raw, RawBrainVision):
+            from .io.brainvision.brainvision import _bv_parser as event_id
+        else:
+            event_id = None
 
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp)
