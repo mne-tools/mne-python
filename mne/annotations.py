@@ -813,22 +813,37 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 
 
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
-                            chunk_duration=None, verbose=None):
+def events_from_annotations(raw, event_id="auto", regexp=None,
+                            use_rounding=True, chunk_duration=None,
+                            verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | callable | None
-        Dictionary of string keys and integer values as used in mne.Epochs
-        to map annotation descriptions to integer event codes. Only the
-        keys present will be mapped and the annotations with other descriptions
-        will be ignored. Otherwise, a callable that provides an integer given
-        a string or that returns None for an event to ignore.
-        If None, all descriptions of annotations are mapped
-        and assigned arbitrary unique integer values.
+    event_id : dict | callable | None | 'auto'
+        Can be:
+
+        - **dict**: string keys mapping to and integer values as used in
+          :class:`mne.Epochs` to map annotation descriptions to integer event
+          codes. Only the keys present will be mapped and the annotations with
+          other descriptions will be ignored.
+        - **callable**: takes a string input, and returns an integer to use,
+          or None to ignore.
+        - **None**: All descriptions of annotations are mapped and assigned
+          unique integer values starting at 1 based on the ``sorted``
+          annotation descriptions.
+        - **'auto' (default)**: use an appropriate parser if the raw instance
+          corresponds to:
+
+          - Brainvision: stimulus events mapped to their integer part;
+            response events mapped to their integer part + 1000; all other
+            events dropped.
+          - All others: Behaves like None.
+
+          .. versionadded:: 0.18
+
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
@@ -855,6 +870,13 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         return np.empty((0, 3), dtype=int), event_id
 
     annotations = raw.annotations
+
+    if event_id == "auto":
+        from .io.brainvision.brainvision import RawBrainVision
+        if isinstance(raw, RawBrainVision):
+            from .io.brainvision.brainvision import _bv_parser as event_id
+        else:
+            event_id = None
 
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp)
