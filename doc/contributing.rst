@@ -514,7 +514,7 @@ relatively complex. To run some basic tests on documentation, you can use:
 
 .. code-block:: console
 
-    $ pytest mne/tests/test_docstring_parameters
+    $ pytest mne/tests/test_docstring_parameters.py
     $ make docstyle
 
 
@@ -575,9 +575,9 @@ Import modules in this order:
 4. MNE-Python imports (e.g., ``from .pick import pick_types``)
 
 When importing from other parts of MNE-Python, use relative imports in the main
-codebase and absolute imports in the tutorials and how-to examples. Imports for
-``matplotlib`` and optional modules (``sklearn``, ``pandas``, etc.) should be
-nested (i.e., within a function or method, not at the top of a file).
+codebase and absolute imports in tests, tutorials, and how-to examples. Imports
+for ``matplotlib`` and optional modules (``sklearn``, ``pandas``, etc.) should
+be nested (i.e., within a function or method, not at the top of a file).
 
 
 Return types
@@ -598,8 +598,11 @@ call those functions from the corresponding object methods. For example, the
 method :meth:`mne.Epochs.plot` internally calls the function
 :func:`mne.viz.plot_epochs`.
 
-All visualization functions must accept a boolean ``show`` parameter and return
-a :class:`~matplotlib.figure.Figure` handle.
+All visualization functions must accept a boolean ``show`` parameter and
+typically return a :class:`matplotlib.figure.Figure` (or a list of
+:class:`~matplotlib.figure.Figure` objects). 3D visualization functions return
+a :class:`mayavi.core.api.Scene`, :class:`surfer.Brain`, or other return type
+as appropriate.
 
 Visualization functions should default to the colormap ``RdBu_r`` for signed
 data with a meaningful middle (zero-point) and ``Reds`` otherwise. This applies
@@ -617,19 +620,28 @@ Running the full test suite is as simple as running
 
     $ make test
 
+.. sidebar:: pytest flags
+
+    The ``-x`` flag exits the pytest run as soon as the first test fails; this
+    can save some time if you are running an entire file's or module's worth of
+    tests instead of selecting just a single test as shown here.
+
+    The ``--pdb`` flag will automatically start the python debugger upon test
+    failure.
+
 from the ``mne-python`` root folder. Testing the entire module can be quite
 slow, however, so to run individual tests while working on a new feature, you
 can run, e.g.:
 
 .. code-block:: console
 
-    $ pytest mne/tests/test_evoked.py:test_io_evoked -x --verbose
+    $ pytest mne/tests/test_evoked.py:test_io_evoked --verbose
 
 Or alternatively:
 
 .. code-block:: console
 
-    $ pytest mne/tests/test_evoked.py -k test_io_evoked -x --verbose
+    $ pytest mne/tests/test_evoked.py -k test_io_evoked --verbose
 
 Make sure you have the testing dataset, which you can get by running this in
 a Python interpreter::
@@ -713,11 +725,12 @@ down the road. Here are the guidelines:
 - Our community uses the following commit tags and conventions:
 
   - Work-in-progress PRs should be created as `draft PRs`_ and the PR title
-    should begin with ``WIP``
+    should begin with ``WIP``.
 
   - When you believe a PR is ready to be reviewed and merged, `convert it
-    from a draft PR to a normal PR`_, and change its title to begin with
-    ``MRG``
+    from a draft PR to a normal PR`_, change its title to begin with ``MRG``,
+    and add a comment to the PR asking for reviews (changing the title does not
+    automatically notify maintainers).
 
   - PRs that only affect documentation should additionally be labelled
     ``DOC``, bugfixes should be labelled ``FIX``, and new features should be
@@ -726,7 +739,7 @@ down the road. Here are the guidelines:
     content).
 
   - the following commit tags are supported: ``[ci skip]``, ``[skip
-    travis]``, ``[skip appveyor]``, ``[skip circle]``, and ``[circle full]``.
+    travis]``, ``[skip azp]``, ``[skip circle]``, and ``[circle full]``.
     These should be used judiciously.
 
 `This sample pull request`_ exemplifies many of the conventions listed above:
