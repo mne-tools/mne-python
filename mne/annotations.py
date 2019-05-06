@@ -813,8 +813,9 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 
 
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
-                            chunk_duration=None, verbose=None):
+def events_from_annotations(raw, event_id="auto", regexp=None,
+                            use_rounding=True, chunk_duration=None,
+                            verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
@@ -863,7 +864,7 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     annotations = raw.annotations
 
     if event_id == "auto":
-        from .io.brainvision import RawBrainVision
+        from .io.brainvision.brainvision import RawBrainVision
         if isinstance(raw, RawBrainVision):
             from .io.brainvision.brainvision import _bv_parser as event_id
         else:
