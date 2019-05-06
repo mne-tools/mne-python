@@ -7,14 +7,16 @@ Datasets
    :local:
    :depth: 2
 
-All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
-use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
+All the dataset fetchers are available in :mod:`mne.datasets`. To download any
+of the datasets, use the ``data_path`` (fetches full dataset) or the
+``load_data`` (fetches dataset partially) functions.
 
 Sample
 ======
 :func:`mne.datasets.sample.data_path`
 
-:ref:`ch_sample_data` is recorded using a 306-channel Neuromag vectorview system.
+:ref:`ch_sample_data` is recorded using a 306-channel Neuromag vectorview
+system.
 
 In this experiment, checkerboard patterns were presented to the subject
 into the left and right visual field, interspersed by tones to the
@@ -23,7 +25,8 @@ a smiley face was presented at the center of the visual field.
 The subject was asked to press a key with the right index finger
 as soon as possible after the appearance of the face.
 
-Once the ``data_path`` is known, its contents can be examined using :ref:`IO functions <ch_convert>`.
+Once the ``data_path`` is known, its contents can be examined using :ref:`IO
+functions <ch_convert>`.
 
 fsaverage
 =========
@@ -38,15 +41,17 @@ For convenience, we provide a function to separately download and extract the
 
 Brainstorm
 ==========
-Dataset fetchers for three Brainstorm tutorials are available. Users must agree to the
-license terms of these datasets before downloading them. These files are recorded in a CTF 275 system
-and are provided in native CTF format (.ds files).
+
+Dataset fetchers for three Brainstorm tutorials are available. Users must agree
+to the license terms of these datasets before downloading them. These files are
+recorded in a CTF 275 system and are provided in native CTF format (.ds files).
 
 Auditory
 ^^^^^^^^
 :func:`mne.datasets.brainstorm.bst_raw.data_path`.
 
-Details about the data can be found at the Brainstorm `auditory dataset tutorial`_.
+Details about the data can be found at the Brainstorm `auditory dataset
+tutorial`_.
 
 .. topic:: Examples
 
@@ -76,14 +81,16 @@ MEGSIM
 ======
 :func:`mne.datasets.megsim.load_data`
 
-This dataset contains experimental and simulated MEG data. To load data from this dataset, do::
+This dataset contains experimental and simulated MEG data. To load data from
+this dataset, do::
 
     from mne.io import Raw
     from mne.datasets.megsim import load_data
     raw_fnames = load_data(condition='visual', data_format='raw', data_type='experimental', verbose=True)
     raw = Raw(raw_fnames[0])
 
-Detailed description of the dataset can be found in the related publication [1]_.
+Detailed description of the dataset can be found in the related publication
+[1]_.
 
 .. topic:: Examples
 
@@ -93,7 +100,8 @@ SPM faces
 =========
 :func:`mne.datasets.spm_face.data_path`
 
-The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perception.
+The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face
+perception.
 
 .. topic:: Examples
 
@@ -103,9 +111,10 @@ EEGBCI motor imagery
 ====================
 :func:`mne.datasets.eegbci.load_data`
 
-The EEGBCI dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
-The dataset contains 64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+ format.
-The recordings were made using the BCI2000 system. To load a subject, do::
+The EEGBCI dataset is documented in [2]_. The data set is available at
+PhysioNet [3]_. The dataset contains 64-channel EEG recordings from 109
+subjects and 14 runs on each subject in EDF+ format. The recordings were made
+using the BCI2000 system. To load a subject, do::
 
     from mne.io import concatenate_raws, read_raw_edf
     from mne.datasets import eegbci
@@ -218,17 +227,18 @@ Kiloword dataset
 ================
 :func:`mne.datasets.kiloword.data_path`.
 
-This dataset consists of averaged EEG data from 75 subjects performing a lexical decision
-task on 960 English words [6]_. The words are richly annotated, and can be used for e.g.
-multiple regression estimation of EEG correlates of printed word processing.
+This dataset consists of averaged EEG data from 75 subjects performing a
+lexical decision task on 960 English words [6]_. The words are richly
+annotated, and can be used for e.g. multiple regression estimation of EEG
+correlates of printed word processing.
 
 
 4D Neuroimaging / BTi dataset
 =============================
 :func:`mne.datasets.phantom_4dbti.data_path`.
 
-This dataset was obtained with a phantom on a 4D Neuroimaging / BTi system at the MEG
-center in La Timone hospital in Marseille.
+This dataset was obtained with a phantom on a 4D Neuroimaging / BTi system at
+the MEG center in La Timone hospital in Marseille.
 
 
 OPM
@@ -255,9 +265,10 @@ Triggers include:
 
 * Median nerve stimulation: trigger value 257.
 * Magnetic trigger (in OPM measurement only): trigger value 260.
-  1 second before the median nerve stimulation, a magnetic trigger is piped into the MSR.
-  This was to be able to check the synchronization between OPMs retrospectively, as each
-  sensor runs on an indepent clock. Synchronization turned out to be satisfactory
+  1 second before the median nerve stimulation, a magnetic trigger is piped
+  into the MSR. This was to be able to check the synchronization between OPMs
+  retrospectively, as each sensor runs on an indepent clock. Synchronization
+  turned out to be satisfactory
 
 .. topic:: Examples
 
@@ -283,18 +294,42 @@ data please cite [7]_ and [8]_.
 References
 ==========
 
-.. [1] Aine CJ, Sanfratello L, Ranken D, Best E, MacArthur JA, Wallace T, Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using Realistic Simulated and Empirical Data. Neuroinform 10:141-158
+.. [1] Aine CJ, Sanfratello L, Ranken D, Best E, MacArthur JA, Wallace T,
+       Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM (2012)
+       MEG-SIM: A Web Portal for Testing MEG Analysis Methods using Realistic
+       Simulated and Empirical Data. Neuroinform 10:141-158
 
-.. [2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N., Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface (BCI) System. IEEE TBME 51(6):1034-1043
+.. [2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N., Wolpaw,
+       J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface (BCI)
+       System. IEEE TBME 51(6):1034-1043
 
-.. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220
+.. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
+       Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
+       PhysioToolkit, and PhysioNet: Components of a New Research Resource for
+       Complex Physiologic Signals. Circulation 101(23):e215-e220
 
-.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. Resolving human object recognition in space and time. Nature Neuroscience (2014): 17(3), 455-462
+.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. Resolving human object
+       recognition in space and time. Nature Neuroscience (2014): 17(3),
+       455-462
 
-.. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli. Frontiers in Human Neuroscience (2016): 10.
+.. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The
+       Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox
+       for Relating Neural Signals to Continuous Stimuli. Frontiers in Human
+       Neuroscience (2016): 10.
 
-.. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are worth a picture: Snapshots of printed-word processing in an event-related potential megastudy. Psychological science, 2015
+.. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are
+       worth a picture: Snapshots of printed-word processing in an
+       event-related potential megastudy. Psychological science, 2015
 
-.. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000). https://ieeexplore.ieee.org/document/867928
+.. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a
+       sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of
+       the EEG. IEEE-BME 47(9):1185-1194 (2000).
+       https://ieeexplore.ieee.org/document/867928
 
-.. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220 [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June 13).
+.. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
+       Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit,
+       and PhysioNet: Components of a New Research Resource for Complex
+       Physiologic Signals. Circulation 101(23):e215-e220 [Circulation
+       Electronic Pages;
+       http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June
+       13).
