@@ -469,7 +469,7 @@ def test_read_vmrk_annotations():
     except FileNotFoundError:
         pass
 
-    raw = read_raw_brainvision(vhdr_fname)
+    raw = read_raw_brainvision(vhdr_path)
     events, event_id = events_from_annotations(raw)
     for key, values in event_id.items():
         assert int(key[-3:].lstrip()) == values
