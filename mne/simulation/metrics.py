@@ -145,6 +145,7 @@ def _cosine(x, y):
     else:
         return 0
 
+
 @fill_doc
 def stc_cosine_score(stc_true, stc_est, per_sample=True):
     """Compute cosine similarity between 2 source estimates.
