@@ -24,7 +24,7 @@ Current
 Changelog
 ~~~~~~~~~
 - :func:`mne.beamformer.apply_lcmv_cov` returns static source power after supplying a data covariance matrix to the beamformer filter by `Britta Westner`_ and `Marijn van Vliet`_
-  
+
 - Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
 
 - :meth:`mne.Epochs.get_data` now takes a ``picks`` parameter by `Jona Sassenhagen`_
@@ -62,6 +62,8 @@ Changelog
 - Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
 
 - Add envelope correlation code in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
+
+- Add option to toggle all projectors in :meth:`mne.io.Raw.plot` and related functions by `Eric Larson`_
 
 - Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
 
