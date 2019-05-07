@@ -1230,7 +1230,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 # Matplotlib
 
 def _get_status(checks):
-    """Deal with old MPL to get status box statuses."""
+    """Deal with old MPL to get check box statuses."""
     try:
         return list(checks.get_status())
     except AttributeError:
