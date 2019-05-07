@@ -847,5 +847,5 @@ def _bv_parser(description, add_for_r=1000):
                 code += add_for_r
             return code
         except ValueError:  # probably not coercable to int
-            warn("Marker % could not be parsed and will be dropped."
+            warn("Marker '%s' could not be parsed and will be dropped."
                  % description)
