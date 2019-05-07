@@ -3,10 +3,9 @@
 Compare simulated and estimated source activity
 ===============================================
 
-This example illustrates how to use :mod:`mne.simulation.metrics`
-module to compare the simulated and estimated stcs by computing different
-metrics. It is meant to be a brief introduction and only highlights
-the simplest use case.
+This example illustrates how to compare the simulated and estimated
+stcs by computing different metrics. It is meant to be a brief
+introduction and only highlights the simplest use case.
 
 """
 # Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
