@@ -138,8 +138,12 @@ def _thresholding(stc_true, stc_est, threshold):
 def _cosine(x, y):
     p = np.reshape(x, (-1, 1))
     q = np.reshape(y, (-1, 1))
-    return np.dot(p.T, q) / (norm(p) * norm(q))
-
+    if norm(p) * norm(q):
+        return (np.dot(p.T, q) / (norm(p) * norm(q)))[0][0]
+    elif norm(p) == norm(q):
+        return 1
+    else:
+        return 0
 
 @fill_doc
 def stc_cosine_score(stc_true, stc_est, per_sample=True):
