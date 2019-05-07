@@ -27,6 +27,7 @@ import warnings
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
+from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
@@ -302,7 +303,7 @@ def _toggle_proj(event, params, all_=False):
     """Perform operations when proj boxes clicked."""
     # read options if possible
     if 'proj_checks' in params:
-        bools = list(params['proj_checks'].get_status())
+        bools = _get_status(params['proj_checks'])
         if all_:
             new_bools = [not all(bools)] * len(bools)
             with _events_off(params['proj_checks']):

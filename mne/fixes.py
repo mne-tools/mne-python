@@ -1224,3 +1224,14 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     outline[6:, 1] += cbar.norm(cbar_vmin)
     cbar.outline.set_xy(outline)
     cbar.set_ticks(new_tick_locs, update_ticks=True)
+
+
+###############################################################################
+# Matplotlib
+
+def _get_status(checks):
+    """Deal with old MPL to get status box statuses."""
+    try:
+        return list(checks.get_status())
+    except AttributeError:
+        return [x[0].get_visible() for x in checks.lines]
