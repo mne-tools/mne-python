@@ -842,10 +842,10 @@ def _bv_parser(description, add_for_r=1000):
     """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
     if description.startswith("Stim") or description.startswith("Resp"):
         try:
-            split_on = "S" if description.startswith("Stimulus") else "R"
-            code = int(description.split(split_on)[-1].lstrip())
-            if split_on == "R":
+            event_type, code = description[-4], int(description[-3:])
+            if event_type.lower() == "r":
                 code += add_for_r
             return code
         except ValueError:  # probably not coercable to int
-            warn("Marker " + str(code) + " could not be parsed and is dropped.")
+            warn("Marker % could not be parsed and will be dropped."
+                 % description)
