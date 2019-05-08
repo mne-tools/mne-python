@@ -5,13 +5,17 @@ Introduction to  MEG and EEG data processing with MNE-Python
 ============================================================
 
 This tutorial covers the basic EEG/MEG pipeline for event-related analysis:
-loading data, epoching, averaging, plotting, and projecting estimates into
-source space. It introduces the core MNE-Python data structures
+loading data, epoching, averaging, plotting, and estimating cortical activity
+from sensor data. It introduces the core MNE-Python data structures
 :class:`~mne.io.Raw`, :class:`~mne.Epochs`, :class:`~mne.Evoked`, and
-:class:`~mne.SourceEstimate`, and covers a lot of ground fairly
-quickly (at the expense of depth); subsequent tutorials address each of these
-topics in greater detail.
+:class:`~mne.SourceEstimate`, and covers a lot of ground fairly quickly (at the
+expense of depth). Subsequent tutorials address each of these topics in greater
+detail. We begin by importing the necessary Python modules:
 """
+
+import os
+import numpy as np
+import mne
 
 ###############################################################################
 # Loading data
@@ -32,19 +36,9 @@ topics in greater detail.
 # documentation of :func:`~mne.datasets.sample.data_path` for a list of places
 # it checks before downloading).
 
-import os
-import numpy as np
-import mne
-
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-
-###############################################################################
-# Now we can load the sample data; since it has a ``.fif`` extension we'll use
-# :func:`mne.io.read_raw_fif`. This will return a :class:`~mne.io.Raw` object,
-# which we'll store in a variable called ``raw``.
-
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=False)
 
 ###############################################################################
@@ -59,19 +53,21 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=False)
 # By default, :func:`~mne.io.read_raw_fif` displays some information about the
 # file it's loading; for example, here it tells us that there are three
 # "projection items" in the file along with the recorded data; those are
-# discussed in a later tutorial. In addition to
-# the information displayed during loading, you can get a glimpse of the basic
-# details of a :class:`~mne.io.Raw` object by printing it:
+# :term:`SSP projectors <projector>` for environmental noise, and are discussed
+# in a later tutorial. In addition to the information displayed during loading,
+# you can get a glimpse of the basic details of a :class:`~mne.io.Raw` object
+# by printing it:
 #
-# .. TODO edit prev. paragraph when projectors tutorial is added:
-#     ...those are discussed in the tutorial :ref:`projectors-basics-tutorial`.
+# .. TODO edit prev. paragraph when projectors tutorial is added: ...those are
+#     discussed in the tutorial :ref:`projectors-tutorial`. (or whatever link)
 
 print(raw)
 
 ###############################################################################
 # :class:`~mne.io.Raw` objects also have several built-in plotting methods; in
-# interactive Python sessions the basic :meth:`~mne.io.Raw.plot` is interactive
-# and allows scrolling, scaling, bad channel marking, annotation, etc.
+# interactive Python sessions the basic :meth:`~mne.io.Raw.plot` method is
+# interactive and allows scrolling, scaling, bad channel marking, annotation,
+# projector toggling, etc.
 
 raw.plot(duration=5, n_channels=30)
 
@@ -82,37 +78,37 @@ raw.plot(duration=5, n_channels=30)
 # MNE-Python supports a variety of preprocessing approaches and techniques
 # (maxwell filtering, signal-space projection, independent components analysis,
 # filtering, downsampling, etc), see the full list of functions in the
-# :mod:`mne.preprocessing` submodule. Here we'll quickly clean up our data by
-# adding SSP projectors for eye movements and heartbeats; we'll also plot the
-# projectors to show the field characteristics that we're projecting out:
+# :mod:`mne.preprocessing` and :mod:`mne.filter` submodules. Here we'll quickly
+# clean up our data by adding SSP projectors for eye movements and heartbeats;
+# we'll also plot the projectors to show the field characteristics that we're
+# projecting out:
 
 # eye movement/blink projectors
 kwargs = dict(n_grad=1, n_mag=1, n_eeg=1, average=True, no_proj=True)
 eog_projs, eog_events = mne.preprocessing.compute_proj_eog(raw, **kwargs)
-raw.add_proj(eog_projs)
-mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 
 # heartbeat projectors
 kwargs.update(n_eeg=0, reject=None)
 ecg_projs, ecg_events = mne.preprocessing.compute_proj_ecg(raw, **kwargs)
-raw.add_proj(ecg_projs)
-mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
+
+raw.add_proj(eog_projs + ecg_projs)
+mne.viz.plot_projs_topomap(eog_projs + ecg_projs, info=raw.info)
 
 ###############################################################################
-# Detecting events
-# ^^^^^^^^^^^^^^^^
+# Detecting experimental events
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# The sample dataset includes several "STIM" channels that record electrical
-# signals sent from the stimulus delivery computer (typically as brief DC
-# shifts / squarewave pulses). These pulses (often called "triggers") are used
-# in this dataset to mark experimental events: stimulus onset, stimulus type,
-# and participant response (button press). The individual STIM channels are
+# The sample dataset includes several "STIM" channels that recorded electrical
+# signals sent from the stimulus delivery computer (as brief DC shifts /
+# squarewave pulses). These pulses (often called "triggers") are used in this
+# dataset to mark experimental events: stimulus onset, stimulus type, and
+# participant response (button press). The individual STIM channels are
 # combined in a binary weighted sum onto a single channel, such that voltage
 # levels on that channel can be unambiguously decoded as a particular event
 # type. On older Neuromag systems (such as that used to record the sample data)
-# this summation channel was called ``STI 014``, so we pass that channel name
-# to the :func:`mne.find_events` function to recover the timing and identity of
-# the stimulus events.
+# this summation channel was called ``STI 014``, so we can pass that channel
+# name to the :func:`mne.find_events` function to recover the timing and
+# identity of the stimulus events.
 
 events = mne.find_events(raw, stim_channel='STI 014')
 print(events[:5])  # show the first 5
@@ -150,11 +146,10 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # across conditions by requesting partial condition descriptors (i.e.,
 # requesting ``'auditory'`` will select all epochs with Event IDs 1 and 2;
 # requesting ``'left'`` will select all epochs with Event IDs 1 and 3). An
-# example of this is shown in the next section.
-#
-# There is also a convenient :func:`~mne.viz.plot_events`
-# function for visualizing the distribution of events across the duration of
-# the recording:
+# example of this is shown in the next section. There is also a convenient
+# :func:`~mne.viz.plot_events` function for visualizing the distribution of
+# events across the duration of the recording (to make sure event detection
+# worked as expected):
 
 fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw.info['sfreq'])
 fig.subplots_adjust(right=0.7)  # make room for the legend
@@ -165,7 +160,7 @@ fig.subplots_adjust(right=0.7)  # make room for the legend
 #
 # The :class:`~mne.io.Raw` object and the events array are the bare minimum
 # needed to create an :class:`~mne.Epochs` object, which we create with the
-# :class:`mne.Epochs` class constructor. However, we'll also specify some data
+# :class:`mne.Epochs` class constructor. Here we'll also specify some data
 # quality constraints: we'll reject any epoch where peak-to-peak signal
 # amplitude is beyond reasonable limits for that channel type. This is done
 # with a *rejection dictionary*:
@@ -177,7 +172,7 @@ reject_criteria = dict(mag=4e-12,     # 4000 fT
 
 ###############################################################################
 # We'll also pass the event dictionary as the ``event_id`` parameter (so we can
-# work with poolable event labels instead of the integer event IDs), and
+# work with easy-to-pool event labels instead of the integer event IDs), and
 # specify ``tmin`` and ``tmax`` (the time relative to each event at which to
 # start and end each epoch). Finally, since we didn't preload the
 # :class:`~mne.io.Raw` data, we'll tell the :class:`~mne.Epochs` constructor to
@@ -188,14 +183,14 @@ epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.2, tmax=0.5,
 
 ###############################################################################
 # Next we'll pool across left/right stimulus presentations so we can compare
-# auditory versus visual responses. But to avoid biasing our signals to the
+# auditory versus visual responses. To avoid biasing our signals to the
 # left or right, we'll use :meth:`~mne.Epochs.equalize_event_counts` first to
 # randomly sample epochs from each condition to match the number of epochs
-# present in the condition with the good fewest epochs.
+# present in the condition with the fewest good epochs.
 
 conds_we_care_about = ['auditory/left', 'auditory/right',
                        'visual/left', 'visual/right']
-epochs.equalize_event_counts(conds_we_care_about)    # this operates in-place
+epochs.equalize_event_counts(conds_we_care_about)  # this operates in-place
 aud_epochs = epochs['auditory']
 vis_epochs = epochs['visual']
 del raw, epochs  # free up memory
@@ -204,7 +199,8 @@ del raw, epochs  # free up memory
 # Like :class:`~mne.io.Raw` objects, :class:`~mne.Epochs` objects also have a
 # number of built-in plotting methods. One is :meth:`~mne.Epochs.plot_image`,
 # which shows each epoch as one row of an image map, with color representing
-# signal magnitude:
+# signal magnitude; the average evoked response and the sensor location are
+# shown below the image:
 
 aud_epochs.plot_image(picks=['MEG 1332', 'EEG 021'])
 
@@ -248,12 +244,14 @@ evoked_diff = mne.combine_evoked([aud_evoked, -vis_evoked], weights='equal')
 evoked_diff.pick_types('mag').plot_topo(color='r', legend=False)
 
 ##############################################################################
-# Time-Frequency analysis
+# Time-frequency analysis
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# MNE-Python also provides various frequency- and time-frequency analysis
-# methods. Here, for example, we'll compute  for the auditory epochs the
-# induced power at different frequencies and times:
+# The :mod:`mne.time_frequency` submodule provides implementations of several
+# algorithms to compute time-frequency representations, power spectral density,
+# and cross-spectral density. Here, for example, we'll compute for the
+# auditory epochs the induced power at different frequencies and times, using
+# Morlet wavelets:
 
 frequencies = np.arange(7, 30, 3)
 power = mne.time_frequency.tfr_morlet(aud_epochs, n_cycles=2, return_itc=False,
@@ -292,4 +290,4 @@ source_time_course.plot(initial_time=0.1, hemi='split', views=['lat', 'med'])
 # connectivity analysis, encoding/decoding models, lots more visualization
 # options, etc). Read on to learn more!
 
-# sphinx_gallery_thumbnail_number = 7
+# sphinx_gallery_thumbnail_number = 9
