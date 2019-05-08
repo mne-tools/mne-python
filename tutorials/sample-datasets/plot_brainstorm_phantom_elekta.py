@@ -43,7 +43,7 @@ print(__doc__)
 data_path = bst_phantom_elekta.data_path(verbose=True)
 
 raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
-raw = read_raw_fif(raw_fname)
+raw = read_raw_fif(raw_fname).load_data()
 
 ###############################################################################
 # Data channel array consisted of 204 MEG planor gradiometers,
@@ -52,7 +52,7 @@ raw = read_raw_fif(raw_fname)
 
 events = find_events(raw, 'STI201')
 raw.plot(events=events)
-raw.info['bads'] = ['MEG2421']
+raw.info['bads'] = ['MEG1933', 'MEG2421']
 
 ###############################################################################
 # The data have strong line frequency (60 Hz and harmonics) and cHPI coil
@@ -62,17 +62,9 @@ raw.info['bads'] = ['MEG2421']
 raw.plot_psd(tmax=60., average=False)
 
 ###############################################################################
-# Let's use Maxwell filtering to clean the data a bit.
-# Ideally we would have the fine calibration and cross-talk information
-# for the site of interest, but we don't, so we just do:
-
-raw.fix_mag_coil_types()
-raw = mne.preprocessing.maxwell_filter(raw, origin=(0., 0., 0.))
-
-###############################################################################
 # We know our phantom produces sinusoidal bursts below 25 Hz, so let's filter.
 
-raw.filter(None, 40., fir_design='firwin')
+raw.filter(None, 40.)
 raw.plot(events=events)
 
 ###############################################################################
@@ -81,9 +73,11 @@ raw.plot(events=events)
 # we can also decimate our data to save memory.
 
 tmin, tmax = -0.1, 0.1
+bmax = -0.05  # Avoid capture filter ringing into baseline
 event_id = list(range(1, 33))
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01),
-                    decim=3, preload=True)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, bmax),
+                    decim=5, preload=True)
+del raw
 epochs['1'].average().plot(time_unit='s')
 
 ###############################################################################
@@ -94,7 +88,7 @@ epochs['1'].average().plot(time_unit='s')
 # is properly modeled by a single-shell sphere with origin (0., 0., 0.).
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
 
-mne.viz.plot_alignment(raw.info, subject='sample', show_axes=True,
+mne.viz.plot_alignment(epochs.info, subject='sample', show_axes=True,
                        bem=sphere, dig=True, surfaces='inner_skull')
 
 ###############################################################################
@@ -105,16 +99,17 @@ mne.viz.plot_alignment(raw.info, subject='sample', show_axes=True,
 # here we can get away with using method='oas' for speed (faster than "shrunk")
 # but in general "shrunk" is usually better
 cov = mne.compute_covariance(
-    epochs, tmax=0, method='oas', rank=None)
+    epochs, tmax=bmax, method='oas', rank=None)
 mne.viz.plot_evoked_white(epochs['1'].average(), cov)
 
 data = []
 t_peak = 0.036  # true for Elekta phantom
 for ii in event_id:
-    evoked = epochs[str(ii)].average().crop(t_peak, t_peak)
+    # Avoid the first and last trials -- can contain dipole-switching artifacts
+    evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
-del epochs, raw
+del epochs
 dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
 
 ###############################################################################
