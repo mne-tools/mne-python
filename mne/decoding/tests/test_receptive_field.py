@@ -536,6 +536,7 @@ def test_inverse_coef():
         assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.2)
 
 
+@requires_sklearn
 @requires_version('scipy', '1.0')
 def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
