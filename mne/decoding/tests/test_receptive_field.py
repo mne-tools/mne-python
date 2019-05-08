@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne import io, pick_types
 from mne.fixes import einsum
-from mne.utils import requires_sklearn, run_tests_if_main
+from mne.utils import requires_version, requires_sklearn, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -494,27 +494,28 @@ def test_receptive_field_nd(n_jobs):
         assert score > 0.6
 
 
+def _make_data(n_feats, n_targets, n_samples, tmin, tmax):
+    rng = np.random.RandomState(0)
+    X = rng.randn(n_samples, n_feats)
+    w = rng.randn(int((tmax - tmin) + 1) * n_feats, n_targets)
+    # Delay inputs
+    X_del = np.concatenate(
+        _delay_time_series(X, tmin, tmax, 1.).transpose(2, 0, 1), axis=1)
+    y = np.dot(X_del, w)
+    return X, y
+
+
 @requires_sklearn
 def test_inverse_coef():
     """Test inverse coefficients computation."""
     from sklearn.linear_model import Ridge
 
-    rng = np.random.RandomState(0)
     tmin, tmax = 0., 10.
     n_feats, n_targets, n_samples = 3, 2, 1000
     n_delays = int((tmax - tmin) + 1)
 
-    def make_data(n_feats, n_targets, n_samples, tmin, tmax):
-        X = rng.randn(n_samples, n_feats)
-        w = rng.randn(int((tmax - tmin) + 1) * n_feats, n_targets)
-        # Delay inputs
-        X_del = np.concatenate(
-            _delay_time_series(X, tmin, tmax, 1.).transpose(2, 0, 1), axis=1)
-        y = np.dot(X_del, w)
-        return X, y
-
     # Check coefficient dims, for all estimator types
-    X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)
+    X, y = _make_data(n_feats, n_targets, n_samples, tmin, tmax)
     tdr = TimeDelayingRidge(tmin, tmax, 1., 0.1, 'laplacian')
     for estimator in (0., 0.01, Ridge(alpha=0.), tdr):
         rf = ReceptiveField(tmin, tmax, 1., estimator=estimator,
@@ -534,11 +535,15 @@ def test_inverse_coef():
         c1 = rf.patterns_.reshape(n_targets, n_feats * n_delays)
         assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.2)
 
-    # Check that warnings are issued when no regularization is applied
+
+@requires_version('scipy', '1.0')
+def test_linalg_warning():
+    """Test that warnings are issued when no regularization is applied."""
+    from sklearn.linear_model import Ridge
     n_feats, n_targets, n_samples = 5, 60, 50
-    X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)
+    X, y = _make_data(n_feats, n_targets, n_samples, tmin, tmax)
     for estimator in (0., Ridge(alpha=0.)):
-        rf = ReceptiveField(tmin, tmax, 1., estimator=estimator, patterns=True)
+        rf = ReceptiveField(tmin, tmax, 1., estimator=estimator)
         with pytest.warns((RuntimeWarning, UserWarning),
                           match='[Singular|scipy.linalg.solve]'):
             rf.fit(y, X)
