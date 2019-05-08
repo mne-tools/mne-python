@@ -119,8 +119,9 @@ MNE-Python core terminology and general concepts
         See :class:`~io.RawArray` for the API of the corresponding
         object class, and :ref:`tut-raw-class` for a narrative overview.
 
-    source space (abbr. ``src``)
-        A source space specifies where in the brain one wants to estimate the
+    source space
+        A source space (abbr. ``src``) specifies where in the brain one wants
+        to estimate the
         source amplitudes. It corresponds to locations of a set of
         candidate equivalent current dipoles (ECD). MNE mostly works
         with source spaces defined on the cortical surfaces estimated

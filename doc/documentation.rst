@@ -178,7 +178,7 @@ this package. You can also find a gallery of these examples in the
 .. toctree::
     :maxdepth: 1
 
-    manual/datasets_index.rst
+    datasets.rst
     auto_tutorials/sample-datasets/plot_brainstorm_auditory.rst
     auto_tutorials/sample-datasets/plot_brainstorm_phantom_ctf.rst
     auto_tutorials/sample-datasets/plot_brainstorm_phantom_elekta.rst

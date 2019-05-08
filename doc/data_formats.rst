@@ -24,7 +24,7 @@ MEG           Artemis123     .bin       :func:`mne.io.read_raw_artemis123`
 
 MEG           4-D            .dir       :func:`mne.io.read_raw_bti`
               Neuroimaging
-              / BTI
+              / BTi
 
 MEG           CTF            .dir       :func:`mne.io.read_raw_ctf`
 
