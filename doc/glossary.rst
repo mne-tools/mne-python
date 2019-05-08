@@ -103,8 +103,9 @@ MNE-Python core terminology and general concepts
         It allows to obtain the information on a channel in the list of channels
         available in ``info['chs']``.
 
-    projector, (abbr. ``proj``)
-        A projector, also referred to a Signal Suspace Projection (SSP), defines
+    projector
+        A projector (abbr. ``proj``), also referred to a Signal Space
+        Projection (SSP), defines
         a linear operation applied spatially to EEG or MEG data. You can see
         this as a matrix multiplication that reduces the rank of the data by
         projecting it to a lower dimensional subspace. Such a projection
@@ -119,8 +120,9 @@ MNE-Python core terminology and general concepts
         See :class:`~io.RawArray` for the API of the corresponding
         object class, and :ref:`tut-raw-class` for a narrative overview.
 
-    source space (abbr. ``src``)
-        A source space specifies where in the brain one wants to estimate the
+    source space
+        A source space (abbr. ``src``) specifies where in the brain one wants
+        to estimate the
         source amplitudes. It corresponds to locations of a set of
         candidate equivalent current dipoles (ECD). MNE mostly works
         with source spaces defined on the cortical surfaces estimated

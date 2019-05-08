@@ -10,6 +10,8 @@ Datasets
 All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
 use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
 
+.. _sample-dataset:
+
 Sample
 ======
 :func:`mne.datasets.sample.data_path`
