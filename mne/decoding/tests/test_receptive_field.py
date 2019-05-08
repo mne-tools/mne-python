@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne import io, pick_types
 from mne.fixes import einsum
-from mne.utils import requires_version, run_tests_if_main
+from mne.utils import requires_sklearn, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -57,7 +57,7 @@ def test_compute_reg_neighbors():
                     err_msg='%s: %s' % (reg_type, (n_ch_x, n_delays)))
 
 
-@requires_version('sklearn', '0.17')
+@requires_sklearn
 def test_rank_deficiency():
     """Test signals that are rank deficient."""
     # See GH#4253
@@ -110,10 +110,11 @@ def test_time_delay():
         ((-.1, .1), 10)]
     for (tmin, tmax), isfreq in test_tlims:
         # sfreq must be int/float
-        pytest.raises(TypeError, _delay_time_series, X, tmin, tmax, sfreq=[1])
+        with pytest.raises(TypeError, match='`sfreq` must be an instance of'):
+            _delay_time_series(X, tmin, tmax, sfreq=[1])
         # Delays must be int/float
-        pytest.raises(TypeError, _delay_time_series, X,
-                      np.complex(tmin), tmax, 1)
+        with pytest.raises(TypeError, match='.*complex.*'):
+            _delay_time_series(X, np.complex(tmin), tmax, 1)
         # Make sure swapaxes works
         start, stop = int(round(tmin * isfreq)), int(round(tmax * isfreq)) + 1
         n_delays = stop - start
@@ -148,8 +149,8 @@ def test_time_delay():
 
 
 @pytest.mark.parametrize('n_jobs', n_jobs_test)
-@requires_version('sklearn', '0.17')
-def test_receptive_field(n_jobs):
+@requires_sklearn
+def test_receptive_field_basic(n_jobs):
     """Test model prep and fitting."""
     from sklearn.linear_model import Ridge
     # Make sure estimator pulling works
@@ -182,14 +183,19 @@ def test_receptive_field(n_jobs):
     assert scores > .99
     assert_allclose(rf.coef_.T.ravel(), w, atol=1e-3)
     # Make sure different input shapes work
-    rf.fit(X[:, np.newaxis:, ], y[:, np.newaxis])
+    rf.fit(X[:, np.newaxis:], y[:, np.newaxis])
     rf.fit(X, y[:, np.newaxis])
-    pytest.raises(ValueError, rf.fit, X[..., np.newaxis], y)
-    pytest.raises(ValueError, rf.fit, X[:, 0], y)
-    pytest.raises(ValueError, rf.fit, X[..., np.newaxis],
-                  np.tile(y[..., np.newaxis], [2, 1, 1]))
-    # stim features must match length of input data
-    pytest.raises(ValueError, rf.fit, X[:, :1], y)
+    with pytest.raises(ValueError, match='If X has 3 .* y must have 2 or 3'):
+        rf.fit(X[..., np.newaxis], y)
+    with pytest.raises(ValueError, match='X must be shape'):
+        rf.fit(X[:, 0], y)
+    with pytest.raises(ValueError, match='X and y do not have the same n_epo'):
+        rf.fit(X[:, np.newaxis], np.tile(y[:, np.newaxis, np.newaxis],
+                                         [1, 2, 1]))
+    with pytest.raises(ValueError, match='X and y do not have the same n_tim'):
+        rf.fit(X, y[:-2])
+    with pytest.raises(ValueError, match='n_features in X does not match'):
+        rf.fit(X[:, :1], y)
     # auto-naming features
     feature_names = ['feature_%s' % ii for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod,
@@ -198,26 +204,22 @@ def test_receptive_field(n_jobs):
     rf = ReceptiveField(tmin, tmax, 1, estimator=mod)
     rf.fit(X, y)
     assert_equal(rf.feature_names, None)
-    # X/y same n timepoints
-    pytest.raises(ValueError, rf.fit, X, y[:-2])
     # Float becomes ridge
-    rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'],
-                        estimator=0, patterns=True)
+    rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'], estimator=0)
     str(rf)  # repr works before fit
     rf.fit(X, y)
     assert isinstance(rf.estimator_, TimeDelayingRidge)
     str(rf)  # repr works after fit
-    rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0, patterns=True)
+    rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0)
     rf.fit(X[:, [0]], y)
     str(rf)  # repr with one feature
     # Should only accept estimators or floats
-    rf = ReceptiveField(tmin, tmax, 1, estimator='foo', patterns=True)
-    pytest.raises(ValueError, rf.fit, X, y)
-    rf = ReceptiveField(tmin, tmax, 1, estimator=np.array([1, 2, 3]))
-    pytest.raises(ValueError, rf.fit, X, y)
-    # tmin must be <= tmax
-    rf = ReceptiveField(5, 4, 1, patterns=True)
-    pytest.raises(ValueError, rf.fit, X, y)
+    with pytest.raises(ValueError, match='`estimator` must be a float or'):
+        ReceptiveField(tmin, tmax, 1, estimator='foo').fit(X, y)
+    with pytest.raises(ValueError, match='`estimator` must be a float or'):
+        ReceptiveField(tmin, tmax, 1, estimator=np.array([1, 2, 3])).fit(X, y)
+    with pytest.raises(ValueError, match='tmin .* must be at most tmax'):
+        ReceptiveField(5, 4, 1).fit(X, y)
     # scorers
     for key, val in _SCORERS.items():
         rf = ReceptiveField(tmin, tmax, 1, ['one'],
@@ -227,12 +229,11 @@ def test_receptive_field(n_jobs):
         assert_allclose(val(y[:, np.newaxis], y_pred,
                             multioutput='raw_values'),
                         rf.score(X[:, [0]], y), rtol=1e-2)
-    # Need 2D input
-    pytest.raises(ValueError, _SCORERS['corrcoef'], y.ravel(), y_pred,
-                  multioutput='raw_values')
+    with pytest.raises(ValueError, match='inputs must be shape'):
+        _SCORERS['corrcoef'](y.ravel(), y_pred, multioutput='raw_values')
     # Need correct scorers
-    rf = ReceptiveField(tmin, tmax, 1., scoring='foo')
-    pytest.raises(ValueError, rf.fit, X, y)
+    with pytest.raises(ValueError, match='scoring must be one of'):
+        ReceptiveField(tmin, tmax, 1., scoring='foo').fit(X, y)
 
 
 @pytest.mark.parametrize('n_jobs', n_jobs_test)
@@ -338,7 +339,7 @@ def test_time_delaying_fast_calc(n_jobs):
 
 
 @pytest.mark.parametrize('n_jobs', n_jobs_test)
-@requires_version('sklearn', '0.17')
+@requires_sklearn
 def test_receptive_field_1d(n_jobs):
     """Test that the fast solving works like Ridge."""
     from sklearn.linear_model import Ridge
@@ -392,7 +393,7 @@ def test_receptive_field_1d(n_jobs):
 
 
 @pytest.mark.parametrize('n_jobs', n_jobs_test)
-@requires_version('sklearn', '0.17')
+@requires_sklearn
 def test_receptive_field_nd(n_jobs):
     """Test multidimensional support."""
     from sklearn.linear_model import Ridge
@@ -431,11 +432,16 @@ def test_receptive_field_nd(n_jobs):
     tdr = TimeDelayingRidge(smin, smax, 1., 0.01, reg_type='foo',
                             n_jobs=n_jobs)
     model = ReceptiveField(smin, smax, 1., estimator=tdr)
-    pytest.raises(ValueError, model.fit, x, y)
+    with pytest.raises(ValueError, match='reg_type entries must be one of'):
+        model.fit(x, y)
     tdr = TimeDelayingRidge(smin, smax, 1., 0.01, reg_type=['laplacian'],
                             n_jobs=n_jobs)
     model = ReceptiveField(smin, smax, 1., estimator=tdr)
-    pytest.raises(ValueError, model.fit, x, y)
+    with pytest.raises(ValueError, match='reg_type must have two elements'):
+        model.fit(x, y)
+    model = ReceptiveField(smin, smax, 1, estimator=tdr, fit_intercept=False)
+    with pytest.raises(ValueError, match='fit_intercept'):
+        model.fit(x, y)
 
     # Now check the intercept_
     tdr = TimeDelayingRidge(smin, smax, 1., 0., n_jobs=n_jobs)
@@ -488,7 +494,7 @@ def test_receptive_field_nd(n_jobs):
         assert score > 0.6
 
 
-@requires_version('sklearn', '0.19')  # 0.18 does not warn
+@requires_sklearn
 def test_inverse_coef():
     """Test inverse coefficients computation."""
     from sklearn.linear_model import Ridge
