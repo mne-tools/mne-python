@@ -841,10 +841,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
 def _bv_parser(description, add_for_r=1000):
     """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
     try:
-        event_type, code = description[-4], int(description[-3:])
-        if event_type.lower() == "r":
-            code += add_for_r
-        return code
+        event_type, code = description[:-3], int(description[-3:])
+        if event_type in ("Response/R", "Stimulus/S"):
+            if event_type == "Response/R":
+                code += add_for_r
+            return code
     except ValueError:  # probably not coercable to int
         warn("Marker '%s' could not be unambiguously mapped to an int "
              "and will be dropped." % description)

@@ -21,6 +21,7 @@ from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
+from mne.annotations import events_from_annotations
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
