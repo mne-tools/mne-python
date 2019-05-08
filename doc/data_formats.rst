@@ -15,7 +15,9 @@ more info on reading specific file types.
 As seen in the table below, there are also a few formats defined by other
 neuroimaging analysis software packages that are supported (EEGLAB,
 FieldTrip). Like the equipment-specific loading functions, these will also
-return an object of class :class:`~mne.io.Raw`.
+return an object of class :class:`~mne.io.Raw`; additional functions are
+available for reading data that has already been epoched or averaged (see
+table).
 
 ============  =============  =========  ===================================
 Data type     File format    Extension  MNE-Python function
@@ -31,9 +33,13 @@ MEG           CTF            .dir       :func:`mne.io.read_raw_ctf`
 MEG           Elekta         .fif       :func:`mne.io.read_raw_fif`
               Neuromag
 
-MEG           KIT            .sqd       :func:`mne.io.read_raw_kit`
+MEG           KIT            .sqd       :func:`mne.io.read_raw_kit`,
+                                        :func:`mne.io.read_epochs_kit`
 
-MEG and EEG   FieldTrip      .mat       :func:`mne.io.read_raw_fieldtrip`
+
+MEG and EEG   FieldTrip      .mat       :func:`mne.io.read_raw_fieldtrip`,
+                                        :func:`mne.io.read_epochs_fieldtrip`,
+                                        :func:`mne.io.read_evoked_fieldtrip`
 
 EEG           Brainvision    .vhdr      :func:`mne.io.read_raw_brainvision`
 
@@ -45,7 +51,8 @@ EEG           Neuroscan CNT  .cnt       :func:`mne.io.read_raw_cnt`
 EEG           European data  .edf       :func:`mne.io.read_raw_edf`
               format
 
-EEG           EEGLAB         .set       :func:`mne.io.read_raw_eeglab`
+EEG           EEGLAB         .set       :func:`mne.io.read_raw_eeglab`,
+                                        :func:`mne.io.read_epochs_eeglab`
 
 EEG           EGI simple     .egi       :func:`mne.io.read_raw_egi`
               binary
