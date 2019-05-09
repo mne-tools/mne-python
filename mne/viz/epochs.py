@@ -18,6 +18,7 @@ import numpy as np
 
 from ..utils import (verbose, get_config, set_config, logger, warn, _pl,
                      fill_doc)
+from ..utils.check import _is_numeric
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT)
@@ -168,7 +169,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if combine is not None:
         ts_args["show_sensors"] = False
 
-    picks = [picks] if isinstance(picks, str) else picks
+    picks = [picks] if isinstance(picks, str) or _is_numeric(picks) else picks
     too_many_picks = (picks is None or
                       all(pick in _DATA_CH_TYPES_SPLIT for pick in picks))
     picks = _picks_to_idx(epochs.info, picks)
