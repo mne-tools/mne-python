@@ -22,6 +22,7 @@ from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.annotations import events_from_annotations
+from mne.io.brainvision import _bv_parser
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -474,5 +475,9 @@ def test_read_vmrk_annotations():
     events, event_id = events_from_annotations(raw)
     for key, values in event_id.items():
         assert int(key[-3:].lstrip()) == values
+
+    assert _bv_parser("Stimulus/S 11") == 11
+    assert _bv_parser("Stimulus/S202") == 202
+    assert _bv_parser("Response/R 12", add_for_r=100) == 112
 
 run_tests_if_main()
