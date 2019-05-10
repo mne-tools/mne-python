@@ -40,25 +40,19 @@ References
 
 
 # import necessary packages
-import os.path as op
-
-import scipy.io
-import numpy as np
 import mne
-
 from mne.datasets import limo
 
 print(__doc__)
 
-
 # fetch data from subject 1
-limo_epochs = limo.data_path(subject=1)
+limo_epochs = limo.load_data(subject=1)
 
 # inpect epochs info
 limo_epochs.info
 
 # look at metadata
-limo_epochs.metadata
+limo_epochs.metadata.head()
 
 # plot evoked response for condition A
-limo_epochs['Face A'].average().plot_joint(times=[.09, .15])
+limo_epochs['Face/A'].average().plot_joint(times=[.09, .15])
