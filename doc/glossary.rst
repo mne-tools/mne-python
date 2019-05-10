@@ -104,7 +104,7 @@ MNE-Python core terminology and general concepts
         available in ``info['chs']``.
 
     projector
-        A projector (abbr. ``proj``), also referred to a Signal Space
+        A projector (abbr. ``proj``), also referred to as Signal Space
         Projection (SSP), defines
         a linear operation applied spatially to EEG or MEG data. You can see
         this as a matrix multiplication that reduces the rank of the data by
