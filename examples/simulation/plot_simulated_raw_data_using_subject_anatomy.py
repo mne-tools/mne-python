@@ -34,7 +34,7 @@ subject = 'sample'
 meg_path = op.join(data_path, 'MEG', subject)
 
 # First, we get an info structure from the sample subject.
-fname_info = meg_path + '/sample_audvis_raw.fif'
+fname_info = op.join(meg_path, 'sample_audvis_raw.fif')
 info = mne.io.read_info(fname_info)
 tstep = 1 / info['sfreq']
 
@@ -50,8 +50,8 @@ src = fwd['src']
 # Here, both are loaded from the sample dataset, but they can also be specified
 # by the user.
 
-fname_event = meg_path + '/sample_audvis_raw-eve.fif'
-fname_cov = meg_path + '/sample_audvis-cov.fif'
+fname_event = op.join(meg_path, 'sample_audvis_raw-eve.fif')
+fname_cov = op.join(meg_path, 'sample_audvis-cov.fif')
 
 events = mne.read_events(fname_event)
 noise_cov = mne.read_cov(fname_cov)
@@ -65,9 +65,9 @@ event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # In order to simulate source time courses, labels of desired active regions
 # need to be specified for each of the 4 simulation conditions.
 # Make a dictionary that maps conditions to activation strengths within
-# aparc.a2009s labels. In the aparc.a2009s parcellation:
-#   -  'G_temp_sup-G_T_transv' is the label for primary auditory area 
-#   -  'S_calcarine' is the label for primary visual area
+# aparc.a2009s [1]_ labels. In the aparc.a2009s parcellation:
+# - 'G_temp_sup-G_T_transv' is the label for primary auditory area
+# - 'S_calcarine' is the label for primary visual area
 # In each of the 4 conditions, only the primary area is activated. This means
 # that during the activations of auditory areas, there are no activations in
 # visual areas and vice versa.
@@ -105,8 +105,9 @@ source_time_series = np.sin(np.linspace(0, 4 * np.pi, 100)) * 10e-9
 # Create simulated source activity
 # --------------------------------
 #
-# Here, SourceSimulator is used, which allows to specify where (label), what
-# (source_time_series), and when (events) event type will occur.
+# Here, :class:`~mne.simulation.SourceSimulator` is used, which allows to
+# specify where (label), what (source_time_series), and when (events) event type
+# will occur.
 #
 # We will add data for 4 areas, each of which contains 2 labels. Since add_data
 # method accepts 1 label per call, it will be called 2 times per area.
@@ -137,15 +138,16 @@ stc_data = source_simulator.get_stc()
 
 ###############################################################################
 # Simulate raw data
-#------------------
+# -----------------
 #
 # Project the source time series to sensor space. Three types of noise will be
 # added to the simulated raw data:
-#     - multivariate Gaussian noise obtained from the noise covariance from
-#       the sample data
-#     - blink (EOG) noise
-#     - ECG noise
-# The source simulator can be given directly to the `simulate_raw` function.
+# - multivariate Gaussian noise obtained from the noise covariance from the
+# sample data
+# - blink (EOG) noise
+# - ECG noise
+# The :class:`~mne.simulation.SourceSimulator` can be given directly to the
+# :func:`~mne.simulation.simulate_raw` function.
 
 raw_sim = mne.simulation.simulate_raw(info, source_simulator, forward=fwd,
                                       cov=None)
@@ -156,11 +158,11 @@ mne.simulation.add_eog(raw_sim, random_state=0)
 mne.simulation.add_ecg(raw_sim, random_state=0)
 
 # Plot original and simulated raw data.
-raw_sim.plot(title='Simulated raw data from sample dataset')
+raw_sim.plot(title='Simulated raw data')
 
 ###############################################################################
 # Reconstruct simulated source time courses using dSPM inverse operator
-#----------------------------------------------------------------------
+# ---------------------------------------------------------------------
 #
 # Here, source time courses for auditory and visual areas are reconstructed
 # separately and their difference is shown. This was done merely for better
@@ -176,6 +178,12 @@ stc_vis = mne.minimum_norm.apply_inverse(
     epochs['visual/right'].average(), inv, lambda2, method)
 stc_diff = stc_aud - stc_vis
 
-brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1, hemi='split', 
-                     title='Difference between reconstructed stcs of auditory'
-                           ' and visual area',  views=['lat','med'])
+brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1, hemi='split',
+                      views=['lat','med'])
+
+###############################################################################
+# References
+# ----------
+# .. [1] Destrieux C, Fischl B, Dale A, Halgren E (2010). Automatic parcellation
+#        of human cortical gyri and sulci using standard anatomical
+#        nomenclature, vol. 53(1), 1-15, NeuroImage.
