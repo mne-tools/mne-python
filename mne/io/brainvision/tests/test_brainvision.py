@@ -22,7 +22,7 @@ from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.annotations import events_from_annotations
-from mne.io.brainvision import _bv_parser
+from mne.io.brainvision.brainvision import _bv_parser
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
