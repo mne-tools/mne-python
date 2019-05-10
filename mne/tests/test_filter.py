@@ -572,4 +572,61 @@ def test_interp2():
     assert_allclose(out, expected, atol=1e-7)
 
 
+@pytest.mark.parametrize('ftype', ('butter', 'bessel'))
+@pytest.mark.parametrize('btype', ('lowpass', 'bandpass'))
+@pytest.mark.parametrize('order', (1, 4))
+def test_reporting_iir(ftype, btype, order):
+    """Test IIR filter reporting."""
+    l_freq = 1. if btype == 'bandpass' else None
+    with catch_logging() as log:
+        create_filter(None, 1000., l_freq, 40., method='iir',
+                      iir_params=dict(ftype=ftype, order=order), verbose=True)
+    log = log.getvalue()
+    for key in ('IIR',
+                'zero-phase',
+                'two-pass forward and reverse',
+                'acausal',
+                btype,
+                ftype.capitalize(),
+                'Filter order %d' % (order * 2,),
+                'Cutoff ' if btype == 'lowpass' else 'Cutoffs ',
+                ):
+        assert key in log
+
+
+@pytest.mark.parametrize('phase', ('zero', 'zero-double', 'minimum'))
+@pytest.mark.parametrize('fir_window', ('hamming', 'blackman'))
+@pytest.mark.parametrize('btype', ('lowpass', 'bandpass'))
+def test_reporting_fir(phase, fir_window, btype):
+    """Test FIR filter reporting."""
+    l_freq = 1. if btype == 'bandpass' else None
+    with catch_logging() as log:
+        x = create_filter(None, 1000., l_freq, 40., method='fir',
+                          phase=phase, fir_window=fir_window, verbose=True)
+    n_taps = len(x)
+    log = log.getvalue()
+    keys = ['FIR',
+            btype,
+            fir_window.capitalize(),
+            'Filter length: %d samples' % (n_taps,),
+            'passband ripple',
+            'stopband attenuation',
+            ]
+    if phase != 'minimum':
+        keys += ['cutoff: 45.00 Hz']
+        if btype == 'bandpass':
+            keys += ['cutoff: 0.50 Hz']
+    for key in keys:
+        assert key in log
+    if phase == 'zero':
+        assert '-6 dB cutoff' in log
+    elif phase == 'zero-double':
+        assert '-12 dB cutoff' in log
+    else:
+        # XXX Eventually we should figure out where the resulting point is,
+        # since the minimum-phase process will change it. For now we don't
+        # report it.
+        assert phase == 'minimum'
+
+
 run_tests_if_main()

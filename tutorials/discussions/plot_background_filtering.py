@@ -348,7 +348,7 @@ freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
-                             fir_design='firwin')
+                             fir_design='firwin', verbose=True)
 x_v16 = np.convolve(h, x)[len(h) // 2:]
 
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.16 default', flim=flim)
@@ -368,7 +368,7 @@ gain = [1., 1., 0., 0.]
 # n = int(sfreq * filter_dur)
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
-                             fir_design='firwin2')
+                             fir_design='firwin2', verbose=True)
 x_v14 = np.convolve(h, x)[len(h) // 2:]
 
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim)
@@ -391,7 +391,7 @@ gain = [1., 1., 0., 0.]
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                              h_trans_bandwidth=transition_band,
                              filter_length='%ss' % filter_dur,
-                             fir_design='firwin2')
+                             fir_design='firwin2', verbose=True)
 x_v13 = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.13 default', flim=flim)
@@ -413,7 +413,8 @@ plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim)
 # And now an example of a minimum-phase filter:
 
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
-                             phase='minimum', fir_design='firwin')
+                             phase='minimum', fir_design='firwin',
+                             verbose=True)
 x_min = np.convolve(h, x)
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band

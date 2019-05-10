@@ -467,7 +467,7 @@ class FilterEstimator(TransformerMixin):
         time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
-        ..versionadded:: 0.15
+        .. versionadded:: 0.15
     %(verbose)s
 
     See Also
@@ -768,7 +768,7 @@ class TemporalFilter(TransformerMixin):
         a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
-        ..versionadded:: 0.15
+        .. versionadded:: 0.15
     %(verbose)s
 
     See Also

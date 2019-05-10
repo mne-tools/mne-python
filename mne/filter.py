@@ -12,7 +12,7 @@ from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
 from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
-from .utils import (logger, verbose, sum_squared, check_version, warn,
+from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
                     _check_preload, _validate_type, _check_option)
 
 # These values from Ifeachor and Jervis.
@@ -390,7 +390,7 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
         att_db += 6
     if att_db < min_att_db:
         att_freq *= sfreq / 2.
-        warn('Attenuation at stop frequency %0.1fHz is only %0.1fdB. '
+        warn('Attenuation at stop frequency %0.2f Hz is only %0.2f dB. '
              'Increase filter_length for higher attenuation.'
              % (att_freq, att_db))
     return h
@@ -500,6 +500,15 @@ def estimate_ringing_samples(system, max_try=100000):
     return idx
 
 
+_ftype_dict = {
+    'butter': 'Butterworth',
+    'cheby1': 'Chebyshev I',
+    'cheby2': 'Chebyshev II',
+    'ellip': 'Cauer/elliptic',
+    'bessel': 'Bessel/Thomson',
+}
+
+@verbose
 def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
                          btype=None, return_copy=True):
     """Use IIR parameters to get filtering coefficients.
@@ -510,13 +519,6 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     It creates a new iir_params dict (or updates the one passed to the
     function) with the filter coefficients ('b' and 'a') and an estimate
     of the padding necessary ('padlen') so IIR filtering can be performed.
-
-    .. note:: As of 0.14, second-order sections will be used in filter
-              design by default (replacing ``output='ba'`` by
-              ``output='sos'``) to help ensure filter stability and
-              reduce numerical error. Second-order sections filtering
-              requires SciPy >= 16.0.
-
 
     Parameters
     ----------
@@ -561,6 +563,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         ``iir_params`` will be set inplace (if they weren't already).
         Otherwise, a new ``iir_params`` instance will be created and
         returned with these entries.
+    %(verbose)s
 
     Returns
     -------
@@ -579,6 +582,11 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     This function triages calls to :func:`scipy.signal.iirfilter` and
     :func:`scipy.signal.iirdesign` based on the input arguments (see
     linked functions for more details).
+
+    .. versionchanged:: 0.14
+       Second-order sections are used in filter design by default (replacing
+       ``output='ba'`` by ``output='sos'``) to help ensure filter stability
+       and reduce numerical error.
 
     Examples
     --------
@@ -646,10 +654,26 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
                                '%s' % ftype)
 
         # use order-based design
-        Wp = np.asanyarray(f_pass) / (float(sfreq) / 2)
+        f_pass = np.atleast_1d(f_pass)
+        if f_pass.ndim > 1:
+            raise ValueError('frequencies must be 1D, got %dD' % f_pass.ndim)
+        edge_freqs = ', '.join('%0.2f' % (f,) for f in f_pass)
+        Wp = f_pass / (float(sfreq) / 2)
+        # IT will de designed
+        ftype_nice = _ftype_dict.get(ftype, ftype)
+        logger.info('IIR filter parameters')
+        logger.info('---------------------')
+        logger.info('%s %s zero-phase (two-pass forward and reverse) '
+                    'acausal filter' % (ftype_nice, btype))
+        # SciPy designs for -3dB but we do forward-backward, so this is -6dB
+        logger.info('Cutoff%s (-6dB amplitude) at %s Hz'
+                    % (_pl(f_pass), edge_freqs))
         if 'order' in iir_params:
-            system = iirfilter(iir_params['order'], Wp, btype=btype,
+            order = iir_params['order']
+            system = iirfilter(order, Wp, btype=btype,
                                ftype=ftype, output=output)
+            logger.info('Filter order %d (effective, after forward-backward)'
+                        % (2 * order,))
         else:
             # use gpass / gstop design
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
@@ -801,7 +825,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
-        ..versionadded:: 0.15
+        .. versionadded:: 0.15
     pad : str
         The type of padding to use. Supports all :func:`numpy.pad` ``mode``
         options. Can also be "reflect_limited" (default), which pads with a
@@ -930,7 +954,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
-        ..versionadded:: 0.15
+        .. versionadded:: 0.15
     %(verbose)s
 
     Returns
@@ -1052,7 +1076,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 data, sfreq, None, h_freq, None, h_trans_bandwidth,
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
-            out = construct_iir_filter(iir_params, f_p, f_s, sfreq, 'low')
+            out = construct_iir_filter(iir_params, f_p, f_s, sfreq, 'lowpass')
         else:  # 'fir'
             freq = [0, f_p, f_s]
             gain = [1, 1, 0]
@@ -1067,7 +1091,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
             out = construct_iir_filter(iir_params, pass_, stop, sfreq,
-                                       'high')
+                                       'highpass')
         else:  # 'fir'
             freq = [stop, pass_, sfreq / 2.]
             gain = [0, 1, 1]
@@ -1228,7 +1252,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
-        ..versionadded:: 0.15
+        .. versionadded:: 0.15
     pad : str
         The type of padding to use. Supports all :func:`numpy.pad` ``mode``
         options. Can also be "reflect_limited" (default), which pads with a
@@ -1676,24 +1700,57 @@ def detrend(x, order=1, axis=-1):
 
     return y
 
+# Taken from Ifeachor and Jervis p. 356.
+# Note that here the passband ripple and stopband attenuation are
+# rendundant. The scalar passband ripple δp is expressed in dB as
+# 20 * log10(1+δp), but the scalar stopband ripple δs is expressed in dB as
+# -20 * log10(δs). So if we know that our stopband attenuation is 53 dB
+# (Hamming) then δs = 10 ** (53 / -20.), which means that the passband
+# deviation should be 20 * np.log10(1 + 10 ** (53 / -20.)) == 0.0194.
+_fir_window_dict = {
+    'hann': dict(name='Hann', ripple=0.0546, attenuation=44),
+    'hamming': dict(name='Hamming', ripple=0.0194, attenuation=53),
+    'blackman': dict(name='Blackman', ripple=0.0017, attenuation=74),
+}
+_known_fir_windows = tuple(sorted(_fir_window_dict.keys()))
+_known_phases = ('linear', 'zero', 'zero-double', 'minimum')
+_known_fir_designs = ('firwin', 'firwin2')
+_fir_design_dict = {
+    'firwin': 'Windowed time-domain',
+    'firwin2': 'Windowed frequency-domain',
+}
+
 
 def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           l_trans_bandwidth, h_trans_bandwidth,
                           filter_length, method, phase, fir_window,
                           fir_design, bands='scalar', reverse=False):
     """Validate and automate filter parameter selection."""
-    if not isinstance(phase, str) or phase not in \
-            ('linear', 'zero', 'zero-double', 'minimum', ''):
-        raise ValueError('phase must be "linear", "zero", "zero-double", '
-                         'or "minimum", got "%s"' % (phase,))
-    if not isinstance(fir_window, str) or fir_window not in \
-            ('hann', 'hamming', 'blackman', ''):
-        raise ValueError('fir_window must be "hamming", "hann", or "blackman",'
-                         'got "%s"' % (fir_window,))
-    if not isinstance(fir_design, str) or \
-            fir_design not in ('firwin', 'firwin2'):
-        raise ValueError('fir_design must be "firwin" or "firwin2", got %s'
-                         % (fir_design,))
+    _validate_type(phase, 'str', 'phase')
+    _check_option('phase', phase, _known_phases)
+    _validate_type(fir_window, 'str', 'fir_window')
+    _check_option('fir_window', fir_window, _known_fir_windows)
+    _validate_type(fir_design, 'str', 'fir_design')
+    _check_option('fir_design', fir_design, _known_fir_designs)
+
+    # Helpers for reporting
+    report_phase = 'non-linear phase' if phase == 'minimum' else 'zero-phase'
+    causality = 'causal' if phase == 'minimum' else 'acausal'
+    if phase == 'zero-double':
+        report_pass = 'two-pass forward and reverse'
+    else:
+        report_pass = 'one-pass'
+    if l_freq is not None:
+        if h_freq is not None:
+            kind = 'bandstop' if reverse else 'bandpass'
+        else:
+            kind = 'highpass'
+            assert not reverse
+    elif h_freq is not None:
+        kind = 'lowpass'
+        assert not reverse
+    else:
+        kind = 'allpass'
 
     def float_array(c):
         return np.array(c, float).ravel()
@@ -1713,11 +1770,34 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         if np.any(h_freq >= sfreq / 2.):
             raise ValueError('lowpass frequency %s must be less than Nyquist '
                              '(%s)' % (h_freq, sfreq / 2.))
+
+    dB_cutoff = False  # meaning, don't try to compute or report
+    if bands == 'scalar' or (len(h_freq) == 1 and len(l_freq) == 1):
+        if phase == 'zero':
+            dB_cutoff = '-6 dB'
+        elif phase == 'zero-double':
+            dB_cutoff = '-12 dB'
+
     if method == 'iir':
         # Ignore these parameters, effectively
         l_stop, h_stop = l_freq, h_freq
     else:  # method == 'fir'
         l_stop = h_stop = None
+        logger.info('')
+        logger.info('FIR filter parameters')
+        logger.info('---------------------')
+        logger.info('Designing a %s, %s, %s %s filter:'
+                    % (report_pass, report_phase, causality, kind))
+        logger.info('- %s design (%s) method'
+                    % (_fir_design_dict[fir_design], fir_design))
+        this_dict = _fir_window_dict[fir_window]
+        if fir_design == 'firwin':
+            logger.info('- {name:s} window with {ripple:0.4f} passband ripple '
+                        'and {attenuation:d} dB stopband attenuation'
+                        .format(**this_dict))
+        else:
+            logger.info('- {name:s} window'.format(**this_dict))
+
         if l_freq is not None:  # high-pass component
             if isinstance(l_trans_bandwidth, str):
                 if l_trans_bandwidth != 'auto':
@@ -1725,8 +1805,13 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                      'string, got "%s"' % l_trans_bandwidth)
                 l_trans_bandwidth = np.minimum(np.maximum(0.25 * l_freq, 2.),
                                                l_freq)
-                logger.info('l_trans_bandwidth chosen to be %0.1f Hz'
-                            % (l_trans_bandwidth,))
+            if dB_cutoff:
+                extra = ' (%s cutoff: %0.2f Hz)' % (
+                    dB_cutoff, l_freq - l_trans_bandwidth / 2.)
+            else:
+                extra = ''
+            logger.info('- l_trans_bandwidth: %0.2f Hz%s'
+                        % (l_trans_bandwidth, extra))
             l_trans_bandwidth = cast(l_trans_bandwidth)
             if np.any(l_trans_bandwidth <= 0):
                 raise ValueError('l_trans_bandwidth must be positive, got %s'
@@ -1737,8 +1822,8 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 l_freq += l_trans_bandwidth
             if np.any(l_stop < 0):
                 raise ValueError('Filter specification invalid: Lower stop '
-                                 'frequency negative (%0.1fHz). Increase pass '
-                                 'frequency or reduce the transition '
+                                 'frequency negative (%0.2f Hz). Increase pass'
+                                 ' frequency or reduce the transition '
                                  'bandwidth (l_trans_bandwidth)' % l_stop)
         if h_freq is not None:  # low-pass component
             if isinstance(h_trans_bandwidth, str):
@@ -1747,8 +1832,13 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                      'string, got "%s"' % h_trans_bandwidth)
                 h_trans_bandwidth = np.minimum(np.maximum(0.25 * h_freq, 2.),
                                                sfreq / 2. - h_freq)
-                logger.info('h_trans_bandwidth chosen to be %0.1f Hz'
-                            % (h_trans_bandwidth))
+            if dB_cutoff:
+                extra = ' (%s cutoff: %0.2f Hz)' % (
+                    dB_cutoff, h_freq + h_trans_bandwidth / 2.)
+            else:
+                extra = ''
+            logger.info('- h_trans_bandwidth: %0.2f Hz%s'
+                        % (h_trans_bandwidth, extra))
             h_trans_bandwidth = cast(h_trans_bandwidth)
             if np.any(h_trans_bandwidth <= 0):
                 raise ValueError('h_trans_bandwidth must be positive, got %s'
@@ -1795,11 +1885,11 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                                     sfreq)), 1)
             if fir_design == 'firwin':
                 filter_length += (filter_length - 1) % 2
-            logger.info('Filter length of %s samples (%0.3f sec) selected'
-                        % (filter_length, filter_length / sfreq))
         elif not isinstance(filter_length, int):
             raise ValueError('filter_length must be a str, int, or None, got '
                              '%s' % (type(filter_length),))
+        logger.info('- Filter length: %s samples (%0.3f sec)'
+                    % (filter_length, filter_length / sfreq))
 
     if filter_length != 'auto':
         if phase == 'zero' and method == 'fir':

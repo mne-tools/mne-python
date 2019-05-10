@@ -280,7 +280,7 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
 
-    ..versionadded:: 0.15.0
+    .. versionadded:: 0.15.0
     """
     return RawMff(input_fname, montage, eog, misc, include, exclude,
                   preload, channel_naming, verbose)

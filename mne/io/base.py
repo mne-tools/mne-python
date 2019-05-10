@@ -1353,7 +1353,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             a time-domain design technique that generally gives improved
             attenuation using fewer samples than "firwin2".
 
-            ..versionadded:: 0.15
+            .. versionadded:: 0.15
         pad : str
             The type of padding to use. Supports all :func:`numpy.pad` ``mode``
             options. Can also be "reflect_limited" (default), which pads with a
