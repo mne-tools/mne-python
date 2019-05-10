@@ -508,6 +508,7 @@ _ftype_dict = {
     'bessel': 'Bessel/Thomson',
 }
 
+
 @verbose
 def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
                          btype=None, return_copy=True):
