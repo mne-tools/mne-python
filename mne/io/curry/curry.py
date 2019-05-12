@@ -22,6 +22,7 @@ def _read_curry(full_filename):
     '''
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
+
     file, ext = full_filename.split(".", maxsplit=1)
 
     if 'cdt' in ext:
@@ -171,12 +172,12 @@ def _read_curry(full_filename):
 
     if data_format == "ASCII":
         with open(file + file_extension) as f:
-            data = np.loadtxt(f).T
+            data = np.loadtxt(f).T / 1e6
 
     else:
         with open(file + file_extension) as f:
-            data = np.fromfile(f, dtype='float32')
-            data = np.reshape(data, [n_ch, n_samples * n_trials])
+            data = np.fromfile(f, dtype='float32') / 1e6
+            data = np.reshape(data, [n_ch, n_samples * n_trials], order="F")
 
     info = mne.create_info(ch_names, sfreq)
 

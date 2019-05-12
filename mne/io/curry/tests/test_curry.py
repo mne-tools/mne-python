@@ -13,10 +13,12 @@ from mne.datasets import testing
 from mne.io.curry import read_raw_curry
 from mne.io.ctf import read_raw_ctf
 from mne.io.bti import read_raw_bti
-from numpy.testing import assert_allclose, assert_equal, assert_array_equal
+from numpy.testing import assert_allclose, assert_equal, assert_array_almost_equal
 
 FILE = inspect.getfile(inspect.currentframe())
+
 curry_data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
+
 
 ext_data_dir = testing.data_path(download=False)
 
@@ -57,15 +59,15 @@ def test_io_curry():
     assert_equal(curry7_alp.info["sfreq"], ctf_alp.info["sfreq"])
     assert_equal(curry8_alp.info["sfreq"], ctf_alp.info["sfreq"])
 
-    assert_array_equal(curry7_alp._data, ctf_alp.get_data())
-    assert_array_equal(curry8_alp._data, ctf_alp.get_data())
+    assert_array_almost_equal(curry7_alp._data, ctf_alp.get_data())
+    assert_array_almost_equal(curry8_alp._data, ctf_alp.get_data())
 
     bti_rfDC = read_raw_bti(bti_rfDC_file)  # where is the headfile for this?
     curry7_rfDC = read_raw_curry(curry7_rfDC_file)
     curry8_rfDC = read_raw_curry(curry8_rfDC_file)
 
-    assert_array_equal(curry7_rfDC._data, bti_rfDC.get_data())
-    assert_array_equal(curry8_rfDC._data, bti_rfDC.get_data())
+    assert_array_almost_equal(curry7_rfDC._data, bti_rfDC.get_data())
+    assert_array_almost_equal(curry8_rfDC._data, bti_rfDC.get_data())
 
     bdf = mne.io.read_raw_bdf(bdf_file)
     curry7_bdf = read_raw_curry(curry7_bdf_file)
@@ -80,7 +82,7 @@ def test_io_curry():
                      curry8_bdf.info["sfreq"], curry8_bdf_ascii.info["sfreq"]],
                     bdf.info["sfreq"])
 
-    assert_array_equal(curry7_bdf._data, bdf.get_data())
-    assert_array_equal(curry7_bdf_ascii._data, bdf.get_data())
-    assert_array_equal(curry8_bdf._data, bdf.get_data())
-    assert_array_equal(curry8_bdf_ascii._data, bdf.get_data())
+    assert_array_almost_equal(curry7_bdf._data, bdf.get_data()[0:3])
+    assert_array_almost_equal(curry7_bdf_ascii._data, bdf.get_data())
+    assert_array_almost_equal(curry8_bdf._data, bdf.get_data())
+    assert_array_almost_equal(curry8_bdf_ascii._data, bdf.get_data())
