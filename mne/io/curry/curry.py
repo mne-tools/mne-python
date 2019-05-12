@@ -27,27 +27,28 @@ def _read_curry(full_filename):
 
     if 'cdt' in ext:
         curry_vers = 8
-        if not (os.path.isfile(file + ".cdt") and
-                os.path.isfile(file + ".cdt.dpa")):
-            raise FileNotFoundError("The requested filename %s does not have "
-                                    "both file components (.cdt, .cdt.dpa) "
-                                    "created by Curry 8." % file)
+        for check_ext in [".cdt", ".cdt.dpa"]:
+            if not os.path.isfile(file + check_ext):
+                raise FileNotFoundError("The following required file cannot be"
+                                        " found: %s. Please make sure it is "
+                                        "located in the same directory as %s."
+                                        % (file + check_ext, full_filename))
 
     else:
         curry_vers = 7
-        if not (os.path.isfile(file + ".dap") and
-                os.path.isfile(file + ".dat") and
-                os.path.isfile(file + ".rs3")):
-            raise FileNotFoundError("The requested filename %s does not have "
-                                    "all file components (.dap, .dat, .rs3) "
-                                    "created by Curry 6 and 7." % file)
+        for check_ext in [".dap", ".dat", ".rs3"]:
+            if not os.path.isfile(file + check_ext):
+                raise FileNotFoundError("The following required file cannot be"
+                                        " found: %s. Please make sure it is "
+                                        "located in the same directory as %s."
+                                        % (file + check_ext, full_filename))
 
     #####################################
     # read parameters from the param file
 
     if (curry_vers == 7):
         file_extension = '.dap'
-    elif (curry_vers == 8):
+    else:
         file_extension = '.cdt.dpa'
 
     var_names = ['NumSamples', 'NumChannels', 'NumTrials', 'SampleFreqHz',
@@ -91,7 +92,7 @@ def _read_curry(full_filename):
 
     if (curry_vers == 7):
         file_extension = '.rs3'
-    elif (curry_vers == 8):
+    else:
         file_extension = '.cdt.dpa'
 
     ch_names = []
@@ -136,7 +137,7 @@ def _read_curry(full_filename):
                 file_extension = '.cef'
             else:
                 file_extension = '.ceo'
-        elif (curry_vers == 8):
+        else:
             if os.path.isfile(file + '.cdt.cef'):
                 file_extension = '.cdt.cef'
             else:
@@ -167,7 +168,7 @@ def _read_curry(full_filename):
 
     if (curry_vers == 7):
         file_extension = '.dat'
-    elif (curry_vers == 8):
+    else:
         file_extension = '.cdt'
 
     if data_format == "ASCII":
