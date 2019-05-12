@@ -1252,7 +1252,7 @@ class AverageTFR(_BaseTFR):
                 tfr._onselect, cmap=cmap, source_plot_joint=source_plot_joint,
                 topomap_args={k: v for k, v in topomap_args.items()
                               if k not in {"vmin", "vmax", "cmap", "axes"}})
-            t_end = _imshow_tfr(
+            _imshow_tfr(
                 ax, 0, tmin, tmax, vmin, vmax, onselect_callback, ylim=None,
                 tfr=data[idx: idx + 1], freq=tfr.freqs, x_label='Time (s)',
                 y_label='Frequency (Hz)', colorbar=colorbar, cmap=cmap,
@@ -1261,11 +1261,11 @@ class AverageTFR(_BaseTFR):
 
             if title is None:
                 if combine is None or len(tfr.info['ch_names']) == 1:
-                    title = tfr.info['ch_names'][0] + t_end
+                    title = tfr.info['ch_names'][0]
                 else:
                     title = _set_title_multiple_electrodes(
                         title, combine, tfr.info["ch_names"], all=True,
-                        ch_type=ch_type) + t_end
+                        ch_type=ch_type)
 
             if title:
                 fig.suptitle(title)
