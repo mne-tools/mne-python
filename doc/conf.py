@@ -368,6 +368,7 @@ def reset_warnings(gallery_conf, fname):
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
                 "'U' mode is deprecated",  # sphinx io
+                r"joblib is deprecated in 0\.21",  # nilearn
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
