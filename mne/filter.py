@@ -662,6 +662,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
         ftype_nice = _ftype_dict.get(ftype, ftype)
+        logger.info('')
         logger.info('IIR filter parameters')
         logger.info('---------------------')
         logger.info('%s %s zero-phase (two-pass forward and reverse) '
