@@ -450,9 +450,10 @@ def plot_signal(x, offset):
     axes[1].set(xlim=flim)
 
 
-yticks = np.arange(7) / -30.
+yscale = 30
 yticklabels = ['Original', 'Noisy', 'FIR-firwin (0.16)', 'FIR-firwin2 (0.14)',
                'FIR-steep (0.13)', 'FIR-steep (MNE-C)', 'Minimum-phase']
+yticks = -np.arange(len(yticklabels)) / yscale
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
 plot_signal(x_v16, offset=yticks[2])
@@ -461,7 +462,8 @@ plot_signal(x_v13, offset=yticks[4])
 plot_signal(x_mne_c, offset=yticks[5])
 plot_signal(x_min, offset=yticks[6])
 axes[0].set(xlim=tlim, title='FIR, Lowpass=%d Hz' % f_p, xticks=tticks,
-            ylim=[-0.200, 0.025], yticks=yticks, yticklabels=yticklabels,)
+            ylim=[-len(yticks) / yscale, 1. / yscale],
+            yticks=yticks, yticklabels=yticklabels)
 for text in axes[0].get_yticklabels():
     text.set(rotation=45, size=8)
 axes[1].set(xlim=flim, ylim=(-60, 10), xlabel='Frequency (Hz)',
@@ -507,6 +509,7 @@ plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=2', flim=flim)
 # not widely adopted yet (as of June 2016), so we use our wrapper...
 sosfiltfilt = mne.fixes.get_sosfiltfilt()
 x_shallow = sosfiltfilt(sos, x)
+del sos
 
 ###############################################################################
 # The falloff of this filter is not very steep.
@@ -525,11 +528,15 @@ x_shallow = sosfiltfilt(sos, x)
 #           used when possible to do IIR filtering.
 #
 # Let's increase the order, and note that now we have better attenuation,
-# with a longer impulse response:
+# with a longer impulse response. And let's switch to using the MNE filter
+# design function, which simplifies a few things and gives us some information
+# about the resulting filter:
 
-sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='butter', output='sos')
-plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=8', flim=flim)
-x_steep = sosfiltfilt(sos, x)
+iir_params = dict(order=8, ftype='butter')
+filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p, method='iir',
+                                iir_params=iir_params, verbose=True)
+plot_filter(filt, sfreq, freq, gain, 'Butterworth order=8', flim=flim)
+x_steep = sosfiltfilt(filt['sos'], x)
 
 ###############################################################################
 # There are other types of IIR filters that we can use. For a complete list,
@@ -537,9 +544,12 @@ x_steep = sosfiltfilt(sos, x)
 # try a Chebychev (type I) filter, which trades off ripple in the pass-band
 # to get better attenuation in the stop-band:
 
-sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
-                       rp=1)  # dB of acceptable pass-band ripple
-plot_filter(dict(sos=sos), sfreq, freq, gain,
+iir_params.update(ftype='cheby1',
+                  rp=1.,  # dB of acceptable pass-band ripple
+                  )
+filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p, method='iir',
+                                iir_params=iir_params, verbose=True)
+plot_filter(filt, sfreq, freq, gain,
             'Chebychev-1 order=8, ripple=1 dB', flim=flim)
 
 ###############################################################################
@@ -547,9 +557,10 @@ plot_filter(dict(sos=sos), sfreq, freq, gain,
 # but the impulse response begins to ring substantially longer (note the
 # different x-axis scale):
 
-sos = signal.iirfilter(8, f_p / nyq, btype='low', ftype='cheby1', output='sos',
-                       rp=6)
-plot_filter(dict(sos=sos), sfreq, freq, gain,
+iir_params['rp'] = 6.
+filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p, method='iir',
+                                iir_params=iir_params, verbose=True)
+plot_filter(filt, sfreq, freq, gain,
             'Chebychev-1 order=8, ripple=6 dB', flim=flim)
 
 ###############################################################################
