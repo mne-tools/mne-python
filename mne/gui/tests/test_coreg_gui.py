@@ -183,14 +183,18 @@ def test_coreg_gui_display(tmpdir):
     with modified_env(**{'_MNE_GUI_TESTING_MODE': 'true',
                          '_MNE_FAKE_HOME_DIR': home_dir}):
         with pytest.raises(ValueError, match='not a valid subject'):
-            mne.gui.coregistration(subject='Elvis', subjects_dir=home_dir)
+            mne.gui.coregistration(subject='Elvis', subjects_dir=subjects_dir)
 
         # avoid modal dialog if SUBJECTS_DIR is set to a directory that
         # does not contain valid subjects
         ui, frame = mne.gui.coregistration(subjects_dir='')
+        mlab.process_ui_events()
+        ui.dispose()
+        mlab.process_ui_events()
 
-        frame.model.mri.subjects_dir = subjects_dir
-        frame.model.mri.subject = 'sample'
+        ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir,
+                                           subject='sample')
+        mlab.process_ui_events()
 
         assert not frame.model.mri.fid_ok
         frame.model.mri.lpa = [[-0.06, 0, 0]]
