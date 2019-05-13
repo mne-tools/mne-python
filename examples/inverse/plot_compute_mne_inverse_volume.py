@@ -13,8 +13,6 @@ space and stores the solution in a nifti file for visualisation.
 #
 # License: BSD (3-clause)
 
-import matplotlib.pyplot as plt
-
 from nilearn.plotting import plot_stat_map
 from nilearn.image import index_img
 
