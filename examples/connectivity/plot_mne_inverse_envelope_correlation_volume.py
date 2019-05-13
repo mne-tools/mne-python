@@ -27,7 +27,7 @@ trans = op.join(data_path, 'MEG', 'bst_resting', 'bst_resting-trans.fif')
 bem = op.join(subjects_dir, subject, 'bem', subject + '-5120-bem-sol.fif')
 raw_fname = op.join(data_path, 'MEG', 'bst_resting',
                     'subj002_spontaneous_20111102_01_AUX.ds')
-crop_to, method = 60., 'lcmv'
+crop_to = 60.
 
 ##############################################################################
 # Here we do some things in the name of speed, such as crop (which will

@@ -45,7 +45,7 @@ print(stc)
 # objects. Note that for this visualization to work, you must have ``mayavi``
 # and ``pysurfer`` installed on your machine.
 initial_time = 0.1
-stc.plot(subjects_dir=subjects_dir, initial_time=initial_time)
+brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time)
 
 ###############################################################################
 #
@@ -55,8 +55,8 @@ stc.plot(subjects_dir=subjects_dir, initial_time=initial_time)
 # In case ``mayavi`` is not available, we also offer a ``matplotlib``
 # backend. Here we use verbose='error' to ignore a warning that not all
 # vertices were used in plotting.
-stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
-         backend='matplotlib', verbose='error')
+mpl_fig = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
+                   backend='matplotlib', verbose='error')
 
 ###############################################################################
 #

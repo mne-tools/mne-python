@@ -89,7 +89,7 @@
 .. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
 .. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
-.. _NVIDIA proprietary drivers: https://www.nvidia.com/Download/index.aspx
+.. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
 .. _sphinx gallery documentation: https://sphinx-gallery.github.io
