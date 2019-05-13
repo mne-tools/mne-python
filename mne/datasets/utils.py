@@ -790,8 +790,7 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
             _fetch_file(url, fname_path, hash_=hash_)
             logger.info('Extracting missing file%s' % (_pl(need),))
             with zipfile.ZipFile(fname_path, 'r') as ff:
-                members = set(f for f in ff.namelist()
-                              if not f.endswith(op.sep))
+                members = set(f for f in ff.namelist() if not f.endswith('/'))
                 missing = sorted(members.symmetric_difference(set(names)))
                 if len(missing):
                     raise RuntimeError('Zip file did not have correct names:'
