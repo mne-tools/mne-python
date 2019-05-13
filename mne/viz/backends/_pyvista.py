@@ -61,15 +61,15 @@ class _Renderer(_BaseRenderer):
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
-            self.plotter = pyvista.Plotter(window_size=size,
-                                        off_screen=self.off_screen)
+            self.plotter = pyvista.Plotter(
+                window_size=size, off_screen=self.off_screen)
             self.plotter.background_color = bgcolor
             # this is a hack to avoid using a deleled ren_win
             self.plotter._window_size = size
         else:
             # import basic properties
-            self.plotter = pyvista.Plotter(window_size=fig._window_size,
-                                        off_screen=fig.off_screen)
+            self.plotter = pyvista.Plotter(
+                window_size=fig._window_size, off_screen=fig.off_screen)
             # import background
             self.plotter.background_color = fig.background_color
             # import actors

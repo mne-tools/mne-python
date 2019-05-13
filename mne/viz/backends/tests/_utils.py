@@ -28,7 +28,7 @@ def has_mayavi():
         return False
 
 
-skips_if_not_mayavi = pytest.mark.skipif(not(has_mayavi()),
-                                         reason='requires mayavi')
-skips_if_not_pyvista = pytest.mark.skipif(not(has_pyvista()),
-                                       reason='requires pyvista')
+skips_if_not_mayavi = pytest.mark.skipif(
+    not has_mayavi(), reason='requires mayavi')
+skips_if_not_pyvista = pytest.mark.skipif(
+    not has_pyvista(), reason='requires pyvista')
