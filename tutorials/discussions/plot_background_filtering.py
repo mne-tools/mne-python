@@ -374,9 +374,6 @@ x_v14 = np.convolve(h, x)[len(h) // 2:]
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim)
 
 ###############################################################################
-# This is actually set to become the default type of filter used in MNE-Python
-# in 0.14 (see :ref:`tut_filtering_in_python`).
-#
 # Let's also filter with the MNE-Python 0.13 default, which is a
 # long-duration, steep cutoff FIR that gets applied twice:
 
