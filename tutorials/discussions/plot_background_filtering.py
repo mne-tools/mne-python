@@ -533,8 +533,9 @@ del sos
 # about the resulting filter:
 
 iir_params = dict(order=8, ftype='butter')
-filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p, method='iir',
-                                iir_params=iir_params, verbose=True)
+filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                                method='iir', iir_params=iir_params,
+                                verbose=True)
 plot_filter(filt, sfreq, freq, gain, 'Butterworth order=8', flim=flim)
 x_steep = sosfiltfilt(filt['sos'], x)
 
@@ -547,8 +548,9 @@ x_steep = sosfiltfilt(filt['sos'], x)
 iir_params.update(ftype='cheby1',
                   rp=1.,  # dB of acceptable pass-band ripple
                   )
-filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p, method='iir',
-                                iir_params=iir_params, verbose=True)
+filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                                method='iir', iir_params=iir_params,
+                                verbose=True)
 plot_filter(filt, sfreq, freq, gain,
             'Chebychev-1 order=8, ripple=1 dB', flim=flim)
 
@@ -558,8 +560,9 @@ plot_filter(filt, sfreq, freq, gain,
 # different x-axis scale):
 
 iir_params['rp'] = 6.
-filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p, method='iir',
-                                iir_params=iir_params, verbose=True)
+filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                                method='iir', iir_params=iir_params,
+                                verbose=True)
 plot_filter(filt, sfreq, freq, gain,
             'Chebychev-1 order=8, ripple=6 dB', flim=flim)
 
