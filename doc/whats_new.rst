@@ -139,6 +139,8 @@ Changelog
 
 - Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
 
+- Add partial support for PyVista as a 3D backend using :func:`mne.viz.use_3d_backend` by `Guillaume Favelier`_
+
 - Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
 
 - Add :class:`mne.realtime.MockLSLStream` to simulate an LSL stream for testing and examples by `Teon Brooks`_
@@ -3343,6 +3345,8 @@ of commits):
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
 
 .. _Sebastian Castano: https://github.com/jscastanoc
+
+.. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
 .. _Katarina Slama: https://katarinaslama.github.io
 

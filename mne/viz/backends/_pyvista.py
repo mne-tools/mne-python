@@ -1,5 +1,5 @@
 """
-Core visualization operations based on VTKi.
+Core visualization operations based on PyVista.
 
 Actual implementation of _Renderer and _Projection classes.
 """
@@ -11,7 +11,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 import vtk
-import vtki
+import pyvista
 import warnings
 import numpy as np
 from .base_renderer import _BaseRenderer
@@ -45,8 +45,8 @@ class _Renderer(_BaseRenderer):
 
     Attributes
     ----------
-    plotter: vtki.Plotter
-        Main VTKI access point.
+    plotter: pyvista.Plotter
+        Main PyVista access point.
     off_screen: bool
         State of the offscreen.
     name: str
@@ -54,21 +54,21 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name="VTKI Scene", show=False):
+                 name="PyVista Scene", show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
         self.name = name
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
-            self.plotter = vtki.Plotter(window_size=size,
+            self.plotter = pyvista.Plotter(window_size=size,
                                         off_screen=self.off_screen)
             self.plotter.background_color = bgcolor
             # this is a hack to avoid using a deleled ren_win
             self.plotter._window_size = size
         else:
             # import basic properties
-            self.plotter = vtki.Plotter(window_size=fig._window_size,
+            self.plotter = pyvista.Plotter(window_size=fig._window_size,
                                         off_screen=fig.off_screen)
             # import background
             self.plotter.background_color = fig.background_color
@@ -92,7 +92,7 @@ class _Renderer(_BaseRenderer):
         triangles = np.c_[np.full(n_triangles, 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            pd = vtki.PolyData(vertices, triangles)
+            pd = pyvista.PolyData(vertices, triangles)
             self.plotter.add_mesh(mesh=pd, color=color, opacity=opacity,
                                   backface_culling=backface_culling)
 
@@ -110,7 +110,7 @@ class _Renderer(_BaseRenderer):
         triangles = np.c_[np.full(n_triangles, 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            pd = vtki.PolyData(vertices, triangles)
+            pd = pyvista.PolyData(vertices, triangles)
             pd.point_arrays['scalars'] = scalars
             self.plotter.add_mesh(pd.contour(isosurfaces=contours,
                                              rng=(vmin, vmax)),
@@ -134,7 +134,7 @@ class _Renderer(_BaseRenderer):
         triangles = np.c_[np.full(n_triangles, 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            pd = vtki.PolyData(vertices, triangles)
+            pd = pyvista.PolyData(vertices, triangles)
             if scalars is not None:
                 pd.point_arrays['scalars'] = scalars
             self.plotter.add_mesh(mesh=pd, color=color,
@@ -153,7 +153,7 @@ class _Renderer(_BaseRenderer):
         geom = sphere.GetOutput()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            pd = vtki.PolyData(center)
+            pd = pyvista.PolyData(center)
             self.plotter.add_mesh(pd.glyph(orient=False, scale=False,
                                            factor=scale, geom=geom),
                                   color=color, opacity=opacity,
@@ -172,7 +172,7 @@ class _Renderer(_BaseRenderer):
         cells = np.c_[np.full(n_points, 1), range(n_points)]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            grid = vtki.UnstructuredGrid(offset, cells, cell_type, points)
+            grid = pyvista.UnstructuredGrid(offset, cells, cell_type, points)
             grid.point_arrays['vec'] = vectors
             if scale_mode == "scalar":
                 grid.point_arrays['mag'] = np.array(scalars)

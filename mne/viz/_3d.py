@@ -2510,8 +2510,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     from .backends.renderer import _Renderer
     from .backends.renderer import get_3d_backend
 
-    if get_3d_backend() == 'vtki':
-        raise RuntimeError('This feature is not available yet with VTKI')
+    if get_3d_backend() == 'pyvista':
+        raise RuntimeError('This feature is not available yet with PyVista')
 
     if fig is None:
         raise ValueError('The figure must have a scene')
