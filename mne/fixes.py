@@ -310,7 +310,7 @@ def _get_dpss():
 # Backporting scipy.signal.sosfiltfilt (0.18)
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
-    """copy of SciPy sosfiltfilt"""
+    """Do SciPy sosfiltfilt."""
     from scipy.signal import sosfilt, sosfilt_zi
     sos, n_sections = _validate_sos(sos)
 
@@ -449,13 +449,25 @@ def const_ext(x, n, axis=-1):
 
 
 def get_sosfiltfilt():
-    """Helper to get sosfiltfilt from scipy"""
+    """Get sosfiltfilt from SciPy."""
     try:
         from scipy.signal import sosfiltfilt
     except ImportError:
         sosfiltfilt = _sosfiltfilt
     return sosfiltfilt
 
+
+def _sosfreqz(sos, worN=512, whole=False):
+    """Do sosfreqz from SciPy."""
+    from scipy.signal import freqz
+    sos, n_sections = _validate_sos(sos)
+    if n_sections == 0:
+        raise ValueError('Cannot compute frequencies with no sections')
+    h = 1.
+    for row in sos:
+        w, rowh = freqz(row[:3], row[3:], worN=worN, whole=whole)
+        h *= rowh
+    return w, h
 
 def minimum_phase(h):
     """Convert a linear-phase FIR filter to minimum phase.

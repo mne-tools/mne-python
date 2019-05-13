@@ -2,12 +2,14 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
-                           assert_array_equal, assert_allclose)
+                           assert_array_equal, assert_allclose,
+                           assert_array_less)
 import pytest
-from scipy.signal import resample as sp_resample, butter
+from scipy.signal import resample as sp_resample, butter, freqz
 from scipy.fftpack import fft, fftfreq
 
 from mne import create_info
+from mne.fixes import _sosfreqz
 from mne.io import RawArray, read_raw_fif
 from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
@@ -21,7 +23,6 @@ from mne.utils import (sum_squared, run_tests_if_main,
 rng = np.random.RandomState(0)
 
 
-@requires_version('scipy', '0.16')
 def test_filter_array():
     """Test filtering an array."""
     for data in (np.zeros((11, 1, 10)), np.zeros((9, 1, 10))):
@@ -60,7 +61,6 @@ def test_mne_c_design():
     assert_allclose(h, h_c, **tols)
 
 
-@requires_version('scipy', '0.16')
 def test_estimate_ringing():
     """Test our ringing estimation function."""
     # Actual values might differ based on system, so let's be approximate
@@ -143,7 +143,6 @@ def test_1d_filter():
                             assert_allclose(x_filtered, x_expected, atol=1e-13)
 
 
-@requires_version('scipy', '0.16')
 def test_iir_stability():
     """Test IIR filter stability check."""
     sig = np.random.RandomState(0).rand(1000)
@@ -311,7 +310,6 @@ def test_resample_raw():
     assert data.shape == (1, 63)
 
 
-@requires_version('scipy', '0.16')
 @pytest.mark.slowtest
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling."""
@@ -572,26 +570,83 @@ def test_interp2():
     assert_allclose(out, expected, atol=1e-7)
 
 
-@pytest.mark.parametrize('ftype', ('butter', 'bessel'))
+@pytest.mark.parametrize('output', ('ba', 'sos'))
+@pytest.mark.parametrize('ftype', ('butter', 'bessel', 'ellip'))
 @pytest.mark.parametrize('btype', ('lowpass', 'bandpass'))
 @pytest.mark.parametrize('order', (1, 4))
-def test_reporting_iir(ftype, btype, order):
+def test_reporting_iir(ftype, btype, order, output):
     """Test IIR filter reporting."""
+    fs = 1000.
     l_freq = 1. if btype == 'bandpass' else None
+    iir_params = dict(ftype=ftype, order=order, output=output)
+    rs = 20 if order == 1 else 80
+    if ftype == 'ellip':
+        iir_params['rp'] = 3  # dB
+        iir_params['rs'] = rs  # attenuation
+        pass_tol = np.log10(iir_params['rp']) + 0.01
+    else:
+        pass_tol = 0.2
     with catch_logging() as log:
-        create_filter(None, 1000., l_freq, 40., method='iir',
-                      iir_params=dict(ftype=ftype, order=order), verbose=True)
+        x = create_filter(None, fs, l_freq, 40., method='iir',
+                          iir_params=iir_params, verbose=True)
+    order_eff = order * (1 + (btype == 'bandpass'))
+    if output == 'ba':
+        assert len(x['b']) == order_eff + 1
     log = log.getvalue()
-    for key in ('IIR',
-                'zero-phase',
-                'two-pass forward and reverse',
-                'acausal',
-                btype,
-                ftype.capitalize(),
-                'Filter order %d' % (order * 2,),
-                'Cutoff ' if btype == 'lowpass' else 'Cutoffs ',
-                ):
-        assert key in log
+    keys = [
+        'IIR',
+        'zero-phase',
+        'two-pass forward and reverse',
+        'acausal',
+        btype,
+        ftype,
+        'Filter order %d' % (order_eff * 2,),
+        'Cutoff ' if btype == 'lowpass' else 'Cutoffs ',
+    ]
+    dB_decade = -27.74
+    if ftype == 'ellip':
+        dB_cutoff = -6.0
+    elif order == 1 or ftype == 'butter':
+        dB_cutoff = -6.02
+    else:
+        assert ftype == 'bessel'
+        assert order == 4
+        dB_cutoff = -15.16
+    if btype == 'lowpass':
+        keys += ['%0.2f dB' % (dB_cutoff,)]
+    for key in keys:
+        assert key.lower() in log.lower()
+    # Verify some of the filter properties
+    if output == 'ba':
+        w, h = freqz(x['b'], x['a'], worN=10000)
+    else:
+        w, h = _sosfreqz(x['sos'], worN=10000)
+    w *= fs / (2 * np.pi)
+    h = np.abs(h)
+    # passband
+    passes = [np.argmin(np.abs(w - 20))]
+    # stopband
+    decades = [np.argmin(np.abs(w - 400.))]  # one decade
+    # transition
+    edges = [np.argmin(np.abs(w - 40.))]
+    # put these where they belong based on filter type
+    assert w[0] == 0.
+    idx_0p1 = np.argmin(np.abs(w - 0.1))
+    idx_1 = np.argmin(np.abs(w - 1.))
+    if btype == 'bandpass':
+        edges += [idx_1]
+        decades += [idx_0p1]
+    else:
+        passes += [idx_0p1, idx_1]
+
+    edge_val = 10 ** (dB_cutoff / 40.)
+    assert_allclose(h[edges], edge_val, atol=0.01)
+    assert_allclose(h[passes], 1., atol=pass_tol)
+    if ftype == 'butter' and btype == 'lowpass':
+        attenuation = dB_decade * order
+        assert_allclose(h[decades], 10 ** (attenuation / 20.), rtol=0.01)
+    elif ftype == 'ellip':
+        assert_array_less(h[decades], 10 ** (-rs / 20))
 
 
 @pytest.mark.parametrize('phase', ('zero', 'zero-double', 'minimum'))
@@ -600,8 +655,9 @@ def test_reporting_iir(ftype, btype, order):
 def test_reporting_fir(phase, fir_window, btype):
     """Test FIR filter reporting."""
     l_freq = 1. if btype == 'bandpass' else None
+    fs = 1000.
     with catch_logging() as log:
-        x = create_filter(None, 1000., l_freq, 40., method='fir',
+        x = create_filter(None, fs, l_freq, 40, method='fir',
                           phase=phase, fir_window=fir_window, verbose=True)
     n_taps = len(x)
     log = log.getvalue()
@@ -627,6 +683,32 @@ def test_reporting_fir(phase, fir_window, btype):
         # since the minimum-phase process will change it. For now we don't
         # report it.
         assert phase == 'minimum'
+    # Verify some of the filter properties
+    if phase == 'zero-double':
+        x = np.convolve(x, x)  # effectively what happens
+    w, h = freqz(x, worN=10000, fs=fs)
+    h = np.abs(h)
+    # passband
+    passes = [np.argmin(np.abs(w - f)) for f in (1, 20, 40)]
+    # stopband
+    stops = [np.argmin(np.abs(w - 50.))]
+    # transition
+    mids = [np.argmin(np.abs(w - 45.))]
+    # put these where they belong based on filter type
+    assert w[0] == 0.
+    idx_0 = 0
+    idx_0p5 = np.argmin(np.abs(w - 0.5))
+    if btype == 'bandpass':
+        stops += [idx_0]
+        mids += [idx_0p5]
+    else:
+        passes += [idx_0, idx_0p5]
+    assert_allclose(h[passes], 1., atol=0.01)
+    attenuation = -20 if phase == 'minimum' else -50
+    assert_allclose(h[stops], 0., atol=10 ** (attenuation / 20.))
+    if phase != 'minimum':  # haven't worked out the math for this yet
+        expected = 0.25 if phase == 'zero-double' else 0.5
+        assert_allclose(h[mids], expected, atol=0.01)
 
 
 run_tests_if_main()

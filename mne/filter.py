@@ -9,7 +9,7 @@ from scipy.fftpack import ifftshift, fftfreq
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import get_sosfiltfilt, minimum_phase
+from .fixes import get_sosfiltfilt, minimum_phase, _sosfreqz
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
@@ -511,7 +511,7 @@ _ftype_dict = {
 
 @verbose
 def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
-                         btype=None, return_copy=True):
+                         btype=None, return_copy=True, verbose=None):
     """Use IIR parameters to get filtering coefficients.
 
     This function works like a wrapper for iirdesign and iirfilter in
@@ -537,6 +537,8 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
             * Otherwise, if ``iir_params['order']`` and
               ``iir_params['ftype']`` exist, these will be used with
               `scipy.signal.iirfilter` to make a filter.
+              You should also supply ``iir_params['rs']`` and
+              ``iir_params['rp']`` if using elliptic or Chebychev filters.
             * Otherwise, if ``iir_params['gpass']`` and
               ``iir_params['gstop']`` exist, these will be used with
               `scipy.signal.iirdesign` to design a filter.
@@ -625,14 +627,14 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """  # noqa: E501
-    from scipy.signal import iirfilter, iirdesign
+    from scipy.signal import iirfilter, iirdesign, freqz
     known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
                      'cheby2', 'chebyshev1', 'chebyshev2', 'chebyshevi',
                      'chebyshevii', 'ellip', 'elliptic')
     if not isinstance(iir_params, dict):
         raise TypeError('iir_params must be a dict, got %s' % type(iir_params))
-    system = None
     # if the filter has been designed, we're good to go
+    Wp = None
     if 'sos' in iir_params:
         system = iir_params['sos']
         output = 'sos'
@@ -641,9 +643,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         output = 'ba'
     else:
         output = iir_params.get('output', 'sos')
-        if not isinstance(output, str) or output not in ('ba', 'sos'):
-            raise ValueError('Output must be "ba" or "sos", got %s'
-                             % (output,))
+        _check_option('output', output, ('ba', 'sos'))
         # ensure we have a valid ftype
         if 'ftype' not in iir_params:
             raise RuntimeError('ftype must be an entry in iir_params if ''b'' '
@@ -667,14 +667,15 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         logger.info('%s %s zero-phase (two-pass forward and reverse) '
                     'acausal filter' % (ftype_nice, btype))
         # SciPy designs for -3dB but we do forward-backward, so this is -6dB
-        logger.info('Cutoff%s (-6dB amplitude) at %s Hz'
-                    % (_pl(f_pass), edge_freqs))
         if 'order' in iir_params:
-            order = iir_params['order']
-            system = iirfilter(order, Wp, btype=btype,
-                               ftype=ftype, output=output)
+            kwargs = dict(N=iir_params['order'], Wn=Wp, btype=btype,
+                          ftype=ftype, output=output)
+            for key in ('rp', 'rs'):
+                if key in iir_params:
+                    kwargs[key] = iir_params[key]
+            system = iirfilter(**kwargs)
             logger.info('Filter order %d (effective, after forward-backward)'
-                        % (2 * order,))
+                        % (2 * iir_params['order'] * len(Wp),))
         else:
             # use gpass / gstop design
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
@@ -689,6 +690,17 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     # do some sanity checks
     _check_coefficients(system)
 
+    # get the gains at the cutoff frequencies
+    if Wp is not None:
+        if output == 'sos':
+            cutoffs = _sosfreqz(system, worN=Wp * np.pi)[1]
+        else:
+            cutoffs = freqz(system[0], system[1], worN=Wp * np.pi)[1]
+        # 2 * 20 here because we do forward-backward filtering
+        cutoffs = 40 * np.log10(np.abs(cutoffs))
+        cutoffs = ', '.join(['%0.2f' % (c,) for c in cutoffs])
+        logger.info('Cutoff%s at %s Hz: %s dB'
+                    % (_pl(f_pass), edge_freqs, cutoffs))
     # now deal with padding
     if 'padlen' not in iir_params:
         padlen = estimate_ringing_samples(system)
@@ -801,7 +813,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         forward-backward filtering (via filtfilt).
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details. If iir_params
+        See :func:`mne.filter.construct_iir_filter` for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
@@ -933,7 +945,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         forward-backward filtering (via filtfilt).
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details. If iir_params
+        See :func:`mne.filter.construct_iir_filter` for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     phase : str
         Phase of the filter, only used if ``method='fir'``.
@@ -1214,7 +1226,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         are detected using an F test, and noted by logging.
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details. If iir_params
+        See :func:`mne.filter.construct_iir_filter` for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
@@ -1806,13 +1818,11 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                      'string, got "%s"' % l_trans_bandwidth)
                 l_trans_bandwidth = np.minimum(np.maximum(0.25 * l_freq, 2.),
                                                l_freq)
+            msg = '- l_trans_bandwidth: %0.2f Hz' % (l_trans_bandwidth)
             if dB_cutoff:
-                extra = ' (%s cutoff: %0.2f Hz)' % (
+                msg += ' (%s cutoff: %0.2f Hz)' % (
                     dB_cutoff, l_freq - l_trans_bandwidth / 2.)
-            else:
-                extra = ''
-            logger.info('- l_trans_bandwidth: %0.2f Hz%s'
-                        % (l_trans_bandwidth, extra))
+            logger.info(msg)
             l_trans_bandwidth = cast(l_trans_bandwidth)
             if np.any(l_trans_bandwidth <= 0):
                 raise ValueError('l_trans_bandwidth must be positive, got %s'
@@ -1833,13 +1843,11 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                      'string, got "%s"' % h_trans_bandwidth)
                 h_trans_bandwidth = np.minimum(np.maximum(0.25 * h_freq, 2.),
                                                sfreq / 2. - h_freq)
+            msg = '- h_trans_bandwidth: %0.2f Hz' % (h_trans_bandwidth)
             if dB_cutoff:
-                extra = ' (%s cutoff: %0.2f Hz)' % (
+                msg += ' (%s cutoff: %0.2f Hz)' % (
                     dB_cutoff, h_freq + h_trans_bandwidth / 2.)
-            else:
-                extra = ''
-            logger.info('- h_trans_bandwidth: %0.2f Hz%s'
-                        % (h_trans_bandwidth, extra))
+            logger.info(msg)
             h_trans_bandwidth = cast(h_trans_bandwidth)
             if np.any(h_trans_bandwidth <= 0):
                 raise ValueError('h_trans_bandwidth must be positive, got %s'
@@ -2058,8 +2066,9 @@ class FilterMixin(object):
             forward-backward filtering (via filtfilt).
         iir_params : dict | None
             Dictionary of parameters to use for IIR filtering.
-            See mne.filter.construct_iir_filter for details. If iir_params
-            is None and method="iir", 4th order Butterworth will be used.
+            See :func:`mne.filter.construct_iir_filter` for details.
+            If iir_params is None and method="iir", 4th order Butterworth
+            will be used.
         phase : str
             Phase of the filter, only used if ``method='fir'``.
             By default, a symmetric linear-phase FIR filter is constructed.
