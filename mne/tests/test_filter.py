@@ -686,7 +686,8 @@ def test_reporting_fir(phase, fir_window, btype):
     # Verify some of the filter properties
     if phase == 'zero-double':
         x = np.convolve(x, x)  # effectively what happens
-    w, h = freqz(x, worN=10000, fs=fs)
+    w, h = freqz(x, worN=10000)
+    w *= fs / (2 * np.pi)
     h = np.abs(h)
     # passband
     passes = [np.argmin(np.abs(w - f)) for f in (1, 20, 40)]
