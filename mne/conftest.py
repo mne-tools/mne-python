@@ -31,6 +31,58 @@ fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
 
+def pytest_configure(config):
+    """Configure pytest options."""
+    # Set the timeout pretty low to ensure we do not by default add really long
+    # tests, or make changes that make things a lot slower
+    config.addinivalue_line(
+        'addopts',
+        '--showlocals --durations=20 --doctest-modules -ra --cov-report= '
+        '--doctest-ignore-import-errors --junit-xml=junit-results.xml '
+        '--ignore=doc --ignore=logo --ignore=examples --ignore=tutorials '
+        '--ignore=mne/gui/_*.py --timeout 30')
+
+    # Markers
+    for marker in ('slowtest', 'ultraslowtest'):
+        config.addinivalue_line('markers', marker)
+
+    # Fixtures
+    for fixture in ('matplotlib_config',):
+        config.addinivalue_line('usefixtures', fixture)
+
+    # Warnings
+    # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
+    #   we should remove them from here.
+    # - This list should also be considered alongside reset_warnings in
+    #   doc/conf.py.
+    warning_lines = """
+    error::
+    ignore::ImportWarning
+    ignore:the matrix subclass:PendingDeprecationWarning
+    ignore:numpy.dtype size changed:RuntimeWarning
+    ignore:.*HasTraits.trait_.*:DeprecationWarning
+    ignore:.*takes no parameters:DeprecationWarning
+    ignore:joblib not installed:RuntimeWarning
+    ignore:Using a non-tuple sequence for multidimensional indexing:FutureWarning
+    ignore:using a non-integer number instead of an integer will result in an error:DeprecationWarning
+    ignore:Importing from numpy.testing.decorators is deprecated:DeprecationWarning
+    ignore:np.loads is deprecated, use pickle.loads instead:DeprecationWarning
+    ignore:The oldnumeric module will be dropped:DeprecationWarning
+    ignore:Collection picker None could not be converted to float:UserWarning
+    ignore:covariance is not positive-semidefinite:RuntimeWarning
+    ignore:Can only plot ICA components:RuntimeWarning
+    ignore:Matplotlib is building the font cache using fc-list:UserWarning
+    ignore:Using or importing the ABCs from 'collections':DeprecationWarning
+    ignore:`formatargspec` is deprecated:DeprecationWarning
+    # This is only necessary until sklearn updates their wheels for NumPy 1.16
+    ignore:numpy.ufunc size changed:RuntimeWarning
+    """  # noqa: E501
+    for warning_line in warning_lines.split('\n'):
+        warning_line = warning_line.strip()
+        if warning_line and not warning_line.startswith('#'):
+            config.addinivalue_line('filterwarnings', warning_line)
+
+
 @pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
@@ -73,6 +125,7 @@ def evoked():
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
 def noise_cov():
+    """Get a noise cov from the testing dataset."""
     return mne.read_cov(fname_cov)
 
 
@@ -115,11 +168,13 @@ def _bias_params(evoked, noise_cov, fwd):
     "pyvista",
 ])
 def backend_name(request):
+    """Get the backend name."""
     yield request.param
 
 
 @pytest.yield_fixture
 def backends_3d(backend_name):
+    """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
     from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
     if backend_name == 'mayavi':
