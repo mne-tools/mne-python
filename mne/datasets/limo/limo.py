@@ -128,9 +128,8 @@ def load_data(subject, path=None, interpolate=False, force_update=False, update_
     
     Parameters
     ----------
-    subject : int | str
-        Subject to use. Can be in the range from 1 to 18.
-        If string, must be 'S1', 'S2' etc.
+    subject : int
+        Subject to use. Can be an ``ìnt`` in the range from 1 to 18.
     path : str
         Location of where to look for the LIMO data.  
         If None, the environment variable or config parameter
@@ -160,12 +159,10 @@ def load_data(subject, path=None, interpolate=False, force_update=False, update_
     limo_path = data_path(url, path, force_update, update_path)
 
     # subject in question
-    if isinstance(subject, int):
+    if isinstance(subject, int) and 1 <= subject <= 18:
         subj = 'S%i' % subject
-    elif isinstance(subject, str):
-        if not subject.startswith('S'):
-            raise ValueError('`subject` must start with `S`')
-        subj = subject
+    else:
+        raise ValueError('`subject` must be an `int` in the range from 1 to 18')
 
     # -- 1) import .mat files
     # epochs info
@@ -224,7 +221,7 @@ def load_data(subject, path=None, interpolate=False, force_update=False, update_
     info = mne.create_info(ch_names=ch_names, ch_types=types, sfreq=sfreq, montage=montage)
     # get faces and noise variables from design matrix
     event_list = list(events[:, 2])
-    faces = ['A' if event_list[event] == 0 else 'B' for event in event_list]
+    faces = ['A' if event == 0 else 'B' for event in event_list]
     noise = list(design[:, 2])
     # create epochs metadata
     metadata = {'Face': faces, 'Noise': noise}
