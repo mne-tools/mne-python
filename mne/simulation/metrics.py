@@ -199,13 +199,13 @@ def _dle(p, q, src, stc):
 
 
 @fill_doc
-def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
+def stc_region_localization_error(stc_true, stc_est, src, threshold='90%',
                                   per_sample=True):
-    r"""Compute dipole localization error (DLE) between 2 source estimates.
+    r"""Compute region localization error (RLE) between 2 source estimates.
 
     .. math::
 
-        DLE = \frac{1}{2Q}\sum_{k \in I} \min_{l \in \hat{I}}{||r_k - r_l||}
+        RLE = \frac{1}{2Q}\sum_{k \in I} \min_{l \in \hat{I}}{||r_k - r_l||}
         + \frac{1}{2\hat{Q}}\sum_{l \in \hat{I}} \min_{k \in I}{||r_k - r_l||},
 
     where :math:`I` and :math:`\hat{I}` denote respectively the original and
@@ -230,6 +230,15 @@ def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
     -------
     %(stc_metric)s
 
+    Discussion
+    ----------
+    Papers [1] and [2] use term Dipole Localization Error (DLE)
+    for the same formula.
+    Paper [3] uses term Error Distance (ED) for the same formula.
+    To unify the terminology and to avoid confusion with other cases
+    of using term DLE but for different metric [4], we use term
+    Region Localization Error (RLE).
+
     References
     ----------
     .. [1] Maksymenko K., Giusiano B., Roehri N., Bénar CG and Badier JM
@@ -240,9 +249,12 @@ def stc_dipole_localization_error(stc_true, stc_est, src, threshold='90%',
            Guillotel P. and Merlet I. (2017), SISSY: An efficient and automatic
            algorithm for the analysis of EEG sources based on structured
            sparsity. NeuroImage 157, 157-172
-    .. [3] Yao, J., Dewald, J. P. A. (2005), Evaluation of different cortical
+    .. [3] Yao J., Dewald J. P. A. (2005), Evaluation of different cortical
            source localization methods using simulated and experimental
            EEG data. NeuroImage 25 (2), 369–382.
+    .. [4] Moulins A., Stufflebeam S.M., Brown E.N., Hämäläinen M.S. (2008),
+           Quantification of the benefit from integrating MEG and EEG data
+           in minimum l2-norm estimation. NeuroImage 42 (3), 1069–1077.
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)

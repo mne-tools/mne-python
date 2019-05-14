@@ -905,7 +905,7 @@ Simulation
    simulate_sparse_stc
    select_source_in_label
    stc_cosine_score
-   stc_dipole_localization_error
+   stc_region_localization_error
    stc_f1_score
    stc_precision_score
    stc_recall_score

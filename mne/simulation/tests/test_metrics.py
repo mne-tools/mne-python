@@ -20,7 +20,7 @@ from mne.datasets import testing
 from mne.utils import requires_sklearn
 from mne.simulation import (simulate_sparse_stc,
                             source_estimate_quantification,
-                            stc_cosine_score, stc_dipole_localization_error,
+                            stc_cosine_score, stc_region_localization_error,
                             stc_precision_score, stc_recall_score,
                             stc_f1_score, stc_roc_auc_score)
 from mne.simulation.metrics import (_uniform_stc, _thresholding,
@@ -106,7 +106,7 @@ def test_cosine_score():
 
 @testing.requires_testing_data
 @requires_sklearn
-def test_dipole_localization_error():
+def test_region_localization_error():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:1], []]
@@ -117,10 +117,10 @@ def test_dipole_localization_error():
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
 
-    E_per_sample1 = stc_dipole_localization_error(stc_true, stc_est1, src)
-    E_per_sample2 = stc_dipole_localization_error(stc_true, stc_est1, src,
+    E_per_sample1 = stc_region_localization_error(stc_true, stc_est1, src)
+    E_per_sample2 = stc_region_localization_error(stc_true, stc_est1, src,
                                                   threshold='70%')
-    E_unique = stc_dipole_localization_error(stc_true, stc_est1, src,
+    E_unique = stc_region_localization_error(stc_true, stc_est1, src,
                                              per_sample=False)
 
     # ### Tests to add

@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Add :func:`mne.simulation.stc_cosine_score`, :func:`mne.simulation.stc_roc_auc_score`, :func:`mne.simulation.stc_dipole_localization_error`, :func:`mne.simulation.stc_f1_score`, :func:`mne.simulation.stc_precision_score` and :func:`mne.simulation.stc_recall_score` to compute metrics between source estimates, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
+- Add :func:`mne.simulation.stc_cosine_score`, :func:`mne.simulation.stc_roc_auc_score`, :func:`mne.simulation.stc_region_localization_error`, :func:`mne.simulation.stc_f1_score`, :func:`mne.simulation.stc_precision_score` and :func:`mne.simulation.stc_recall_score` to compute metrics between source estimates, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
 
 - :func:`mne.beamformer.apply_lcmv_cov` returns static source power after supplying a data covariance matrix to the beamformer filter by `Britta Westner`_ and `Marijn van Vliet`_
   

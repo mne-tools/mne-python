@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-from mne.simulation import (stc_dipole_localization_error,
+from mne.simulation import (stc_region_localization_error,
                             stc_f1_score, stc_precision_score,
                             stc_recall_score, stc_cosine_score)
 
@@ -100,7 +100,7 @@ f1s = []
 precs = []
 recs = []
 for thr in thresholds:
-    dles.append(stc_dipole_localization_error(stc_true, stc_est, src,
+    dles.append(stc_region_localization_error(stc_true, stc_est, src,
                                               threshold=thr,
                                               per_sample=False))
     f1s.append(stc_f1_score(stc_true, stc_est, threshold=thr,
@@ -115,7 +115,7 @@ f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col')
 f.suptitle('Performance scores per threshold')
 
 ax1.plot(dles, '.-')
-ax1.set_title('DLE')
+ax1.set_title('RLE')
 ax1.ticklabel_format(axis='y', style='sci', scilimits=(0, 1))
 ax1.set_ylabel('Score')
 
