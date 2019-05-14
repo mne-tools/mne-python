@@ -211,8 +211,8 @@ reject_criteria = dict(mag=4000e-15,     # 4000 fT
 # start and end each epoch). As mentioned above, by default
 # :class:`~mne.io.Raw` and :class:`~mne.Epochs` data aren't loaded into memory
 # (they're accessed from disk only when needed), but here we'll force loading
-# into memory using the `preload=True` parameter so that we can see the results
-# of the rejection criteria being applied:
+# into memory using the ``preload=True`` parameter so that we can see the
+# results of the rejection criteria being applied:
 
 epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.2, tmax=0.5,
                     reject=reject_criteria, preload=True)
@@ -348,7 +348,7 @@ stc = mne.minimum_norm.apply_inverse(vis_evoked, inv_operator,
 ##############################################################################
 # Finally, in order to plot the source estimate on the subject's cortical
 # surface we'll also need the path to the sample subject's structural MRI files
-# (the `subjects_dir`):
+# (the ``subjects_dir``):
 
 # path to subjects' MRI files
 subjects_dir = os.path.join(sample_data_folder, 'subjects')
