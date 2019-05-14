@@ -27,13 +27,13 @@ from mne.beamformer import make_dics, apply_dics_csd
 
 print(__doc__)
 
+###############################################################################
+# Reading the raw data and creating epochs:
 data_path = somato.data_path()
 raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
 fname_fwd = data_path + '/MEG/somato/somato-meg-oct-6-fwd.fif'
 subjects_dir = data_path + '/subjects'
 
-###############################################################################
-# Reading the raw data and creating epochs:
 raw = mne.io.read_raw_fif(raw_fname)
 
 # Set picks, use a single sensor type
@@ -73,7 +73,7 @@ baseline_source_power, freqs = apply_dics_csd(csd_baseline.mean(), filters)
 beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
 
 ###############################################################################
-# Visualizing souce power during ERS activity relative to the baseline power.
+# Visualizing source power during ERS activity relative to the baseline power.
 stc = beta_source_power / baseline_source_power
 message = 'DICS source power in the 12-30 Hz frequency band'
 brain = stc.plot(hemi='both', views='par', subjects_dir=subjects_dir,
