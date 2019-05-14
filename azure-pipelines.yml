@@ -61,7 +61,7 @@ jobs:
       $ErrorActionPreference = "Stop"
       $PSDefaultParameterValues['*:ErrorAction']='Stop'
       $env:PYTHON = '$(System.DefaultWorkingDirectory)' + '\conda'
-      git clone git://github.com/larsoner/ci-helpers.git
+      git clone git://github.com/astropy/ci-helpers.git
       cd ci-helpers
       git checkout nopip
       cd ..
