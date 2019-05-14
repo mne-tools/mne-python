@@ -4,7 +4,10 @@ Compute source power using DICS beamfomer
 =========================================
 
 Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
-single-trial activity to estimate source power across a frequency band.
+single-trial activity to estimate source power across a frequency band. This
+example demonstrates how to source localize the event-related synchronization
+(ERS) of beta band activity in the "somato" dataset.
+
 
 References
 ----------
@@ -18,51 +21,60 @@ References
 # License: BSD (3-clause)
 import numpy as np
 import mne
-from mne.datasets import sample
+from mne.datasets import somato
 from mne.time_frequency import csd_morlet
 from mne.beamformer import make_dics, apply_dics_csd
 
 print(__doc__)
 
-data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
+data_path = somato.data_path()
+raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
+fname_fwd = data_path + '/MEG/somato/somato-meg-oct-6-fwd.fif'
 subjects_dir = data_path + '/subjects'
 
 ###############################################################################
-# Reading the raw data:
+# Reading the raw data and creating epochs:
 raw = mne.io.read_raw_fif(raw_fname)
-raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Set picks
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=False,
-                       stim=False, exclude='bads')  # use a single sensor type
+                       stim=True, exclude='bads')  # use a single sensor type
 
 # Read epochs
-event_id, tmin, tmax = 1, -0.2, 0.5
-events = mne.read_events(event_fname)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=True,
-                    reject=dict(grad=4000e-13))
-evoked = epochs.average()
+events = mne.find_events(raw)
+epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, preload=True)
 
 # Read forward operator
-forward = mne.read_forward_solution(fname_fwd)
+fwd = mne.read_forward_solution(fname_fwd)
 
 ###############################################################################
-# Computing the cross-spectral density matrix at 4 evenly spaced frequencies
-# from 6 to 10 Hz. We use a decim value of 20 to speed up the computation in
-# this example at the loss of accuracy.
-csd = csd_morlet(epochs, tmin=0, tmax=0.5, decim=20,
-                 frequencies=np.linspace(6, 10, 4),
-                 n_cycles=2.5)  # short signals, must live with few cycles
+# We are interested in the beta band. Define a range of frequencies, using a
+# log scale, from 12 to 30 Hz.
+freqs = np.logspace(np.log10(12), np.log10(30), 9)
 
-# Compute DICS spatial filter and estimate source power.
-filters = make_dics(epochs.info, forward, csd, reg=0.5)
-print(filters)
-stc, freqs = apply_dics_csd(csd, filters)
+###############################################################################
+# Computing the cross-spectral density matrix for the beta frequency band, for
+# different time intervals. We use a decim value of 20 to speed up the
+# computation in this example at the loss of accuracy.
+csd = csd_morlet(epochs, freqs, tmin=-1, tmax=1.5, decim=20)
+csd_baseline = csd_morlet(epochs, freqs, tmin=-1, tmax=0, decim=20)
+# ERS activity starts at 0.5 seconds after stimulus onset
+csd_ers = csd_morlet(epochs, freqs, tmin=0.5, tmax=1.5, decim=20)
 
-message = 'DICS source power in the 8-12 Hz frequency band'
-brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
+###############################################################################
+# Computing DICS spatial filters using the CSD that was computed on the entire
+# timecourse.
+filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power')
+
+###############################################################################
+# Applying DICS spatial filters separately to the CSD computed using the
+# baseline and the CSD computed during the ERS activity.
+baseline_source_power, freqs = apply_dics_csd(csd_baseline.mean(), filters)
+beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
+
+###############################################################################
+# Visualizing souce power during ERS activity relative to the baseline power.
+stc = beta_source_power / baseline_source_power
+message = 'DICS source power in the 12-30 Hz frequency band'
+brain = stc.plot(hemi='both', views='par', subjects_dir=subjects_dir,
                  time_label=message)
