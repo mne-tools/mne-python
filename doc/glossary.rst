@@ -77,15 +77,14 @@ MNE-Python core terminology and general concepts
         was acquired.
 
     forward solution
-        The forward solution or forward model (abbr. ``fwd``) is a linear
-        operator capturing the relationship between each dipole location in the
-        :term:`source space` and the expected pattern of activity on the
-        sensors corresponding to that dipole (AKA, the "lead fields"). Forward
-        solutions are obtained by solving the Maxwell equations describing
-        electromagnetic field propagation; this requires a conductivity model
-        of the different tissues that the electromagnetic waves must propogate
-        through in order to reach the sensors (see :term:`boundary element
-        model <BEM>` and :class:`mne.bem.ConductorModel`).
+        The forward solution (abbr. ``fwd``) is a linear operator capturing the
+        relationship between each dipole location in the :term:`source space`
+        and the corresponding field distribution measured by the sensors (AKA,
+        the "lead field matrix"). Calculating a forward solution requires a
+        conductivity model of the head, encapsulating the geometry and
+        electrical conductivity of the different tissue compartments (see
+        :term:`boundary element model <BEM>` and
+        :class:`mne.bem.ConductorModel`).
 
     info
         Also called ``measurement info``, it is a collection of metadata regarding
