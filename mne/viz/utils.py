@@ -295,8 +295,10 @@ def _toggle_options(event, params):
 @contextmanager
 def _events_off(obj):
     obj.eventson = False
-    yield
-    obj.eventson = True
+    try:
+        yield
+    finally:
+        obj.eventson = True
 
 
 def _toggle_proj(event, params, all_=False):

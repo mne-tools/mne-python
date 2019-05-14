@@ -70,8 +70,10 @@ def use_3d_backend(backend_name):
     """
     old_backend = get_3d_backend()
     set_3d_backend(backend_name)
-    yield
-    set_3d_backend(old_backend)
+    try:
+        yield
+    finally:
+        set_3d_backend(old_backend)
 
 
 @contextmanager
