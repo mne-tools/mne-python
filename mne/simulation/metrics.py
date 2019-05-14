@@ -230,7 +230,7 @@ def stc_region_localization_error(stc_true, stc_est, src, threshold='90%',
     -------
     %(stc_metric)s
 
-    Discussion
+    Notes
     ----------
     Papers [1] and [2] use term Dipole Localization Error (DLE)
     for the same formula.
