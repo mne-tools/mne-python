@@ -36,13 +36,13 @@ subjects_dir = data_path + '/subjects'
 # Reading the raw data and creating epochs:
 raw = mne.io.read_raw_fif(raw_fname)
 
-# Set picks
-picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=False,
-                       stim=True, exclude='bads')  # use a single sensor type
+# Set picks, use a single sensor type
+picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 # Read epochs
 events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, preload=True)
+epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
+                    preload=True)
 
 # Read forward operator
 fwd = mne.read_forward_solution(fname_fwd)
