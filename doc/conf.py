@@ -14,6 +14,7 @@
 
 from datetime import date
 from distutils.version import LooseVersion
+import gc
 import os
 import os.path as op
 import sys
@@ -332,6 +333,7 @@ class Resetter(object):
 
     def __call__(self, gallery_conf, fname):
         reset_warnings(gallery_conf, fname)
+        gc.collect()
 
 
 def reset_warnings(gallery_conf, fname):

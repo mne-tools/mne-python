@@ -822,7 +822,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     info = pick_info(info, picks_meeg)
     tslice = _get_tslice(epochs[0], tmin, tmax)
-    epochs = [ee.get_data()[:, picks_meeg, tslice] for ee in epochs]
+    epochs = [ee.get_data(picks=picks_meeg)[..., tslice] for ee in epochs]
     picks_meeg = np.arange(len(picks_meeg))
     picks_list = _picks_by_type(info)
 

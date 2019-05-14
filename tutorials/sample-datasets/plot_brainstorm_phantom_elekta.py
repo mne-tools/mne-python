@@ -43,7 +43,7 @@ print(__doc__)
 data_path = bst_phantom_elekta.data_path(verbose=True)
 
 raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
-raw = read_raw_fif(raw_fname).load_data()
+raw = read_raw_fif(raw_fname)
 
 ###############################################################################
 # Data channel array consisted of 204 MEG planor gradiometers,
@@ -59,12 +59,11 @@ raw.info['bads'] = ['MEG1933', 'MEG2421']
 # noise (five peaks around 300 Hz). Here we plot only out to 60 seconds
 # to save memory:
 
-raw.plot_psd(tmax=60., average=False)
+raw.plot_psd(tmax=30., average=False)
 
 ###############################################################################
-# We know our phantom produces sinusoidal bursts below 25 Hz, so let's filter.
+# Our phantom produces sinusoidal bursts at 20 Hz:
 
-raw.filter(None, 40.)
 raw.plot(events=events)
 
 ###############################################################################
@@ -76,8 +75,7 @@ tmin, tmax = -0.1, 0.1
 bmax = -0.05  # Avoid capture filter ringing into baseline
 event_id = list(range(1, 33))
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, bmax),
-                    decim=5, preload=True)
-del raw
+                    preload=False)
 epochs['1'].average().plot(time_unit='s')
 
 ###############################################################################
@@ -98,8 +96,7 @@ mne.viz.plot_alignment(epochs.info, subject='sample', show_axes=True,
 
 # here we can get away with using method='oas' for speed (faster than "shrunk")
 # but in general "shrunk" is usually better
-cov = mne.compute_covariance(
-    epochs, tmax=bmax, method='oas', rank=None)
+cov = mne.compute_covariance(epochs, tmax=bmax)
 mne.viz.plot_evoked_white(epochs['1'].average(), cov)
 
 data = []
@@ -158,7 +155,9 @@ plt.show()
 ###############################################################################
 # Let's plot the positions and the orientations of the actual and the estimated
 # dipoles
+
 def plot_pos_ori(pos, ori, color=(0., 0., 0.), opacity=1.):
+    """Plot dipole positions and orientations in 3D."""
     x, y, z = pos.T
     u, v, w = ori.T
     mlab.points3d(x, y, z, scale_factor=0.005, opacity=opacity, color=color)
