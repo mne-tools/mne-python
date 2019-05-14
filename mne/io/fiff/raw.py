@@ -92,7 +92,8 @@ class Raw(BaseRaw):
                          'exist.' % next_fname)
                     break
         if not isinstance(fname, str):
-            fname = None  # avoid serialization error when copying file-like
+            # avoid serialization error when copying file-like
+            fname = None  # noqa
 
         _check_raw_compatibility(raws)
         super(Raw, self).__init__(
