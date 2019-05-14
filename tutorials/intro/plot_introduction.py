@@ -10,7 +10,13 @@ from sensor data. It introduces the core MNE-Python data structures
 :class:`~mne.io.Raw`, :class:`~mne.Epochs`, :class:`~mne.Evoked`, and
 :class:`~mne.SourceEstimate`, and covers a lot of ground fairly quickly (at the
 expense of depth). Subsequent tutorials address each of these topics in greater
-detail. We begin by importing the necessary Python modules:
+detail.
+
+.. contents:: Page contents
+   :local:
+   :depth: 1
+
+We begin by importing the necessary Python modules:
 """
 
 import os
@@ -49,7 +55,13 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # from the MEG signals, and are discussed
 # in a later tutorial. In addition to the information displayed during loading,
 # you can get a glimpse of the basic details of a :class:`~mne.io.Raw` object
-# by printing it; even more is available by printing its ``info`` attribute:
+# by printing it; even more is available by printing its ``info`` attribute
+# (a :class:`dictionary-like object <mne.Info>` that is preserved across
+# :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`
+# objects). The ``info`` data structure keeps track of channel locations,
+# applied filters, projectors, etc. Notice especially the ``chs`` entry,
+# showing that MNE-Python detects different sensor types and handles each
+# appropriately.
 #
 # .. TODO edit prev. paragraph when projectors tutorial is added: ...those are
 #     discussed in the tutorial :ref:`projectors-tutorial`. (or whatever link)
@@ -58,14 +70,6 @@ print(raw)
 print(raw.info)
 
 ###############################################################################
-# .. note::
-#
-#     The ``info`` attribute is :class:`a dictionary-like object <mne.Info>`
-#     that keeps track of channel locations, applied filters, projectors, etc.
-#     and is preserved across :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and
-#     :class:`~mne.Evoked` objects. Notice also the ``chs`` entry, showing that
-#     MNE-Python detects different sensor types and handles each appropriately.
-#
 # :class:`~mne.io.Raw` objects also have several built-in plotting methods;
 # here we show the power spectral density for each sensor type with
 # :meth:`~mne.io.Raw.plot_psd`, as well as a plot of the raw sensor traces with
@@ -189,7 +193,11 @@ fig.subplots_adjust(right=0.7)  # make room for the legend
 # :class:`mne.Epochs` class constructor. Here we'll also specify some data
 # quality constraints: we'll reject any epoch where peak-to-peak signal
 # amplitude is beyond reasonable limits for that channel type. This is done
-# with a *rejection dictionary*:
+# with a *rejection dictionary*; you may include or omit thresholds for any of
+# the channel types present in your data. The values given here are reasonable
+# for this particular dataset, but may need to be adapted for different
+# hardware or recording conditions. For a more automated approach, consider
+# using the `autoreject package`_.
 
 reject_criteria = dict(mag=4000e-15,     # 4000 fT
                        grad=4000e-13,    # 4000 fT/cm
@@ -200,26 +208,16 @@ reject_criteria = dict(mag=4000e-15,     # 4000 fT
 # We'll also pass the event dictionary as the ``event_id`` parameter (so we can
 # work with easy-to-pool event labels instead of the integer event IDs), and
 # specify ``tmin`` and ``tmax`` (the time relative to each event at which to
-# start and end each epoch). By default, :class:`~mne.io.Raw` and
-# :class:`~mne.Epochs` data aren't loaded into memory (they're accessed from
-# disk only when needed), but here we'll force loading into memory so that we
-# can see the results of the rejection criteria being applied:
+# start and end each epoch). As mentioned above, by default
+# :class:`~mne.io.Raw` and :class:`~mne.Epochs` data aren't loaded into memory
+# (they're accessed from disk only when needed), but here we'll force loading
+# into memory using the `preload=True` parameter so that we can see the results
+# of the rejection criteria being applied:
 
 epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.2, tmax=0.5,
                     reject=reject_criteria, preload=True)
 
 ###############################################################################
-# .. note::
-#
-#     Both :class:`~mne.io.Raw` and :class:`~mne.Epochs` objects have
-#     :meth:`~mne.Epochs.get_data` methods that return the underlying data
-#     as a :class:`NumPy array <numpy.ndarray>`. Both methods have a ``picks``
-#     parameter for subselecting which channel(s) to return; ``raw.get_data()``
-#     has additional parameters for restricting the time domain. The resulting
-#     matrices have dimension ``(n_channels, n_times)`` for
-#     :class:`~mne.io.Raw` and ``(n_epochs, n_channels, n_times)`` for
-#     :class:`~mne.Epochs`.
-#
 # Next we'll pool across left/right stimulus presentations so we can compare
 # auditory versus visual responses. To avoid biasing our signals to the
 # left or right, we'll use :meth:`~mne.Epochs.equalize_event_counts` first to
@@ -241,6 +239,36 @@ del raw, epochs  # free up memory
 # shown below the image:
 
 aud_epochs.plot_image(picks=['MEG 1332', 'EEG 021'])
+
+##############################################################################
+# .. note::
+#
+#     Both :class:`~mne.io.Raw` and :class:`~mne.Epochs` objects have
+#     :meth:`~mne.Epochs.get_data` methods that return the underlying data
+#     as a :class:`NumPy array <numpy.ndarray>`. Both methods have a ``picks``
+#     parameter for subselecting which channel(s) to return; ``raw.get_data()``
+#     has additional parameters for restricting the time domain. The resulting
+#     matrices have dimension ``(n_channels, n_times)`` for
+#     :class:`~mne.io.Raw` and ``(n_epochs, n_channels, n_times)`` for
+#     :class:`~mne.Epochs`.
+#
+#
+# Time-frequency analysis
+# ^^^^^^^^^^^^^^^^^^^^^^^
+#
+# The :mod:`mne.time_frequency` submodule provides implementations of several
+# algorithms to compute time-frequency representations, power spectral density,
+# and cross-spectral density. Here, for example, we'll compute for the auditory
+# epochs the induced power at different frequencies and times, using Morlet
+# wavelets. On this dataset the result is not especially informative (it just
+# shows the evoked "auditory N100" response); see :ref:`here
+# <inter-trial-coherence>` for a more extended example on a dataset with richer
+# frequency content.
+
+frequencies = np.arange(7, 30, 3)
+power = mne.time_frequency.tfr_morlet(aud_epochs, n_cycles=2, return_itc=False,
+                                      freqs=frequencies, decim=3)
+power.plot(['MEG 1332'])
 
 ###############################################################################
 # Estimating evoked responses
@@ -283,50 +311,58 @@ evoked_diff = mne.combine_evoked([aud_evoked, -vis_evoked], weights='equal')
 evoked_diff.pick_types('mag').plot_topo(color='r', legend=False)
 
 ##############################################################################
-# Time-frequency analysis
-# ^^^^^^^^^^^^^^^^^^^^^^^
-#
-# The :mod:`mne.time_frequency` submodule provides implementations of several
-# algorithms to compute time-frequency representations, power spectral density,
-# and cross-spectral density. Here, for example, we'll compute for the
-# auditory epochs the induced power at different frequencies and times, using
-# Morlet wavelets:
-
-frequencies = np.arange(7, 30, 3)
-power = mne.time_frequency.tfr_morlet(aud_epochs, n_cycles=2, return_itc=False,
-                                      freqs=frequencies, decim=3)
-power.plot(['MEG 1332'])
-
-##############################################################################
 # Inverse modeling
 # ^^^^^^^^^^^^^^^^
 #
-# Finally, we can estimate the cortical origins of the evoked activity by
-# projecting the sensor data into this subject's :term:`source space`.
-# MNE-Python supports lots of ways of doing this (minimum-norm estimation,
-# dipole fitting, beamformers, etc); here we'll use minimum-norm estimation
-# (MNE) to generate a continuous cortical activation map. To do this we'll
-# need the inverse operator for this subject (the sample data includes one
-# that's been pre-computed), and we'll need to specify a regularization
-# parameter:
-#
-# .. TODO: compute inverse operator instead of loading?
+# Finally, we can estimate the origins of the evoked activity by projecting the
+# sensor data into this subject's :term:`source space` (a set of points either
+# on the cortical surface or within the cortical volume of that subject, as
+# estimated by structural MRI scans). MNE-Python supports lots of ways of doing
+# this (dynamic statistical parametric mapping, dipole fitting, beamformers,
+# etc.); here we'll use minimum-norm estimation (MNE) to generate a continuous
+# map of activation constrained to the cortical surface. MNE uses a linear
+# :term:`inverse operator` to project EEG+MEG sensor measurements into the
+# source space. Normally the inverse operator would be computed from the
+# :term:`forward model` for this subject and an estimate of :ref:`the
+# covariance of sensor measurements <tut_compute_covariance>`. For this
+# tutorial we'll skip those computational steps and load a pre-computed inverse
+# operator from disk (it's included with the :ref:`sample data
+# <sample-dataset>`). Because this "inverse problem" is underdetermined (there
+# is no unique solution), here we further constrain the solution by providing a
+# regularization parameter specifying the relative smoothness of the current
+# estimates in terms of a signal-to-noise ratio (where "noise" here is akin to
+# baseline activity level across all of cortex).
 
+# load inverse operator
 inverse_operator_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                      'sample_audvis-meg-oct-6-meg-inv.fif')
 inv_operator = mne.minimum_norm.read_inverse_operator(inverse_operator_file)
-# set the regularization parameter (λ²)
-signal_to_noise_ratio = 3.
-regularization_param = 1. / signal_to_noise_ratio ** 2
+# set signal-to-noise ratio (SNR) to compute regularization parameter (λ²)
+snr = 3.
+lambda2 = 1. / snr ** 2
 # generate the source time course (STC)
 stc = mne.minimum_norm.apply_inverse(vis_evoked, inv_operator,
-                                     regularization_param,
+                                     lambda2=lambda2,
                                      method='MNE')  # or dSPM, sLORETA, eLORETA
-# plot
-stc.plot(initial_time=0.1, hemi='split', views=['lat', 'med'])
 
 ##############################################################################
-# The rest of the tutorials have *much more detail* on each of these topics (as
+# Finally, in order to plot the source estimate on the subject's cortical
+# surface we'll also need the path to the sample subject's structural MRI files
+# (the `subjects_dir`):
+
+# path to subjects' MRI files
+subjects_dir = os.path.join(sample_data_folder, 'subjects')
+# plot
+stc.plot(initial_time=0.1, hemi='split', views=['lat', 'med'],
+         subjects_dir=subjects_dir)
+
+##############################################################################
+# The remaining tutorials have *much more detail* on each of these topics (as
 # well as many other capabilities of MNE-Python not mentioned here:
 # connectivity analysis, encoding/decoding models, lots more visualization
 # options, etc). Read on to learn more!
+#
+#
+# .. LINKS
+#
+# .. _`autoreject package`: http://autoreject.github.io/
