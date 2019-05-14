@@ -185,6 +185,12 @@ fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw.info['sfreq'])
 fig.subplots_adjust(right=0.7)  # make room for the legend
 
 ###############################################################################
+# For paradigms that are not event-related (e.g., analysis of resting-state
+# data), you can extract regularly spaced (possibly overlapping) spans of data
+# by creating events using :func:`mne.make_fixed_length_events` and then
+# proceeding with epoching as described in the next section.
+#
+#
 # Epoching continuous data
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
