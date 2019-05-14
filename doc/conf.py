@@ -442,6 +442,7 @@ numpydoc_attributes_as_param_list = False
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     'Popen': 'python:subprocess.Popen',
+    'file-like': ':term:`file-like <python:file object>`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',

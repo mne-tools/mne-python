@@ -6,6 +6,7 @@
 
 from copy import deepcopy
 from functools import partial
+from io import BytesIO
 import os.path as op
 import pickle
 import sys
@@ -1496,6 +1497,42 @@ def test_memmap(tmpdir):
     # other things like drop_channels and crop work but do not use memmapping,
     # eventually we might want to add support for some of these as users
     # require them.
+
+
+@pytest.mark.parametrize('split', (False, True))
+@pytest.mark.parametrize('kind', ('file', 'bytes'))
+@pytest.mark.parametrize('preload', (True, str))
+def test_file_like(kind, preload, split, tmpdir):
+    """Test handling with file-like objects."""
+    if split:
+        fname = op.join(str(tmpdir), 'test_raw.fif')
+        read_raw_fif(test_fif_fname).save(fname, split_size='5MB')
+        assert op.isfile(fname)
+        assert op.isfile(fname[:-4] + '-1.fif')
+    else:
+        fname = test_fif_fname
+    if preload is str:
+        preload = op.join(str(tmpdir), 'memmap')
+    with open(fname, 'rb') as file_fid:
+        fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
+        assert not fid.closed
+        assert not file_fid.closed
+        with pytest.raises(ValueError, match='preload must be used with file'):
+            read_raw_fif(fid)
+        assert not fid.closed
+        assert not file_fid.closed
+        # Use test_preloading=False but explicitly pass the preload type
+        # so that we don't bother testing preload=False
+        kwargs = dict(fname=fid, preload=preload,
+                      test_preloading=False, test_kwargs=False)
+        if split:
+            with pytest.warns(RuntimeWarning, match='Split raw file detected'):
+                _test_raw_reader(read_raw_fif, **kwargs)
+        else:
+            _test_raw_reader(read_raw_fif, **kwargs)
+        assert not fid.closed
+        assert not file_fid.closed
+    assert file_fid.closed
 
 
 run_tests_if_main()
