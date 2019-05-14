@@ -11,7 +11,7 @@ import importlib
 import numpy as np
 from mne.viz.backends.renderer import get_3d_backend
 from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
-                                           skips_if_not_vtki)
+                                           skips_if_not_pyvista)
 
 DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
 
@@ -30,7 +30,7 @@ def backend_mocker():
 
 @pytest.mark.parametrize('backend', [
     pytest.param('mayavi', marks=skips_if_not_mayavi),
-    pytest.param('vtki', marks=skips_if_not_vtki),
+    pytest.param('pyvista', marks=skips_if_not_pyvista),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
 def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
