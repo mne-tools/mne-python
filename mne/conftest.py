@@ -33,15 +33,6 @@ fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
 def pytest_configure(config):
     """Configure pytest options."""
-    # Set the timeout pretty low to ensure we do not by default add really long
-    # tests, or make changes that make things a lot slower
-    config.addinivalue_line(
-        'addopts',
-        '--showlocals --durations=20 --doctest-modules -ra --cov-report= '
-        '--doctest-ignore-import-errors --junit-xml=junit-results.xml '
-        '--ignore=doc --ignore=logo --ignore=examples --ignore=tutorials '
-        '--ignore=mne/gui/_*.py --timeout 30')
-
     # Markers
     for marker in ('slowtest', 'ultraslowtest'):
         config.addinivalue_line('markers', marker)
