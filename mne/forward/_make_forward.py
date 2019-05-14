@@ -6,7 +6,7 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import contextlib
+from contextlib import contextmanager
 import os
 import os.path as op
 
@@ -764,7 +764,7 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
     return fwd
 
 
-@contextlib.contextmanager
+@contextmanager
 def use_coil_def(fname):
     """Use a custom coil definition file.
 
