@@ -329,7 +329,7 @@ evoked_diff.pick_types('mag').plot_topo(color='r', legend=False)
 # map of activation constrained to the cortical surface. MNE uses a linear
 # :term:`inverse operator` to project EEG+MEG sensor measurements into the
 # source space. Normally the inverse operator would be computed from the
-# :term:`forward model` for this subject and an estimate of :ref:`the
+# :term:`forward solution` for this subject and an estimate of :ref:`the
 # covariance of sensor measurements <tut_compute_covariance>`. For this
 # tutorial we'll skip those computational steps and load a pre-computed inverse
 # operator from disk (it's included with the :ref:`sample data
