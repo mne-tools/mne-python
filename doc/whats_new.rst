@@ -157,6 +157,8 @@ Bug
 
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
+- Fix bug in :func:`mne.preprocessing.mark_flat` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
+
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
 - Fix topological checks and error messages for BEM surfaces in :func:`mne.make_bem_model` by `Eric Larson`_
@@ -3335,6 +3337,8 @@ of commits):
 .. _Stanislas Chambon: https://github.com/Slasnista
 
 .. _Jeff Hanna: https://github.com/jshanna100
+
+.. _kalenkovich: https://github.com/kalenkovich
 
 .. _Antoine Gauthier: https://github.com/Okamille
 
