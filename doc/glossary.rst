@@ -76,12 +76,30 @@ MNE-Python core terminology and general concepts
         down to a change of the ``first_samp`` attribute to know when cropped data
         was acquired.
 
+    forward model
+        The forward model is the numerical representation of a subject's brain,
+        its position relative to the EEG/MEG sensors, and the electromagnetic
+        conductances of the air, scalp, skull, and cerebrospinal fluid that lie
+        in between sensors and brain. The forward model captures the
+        relationship between an electromagnetic activity at each point in the
+        source space, and the expected pattern of observations at the sensors
+        corresponding to that source activity (AKA, the "lead fields").
+
     info
         Also called ``measurement info``, it is a collection of metadata regarding
         a Raw, Epochs or Evoked object; e.g.,
         channel locations and types, sampling frequency,
         preprocessing history such as filters ...
         See :ref:`tut-info-class` for a narrative overview.
+
+    inverse operator
+        The inverse operator is an :math:`M \times N` matrix (:math:`M` source
+        locations by :math:`N` sensors) that, when applied to the sensor
+        signals, yields estimates of the brain activity that gave rise to the
+        observed sensor signals. Different inverse operators are necessary for
+        EEG, MEG, or combined EEG+MEG data, as well as for
+        constrained-orientation versus fixed-orientation sources and for
+        cortical surface versus cortical volume source estimates.
 
     label
         A :class:`Label` refers to a region in the cortex, also often called
