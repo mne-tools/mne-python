@@ -21,8 +21,7 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import (Annotations, _combine_annotations,
-                            _read_annotations_fif)
+from ...annotations import Annotations, _read_annotations_fif
 
 from ...event import AcqParserFIF
 from ...utils import check_fname, logger, verbose, warn, fill_doc

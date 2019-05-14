@@ -382,16 +382,18 @@ def test_split_files(tmpdir):
     assert op.exists(split_fname_bids_part1)
     assert op.exists(split_fname_bids_part2)
 
-    raw_1.set_annotations(Annotations(np.arange(20), np.ones((20,)), 'test'))
+    annot = Annotations(np.arange(20), np.ones((20,)), 'test')
+    raw_1.set_annotations(annot)
     split_fname = op.join(tempdir, 'split_raw.fif')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1., atol=1e-2)  # samp rate
-    assert_array_almost_equal(raw_1.annotations.onset, raw_2.annotations.onset)
-    assert_array_almost_equal(raw_1.annotations.duration,
-                              raw_2.annotations.duration)
+    assert_allclose(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_allclose(raw_1.annotations.duration, raw_2.annotations.duration,
+                    rtol=0.001 / raw_2.info['sfreq'])
     assert_array_equal(raw_1.annotations.description,
                        raw_2.annotations.description)
+
     data_1, times_1 = raw_1[:, :]
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
@@ -403,15 +405,14 @@ def test_split_files(tmpdir):
     assert_array_equal(data_1, data_bids)
     assert_array_equal(times_1, times_bids)
 
-    # XXX: If I don't do this, the error message on saving changes :S
-    raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
-
     # test the case where we only end up with one buffer to write
     # (GH#3210). These tests rely on writing meas info and annotations
     # taking up a certain number of bytes, so if we change those functions
     # somehow, the numbers below for e.g. split_size might need to be
     # adjusted.
     raw_crop = raw_1.copy().crop(0, 5)
+    raw_crop.set_annotations(Annotations([2.], [5.5], 'test'),
+                             emit_warning=False)
     with pytest.raises(ValueError,
                        match='after writing measurement information'):
         raw_crop.save(split_fname, split_size='1MB',  # too small a size
@@ -1540,8 +1541,10 @@ def test_file_like(kind, preload, split, tmpdir):
     assert file_fid.closed
 
 
-@pytest.mark.parametrize('delta_shift', [0, 1, 2])
-def test_foo(tmpdir, delta_shift):
+# @pytest.mark.parametrize('delta_shift', [0, 1, 2])
+@pytest.mark.parametrize('delta_shift', [1, 2])
+def test_split_files_more(tmpdir, delta_shift):
+    """Test writing and reading of split raw files."""
     raw_1 = read_raw_fif(test_fif_fname, preload=False)
     delta = 1 / raw_1.info['sfreq']
     shift = delta_shift * delta
@@ -1554,13 +1557,8 @@ def test_foo(tmpdir, delta_shift):
     raw_1.save(split_fname, buffer_size_sec=None, split_size='9MB')
     raw_2 = read_raw_fif(split_fname)
 
-    print(raw_1.annotations)
-    print(raw_2.annotations)
-
-    print(max(abs(raw_1.annotations.onset - raw_2.annotations.onset)))
-    assert_array_almost_equal(raw_1.annotations.onset,
-                              raw_2.annotations.onset,
-                              decimal=5)
+    assert_allclose(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_allclose(raw_1.annotations.duration, raw_2.annotations.duration)
 
 
 run_tests_if_main()
