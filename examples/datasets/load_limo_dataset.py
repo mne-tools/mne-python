@@ -39,7 +39,6 @@ References
 
 import mne
 from mne.datasets import limo
-from mne.preprocessing import ICA
 from mne.stats import linear_regression
 
 print(__doc__)
