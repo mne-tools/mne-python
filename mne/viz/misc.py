@@ -635,9 +635,13 @@ def _filter_ticks(lims, fscale):
         return None, None  # let matplotlib handle it
     lims = np.array(lims)
     ticks = list()
+    if lims[1] > 20 * lims[0]:
+        base = np.array([1, 2, 4])
+    else:
+        base = np.arange(1, 11)
     for exp in range(int(np.floor(np.log10(lims[0]))),
                      int(np.floor(np.log10(lims[1]))) + 1):
-        ticks += (np.array([1, 2, 4]) * (10 ** exp)).tolist()
+        ticks += (base * (10 ** exp)).tolist()
     ticks = np.array(ticks)
     ticks = ticks[(ticks >= lims[0]) & (ticks <= lims[1])]
     ticklabels = [('%g' if t < 1 else '%d') % t for t in ticks]
@@ -671,7 +675,7 @@ def _check_fscale(fscale):
 
 
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
-                flim=None, fscale='log', alim=(-100, 10), show=True,
+                flim=None, fscale='log', alim=(-80, 10), show=True,
                 compensate=False):
     """Plot properties of a filter.
 
@@ -729,6 +733,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     """
     from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import FormatStrFormatter, NullFormatter
     sosfiltfilt = get_sosfiltfilt()
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
@@ -825,6 +830,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         if xticks is not None:
             ax.set(xticks=xticks)
             ax.set(xticklabels=xticklabels)
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
+        ax.xaxis.set_minor_formatter(NullFormatter())
         ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
     adjust_axes([ax_time, ax_freq, ax_delay])
     tight_layout()
