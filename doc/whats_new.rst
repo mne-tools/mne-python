@@ -149,6 +149,9 @@ Changelog
 
 Bug
 ~~~
+
+- Fix annotations in split fif files :func:`mne.io.read_raw_fif` by `Joan Massich`_
+
 - Fix :meth:`mne.Epochs.plot` with ``scalings='auto'`` to properly compute channel-wise scalings by `Stefan Repplinger`_
 
 - Fix :func:`mne.gui.coregistration` and :ref:`mne coreg <gen_mne_coreg>` crashing with segmentation fault when switching subjects by `Eric Larson`_

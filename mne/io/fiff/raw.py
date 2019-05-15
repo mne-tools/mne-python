@@ -21,8 +21,7 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import (Annotations, _combine_annotations,
-                            _read_annotations_fif)
+from ...annotations import Annotations, _read_annotations_fif
 
 from ...event import AcqParserFIF
 from ...utils import check_fname, logger, verbose, warn, fill_doc
@@ -104,16 +103,7 @@ class Raw(BaseRaw):
             verbose=verbose)
 
         # combine annotations
-        self.set_annotations(raws[0].annotations, False)
-        if any([r.annotations for r in raws[1:]]):
-            n_samples = np.sum(self._last_samps - self._first_samps + 1)
-            for r in raws:
-                annotations = _combine_annotations(
-                    self.annotations, r.annotations,
-                    n_samples, self.first_samp, r.first_samp,
-                    r.info['sfreq'], self.info['meas_date'])
-                self.set_annotations(annotations, emit_warning=False)
-                n_samples += r.last_samp - r.first_samp + 1
+        self.set_annotations(raws[0].annotations, emit_warning=False)
 
         # Add annotations for in-data skips
         for extra in self._raw_extras:

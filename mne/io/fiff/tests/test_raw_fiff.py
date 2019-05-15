@@ -382,14 +382,18 @@ def test_split_files(tmpdir):
     assert op.exists(split_fname_bids_part1)
     assert op.exists(split_fname_bids_part2)
 
+    annot = Annotations(np.arange(20), np.ones((20,)), 'test')
+    raw_1.set_annotations(annot)
     split_fname = op.join(tempdir, 'split_raw.fif')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1., atol=1e-2)  # samp rate
-    assert_array_almost_equal(raw_1.annotations.onset, raw_2.annotations.onset)
-    assert_array_equal(raw_1.annotations.duration, raw_2.annotations.duration)
+    assert_allclose(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_allclose(raw_1.annotations.duration, raw_2.annotations.duration,
+                    rtol=0.001 / raw_2.info['sfreq'])
     assert_array_equal(raw_1.annotations.description,
                        raw_2.annotations.description)
+
     data_1, times_1 = raw_1[:, :]
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
@@ -407,6 +411,8 @@ def test_split_files(tmpdir):
     # somehow, the numbers below for e.g. split_size might need to be
     # adjusted.
     raw_crop = raw_1.copy().crop(0, 5)
+    raw_crop.set_annotations(Annotations([2.], [5.5], 'test'),
+                             emit_warning=False)
     with pytest.raises(ValueError,
                        match='after writing measurement information'):
         raw_crop.save(split_fname, split_size='1MB',  # too small a size
