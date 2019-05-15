@@ -40,19 +40,24 @@ import mne
 # automatically download the dataset if it isn't found in one of the expected
 # locations, then return the directory path to the dataset (see the
 # documentation of :func:`~mne.datasets.sample.data_path` for a list of places
-# it checks before downloading).
+# it checks before downloading). Note also that for this tutorial to run
+# smoothly on our servers, we're using a filtered and downsampled version of
+# the data (:file:`sample_audvis_filt-0-40_raw.fif`), but an unfiltered version
+# (:file:`sample_audvis_raw.fif`) is also included in the sample dataset and
+# could be substituted here when running the tutorial locally.
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+                                    'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 ###############################################################################
 # By default, :func:`~mne.io.read_raw_fif` displays some information about the
-# file it's loading; for example, here it tells us that there are three
+# file it's loading; for example, here it tells us that there are four
 # "projection items" in the file along with the recorded data; those are
 # :term:`SSP projectors <projector>` calculated to remove environmental noise
-# from the MEG signals, and are discussed
+# from the MEG signals, plus a projector to mean-reference the EEG channels;
+# these are discussed
 # in a later tutorial. In addition to the information displayed during loading,
 # you can get a glimpse of the basic details of a :class:`~mne.io.Raw` object
 # by printing it; even more is available by printing its ``info`` attribute
@@ -71,13 +76,14 @@ print(raw.info)
 
 ###############################################################################
 # :class:`~mne.io.Raw` objects also have several built-in plotting methods;
-# here we show the power spectral density for each sensor type with
+# here we show the power spectral density (PSD) for each sensor type with
 # :meth:`~mne.io.Raw.plot_psd`, as well as a plot of the raw sensor traces with
-# :meth:`~mne.io.Raw.plot`. In interactive Python sessions,
-# :meth:`~mne.io.Raw.plot` is interactive and allows scrolling, scaling, bad
-# channel marking, annotation, projector toggling, etc.
+# :meth:`~mne.io.Raw.plot`. In the PSD plot, we'll only plot frequencies below
+# 50 Hz (since our data are low-pass filtered at 40 Hz). In interactive Python
+# sessions, :meth:`~mne.io.Raw.plot` is interactive and allows scrolling,
+# scaling, bad channel marking, annotation, projector toggling, etc.
 
-raw.plot_psd()
+raw.plot_psd(fmax=50)
 raw.plot(duration=5, n_channels=30)
 
 ###############################################################################
