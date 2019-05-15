@@ -1541,24 +1541,4 @@ def test_file_like(kind, preload, split, tmpdir):
     assert file_fid.closed
 
 
-# @pytest.mark.parametrize('delta_shift', [0, 1, 2])
-@pytest.mark.parametrize('delta_shift', [1, 2])
-def test_split_files_more(tmpdir, delta_shift):
-    """Test writing and reading of split raw files."""
-    raw_1 = read_raw_fif(test_fif_fname, preload=False)
-    delta = 1 / raw_1.info['sfreq']
-    shift = delta_shift * delta
-    raw_1.set_annotations(Annotations(np.arange(25) + shift,
-                                      np.zeros((25,)),
-                                      'test'),
-                          emit_warning=False)
-    split_fname = op.join(str(tmpdir), 'split_raw.fif')
-    print(str(tmpdir))
-    raw_1.save(split_fname, buffer_size_sec=None, split_size='9MB')
-    raw_2 = read_raw_fif(split_fname)
-
-    assert_allclose(raw_1.annotations.onset, raw_2.annotations.onset)
-    assert_allclose(raw_1.annotations.duration, raw_2.annotations.duration)
-
-
 run_tests_if_main()
