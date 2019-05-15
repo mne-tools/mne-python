@@ -20,7 +20,8 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw_fif, read_info, _stamp_to_dt
-from .utils import logger, verbose, get_subjects_dir, warn, _import_mlab
+from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
+                    fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -68,10 +69,15 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         try:
             mlab = _import_mlab()
         # on some systems importing Mayavi raises SystemExit (!)
-        except Exception as e:
-            warn('Could not import mayavi (%r). Trying to render'
-                 '`mayavi.core.scene.Scene` figure instances'
-                 ' will throw an error.' % (e,))
+        except Exception:
+            is_mayavi = False
+        else:
+            import mayavi
+            is_mayavi = isinstance(fig, mayavi.core.scene.Scene)
+        if not is_mayavi:
+            raise TypeError('Each fig must be a matplotlib Figure, mayavi '
+                            'Scene, or NumPy ndarray, got %s (type %s)'
+                            % (fig, type(fig)))
         if fig.scene is not None:
             img = mlab.screenshot(figure=fig)
         else:  # Testing mode
@@ -104,12 +110,13 @@ def _scale_mpl_figure(fig, scale):
 
     XXX it's unclear why this works, but good to go for most cases
     """
+    scale = float(scale)
     fig.set_size_inches(fig.get_size_inches() * scale)
     fig.set_dpi(fig.get_dpi() * scale)
     import matplotlib as mpl
     if scale >= 1:
         sfactor = scale ** 2
-    elif scale < 1:
+    else:
         sfactor = -((1. / scale) ** 2)
     for text in fig.findobj(mpl.text.Text):
         fs = text.get_fontsize()
@@ -327,7 +334,7 @@ def open_report(fname, **params):
         The file containing the report, stored in the HDF5 format. If the file
         does not exist yet, a new report is created that will be saved to the
         specified file.
-    **params : list of parameters
+    **params : kwargs
         When creating a new report, any named parameters other than ``fname``
         are passed to the ``__init__`` function of the `Report` object. When
         reading an existing report, the parameters are checked with the
@@ -508,7 +515,7 @@ def _build_html_slider(slices_range, slides_klass, slider_id,
 
 header_template = Template(u"""
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{lang}}">
 <head>
 {{include}}
 <script type="text/javascript">
@@ -810,18 +817,16 @@ def _check_scale(scale):
 
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
-    if image_format not in ('png', 'svg'):
-        if rep is None:
-            raise ValueError('image_format must be "svg" or "png", got %s'
-                             % (image_format,))
-        elif image_format is not None:
-            raise ValueError('image_format must be one of "svg", "png", or '
-                             'None, got %s' % (image_format,))
-        else:  # rep is not None and image_format is None
-            image_format = rep.image_format
+    if rep is None:
+        _check_option('image_format', image_format, ['png', 'svg'])
+    elif image_format is not None:
+        _check_option('image_format', image_format, ['png', 'svg', None])
+    else:  # rep is not None and image_format is None
+        image_format = rep.image_format
     return image_format
 
 
+@fill_doc
 class Report(object):
     """Object for rendering HTML.
 
@@ -861,9 +866,7 @@ class Report(object):
         :meth:`mne.io.Raw.plot_psd`.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -888,6 +891,7 @@ class Report(object):
         self.html = []
         self.fnames = []  # List of file names rendered
         self.sections = []  # List of sections
+        self.lang = 'en-us'  # language setting for the HTML file
         self._sectionlabels = []  # Section labels
         self._sectionvars = {}  # Section variable names in js
         # boolean to specify if sections should be ordered in natural
@@ -1041,7 +1045,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : figure | list of figures
+        figs : matplotlib.figure.Figure | mlab.Figure | array | list
             A figure or a list of figures to add to the report. Each figure in
             the list can be an instance of :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
@@ -1131,9 +1135,7 @@ class Report(object):
             image_format = os.path.splitext(fname)[1][1:]
             image_format = image_format.lower()
 
-            if image_format not in ['png', 'gif', 'svg']:
-                raise ValueError("Unknown image format. Only 'png', 'gif' or "
-                                 "'svg' are supported. Got %s" % image_format)
+            _check_option('image_format', image_format, ['png', 'gif', 'svg'])
 
             # Convert image to binary string.
             with open(fname, 'rb') as f:
@@ -1280,7 +1282,6 @@ class Report(object):
 
         sectionvar = self._sectionvars[section]
         global_id = self._get_id()
-        img_klass = self._sectionvars[section]
         name = 'slider'
 
         html = []
@@ -1307,8 +1308,8 @@ class Report(object):
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
-                          img_klass, caption, first,
-                          image_format=image_format))
+                                            img_klass, caption, first,
+                                            image_format=image_format))
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         # Render the slices
@@ -1320,7 +1321,7 @@ class Report(object):
         slider_klass = sectionvar
 
         self._add_or_replace(
-            '%s-#-%s-#-custom' % (section, sectionvar), sectionvar,
+            '%s-#-%s-#-custom' % (title, sectionvar), sectionvar,
             slider_full_template.substitute(id=global_id, title=title,
                                             div_klass=slider_klass,
                                             slider_id=slider_id, html=html,
@@ -1333,7 +1334,6 @@ class Report(object):
         """Render one axis of the array."""
         global_id = global_id or name
         html = []
-        slices, slices_range = [], []
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
@@ -1414,16 +1414,10 @@ class Report(object):
             If True (default), try to render the BEM.
 
             .. versionadded:: 0.16
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
         """
         image_format = _check_image_format(self, image_format)
-        valid_errors = ['ignore', 'warn', 'raise']
-        if on_error not in valid_errors:
-            raise ValueError('on_error must be one of %s, not %s'
-                             % (valid_errors, on_error))
+        _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
         self._sort = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)
@@ -1510,7 +1504,7 @@ class Report(object):
                  '_sectionlabels', 'sections', '_sectionvars',
                  '_sort_sections', 'subjects_dir', 'subject', 'title',
                  'verbose'],
-                ['data_path', '_sort'])
+                ['data_path', 'lang', '_sort'])
 
     def __getstate__(self):
         """Get the state of the report as a dictionary."""
@@ -1693,10 +1687,10 @@ class Report(object):
         self.fnames = fnames
         self._sectionlabels = sectionlabels
 
-        html_header = header_template.substitute(title=self.title,
-                                                 include=self.include,
-                                                 sections=self.sections,
-                                                 sectionvars=self._sectionvars)
+        lang = getattr(self, 'lang', 'en-us')
+        html_header = header_template.substitute(
+            title=self.title, include=self.include, lang=lang,
+            sections=self.sections, sectionvars=self._sectionvars)
         self.html.insert(0, html_header)  # Insert header at position 0
         self.html.insert(1, html_toc)  # insert TOC
 

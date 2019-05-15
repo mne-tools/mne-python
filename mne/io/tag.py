@@ -3,8 +3,8 @@
 #
 # License: BSD (3-clause)
 
-import gzip
 from functools import partial
+import gzip
 import os
 import struct
 
@@ -109,9 +109,12 @@ def read_big(fid, size=None):
     # buf_size is chosen as a largest working power of 2 (16 MB):
     buf_size = 16777216
     if size is None:
-        # it's not possible to get .gz uncompressed file size
+        # it's not possible to get .gz uncompressed or file-like file size
         if not isinstance(fid, gzip.GzipFile):
-            size = os.fstat(fid.fileno()).st_size - fid.tell()
+            try:
+                size = os.fstat(fid.fileno()).st_size - fid.tell()
+            except Exception:  # e.g., io.UnsupportedOperation: fileno
+                pass
 
     if size is not None:
         # Use pre-buffering method

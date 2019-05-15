@@ -1,3 +1,4 @@
+junit-results.xml
 *.pyc
 *.pyo
 *.sh
@@ -43,6 +44,7 @@ build
 coverage
 .cache/
 .pytest_cache/
+prof/
 
 dist/
 doc/_build/
@@ -74,3 +76,5 @@ examples/visualization/foobar.html
 *.py#
 *.rst#
 
+.venv/
+venv/

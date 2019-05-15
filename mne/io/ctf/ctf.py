@@ -5,11 +5,11 @@
 # License: BSD (3-clause)
 
 import os
-from os import path as op
+import os.path as op
 
 import numpy as np
 
-from ...utils import verbose, logger, _clean_names
+from ...utils import verbose, logger, _clean_names, fill_doc, _check_option
 
 from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
@@ -22,6 +22,7 @@ from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
 
 
+@fill_doc
 def read_raw_ctf(directory, system_clock='truncate', preload=False,
                  clean_names=False, verbose=None):
     """Raw object from CTF directory.
@@ -44,9 +45,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -65,6 +64,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
                   clean_names=clean_names, verbose=verbose)
 
 
+@fill_doc
 class RawCTF(BaseRaw):
     """Raw object from CTF directory.
 
@@ -86,9 +86,7 @@ class RawCTF(BaseRaw):
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -104,11 +102,7 @@ class RawCTF(BaseRaw):
             raise TypeError('directory must be a directory ending with ".ds"')
         if not op.isdir(directory):
             raise ValueError('directory does not exist: "%s"' % directory)
-        known_types = ['ignore', 'truncate']
-        if not isinstance(system_clock, str) or \
-                system_clock not in known_types:
-            raise ValueError('system_clock must be one of %s, not %s'
-                             % (known_types, system_clock))
+        _check_option('system_clock', system_clock, ['ignore', 'truncate'])
         logger.info('ds directory : %s' % directory)
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations

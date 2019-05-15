@@ -98,7 +98,7 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     input_fname : str
         Path to the raw file. Files with an extension .mff are automatically
         considered to be EGI's native MFF format files.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -127,19 +127,17 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
         ..versionadded:: 0.11
 
     channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%d'
+        Channel naming convention for the data channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %03d'.
+        prior to 0.14.0 was 'EEG %%03d'.
 
          ..versionadded:: 0.14.0
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of RawEGI
+    raw : instance of RawEGI
         A Raw object containing EGI data.
 
     Notes

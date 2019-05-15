@@ -27,7 +27,7 @@ MNE-Python core terminology and general concepts
         sleep scores, sleep events (spindles, K-complex) etc.
         An :class:`Annotations` object is a container of multiple annotations.
         See :class:`Annotations` page for the API of the corresponding
-        object class and :ref:`sphx_glr_auto_tutorials_plot_object_annotations.py`
+        object class and :ref:`tut-annotations`
         for a tutorial on how to manipulate such objects.
 
     channels
@@ -36,20 +36,28 @@ MNE-Python core terminology and general concepts
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
 
+    BEM
+        BEM is the acronym for boundary element method or boundary element
+        model. Both are related to the forward model computation and more
+        specifically the definion of the conductor model. The
+        boundary element model consists of surfaces such as the inner skull,
+        outer skull and outer skiln (a.k.a. scalp) that define compartments
+        of tissues of the head. You can compute the BEM surfaces with
+        :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
+        See :ref:`tut-forward` for usage demo.
+
     epochs
         Epochs are chunks of data extracted from raw continuous data. Typically,
         they correspond to the trials of an experimental design.
         See :class:`Epochs` for the API of the corresponding
-        object class, and :ref:`sphx_glr_auto_tutorials_plot_object_epochs.py` for a
-        narrative overview.
+        object class, and :ref:`tut-epochs-class` for a narrative overview.
 
     evoked
         Evoked data are obtained by averaging epochs. Typically, an evoked object
         is constructed for each subject and each condition, but it can also be
         obtained by averaging a list of evoked over different subjects.
         See :class:`EvokedArray` for the API of the corresponding
-        object class, and :ref:`sphx_glr_auto_tutorials_plot_object_evoked.py`
-        for a narrative overview.
+        object class, and :ref:`tut-evoked-class` for a narrative overview.
 
     events
         Events correspond to specific time points in raw data; e.g.,
@@ -73,8 +81,7 @@ MNE-Python core terminology and general concepts
         a Raw, Epochs or Evoked object; e.g.,
         channel locations and types, sampling frequency,
         preprocessing history such as filters ...
-        See :ref:`sphx_glr_auto_tutorials_plot_info.py` for a narrative
-        overview.
+        See :ref:`tut-info-class` for a narrative overview.
 
     label
         A :class:`Label` refers to a region in the cortex, also often called
@@ -110,8 +117,7 @@ MNE-Python core terminology and general concepts
         It corresponds to continuous data (preprocessed or not). One typically
         manipulates raw data when reading recordings in a file on disk.
         See :class:`~io.RawArray` for the API of the corresponding
-        object class, and :ref:`sphx_glr_auto_tutorials_plot_object_raw.py` for a
-        narrative overview.
+        object class, and :ref:`tut-raw-class` for a narrative overview.
 
     source space (abbr. ``src``)
         A source space specifies where in the brain one wants to estimate the
@@ -119,7 +125,7 @@ MNE-Python core terminology and general concepts
         candidate equivalent current dipoles (ECD). MNE mostly works
         with source spaces defined on the cortical surfaces estimated
         by FreeSurfer from a T1-weighted MRI image. See
-        :ref:`sphx_glr_auto_tutorials_plot_forward.py` to read on
+        :ref:`tut-forward` to read on
         how to compute a forward operator on a source space.
         See :class:`SourceSpaces` for the API of the corresponding
         object class.

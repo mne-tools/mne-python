@@ -6,7 +6,7 @@ Source localization with a custom inverse solver
 
 The objective of this example is to show how to plug a custom inverse solver
 in MNE in order to facilate empirical comparison with the methods MNE already
-implements (wMNE, dSPM, sLORETA, LCMV, (TF-)MxNE etc.).
+implements (wMNE, dSPM, sLORETA, eLORETA, LCMV, DICS, (TF-)MxNE etc.).
 
 This script is educational and shall be used for methods
 evaluations and new developments. It is not meant to be an example
@@ -14,7 +14,7 @@ of good practice to analyse your data.
 
 The example makes use of 2 functions ``apply_solver`` and ``solver``
 so changes can be limited to the ``solver`` function (which only takes three
-parameters: the whitened data, the gain matrix, and the number of orientations)
+parameters: the whitened data, the gain matrix and the number of orientations)
 in order to try out another inverse algorithm.
 """
 
@@ -90,17 +90,15 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """
     # Import the necessary private functions
     from mne.inverse_sparse.mxne_inverse import \
-        (_prepare_gain, _check_loose_forward, is_fixed_orient,
+        (_prepare_gain, is_fixed_orient,
          _reapply_source_weighting, _make_sparse_stc)
 
     all_ch_names = evoked.ch_names
 
-    loose, forward = _check_loose_forward(loose, forward)
-
     # Handle depth weighting and whitening (here is no weights)
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+    forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca=False, depth=depth,
-        loose=loose, weights=None, weights_min=None)
+        loose=loose, weights=None, weights_min=None, rank=None)
 
     # Select channels of interest
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
@@ -147,7 +145,9 @@ def solver(M, G, n_orient):
         We have ``X_full[active_set] == X`` where X_full is the full X matrix
         such that ``M = G X_full``.
     """
-    K = linalg.solve(np.dot(G, G.T) + 1e15 * np.eye(G.shape[0]), G).T
+    inner = np.dot(G, G.T)
+    trace = np.trace(inner)
+    K = linalg.solve(inner + 4e-6 * trace * np.eye(G.shape[0]), G).T
     K /= np.linalg.norm(K, axis=1)[:, None]
     X = np.dot(K, M)
 

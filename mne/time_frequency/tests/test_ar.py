@@ -14,6 +14,7 @@ raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
 
 
 # 0.7 attempts to import nonexistent TimeSeries from Pandas 0.20
+@requires_version('patsy', '0.4')
 @requires_version('statsmodels', '0.8')
 def test_yule_walker():
     """Test Yule-Walker against statsmodels."""

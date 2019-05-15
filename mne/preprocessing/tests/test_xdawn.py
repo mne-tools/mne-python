@@ -27,6 +27,7 @@ event_id = dict(cond2=2, cond3=3)
 def _get_data():
     """Get data."""
     raw = read_raw_fif(raw_fname, verbose=False, preload=True)
+    raw.set_eeg_reference(projection=True)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
                        ecg=False, eog=False,
@@ -198,6 +199,7 @@ def test_XdawnTransformer():
     """Test _XdawnTransformer."""
     # Get data
     raw, events, picks = _get_data()
+    raw.del_proj()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=None, verbose=False)
     X = epochs._data

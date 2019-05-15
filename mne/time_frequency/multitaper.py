@@ -8,7 +8,7 @@ import numpy as np
 
 from ..fixes import _get_dpss
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose, logger
+from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
 def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
@@ -24,12 +24,12 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     ----------
     N : int
         Sequence length
-    half_nbw : float, unitless
+    half_nbw : float
         Standardized half bandwidth corresponding to 2 * half_bw = BW*f0
-        = BW*N/dt but with dt taken as 1
+        = BW*N/dt but with dt taken as 1.
     Kmax : int
         Number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
-    low_bias : Bool
+    low_bias : bool
         Keep only tapers with eigenvalues > 0.9
     interp_from : int (optional)
         The dpss can be calculated using interpolation from a set of dpss
@@ -382,7 +382,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
@@ -390,9 +390,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         the signal (as in nitime).
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -413,9 +411,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     -----
     .. versionadded:: 0.14.0
     """
-    if normalization not in ('length', 'full'):
-        raise ValueError('Normalization must be "length" or "full", not %s'
-                         % normalization)
+    _check_option('normalization', normalization, ['length', 'full'])
 
     # Reshape data so its 2-D for parallelization
     ndim_in = x.ndim
@@ -474,7 +470,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    freqs : array-like of floats, shape (n_freqs)
+    freqs : array-like of float, shape (n_freqs,)
         The frequencies.
     n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number or one per
@@ -497,7 +493,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
 
-    output : str, defaults to 'complex'
+    output : str, default 'complex'
 
         * 'complex' : single trial complex.
         * 'power' : single trial power.
@@ -510,9 +506,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     n_jobs : int
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.
-    verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

@@ -33,6 +33,42 @@ def test_long_names():
     assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
 
 
+def test_array_copy():
+    """Test copying during construction."""
+    info = create_info(1, 1000.)
+    data = np.empty((1, 1000))
+    # 'auto' (default)
+    raw = RawArray(data, info)
+    assert raw._data is data
+    assert raw.info is not info
+    raw = RawArray(data.astype(np.float32), info)
+    assert raw._data is not data
+    assert raw.info is not info
+    # 'info' (more restrictive)
+    raw = RawArray(data, info, copy='info')
+    assert raw._data is data
+    assert raw.info is not info
+    with pytest.raises(ValueError, match="data copying was not .* copy='info"):
+        RawArray(data.astype(np.float32), info, copy='info')
+    # 'data'
+    raw = RawArray(data, info, copy='data')
+    assert raw._data is not data
+    assert raw.info is info
+    # 'both'
+    raw = RawArray(data, info, copy='both')
+    assert raw._data is not data
+    assert raw.info is not info
+    raw = RawArray(data.astype(np.float32), info, copy='both')
+    assert raw._data is not data
+    assert raw.info is not info
+    # None
+    raw = RawArray(data, info, copy=None)
+    assert raw._data is data
+    assert raw.info is info
+    with pytest.raises(ValueError, match='data copying was not .* copy=None'):
+        RawArray(data.astype(np.float32), info, copy=None)
+
+
 @pytest.mark.slowtest
 @requires_version('scipy', '0.12')
 def test_array_raw():

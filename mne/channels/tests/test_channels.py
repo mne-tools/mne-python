@@ -293,4 +293,13 @@ def test_find_ch_connectivity():
     pytest.raises(ValueError, find_ch_connectivity, raw.info, 'eog')
 
 
+def test_drop_channels():
+    """Test if dropping channels works with various arguments."""
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw.drop_channels(["MEG 0111"])  # list argument
+    raw.drop_channels("MEG 0112")  # str argument
+    pytest.raises(ValueError, raw.drop_channels, ["MEG 0111", 5])
+    pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
+
+
 run_tests_if_main()

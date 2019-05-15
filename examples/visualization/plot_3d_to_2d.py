@@ -1,4 +1,6 @@
 """
+.. _ex-electrode-pos-2d:
+
 ====================================================
 How to convert 3D electrode positions to a 2D image.
 ====================================================
@@ -68,7 +70,7 @@ mlab.view(200, 70)
 xy, im = snapshot_brain_montage(fig, mon)
 
 # Convert from a dictionary to array to plot
-xy_pts = np.vstack(xy[ch] for ch in info['ch_names'])
+xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 
 # Define an arbitrary "activity" pattern for viz
 activity = np.linspace(100, 200, xy_pts.shape[0])

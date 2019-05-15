@@ -49,7 +49,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
         corresponds to 3 epochs, and arr_* could be an array with the same
         number of time points as stc_*.
-    indices : tuple of arrays | None
+    indices : tuple of array | None
         Two arrays with indices of connections for which to compute
         connectivity. If None, all connections are computed.
     sfreq : float
@@ -57,12 +57,12 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     mode : str
         Spectrum estimation mode can be either: 'multitaper', 'fourier', or
         'cwt_morlet'.
-    fmin : float | tuple of floats
+    fmin : float | tuple of float
         The lower frequency of interest. Multiple bands are defined using
         a tuple, e.g., (8., 20.) for two bands with 8Hz and 20Hz lower freq.
         If None the frequency corresponding to an epoch length of 5 cycles
         is used.
-    fmax : float | tuple of floats
+    fmax : float | tuple of float
         The upper frequency of interest. Multiple bands are dedined using
         a tuple, e.g. (13., 30.) for two band with 13Hz and 30Hz upper freq.
     tmin : float | None
@@ -76,7 +76,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         Use adaptive weights to combine the tapered spectra into PSD.
         Only used in 'multitaper' mode.
     mt_low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
     cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
@@ -88,9 +88,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         but require more memory).
     n_jobs : int
         How many epochs to process in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

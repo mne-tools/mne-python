@@ -23,7 +23,8 @@ from ..defaults import DEFAULTS
 from ..surface import _project_onto_surface, _normalize_vectors
 from ..source_space import _points_outside_surface
 from ..utils import SilenceStdout
-from ..viz._3d import _create_mesh_surf, _toggle_mlab_render
+from ..viz.backends._pysurfer_mayavi import (_create_mesh_surf,
+                                             _toggle_mlab_render)
 
 
 headview_borders = VGroup(Item('headview', style='custom', show_label=False),
@@ -51,9 +52,6 @@ laggy_float_editor_weight = TextEditor(auto_set=False, enter_set=True,
                                        evaluate=float,
                                        format_func=lambda x: '%0.2f' % x)
 
-laggy_float_editor_scale = TextEditor(auto_set=False, enter_set=True,
-                                      evaluate=float,
-                                      format_func=lambda x: '%0.1f' % x)
 laggy_float_editor_deg = TextEditor(auto_set=False, enter_set=True,
                                     evaluate=float,
                                     format_func=lambda x: '%0.1f' % x)
@@ -536,6 +534,10 @@ class SurfaceObject(Object):
 
     @on_trait_change('points')
     def _update_points(self):
+        # Nuke the tris before setting the points otherwise we can get
+        # a nasty segfault (gh-5728)
+        if self._deferred_tris_update and self.src is not None:
+            self.src.data.polys = None
         if Object._update_points(self):
             if self._deferred_tris_update:
                 self.src.data.polys = self.tris

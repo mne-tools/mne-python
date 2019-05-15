@@ -11,15 +11,15 @@ class TransformerMixin(object):
 
         Parameters
         ----------
-        X : numpy array of shape [n_samples, n_features]
+        X : array, shape (n_samples, n_features)
             Training set.
 
-        y : numpy array of shape [n_samples]
+        y : array, shape (n_samples,)
             Target values.
 
         Returns
         -------
-        X_new : numpy array of shape [n_samples, n_features_new]
+        X_new : array, shape (n_samples, n_features_new)
             Transformed array.
         """
         # non-optimized default implementation; override when a better
@@ -35,9 +35,15 @@ class TransformerMixin(object):
 class EstimatorMixin(object):
     """Mixin class for estimators."""
 
-    def get_params(self):
-        """Get the estimator params."""
-        pass
+    def get_params(self, deep=True):
+        """Get the estimator params.
+
+        Parameters
+        ----------
+        deep : bool
+            Deep.
+        """
+        return
 
     def set_params(self, **params):
         """Set parameters (mimics sklearn API)."""

@@ -38,9 +38,16 @@ Documentation
     });
     </script>
 
-This is where you can learn about all the things you can do with MNE. It contains **background information** and **tutorials** for taking a deep-dive into the techniques that MNE-python covers. You'll find practical information on how to use these methods with your data, and in many cases some high-level concepts underlying these methods.
+This is where you can learn about all the things you can do with MNE. It
+contains **background information** and **tutorials** for taking a deep-dive
+into the techniques that MNE-python covers. You'll find practical information
+on how to use these methods with your data, and in many cases some high-level
+concepts underlying these methods.
 
-There are also **examples**, which contain a short use-case to highlight MNE-functionality and provide inspiration for the many things you can do with this package. You can also find a gallery of these examples in the :ref:`examples gallery <sphx_glr_auto_examples>`.
+There are also **examples**, which contain a short use-case to highlight
+MNE-functionality and provide inspiration for the many things you can do with
+this package. You can also find a gallery of these examples in the
+:ref:`examples gallery <sphx_glr_auto_examples>`.
 
 **See the links below for an introduction to MNE-python, or click one of the sections on this page to see more.**
 
@@ -62,9 +69,8 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    getting_started.rst
-    advanced_setup.rst
-    auto_tutorials/plot_python_intro.rst
+    getting_started
+    advanced_setup
 
 **MNE basics**
 
@@ -78,7 +84,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     glossary.rst
     auto_examples/index.rst
     generated/commands.rst
-    auto_tutorials/plot_configuration.rst
+    auto_tutorials/misc/plot_configuration.rst
     cited.rst
     faq.rst
 
@@ -110,12 +116,12 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_object_raw.rst
-    auto_tutorials/plot_object_epochs.rst
-    auto_tutorials/plot_object_evoked.rst
-    auto_tutorials/plot_object_source_estimate.rst
-    auto_tutorials/plot_info.rst
-    auto_tutorials/plot_object_annotations.rst
+    auto_tutorials/raw/plot_object_raw.rst
+    auto_tutorials/epochs/plot_object_epochs.rst
+    auto_tutorials/evoked/plot_object_evoked.rst
+    auto_tutorials/source-modeling/plot_object_source_estimate.rst
+    auto_tutorials/intro/plot_info.rst
+    auto_tutorials/intro/plot_object_annotations.rst
 
 
 .. raw:: html
@@ -140,10 +146,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     :maxdepth: 1
 
     manual/io.rst
-    auto_tutorials/plot_creating_data_structures.rst
-    auto_tutorials/plot_metadata_epochs.rst
-    auto_tutorials/plot_modifying_data_inplace.rst
-    auto_tutorials/plot_ecog.rst
+    auto_tutorials/simulation/plot_creating_data_structures.rst
+    auto_tutorials/epochs/plot_metadata_epochs.rst
+    auto_tutorials/misc/plot_modifying_data_inplace.rst
+    auto_tutorials/misc/plot_ecog.rst
     manual/memory.rst
     manual/migrating.rst
 
@@ -173,11 +179,11 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     :maxdepth: 1
 
     manual/datasets_index.rst
-    auto_tutorials/plot_brainstorm_auditory.rst
-    auto_tutorials/plot_brainstorm_phantom_ctf.rst
-    auto_tutorials/plot_brainstorm_phantom_elekta.rst
-    auto_tutorials/plot_phantom_4DBTi.rst
-    auto_tutorials/plot_sleep.rst
+    auto_tutorials/sample-datasets/plot_brainstorm_auditory.rst
+    auto_tutorials/sample-datasets/plot_brainstorm_phantom_ctf.rst
+    auto_tutorials/sample-datasets/plot_brainstorm_phantom_elekta.rst
+    auto_tutorials/sample-datasets/plot_phantom_4DBTi.rst
+    auto_tutorials/sample-datasets/plot_sleep.rst
     auto_examples/datasets/plot_brainstorm_data.rst
     auto_examples/datasets/plot_opm_data.rst
     auto_examples/datasets/plot_megsim_data.rst
@@ -206,7 +212,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_background_filtering.rst
+    auto_tutorials/discussions/plot_background_filtering.rst
     manual/preprocessing/ssp.rst
     manual/preprocessing/ica.rst
     manual/preprocessing/maxwell.rst
@@ -217,12 +223,12 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_artifacts_detection.rst
-    auto_tutorials/plot_artifacts_correction_filtering.rst
-    auto_tutorials/plot_artifacts_correction_rejection.rst
-    auto_tutorials/plot_artifacts_correction_ssp.rst
-    auto_tutorials/plot_artifacts_correction_ica.rst
-    auto_tutorials/plot_artifacts_correction_maxwell_filtering.rst
+    auto_tutorials/preprocessing/plot_artifacts_detection.rst
+    auto_tutorials/preprocessing/plot_artifacts_correction_filtering.rst
+    auto_tutorials/preprocessing/plot_artifacts_correction_rejection.rst
+    auto_tutorials/preprocessing/plot_artifacts_correction_ssp.rst
+    auto_tutorials/preprocessing/plot_artifacts_correction_ica.rst
+    auto_tutorials/preprocessing/plot_artifacts_correction_maxwell_filtering.rst
 
 .. raw:: html
 
@@ -271,11 +277,11 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_visualize_raw.rst
-    auto_tutorials/plot_visualize_epochs.rst
-    auto_tutorials/plot_visualize_evoked.rst
-    auto_tutorials/plot_visualize_stc.rst
-    auto_tutorials/plot_whitened.rst
+    auto_tutorials/raw/plot_visualize_raw.rst
+    auto_tutorials/epochs/plot_visualize_epochs.rst
+    auto_tutorials/evoked/plot_visualize_evoked.rst
+    auto_tutorials/source-modeling/plot_visualize_stc.rst
+    auto_tutorials/evoked/plot_whitened.rst
     tutorials/report.rst
 
 .. raw:: html
@@ -325,10 +331,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_introduction.rst
-    auto_tutorials/plot_epoching_and_averaging.rst
-    auto_tutorials/plot_eeg_erp.rst
-    auto_tutorials/plot_sensors_time_frequency.rst
+    auto_tutorials/intro/plot_introduction.rst
+    auto_tutorials/intro/plot_epoching_and_averaging.rst
+    auto_tutorials/evoked/plot_eeg_erp.rst
+    auto_tutorials/time-freq/plot_sensors_time_frequency.rst
     manual/time_frequency.rst
 
 .. raw:: html
@@ -375,7 +381,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_background_freesurfer.rst
+    auto_tutorials/source-modeling/plot_background_freesurfer.rst
     manual/source_localization/forward.rst
     manual/source_localization/inverse.rst
     manual/source_localization/morph_stc.rst
@@ -385,15 +391,16 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_source_alignment.rst
-    auto_tutorials/plot_forward.rst
-    auto_tutorials/plot_compute_covariance.rst
-    auto_tutorials/plot_mne_dspm_source_localization.rst
-    auto_tutorials/plot_mne_solutions.rst
-    auto_tutorials/plot_dipole_fit.rst
-    auto_tutorials/plot_point_spread.rst
-    auto_tutorials/plot_dipole_orientations.rst
-    auto_tutorials/plot_dics.rst
+    auto_tutorials/source-modeling/plot_source_alignment.rst
+    auto_tutorials/source-modeling/plot_forward.rst
+    auto_tutorials/source-modeling/plot_compute_covariance.rst
+    auto_tutorials/source-modeling/plot_eeg_no_mri.rst
+    auto_tutorials/source-modeling/plot_mne_dspm_source_localization.rst
+    auto_tutorials/source-modeling/plot_mne_solutions.rst
+    auto_tutorials/source-modeling/plot_dipole_fit.rst
+    auto_tutorials/simulation/plot_point_spread.rst
+    auto_tutorials/source-modeling/plot_dipole_orientations.rst
+    auto_tutorials/simulation/plot_dics.rst
 
 
 .. raw:: html
@@ -491,17 +498,17 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_background_statistics.rst
+    auto_tutorials/discussions/plot_background_statistics.rst
 
 **Sensor Space**
 
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_stats_spatio_temporal_cluster_sensors.rst
-    auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
-    auto_tutorials/plot_stats_cluster_time_frequency.rst
-    auto_tutorials/plot_stats_cluster_erp.rst
+    auto_tutorials/stats-sensor-space/plot_stats_spatio_temporal_cluster_sensors.rst
+    auto_tutorials/stats-sensor-space/plot_stats_cluster_1samp_test_time_frequency.rst
+    auto_tutorials/stats-sensor-space/plot_stats_cluster_time_frequency.rst
+    auto_tutorials/stats-sensor-space/plot_stats_cluster_erp.rst
 
 .. raw:: html
 
@@ -526,10 +533,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.rst
-    auto_tutorials/plot_stats_cluster_spatio_temporal_2samp.rst
-    auto_tutorials/plot_stats_cluster_spatio_temporal_repeated_measures_anova.rst
-    auto_tutorials/plot_stats_cluster_spatio_temporal.rst
+    auto_tutorials/stats-source-space/plot_stats_cluster_time_frequency_repeated_measures_anova.rst
+    auto_tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_2samp.rst
+    auto_tutorials/stats-source-space/plot_stats_cluster_spatio_temporal_repeated_measures_anova.rst
+    auto_tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.rst
 
 .. raw:: html
 
@@ -553,7 +560,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_sensors_decoding.rst
+    auto_tutorials/machine-learning/plot_sensors_decoding.rst
 
 .. raw:: html
 
@@ -583,7 +590,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_receptive_field.rst
+    auto_tutorials/machine-learning/plot_receptive_field.rst
 
 .. raw:: html
 
@@ -624,6 +631,8 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/connectivity/plot_cwt_sensor_connectivity.rst
     auto_examples/connectivity/plot_mixed_source_space_connectivity.rst
     auto_examples/connectivity/plot_mne_inverse_coherence_epochs.rst
+    auto_examples/connectivity/plot_mne_inverse_envelope_correlation.rst
+    auto_examples/connectivity/plot_mne_inverse_envelope_correlation_volume.rst
     auto_examples/connectivity/plot_mne_inverse_connectivity_spectrum.rst
     auto_examples/connectivity/plot_mne_inverse_label_connectivity.rst
     auto_examples/connectivity/plot_mne_inverse_psi_visual.rst
@@ -650,12 +659,13 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_examples/realtime/ftclient_rt_average.rst
-    auto_examples/realtime/ftclient_rt_compute_psd.rst
+    auto_examples/realtime/plot_ftclient_rt_average.rst
+    auto_examples/realtime/plot_ftclient_rt_compute_psd.rst
     auto_examples/realtime/plot_compute_rt_average.rst
     auto_examples/realtime/plot_compute_rt_decoder.rst
+    auto_examples/realtime/plot_lslclient_rt.rst
+    auto_examples/realtime/plot_rt_feedback_server.rst
     auto_examples/realtime/rt_feedback_client.rst
-    auto_examples/realtime/rt_feedback_server.rst
 
 .. raw:: html
 
@@ -719,8 +729,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     :maxdepth: 1
 
     contributing.rst
-    configure_git.rst
-    customizing_git.rst
 
 .. raw:: html
 

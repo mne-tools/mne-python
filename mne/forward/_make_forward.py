@@ -6,9 +6,9 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import contextlib
+from contextlib import contextmanager
 import os
-from os import path as op
+import os.path as op
 
 import numpy as np
 
@@ -41,9 +41,7 @@ def _read_coil_defs(verbose=None):
 
     Parameters
     ----------
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -282,9 +280,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         If True, compute and store ex, ey, ez, and r0_exey.
     do_picking : bool
         If True, pick info and return it.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -366,7 +362,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
     out = (megcoils, compcoils, megnames)
     if do_picking:
-        out = out + (pick_info(info, picks) if nmeg > 0 else None,)
+        out = out + (pick_info(info, picks),)
     return out
 
 
@@ -381,9 +377,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     exclude : list of str | str
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -392,7 +386,6 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     eegnames : list of str
         Name of each prepped EEG electrode
     """
-    eegnames, eegels = [], []
     info_extra = 'info'
 
     # Find EEG electrodes
@@ -541,9 +534,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         with reference channels is not currently supported.
     n_jobs : int
         Number of jobs to run in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -627,6 +618,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     return fwd
 
 
+@verbose
 def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
@@ -657,9 +649,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
         is a sphere model.
     n_jobs : int
         Number of jobs to run in parallel (used in making forward solution).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -774,7 +764,7 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
     return fwd
 
 
-@contextlib.contextmanager
+@contextmanager
 def use_coil_def(fname):
     """Use a custom coil definition file.
 
@@ -785,7 +775,7 @@ def use_coil_def(fname):
 
     Returns
     -------
-    context : context manager
+    context : contextmanager
         The context for using the coil definition.
 
     Notes

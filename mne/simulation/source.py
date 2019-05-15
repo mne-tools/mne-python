@@ -1,6 +1,10 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
+#          Nathalie Gayraud <nat.gayraud@gmail.com>
+#          Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
+#          Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
+#          Ivana Kojcic <ivana.kojcic@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -8,7 +12,8 @@ import numpy as np
 
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
-from ..utils import check_random_state, warn
+from ..utils import check_random_state, warn, _check_option
+from ..label import Label
 
 
 def select_source_in_label(src, label, random_state=None, location='random',
@@ -21,7 +26,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
         The source space
     label : Label
         the label (read with mne.read_label)
-    random_state : None | int | np.random.RandomState
+    random_state : None | int | ~numpy.random.RandomState
         To specify the random generator state.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
@@ -61,10 +66,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
     """
     lh_vertno = list()
     rh_vertno = list()
-    if not isinstance(location, str) or \
-            location not in ('random', 'center'):
-        raise ValueError('location must be "random" or "center", got %s'
-                         % (location,))
+    _check_option('location', location, ['random', 'center'])
 
     rng = check_random_state(random_state)
     if label.hemi == 'lh':
@@ -108,9 +110,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
         sinusoid as ``1e-7 * np.sin(20 * pi * t)``. The function should take
         as input the array of time samples in seconds and return an array of
         the same length containing the time courses.
-    labels : None | list of Labels
+    labels : None | list of Label
         The labels. The default is None, otherwise its size must be n_dipoles.
-    random_state : None | int | np.random.RandomState
+    random_state : None | int | ~numpy.random.RandomState
         To specify the random generator state.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
@@ -175,6 +177,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
         vs = [s['vertno'][np.sort(rng.permutation(np.arange(s['nuse']))[:n])]
               for n, s in zip(n_dipoles_ss, src)]
         datas = data
+    elif n_dipoles > len(labels):
+        raise ValueError('Number of labels (%d) smaller than n_dipoles (%d) '
+                         'is not allowed.' % (len(labels), n_dipoles))
     else:
         if n_dipoles != len(labels):
             warn('The number of labels is different from the number of '
@@ -213,7 +218,8 @@ def simulate_sparse_stc(src, n_dipoles, times,
     return stc
 
 
-def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
+def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
+                 allow_overlap=False):
     """Simulate sources time courses from waveforms and labels.
 
     This function generates a source estimate with extended sources by
@@ -223,18 +229,22 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     ----------
     src : instance of SourceSpaces
         The source space
-    labels : list of Labels
+    labels : list of Label
         The labels
-    stc_data : array (shape: len(labels) x n_times)
+    stc_data : array, shape (n_labels, n_times)
         The waveforms
     tmin : float
         The beginning of the timeseries
     tstep : float
         The time step (1 / sampling frequency)
-    value_fun : function | None
+    value_fun : callable | None
         Function to apply to the label values to obtain the waveform
         scaling for each vertex in the label. If None (default), uniform
         scaling is used.
+    allow_overlap : bool
+        Allow overlapping labels or not. Default value is False
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -265,38 +275,247 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
             data = np.outer(values_sel, stc_data[i])
         else:
             data = np.tile(stc_data[i], (len(src_sel), 1))
+        # If overlaps are allowed, deal with them
+        if allow_overlap:
+            # Search for duplicate vertex indices
+            # in the existing vertex matrix vertex.
+            duplicates = []
+            for src_ind, vertex_ind in enumerate(src_sel):
+                ind = np.where(vertex_ind == vertno[hemi_ind])[0]
+                if len(ind) > 0:
+                    assert (len(ind) == 1)
+                    # Add the new data to the existing one
+                    stc_data_extended[hemi_ind][ind[0]] += data[src_ind]
+                    duplicates.append(src_ind)
+            # Remove the duplicates from both data and selected vertices
+            data = np.delete(data, duplicates, axis=0)
+            src_sel = list(np.delete(np.array(src_sel), duplicates))
+        # Extend the existing list instead of appending it so that we can
+        # index its elements
+        vertno[hemi_ind].extend(src_sel)
+        stc_data_extended[hemi_ind].extend(np.atleast_2d(data))
 
-        vertno[hemi_ind].append(src_sel)
-        stc_data_extended[hemi_ind].append(np.atleast_2d(data))
-
-    # format the vertno list
-    for idx in (0, 1):
-        if len(vertno[idx]) > 1:
-            vertno[idx] = np.concatenate(vertno[idx])
-        elif len(vertno[idx]) == 1:
-            vertno[idx] = vertno[idx][0]
     vertno = [np.array(v) for v in vertno]
-    for v, hemi in zip(vertno, ('left', 'right')):
-        d = len(v) - len(np.unique(v))
-        if d > 0:
-            raise RuntimeError('Labels had %s overlaps in the %s hemisphere, '
-                               'they must be non-overlapping' % (d, hemi))
-
+    if not allow_overlap:
+        for v, hemi in zip(vertno, ('left', 'right')):
+            d = len(v) - len(np.unique(v))
+            if d > 0:
+                raise RuntimeError('Labels had %s overlaps in the %s '
+                                   'hemisphere, '
+                                   'they must be non-overlapping' % (d, hemi))
     # the data is in the order left, right
     data = list()
-    if len(vertno[0]) != 0:
-        idx = np.argsort(vertno[0])
-        vertno[0] = vertno[0][idx]
-        data.append(np.concatenate(stc_data_extended[0])[idx])
-
-    if len(vertno[1]) != 0:
-        idx = np.argsort(vertno[1])
-        vertno[1] = vertno[1][idx]
-        data.append(np.concatenate(stc_data_extended[1])[idx])
-
-    data = np.concatenate(data)
+    for i in range(2):
+        if len(stc_data_extended[i]) != 0:
+            stc_data_extended[i] = np.vstack(stc_data_extended[i])
+            # Order the indices of each hemisphere
+            idx = np.argsort(vertno[i])
+            data.append(stc_data_extended[i][idx])
+            vertno[i] = vertno[i][idx]
 
     subject = src[0].get('subject_his_id')
-    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep,
-                         subject=subject)
+    stc = SourceEstimate(np.concatenate(data), vertices=vertno, tmin=tmin,
+                         tstep=tstep, subject=subject)
     return stc
+
+
+class SourceSimulator(object):
+    """Class to generate simulated Source Estimates.
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        Source space.
+    tstep : float
+        Time step between successive samples in data. Default is 0.001 sec.
+    duration : float | None
+        Time interval during which the simulation takes place in seconds.
+        If None, it is computed using existing events and waveform lengths.
+
+    Attributes
+    ----------
+    duration : float
+        The duration of the simulation in seconds.
+    n_times : int
+        The number of time samples of the simulation.
+    """
+
+    def __init__(self, src, tstep=1e-3, duration=None):
+        self._src = src
+        self._tstep = tstep
+        self._labels = []
+        self._waveforms = []
+        self._events = np.empty((0, 3), dtype=int)
+        self._duration = duration
+        self._last_samples = []
+        self._chk_duration = 1000
+
+    @property
+    def duration(self):
+        """Duration of the simulation"""
+        # If not, the precomputed maximum last sample is used
+        if self._duration is None:
+            return np.max(self._last_samples) * self._tstep
+        return self._duration
+
+    @property
+    def n_times(self):
+        """Number of time samples in the simulation"""
+        return int(self.duration / self._tstep)
+
+    def add_data(self, label, waveform, events):
+        """Add data to the simulation.
+
+        Data should be added in the form of a triplet of
+        Label (Where) - Waveform(s) (What) - Event(s) (When)
+
+        Parameters
+        ----------
+        label : Label
+            The label (as created for example by mne.read_label). If the label
+            does not match any sources in the SourceEstimate, a ValueError is
+            raised.
+        waveform : array, shape (n_times,) or (n_events, n_times) | list
+            The waveform(s) describing the activity on the label vertices.
+            If list, it must have the same length as events
+        events: array of int, shape (n_events, 3)
+            Events associated to the waveform(s) to specify when the activity
+            should occur.
+        """
+        if not isinstance(label, Label):
+            raise ValueError('label must be a Label,'
+                             'not %s' % type(label))
+
+        # If it is not a list then make it one
+        if not isinstance(waveform, list) and np.ndim(waveform) == 2:
+            waveform = list(waveform)
+        if not isinstance(waveform, list) and np.ndim(waveform) == 1:
+            waveform = [waveform]
+        if len(waveform) == 1:
+            waveform = waveform * len(events)
+        # The length is either equal to the length of events, or 1
+        if len(waveform) != len(events):
+            raise ValueError('Number of waveforms and events should match or '
+                             'there should be a single waveform (%d != %d).' %
+                             (len(waveform), len(events)))
+        # Update the maximum duration possible based on the events
+        self._labels.extend([label] * len(events))
+        self._waveforms.extend(waveform)
+        self._events = np.vstack([self._events, events])
+        # First sample per waveform is the first column of events
+        # Last is computed below
+        self._last_samples = np.array([self._events[i, 0] + len(w)
+                                      for i, w in enumerate(self._waveforms)])
+
+    def get_stim_channel(self, start_sample=0, stop_sample=None):
+        """Get the stim channel from the provided data.
+
+        Returns the stim channel data according to the simulation parameters
+        which should be added through function add_data. If both start_sample
+        and stop_sample are not specified, the entire duration is used.
+
+        Parameters
+        ----------
+        start_sample : int
+            First sample in chunk. Default is 0.
+        stop_sample : int | None
+            The stop sample of the returned stc. This sample is not part of the
+            output to follow slicing semantics. If None, then all samples past
+            start_sample is returned.
+
+        Returns
+        -------
+        stim_data : ndarray of int, shape (n_samples,)
+            The stimulation channel data.
+        """
+        if stop_sample is None:
+            stop_sample = self.n_times
+        n_samples = stop_sample - start_sample
+
+        # Initialize the stim data array
+        stim_data = np.zeros(n_samples, dtype=int)
+
+        # Select only events in the time chunk
+        stim_ind = np.where(np.logical_and(
+            self._events[:, 0] >= start_sample,
+            self._events[:, 0] < stop_sample))[0]
+
+        if len(stim_ind) > 0:
+            relative_ind = self._events[stim_ind, 0].astype(int) - start_sample
+            stim_data[relative_ind] = self._events[stim_ind, 2]
+
+        return stim_data
+
+    def get_stc(self, start_sample=0, stop_sample=None):
+        """Simulate a SourceEstimate from the provided data.
+
+        Returns a SourceEstimate object constructed according to the simulation
+        parameters which should be added through function add_data. If both
+        start_sample and stop_sample are not specified, the entire duration is
+        used.
+
+        Parameters
+        ----------
+        start_sample : int
+            First sample in chunk. Default is 0.
+        stop_sample : int | None
+            The stop sample of the returned stc. This sample is not part of the
+            output to follow slicing semantics. If None, then all samples past
+            start_sample is returned.
+
+        Returns
+        -------
+        stc : SourceEstimate object
+            The generated source time courses.
+        """
+        if len(self._labels) == 0:
+            raise ValueError('No simulation parameters were found. Please use '
+                             'function add_data to add simulation parameters.')
+        if stop_sample is None:
+            stop_sample = self.n_times
+
+        n_samples = stop_sample - start_sample
+
+        # Initialize the stc_data array
+        stc_data = np.zeros((len(self._labels), n_samples))
+
+        # Select only the indices that have events in the time chunk
+        ind = np.where(np.logical_and(self._last_samples >= start_sample,
+                                      self._events[:, 0] < stop_sample))[0]
+
+        # Loop only over the items that are in the time chunk
+        subset_waveforms = [self._waveforms[i] for i in ind]
+        for i, (waveform, event) in enumerate(zip(subset_waveforms,
+                                                  self._events[ind])):
+            # We retrieve the first and last sample of each waveform
+            # According to the corresponding event
+            wf_start = event[0]
+            wf_stop = self._last_samples[ind[i]]
+
+            # Recover the indices of the event that should be in the chunk
+            waveform_ind = np.in1d(np.arange(wf_start, wf_stop),
+                                   np.arange(start_sample, stop_sample))
+
+            # Recover the indices that correspond to the overlap
+            stc_ind = np.in1d(np.arange(start_sample, stop_sample),
+                              np.arange(wf_start, wf_stop))
+
+            # add the resulting waveform chunk to the corresponding label
+            stc_data[ind[i]][stc_ind] += waveform[waveform_ind]
+
+        stc = simulate_stc(self._src, self._labels, stc_data,
+                           start_sample * self._tstep, self._tstep,
+                           allow_overlap=True)
+
+        return stc
+
+    def __iter__(self):
+        """Iterate over 1 second STCs."""
+        # Arbitrary chunk size, can be modified later to something else
+        # Loop over chunks of 1 second - or, maximum sample size.
+        # Can be modified to a different value.
+        n_times = self.n_times
+        for start_sample in range(0, n_times, self._chk_duration):
+            stop_sample = min(start_sample + self._chk_duration, n_times)
+            yield (self.get_stc(start_sample, stop_sample),
+                   self.get_stim_channel(start_sample, stop_sample))

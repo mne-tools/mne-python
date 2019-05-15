@@ -7,6 +7,7 @@
 import numpy as np
 from functools import reduce
 from string import ascii_uppercase
+from ..utils import _check_option
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
@@ -56,9 +57,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
        statistical parametric mapping; a new hat avoids a 'haircut'",
        NeuroImage. 2012 Feb 1;59(3):2131-41.
     """
-    if method not in ['absolute', 'relative']:
-        raise ValueError('method must be "absolute" or "relative", not %s'
-                         % method)
+    _check_option('method', method, ['absolute', 'relative'])
     var = np.var(X, axis=0, ddof=1)
     if sigma > 0:
         limit = sigma * np.max(var) if method == 'relative' else sigma
@@ -153,13 +152,13 @@ def _map_effects(n_factors, effects):
         elif '*' in effects:
             pass  # handle later
         else:
-            raise ValueError('"{0}" is not a valid option for "effects"'
+            raise ValueError('"{}" is not a valid option for "effects"'
                              .format(effects))
     if isinstance(effects, list):
         bad_names = [e for e in effects if e not in factor_names]
         if len(bad_names) > 1:
-            raise ValueError('Effect names: {0} are not valid. They should '
-                             'the first `n_factors` ({1}) characters from the'
+            raise ValueError('Effect names: {} are not valid. They should '
+                             'the first `n_factors` ({}) characters from the'
                              'alphabet'.format(bad_names, n_factors))
 
     indices = list(np.arange(2 ** n_factors - 1))

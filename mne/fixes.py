@@ -14,6 +14,7 @@ at which the fix is no longer needed.
 
 import inspect
 from distutils.version import LooseVersion
+from math import log
 import warnings
 
 import numpy as np
@@ -349,10 +350,8 @@ def axis_reverse(a, axis=-1):
 
 def _validate_pad(padtype, padlen, x, axis, ntaps):
     """Helper to validate padding for filtfilt"""
-    if padtype not in ['even', 'odd', 'constant', None]:
-        raise ValueError(("Unknown value '%s' given to padtype.  padtype "
-                          "must be 'even', 'odd', 'constant', or None.") %
-                         padtype)
+    from .utils import _check_option  # avoid circular import
+    _check_option('padtype', padtype, ['even', 'odd', 'constant', None])
 
     if padtype is None:
         padlen = 0
@@ -521,16 +520,6 @@ def assert_true(expr, msg='False is not True'):
         raise AssertionError(msg)
 
 
-def assert_is(expr1, expr2, msg=None):
-    """Fake assert_is without message"""
-    assert_true(expr2 is expr2, msg)
-
-
-def assert_is_not(expr1, expr2, msg=None):
-    """Fake assert_is_not without message"""
-    assert_true(expr1 is not expr2, msg)
-
-
 def _read_volume_info(fobj):
     """An implementation of nibabel.freesurfer.io._read_volume_info, since old
     versions of nibabel (<=2.1.0) don't have it.
@@ -577,14 +566,14 @@ def _serialize_volume_info(volume_info):
             strings.append(np.array(volume_info[key], dtype='>i4').tostring())
         elif key in ('valid', 'filename'):
             val = volume_info[key]
-            strings.append('{0} = {1}\n'.format(key, val).encode('utf-8'))
+            strings.append('{} = {}\n'.format(key, val).encode('utf-8'))
         elif key == 'volume':
             val = volume_info[key]
-            strings.append('{0} = {1} {2} {3}\n'.format(
+            strings.append('{} = {} {} {}\n'.format(
                 key, val[0], val[1], val[2]).encode('utf-8'))
         else:
             val = volume_info[key]
-            strings.append('{0} = {1:0.10g} {2:0.10g} {3:0.10g}\n'.format(
+            strings.append('{} = {:0.10g} {:0.10g} {:0.10g}\n'.format(
                 key.ljust(6), val[0], val[1], val[2]).encode('utf-8'))
     return b''.join(strings)
 
@@ -638,10 +627,6 @@ class BaseEstimator(object):
     @classmethod
     def _get_param_names(cls):
         """Get parameter names for the estimator"""
-        try:
-            from inspect import signature
-        except ImportError:
-            from .externals.funcsigs import signature
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
@@ -651,7 +636,7 @@ class BaseEstimator(object):
 
         # introspect the constructor arguments to find the model parameters
         # to represent
-        init_signature = signature(init)
+        init_signature = inspect.signature(init)
         # Consider the constructor parameters excluding 'self'
         parameters = [p for p in init_signature.parameters.values()
                       if p.name != 'self' and p.kind != p.VAR_KEYWORD]
@@ -1031,6 +1016,95 @@ def _logdet(A):
     return np.sum(np.log(vals))
 
 
+def _infer_dimension_(spectrum, n_samples, n_features):
+    """Infers the dimension of a dataset of shape (n_samples, n_features)
+    The dataset is described by its spectrum `spectrum`.
+    """
+    n_spectrum = len(spectrum)
+    ll = np.empty(n_spectrum)
+    for rank in range(n_spectrum):
+        ll[rank] = _assess_dimension_(spectrum, rank, n_samples, n_features)
+    return ll.argmax()
+
+
+def _assess_dimension_(spectrum, rank, n_samples, n_features):
+    from scipy.special import gammaln
+    if rank > len(spectrum):
+        raise ValueError("The tested rank cannot exceed the rank of the"
+                         " dataset")
+
+    pu = -rank * log(2.)
+    for i in range(rank):
+        pu += (gammaln((n_features - i) / 2.) -
+               log(np.pi) * (n_features - i) / 2.)
+
+    pl = np.sum(np.log(spectrum[:rank]))
+    pl = -pl * n_samples / 2.
+
+    if rank == n_features:
+        pv = 0
+        v = 1
+    else:
+        v = np.sum(spectrum[rank:]) / (n_features - rank)
+        pv = -np.log(v) * n_samples * (n_features - rank) / 2.
+
+    m = n_features * rank - rank * (rank + 1.) / 2.
+    pp = log(2. * np.pi) * (m + rank + 1.) / 2.
+
+    pa = 0.
+    spectrum_ = spectrum.copy()
+    spectrum_[rank:n_features] = v
+    for i in range(rank):
+        for j in range(i + 1, len(spectrum)):
+            pa += log((spectrum[i] - spectrum[j]) *
+                      (1. / spectrum_[j] - 1. / spectrum_[i])) + log(n_samples)
+
+    ll = pu + pl + pv + pp - pa / 2. - rank * log(n_samples) / 2.
+
+    return ll
+
+
+def svd_flip(u, v, u_based_decision=True):
+    if u_based_decision:
+        # columns of u, rows of v
+        max_abs_cols = np.argmax(np.abs(u), axis=0)
+        signs = np.sign(u[max_abs_cols, np.arange(u.shape[1])])
+        u *= signs
+        v *= signs[:, np.newaxis]
+    else:
+        # rows of v, columns of u
+        max_abs_rows = np.argmax(np.abs(v), axis=1)
+        signs = np.sign(v[np.arange(v.shape[0]), max_abs_rows])
+        u *= signs
+        v *= signs[:, np.newaxis]
+    return u, v
+
+
+def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
+    """Use high precision for cumsum and check that final value matches sum
+
+    Parameters
+    ----------
+    arr : array-like
+        To be cumulatively summed as flat
+    axis : int, optional
+        Axis along which the cumulative sum is computed.
+        The default (None) is to compute the cumsum over the flattened array.
+    rtol : float
+        Relative tolerance, see ``np.allclose``
+    atol : float
+        Absolute tolerance, see ``np.allclose``
+    """
+    out = np.cumsum(arr, axis=axis, dtype=np.float64)
+    expected = np.sum(arr, axis=axis, dtype=np.float64)
+    if not np.all(np.isclose(out.take(-1, axis=axis), expected, rtol=rtol,
+                             atol=atol, equal_nan=True)):
+        warnings.warn('cumsum was found to be unstable: '
+                      'its last element does not correspond to sum',
+                      RuntimeWarning)
+    return out
+
+
 ###############################################################################
 # NumPy einsum backward compat (allow "optimize" arg and fix 1.14.0 bug)
 # XXX eventually we should hand-tune our `einsum` calls given our array sizes!
@@ -1150,3 +1224,14 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     outline[6:, 1] += cbar.norm(cbar_vmin)
     cbar.outline.set_xy(outline)
     cbar.set_ticks(new_tick_locs, update_ticks=True)
+
+
+###############################################################################
+# Matplotlib
+
+def _get_status(checks):
+    """Deal with old MPL to get check box statuses."""
+    try:
+        return list(checks.get_status())
+    except AttributeError:
+        return [x[0].get_visible() for x in checks.lines]

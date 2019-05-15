@@ -44,20 +44,18 @@ stc = apply_inverse(evoked, inverse_operator, lambda2, method,
 label = mne.read_label(label_fname)
 
 stc_label = stc.in_label(label)
-mean = stc.extract_label_time_course(label, src, mode='mean')
-mean_flip = stc.extract_label_time_course(label, src, mode='mean_flip')
-pca = stc.extract_label_time_course(label, src, mode='pca_flip')
-
+modes = ('mean', 'mean_flip', 'pca_flip')
+tcs = dict()
+for mode in modes:
+    tcs[mode] = stc.extract_label_time_course(label, src, mode=mode)
 print("Number of vertices : %d" % len(stc_label.data))
 
 # View source activations
-plt.figure()
-plt.plot(1e3 * stc_label.times, stc_label.data.T, 'k', linewidth=0.5)
-h0, = plt.plot(1e3 * stc_label.times, mean.T, 'r', linewidth=3)
-h1, = plt.plot(1e3 * stc_label.times, mean_flip.T, 'g', linewidth=3)
-h2, = plt.plot(1e3 * stc_label.times, pca.T, 'b', linewidth=3)
-plt.legend([h0, h1, h2], ['mean', 'mean flip', 'PCA flip'])
-plt.xlabel('Time (ms)')
-plt.ylabel('Source amplitude')
-plt.title('Activations in Label : %s' % label)
-plt.show()
+fig, ax = plt.subplots(1)
+t = 1e3 * stc_label.times
+ax.plot(t, stc_label.data.T, 'k', linewidth=0.5)
+for mode, tc in tcs.items():
+    ax.plot(t, tc[0], linewidth=3, label=str(mode))
+ax.legend(loc='upper right')
+ax.set(xlabel='Time (ms)', ylabel='Source amplitude',
+       title='Activations in Label : %s' % label)

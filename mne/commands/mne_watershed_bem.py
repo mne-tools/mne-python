@@ -2,9 +2,12 @@
 # Authors: Lorenzo De Santis
 """Create BEM surfaces using the watershed algorithm included with FreeSurfer.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne watershed_bem -s sample
+    $ mne watershed_bem -s sample
+
 """
 
 import sys
@@ -34,6 +37,9 @@ def run():
                       action="store_true")
     parser.add_option("-p", "--preflood", dest="preflood",
                       help="Change the preflood height", default=None)
+    parser.add_option("--copy", dest="copy",
+                      help="Use copies instead of symlinks for surfaces",
+                      action="store_true")
     parser.add_option("--verbose", dest="verbose",
                       help="If not None, override default verbose level",
                       default=None)
@@ -51,11 +57,13 @@ def run():
     atlas = options.atlas
     gcaatlas = options.gcaatlas
     preflood = options.preflood
+    copy = options.copy
     verbose = options.verbose
 
     make_watershed_bem(subject=subject, subjects_dir=subjects_dir,
                        overwrite=overwrite, volume=volume, atlas=atlas,
-                       gcaatlas=gcaatlas, preflood=preflood, verbose=verbose)
+                       gcaatlas=gcaatlas, preflood=preflood, copy=copy,
+                       verbose=verbose)
 
 is_main = (__name__ == '__main__')
 if is_main:

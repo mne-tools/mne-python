@@ -10,10 +10,10 @@ import numpy as np
 
 from ..utils import (_read_segments_file, _find_channels,
                      _deprecate_stim_channel)
-from ..constants import FIFF, Bunch
+from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
-from ...utils import logger, verbose, warn
+from ...utils import logger, verbose, warn, fill_doc, Bunch
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -134,6 +134,7 @@ def _get_info(eeg, montage, eog=()):
     return info
 
 
+@fill_doc
 def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
                     uint16_codec=None, stim_channel=False, verbose=None):
     r"""Read an EEGLAB .set file.
@@ -143,7 +144,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
     input_fname : str
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -170,13 +171,11 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
         :func:`mne.events_from_annotations` instead.
 
         .. versionadded:: 0.17
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of RawEEGLAB
+    raw : instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
 
     Notes
@@ -192,6 +191,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
                      stim_channel=stim_channel)
 
 
+@fill_doc
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
                        eog=(), verbose=None, uint16_codec=None):
     r"""Reader function for EEGLAB epochs files.
@@ -218,7 +218,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
         EEGLAB (.set) file with each descriptions copied from `eventtype`.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -226,9 +226,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -256,6 +254,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
+@fill_doc
 class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
@@ -264,7 +263,7 @@ class RawEEGLAB(BaseRaw):
     input_fname : str
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -289,14 +288,7 @@ class RawEEGLAB(BaseRaw):
         :func:`mne.events_from_annotations` instead.
 
         .. versionadded:: 0.17
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    raw : Instance of RawEEGLAB
-        A Raw object containing EEGLAB .set data.
+    %(verbose)s
 
     Notes
     -----
@@ -418,7 +410,7 @@ class EpochsEEGLAB(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -426,9 +418,7 @@ class EpochsEEGLAB(BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -484,8 +474,7 @@ class EpochsEEGLAB(BaseEpochs):
                     unique_ev.append(event_type)
 
                 # invent event dict but use id > 0 so you know its a trigger
-                event_id = dict((ev, idx + 1) for idx, ev
-                                in enumerate(unique_ev))
+                event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
 
             # warn about multiple events in epoch if necessary
             if warn_multiple_events:
@@ -615,12 +604,12 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
         duration[:] = [event.duration for event in events]
 
     return Annotations(onset=np.array(onset) / eeg.srate,
-                       duration=duration,
+                       duration=duration / eeg.srate,
                        description=description,
                        orig_time=None)
 
 
 def _dol_to_lod(dol):
     """Convert a dict of lists to a list of dicts."""
-    return [dict((key, dol[key][ii]) for key in dol.keys())
+    return [{key: dol[key][ii] for key in dol.keys()}
             for ii in range(len(dol[list(dol.keys())[0]]))]

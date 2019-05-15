@@ -6,12 +6,14 @@
 
 import inspect
 import os.path as op
+from os import unlink
 import shutil
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
+from tempfile import NamedTemporaryFile
 
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, read_annotations
@@ -53,6 +55,9 @@ neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
 # Test for nanovolts as unit
 vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
 
+# Test bad date
+vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
+
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
@@ -88,6 +93,12 @@ def test_vmrk_meas_date():
     # Test files with no date, we should get DATE_NONE from mne.io.write
     with pytest.warns(RuntimeWarning, match='coordinate information'):
         raw = read_raw_brainvision(vhdr_v2_path)
+    assert raw.info['meas_date'] is None
+    assert 'unspecified' in repr(raw.info)
+
+    # Test files with faulty dates introduced by segmenting a file without
+    # date information. Should not raise a strptime ValueError
+    raw = read_raw_brainvision(vhdr_bad_date)
     assert raw.info['meas_date'] is None
     assert 'unspecified' in repr(raw.info)
 
@@ -443,5 +454,19 @@ def test_read_vmrk_annotations():
     annotations_auto = read_annotations(vmrk_path)
     assert_array_equal(annotations.onset, annotations_auto.onset)
 
+    # Test vmrk file without annotations
+    # delete=False is for Windows compatibility
+    with open(vmrk_path) as myfile:
+        head = [next(myfile) for x in range(6)]
+    with NamedTemporaryFile(mode='w+', suffix='.vmrk', delete=False) as temp:
+        for item in head:
+            temp.write(item)
+        temp.seek(0)
+        annotations = read_annotations(temp.name, sfreq=sfreq)
+    try:
+        temp.close()
+        unlink(temp.name)
+    except FileNotFoundError:
+        pass
 
 run_tests_if_main()

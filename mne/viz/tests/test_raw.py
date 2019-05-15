@@ -148,14 +148,19 @@ def _annotation_helper(raw, events=False):
     plt.close('all')
 
 
+def _proj_status(ax):
+    return [l.get_visible() for l in ax.findobj(matplotlib.lines.Line2D)][::2]
+
+
 def test_plot_raw():
     """Test plotting of raw data."""
     raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     events = _get_events()
     plt.close('all')  # ensure all are closed
-    fig = raw.plot(events=events, show_options=True, order=[1, 7, 3],
-                   group_by='original')
+    assert len(plt.get_fignums()) == 0
+    fig = raw.plot(events=events, order=[1, 7, 3], group_by='original')
+    assert len(plt.get_fignums()) == 1
     # test mouse clicks
     x = fig.get_axes()[0].lines[1].get_xdata().mean()
     y = fig.get_axes()[0].lines[1].get_ydata().mean()
@@ -167,29 +172,44 @@ def test_plot_raw():
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
     _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
     _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-    _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
+    assert len(plt.get_fignums()) == 1
+    # open SSP window
+    _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5])
+    _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5], kind='release')
+    assert len(plt.get_fignums()) == 2
+    ssp_fig = plt.figure(plt.get_fignums()[-1])
     fig.canvas.button_press_event(1, 1, 1)  # outside any axes
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
-    # sadly these fail when no renderer is used (i.e., when using Agg):
-    # ssp_fig = set(plt.get_fignums()) - set([fig.number])
-    # assert_equal(len(ssp_fig), 1)
-    # ssp_fig = plt.figure(list(ssp_fig)[0])
-    # ax = ssp_fig.get_axes()[0]  # only one axis is used
-    # t = [c for c in ax.get_children() if isinstance(c,
-    #      matplotlib.text.Text)]
-    # pos = np.array(t[0].get_position()) + 0.01
-    # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
-    # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
-    #  test keypresses
-    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
+
+    ax = ssp_fig.get_axes()[0]  # only one axis is used
+    assert _proj_status(ax) == [True] * 3
+    t = [c for c in ax.get_children() if isinstance(c, matplotlib.text.Text)]
+    pos = np.array(t[0].get_position()) + 0.01
+    _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
+    assert _proj_status(ax) == [False, True, True]
+    _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
+    assert _proj_status(ax) == [True] * 3
+    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all off
+    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
+    assert _proj_status(ax) == [False] * 3
+    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all on
+    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
+    assert _proj_status(ax) == [True] * 3
+
+    # test keypresses
+    # test for group_by='original'
+    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd', 'd',
                 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
         fig.canvas.key_press_event(key)
+
+    # test for group_by='selection'
     fig = plot_raw(raw, events=events, group_by='selection')
-    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=',
-                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd',
+                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
                 'escape']:
         fig.canvas.key_press_event(key)
+
     # Color setting
     pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
     pytest.raises(TypeError, raw.plot, event_color={'foo': 'r'})
@@ -271,19 +291,26 @@ def test_plot_annotations():
     with pytest.warns(RuntimeWarning, match='expanding outside'):
         raw.set_annotations(annot)
     _annotation_helper(raw)
+    plt.close('all')
 
 
 def test_plot_raw_filtered():
     """Test filtering of raw plots."""
     raw = _get_raw()
-    pytest.raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
-    pytest.raises(ValueError, raw.plot, highpass=0)
-    pytest.raises(ValueError, raw.plot, lowpass=1, highpass=1)
-    pytest.raises(ValueError, raw.plot, lowpass=1, filtorder=0)
-    pytest.raises(ValueError, raw.plot, clipping='foo')
+    with pytest.raises(ValueError, match='lowpass must be < Nyquist'):
+        raw.plot(lowpass=raw.info['sfreq'] / 2.)
+    with pytest.raises(ValueError, match='highpass must be > 0'):
+        raw.plot(highpass=0)
+    with pytest.raises(ValueError, match=r'lowpass \(1\) must be > highpass'):
+        raw.plot(lowpass=1, highpass=1)
+    with pytest.raises(ValueError, match=r'filtorder \(-1\) must be >= 0'):
+        raw.plot(lowpass=1, filtorder=-1)
+    with pytest.raises(ValueError, match="Invalid value for the 'clipping'"):
+        raw.plot(clipping='foo')
     raw.plot(lowpass=1, clipping='transparent')
     raw.plot(highpass=1, clipping='clamp')
-    raw.plot(highpass=1, lowpass=2, butterfly=True)
+    raw.plot(lowpass=40, butterfly=True, filtorder=0)
+    plt.close('all')
 
 
 def test_plot_raw_psd():
@@ -342,6 +369,7 @@ def test_plot_raw_psd():
 def test_plot_sensors():
     """Test plotting of sensor array."""
     raw = _get_raw()
+    plt.close('all')
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
     raw.plot_sensors('topomap', ch_type='mag',

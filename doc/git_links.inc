@@ -51,7 +51,7 @@
 .. _deleting master on github: http://matthew-brett.github.io/pydagogue/gh_delete_master.html
 .. _rebase without tears: http://matthew-brett.github.io/pydagogue/rebase_without_tears.html
 .. _resolving a merge: https://schacon.github.io/git/user-manual.html#resolving-a-merge
-.. _ipython git workflow: http://mail.scipy.org/pipermail/ipython-dev/2010-October/006746.html
+.. _ipython git workflow: https://web.archive.org/web/*/http://mail.scipy.org/pipermail/ipython-dev/2010-October/006746.html
 
 .. other stuff
 .. _python: http://www.python.org
@@ -76,15 +76,24 @@
 .. python editors
 .. _atom: https://atom.io/
 .. _Spyder: https://www.spyder-ide.org/
-.. _anaconda: http://www.continuum.io/downloads
+.. _anaconda: https://www.anaconda.com/distribution/
+.. _miniconda: https://conda.io/en/latest/miniconda.html
+.. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
+.. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
 
-.. _FreeSurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
+.. installation links
+.. _FreeSurfer: https://surfer.nmr.mgh.harvard.edu/fswiki/
+.. _FreeSurfer download page: https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
+.. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
+.. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
+.. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
-.. _sphinx gallery documentation: https://sphinx-gallery.readthedocs.io/en/latest/configuration.html
+.. _sphinx gallery documentation: https://sphinx-gallery.github.io
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+.. _Stack Overflow: https://stackoverflow.com/
 
 .. vim: ft=rst
-

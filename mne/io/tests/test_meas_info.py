@@ -69,7 +69,7 @@ def test_make_info():
     info = create_info(n_ch, 1000., 'eeg')
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
 
-    coil_types = set([ch['coil_type'] for ch in info['chs']])
+    coil_types = {ch['coil_type'] for ch in info['chs']}
     assert FIFF.FIFFV_COIL_EEG in coil_types
 
     pytest.raises(TypeError, create_info, ch_names='Test Ch', sfreq=1000)
@@ -78,7 +78,7 @@ def test_make_info():
                   ch_types=['eeg', 'eeg'])
     pytest.raises(TypeError, create_info, ch_names=[np.array([1])],
                   sfreq=1000)
-    pytest.raises(TypeError, create_info, ch_names=['Test Ch'], sfreq=1000,
+    pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types=np.array([1]))
     pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types='awesome')
@@ -170,7 +170,17 @@ def test_info():
         info_str = '%s' % obj.info
         assert len(info_str.split('\n')) == len(obj.info.keys()) + 2
         assert all(k in info_str for k in obj.info.keys())
-        assert '2002-12-03 19:01:10 GMT' in repr(obj.info), repr(obj.info)
+        rep = repr(obj.info)
+        assert '2002-12-03 19:01:10 GMT' in rep, rep
+        assert '146 items (3 Cardinal, 4 HPI, 61 EEG, 78 Extra)' in rep
+        dig_rep = repr(obj.info['dig'][0])
+        assert 'LPA' in dig_rep, dig_rep
+        assert '(-71.4, 0.0, 0.0) mm' in dig_rep, dig_rep
+        assert 'head frame' in dig_rep, dig_rep
+        # Test our BunchConstNamed support
+        for func in (str, repr):
+            assert '4 (FIFFV_COORD_HEAD)' == \
+                func(obj.info['dig'][0]['coord_frame'])
 
     # Test read-only fields
     info = raw.info.copy()

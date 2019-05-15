@@ -11,11 +11,13 @@ import copy
 import numpy as np
 
 from .. import pick_channels
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fill_doc
 from ..epochs import BaseEpochs
 from ..event import _find_events
+from ..io.pick import _picks_to_idx
 
 
+@fill_doc
 class RtEpochs(BaseEpochs):
     """Realtime Epochs.
 
@@ -59,8 +61,7 @@ class RtEpochs(BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels are used).
+    %(picks_all)s
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -109,10 +110,7 @@ class RtEpochs(BaseEpochs):
                                verbose='ERROR')
 
         See :func:`mne.find_events` for detailed explanation of these options.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        client.verbose.
+    %(verbose)s Defaults to client.verbose.
 
     Attributes
     ----------
@@ -124,8 +122,7 @@ class RtEpochs(BaseEpochs):
         List of channels' names.
     events : array, shape (n_events, 3)
         The events associated with the epochs currently in the queue.
-    verbose : bool, str, int, or None
-        See above.
+    %(verbose)s
 
     Notes
     -----
@@ -312,7 +309,7 @@ class RtEpochs(BaseEpochs):
             self._client.stop_receive_thread(stop_measurement=stop_measurement)
 
     @verbose
-    def next(self, return_event_id=False, verbose=None):
+    def __next__(self, return_event_id=False, verbose=None):
         """Make iteration over epochs easy.
 
         Parameters
@@ -342,7 +339,7 @@ class RtEpochs(BaseEpochs):
                 return (epoch, event_id) if return_event_id else epoch
             if current_time > (self._last_time + self.isi_max):
                 logger.info('Time of %s seconds exceeded.' % self.isi_max)
-                return  # signal the end properly
+                raise StopIteration  # signal the end properly
             if self._started:
                 if first:
                     logger.info('Waiting for epoch %d' % (self._current + 1))
@@ -352,8 +349,10 @@ class RtEpochs(BaseEpochs):
                 raise RuntimeError('Not enough epochs in queue and currently '
                                    'not receiving epochs, cannot get epochs!')
 
+    next = __next__
+
     @verbose
-    def _get_data(self, out=True, verbose=None):
+    def _get_data(self, out=True, picks=None,  verbose=None):
         """
         Return all data as numpy array.
 
@@ -361,6 +360,7 @@ class RtEpochs(BaseEpochs):
         ----------
         out : bool
             Return the data.
+        %(picks_all)s
         verbose: bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -383,6 +383,9 @@ class RtEpochs(BaseEpochs):
 
             data = np.array(epochs)
 
+            if picks is not None:
+                picks = _picks_to_idx(self.info, picks)
+                data = data[:, picks]
             return data
 
     def _process_raw_buffer(self, raw_buffer):
@@ -544,10 +547,7 @@ class RtEpochs(BaseEpochs):
 
             .. versionadded:: 0.12
 
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------

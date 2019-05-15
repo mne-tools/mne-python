@@ -4,18 +4,29 @@ version: 2
 jobs:
     build_docs:
       docker:
-        # 3.6-jessie is too new for conda
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.7-stretch
       steps:
         - checkout
         - run:
             name: Set BASH_ENV
             command: |
-              echo "set -e" >> $BASH_ENV;
-              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV;
-              echo "export DISPLAY=:99" >> $BASH_ENV;
-              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV;
-              echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
+              echo "set -e" >> $BASH_ENV
+              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              export MNE_ROOT=${PWD}/minimal_cmds
+              echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
+              curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
+              echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
+              echo "export NEUROMAG2FT_ROOT=${PWD}/minimal_cmds/bin" >> $BASH_ENV
+              echo "BASH_ENV:"
+              cat $BASH_ENV
+        - run:
+            name: check neuromag2ft
+            command: |
+              neuromag2ft --version
+
         - run:
             name: Merge with upstream
             command: |
@@ -52,34 +63,17 @@ jobs:
         - run:
             name: Fix libgcc_s.so.1 pthread_cancel bug
             command: |
-              sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6 qt5-default
+              sudo apt-get install qt5-default
 
         - run:
-            name: Get Anaconda running
+            name: Get Python running
+            # pip install --user --upgrade --progress-bar off https://api.github.com/repos/larsoner/numpydoc/zipball/xref-param-type
             command: |
-              wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
-              chmod +x ~/miniconda.sh;
-              ~/miniconda.sh -b -p ~/miniconda;
-              export export PATH=~/miniconda/bin:$PATH;
-              conda update --yes --quiet conda;
-              conda env create --quiet -f environment.yml;
-              source activate mne;
-              conda install sphinx;
-              pip install --progress-bar off sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
-              pip uninstall --yes mne;
-              echo "source activate mne" >> $BASH_ENV;
+              pip install --user -q --upgrade pip numpy vtk
+              pip install --user --progress-bar off -r requirements.txt
+              pip install --user pylsl
+              pip install --user --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
 
-        # The conda-provided PyQt5 does not work on CircleCI for some reason,
-        # possibly because the libGL expects a sufficiently modern libgcc
-        # and conda rolls their own (libgcc-ng package).
-        - run:
-            name: Patch Qt
-            command: |
-              conda remove --yes qt pyqt matplotlib sip libxcb icu vtk
-              pip uninstall --yes mayavi vtk
-              pip install vtk mayavi PyQt5 PyQt5-sip sip matplotlib
-              echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0" >> $BASH_ENV
-              pip install --upgrade "https://api.github.com/repos/nipy/PySurfer/zipball/master"
         - save_cache:
             key: pip-cache
             paths:
@@ -99,7 +93,7 @@ jobs:
         - run:
             name: Get data
             command: |
-              python setup.py develop
+              python setup.py develop --user
               if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
               git fetch upstream
               git branch -a
@@ -112,7 +106,7 @@ jobs:
                 echo html_stable > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
-                FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
+                FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/master) $CIRCLE_BRANCH);
                 if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
                   FNAMES="tutorials/plot_mne_dspm_source_localization.py tutorials/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/plot_sensors_decoding.py tutorials/plot_stats_cluster_spatio_temporal.py tutorials/plot_visualize_evoked.py "${FNAMES};
                   python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
@@ -124,6 +118,9 @@ jobs:
                     PATTERN=`basename $FNAME`"\\|"$PATTERN;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*fetch_fsaverage.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.fetch_fsaverage(verbose=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*spm_face.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.spm_face.data_path(update_path=True))";
@@ -142,6 +139,9 @@ jobs:
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_resting.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.brainstorm.bst_resting.data_path(update_path=True))" --accept-brainstorm-license;
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True))" --accept-brainstorm-license;
@@ -209,6 +209,8 @@ jobs:
             command: |
               if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
                 make test-doc;
+                mkdir -p doc/_build/test-results/test-doc;
+                cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
               fi;
         # Build docs
         - run:
@@ -221,6 +223,12 @@ jobs:
             command: |
               python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
+        # Save the JUnit file
+        - store_test_results:
+            path: doc/_build/test-results
+        - store_artifacts:
+            path: doc/_build/test-results
+            destination: test-results
         # Save the outputs
         - store_artifacts:
             path: doc/_build/html/

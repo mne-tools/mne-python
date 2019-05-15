@@ -18,7 +18,7 @@ from scipy import linalg
 
 from ..pick import pick_types
 from ...coreg import fit_matched_points, _decimate_points
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, fill_doc, _check_option
 from ...transforms import (apply_trans, als_ras_trans,
                            get_ras_to_neuromag_trans, Transform)
 from ..base import BaseRaw
@@ -39,6 +39,7 @@ class UnsupportedKITFormat(ValueError):
         ValueError.__init__(self, *args, **kwargs)
 
 
+@fill_doc
 class RawKIT(BaseRaw):
     """Raw object from KIT SQD file.
 
@@ -83,9 +84,7 @@ class RawKIT(BaseRaw):
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -189,9 +188,7 @@ class RawKIT(BaseRaw):
         if self.preload:
             raise NotImplementedError("Can't change stim channel after "
                                       "loading data")
-        elif stim_code not in ('binary', 'channel'):
-            raise ValueError("stim_code=%r, needs to be 'binary' or 'channel'"
-                             % (stim_code,))
+        _check_option('stim_code', stim_code, ['binary', 'channel'])
 
         if stim is not None:
             if isinstance(stim, str):
@@ -353,9 +350,7 @@ class EpochsKIT(BaseEpochs):
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -408,7 +403,7 @@ class EpochsKIT(BaseEpochs):
                             'average. Wrong reader.')
 
         if event_id is None:  # convert to int to make typing-checks happy
-            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+            event_id = {str(e): int(e) for e in np.unique(events[:, 2])}
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
@@ -652,7 +647,8 @@ def get_kit_info(rawfile, allow_unknown_format):
                 })
             elif channel_type in KIT.CHANNELS_MISC:
                 channel_no, = unpack('i', fid.read(KIT.INT))
-                name, = unpack('64s', fid.read(64))
+                # name, = unpack('64s', fid.read(64))
+                fid.seek(64, 1)
                 channels.append({
                     'type': channel_type,
                     'no': channel_no,
@@ -710,7 +706,8 @@ def get_kit_info(rawfile, allow_unknown_format):
         sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
         sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
         if acq_type == KIT.CONTINUOUS:
-            samples_count, = unpack('i', fid.read(KIT.INT))
+            # samples_count, = unpack('i', fid.read(KIT.INT))
+            fid.seek(KIT.INT, 1)
             sqd['n_samples'], = unpack('i', fid.read(KIT.INT))
         elif acq_type == KIT.EVOKED or acq_type == KIT.EPOCHS:
             sqd['frame_length'], = unpack('i', fid.read(KIT.INT))
@@ -792,6 +789,7 @@ def get_kit_info(rawfile, allow_unknown_format):
     return info, sqd
 
 
+@fill_doc
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
                  allow_unknown_format=False, verbose=None):
@@ -835,13 +833,11 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of RawKIT
+    raw : instance of RawKIT
         A Raw object containing KIT data.
 
     See Also
@@ -859,6 +855,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                   allow_unknown_format=allow_unknown_format, verbose=verbose)
 
 
+@fill_doc
 def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
                     hsp=None, allow_unknown_format=False, verbose=None):
     """Reader function for KIT epochs files.
@@ -893,9 +890,7 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

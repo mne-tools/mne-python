@@ -3,8 +3,17 @@
 
 """Import KIT / NYU data to fif file.
 
-example usage:  $ mne kit2fiff --input input.sqd --output output.fif
-Use without arguments to invoke GUI:  $ mne kt2fiff
+Examples
+--------
+.. code-block:: console
+
+    $ mne kit2fiff --input input.sqd --output output.fif
+
+Use without arguments to invoke GUI:
+
+.. code-block:: console
+
+    $ mne kt2fiff
 
 """
 

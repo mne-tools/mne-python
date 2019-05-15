@@ -1,15 +1,15 @@
 .. -*- mode: rst -*-
 
 
-|Travis|_ |Appveyor|_ |Circle|_ |Codecov|_ |Zenodo|_
+|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |Zenodo|_
 
 |MNE|_
 
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
 
-.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/jg8ncqql9wayo8mg/branch/master?svg=true
-.. _Appveyor: https://ci.appveyor.com/project/mne-tools/mne-python/branch/master
+.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
+.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 
 .. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
 .. _Circle: https://circleci.com/gh/mne-tools/mne-python
@@ -93,6 +93,8 @@ For full functionality, some functions require:
 - Picard >= 0.3
 - CuPy >= 4.0 (for NVIDIA CUDA acceleration)
 - DIPY >= 0.10.1
+- PyLSL >= 1.12
+- PyVista >= 0.20.1
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -116,7 +118,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011-2017, authors of MNE-Python.
+    Copyright (c) 2011-2019, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -151,4 +153,3 @@ MNE-Python is **BSD-licenced** (3 clause):
 .. _MNE documentation: http://martinos.org/mne/documentation.html
 .. _getting started page: https://martinos.org/mne/getting_started.html
 .. _pip: https://pip.pypa.io/en/stable/
-

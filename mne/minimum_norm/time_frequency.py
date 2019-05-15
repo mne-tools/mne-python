@@ -16,10 +16,10 @@ from ..time_frequency.multitaper import (_psd_from_mt, _compute_mt_params,
                                          _psd_from_mt_adaptive, _mt_spectra)
 from ..baseline import rescale, _log_rescale
 from .inverse import (combine_xyz, _check_or_prepare, _assemble_kernel,
-                      _pick_channels_inverse_operator, _check_method,
+                      _pick_channels_inverse_operator, INVERSE_METHODS,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, ProgressBar
+from ..utils import logger, verbose, ProgressBar, _check_option
 
 
 def _prepare_source_params(inst, inverse_operator, label=None,
@@ -71,7 +71,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     ----------
     epochs : instance of Epochs
         The epochs.
-    inverse_operator : instance of inverse operator
+    inverse_operator : instance of InverseOperator
         The inverse operator.
     bands : dict
         Example : bands = dict(alpha=[8, 9]).
@@ -91,7 +91,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Do convolutions in time or frequency domain with FFT.
     decim : int
         Temporal decimation factor.
-    baseline : None (default) or tuple of length 2
+    baseline : None (default) or tuple, shape (2,)
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
@@ -124,16 +124,14 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    stcs : dict with a SourceEstimate (or VolSourceEstimate) for each band
+    stcs : dict of SourceEstimate (or VolSourceEstimate)
         The estimated source space induced power estimates.
     """  # noqa: E501
-    _check_method(method)
+    _check_option('method', method, INVERSE_METHODS)
 
     freqs = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                             for _, band in bands.items()])
@@ -189,7 +187,6 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
                      with_power, with_plv, pick_ori, decim, verbose=None):
     """Aux function for induced power and PLV."""
     shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
-    n_sources, n_times = shape[:2]
     power = np.zeros(shape, dtype=np.float)  # power or raw TFR
     # phase lock
     plv = np.zeros(shape, dtype=np.complex) if with_plv else None
@@ -377,11 +374,9 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """  # noqa: E501
-    _check_method(method)
+    _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
     power, plv, vertno = _source_induced_power(
@@ -466,7 +461,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
         .. versionadded:: 0.17
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
 
         .. versionadded:: 0.17
@@ -482,9 +477,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         If True (default False), return output it decibels.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -729,7 +722,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
@@ -746,9 +739,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         If True, also return the sensor PSD for each epoch as an EvokedArray.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

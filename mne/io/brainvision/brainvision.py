@@ -21,7 +21,7 @@ from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, fill_doc
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
@@ -29,6 +29,7 @@ from ..utils import _read_segments_file, _mult_cal_one, _deprecate_stim_channel
 from ...annotations import Annotations, read_annotations
 
 
+@fill_doc
 class RawBrainVision(BaseRaw):
     """Raw object from Brain Vision EEG file.
 
@@ -61,9 +62,7 @@ class RawBrainVision(BaseRaw):
         :func:`mne.events_from_annotations` instead.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -257,21 +256,26 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    onset, duration, description, date_str = _read_vmrk(fname)
-    orig_time = _str_to_meas_date(date_str)
+    markers = _read_vmrk(fname)
+    if len(markers) > 0:
+        onset, duration, description, date_str = markers
+        orig_time = _str_to_meas_date(date_str)
 
-    if sfreq == 'auto':
-        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-        _, _, _, info = _aux_vhdr_info(vhdr_fname)
-        sfreq = info['sfreq']
+        if sfreq == 'auto':
+            vhdr_fname = op.splitext(fname)[0] + '.vhdr'
+            logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
+            _, _, _, info = _aux_vhdr_info(vhdr_fname)
+            sfreq = info['sfreq']
 
-    onset = np.array(onset, dtype=float) / sfreq
-    duration = np.array(duration, dtype=float) / sfreq
-    annotations = Annotations(onset=onset, duration=duration,
-                              description=description,
-                              orig_time=orig_time)
-
+        onset = np.array(onset, dtype=float) / sfreq
+        duration = np.array(duration, dtype=float) / sfreq
+        annotations = Annotations(onset=onset, duration=duration,
+                                  description=description,
+                                  orig_time=orig_time)
+    else:
+        annotations = Annotations(onset=0, duration=0,
+                                  description=None,
+                                  orig_time=None)
     return annotations
 
 
@@ -300,7 +304,7 @@ def _check_mrk_version(header):
             'Brain Vision Data Exchange Marker File, Version 2.0',
             'BrainVision Data Exchange Marker File, Version 1.0']
     if header not in tags:
-        raise ValueError("Currently only support %r, not %r"
+        raise ValueError("Currently, MNE-Python only supports %r, not %r"
                          "Contact MNE-Developers for support."
                          % (str(tags), header))
 
@@ -327,7 +331,13 @@ def _str_to_meas_date(date_str):
     if date_str in ['0', '00000000000000000000']:
         return None
 
-    meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+    try:
+        meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+    except ValueError as e:
+        if 'does not match format' in str(e):
+            return None
+        else:
+            raise
 
     # We need list of unix time in milliseconds and as second entry
     # the additional amount of microseconds
@@ -460,8 +470,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             raise NotImplementedError('BrainVision files with ASCII data in '
                                       'vectorized order (i.e. channels in rows'
                                       ') are not supported yet.')
-        fmt = dict((key, cfg.get('ASCII Infos', key))
-                   for key in cfg.options('ASCII Infos'))
+        fmt = {key: cfg.get('ASCII Infos', key)
+               for key in cfg.options('ASCII Infos')}
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)
@@ -478,7 +488,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         match = re.findall(regexp, line.strip())
 
         # Always take first measurement date we find
-        if match and match[0] != '00000000000000000000':
+        if match:
             date_str = match[0]
             info['meas_date'] = _str_to_meas_date(date_str)
             break
@@ -776,6 +786,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             orig_units)
 
 
+@fill_doc
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, stim_channel=False,
@@ -810,9 +821,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         :func:`mne.events_from_annotations` instead.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

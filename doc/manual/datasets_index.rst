@@ -25,6 +25,17 @@ as soon as possible after the appearance of the face.
 
 Once the ``data_path`` is known, its contents can be examined using :ref:`IO functions <ch_convert>`.
 
+fsaverage
+=========
+:func:`mne.datasets.fetch_fsaverage`
+
+For convenience, we provide a function to separately download and extract the
+(or update an existing) fsaverage subject.
+
+.. topic:: Examples
+
+    :ref:`tut-eeg-fsaverage-source-modeling`
+
 Brainstorm
 ==========
 Dataset fetchers for three Brainstorm tutorials are available. Users must agree to the
@@ -39,7 +50,7 @@ Details about the data can be found at the Brainstorm `auditory dataset tutorial
 
 .. topic:: Examples
 
-    * :ref:`Brainstorm auditory dataset tutorial <sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
+    * :ref:`tut-brainstorm-auditory`: Partially replicates the original Brainstorm tutorial.
 
 Resting state
 ^^^^^^^^^^^^^
@@ -47,11 +58,19 @@ Resting state
 
 Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
+.. topic:: Examples
+
+    * :ref:`ex-envelope-correlation`
+
 Median nerve
 ^^^^^^^^^^^^
 :func:`mne.datasets.brainstorm.bst_raw.data_path`
 
 Details can be found at the Brainstorm `median nerve dataset tutorial`_.
+
+.. topic:: Examples
+
+    * :ref:`ex-brainstorm-raw`
 
 MEGSIM
 ======
@@ -68,7 +87,7 @@ Detailed description of the dataset can be found in the related publication [1]_
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_datasets_plot_megsim_data.py`
+    * :ref:`ex-megsim`
 
 SPM faces
 =========
@@ -78,7 +97,7 @@ The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perceptio
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_datasets_spm_faces_dataset.py` Full pipeline including artifact removal, epochs averaging, forward model computation and source reconstruction using dSPM on the contrast: "faces - scrambled".
+    * :ref:`ex-spm-faces` Full pipeline including artifact removal, epochs averaging, forward model computation and source reconstruction using dSPM on the contrast: "faces - scrambled".
 
 EEGBCI motor imagery
 ====================
@@ -96,7 +115,7 @@ The recordings were made using the BCI2000 system. To load a subject, do::
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_csp_eeg.py`
+    * :ref:`ex-decoding-csp-eeg`
 
 Do not hesitate to contact MNE-Python developers on the
 `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
@@ -116,7 +135,7 @@ This dataset contains somatosensory data with event-related synchronizations
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_tutorials_plot_sensors_time_frequency.py`
+    * :ref:`tut-sensors-time-freq`
 
 Multimodal
 ==========
@@ -127,7 +146,7 @@ with auditory, visual, and somatosensory stimuli.
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_io_plot_elekta_epochs.py`
+    * :ref:`ex-io-ave-fiff`
 
 
 High frequency SEF
@@ -154,7 +173,7 @@ Representational Similarity Analysis (RSA).
 
 .. topic:: Examples
 
-    * :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>`: Partially replicates the results from Cichy et al. (2014).
+    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>`: Partially replicates the results from Cichy et al. (2014).
 
 
 mTRF Dataset
@@ -171,7 +190,7 @@ More details and a description of the package can be found in [5]_.
 
 .. topic:: Examples
 
-    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field_mtrf.py>`: Partially replicates the results from Crosse et al. (2016).
+    * :ref:`Receptive Field Estimation and Prediction <ex-receptive-field-mtrf>`: Partially replicates the results from Crosse et al. (2016).
 
 Miscellaneous Datasets
 ======================
@@ -190,7 +209,7 @@ functions in MNE and does not contain useful metadata for analysis.
 .. topic:: Examples
 
     * :ref:`How to convert 3D electrode positions to a 2D image.
-      <sphx_glr_auto_examples_visualization_plot_3d_to_2d.py>`: Demonstrates
+      <ex-electrode-pos-2d>`: Demonstrates
       how to project a 3D electrode location onto a 2D image, a common procedure
       in electrocorticography.
 
@@ -242,8 +261,8 @@ Triggers include:
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_datasets_plot_opm_data.py`
-    * :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`
+    * :ref:`ex-opm-somatosensory`
+    * :ref:`ex-opm-resting-state`
 
 The Sleep PolySomnoGraphic Database
 ===================================
@@ -259,7 +278,7 @@ data please cite [7]_ and [8]_.
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_tutorials_plot_sleep.py`
+    * :ref:`tut-sleep-stage-classif`
 
 References
 ==========
@@ -276,6 +295,6 @@ References
 
 .. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are worth a picture: Snapshots of printed-word processing in an event-related potential megastudy. Psychological science, 2015
 
-.. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000). https://physionet.org/physiobank/database/sleep-edfx/Papers/2000-Kemp---neurofeedback.pdf
+.. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000). https://ieeexplore.ieee.org/document/867928
 
 .. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220 [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June 13).

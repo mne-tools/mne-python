@@ -6,3 +6,7 @@
 .. _`mne-scripts`: https://github.com/mne-tools/mne-scripts/
 .. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`GitHub issues page`: https://github.com/mne-tools/mne-python/issues/
+.. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
+.. _`MNE-BIDS`: https://mne-tools.github.io/mne-bids/
+.. _`MNE-HCP`: http://mne-tools.github.io/mne-hcp/
+.. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab

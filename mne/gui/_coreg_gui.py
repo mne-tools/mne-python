@@ -87,7 +87,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           rotation_angles, Transform, _ensure_trans,
                           rot_to_quat, _angle_between_quats)
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
-from ..viz._3d import _toggle_mlab_render
+from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ..utils import logger, set_config, _pl
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
@@ -391,37 +391,27 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_processed_high_res_mri_points(self):
-        if self.grow_hair:
-            if len(self.mri.bem_high_res.surf.nn):
-                scaled_hair_dist = (1e-3 * self.grow_hair /
-                                    np.array(self.parameters[6:9]))
-                points = self.mri.bem_high_res.surf.rr.copy()
-                hair = points[:, 2] > points[:, 1]
-                points[hair] += (self.mri.bem_high_res.surf.nn[hair] *
-                                 scaled_hair_dist)
-                return points
-            else:
-                error(None, "Norms missing from bem, can't grow hair")
-                self.grow_hair = 0
-        else:
-            return self.mri.bem_high_res.surf.rr
+        return self._get_processed_mri_points('high')
 
     @cached_property
     def _get_processed_low_res_mri_points(self):
+        return self._get_processed_mri_points('low')
+
+    def _get_processed_mri_points(self, res):
+        bem = self.mri.bem_low_res if res == 'low' else self.mri.bem_high_res
         if self.grow_hair:
-            if len(self.mri.bem_low_res.surf.nn):
+            if len(bem.surf.nn):
                 scaled_hair_dist = (1e-3 * self.grow_hair /
                                     np.array(self.parameters[6:9]))
-                points = self.mri.bem_low_res.surf.rr.copy()
+                points = bem.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
-                points[hair] += (self.mri.bem_low_res.surf.nn[hair] *
-                                 scaled_hair_dist)
+                points[hair] += bem.surf.nn[hair] * scaled_hair_dist
                 return points
             else:
                 error(None, "Norms missing from bem, can't grow hair")
                 self.grow_hair = 0
         else:
-            return self.mri.bem_low_res.surf.rr
+            return bem.surf.rr
 
     @cached_property
     def _get_mri_trans(self):

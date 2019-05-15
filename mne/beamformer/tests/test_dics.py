@@ -7,7 +7,6 @@ import copy as cp
 import os.path as op
 
 import pytest
-from pytest import raises
 from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
 
@@ -34,6 +33,7 @@ fname_label = op.join(subjects_dir, 'sample', 'label', 'aparc',
                       'rostralmiddlefrontal-lh.label')
 
 
+@pytest.fixture(scope='module', params=[testing._pytest_param()])
 def _load_forward():
     """Load forward models."""
     fwd_free = mne.read_forward_solution(fname_fwd)
@@ -107,57 +107,63 @@ def _test_weight_norm(filters, norm=1):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_h5py
-@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
-                            ":RuntimeWarning")
-def test_make_dics(tmpdir):
+def test_make_dics(tmpdir, _load_forward):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
 
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
     epochs, _, csd, _ = _simulate_data(fwd_fixed)
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
+    epochs.pick_types(meg='grad')
 
-    raises(ValueError, make_dics, epochs.info, fwd_fixed, csd,
-           pick_ori="notexistent")
-    with raises(ValueError, match='rank, if str'):
+    with pytest.raises(ValueError, match="Invalid value for the 'pick_ori'"):
+        make_dics(epochs.info, fwd_fixed, csd, pick_ori="notexistent")
+    with pytest.raises(ValueError, match='rank, if str'):
         make_dics(epochs.info, fwd_fixed, csd, rank='foo')
-    with raises(TypeError, match='rank must be'):
+    with pytest.raises(TypeError, match='rank must be'):
         make_dics(epochs.info, fwd_fixed, csd, rank=1.)
 
     # Test if fixed forward operator is detected when picking normal
     # orientation
-    raises(ValueError, make_dics, epochs.info, fwd_fixed, csd,
-           pick_ori="normal")
+    with pytest.raises(ValueError, match='forward operator with free ori'):
+        make_dics(epochs.info, fwd_fixed, csd, pick_ori="normal")
 
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
-    raises(ValueError, make_dics, epochs.info, fwd_free, csd,
-           pick_ori="normal")
+    with pytest.raises(ValueError, match='oriented in surface coordinates'):
+        make_dics(epochs.info, fwd_free, csd, pick_ori="normal")
 
     # Test if volume forward operator is detected when picking normal
     # orientation
-    raises(ValueError, make_dics, epochs.info, fwd_vol, csd, pick_ori="normal")
+    with pytest.raises(ValueError, match='oriented in surface coordinates'):
+        make_dics(epochs.info, fwd_vol, csd, pick_ori="normal")
 
     # Test invalid combinations of parameters
-    raises(NotImplementedError, make_dics, epochs.info, fwd_free, csd,
-           reduce_rank=True, pick_ori=None)
-    raises(NotImplementedError, make_dics, epochs.info, fwd_free, csd,
-           reduce_rank=True, pick_ori='max-power', inversion='single')
+    with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
+        make_dics(epochs.info, fwd_free, csd, reduce_rank=True, pick_ori=None)
+    with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
+        make_dics(epochs.info, fwd_free, csd, reduce_rank=True,
+                  pick_ori='max-power', inversion='single')
+    with pytest.raises(ValueError, match='not stable with depth'):
+        make_dics(epochs.info, fwd_free, csd, weight_norm='unit-noise-gain',
+                  inversion='single', normalize_fwd=True)
 
     # Sanity checks on the returned filters
     n_freq = len(csd.frequencies)
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     n_verts = len(vertices)
     n_orient = 3
-    n_channels = csd.n_channels
 
+    n_channels = len(epochs.ch_names)
     # Test return values
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
-                        weight_norm='unit-noise-gain')
+                        weight_norm='unit-noise-gain', normalize_fwd=False)
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert np.iscomplexobj(filters['weights'])
     assert filters['csd'] == csd
-    assert filters['ch_names'] == csd.ch_names
+    assert filters['ch_names'] == epochs.ch_names
     assert_array_equal(filters['proj'], np.eye(n_channels))
     assert_array_equal(filters['vertices'][0], vertices)
     assert_array_equal(filters['vertices'][1], [])  # Label was on the LH
@@ -165,26 +171,28 @@ def test_make_dics(tmpdir):
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
     assert filters['inversion'] == 'single'
-    assert filters['normalize_fwd']
+    assert not filters['normalize_fwd']
     assert filters['weight_norm'] == 'unit-noise-gain'
     assert 'DICS' in repr(filters)
     assert 'subject "sample"' in repr(filters)
     assert '13' in repr(filters)
-    assert '62' in repr(filters)
+    assert str(n_channels) in repr(filters)
     assert 'rank' not in repr(filters)
     _test_weight_norm(filters)
 
     # Test picking orientations. Also test weight norming under these different
     # conditions.
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        pick_ori='normal', weight_norm='unit-noise-gain')
+                        pick_ori='normal', weight_norm='unit-noise-gain',
+                        normalize_fwd=False)
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
     _test_weight_norm(filters)
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                        pick_ori='max-power', weight_norm='unit-noise-gain')
+                        pick_ori='max-power', weight_norm='unit-noise-gain',
+                        normalize_fwd=False)
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
@@ -217,11 +225,13 @@ def test_make_dics(tmpdir):
 
     # Test neural-activity-index weight normalization. It should be a scaled
     # version of the unit-noise-gain beamformer.
-    filters_nai = make_dics(epochs.info, fwd_surf, csd, label=label,
-                            weight_norm='nai', normalize_fwd=False)
+    filters_nai = make_dics(
+        epochs.info, fwd_surf, csd, label=label, pick_ori='max-power',
+        weight_norm='nai', normalize_fwd=False)
     w_nai = filters_nai['weights'][0]
-    filters_ung = make_dics(epochs.info, fwd_surf, csd, label=label,
-                            weight_norm='unit-noise-gain', normalize_fwd=False)
+    filters_ung = make_dics(
+        epochs.info, fwd_surf, csd, label=label, pick_ori='max-power',
+        weight_norm='unit-noise-gain', normalize_fwd=False)
     w_ung = filters_ung['weights'][0]
     assert np.allclose(np.corrcoef(np.abs(w_nai).ravel(),
                                    np.abs(w_ung).ravel()), 1)
@@ -239,26 +249,22 @@ def test_make_dics(tmpdir):
     assert object_diff(filters, filters_read) == ''
 
 
-@pytest.mark.slowtest
-@testing.requires_testing_data
-@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
-                            ":RuntimeWarning")
-def test_apply_dics_csd():
+def test_apply_dics_csd(_load_forward):
     """Test applying a DICS beamformer to a CSD matrix."""
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
+    fwd_free, fwd_surf, fwd_fixed, _, label = _load_forward
     epochs, _, csd, source_vertno = _simulate_data(fwd_fixed)
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     source_ind = vertices.tolist().index(source_vertno)
     reg = 1  # Lots of regularization for our toy dataset
 
-    # Construct an identity "noise" CSD, which we will use to test the
-    # 'unit-noise-gain' setting.
-    csd_noise = csd.copy()
-    inds = np.triu_indices(csd.n_channels)
-    # Using [:, :] syntax for in-place broadcasting
-    csd_noise._data[:, :] = np.eye(csd.n_channels)[inds][:, np.newaxis]
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        make_dics(epochs.info, fwd_free, csd)
+    epochs.pick_types(meg='grad')
 
     # Try different types of forward models
+    assert label.hemi == 'lh'
+    assert vertices[source_ind] == source_vertno
+    rr_want = fwd_free['src'][0]['rr'][source_vertno]
     for fwd in [fwd_free, fwd_surf, fwd_fixed]:
         filters = make_dics(epochs.info, fwd, csd, label=label, reg=reg,
                             inversion='single')
@@ -266,46 +272,70 @@ def test_apply_dics_csd():
         assert f == [10, 20]
 
         # Did we find the true source at 20 Hz?
-        assert np.argmax(power.data[:, 1]) == source_ind
+        idx = np.argmax(power.data[:, 1])
+        rr_got = fwd_free['src'][0]['rr'][vertices[idx]]
+        dist = np.linalg.norm(rr_got - rr_want)
+        assert dist == 0.
 
         # Is the signal stronger at 20 Hz than 10?
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
-    # Try picking different orientations and inversion modes
-    for pick_ori in [None, 'normal', 'max-power']:
-        for inversion in ['single', 'matrix']:
-            # Matrix inversion mode needs more regularization for this toy
-            # dataset.
-            if inversion == 'matrix':
-                reg_ = 5
-            else:
-                reg_ = reg
 
-            filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                                reg=reg_, pick_ori=pick_ori,
-                                inversion=inversion,
-                                weight_norm='unit-noise-gain')
-            power, f = apply_dics_csd(csd, filters)
-            assert f == [10, 20]
-            assert np.argmax(power.data[:, 1]) == source_ind
-            assert power.data[source_ind, 1] > power.data[source_ind, 0]
+@pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power'])
+@pytest.mark.parametrize('inversion', ['single', 'matrix'])
+def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion):
+    """Testpicking different orientations and inversion modes."""
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
+    epochs, _, csd, source_vertno = _simulate_data(fwd_fixed)
+    epochs.pick_types('grad')
+    vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
+    source_ind = vertices.tolist().index(source_vertno)
+    rr_want = fwd_free['src'][0]['rr'][source_vertno]
 
-            # Test unit-noise-gain weighting
-            noise_power, f = apply_dics_csd(csd_noise, filters)
-            assert np.allclose(noise_power.data, 1)
+    reg_ = 5 if inversion == 'matrix' else 1
+    filters = make_dics(epochs.info, fwd_surf, csd, label=label,
+                        reg=reg_, pick_ori=pick_ori,
+                        inversion=inversion, normalize_fwd=False,
+                        weight_norm='unit-noise-gain')
+    power, f = apply_dics_csd(csd, filters)
+    assert f == [10, 20]
+    idx = np.argmax(power.data[:, 1])
+    rr_got = fwd_free['src'][0]['rr'][vertices[idx]]
+    dist = np.linalg.norm(rr_got - rr_want)
+    assert dist <= (0.03 if inversion == 'matrix' else 0.)
+    assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
-            # Test filter with forward normalization instead of weight
-            # normalization
-            filters = make_dics(epochs.info, fwd_surf, csd, label=label,
-                                reg=reg_, pick_ori=pick_ori,
-                                inversion=inversion, weight_norm=None,
-                                normalize_fwd=True)
-            power, f = apply_dics_csd(csd, filters)
-            assert f == [10, 20]
-            assert np.argmax(power.data[:, 1]) == source_ind
-            assert power.data[source_ind, 1] > power.data[source_ind, 0]
+    # Test unit-noise-gain weighting
+    csd_noise = csd.copy()
+    inds = np.triu_indices(csd.n_channels)
+    csd_noise._data[...] = np.eye(csd.n_channels)[inds][:, np.newaxis]
+    noise_power, f = apply_dics_csd(csd_noise, filters)
+    assert np.allclose(noise_power.data, 1)
 
-    # Test using a real-valued filter
+    # Test filter with forward normalization instead of weight
+    # normalization
+    filters = make_dics(epochs.info, fwd_surf, csd, label=label,
+                        reg=reg_, pick_ori=pick_ori,
+                        inversion=inversion, weight_norm=None,
+                        normalize_fwd=True)
+    power, f = apply_dics_csd(csd, filters)
+    assert f == [10, 20]
+    idx = np.argmax(power.data[:, 1])
+    rr_got = fwd_free['src'][0]['rr'][vertices[idx]]
+    dist = np.linalg.norm(rr_got - rr_want)
+    assert dist <= (0.035 if inversion == 'matrix' else 0.)
+    assert power.data[source_ind, 1] > power.data[source_ind, 0]
+
+
+def test_real(_load_forward):
+    """Test using a real-valued filter."""
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
+    epochs, _, csd, source_vertno = _simulate_data(fwd_fixed)
+    vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
+    source_ind = vertices.tolist().index(source_vertno)
+    rr_want = fwd_free['src'][0]['rr'][source_vertno]
+    epochs.pick_types('grad')
+    reg = 1  # Lots of regularization for our toy dataset
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
                              real_filter=True)
     # Also test here that no warings are thrown - implemented to check whether
@@ -324,7 +354,10 @@ def test_apply_dics_csd():
                              reduce_rank=True)
     power, f = apply_dics_csd(csd, filters_real)
     assert f == [10, 20]
-    assert np.argmax(power.data[:, 1]) == source_ind
+    idx = np.argmax(power.data[:, 1])
+    rr_got = fwd_free['src'][0]['rr'][vertices[idx]]
+    dist = np.linalg.norm(rr_got - rr_want)
+    assert dist <= 0.02
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test computing source power on a volume source space
@@ -342,16 +375,19 @@ def test_apply_dics_csd():
         apply_dics_csd(csd, filters_vol)
 
 
-@testing.requires_testing_data
 @pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
                             ":RuntimeWarning")
-def test_apply_dics_timeseries():
+def test_apply_dics_timeseries(_load_forward):
     """Test DICS applied to timeseries data."""
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
+    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
     epochs, evoked, csd, source_vertno = _simulate_data(fwd_fixed)
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     source_ind = vertices.tolist().index(source_vertno)
     reg = 5  # Lots of regularization for our toy dataset
+
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        make_dics(evoked.info, fwd_surf, csd)
+    evoked.pick_types(meg='grad')
 
     multiple_filters = make_dics(evoked.info, fwd_surf, csd, label=label,
                                  reg=reg)
@@ -365,7 +401,8 @@ def test_apply_dics_timeseries():
     assert_allclose(stcs[0].times, evoked.times)
 
     # Applying filters for multiple frequencies on epoch data should fail
-    raises(ValueError, apply_dics_epochs, epochs, multiple_filters)
+    with pytest.raises(ValueError, match='computed for a single frequency'):
+        apply_dics_epochs(epochs, multiple_filters)
 
     # From now on, only apply filters with a single frequency (20 Hz).
     csd20 = csd.pick_frequency(20)
@@ -396,7 +433,8 @@ def test_apply_dics_timeseries():
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = cp.deepcopy(evoked)
     evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
-    raises(ValueError, apply_dics, evoked_ch, filters)
+    with pytest.raises(ValueError, match='MEG 2633 which is not present'):
+        apply_dics(evoked_ch, filters)
 
     # Test whether projections are applied, by adding a custom projection
     filters_noproj = make_dics(evoked.info, fwd_surf, csd20, label=label)
@@ -412,7 +450,8 @@ def test_apply_dics_timeseries():
 
     # Test detecting incompatible projections
     filters_proj['proj'] = filters_proj['proj'][:-1, :-1]
-    raises(ValueError, apply_dics, evoked_proj, filters_proj)
+    with pytest.raises(ValueError, match='operands could not be broadcast'):
+        apply_dics(evoked_proj, filters_proj)
 
     # Test returning a generator
     stcs = apply_dics_epochs(epochs, filters, return_generator=False)
@@ -427,19 +466,16 @@ def test_apply_dics_timeseries():
 
     # check whether a filters object without src_type throws expected warning
     del filters_vol['src_type']  # emulate 0.16 behaviour to cause warning
-    with pytest.warns(RuntimeWarning, match='spatial filter does not contain '
-                      'src_type'):
+    with pytest.warns(RuntimeWarning, match='filter does not contain src_typ'):
         apply_dics_epochs(epochs, filters_vol)
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.filterwarnings("ignore:The use of several sensor types with the"
-                            ":RuntimeWarning")
-def test_tf_dics():
+def test_tf_dics(_load_forward):
     """Test 5D time-frequency beamforming based on DICS."""
-    fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
-    epochs, evoked, _, source_vertno = _simulate_data(fwd_fixed)
+    fwd_free, fwd_surf, fwd_fixed, _, label = _load_forward
+    epochs, _, _, source_vertno = _simulate_data(fwd_fixed)
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     source_ind = vertices.tolist().index(source_vertno)
     reg = 1  # Lots of regularization for our toy dataset
@@ -451,6 +487,11 @@ def test_tf_dics():
     frequencies = [10, 20]
     freq_bins = [(8, 12), (18, 22)]
 
+    with pytest.raises(RuntimeError, match='several sensor types'):
+        stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                       freq_bins=freq_bins, frequencies=frequencies,
+                       decim=10, reg=reg, label=label)
+    epochs.pick_types(meg='grad')
     # Compute DICS for two time windows and two frequencies
     for mode in ['fourier', 'multitaper', 'cwt_morlet']:
         stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
@@ -504,35 +545,43 @@ def test_tf_dics():
     assert_allclose(stcs_norm[1].data, stcs[1].data, atol=0)
 
     # Test invalid parameter combinations
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths, mode='fourier', freq_bins=None)
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths, mode='cwt_morlet', frequencies=None)
+    with pytest.raises(ValueError, match='fourier.*freq_bins" parameter'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                mode='fourier', freq_bins=None)
+    with pytest.raises(ValueError, match='cwt_morlet.*frequencies" param'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
+                mode='cwt_morlet', frequencies=None)
 
     # Test if incorrect number of noise CSDs is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, [noise_csds[0]], tmin, tmax,
-           tstep, win_lengths, freq_bins=freq_bins)
+    with pytest.raises(ValueError, match='One noise CSD object expected per'):
+        tf_dics(epochs, fwd_surf, [noise_csds[0]], tmin, tmax, tstep,
+                win_lengths, freq_bins=freq_bins)
 
     # Test if freq_bins and win_lengths incompatibility is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths=[0, 1, 2], freq_bins=freq_bins)
+    with pytest.raises(ValueError, match='One time window length expected'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+                win_lengths=[0, 1, 2], freq_bins=freq_bins)
 
     # Test if time step exceeding window lengths is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep=0.15,
-           win_lengths=[0.2, 0.1], freq_bins=freq_bins)
+    with pytest.raises(ValueError, match='Time step should not be larger'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep=0.15,
+                win_lengths=[0.2, 0.1], freq_bins=freq_bins)
 
     # Test if incorrent number of n_ffts is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths, freq_bins=freq_bins, n_ffts=[1])
+    with pytest.raises(ValueError, match='When specifying number of FFT'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+                win_lengths, freq_bins=freq_bins, n_ffts=[1])
 
     # Test if incorrect number of mt_bandwidths is detected
-    raises(ValueError, tf_dics, epochs, fwd_surf, None, tmin, tmax, tstep,
-           win_lengths=win_lengths, freq_bins=freq_bins, mode='multitaper',
-           mt_bandwidths=[20])
+    with pytest.raises(ValueError, match='When using multitaper mode and'):
+        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
+                win_lengths=win_lengths, freq_bins=freq_bins,
+                mode='multitaper', mt_bandwidths=[20])
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch. Suppress division warnings.
-    with pytest.warns(RuntimeWarning, match='[invalid|empty]'):
+    assert len(epochs) == 1, len(epochs)
+    with np.errstate(invalid='ignore'):
         stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
                        mode='cwt_morlet', frequencies=frequencies,
                        subtract_evoked=True, reg=reg, label=label, decim=20)

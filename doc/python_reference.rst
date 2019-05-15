@@ -59,6 +59,8 @@ Reading raw data
    read_raw_cnt
    read_raw_ctf
    read_raw_edf
+   read_raw_bdf
+   read_raw_gdf
    read_raw_kit
    read_raw_nicolet
    read_raw_eeglab
@@ -139,6 +141,7 @@ File I/O
    write_trans
    io.read_info
    io.show_fiff
+   io.DigPoint
 
 Base class:
 
@@ -180,6 +183,7 @@ Datasets
    brainstorm.bst_raw.data_path
    eegbci.load_data
    fetch_aparc_sub_parcellation
+   fetch_fsaverage
    fetch_hcp_mmp_parcellation
    hf_sef.data_path
    kiloword.data_path
@@ -260,6 +264,9 @@ Visualization
    plot_alignment
    snapshot_brain_montage
    plot_arrowmap
+   set_3d_backend
+   get_3d_backend
+   use_3d_backend
 
 
 Preprocessing
@@ -331,8 +338,10 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
+   mark_flat
    maxwell_filter
    oversampled_temporal_projection
+   peak_finder
    read_ica
    run_ica
    corrmap
@@ -432,6 +441,7 @@ Events
    :toctree: generated/
 
    define_target_events
+   shift_time_events
 
 :py:mod:`mne.epochs`:
 
@@ -486,8 +496,10 @@ Covariance computation
    Covariance
    compute_covariance
    compute_raw_covariance
-   cov.regularize
    cov.compute_whitener
+   cov.prepare_noise_cov
+   cov.regularize
+   compute_rank
    make_ad_hoc_cov
    read_cov
    write_cov
@@ -532,6 +544,8 @@ Forward Modeling
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   forward.compute_depth_prior
+   forward.compute_orient_prior
    forward.restrict_forward_to_label
    forward.restrict_forward_to_stc
    make_bem_model
@@ -637,6 +651,7 @@ Inverse Solutions
    apply_lcmv
    apply_lcmv_epochs
    apply_lcmv_raw
+   apply_lcmv_cov
    make_dics
    apply_dics
    apply_dics_csd
@@ -682,6 +697,7 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
+   VolVectorSourceEstimate
    SourceMorph
    compute_source_morph
    head_to_mni
@@ -689,6 +705,7 @@ Source Space Data
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
+   label.select_sources
    grow_labels
    label_sign_flip
    labels_to_stc
@@ -793,9 +810,11 @@ Connectivity Estimation
 .. autosummary::
    :toctree: generated/
 
+   degree
+   envelope_correlation
+   phase_slope_index
    seed_target_indices
    spectral_connectivity
-   phase_slope_index
 
 
 .. _api_reference_statistics:
@@ -876,12 +895,16 @@ Simulation
 .. autosummary::
    :toctree: generated/
 
+   add_chpi
+   add_ecg
+   add_eog
+   add_noise
    simulate_evoked
    simulate_raw
    simulate_stc
    simulate_sparse_stc
    select_source_in_label
-
+   SourceSimulator
 
 .. _api_decoding:
 
@@ -935,10 +958,12 @@ Realtime
 .. autosummary::
    :toctree: generated/
 
+   FieldTripClient
+   LSLClient
+   MockLSLStream
+   MockRtClient
    RtEpochs
    RtClient
-   MockRtClient
-   FieldTripClient
    StimServer
    StimClient
 
@@ -973,6 +998,19 @@ Logging and Configuration
    set_config
    sys_info
    verbose
+
+:py:mod:`mne.utils`:
+
+.. currentmodule:: mne.utils
+
+.. automodule:: mne.utils
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   deprecated
 
 :py:mod:`mne.cuda`:
 

@@ -43,10 +43,9 @@ events = mne.read_events(event_fname)
 
 # let's look at rare events, button presses
 event_id, tmin, tmax = 2, -0.2, 0.5
-picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, exclude='bads')
 reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=('meg', 'eeg'),
                     baseline=None, reject=reject, preload=True)
 
 # Uncomment next line to use fewer samples and study regularization effects

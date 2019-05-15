@@ -15,8 +15,10 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
+from ..utils import fill_doc, _check_option
 
 
+@fill_doc
 class CSP(TransformerMixin, BaseEstimator):
     u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
@@ -28,7 +30,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    n_components : int, defaults to 4
+    n_components : int, default 4
         The number of components to decompose M/EEG signals.
         This number should be set by cross-validation.
     reg : float | str | None (default None)
@@ -41,7 +43,7 @@ class CSP(TransformerMixin, BaseEstimator):
         If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
         are z-scored. If transform_into == 'csp_space', then log must be None.
-    cov_est : 'concat' | 'epoch', defaults to 'concat'
+    cov_est : 'concat' | 'epoch', default 'concat'
         If 'concat', covariance matrices are estimated on concatenated epochs
         for each class.
         If 'epoch', covariance matrices are estimated on each epoch separately
@@ -60,8 +62,7 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    rank : None | int | dict | 'full'
-        See :func:`mne.compute_covariance`.
+    %(rank_None)s
 
         .. versionadded:: 0.17
 
@@ -112,9 +113,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self.cov_est = cov_est
 
         # Init default transform_into
-        if transform_into not in ('average_power', 'csp_space'):
-            raise ValueError('transform_into must be "average_power" or '
-                             '"csp_space".')
+        _check_option('transform_into', transform_into,
+                      ['average_power', 'csp_space'])
         self.transform_into = transform_into
 
         # Init default log
@@ -307,7 +307,7 @@ class CSP(TransformerMixin, BaseEstimator):
         info : instance of Info
             Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
-        components : float | array of floats | None.
+        components : float | array of float | None.
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
@@ -326,7 +326,7 @@ class CSP(TransformerMixin, BaseEstimator):
         vmax : float | callable
             The value specifying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
+            but vmax is not, default np.min(data).
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
             Colormap to use. If tuple, the first value indicates the colormap
@@ -455,7 +455,7 @@ class CSP(TransformerMixin, BaseEstimator):
         info : instance of Info
             Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
-        components : float | array of floats | None.
+        components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
@@ -596,9 +596,9 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     ----------
     X : ndarray, shape (n_epochs, n_channels, n_channels)
         A set of covariance matrices to diagonalize.
-    eps : float, defaults to 1e-6
+    eps : float, default 1e-6
         The tolerance for stopping criterion.
-    max_iter : int, defaults to 1000
+    max_iter : int, default 1000
         The maximum number of iteration to reach convergence.
 
     Returns
@@ -671,6 +671,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     return V, D
 
 
+@fill_doc
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering.
 
@@ -706,8 +707,7 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    rank : None | int | dict | 'full'
-        See :func:`mne.compute_covariance`.
+    %(rank_None)s
 
         .. versionadded:: 0.17
 
@@ -771,7 +771,7 @@ class SPoC(CSP):
         if len(np.unique(y)) < 2:
             raise ValueError("y must have at least two distinct values.")
 
-        # The following code is direclty copied from pyRiemann
+        # The following code is directly copied from pyRiemann
 
         # Normalize target variable
         target = y.astype(np.float64)

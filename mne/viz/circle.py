@@ -41,7 +41,7 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
 
     Returns
     -------
-    node_angles : array, shape=(len(node_names,))
+    node_angles : array, shape=(n_node_names,)
         Node angles in degrees.
     """
     n_nodes = len(node_names)
@@ -139,19 +139,19 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         indices.
     node_names : list of str
         Node names. The order corresponds to the order in con.
-    indices : tuple of arrays | None
+    indices : tuple of array | None
         Two arrays with indices of connections for which the connections
         strengths are defined in con. Only needed if con is a 1D array.
     n_lines : int | None
         If not None, only the n_lines strongest connections (strength=abs(con))
         are drawn.
-    node_angles : array, shape=(len(node_names,)) | None
+    node_angles : array, shape (n_node_names,) | None
         Array with node positions in degrees. If None, the nodes are equally
         spaced on the circle. See mne.viz.circular_layout.
     node_width : float | None
         Width of each node in degrees. If None, the minimum angle between any
         two nodes is used as the width.
-    node_colors : list of tuples | list of str
+    node_colors : list of tuple | list of str
         List with the color to use for each node. If fewer colors than nodes
         are provided, the colors will be repeated. Any color supported by
         matplotlib can be used, e.g., RGBA tuples, named colors.
@@ -175,7 +175,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         The figure title.
     colorbar_size : float
         Size of the colorbar.
-    colorbar_pos : 2-tuple
+    colorbar_pos : tuple, shape (2,)
         Position of the colorbar.
     fontsize_title : int
         Font size to use for title.
@@ -185,10 +185,10 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Font size to use for colorbar.
     padding : float
         Space to add around figure to accommodate long labels.
-    fig : None | instance of matplotlib.pyplot.Figure
+    fig : None | instance of matplotlib.figure.Figure
         The figure to use. If None, a new figure with the specified background
         color will be created.
-    subplot : int | 3-tuple
+    subplot : int | tuple, shape (3,)
         Location of the subplot when creating figures with multiple plots. E.g.
         121 or (1, 2, 1) for 1 row, 2 columns, plot 1. See
         matplotlib.pyplot.subplot.
@@ -202,15 +202,14 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     Returns
     -------
-    fig : instance of matplotlib.pyplot.Figure
+    fig : instance of matplotlib.figure.Figure
         The figure handle.
-    axes : instance of matplotlib.axes.PolarAxesSubplot
+    axes : instance of matplotlib.projections.polar.PolarAxes
         The subplot handle.
 
     Notes
     -----
-    This code is based on the circle graph example by Nicolas P. Rougier
-    http://www.labri.fr/perso/nrougier/coding/.
+    This code is based on a circle graph example by Nicolas P. Rougier
 
     By default, :func:`matplotlib.pyplot.savefig` does not take ``facecolor``
     into account when saving, even if set when a figure is generated. This
@@ -311,7 +310,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     # now sort them
     sort_idx = np.argsort(con_abs)
-    con_abs = con_abs[sort_idx]
+    del con_abs
     con = con[sort_idx]
     indices = [ind[sort_idx] for ind in indices]
 

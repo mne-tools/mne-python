@@ -14,17 +14,18 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
-from mne.io.bti.bti import (_read_config, _process_bti_headshape,
+from mne.io.bti.bti import _make_bti_dig_points
+from mne.io.bti.bti import (_read_config,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,
                             _loc_to_coil_trans, _convert_coil_trans,
                             _check_nan_dev_head_t, _rename_channels)
+from mne.io.bti.bti import _read_head_shape
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
-from mne.utils import run_tests_if_main
+from mne.utils import assert_dig_allclose, run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
@@ -238,7 +239,11 @@ def test_no_conversion():
         assert_array_equal(dev_ctf_t, raw_info['dev_ctf_t']['trans'])
         assert_array_equal(raw_info['dev_head_t']['trans'], np.eye(4))
         assert_array_equal(raw_info['ctf_head_t']['trans'], np.eye(4))
-        dig, t = _process_bti_headshape(hs, convert=False, use_hpi=False)
+
+        idx_points, dig_points = _read_head_shape(hs)
+        dig, t, _ = _make_bti_dig_points(idx_points, dig_points, convert=False,
+                                         use_hpi=False)
+
         assert_array_equal(t['trans'], np.eye(4))
 
         for ii, (old, new, con) in enumerate(zip(
@@ -250,8 +255,7 @@ def test_no_conversion():
             if ii > 10:
                 break
 
-        ch_map = dict((ch['chan_label'],
-                       ch['loc']) for ch in bti_info['chs'])
+        ch_map = {ch['chan_label']: ch['loc'] for ch in bti_info['chs']}
 
         for ii, ch_label in enumerate(raw_info['ch_names']):
             if not ch_label.startswith('A'):
@@ -291,8 +295,10 @@ def test_bytes_io():
 def test_setup_headshape():
     """Test reading bti headshape."""
     for hs in hs_fnames:
-        dig, t = _process_bti_headshape(hs)
-        expected = set(['kind', 'ident', 'r'])
+        idx_points, dig_points = _read_head_shape(hs)
+        dig, t, _ = _make_bti_dig_points(idx_points, dig_points)
+
+        expected = {'kind', 'ident', 'r'}
         found = set(reduce(lambda x, y: list(x) + list(y),
                            [d.keys() for d in dig]))
         assert (not expected - found)

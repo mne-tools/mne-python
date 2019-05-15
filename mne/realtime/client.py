@@ -11,7 +11,7 @@ import threading
 
 import numpy as np
 
-from ..utils import logger, verbose
+from ..utils import logger, verbose, fill_doc
 from ..io.constants import FIFF
 from ..io.meas_info import read_meas_info
 from ..io.tag import Tag, read_tag
@@ -70,6 +70,7 @@ def _buffer_recv_worker(rt_client, nchan):
         print('Buffer receive thread stopped: %s' % err)
 
 
+@fill_doc
 class RtClient(object):
     """Realtime Client.
 
@@ -85,9 +86,7 @@ class RtClient(object):
         Port to use for the data connection.
     timeout : float
         Communication timeout in seconds.
-    verbose : bool, str, int, or None
-        Log verbosity (see :func:`mne.verbose` and
-        :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
 
     @verbose
@@ -311,7 +310,7 @@ class RtClient(object):
 
         Parameters
         ----------
-        callback : function
+        callback : callable
             The callback to unregister.
         """
         if callback in self._recv_callbacks:
