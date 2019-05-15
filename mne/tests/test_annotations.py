@@ -31,6 +31,8 @@ data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
+first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
+
 
 def test_basics():
     """Test annotation class."""
@@ -67,7 +69,9 @@ def test_basics():
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
 
-    # Test combining with RawArray and orig_times
+
+def test_raw_array_orig_times():
+    """Test combining with RawArray and orig_times."""
     data = np.random.randn(2, 1000) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
@@ -190,12 +194,13 @@ def test_crop():
     assert len(raw_read.annotations.onset) == 0  # XXX to be fixed in #5416
 
 
-def test_chunk_duration():
+@first_samps
+def test_chunk_duration(first_samp):
     """Test chunk_duration."""
     # create dummy raw
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1.),
-                   first_samp=0)
+                   first_samp=first_samp)
     raw.info['meas_date'] = 0
     raw.set_annotations(Annotations(description='foo', onset=[0],
                                     duration=[10], orig_time=None))
@@ -205,6 +210,7 @@ def test_chunk_duration():
     expected_events = np.atleast_2d(np.repeat(range(10), repeats=2)).T
     expected_events = np.insert(expected_events, 1, 0, axis=1)
     expected_events = np.insert(expected_events, 2, 1, axis=1)
+    expected_events[:, 0] += first_samp
 
     events, events_id = events_from_annotations(raw, chunk_duration=.5,
                                                 use_rounding=False)
@@ -213,7 +219,7 @@ def test_chunk_duration():
     # test chunk durations that do not fit equally in annotation duration
     expected_events = np.zeros((3, 3))
     expected_events[:, -1] = 1
-    expected_events[:, 0] = np.arange(0, 9, step=3)
+    expected_events[:, 0] = np.arange(0, 9, step=3) + first_samp
     events, events_id = events_from_annotations(raw, chunk_duration=3.)
     assert_array_equal(events, expected_events)
 
@@ -257,11 +263,12 @@ def test_read_brainstorm_annotations():
     assert np.unique(annot.description).size == 5
 
 
-def test_raw_reject():
+@first_samps
+def test_raw_reject(first_samp):
     """Test raw data getter with annotation reject."""
     sfreq = 100.
     info = create_info(['a', 'b', 'c', 'd', 'e'], sfreq, ch_types='eeg')
-    raw = RawArray(np.ones((5, 15000)), info)
+    raw = RawArray(np.ones((5, 15000)), info, first_samp=first_samp)
     with pytest.warns(RuntimeWarning, match='outside the data range'):
         raw.set_annotations(Annotations([2, 100, 105, 148],
                                         [2, 8, 5, 8], 'BAD'))
@@ -307,12 +314,14 @@ def test_raw_reject():
     assert_array_almost_equal(times, _sync_onset(raw, onsets, True))
 
 
-def test_annotation_filtering():
+@first_samps
+def test_annotation_filtering(first_samp):
     """Test that annotations work properly with filtering."""
     # Create data with just a DC component
     data = np.ones((1, 1000))
     info = create_info(1, 1000., 'eeg')
-    raws = [RawArray(data * (ii + 1), info) for ii in range(4)]
+    raws = [RawArray(data * (ii + 1), info, first_samp=first_samp)
+            for ii in range(4)]
     kwargs_pass = dict(l_freq=None, h_freq=50., fir_design='firwin')
     kwargs_stop = dict(l_freq=50., h_freq=None, fir_design='firwin')
     # lowpass filter, which should not modify the data
@@ -380,11 +389,12 @@ def test_annotation_filtering():
     assert_allclose(raw_filt[:][0], expected, atol=1e-14)
 
 
-def test_annotation_omit():
+@first_samps
+def test_annotation_omit(first_samp):
     """Test raw.get_data with annotations."""
     data = np.concatenate([np.ones((1, 1000)), 2 * np.ones((1, 1000))], -1)
     info = create_info(1, 1000., 'eeg')
-    raw = RawArray(data, info)
+    raw = RawArray(data, info, first_samp=first_samp)
     raw.set_annotations(Annotations([0.5], [1], ['bad']))
     expected = raw[0][0]
     assert_allclose(raw.get_data(reject_by_annotation=None), expected)

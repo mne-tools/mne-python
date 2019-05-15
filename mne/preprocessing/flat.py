@@ -93,7 +93,7 @@ def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
     raw.info['bads'] = list(raw.info['bads']) + add_bads
     if len(starts) > 0:
         starts, stops = np.array(starts), np.array(stops)
-        onsets = starts / raw.info['sfreq']
+        onsets = (starts + raw.first_samp) / raw.info['sfreq']
         durations = (stops - starts) / raw.info['sfreq']
         raw.annotations.append(onsets, durations, ['BAD_flat'] * len(onsets))
     return raw
