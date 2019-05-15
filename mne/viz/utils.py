@@ -1646,21 +1646,13 @@ def _compute_scalings(scalings, inst):
     """
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
+    scalings = _handle_default('scalings_plot_raw', scalings)
     if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
-    if scalings is None:
-        # If scalings is None just return it and do nothing
-        return scalings
 
     ch_types = channel_indices_by_type(inst.info)
     ch_types = {i_type: i_ixs
                 for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
-    if scalings == 'auto':
-        # If we want to auto-compute everything
-        scalings = {i_type: 'auto' for i_type in ch_types.keys()}
-    if not isinstance(scalings, dict):
-        raise ValueError('scalings must be a dictionary of ch_type: val pairs,'
-                         ' not type %s ' % type(scalings))
     scalings = deepcopy(scalings)
 
     if inst.preload is False:
@@ -1685,10 +1677,17 @@ def _compute_scalings(scalings, inst):
         data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
-        if value != 'auto':
-            continue
         if key not in ch_types.keys():
-            raise ValueError("Sensor {} doesn't exist in data".format(key))
+            continue
+        if not (isinstance(value, str) and value == 'auto'):
+            try:
+                scalings[key] = float(value)
+            except Exception:
+                raise ValueError('scalings must be "auto" or float, got '
+                                 'scalings[%r]=%r which could not be '
+                                 'converted to float'
+                                 % (key, value))
+            continue
         this_data = data[ch_types[key]]
         scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
         scale_factor = np.max(np.abs(scale_factor))

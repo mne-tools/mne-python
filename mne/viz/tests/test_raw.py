@@ -12,9 +12,9 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, pick_types, Annotations
+from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
-from mne.io import read_raw_fif, read_raw_ctf
+from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.utils import run_tests_if_main
 from mne.viz.utils import _fake_click, _annotation_radio_clicked, _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -278,6 +278,14 @@ def test_plot_ref_meg():
     raw_ctf.plot()
     plt.close('all')
     pytest.raises(ValueError, raw_ctf.plot, group_by='selection')
+
+
+def test_plot_misc_auto():
+    """Test plotting of data with misc auto scaling."""
+    data = np.random.RandomState(0).randn(1, 1000)
+    raw = RawArray(data, create_info(1, 1000., 'misc'))
+    raw.plot()
+    plt.close('all')
 
 
 def test_plot_annotations():
