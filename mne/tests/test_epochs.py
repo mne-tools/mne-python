@@ -2151,7 +2151,6 @@ def test_array_epochs(tmpdir):
     assert_array_equal(epochs.events[:, 2], np.ones(len(data_1), int))
 
 
-@pytest.mark.timeout(60)  # can be slow on Azure
 def test_concatenate_epochs():
     """Test concatenate epochs."""
     raw, events, picks = _get_data()
@@ -2170,33 +2169,36 @@ def test_concatenate_epochs():
     assert_equal(epochs_conc.get_data().shape, expected_shape)
     assert_equal(epochs_conc.drop_log, epochs.drop_log * 2)
 
-    epochs2 = epochs.copy()
-    epochs2._data = epochs2.get_data()
-    epochs2.preload = True
-    pytest.raises(
-        ValueError, concatenate_epochs,
-        [epochs, epochs2.copy().drop_channels(epochs2.ch_names[:1])])
+    epochs2 = epochs.copy().load_data()
+    with pytest.raises(ValueError, match='nchan.*must match'):
+        concatenate_epochs(
+            [epochs, epochs2.copy().drop_channels(epochs2.ch_names[:1])])
 
     epochs2._set_times(np.delete(epochs2.times, 1))
-    pytest.raises(
-        ValueError,
-        concatenate_epochs, [epochs, epochs2])
+    with pytest.raises(ValueError, match='could not be broadcast'):
+        concatenate_epochs([epochs, epochs2])
 
     assert_equal(epochs_conc._raw, None)
 
     # check if baseline is same for all epochs
-    epochs2.baseline = (-0.1, None)
-    pytest.raises(ValueError, concatenate_epochs, [epochs, epochs2])
+    epochs2 = epochs.copy()
+    epochs2.apply_baseline((-0.1, None))
+    with pytest.raises(ValueError, match='Baseline must be same'):
+        concatenate_epochs([epochs, epochs2])
 
     # check if dev_head_t is same
     epochs2 = epochs.copy()
     concatenate_epochs([epochs, epochs2])  # should work
     epochs2.info['dev_head_t']['trans'][:3, 3] += 0.0001
-    pytest.raises(ValueError, concatenate_epochs, [epochs, epochs2])
-    pytest.raises(TypeError, concatenate_epochs, 'foo')
-    pytest.raises(TypeError, concatenate_epochs, [epochs, 'foo'])
+    with pytest.raises(ValueError, match='dev_head_t.*must match'):
+        concatenate_epochs([epochs, epochs2])
+    with pytest.raises(TypeError, match='must be a list or tuple'):
+        concatenate_epochs('foo')
+    with pytest.raises(TypeError, match='must be an instance of Epochs'):
+        concatenate_epochs([epochs, 'foo'])
     epochs2.info['dev_head_t'] = None
-    pytest.raises(ValueError, concatenate_epochs, [epochs, epochs2])
+    with pytest.raises(ValueError, match='dev_head_t.*must match'):
+        concatenate_epochs([epochs, epochs2])
     epochs.info['dev_head_t'] = None
     concatenate_epochs([epochs, epochs2])  # should work
 
@@ -2205,7 +2207,15 @@ def test_concatenate_epochs():
     epochs2 = epochs.copy()
     epochs1.event_id = dict(a=1)
     epochs2.event_id = dict(a=2)
-    pytest.raises(ValueError, concatenate_epochs, [epochs1, epochs2])
+    with pytest.raises(ValueError, match='identical keys'):
+        concatenate_epochs([epochs1, epochs2])
+
+
+def test_concatenate_epochs_large():
+    """Test concatenating epochs on large data."""
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw=raw, events=events, event_id=event_id, tmin=tmin,
+                    tmax=tmax, picks=picks, preload=True)
 
     # check events are shifted, but relative position are equal
     epochs_list = [epochs.copy() for ii in range(3)]
