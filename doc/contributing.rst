@@ -832,3 +832,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _GNU Make: https://www.gnu.org/software/make/
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _matplotlib: https://matplotlib.org/
+.. _travis: https://travis-ci.org/mne-tools/mne-python/branches
+.. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
+.. _circle: https://circleci.com/gh/mne-tools/mne-python
