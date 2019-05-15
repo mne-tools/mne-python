@@ -76,12 +76,29 @@ MNE-Python core terminology and general concepts
         down to a change of the ``first_samp`` attribute to know when cropped data
         was acquired.
 
+    forward solution
+        The forward solution (abbr. ``fwd``) is a linear operator capturing the
+        relationship between each dipole location in the :term:`source space`
+        and the corresponding field distribution measured by the sensors (AKA,
+        the "lead field matrix"). Calculating a forward solution requires a
+        conductivity model of the head, encapsulating the geometry and
+        electrical conductivity of the different tissue compartments (see
+        :term:`boundary element model <BEM>` and
+        :class:`mne.bem.ConductorModel`).
+
     info
         Also called ``measurement info``, it is a collection of metadata regarding
         a Raw, Epochs or Evoked object; e.g.,
         channel locations and types, sampling frequency,
         preprocessing history such as filters ...
         See :ref:`tut-info-class` for a narrative overview.
+
+    inverse operator
+        The inverse operator is an :math:`M \times N` matrix (:math:`M` source
+        locations by :math:`N` sensors) that, when applied to the sensor
+        signals, yields estimates of the brain activity that gave rise to the
+        observed sensor signals. Inverse operators are available for the linear
+        inverse methods MNE, dSPM, sLORETA and eLORETA.
 
     label
         A :class:`Label` refers to a region in the cortex, also often called
@@ -103,8 +120,9 @@ MNE-Python core terminology and general concepts
         It allows to obtain the information on a channel in the list of channels
         available in ``info['chs']``.
 
-    projector, (abbr. ``proj``)
-        A projector, also referred to a Signal Suspace Projection (SSP), defines
+    projector
+        A projector (abbr. ``proj``), also referred to as Signal Space
+        Projection (SSP), defines
         a linear operation applied spatially to EEG or MEG data. You can see
         this as a matrix multiplication that reduces the rank of the data by
         projecting it to a lower dimensional subspace. Such a projection
@@ -119,8 +137,9 @@ MNE-Python core terminology and general concepts
         See :class:`~io.RawArray` for the API of the corresponding
         object class, and :ref:`tut-raw-class` for a narrative overview.
 
-    source space (abbr. ``src``)
-        A source space specifies where in the brain one wants to estimate the
+    source space
+        A source space (abbr. ``src``) specifies where in the brain one wants
+        to estimate the
         source amplitudes. It corresponds to locations of a set of
         candidate equivalent current dipoles (ECD). MNE mostly works
         with source spaces defined on the cortical surfaces estimated
