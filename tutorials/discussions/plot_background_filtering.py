@@ -523,7 +523,7 @@ del sos
 #           hood, :func:`scipy.signal.zpk2sos` when passing the
 #           ``output='sos'`` keyword argument to
 #           :func:`scipy.signal.iirfilter`. The filter definitions
-#           given :ref:`above <tut_filtering_basics_>` use the polynomial
+#           given :ref:`above <tut_filtering_basics>` use the polynomial
 #           numerator/denominator (sometimes called "tf") form ``(b, a)``,
 #           which are theoretically equivalent to the SOS form used here.
 #           In practice, however, the SOS form can give much better results

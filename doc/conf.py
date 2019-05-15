@@ -23,12 +23,15 @@ import warnings
 import sphinx_gallery
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
+import matplotlib
 import mne
 from mne.utils import linkcode_resolve  # noqa, analysis:ignore
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
                       '%s' % (sphinx_gallery.__version__,))
+
+matplotlib.use('agg')
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -332,7 +335,11 @@ class Resetter(object):
         return '<%s>' % (self.__class__.__name__,)
 
     def __call__(self, gallery_conf, fname):
+        import matplotlib.pyplot as plt
         reset_warnings(gallery_conf, fname)
+        # in case users have interactive mode turned on in matplotlibrc,
+        # turn it off here (otherwise the build can be very slow)
+        plt.ioff()
         gc.collect()
 
 
