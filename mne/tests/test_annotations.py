@@ -22,8 +22,8 @@ from mne.utils import (run_tests_if_main, _TempDir, requires_version,
                        catch_logging)
 from mne.utils import assert_and_remove_boundary_annot, _raw_annot
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.annotations import _sync_onset, _handle_meas_date
-from mne.annotations import _read_annotations_txt_parse_header
+from mne.annotations import (_sync_onset, _handle_meas_date,
+                             _read_annotations_txt_parse_header)
 from mne.datasets import testing
 
 
@@ -920,6 +920,23 @@ def test_sorting():
     onset.insert(want_before, 10)
     assert_array_equal(annot.onset, onset)
     assert_array_equal(annot.duration, duration)
+
+
+def test_date_none(tmpdir):
+    """Test that DATE_NONE is used properly."""
+    # Regression test for gh-5908
+    n_chans = 139
+    n_samps = 20
+    data = np.random.random_sample((n_chans, n_samps))
+    ch_names = ['E{}'.format(x) for x in range(n_chans)]
+    ch_types = ['eeg'] * n_chans
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
+    assert info['meas_date'] is None
+    raw = RawArray(data=data, info=info)
+    fname = op.join(str(tmpdir), 'test-raw.fif')
+    raw.save(fname)
+    raw_read = read_raw_fif(fname, preload=True)
+    assert raw_read.info['meas_date'] is None
 
 
 run_tests_if_main()
