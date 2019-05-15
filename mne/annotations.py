@@ -823,19 +823,27 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
     raw : instance of Raw
         The raw data for which Annotations are defined.
     event_id : dict | callable | None | 'auto'
-        Dictionary of string keys and integer values as used in mne.Epochs
-        to map annotation descriptions to integer event codes. Only the
-        keys present will be mapped and the annotations with other descriptions
-        will be ignored. Otherwise, a callable that provides an integer given
-        a string or that returns None for an event to ignore.
-        If None, all descriptions of annotations are mapped
-        and assigned arbitrary unique integer values.
-        If 'auto', use an appropriate parser if the raw instance corresponds
-        to any of the supported types (currently, only Brainvision files -
-        i.e., RawBrainVision - are supported; in this case, Stimulus events
-        will be stripped to their integer part, Response events will be mapped
-        to their integer part + 1000, and all other events dropped); otherwise
-        as None.
+        Can be:
+
+        - **dict**: string keys mapping to and integer values as used in
+          :class:`mne.Epochs` to map annotation descriptions to integer event
+          codes. Only the keys present will be mapped and the annotations with
+          other descriptions will be ignored.
+        - **callable**: takes a string input, and returns an integer to use,
+          or None to ignore.
+        - **None**: All descriptions of annotations are mapped and assigned
+          unique integer values starting at 1 based on the ``sorted``
+          annotation descriptions.
+        - **'auto' (default)**: use an appropriate parser if the raw instance
+          corresponds to:
+
+          - Brainvision: stimulus events stripped to their integer part;
+            Response events mapped to their integer part + 1000; all other
+            events dropped.
+          - All others: Behaves like None.
+
+          .. versionadded:: 0.18
+
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.

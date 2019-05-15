@@ -24,8 +24,7 @@ from mne.datasets import testing
 from mne.annotations import events_from_annotations
 from mne.io.brainvision.brainvision import _bv_parser
 
-FILE = inspect.getfile(inspect.currentframe())
-data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
+data_dir = op.join(op.dirname(__file__), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 vmrk_path = op.join(data_dir, 'test.vmrk')
 eeg_path = op.join(data_dir, 'test.eeg')
@@ -472,12 +471,39 @@ def test_read_vmrk_annotations():
         pass
 
     raw = read_raw_brainvision(vhdr_path)
-    events, event_id = events_from_annotations(raw)
-    for key, values in event_id.items():
-        assert int(key[-3:].lstrip()) == values
+    with pytest.warns(RuntimeWarning, match='unambiguously'):  # XXX fix?
+        events, event_id = events_from_annotations(raw)
+    for key, value in event_id.items():
+        offset = 1000 if key.startswith('Response') else 0
+        assert int(key[-3:].lstrip()) + offset == value
 
     assert _bv_parser("Stimulus/S 11") == 11
     assert _bv_parser("Stimulus/S202") == 202
     assert _bv_parser("Response/R 12", add_for_r=100) == 112
+
+
+def test_bv_annotation_events(tmpdir):
+    """Test that events are read and parsed properly."""
+    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    with pytest.warns(RuntimeWarning, match='unambiguously'):
+        events, event_id = events_from_annotations(raw)
+    # events = events[events[:, 2] != event_id['Sync On']]  # no longer there
+    # from 0.15:
+    old_expected = np.array([[487, 1, 253],
+                             [497, 1, 255],
+                             [1770, 1, 254],
+                             [1780, 1, 255],
+                             [3253, 1, 254],
+                             [3263, 1, 255],
+                             [4936, 1, 253],
+                             [4946, 1, 255],
+                             [6000, 1, 255],
+                             [6620, 1, 254],
+                             [6630, 1, 255]])
+    expected = old_expected - [1, 0, 0]  # slight onset shift
+    expected[:, 1] = 0  # second col is zeros
+    expected[-3, 2] += 1000  # one response
+    assert_array_equal(events, expected)
+
 
 run_tests_if_main()
