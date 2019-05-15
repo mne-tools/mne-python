@@ -276,20 +276,6 @@ def test_get_data_reject():
     assert np.isnan(data).sum() == 3072  # but NaNs are introduced instead
 
 
-@pytest.mark.parametrize('meas_date', [0, datetime.utcfromtimestamp(0)])
-def test_5839_set_annotations_problem(meas_date):
-    """Test something weird I found."""
-    # from datetime.datetime import utcfromtimestamp
-    raw = RawArray(data=np.empty((10, 10)),
-                   info=create_info(ch_names=10, sfreq=10., ),
-                   first_samp=10)
-    raw.info['meas_date'] = meas_date
-    raw.set_annotations(annotations=Annotations(onset=[.5],
-                                                duration=[.2],
-                                                description='dummy',
-                                                orig_time=None))
-
-
 def test_set_meas_date_operation_order():
     """Test what happens when meas_date is set after annotations."""
     # from datetime.datetime import utcfromtimestamp
