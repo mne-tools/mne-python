@@ -815,8 +815,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
     ax_freq.plot(f, mag, color=color, linewidth=2, zorder=4)
     if freq is not None and gain is not None:
-        plot_ideal_filter(freq, gain, ax_freq, fscale=fscale,
-                          title=None, show=False)
+        plot_ideal_filter(freq, gain, ax_freq, fscale=fscale, show=False)
     ax_freq.set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
     sl = slice(0 if fscale == 'linear' else 1, None, None)
     ax_delay.plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
@@ -933,6 +932,8 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         axes.set(xticks=xticks)
         axes.set(xticklabels=xticklabels)
     axes.set(xlim=flim)
+    if title:
+        axes.set(title=title)
     adjust_axes(axes)
     tight_layout()
     plt_show(show)

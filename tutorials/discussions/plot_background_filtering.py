@@ -205,7 +205,7 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
 
 ###############################################################################
 # Now we have very sharp frequency suppression, but our filter rings for the
-# entire second. So this naïve method is probably not a good way to build
+# entire 10 seconds. So this naïve method is probably not a good way to build
 # our low-pass filter.
 #
 # Fortunately, there are multiple established methods to design FIR filters
@@ -512,11 +512,7 @@ plt.show()
 sos = signal.iirfilter(2, f_p / nyq, btype='low', ftype='butter', output='sos')
 plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=2', flim=flim,
             compensate=True)
-
-# Eventually this will just be from scipy signal.sosfiltfilt, but 0.18 is
-# not widely adopted yet (as of June 2016), so we use our wrapper...
-sosfiltfilt = mne.fixes.get_sosfiltfilt()
-x_shallow = sosfiltfilt(sos, x)
+x_shallow = signal.sosfiltfilt(sos, x)
 del sos
 
 ###############################################################################
@@ -527,7 +523,7 @@ del sos
 #           hood, :func:`scipy.signal.zpk2sos` when passing the
 #           ``output='sos'`` keyword argument to
 #           :func:`scipy.signal.iirfilter`. The filter definitions
-#           given in tut_filtering_basics_ use the polynomial
+#           given :ref:`above <tut_filtering_basics_>` use the polynomial
 #           numerator/denominator (sometimes called "tf") form ``(b, a)``,
 #           which are theoretically equivalent to the SOS form used here.
 #           In practice, however, the SOS form can give much better results
@@ -546,7 +542,7 @@ filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                                 verbose=True)
 plot_filter(filt, sfreq, freq, gain, 'Butterworth order=8', flim=flim,
             compensate=True)
-x_steep = sosfiltfilt(filt['sos'], x)
+x_steep = signal.sosfiltfilt(filt['sos'], x)
 
 ###############################################################################
 # There are other types of IIR filters that we can use. For a complete list,
@@ -740,7 +736,7 @@ def baseline_plot(x):
             if ci == 0:
                 iir_hp = signal.iirfilter(4, freq / sfreq, btype='highpass',
                                           output='sos')
-                x_hp = sosfiltfilt(iir_hp, x, padlen=0)
+                x_hp = signal.sosfiltfilt(iir_hp, x, padlen=0)
             else:
                 x_hp -= x_hp[t < 0].mean()
             ax.plot(t, x, color='0.5')
