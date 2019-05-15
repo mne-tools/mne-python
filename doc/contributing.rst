@@ -738,9 +738,22 @@ down the road. Here are the guidelines:
     (i.e., improving docstring consistency or formatting without changing its
     content).
 
-  - the following commit tags are supported: ``[ci skip]``, ``[skip
-    travis]``, ``[skip azp]``, ``[skip circle]``, and ``[circle full]``.
-    These should be used judiciously.
+  - the following commit tags are used to interact with the
+    `continuous integration`_ (CI). Use them judiciously:
+
+    - ``[skip circle]`` Skip `circle`_ which is in charge of building our
+      documentation.
+
+    - ``[skip travis]`` Skip `travis`_ which is in charge of building and
+      testing linux and mac systems.
+
+    - ``[skip azp]`` Skip `azure`_ which is in charge of building and
+      testing Windows systems.
+
+    - ``[ci skip]`` is an alias for ``[skip travis][skip azp][skip circle]``.
+      Notice that ``[skip ci]`` is not a valid tag.
+
+    - ``[circle full]`` run a full documentation.
 
 `This sample pull request`_ exemplifies many of the conventions listed above:
 it addresses only one problem; it started with an issue to discuss the problem
