@@ -118,7 +118,7 @@ source_time_series = np.sin(np.linspace(0, 4 * np.pi, 100)) * 10e-9
 #
 # When the activity occurs is defined using events. In this case, they are
 # taken from the original raw data. The first column is the sample of the
-# event,the second is not used. The third one is the event id, which is
+# event, the second is not used. The third one is the event id, which is
 # different for each of the 4 areas.
 
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)
