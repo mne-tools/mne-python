@@ -29,6 +29,7 @@ from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn, _check_option
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
+from ..fixes import get_sosfiltfilt
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
 
 
@@ -670,7 +671,8 @@ def _check_fscale(fscale):
 
 
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
-                flim=None, fscale='log', alim=(-60, 10), show=True):
+                flim=None, fscale='log', alim=(-100, 10), show=True,
+                compensate=False):
     """Plot properties of a filter.
 
     Parameters
@@ -700,6 +702,16 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         The y-axis amplitude limits (dB) to use (default: (-60, 10)).
     show : bool
         Show figure if True (default).
+    compensate : bool
+        If True, compensate for the filter delay (phase will not be shown).
+
+        - For linear-phase FIR filters, this visualizes the filter coefficients
+          assuming that the output will be shifted by ``N // 2``.
+        - For IIR filters, this changes the filter coefficient display
+          by filtering backward and forward, and the frequency response
+          by squaring it.
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -715,8 +727,9 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     -----
     .. versionadded:: 0.14
     """
-    from scipy.signal import freqz, group_delay
+    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt
     import matplotlib.pyplot as plt
+    sosfiltfilt = get_sosfiltfilt()
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
     flim = _get_flim(flim, fscale, freq, sfreq)
@@ -727,41 +740,69 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     omega /= sfreq / (2 * np.pi)
     if isinstance(h, dict):  # IIR h.ndim == 2:  # second-order sections
         if 'sos' in h:
-            from scipy.signal import sosfilt
-            h = h['sos']
             H = np.ones(len(omega), np.complex128)
             gd = np.zeros(len(omega))
-            for section in h:
+            for section in h['sos']:
                 this_H = freqz(section[:3], section[3:], omega)[1]
                 H *= this_H
-                with warnings.catch_warnings(record=True):  # singular GD
-                    warnings.simplefilter('ignore')
-                    gd += group_delay((section[:3], section[3:]), omega)[1]
-            n = estimate_ringing_samples(h)
+                if compensate:
+                    H *= this_H.conj()  # time reversal is freq conj
+                else:
+                    # Assume the forward-backward delay zeros out, which it
+                    # mostly should
+                    with warnings.catch_warnings(record=True):  # singular GD
+                        warnings.simplefilter('ignore')
+                        gd += group_delay((section[:3], section[3:]), omega)[1]
+            n = estimate_ringing_samples(h['sos'])
             delta = np.zeros(n)
             delta[0] = 1
-            h = sosfilt(h, delta)
+            if compensate:
+                delta = np.pad(delta, [(n - 1, 0)], 'constant')
+                func = sosfiltfilt
+                gd += (len(delta) - 1) // 2
+            else:
+                func = sosfilt
+            h = func(h['sos'], delta)
         else:
-            from scipy.signal import lfilter
-            n = estimate_ringing_samples((h['b'], h['a']))
-            delta = np.zeros(n)
-            delta[0] = 1
             H = freqz(h['b'], h['a'], omega)[1]
+            if compensate:
+                H *= H.conj()
             with warnings.catch_warnings(record=True):  # singular GD
                 warnings.simplefilter('ignore')
                 gd = group_delay((h['b'], h['a']), omega)[1]
-            h = lfilter(h['b'], h['a'], delta)
-        title = 'SOS (IIR) filter' if title is None else title
+                if compensate:
+                    gd += group_delay(h['b'].conj(), h['a'].conj(), omega)[1]
+            n = estimate_ringing_samples((h['b'], h['a']))
+            delta = np.zeros(n)
+            delta[0] = 1
+            if compensate:
+                delta = np.pad(delta, [(n - 1, 0)], 'constant')
+                func = filtfilt
+            else:
+                func = lfilter
+            h = func(h['b'], h['a'], delta)
+        if title is None:
+            title = 'SOS (IIR) filter'
+        if compensate:
+            title += ' (forward-backward)'
     else:
         H = freqz(h, worN=omega)[1]
         with warnings.catch_warnings(record=True):  # singular GD
             warnings.simplefilter('ignore')
             gd = group_delay((h, [1.]), omega)[1]
         title = 'FIR filter' if title is None else title
-    gd /= sfreq
+        if compensate:
+            title += ' (delay-compensated)'
     # eventually axes could be a parameter
     fig, (ax_time, ax_freq, ax_delay) = plt.subplots(3)
-    t = np.arange(len(h)) / sfreq
+    t = np.arange(len(h))
+    if compensate:
+        n_shift = (len(h) - 1) // 2
+        t -= n_shift
+        assert t[0] == -t[-1]
+        gd -= n_shift
+    t = t / sfreq
+    gd = gd / sfreq
     f = omega * sfreq / (2 * np.pi)
     ax_time.plot(t, h, color=color)
     ax_time.set(xlim=t[[0, -1]], xlabel='Time (s)',
@@ -777,7 +818,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     ax_delay.set(xlim=flim, ylabel='Group delay (s)', xlabel='Frequency (Hz)',
                  xscale=fscale)
     xticks, xticklabels = _filter_ticks(flim, fscale)
-    dlim = [0, 1.05 * gd[1:].max()]
+    dlim = np.abs(t).max() / 2.
+    dlim = [-dlim, dlim]
     for ax, ylim, ylabel in ((ax_freq, alim, 'Amplitude (dB)'),
                              (ax_delay, dlim, 'Delay (s)')):
         if xticks is not None:

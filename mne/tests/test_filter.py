@@ -597,7 +597,7 @@ def test_reporting_iir(ftype, btype, order, output):
         'IIR',
         'zero-phase',
         'two-pass forward and reverse',
-        'acausal',
+        'non-causal',
         btype,
         ftype,
         'Filter order %d' % (order_eff * 2,),
@@ -668,10 +668,12 @@ def test_reporting_fir(phase, fir_window, btype):
             'passband ripple',
             'stopband attenuation',
             ]
-    if phase != 'minimum':
-        keys += ['cutoff: 45.00 Hz']
+    if phase == 'minimum':
+        keys += [' causal ']
+    else:
+        keys += [' non-causal ', ' dB cutoff frequency: 45.00 Hz']
         if btype == 'bandpass':
-            keys += ['cutoff: 0.50 Hz']
+            keys += [' dB cutoff frequency: 0.50 Hz']
     for key in keys:
         assert key in log
     if phase == 'zero':

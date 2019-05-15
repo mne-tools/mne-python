@@ -666,7 +666,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         logger.info('IIR filter parameters')
         logger.info('---------------------')
         logger.info('%s %s zero-phase (two-pass forward and reverse) '
-                    'acausal filter' % (ftype_nice, btype))
+                    'non-causal filter:' % (ftype_nice, btype))
         # SciPy designs for -3dB but we do forward-backward, so this is -6dB
         if 'order' in iir_params:
             kwargs = dict(N=iir_params['order'], Wn=Wp, btype=btype,
@@ -675,7 +675,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
                 if key in iir_params:
                     kwargs[key] = iir_params[key]
             system = iirfilter(**kwargs)
-            logger.info('Filter order %d (effective, after forward-backward)'
+            logger.info('- Filter order %d (effective, after forward-backward)'
                         % (2 * iir_params['order'] * len(Wp),))
         else:
             # use gpass / gstop design
@@ -700,7 +700,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         # 2 * 20 here because we do forward-backward filtering
         cutoffs = 40 * np.log10(np.abs(cutoffs))
         cutoffs = ', '.join(['%0.2f' % (c,) for c in cutoffs])
-        logger.info('Cutoff%s at %s Hz: %s dB'
+        logger.info('- Cutoff%s at %s Hz: %s dB'
                     % (_pl(f_pass), edge_freqs, cutoffs))
     # now deal with padding
     if 'padlen' not in iir_params:
@@ -716,6 +716,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         iir_params.update(sos=system)
     else:
         iir_params.update(b=system[0], a=system[1])
+    logger.info('')
     return iir_params
 
 
@@ -746,106 +747,31 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 pad='reflect_limited', verbose=None):
     """Filter a subset of channels.
 
-    Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
-    filter to the channels selected by ``picks``.
-
-    ``l_freq`` and ``h_freq`` are the frequencies below which and above
-    which, respectively, to filter out of the data. Thus the uses are:
-
-        * ``l_freq < h_freq``: band-pass filter
-        * ``l_freq > h_freq``: band-stop filter
-        * ``l_freq is not None and h_freq is None``: high-pass filter
-        * ``l_freq is None and h_freq is not None``: low-pass filter
-
-    .. note:: If n_jobs > 1, more memory is required as
-              ``len(picks) * n_times`` additional time points need to
-              be temporaily stored in memory.
-
     Parameters
     ----------
     data : ndarray, shape (..., n_times)
         The data to filter.
     sfreq : float
         The sample frequency in Hz.
-    l_freq : float | None
-        Low cut-off frequency in Hz. If None the data are only low-passed.
-    h_freq : float | None
-        High cut-off frequency in Hz. If None the data are only
-        high-passed.
+    %(l_freq)s
+    %(h_freq)s
     %(picks_nostr)s
         Currently this is only supported for 2D (n_channels, n_times) and
         3D (n_epochs, n_channels, n_times) arrays.
-    filter_length : str | int
-        Length of the FIR filter to use (if applicable):
-
-        * 'auto' (default): the filter length is chosen based
-          on the size of the transition regions (6.6 times the reciprocal
-          of the shortest transition band for fir_window='hamming'
-          and fir_design="firwin2", and half that for "firwin").
-        * str: a human-readable time in
-          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-          converted to that number of samples if ``phase="zero"``, or
-          the shortest power-of-two length at least that duration for
-          ``phase="zero-double"``.
-        * int: specified length in samples. For fir_design="firwin",
-          this should not be used.
-
-    l_trans_bandwidth : float | str
-        Width of the transition band at the low cut-off frequency in Hz
-        (high pass or cutoff 1 in bandpass). Can be "auto"
-        (default in 0.14) to use a multiple of ``l_freq``::
-
-            min(max(l_freq * 0.25, 2), l_freq)
-
-        Only used for ``method='fir'``.
-    h_trans_bandwidth : float | str
-        Width of the transition band at the high cut-off frequency in Hz
-        (low pass or cutoff 2 in bandpass). Can be "auto"
-        (default in 0.14) to use a multiple of ``h_freq``::
-
-            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
-
-        Only used for ``method='fir'``.
-    n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
-        is installed properly and method='fir'.
-    method : str
-        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-        forward-backward filtering (via filtfilt).
-    iir_params : dict | None
-        Dictionary of parameters to use for IIR filtering.
-        See :func:`mne.filter.construct_iir_filter` for details. If iir_params
-        is None and method="iir", 4th order Butterworth will be used.
+    %(filter_length)s
+    %(l_trans_bandwidth)s
+    %(h_trans_bandwidth)s
+    %(n_jobs-fir)s
+    %(method-fir)s
+    %(iir_params)s
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
-    phase : str
-        Phase of the filter, only used if ``method='fir'``.
-        By default, a symmetric linear-phase FIR filter is constructed.
-        If ``phase='zero'`` (default), the delay of this filter
-        is compensated for. If ``phase=='zero-double'``, then this filter
-        is applied twice, once forward, and once backward. If 'minimum',
-        then a minimum-phase, causal filter will be used.
-
-        .. versionadded:: 0.13
-    fir_window : str
-        The window to use in FIR design, can be "hamming" (default),
-        "hann" (default in 0.13), or "blackman".
-
-        .. versionadded:: 0.13
-    fir_design : str
-        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
-        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
-        a time-domain design technique that generally gives improved
-        attenuation using fewer samples than "firwin2".
-
-        .. versionadded:: 0.15
-    pad : str
-        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-        options. Can also be "reflect_limited" (default), which pads with a
-        reflected version of each vector mirrored on the first and last
-        values of the vector, followed by zeros.
-        Only used for ``method='fir'``.
+    %(phase)s
+    %(fir_window)s
+    %(fir_design)s
+    %(pad-fir)s
+        The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
     %(verbose)s
@@ -865,8 +791,24 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
     Notes
     -----
+    Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
+    filter to the channels selected by ``picks``.
+
+    ``l_freq`` and ``h_freq`` are the frequencies below which and above
+    which, respectively, to filter out of the data. Thus the uses are:
+
+        * ``l_freq < h_freq``: band-pass filter
+        * ``l_freq > h_freq``: band-stop filter
+        * ``l_freq is not None and h_freq is None``: high-pass filter
+        * ``l_freq is None and h_freq is not None``: low-pass filter
+
+    .. note:: If n_jobs > 1, more memory is required as
+              ``len(picks) * n_times`` additional time points need to
+              be temporaily stored in memory.
+
     For more information, see the tutorials
-    :ref:`disc-filtering` and :ref:`tut-filter-resample`.
+    :ref:`disc-filtering` and :ref:`tut-filter-resample` and
+    :func:`mne.filter.create_filter`.
     """
     if not isinstance(data, np.ndarray):
         raise ValueError('data must be an array')
@@ -905,70 +847,16 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         relative to the filter order will be performed.
     sfreq : float
         The sample frequency in Hz.
-    l_freq : float | None
-        Low cut-off frequency in Hz. If None the data are only low-passed.
-    h_freq : float | None
-        High cut-off frequency in Hz. If None the data are only
-        high-passed.
-    filter_length : str | int
-        Length of the FIR filter to use (if applicable):
-
-        * 'auto' (default): the filter length is chosen based
-          on the size of the transition regions (6.6 times the reciprocal
-          of the shortest transition band for fir_window='hamming'
-          and fir_design="firwin2", and half that for "firwin").
-        * str: a human-readable time in
-          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-          converted to that number of samples if ``phase="zero"``, or
-          the shortest power-of-two length at least that duration for
-          ``phase="zero-double"``.
-        * int: specified length in samples. For fir_design="firwin",
-          this should not be used.
-
-    l_trans_bandwidth : float | str
-        Width of the transition band at the low cut-off frequency in Hz
-        (high pass or cutoff 1 in bandpass). Can be "auto"
-        (default) to use a multiple of ``l_freq``::
-
-            min(max(l_freq * 0.25, 2), l_freq)
-
-        Only used for ``method='fir'``.
-    h_trans_bandwidth : float | str
-        Width of the transition band at the high cut-off frequency in Hz
-        (low pass or cutoff 2 in bandpass). Can be "auto"
-        (default in 0.14) to use a multiple of ``h_freq``::
-
-            min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
-
-        Only used for ``method='fir'``.
-    method : str
-        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-        forward-backward filtering (via filtfilt).
-    iir_params : dict | None
-        Dictionary of parameters to use for IIR filtering.
-        See :func:`mne.filter.construct_iir_filter` for details. If iir_params
-        is None and method="iir", 4th order Butterworth will be used.
-    phase : str
-        Phase of the filter, only used if ``method='fir'``.
-        By default, a symmetric linear-phase FIR filter is constructed.
-        If ``phase='zero'`` (default), the delay of this filter
-        is compensated for. If ``phase=='zero-double'``, then this filter
-        is applied twice, once forward, and once backward. If 'minimum',
-        then a minimum-phase, causal filter will be used.
-
-        .. versionadded:: 0.13
-    fir_window : str
-        The window to use in FIR design, can be "hamming" (default),
-        "hann", or "blackman".
-
-        .. versionadded:: 0.13
-    fir_design : str
-        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
-        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
-        a time-domain design technique that generally gives improved
-        attenuation using fewer samples than "firwin2".
-
-        .. versionadded:: 0.15
+    %(l_freq)s
+    %(h_freq)s
+    %(filter_length)s
+    %(l_trans_bandwidth)s
+    %(h_trans_bandwidth)s
+    %(method-fir)s
+    %(iir_params)s
+    %(phase)s
+    %(fir_window)s
+    %(fir_design)s
     %(verbose)s
 
     Returns
@@ -983,7 +871,11 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
     Notes
     -----
-    The -6 dB point for all filters is in the middle of the transition band.
+    .. note:: For FIR filters, the *cutoff frequency*, i.e. the -6 dB point,
+              is in the middle of the transition band (when using phase='zero'
+              and fir_design='firwin'). For IIR filters, the cutoff frequency
+              is given by ``l_freq`` or ``h_freq`` directly, and
+              ``l_trans_bandwidth`` and ``h_trans_bandwidth`` are ignored.
 
     **Band-pass filter**
 
@@ -1198,37 +1090,19 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
         None can only be used with the mode 'spectrum_fit', where an F
         test is used to find sinusoidal components.
-    filter_length : str | int
-        Length of the FIR filter to use (if applicable):
-
-        * 'auto' (default): the filter length is chosen based
-          on the size of the transition regions (6.6 times the reciprocal
-          of the shortest transition band for fir_window='hamming'
-          and fir_design="firwin2", and half that for "firwin").
-        * str: a human-readable time in
-          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-          converted to that number of samples if ``phase="zero"``, or
-          the shortest power-of-two length at least that duration for
-          ``phase="zero-double"``.
-        * int: specified length in samples. For fir_design="firwin",
-          this should not be used.
-
+    %(filter_length)s
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
         If None, freqs / 200 is used.
     trans_bandwidth : float
         Width of the transition band in Hz.
         Only used for ``method='fir'``.
-    method : str
-        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-        forward-backward filtering (via filtfilt). 'spectrum_fit' will
-        use multi-taper estimation of sinusoidal components. If freqs=None
-        and method='spectrum_fit', significant sinusoidal components
-        are detected using an F test, and noted by logging.
-    iir_params : dict | None
-        Dictionary of parameters to use for IIR filtering.
-        See :func:`mne.filter.construct_iir_filter` for details. If iir_params
-        is None and method="iir", 4th order Butterworth will be used.
+    %(method-fir)s
+        'spectrum_fit' will use multi-taper estimation of sinusoidal
+        components. If freqs=None and method='spectrum_fit', significant
+        sinusoidal components are detected using an F test, and noted by
+        logging.
+    %(iir_params)s
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'spectrum_fit' mode.
@@ -1240,41 +1114,14 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     %(picks_nostr)s
         Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
-    n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
-        is installed properly and method='fir'.
+    %(n_jobs-fir)s
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
-    phase : str
-        Phase of the filter, only used if ``method='fir'``.
-        By default, a symmetric linear-phase FIR filter is constructed.
-        If ``phase='zero'`` (default), the delay of this filter
-        is compensated for. If ``phase=='zero-double'``, then this filter
-        is applied twice, once forward, and once backward. If 'minimum',
-        then a minimum-phase, causal filter will be used.
-
-        .. versionadded:: 0.13
-    fir_window : str
-        The window to use in FIR design, can be "hamming" (default),
-        "hann" (default in 0.13), or "blackman".
-
-        .. versionadded:: 0.13
-    fir_design : str
-        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
-        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
-        a time-domain design technique that generally gives improved
-        attenuation using fewer samples than "firwin2".
-
-        .. versionadded:: 0.15
-    pad : str
-        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-        options. Can also be "reflect_limited" (default), which pads with a
-        reflected version of each vector mirrored on the first and last
-        values of the vector, followed by zeros.
-        Only used for ``method='fir'``.
-
-        .. versionadded:: 0.15
+    %(phase)s
+    %(fir_window)s
+    %(fir_design)s
+    %(pad-fir)s
     %(verbose)s
 
     Returns
@@ -1497,21 +1344,13 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         Factor to upsample by.
     down : float
         Factor to downsample by.
-    npad : int | str
-        Number of samples to use at the beginning and end for padding.
-        Can be "auto" to pad to the next highest power of 2.
+    %(npad)s
     axis : int
         Axis along which to resample (default is the last axis).
-    window : string or tuple
-        See :func:`scipy.signal.resample` for description.
-    n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
-        is installed properly.
-    pad : str
-        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-        options. Can also be "reflect_limited" (default), which pads with a
-        reflected version of each vector mirrored on the first and last
-        values of the vector, followed by zeros.
+    %(window-resample)s
+    %(n_jobs-cuda)s
+    %(pad-fir)s
+        The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
     %(verbose)s
@@ -1749,7 +1588,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
 
     # Helpers for reporting
     report_phase = 'non-linear phase' if phase == 'minimum' else 'zero-phase'
-    causality = 'causal' if phase == 'minimum' else 'acausal'
+    causality = 'causal' if phase == 'minimum' else 'non-causal'
     if phase == 'zero-double':
         report_pass = 'two-pass forward and reverse'
     else:
@@ -1819,9 +1658,11 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                      'string, got "%s"' % l_trans_bandwidth)
                 l_trans_bandwidth = np.minimum(np.maximum(0.25 * l_freq, 2.),
                                                l_freq)
-            msg = '- l_trans_bandwidth: %0.2f Hz' % (l_trans_bandwidth)
+            msg = ('- Lower transition bandwidth: %0.2f Hz'
+                   % (l_trans_bandwidth))
             if dB_cutoff:
-                msg += ' (%s cutoff: %0.2f Hz)' % (
+                logger.info('- Lower passband edge: %0.2f' % (l_freq,))
+                msg += ' (%s cutoff frequency: %0.2f Hz)' % (
                     dB_cutoff, l_freq - l_trans_bandwidth / 2.)
             logger.info(msg)
             l_trans_bandwidth = cast(l_trans_bandwidth)
@@ -1844,9 +1685,11 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                      'string, got "%s"' % h_trans_bandwidth)
                 h_trans_bandwidth = np.minimum(np.maximum(0.25 * h_freq, 2.),
                                                sfreq / 2. - h_freq)
-            msg = '- h_trans_bandwidth: %0.2f Hz' % (h_trans_bandwidth)
+            msg = ('- Upper transition bandwidth: %0.2f Hz'
+                   % (h_trans_bandwidth))
             if dB_cutoff:
-                msg += ' (%s cutoff: %0.2f Hz)' % (
+                logger.info('- Upper passband edge: %0.2f Hz' % (h_freq,))
+                msg += ' (%s cutoff frequency: %0.2f Hz)' % (
                     dB_cutoff, h_freq + h_trans_bandwidth / 2.)
             logger.info(msg)
             h_trans_bandwidth = cast(h_trans_bandwidth)
@@ -1900,6 +1743,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                              '%s' % (type(filter_length),))
         logger.info('- Filter length: %s samples (%0.3f sec)'
                     % (filter_length, filter_length / sfreq))
+        logger.info('')
 
     if filter_length != 'auto':
         if phase == 'zero' and method == 'fir':
@@ -1998,6 +1842,36 @@ class FilterMixin(object):
                pad='edge', verbose=None):
         """Filter a subset of channels.
 
+        Parameters
+        ----------
+        %(l_freq)s
+        %(h_freq)s
+        %(picks_all_data)s
+        %(filter_length)s
+        %(l_trans_bandwidth)s
+        %(h_trans_bandwidth)s
+        %(n_jobs-fir)s
+        %(method-fir)s
+        %(iir_params)s
+        %(phase)s
+        %(fir_window)s
+        %(fir_design)s
+        %(pad-fir)s
+            The default is ``'edge'``, which pads with the edge values of each
+            vector.
+        %(verbose_meth)s
+
+        Returns
+        -------
+        inst : instance of Epochs or Evoked
+            The filtered data.
+
+        See Also
+        --------
+        mne.filter.create_filter
+
+        Notes
+        -----
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
         filter to the channels selected by ``picks``.
         The data are modified inplace.
@@ -2020,87 +1894,6 @@ class FilterMixin(object):
                   ``len(picks) * n_times`` additional time points need to
                   be temporaily stored in memory.
 
-        Parameters
-        ----------
-        l_freq : float | None
-            Low cut-off frequency in Hz. If None the data are only low-passed.
-        h_freq : float | None
-            High cut-off frequency in Hz. If None the data are only
-            high-passed.
-        %(picks_all_data)s
-        filter_length : str | int
-            Length of the FIR filter to use (if applicable):
-
-            * 'auto' (default): the filter length is chosen based
-              on the size of the transition regions (6.6 times the reciprocal
-              of the shortest transition band for fir_window='hamming'
-              and fir_design="firwin2", and half that for "firwin").
-            * str: a human-readable time in
-              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-              converted to that number of samples if ``phase="zero"``, or
-              the shortest power-of-two length at least that duration for
-              ``phase="zero-double"``.
-            * int: specified length in samples. For fir_design="firwin",
-              this should not be used.
-
-        l_trans_bandwidth : float | str
-            Width of the transition band at the low cut-off frequency in Hz
-            (high pass or cutoff 1 in bandpass). Can be "auto"
-            (default) to use a multiple of ``l_freq``::
-
-                min(max(l_freq * 0.25, 2), l_freq)
-
-            Only used for ``method='fir'``.
-        h_trans_bandwidth : float | str
-            Width of the transition band at the high cut-off frequency in Hz
-            (low pass or cutoff 2 in bandpass). Can be "auto"
-            (default) to use a multiple of ``h_freq``::
-
-                min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
-
-            Only used for ``method='fir'``.
-        n_jobs : int | str
-            Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
-            is installed properly and method='fir'.
-        method : str
-            'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-            forward-backward filtering (via filtfilt).
-        iir_params : dict | None
-            Dictionary of parameters to use for IIR filtering.
-            See :func:`mne.filter.construct_iir_filter` for details.
-            If iir_params is None and method="iir", 4th order Butterworth
-            will be used.
-        phase : str
-            Phase of the filter, only used if ``method='fir'``.
-            By default, a symmetric linear-phase FIR filter is constructed.
-            If ``phase='zero'`` (default), the delay of this filter
-            is compensated for. If ``phase=='zero-double'``, then this filter
-            is applied twice, once forward, and once backward. If 'minimum',
-            then a minimum-phase, causal filter will be used.
-        fir_window : str
-            The window to use in FIR design, can be "hamming" (default),
-            "hann" (default in 0.13), or "blackman".
-        fir_design : str
-            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
-            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
-            a time-domain design technique that generally gives improved
-            attenuation using fewer samples than "firwin2".
-        pad : str
-            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-            options. Can also be "reflect_limited", which pads with a
-            reflected version of each vector mirrored on the first and last
-            values of the vector, followed by zeros. The default is "edge",
-            which pads with the edge values of each vector.
-            Only used for ``method='fir'``.
-        %(verbose_meth)s
-
-        Returns
-        -------
-        inst : instance of Epochs or Evoked
-            The filtered data.
-
-        Notes
-        -----
         .. versionadded:: 0.15
         """
         _check_preload(self, 'inst.filter')
@@ -2126,28 +1919,20 @@ class FilterMixin(object):
         ----------
         sfreq : float
             New sample rate to use.
-        npad : int | str
-            Amount to pad the start and end of the data.
-            Can also be "auto" to use a padding that will result in
-            a power-of-two size (can be much faster).
-        window : string or tuple
-            Window to use in resampling. See :func:`scipy.signal.resample`.
-        n_jobs : int
-            Number of jobs to run in parallel.
-        pad : str
-            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-            options. Can also be "reflect_limited", which pads with a
-            reflected version of each vector mirrored on the first and last
-            values of the vector, followed by zeros. The default is "edge",
-            which pads with the edge values of each vector.
+        %(npad)s
+        %(window-resample)s
+        %(n_jobs-cuda)s
+        %(pad-fir)s
+            The default is ``'edge'``, which pads with the edge values of each
+            vector.
 
             .. versionadded:: 0.15
         %(verbose_meth)s
 
         Returns
         -------
-        inst : instance of Epochs | instance of Evoked
-            The resampled epochs object.
+        inst : instance of Epochs or Evoked
+            The resampled object.
 
         See Also
         --------
@@ -2356,7 +2141,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
     MNE-C uses a frequency-domain filter design technique by creating a
     linear-phase filter of length 8193. In the frequency domain, the
     4197 frequencies are directly constructed, with zeroes in the stop-band
-    and ones in the pass-band, with squared cosine ramps in between.
+    and ones in the passband, with squared cosine ramps in between.
     """
     n_freqs = (4096 + 2 * 2048) // 2 + 1
     freq_resp = np.ones(n_freqs)
