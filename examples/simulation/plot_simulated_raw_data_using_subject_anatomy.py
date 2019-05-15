@@ -66,8 +66,10 @@ event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # need to be specified for each of the 4 simulation conditions.
 # Make a dictionary that maps conditions to activation strengths within
 # aparc.a2009s [1]_ labels. In the aparc.a2009s parcellation:
+#
 # - 'G_temp_sup-G_T_transv' is the label for primary auditory area
 # - 'S_calcarine' is the label for primary visual area
+#
 # In each of the 4 conditions, only the primary area is activated. This means
 # that during the activations of auditory areas, there are no activations in
 # visual areas and vice versa.
@@ -142,10 +144,12 @@ stc_data = source_simulator.get_stc()
 #
 # Project the source time series to sensor space. Three types of noise will be
 # added to the simulated raw data:
+#
 # - multivariate Gaussian noise obtained from the noise covariance from the
-# sample data
+#   sample data
 # - blink (EOG) noise
 # - ECG noise
+#
 # The :class:`~mne.simulation.SourceSimulator` can be given directly to the
 # :func:`~mne.simulation.simulate_raw` function.
 
