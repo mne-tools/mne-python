@@ -5,7 +5,7 @@ Simulate raw data using subject anatomy
 
 This example illustrates how to generate source estimates and simulate raw data
 using subject anatomy with the :class:`mne.simulation.SourceSimulator` class.
-Once the raw data is simulated, generated source estimates are reconstructed 
+Once the raw data is simulated, generated source estimates are reconstructed
 using dynamic statistical parametric mapping (dSPM) inverse operator.
 """
 
@@ -16,7 +16,7 @@ using dynamic statistical parametric mapping (dSPM) inverse operator.
 
 # License: BSD (3-clause)
 
-import os.path as op 
+import os.path as op
 
 import numpy as np
 
@@ -26,7 +26,7 @@ from mne.datasets import sample
 print(__doc__)
 
 # To simulate the sample dataset, information of the sample subject needs to be
-# loaded. This step will download the data if it not already on your machine. 
+# loaded. This step will download the data if it not already on your machine.
 # Subjects directory is also set so it doesn't need to be given to functions.
 data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
@@ -108,18 +108,18 @@ source_time_series = np.sin(np.linspace(0, 4 * np.pi, 100)) * 10e-9
 # --------------------------------
 #
 # Here, :class:`~mne.simulation.SourceSimulator` is used, which allows to
-# specify where (label), what (source_time_series), and when (events) event type
-# will occur.
+# specify where (label), what (source_time_series), and when (events) event
+# type will occur.
 #
 # We will add data for 4 areas, each of which contains 2 labels. Since add_data
 # method accepts 1 label per call, it will be called 2 times per area.
 # All activations will contain the same waveform, but the amplitude will be 2
 # times higher in the contralateral label, as explained before.
 #
-# When the activity occurs is defined using events. In this case, they are taken
-# from the original raw data. The first column is the sample of the event, the
-# second is not used. The third one is the event id, which is different for each
-# of the 4 areas.
+# When the activity occurs is defined using events. In this case, they are
+# taken from the original raw data. The first column is the sample of the
+# event,the second is not used. The third one is the event id, which is
+# different for each of the 4 areas.
 
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)
 for region_id, region_name in enumerate(region_names, 1):
@@ -128,10 +128,12 @@ for region_id, region_name in enumerate(region_names, 1):
         label_name = activations[region_name][i][0]
         label_tmp = mne.read_labels_from_annot(subject, annot,
                                                subjects_dir=subjects_dir,
-                                               regexp=label_name,verbose=False)
+                                               regexp=label_name,
+                                               verbose=False)
         label_tmp = label_tmp[0]
         amplitude_tmp = activations[region_name][i][1]
-        source_simulator.add_data(label_tmp, amplitude_tmp*source_time_series,
+        source_simulator.add_data(label_tmp,
+                                  amplitude_tmp * source_time_series,
                                   events_tmp)
 
 # To obtain a SourceEstimate object, we need to use `get_stc()` method of
@@ -182,12 +184,12 @@ stc_vis = mne.minimum_norm.apply_inverse(
     epochs['visual/right'].average(), inv, lambda2, method)
 stc_diff = stc_aud - stc_vis
 
-brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1, hemi='split',
-                      views=['lat','med'])
+brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1,
+                      hemi='split', views=['lat', 'med'])
 
 ###############################################################################
 # References
 # ----------
-# .. [1] Destrieux C, Fischl B, Dale A, Halgren E (2010). Automatic parcellation
-#        of human cortical gyri and sulci using standard anatomical
-#        nomenclature, vol. 53(1), 1-15, NeuroImage.
+# .. [1] Destrieux C, Fischl B, Dale A, Halgren E (2010). Automatic
+#        parcellation of human cortical gyri and sulci using standard
+#        anatomical nomenclature, vol. 53(1), 1-15, NeuroImage.
