@@ -126,7 +126,8 @@ raw.plot(order=chan_idxs, start=12, duration=4)
 # Detecting experimental events
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# The sample dataset includes several "STIM" channels that recorded electrical
+# The sample dataset includes several :term:`"STIM" channels <stim channel>`
+# that recorded electrical
 # signals sent from the stimulus delivery computer (as brief DC shifts /
 # squarewave pulses). These pulses (often called "triggers") are used in this
 # dataset to mark experimental events: stimulus onset, stimulus type, and
@@ -148,6 +149,8 @@ print(events[:5])  # show the first 5
 # track of integer event IDs, we can provide an *event dictionary* that maps
 # the integer IDs to experimental conditions or events. In this dataset, the
 # mapping looks like this:
+#
+# .. _sample-data-event-dict-table:
 #
 # +----------+----------------------------------------------------------+
 # | Event ID | Condition                                                |
@@ -328,7 +331,7 @@ evoked_diff.pick_types('mag').plot_topo(color='r', legend=False)
 # etc.); here we'll use minimum-norm estimation (MNE) to generate a continuous
 # map of activation constrained to the cortical surface. MNE uses a linear
 # :term:`inverse operator` to project EEG+MEG sensor measurements into the
-# source space. Normally the inverse operator would be computed from the
+# source space. The inverse operator is computed from the
 # :term:`forward solution` for this subject and an estimate of :ref:`the
 # covariance of sensor measurements <tut_compute_covariance>`. For this
 # tutorial we'll skip those computational steps and load a pre-computed inverse
