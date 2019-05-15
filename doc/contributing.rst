@@ -738,9 +738,26 @@ down the road. Here are the guidelines:
     (i.e., improving docstring consistency or formatting without changing its
     content).
 
-  - the following commit tags are supported: ``[ci skip]``, ``[skip
-    travis]``, ``[skip azp]``, ``[skip circle]``, and ``[circle full]``.
-    These should be used judiciously.
+  - the following commit tags are used to interact with our
+    `continuous integration`_ (CI) providers. Use them judiciously; *do not
+    skip tests simply because they are failing*:
+
+    - ``[skip circle]`` Skip `circle`_, which tests successful building of our
+      documentation.
+
+    - ``[skip travis]`` Skip `travis`_, which tests installation and execution
+      on Linux and macOS systems.
+
+    - ``[skip azp]`` Skip `azure`_ which tests installation and execution on
+      Windows systems.
+
+    - ``[ci skip]`` is an alias for ``[skip travis][skip azp][skip circle]``.
+      Notice that ``[skip ci]`` is not a valid tag.
+
+    - ``[circle full]`` triggers a "full" documentation build, i.e., all code
+      in tutorials and how-to examples will be *executed* (instead of just
+      nicely formatted) and the resulting output and figures will be rendered
+      as part of the tutorial/example.
 
 `This sample pull request`_ exemplifies many of the conventions listed above:
 it addresses only one problem; it started with an issue to discuss the problem
@@ -819,3 +836,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _GNU Make: https://www.gnu.org/software/make/
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _matplotlib: https://matplotlib.org/
+.. _travis: https://travis-ci.org/mne-tools/mne-python/branches
+.. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
+.. _circle: https://circleci.com/gh/mne-tools/mne-python
