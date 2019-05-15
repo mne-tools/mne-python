@@ -837,8 +837,8 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
         - **'auto' (default)**: use an appropriate parser if the raw instance
           corresponds to:
 
-          - Brainvision: stimulus events stripped to their integer part;
-            Response events mapped to their integer part + 1000; all other
+          - Brainvision: stimulus events mapped to their integer part;
+            response events mapped to their integer part + 1000; all other
             events dropped.
           - All others: Behaves like None.
 

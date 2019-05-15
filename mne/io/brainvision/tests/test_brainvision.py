@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import inspect
 import os.path as op
 from os import unlink
 import shutil
