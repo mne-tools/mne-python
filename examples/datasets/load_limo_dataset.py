@@ -35,24 +35,45 @@ References
 
 # Authors: Jose C. Garcia Alanis <alanis.jcg@gmail.com>
 #
-#
 # License: BSD (3-clause)
 
-
-# import necessary packages
 import mne
 from mne.datasets import limo
+from mne.preprocessing import ICA
+from mne.stats import linear_regression
 
 print(__doc__)
 
-# fetch data from subject 1
-limo_epochs = limo.load_data(subject=1)
+# fetch data from subject 2
+limo_epochs = load_data(subject=2, interpolate=True)
 
-# inpect epochs info
-limo_epochs.info
+# check distribution of events (should be ordered)
+mne.viz.plot_events(limo_epochs.events)
 
-# look at metadata
-limo_epochs.metadata.head()
+# drop EXG-channels (i.e. eog) as data has already been cleaned
+limo_epochs.drop_channels(['EXG1', 'EXG2', 'EXG3', 'EXG4'])
 
-# plot evoked response for condition A
+# plot evoked response for conditions A & B
 limo_epochs['Face/A'].average().plot_joint(times=[.09, .15])
+limo_epochs['Face/B'].average().plot_joint(times=[.09, .15])
+
+# create design matrix for linear regression
+design = limo_epochs.metadata
+design['Face_Effect'] = np.where(design['Face'] == 'A', 1, 0)
+design = design.assign(Intercept=1)
+names = ['Intercept', 'Face_Effect', 'Noise']
+# check design matrix
+design[names].head()
+
+# fit linear model
+reg = linear_regression(limo_epochs, design[names], names=names)
+
+reg['Face_Effect'].beta.plot_joint(title='Face_Effect',
+                                   ts_args=dict(time_unit='s'),
+                                   topomap_args=dict(time_unit='s'),
+                                   times=[.16])
+
+reg['Noise'].beta.plot_joint(title='Effect of Noise',
+                             ts_args=dict(time_unit='s'),
+                             topomap_args=dict(time_unit='s'),
+                             times=[.125, .225])
