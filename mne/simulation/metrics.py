@@ -125,12 +125,14 @@ def _apply(func, stc_true, stc_est, per_sample):
 def _thresholding(stc_true, stc_est, threshold):
     if isinstance(threshold, str):
         t = _check_threshold(threshold)
-        stc_true._data[np.abs(stc_true._data) <=
-                       t * np.max(np.abs(stc_true._data))] = 0.
+        if stc_true is not None:
+            stc_true._data[np.abs(stc_true._data) <=
+                           t * np.max(np.abs(stc_true._data))] = 0.
         stc_est._data[np.abs(stc_est._data) <=
                       t * np.max(np.abs(stc_est._data))] = 0.
     else:
-        stc_true._data[np.abs(stc_true._data) <= threshold] = 0.
+        if stc_true is not None:
+            stc_true._data[np.abs(stc_true._data) <= threshold] = 0.
         stc_est._data[np.abs(stc_est._data) <= threshold] = 0.
     return stc_true, stc_est
 
@@ -414,5 +416,152 @@ def stc_recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
     func = partial(_recall_score)
+    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    return metric
+
+
+def _prepare_ppe_sd(stc_true, stc_est, src, threshold='50%'):
+    stc_true = stc_true.copy()
+    stc_est = stc_est.copy()
+    n_dipoles = 0
+    for i, v in enumerate(stc_true.vertices):
+        if len(v):
+            n_dipoles += len(v)
+            r_true = src[i]['rr'][v]
+    if n_dipoles != 1:
+        raise ValueError('True source must contain only one dipole, got %d.'
+                         % n_dipoles)
+
+    _, stc_est = _thresholding(None, stc_est, threshold)
+
+    r_est = np.empty([0, 3])
+    for i, v in enumerate(stc_est.vertices):
+        if len(v):
+            r_est = np.vstack([r_est, src[i]['rr'][v]])
+    return stc_est, r_true, r_est
+
+
+def _peak_position_error(p, q, r_est, r_true):
+    q = np.sum(np.abs(q), axis=1)
+    if np.sum(q):
+        q /= np.sum(q)
+        r_est_mean = np.dot(q, r_est)
+        return norm(r_est_mean - r_true)
+    else:
+        return np.inf
+
+
+@fill_doc
+def stc_peak_position_error(stc_true, stc_est, src, threshold='50%',
+                            per_sample=True):
+    r"""Compute the peak position error.
+
+    The peak position error measures the distance between the center-of-mass
+    of the estimate and the true source.
+
+    .. math::
+
+        PPE = \| \dfrac{\sum_i|s_i|r_{i}}{\sum_i|s_i|}
+        - r_{true}\|,
+
+    where :math:`r_{true}` is a true dipole position,
+    :math:`r_i` and :math:`|s_i|` denote respectively the position
+    and amplitude of i-th dipole in source estimate.
+
+    Threshold is used on estimate source for focusing the metric to strong
+    estimated amplitudes and omitting the low-amplitude values.
+
+    Parameters
+    ----------
+    %(metric_stc_true)s
+    %(metric_stc_est)s
+    src : instance of SourceSpaces
+        The source space on which the source estimates are defined.
+    threshold : float | str
+        The threshold to apply to source estimates before computing
+        the recall. If a string the threshold is
+        a percentage and it should end with the percent character.
+    %(metric_per_sample)s
+
+    Returns
+    -------
+    %(stc_metric)s
+
+    References
+    ----------
+    .. [1] Stenroos M., Hauk O.(2013), Minimum-norm cortical source estimation
+           in layered head models is robust against skull conductivity error.
+           NeuroImage 81, 265 – 272
+    .. [2] Lin FH., Witzel T., Ahlfors S., Stufflebeam S., Belliveau J.,
+           Fleureau J., Hämäläinen M.S. (2006), Assessing and improving the
+           spatial accuracy in MEG source localization by depth-weighted
+           minimum-norm estimates. NeuroImage 31, 160-171
+    """
+    stc_est, r_true, r_est = _prepare_ppe_sd(stc_true, stc_est, src, threshold)
+    func = partial(_peak_position_error, r_est=r_est, r_true=r_true)
+    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    return metric
+
+
+def _spacial_deviation(p, q, r_est, r_true):
+    q = np.sum(np.abs(q), axis=1)
+    if np.sum(q):
+        q /= np.sum(q)
+        r_true_tile = np.tile(r_true, (r_est.shape[0], 1))
+        r_diff = r_est - r_true_tile
+        r_diff_norm = np.sum(r_diff ** 2, axis=1)
+        return np.sqrt(np.dot(q, r_diff_norm))
+    else:
+        return np.inf
+
+
+@fill_doc
+def stc_spacial_deviation(stc_true, stc_est, src, threshold='50%',
+                          per_sample=True):
+    r"""Compute the spacial deviation.
+
+    The spacial deviation characterizes the spread of the estimate source
+    around the true source.
+
+    .. math::
+
+        SD = \dfrac{\sum_i|s_i|\|r_{i} - r_{true}\|^2}{\sum_i|s_i|}.
+
+    where :math:`r_{true}` is a true dipole position,
+    :math:`r_i` and :math:`|s_i|` denote respectively the position
+    and amplitude of i-th dipole in source estimate.
+
+    Threshold is used on estimate source for focusing the metric to strong
+    estimated amplitudes and omitting the low-amplitude values.
+
+    Parameters
+    ----------
+    %(metric_stc_true)s
+    %(metric_stc_est)s
+    src : instance of SourceSpaces
+        The source space on which the source estimates are defined.
+    threshold : float | str
+        The threshold to apply to source estimates before computing
+        the recall. If a string the threshold is
+        a percentage and it should end with the percent character.
+    %(metric_per_sample)s
+
+    Returns
+    -------
+    %(stc_metric)s
+
+    References
+    ----------
+    .. [1] Stenroos M., Hauk O.(2013), Minimum-norm cortical source estimation
+           in layered head models is robust against skull conductivity error.
+           NeuroImage 81, 265 – 272
+    .. [2] Lin FH., Witzel T., Ahlfors S., Stufflebeam S., Belliveau J.,
+           Fleureau J., Hämäläinen M.S. (2006), Assessing and improving the
+           spatial accuracy in MEG source localization by depth-weighted
+           minimum-norm estimates. NeuroImage 31, 160-171
+    %(stc_metric)s
+    """
+    stc_est, r_true, r_est = _prepare_ppe_sd(stc_true, stc_est, src, threshold)
+    func = partial(_spacial_deviation, r_est=r_est, r_true=r_true)
     metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
     return metric

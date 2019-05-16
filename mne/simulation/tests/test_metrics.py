@@ -22,7 +22,8 @@ from mne.simulation import (simulate_sparse_stc,
                             source_estimate_quantification,
                             stc_cosine_score, stc_region_localization_error,
                             stc_precision_score, stc_recall_score,
-                            stc_f1_score, stc_roc_auc_score)
+                            stc_f1_score, stc_roc_auc_score,
+                            stc_peak_position_error, stc_spacial_deviation)
 from mne.simulation.metrics import (_uniform_stc, _thresholding,
                                     _check_threshold)
 from mne.utils import run_tests_if_main
@@ -228,5 +229,47 @@ def test_roc_auc_score():
     score = stc_roc_auc_score(stc_true, stc_est, per_sample=False)
     assert_almost_equal(score, 0.75)
 
+
+@testing.requires_testing_data
+def test_peak_position_error():
+    """Test simulation metrics."""
+    src = read_source_spaces(src_fname)
+    vert1 = [src[0]['vertno'][0:1], []]
+    vert2 = [src[0]['vertno'][0:2], []]
+    data1 = np.array([[1]])
+    data2 = np.array([[1, 1.]]).T
+    stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
+    stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
+    r_mean = 0.5 * (src[0]['rr'][vert2[0][0]] + src[0]['rr'][vert2[0][1]])
+    r_true = src[0]['rr'][vert2[0][0]]
+    score = stc_peak_position_error(stc_true, stc_est, src, per_sample=False)
+
+    assert_almost_equal(score, norm(r_true - r_mean))
+    pytest.raises(ValueError, stc_peak_position_error, stc_est, stc_est, src)
+
+    data2 = np.array([[0, 0.]]).T
+    stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
+    score = stc_peak_position_error(stc_true, stc_est, src, per_sample=False)
+    assert_almost_equal(score, np.inf)
+
+@testing.requires_testing_data
+def test_spacial_deviation():
+    """Test simulation metrics."""
+    src = read_source_spaces(src_fname)
+    vert1 = [src[0]['vertno'][0:1], []]
+    vert2 = [src[0]['vertno'][0:2], []]
+    data1 = np.array([[1]])
+    data2 = np.array([[1, 1.]]).T
+    stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
+    stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
+    std = np.sqrt(0.5 * (0 + norm(src[0]['rr'][vert2[0][1]]
+                  - src[0]['rr'][vert2[0][0]])**2))
+    score = stc_spacial_deviation(stc_true, stc_est, src, per_sample=False)
+    assert_almost_equal(score, std)
+
+    data2 = np.array([[0, 0.]]).T
+    stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
+    score = stc_spacial_deviation(stc_true, stc_est, src, per_sample=False)
+    assert_almost_equal(score, np.inf)
 
 run_tests_if_main()

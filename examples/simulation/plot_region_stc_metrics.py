@@ -1,11 +1,12 @@
 """
-===============================================
-Compare simulated and estimated source activity
-===============================================
+===========================================================
+Compare simulated and estimated region-like source activity
+===========================================================
 
 This example illustrates how to compare the simulated and estimated
-stcs by computing different metrics. It is meant to be a brief
-introduction and only highlights the simplest use case.
+stcs by computing different metrics. Simulated source is a cortical region.
+It is meant to be a brief introduction and only highlights the simplest
+use case.
 
 """
 # Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
