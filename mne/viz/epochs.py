@@ -839,7 +839,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     """
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
-    scalings = _handle_default('scalings_plot_raw', scalings)
     decim, data_picks = _handle_decim(epochs.info.copy(), decim, None)
     projs = epochs.info['projs']
     noise_cov = _check_cov(noise_cov, epochs.info)

@@ -20,7 +20,7 @@ DEFAULTS = dict(
                   hbo=1e6, hbr=1e6),
     # rough guess for a good plot
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
-                           ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
+                           ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc='auto',
                            stim=1, resp=1, chpi=1e-4, exci=1, ias=1, syst=1,
                            seeg=1e-4, bio=1e-6, ecog=1e-4, hbo=10e-6,
                            hbr=10e-6, whitened=10.),
