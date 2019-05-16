@@ -827,24 +827,19 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
     event_id : dict | callable | None | 'auto'
         Can be:
 
-        - **dict**: string keys mapping to and integer values as used in
-          :class:`mne.Epochs` to map annotation descriptions to integer event
-          codes. Only the keys present will be mapped and the annotations with
-          other descriptions will be ignored.
-        - **callable**: takes a string input, and returns an integer to use,
-          or None to ignore.
-        - **None**: All descriptions of annotations are mapped and assigned
-          unique integer values starting at 1 based on the ``sorted``
-          annotation descriptions.
-        - **'auto' (default)**: use an appropriate parser if the raw instance
-          corresponds to:
+        - **dict**: map descriptions (keys) to integer event codes (values).
+          Only the descriptions present will be mapped, others will be ignored.
+        - **callable**: must take a string input and returns an integer event
+          code or None to ignore it.
+        - **None**: Descriptions are mapped to unique integer values
+          based on their ``sorted`` order.
+        - **'auto' (default)**: prefer a format-specific parser:
 
-          - Brainvision: stimulus events mapped to their integer part;
-            response events to integer part + 1000; optic events to integer
-            part + 2000;
+          - Brainvision: stimulus events mapped to their integer part; response
+            events to integer part + 1000; optic events to integer part + 2000;
             'SyncStatus/Sync On' to 99998; 'New Segment/' to 99999;
             all others mapped like ``None`` with an offset of 10000.
-          - All others: Behaves like None.
+          - Other raw formats: Behaves like None.
 
           .. versionadded:: 0.18
 

@@ -551,9 +551,7 @@ def test_events_from_annot_in_raw_objects():
     # ensure that these actually got sorted properly
     expected_event_id = {
         desc: idx + 1 for idx, desc in enumerate(sorted(event_id.keys()))}
-    assert set(event_id3.keys()) == set(expected_event_id.keys())
-    for key in event_id3:
-        assert event_id3[key] == expected_event_id[key]
+    assert event_id3 == expected_event_id
 
     first = np.unique(events3[:, 2])
     second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)

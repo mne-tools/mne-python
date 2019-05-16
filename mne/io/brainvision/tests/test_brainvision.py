@@ -491,12 +491,16 @@ def test_read_vhdr_annotations_and_events():
     assert event_id == expected_event_id
 
     # validate that None gives us a sorted list
-    expected_event_id = {desc: idx + 1 for idx, desc in enumerate(sorted(
+    expected_none_event_id = {desc: idx + 1 for idx, desc in enumerate(sorted(
         event_id.keys()))}
     events, event_id = events_from_annotations(raw, event_id=None)
-    assert set(expected_event_id.keys()) == set(event_id.keys())
-    for key in sorted(event_id.keys()):
-        assert expected_event_id[key] == event_id[key]
+    assert event_id == expected_none_event_id
+
+    # Add some custom ones
+    raw.annotations.append([1, 2], 10, ['ZZZ', 'YYY'])
+    expected_event_id.update(YYY=10001, ZZZ=10002)  # others starting at 10001
+    _, event_id = events_from_annotations(raw)
+    assert event_id == expected_event_id
 
 
 @testing.requires_testing_data
