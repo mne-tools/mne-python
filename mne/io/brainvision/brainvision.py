@@ -134,6 +134,11 @@ class RawBrainVision(BaseRaw):
                     block[:n_data_ch, ii] = [float(l) for l in line]
             _mult_cal_one(data, block, idx, cals, mult)
 
+    @classmethod
+    def auto_event_id(cls):
+        """Return default ``event_id`` behavior for Brainvision."""
+        return _bv_parser
+
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     """Read chunk of vectorized raw data."""

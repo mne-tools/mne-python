@@ -871,12 +871,10 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
 
     annotations = raw.annotations
 
-    if event_id == "auto":
-        from .io.brainvision.brainvision import RawBrainVision
-        if isinstance(raw, RawBrainVision):
-            from .io.brainvision.brainvision import _bv_parser as event_id
-        else:
-            event_id = None
+    if event_id == 'auto' and hasattr(raw, 'auto_event_id'):
+        event_id = raw.auto_event_id()
+    else:
+        event_id = None
 
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp)
