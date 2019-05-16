@@ -22,7 +22,7 @@ Problem statement
 =================
 
 Practical issues with filtering electrophysiological data are covered
-in Widmann *et al.* (2015) [7]_, where they conclude with this statement:
+in Widmann *et al.* (2012) [6]_, where they conclude with this statement:
 
     Filtering can result in considerable distortions of the time course
     (and amplitude) of a signal as demonstrated by VanRullen (2011) [[3]_].

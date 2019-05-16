@@ -26,7 +26,8 @@ from ..surface import read_surface
 from ..io.proj import make_projector
 from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types
 from ..source_space import read_source_spaces, SourceSpaces
-from ..utils import logger, verbose, get_subjects_dir, warn, _check_option
+from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
+                     _mask_to_onsets_offsets)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from ..fixes import get_sosfiltfilt
@@ -674,8 +675,11 @@ def _check_fscale(fscale):
                          % (fscale,))
 
 
+_DEFAULT_ALIM = (-80, 10)
+
+
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
-                flim=None, fscale='log', alim=(-80, 10), show=True,
+                flim=None, fscale='log', alim=_DEFAULT_ALIM, show=True,
                 compensate=False):
     """Plot properties of a filter.
 
@@ -813,12 +817,18 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     ax_time.set(xlim=t[[0, -1]], xlabel='Time (s)',
                 ylabel='Amplitude', title=title)
     mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
-    ax_freq.plot(f, mag, color=color, linewidth=2, zorder=4)
+    sl = slice(0 if fscale == 'linear' else 1, None, None)
+    # Magnitude
+    ax_freq.plot(f[sl], mag[sl], color=color, linewidth=2, zorder=4)
     if freq is not None and gain is not None:
         plot_ideal_filter(freq, gain, ax_freq, fscale=fscale, show=False)
     ax_freq.set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
-    sl = slice(0 if fscale == 'linear' else 1, None, None)
+    # Delay
     ax_delay.plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
+    # shade nulled regions
+    for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
+        ax_delay.axvspan(f[start], f[stop - 1], facecolor='k', alpha=0.05,
+                         zorder=5)
     ax_delay.set(xlim=flim, ylabel='Group delay (s)', xlabel='Frequency (Hz)',
                  xscale=fscale)
     xticks, xticklabels = _filter_ticks(flim, fscale)
@@ -839,7 +849,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
 
 
 def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
-                      alim=(-60, 10), color='r', alpha=0.5, linestyle='--',
+                      alim=_DEFAULT_ALIM, color='r', alpha=0.5, linestyle='--',
                       show=True):
     """Plot an ideal filter response.
 
@@ -894,7 +904,6 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
 
     """
     import matplotlib.pyplot as plt
-    xs, ys = list(), list()
     my_freq, my_gain = list(), list()
     if freq[0] != 0:
         raise ValueError('freq should start with DC (zero) and end with '
@@ -905,12 +914,10 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
     if fscale == 'log':
         freq[0] = 0.1 * freq[1] if flim is None else min(flim[0], freq[1])
     flim = _get_flim(flim, fscale, freq)
+    transitions = list()
     for ii in range(len(freq)):
-        xs.append(freq[ii])
-        ys.append(alim[0])
         if ii < len(freq) - 1 and gain[ii] != gain[ii + 1]:
-            xs += [freq[ii], freq[ii + 1]]
-            ys += [alim[1]] * 2
+            transitions += [[freq[ii], freq[ii + 1]]]
             my_freq += np.linspace(freq[ii], freq[ii + 1], 20,
                                    endpoint=False).tolist()
             my_gain += np.linspace(gain[ii], gain[ii + 1], 20,
@@ -921,8 +928,8 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
     my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.)))
     if axes is None:
         axes = plt.subplots(1)[1]
-    xs = np.maximum(xs, flim[0])
-    axes.fill_between(xs, alim[0], ys, color=color, alpha=0.1)
+    for transition in transitions:
+        axes.axvspan(*transition, color=color, alpha=0.1)
     axes.plot(my_freq, my_gain, color=color, linestyle=linestyle, alpha=0.5,
               linewidth=4, zorder=3)
     xticks, xticklabels = _filter_ticks(flim, fscale)
