@@ -169,11 +169,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if combine is not None:
         ts_args["show_sensors"] = False
 
-    picks = [picks] if isinstance(picks, str) or _is_numeric(picks) else picks
-    too_many_picks = (picks is None or
-                      all(pick in _DATA_CH_TYPES_SPLIT for pick in picks))
-    picks = _picks_to_idx(epochs.info, picks)
-    if too_many_picks and group_by is None:
+    picks, picked_ch_type_or_generic = _picks_to_idx(epochs.info, picks,
+                                                     return_kind=True)
+    if picked_ch_type_or_generic and group_by is None:
         logger.info("No picks and no groupby, showing the first five "
                     "channels ...")
         picks = picks[:5]  # take 5 picks to prevent spawning too many figs
