@@ -28,6 +28,8 @@ from ..base import BaseRaw, _check_update_montage
 from ..utils import _read_segments_file, _mult_cal_one, _deprecate_stim_channel
 from ...annotations import Annotations, read_annotations
 
+_BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 3000}
+
 
 @fill_doc
 class RawBrainVision(BaseRaw):
@@ -833,14 +835,16 @@ def read_raw_brainvision(vhdr_fname, montage=None,
                           stim_channel=stim_channel, verbose=verbose)
 
 
-def _bv_parser(description, add_for_r=1000):
+def _bv_parser(description, offsets=_BV_EVENT_IO_OFFSETS):
     """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
-    try:
-        event_type, code = description[:-3], int(description[-3:])
-        if event_type in ("Response/R", "Stimulus/S"):
-            if event_type == "Response/R":
-                code += add_for_r
-            return code
-    except ValueError:  # probably not coercable to int
-        warn("Marker '%s' could not be unambiguously mapped to an int "
-             "and will be dropped." % description)
+    code = None  # None is a valid code
+    if description[:-3] in offsets:
+        code = int(description[-3:]) + offsets[description[:-3]]
+    else:
+        special = {'New Segment/': 99999, 'SyncStatus/Sync On': 99998}
+        if description in special:
+            code = special[description]
+        else:
+            warn("Marker '%s' could not be unambiguously mapped to an int "
+                 "and will be dropped." % description)
+    return code

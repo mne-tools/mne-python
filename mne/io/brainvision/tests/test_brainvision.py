@@ -473,6 +473,10 @@ def test_read_vhdr_annotations_and_events():
         [99999, 253, 255, 254, 255, 254, 255, 253, 255, 1255, 254, 255, 99998,
          3001],
     ]).astype('int64').T
+    expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
+                         'Stimulus/S255': 255, 'Stimulus/S254': 254,
+                         'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
+                         'Optic/O  1': 3001}
 
     raw = read_raw_brainvision(vhdr_path, eog=eog)
 
@@ -482,13 +486,9 @@ def test_read_vhdr_annotations_and_events():
     assert_array_equal(raw.annotations.description, expected_annot_description)
 
     # validate event extraction
-    with pytest.warns(RuntimeWarning, match='unambiguously'):
-        events, event_id = events_from_annotations(raw)
-    _expected_events = expected_events[expected_events[:, 2] < 2000, :]
-    _expected_event_id = {'Stimulus/S253': 253, 'Stimulus/S255': 255,
-                          'Stimulus/S254': 254, 'Response/R255': 1255}
-    assert_array_equal(events, _expected_events)
-    assert event_id == _expected_event_id
+    events, event_id = events_from_annotations(raw)
+    assert_array_equal(events, expected_events)
+    assert event_id == expected_event_id
 
 
 @testing.requires_testing_data
