@@ -68,6 +68,7 @@ docstring_ignores = [
 ]
 char_limit = 800  # XX eventually we should probably get this lower
 docstring_length_ignores = [
+    'mne.annotations.events_from_annotations::event_id',
     'mne.viz.evoked.plot_compare_evokeds::cmap',
     'mne.filter.construct_iir_filter::iir_params',
 ]

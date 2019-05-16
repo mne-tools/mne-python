@@ -784,7 +784,9 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 
     event_id_ = dict()
     dropped = []
-    for desc in descriptions:
+    # Iterate over the sorted descriptions so that the Counter mapping
+    # is slightly less arbitrary
+    for desc in sorted(descriptions):
         if desc in event_id_:
             continue
 
@@ -838,8 +840,10 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
           corresponds to:
 
           - Brainvision: stimulus events mapped to their integer part;
-            response events mapped to their integer part + 1000; all other
-            events dropped.
+            response events to integer part + 1000; optic events to integer
+            part + 2000;
+            'SyncStatus/Sync On' to 99998; 'New Segment/' to 99999;
+            all others mapped like ``None`` with an offset of 10000.
           - All others: Behaves like None.
 
           .. versionadded:: 0.18
@@ -871,10 +875,8 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
 
     annotations = raw.annotations
 
-    if event_id == 'auto' and hasattr(raw, 'auto_event_id'):
-        event_id = raw.auto_event_id()
-    else:
-        event_id = None
+    if event_id == 'auto':
+        event_id = getattr(raw, '_get_auto_event_id', lambda: None)()
 
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp)

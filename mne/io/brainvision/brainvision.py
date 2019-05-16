@@ -28,8 +28,6 @@ from ..base import BaseRaw, _check_update_montage
 from ..utils import _read_segments_file, _mult_cal_one, _deprecate_stim_channel
 from ...annotations import Annotations, read_annotations
 
-_BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 3000}
-
 
 @fill_doc
 class RawBrainVision(BaseRaw):
@@ -135,9 +133,9 @@ class RawBrainVision(BaseRaw):
             _mult_cal_one(data, block, idx, cals, mult)
 
     @classmethod
-    def auto_event_id(cls):
+    def _get_auto_event_id(cls):
         """Return default ``event_id`` behavior for Brainvision."""
-        return _bv_parser
+        return _BVEventParser()
 
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
@@ -840,19 +838,34 @@ def read_raw_brainvision(vhdr_fname, montage=None,
                           stim_channel=stim_channel, verbose=verbose)
 
 
-def _bv_parser(description, offsets=_BV_EVENT_IO_OFFSETS):
-    """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
-    OTHER_ACCEPTED_MARKERS = {
-        'New Segment/': 99999, 'SyncStatus/Sync On': 99998
-    }
+_BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 2000}
+_OTHER_ACCEPTED_MARKERS = {
+    'New Segment/': 99999, 'SyncStatus/Sync On': 99998
+}
+_OTHER_OFFSET = 10001  # where to start "unknown" event_ids
 
-    code = None  # None is a valid code that drops the event
-    if description[-3:].isdigit() and description[:-3] in offsets:
-        code = int(description[-3:]) + offsets[description[:-3]]
-    elif description in OTHER_ACCEPTED_MARKERS:
-        code = OTHER_ACCEPTED_MARKERS[description]
-    else:
-        warn("Marker '%s' could not be unambiguously mapped to an int "
-             "and will be dropped." % description)
 
-    return code
+class _BVEventParser(object):
+    """Parse standard brainvision events, accounting for non-standard ones."""
+
+    def __init__(self):
+        self.other_event_ids = dict()
+
+    def __call__(self, description):
+        """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
+        offsets = _BV_EVENT_IO_OFFSETS
+
+        maybe_digit = description[-3:].strip()
+        kind = description[:-3]
+        if maybe_digit.isdigit() and kind in offsets:
+            code = int(maybe_digit) + offsets[kind]
+        elif description in _OTHER_ACCEPTED_MARKERS:
+            code = _OTHER_ACCEPTED_MARKERS[description]
+        else:
+            if description not in self.other_event_ids:
+                # Each time a new one is added, len(self.other_event_ids)
+                # will grow, so implicitly this is a counter for us
+                self.other_event_ids[description] = \
+                    _OTHER_OFFSET + len(self.other_event_ids)
+            code = self.other_event_ids[description]
+        return code
