@@ -534,6 +534,10 @@ class SurfaceObject(Object):
 
     @on_trait_change('points')
     def _update_points(self):
+        # Nuke the tris before setting the points otherwise we can get
+        # a nasty segfault (gh-5728)
+        if self._deferred_tris_update and self.src is not None:
+            self.src.data.polys = None
         if Object._update_points(self):
             if self._deferred_tris_update:
                 self.src.data.polys = self.tris

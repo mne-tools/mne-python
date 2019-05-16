@@ -39,7 +39,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets.sleep_physionet.age import fetch_data
-from mne.time_frequency import psd_array_welch
+from mne.time_frequency import psd_welch
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -174,18 +174,17 @@ print(epochs_test)
 fig, (ax1, ax2) = plt.subplots(ncols=2)
 
 # iterate over the subjects
+stages = sorted(event_id.keys())
 for ax, title, epochs in zip([ax1, ax2],
                              ['Alice', 'Bob'],
                              [epochs_train, epochs_test]):
 
-    for stage, color in zip(event_id.keys(), stage_colors):
+    for stage, color in zip(stages, stage_colors):
         epochs[stage].plot_psd(area_mode=None, color=color, ax=ax,
                                fmin=0.1, fmax=20.)
-    ax.set_title(title)
-
-plt.xlabel('Frequency (Hz)')
-plt.ylabel('uV^2/hz (dB)')
-plt.legend(list(event_id.keys()))
+    ax.set(title=title, xlabel='Frequency (Hz)')
+ax2.set(ylabel='uV^2/hz (dB)')
+ax2.legend(stages)
 
 ##############################################################################
 # Design a scikit-learn transformer from a Python function
@@ -220,10 +219,7 @@ def eeg_power_band(epochs):
                   "sigma": [11.5, 15.5],
                   "beta": [15.5, 30]}
 
-    sfreq = epochs.info['sfreq']
-    data = epochs.get_data(picks="eeg")
-    psds, freqs = psd_array_welch(data, sfreq, fmin=0.5, fmax=30.,
-                                  n_fft=512, n_overlap=256)
+    psds, freqs = psd_welch(epochs, picks='eeg', fmin=0.5, fmax=30.)
     # Normalize the PSDs
     psds /= np.sum(psds, axis=-1, keepdims=True)
 

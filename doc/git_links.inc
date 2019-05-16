@@ -86,17 +86,10 @@
 .. installation links
 .. _FreeSurfer: https://surfer.nmr.mgh.harvard.edu/fswiki/
 .. _FreeSurfer download page: https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
-.. _netpbm: http://netpbm.sourceforge.net/
-.. _MacPorts: https://www.macports.org/
-.. _Homebrew: https://brew.sh/
-.. _XCode developer tools: http://appstore.com/mac/apple/xcode
-.. _xquartz: https://www.xquartz.org/
-.. _MATLAB runtime: https://www.mathworks.com/products/compiler/matlab-runtime.html
-.. _MNE-C download page: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php
 .. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
 .. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
-.. _NVIDIA proprietary drivers: https://www.nvidia.com/Download/index.aspx
+.. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 
 .. _Sphinx documentation: http://sphinx-doc.org/rest.html
 .. _sphinx gallery documentation: https://sphinx-gallery.github.io
@@ -104,4 +97,3 @@
 .. _Stack Overflow: https://stackoverflow.com/
 
 .. vim: ft=rst
-

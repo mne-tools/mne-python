@@ -14,6 +14,7 @@
 
 from datetime import date
 from distutils.version import LooseVersion
+import gc
 import os
 import os.path as op
 import sys
@@ -332,6 +333,7 @@ class Resetter(object):
 
     def __call__(self, gallery_conf, fname):
         reset_warnings(gallery_conf, fname)
+        gc.collect()
 
 
 def reset_warnings(gallery_conf, fname):
@@ -368,6 +370,7 @@ def reset_warnings(gallery_conf, fname):
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
                 "'U' mode is deprecated",  # sphinx io
+                r"joblib is deprecated in 0\.21",  # nilearn
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -441,6 +444,7 @@ numpydoc_attributes_as_param_list = False
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     'Popen': 'python:subprocess.Popen',
+    'file-like': ':term:`file-like <python:file object>`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',

@@ -5,9 +5,14 @@
 
 What's new
 ==========
-..
-    Note, we are now using links to highlight new functions and classes.
-    Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
+.. NOTE: we are now using links to highlight new functions and classes.
+   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
+   whats_new page will have a link to the function/class documentation.
+
+.. NOTE: there are 3 separate sections for changes, based on type:
+   - "Changelog" for new features
+   - "Bug" for bug fixes
+   - "API" for backward-incompatible changes
 
 .. currentmodule:: mne
 
@@ -21,8 +26,10 @@ Changelog
 
 - Add :func:`mne.simulation.stc_cosine_score`, :func:`mne.simulation.stc_roc_auc_score`, :func:`mne.simulation.stc_region_localization_error`, :func:`mne.simulation.stc_f1_score`, :func:`mne.simulation.stc_precision_score`, :func:`mne.simulation.stc_recall_score`, :func:`mne.simulation.stc_peak_position_error` and :func:`mne.simulation.stc_spacial_deviation` to compute metrics between source estimates, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
 
+- Add example on how to simulate raw data using subject anatomy, by `Ivana Kojcic`_,`Eric Larson`_,`Samuel Deslauriers-Gauthier`_ and`Kostiantyn Maksymenko`_
+
 - :func:`mne.beamformer.apply_lcmv_cov` returns static source power after supplying a data covariance matrix to the beamformer filter by `Britta Westner`_ and `Marijn van Vliet`_
-  
+
 - Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
 
 - :meth:`mne.Epochs.get_data` now takes a ``picks`` parameter by `Jona Sassenhagen`_
@@ -60,6 +67,8 @@ Changelog
 - Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
 
 - Add envelope correlation code in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
+
+- Add option to toggle all projectors in :meth:`mne.io.Raw.plot` and related functions by `Eric Larson`_
 
 - Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
 
@@ -103,6 +112,8 @@ Changelog
 
 - Add support for CUDA-based correlation computations and progress bars in :class:`mne.decoding.ReceptiveField` by `Eric Larson`_
 
+- Add support for file-like objects in :func:`mne.io.read_raw_fif` as long as preloading is used by `Eric Larson`_
+
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
 - Add option to SSP preprocessing functions (e.g., :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.compute_proj_epochs`) to process MEG channels jointly with ``meg='combined'`` by `Eric Larson`_
@@ -135,13 +146,20 @@ Changelog
 
 - Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
 
+- Add partial support for PyVista as a 3D backend using :func:`mne.viz.use_3d_backend` by `Guillaume Favelier`_
+
 - Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
 
 - Add :class:`mne.realtime.MockLSLStream` to simulate an LSL stream for testing and examples by `Teon Brooks`_
 
 Bug
 ~~~
+
+- Fix annotations in split fif files :func:`mne.io.read_raw_fif` by `Joan Massich`_
+
 - Fix :meth:`mne.Epochs.plot` with ``scalings='auto'`` to properly compute channel-wise scalings by `Stefan Repplinger`_
+
+- Fix :func:`mne.gui.coregistration` and :ref:`mne coreg <gen_mne_coreg>` crashing with segmentation fault when switching subjects by `Eric Larson`_
 
 - Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
 
@@ -154,6 +172,8 @@ Bug
 - Fix bug with ``weight_norm='unit-gain'`` in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Britta Westner`_
 
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
+- Fix bug in :func:`mne.preprocessing.mark_flat` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
 
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
@@ -191,6 +211,8 @@ Bug
 - Fix CTF helmet plotting in :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
 
 - Fix saving of rejection parameters in :meth:`mne.Epochs.save` by `Eric Larson`_
+
+- Fix orientations returned by :func:`mne.dipole.get_phantom_dipoles` (half were flipped 180 degrees) by `Eric Larson`_
 
 - Fix bug in :func:`mne.viz.plot_compare_evokeds` when ``evoked.times[0] >= 0`` would cause a problem with ``vlines='auto'`` mode by `Eric Larson`_
 
@@ -3332,11 +3354,15 @@ of commits):
 
 .. _Jeff Hanna: https://github.com/jshanna100
 
+.. _kalenkovich: https://github.com/kalenkovich
+
 .. _Antoine Gauthier: https://github.com/Okamille
 
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
 
 .. _Sebastian Castano: https://github.com/jscastanoc
+
+.. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
 .. _Katarina Slama: https://katarinaslama.github.io
 

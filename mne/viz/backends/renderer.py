@@ -26,8 +26,8 @@ logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == 'vtki':
-    from ._vtki import _Renderer, _Projection  # lgtm # noqa: F401
+elif MNE_3D_BACKEND == 'pyvista':
+    from ._pyvista import _Renderer, _Projection  # lgtm # noqa: F401
 
 
 def set_3d_backend(backend_name):
@@ -70,8 +70,10 @@ def use_3d_backend(backend_name):
     """
     old_backend = get_3d_backend()
     set_3d_backend(backend_name)
-    yield
-    set_3d_backend(old_backend)
+    try:
+        yield
+    finally:
+        set_3d_backend(old_backend)
 
 
 @contextmanager
@@ -85,6 +87,6 @@ def _use_test_3d_backend(backend_name):
     """
     with use_3d_backend(backend_name):
         global MNE_3D_BACKEND_TEST_DATA
-        if backend_name == 'vtki':
+        if backend_name == 'pyvista':
             MNE_3D_BACKEND_TEST_DATA = True
         yield
