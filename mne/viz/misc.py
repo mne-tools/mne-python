@@ -26,9 +26,11 @@ from ..surface import read_surface
 from ..io.proj import make_projector
 from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types
 from ..source_space import read_source_spaces, SourceSpaces
-from ..utils import logger, verbose, get_subjects_dir, warn, _check_option
+from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
+                     _mask_to_onsets_offsets)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
+from ..fixes import get_sosfiltfilt
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
 
 
@@ -634,9 +636,13 @@ def _filter_ticks(lims, fscale):
         return None, None  # let matplotlib handle it
     lims = np.array(lims)
     ticks = list()
+    if lims[1] > 20 * lims[0]:
+        base = np.array([1, 2, 4])
+    else:
+        base = np.arange(1, 11)
     for exp in range(int(np.floor(np.log10(lims[0]))),
                      int(np.floor(np.log10(lims[1]))) + 1):
-        ticks += (np.array([1, 2, 4]) * (10 ** exp)).tolist()
+        ticks += (base * (10 ** exp)).tolist()
     ticks = np.array(ticks)
     ticks = ticks[(ticks >= lims[0]) & (ticks <= lims[1])]
     ticklabels = [('%g' if t < 1 else '%d') % t for t in ticks]
@@ -669,8 +675,12 @@ def _check_fscale(fscale):
                          % (fscale,))
 
 
+_DEFAULT_ALIM = (-80, 10)
+
+
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
-                flim=None, fscale='log', alim=(-60, 10), show=True):
+                flim=None, fscale='log', alim=_DEFAULT_ALIM, show=True,
+                compensate=False):
     """Plot properties of a filter.
 
     Parameters
@@ -700,6 +710,16 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         The y-axis amplitude limits (dB) to use (default: (-60, 10)).
     show : bool
         Show figure if True (default).
+    compensate : bool
+        If True, compensate for the filter delay (phase will not be shown).
+
+        - For linear-phase FIR filters, this visualizes the filter coefficients
+          assuming that the output will be shifted by ``N // 2``.
+        - For IIR filters, this changes the filter coefficient display
+          by filtering backward and forward, and the frequency response
+          by squaring it.
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -715,8 +735,10 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     -----
     .. versionadded:: 0.14
     """
-    from scipy.signal import freqz, group_delay
+    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import FormatStrFormatter, NullFormatter
+    sosfiltfilt = get_sosfiltfilt()
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
     flim = _get_flim(flim, fscale, freq, sfreq)
@@ -727,62 +749,98 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     omega /= sfreq / (2 * np.pi)
     if isinstance(h, dict):  # IIR h.ndim == 2:  # second-order sections
         if 'sos' in h:
-            from scipy.signal import sosfilt
-            h = h['sos']
             H = np.ones(len(omega), np.complex128)
             gd = np.zeros(len(omega))
-            for section in h:
+            for section in h['sos']:
                 this_H = freqz(section[:3], section[3:], omega)[1]
                 H *= this_H
-                with warnings.catch_warnings(record=True):  # singular GD
-                    warnings.simplefilter('ignore')
-                    gd += group_delay((section[:3], section[3:]), omega)[1]
-            n = estimate_ringing_samples(h)
+                if compensate:
+                    H *= this_H.conj()  # time reversal is freq conj
+                else:
+                    # Assume the forward-backward delay zeros out, which it
+                    # mostly should
+                    with warnings.catch_warnings(record=True):  # singular GD
+                        warnings.simplefilter('ignore')
+                        gd += group_delay((section[:3], section[3:]), omega)[1]
+            n = estimate_ringing_samples(h['sos'])
             delta = np.zeros(n)
             delta[0] = 1
-            h = sosfilt(h, delta)
+            if compensate:
+                delta = np.pad(delta, [(n - 1, 0)], 'constant')
+                func = sosfiltfilt
+                gd += (len(delta) - 1) // 2
+            else:
+                func = sosfilt
+            h = func(h['sos'], delta)
         else:
-            from scipy.signal import lfilter
-            n = estimate_ringing_samples((h['b'], h['a']))
-            delta = np.zeros(n)
-            delta[0] = 1
             H = freqz(h['b'], h['a'], omega)[1]
+            if compensate:
+                H *= H.conj()
             with warnings.catch_warnings(record=True):  # singular GD
                 warnings.simplefilter('ignore')
                 gd = group_delay((h['b'], h['a']), omega)[1]
-            h = lfilter(h['b'], h['a'], delta)
-        title = 'SOS (IIR) filter' if title is None else title
+                if compensate:
+                    gd += group_delay(h['b'].conj(), h['a'].conj(), omega)[1]
+            n = estimate_ringing_samples((h['b'], h['a']))
+            delta = np.zeros(n)
+            delta[0] = 1
+            if compensate:
+                delta = np.pad(delta, [(n - 1, 0)], 'constant')
+                func = filtfilt
+            else:
+                func = lfilter
+            h = func(h['b'], h['a'], delta)
+        if title is None:
+            title = 'SOS (IIR) filter'
+        if compensate:
+            title += ' (forward-backward)'
     else:
         H = freqz(h, worN=omega)[1]
         with warnings.catch_warnings(record=True):  # singular GD
             warnings.simplefilter('ignore')
             gd = group_delay((h, [1.]), omega)[1]
         title = 'FIR filter' if title is None else title
-    gd /= sfreq
+        if compensate:
+            title += ' (delay-compensated)'
     # eventually axes could be a parameter
     fig, (ax_time, ax_freq, ax_delay) = plt.subplots(3)
-    t = np.arange(len(h)) / sfreq
+    t = np.arange(len(h))
+    if compensate:
+        n_shift = (len(h) - 1) // 2
+        t -= n_shift
+        assert t[0] == -t[-1]
+        gd -= n_shift
+    t = t / sfreq
+    gd = gd / sfreq
     f = omega * sfreq / (2 * np.pi)
     ax_time.plot(t, h, color=color)
     ax_time.set(xlim=t[[0, -1]], xlabel='Time (s)',
                 ylabel='Amplitude', title=title)
     mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
-    ax_freq.plot(f, mag, color=color, linewidth=2, zorder=4)
-    if freq is not None and gain is not None:
-        plot_ideal_filter(freq, gain, ax_freq, fscale=fscale,
-                          title=None, show=False)
-    ax_freq.set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
     sl = slice(0 if fscale == 'linear' else 1, None, None)
+    # Magnitude
+    ax_freq.plot(f[sl], mag[sl], color=color, linewidth=2, zorder=4)
+    if freq is not None and gain is not None:
+        plot_ideal_filter(freq, gain, ax_freq, fscale=fscale, show=False)
+    ax_freq.set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
+    # Delay
     ax_delay.plot(f[sl], gd[sl], color=color, linewidth=2, zorder=4)
+    # shade nulled regions
+    for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
+        ax_delay.axvspan(f[start], f[stop - 1], facecolor='k', alpha=0.05,
+                         zorder=5)
     ax_delay.set(xlim=flim, ylabel='Group delay (s)', xlabel='Frequency (Hz)',
                  xscale=fscale)
     xticks, xticklabels = _filter_ticks(flim, fscale)
-    dlim = [0, 1.05 * gd[1:].max()]
+    dlim = np.abs(t).max() / 2.
+    dlim = [-dlim, dlim]
     for ax, ylim, ylabel in ((ax_freq, alim, 'Amplitude (dB)'),
                              (ax_delay, dlim, 'Delay (s)')):
         if xticks is not None:
             ax.set(xticks=xticks)
             ax.set(xticklabels=xticklabels)
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
+        ax.xaxis.set_minor_formatter(NullFormatter())
         ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
     adjust_axes([ax_time, ax_freq, ax_delay])
     tight_layout()
@@ -791,7 +849,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
 
 
 def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
-                      alim=(-60, 10), color='r', alpha=0.5, linestyle='--',
+                      alim=_DEFAULT_ALIM, color='r', alpha=0.5, linestyle='--',
                       show=True):
     """Plot an ideal filter response.
 
@@ -846,7 +904,6 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
 
     """
     import matplotlib.pyplot as plt
-    xs, ys = list(), list()
     my_freq, my_gain = list(), list()
     if freq[0] != 0:
         raise ValueError('freq should start with DC (zero) and end with '
@@ -857,12 +914,10 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
     if fscale == 'log':
         freq[0] = 0.1 * freq[1] if flim is None else min(flim[0], freq[1])
     flim = _get_flim(flim, fscale, freq)
+    transitions = list()
     for ii in range(len(freq)):
-        xs.append(freq[ii])
-        ys.append(alim[0])
         if ii < len(freq) - 1 and gain[ii] != gain[ii + 1]:
-            xs += [freq[ii], freq[ii + 1]]
-            ys += [alim[1]] * 2
+            transitions += [[freq[ii], freq[ii + 1]]]
             my_freq += np.linspace(freq[ii], freq[ii + 1], 20,
                                    endpoint=False).tolist()
             my_gain += np.linspace(gain[ii], gain[ii + 1], 20,
@@ -873,8 +928,8 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
     my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.)))
     if axes is None:
         axes = plt.subplots(1)[1]
-    xs = np.maximum(xs, flim[0])
-    axes.fill_between(xs, alim[0], ys, color=color, alpha=0.1)
+    for transition in transitions:
+        axes.axvspan(*transition, color=color, alpha=0.1)
     axes.plot(my_freq, my_gain, color=color, linestyle=linestyle, alpha=0.5,
               linewidth=4, zorder=3)
     xticks, xticklabels = _filter_ticks(flim, fscale)
@@ -884,6 +939,8 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         axes.set(xticks=xticks)
         axes.set(xticklabels=xticklabels)
     axes.set(xlim=flim)
+    if title:
+        axes.set(title=title)
     adjust_axes(axes)
     tight_layout()
     plt_show(show)
