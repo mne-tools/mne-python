@@ -21,7 +21,6 @@ from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.annotations import events_from_annotations
-from mne.io.brainvision.brainvision import _bv_parser
 
 data_dir = op.join(op.dirname(__file__), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
@@ -436,23 +435,6 @@ def test_brainvision_neuroone_export():
 def test_read_vmrk_annotations():
     """Test load brainvision annotations."""
     sfreq = 1000.0
-    annotations = read_annotations(vmrk_path, sfreq=sfreq)
-    assert annotations.orig_time == 1384359243.794231
-    expected = np.array([0, 486., 496., 1769., 1779., 3252., 3262., 4935.,
-                         4945., 5999., 6619., 6629., 7629., 7699.]) / sfreq
-    description = ['New Segment/',
-                   'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
-                   'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255',
-                   'Stimulus/S253', 'Stimulus/S255', 'Response/R255',
-                   'Stimulus/S254', 'Stimulus/S255',
-                   'SyncStatus/Sync On', 'Optic/O  1']
-    assert_array_almost_equal(annotations.onset,
-                              expected, decimal=7)
-    assert_array_equal(annotations.description, description)
-
-    # Test automatic detection of sfreq from header file
-    annotations_auto = read_annotations(vmrk_path)
-    assert_array_equal(annotations.onset, annotations_auto.onset)
 
     # Test vmrk file without annotations
     # delete=False is for Windows compatibility
@@ -462,47 +444,58 @@ def test_read_vmrk_annotations():
         for item in head:
             temp.write(item)
         temp.seek(0)
-        annotations = read_annotations(temp.name, sfreq=sfreq)
+        read_annotations(temp.name, sfreq=sfreq)
     try:
         temp.close()
         unlink(temp.name)
     except FileNotFoundError:
         pass
 
-    raw = read_raw_brainvision(vhdr_path)
-    with pytest.warns(RuntimeWarning, match='unambiguously'):  # XXX fix?
-        events, event_id = events_from_annotations(raw)
-    for key, value in event_id.items():
-        offset = 1000 if key.startswith('Response') else 0
-        assert int(key[-3:].lstrip()) + offset == value
 
-    assert _bv_parser("Stimulus/S 11") == 11
-    assert _bv_parser("Stimulus/S202") == 202
-    assert _bv_parser("Response/R 12", add_for_r=100) == 112
+@testing.requires_testing_data
+def test_read_vhdr_annotations_and_events():
+    """Test load brainvision annotations and parse them to events."""
+    sfreq = 1000.0
+    expected_orig_time = 1384359243.794231
+    expected_onset_latency = np.array(
+        [0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945., 5999., 6619.,
+         6629., 7629., 7699.]
+    )
+    expected_annot_description = [
+        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
+        'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255', 'Stimulus/S253',
+        'Stimulus/S255', 'Response/R255', 'Stimulus/S254', 'Stimulus/S255',
+        'SyncStatus/Sync On', 'Optic/O  1'
+    ]
+    expected_events = np.stack([
+        expected_onset_latency,
+        np.zeros_like(expected_onset_latency),
+        [99999, 253, 255, 254, 255, 254, 255, 253, 255, 1255, 254, 255, 99998,
+         3001],
+    ]).astype('int64').T
 
-
-def test_bv_annotation_events(tmpdir):
-    """Test that events are read and parsed properly."""
     raw = read_raw_brainvision(vhdr_path, eog=eog)
+
+    # validate annotations
+    assert raw.annotations.orig_time == expected_orig_time
+    assert_allclose(raw.annotations.onset, expected_onset_latency / sfreq)
+    assert_array_equal(raw.annotations.description, expected_annot_description)
+
+    # validate event extraction
     with pytest.warns(RuntimeWarning, match='unambiguously'):
         events, event_id = events_from_annotations(raw)
-    # events = events[events[:, 2] != event_id['Sync On']]  # no longer there
-    # from 0.15:
-    old_expected = np.array([[487, 1, 253],
-                             [497, 1, 255],
-                             [1770, 1, 254],
-                             [1780, 1, 255],
-                             [3253, 1, 254],
-                             [3263, 1, 255],
-                             [4936, 1, 253],
-                             [4946, 1, 255],
-                             [6000, 1, 255],
-                             [6620, 1, 254],
-                             [6630, 1, 255]])
-    expected = old_expected - [1, 0, 0]  # slight onset shift
-    expected[:, 1] = 0  # second col is zeros
-    expected[-3, 2] += 1000  # one response
-    assert_array_equal(events, expected)
+    _expected_events = expected_events[expected_events[:, 2] < 2000, :]
+    _expected_event_id = {'Stimulus/S253': 253, 'Stimulus/S255': 255,
+                          'Stimulus/S254': 254, 'Response/R255': 1255}
+    assert_array_equal(events, _expected_events)
+    assert event_id == _expected_event_id
+
+
+@testing.requires_testing_data
+def test_automatic_vmrk_sfreq_recovery():
+    """Test proper sfreq inference by checking the onsets."""
+    assert_array_equal(read_annotations(vmrk_path, sfreq='auto'),
+                       read_annotations(vmrk_path, sfreq=1000.0))
 
 
 run_tests_if_main()
