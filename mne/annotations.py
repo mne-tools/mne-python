@@ -831,18 +831,17 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
           Only the descriptions present will be mapped, others will be ignored.
         - **callable**: must take a string input and returns an integer event
           code or None to ignore it.
-        - **None**: Descriptions are mapped to unique integer values
-          based on their ``sorted`` order.
-        - **'auto' (default)**: prefer a format-specific parser:
+        - **None**: Map descriptions to unique integer values based on their
+          ``sorted`` order.
+        - **'auto' (default)**: prefer a raw-format-specific parser:
 
-          - Brainvision: stimulus events mapped to their integer part; response
+          - Brainvision: map stimulus events to their integer part; response
             events to integer part + 1000; optic events to integer part + 2000;
             'SyncStatus/Sync On' to 99998; 'New Segment/' to 99999;
-            all others mapped like ``None`` with an offset of 10000.
+            all others like ``None`` with an offset of 10000.
           - Other raw formats: Behaves like None.
 
           .. versionadded:: 0.18
-
     regexp : str | None
         Regular expression used to filter the annotations whose
         descriptions is a match.
