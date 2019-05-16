@@ -496,9 +496,11 @@ def test_read_vhdr_annotations_and_events():
     events, event_id = events_from_annotations(raw, event_id=None)
     assert event_id == expected_none_event_id
 
-    # Add some custom ones
-    raw.annotations.append([1, 2], 10, ['ZZZ', 'YYY'])
+    # Add some custom ones, plus a 2-digit one
+    s_10 = 'Stimulus/S 10'
+    raw.annotations.append([1, 2, 3], 10, ['ZZZ', s_10, 'YYY'])
     expected_event_id.update(YYY=10001, ZZZ=10002)  # others starting at 10001
+    expected_event_id[s_10] = 10
     _, event_id = events_from_annotations(raw)
     assert event_id == expected_event_id
 
