@@ -842,14 +842,17 @@ def read_raw_brainvision(vhdr_fname, montage=None,
 
 def _bv_parser(description, offsets=_BV_EVENT_IO_OFFSETS):
     """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
-    code = None  # None is a valid code
-    if description[:-3] in offsets:
+    OTHER_ACCEPTED_MARKERS = {
+        'New Segment/': 99999, 'SyncStatus/Sync On': 99998
+    }
+
+    code = None  # None is a valid code that drops the event
+    if description[-3:].isdigit() and description[:-3] in offsets:
         code = int(description[-3:]) + offsets[description[:-3]]
+    elif description in OTHER_ACCEPTED_MARKERS:
+        code = OTHER_ACCEPTED_MARKERS[description]
     else:
-        special = {'New Segment/': 99999, 'SyncStatus/Sync On': 99998}
-        if description in special:
-            code = special[description]
-        else:
-            warn("Marker '%s' could not be unambiguously mapped to an int "
-                 "and will be dropped." % description)
+        warn("Marker '%s' could not be unambiguously mapped to an int "
+             "and will be dropped." % description)
+
     return code
