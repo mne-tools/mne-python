@@ -23,6 +23,9 @@ Current
 
 Changelog
 ~~~~~~~~~
+
+- Add ``event_id='auto'`` in :func:`mne.events_from_annotations` to accommodate Brainvision markers by `Jona Sassenhagen`_, `Joan Massich`_ and `Eric Larson`_
+
 - Add example on how to simulate raw data using subject anatomy, by `Ivana Kojcic`_,`Eric Larson`_,`Samuel Deslauriers-Gauthier`_ and`Kostiantyn Maksymenko`_
 
 - :func:`mne.beamformer.apply_lcmv_cov` returns static source power after supplying a data covariance matrix to the beamformer filter by `Britta Westner`_ and `Marijn van Vliet`_
