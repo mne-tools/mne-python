@@ -76,6 +76,8 @@ ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency',
 plt.show()
 
 ###############################################################################
+# .. _inter-trial-coherence:
+#
 # Time-frequency analysis: power and inter-trial coherence
 # --------------------------------------------------------
 #

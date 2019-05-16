@@ -79,40 +79,11 @@ environment (``conda activate mne``), and use ``pip``:
 
    $ pip install --upgrade --no-deps git+https://github.com/mne-tools/mne-python.git
 
-If you plan to contribute to MNE-Python, or if you prefer to update frequently,
-you can use ``git`` directly (again, within the ``mne`` conda environment):
+If you plan to contribute to MNE-Python, or just prefer to use git rather than
+pip to make frequent updates, check out the :ref:`contributing guide
+<contributing>`.
 
-.. code-block:: console
-
-   $ cd <path_to_where_you_want_mne-python_source_code_installed>
-   $ git clone git://github.com/mne-tools/mne-python.git
-   $ cd mne-python
-   $ python setup.py develop
-
-A feature of ``python setup.py develop`` is that any changes made to
-the files (e.g., by updating to latest ``master``) will be reflected in
-``mne`` as soon as you restart your Python interpreter. So to update to
-the latest version of the ``master`` development branch, you can do:
-
-.. code-block:: console
-
-   $ git pull origin master
-
-from within the ``mne-python`` source folder, and MNE will be automatically
-updated to have the latest changes.
-
-.. note::
-
-    When using the `environment file`_ to install with Anaconda or Miniconda,
-    the name of the environment (``mne``) is built into the environment file
-    itself, but can be changed on the command line with the ``-n`` flag. This
-    can be helpful when maintaining separate environments for stable and
-    development versions of MNE-Python, or when using the environment file as a
-    starting point for new projects.  See ``conda env create --help`` for more
-    info.
-
-If you plan to contribute to MNE-Python, please continue reading how to
-:doc:`contribute to MNE-Python <contributing>`.
+.. _other-py-distros:
 
 Using MNE-Python with other Python distributions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

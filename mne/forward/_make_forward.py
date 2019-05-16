@@ -6,7 +6,7 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import contextlib
+from contextlib import contextmanager
 import os
 import os.path as op
 
@@ -245,8 +245,9 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
                 'BEM is in %s coordinates, should be in MRI'
                 % (_coord_frame_name(bem['surfs'][0]['coord_frame']),))
         if neeg > 0 and len(bem['surfs']) == 1:
-            raise RuntimeError('Cannot use a homogeneous model in EEG '
-                               'calculations')
+            raise RuntimeError('Cannot use a homogeneous (1-layer BEM) model '
+                               'for EEG forward calculations, consider '
+                               'using a 3-layer BEM instead')
         logger.info('Employing the head->MRI coordinate transform with the '
                     'BEM model.')
         # fwd_bem_set_head_mri_t: Set the coordinate transformation
@@ -764,7 +765,7 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
     return fwd
 
 
-@contextlib.contextmanager
+@contextmanager
 def use_coil_def(fname):
     """Use a custom coil definition file.
 

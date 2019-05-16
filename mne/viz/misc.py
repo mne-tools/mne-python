@@ -449,18 +449,19 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         The sample frequency. If None, data will be displayed in samples (not
         seconds).
     first_samp : int
-        The index of the first sample. Typically the raw.first_samp
-        attribute. It is needed for recordings on a Neuromag
-        system as the events are defined relative to the system
-        start and not to the beginning of the recording.
+        The index of the first sample. Recordings made on Neuromag systems
+        number samples relative to the system start (not relative to the
+        beginning of the recording). In such cases the ``raw.first_samp``
+        attribute can be passed here. Default is 0.
     color : dict | None
-        Dictionary of event_id value and its associated color. If None,
+        Dictionary of event_id integers as keys and colors as values. If None,
         colors are automatically drawn from a default list (cycled through if
-        number of events longer than list of default colors).
+        number of events longer than list of default colors). Color can be any
+        valid :doc:`matplotlib color <tutorials/colors/colors>`.
     event_id : dict | None
-        Dictionary of event label (e.g. 'aud_l') and its associated
-        event_id value. Label used to plot a legend. If None, no legend is
-        drawn.
+        Dictionary of event labels (e.g. 'aud_l') as keys and their associated
+        event_id values. Labels are used to plot a legend. If None, no legend
+        is drawn.
     axes : instance of Axes
        The subplot handle.
     equal_spacing : bool
@@ -902,8 +903,8 @@ def _handle_event_colors(unique_events, color, unique_events_id):
     else:
         for this_event in color:
             if this_event not in unique_events_id:
-                raise ValueError('%s from color is not present in events '
-                                 'or event_id.' % this_event)
+                raise ValueError('Event ID %s is in the color dict but is not '
+                                 'present in events or event_id.' % this_event)
 
         for this_event in unique_events_id:
             if this_event not in color:
