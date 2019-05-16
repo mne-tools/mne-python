@@ -457,7 +457,7 @@ def stc_peak_position_error(stc_true, stc_est, src, threshold='50%',
     r"""Compute the peak position error.
 
     The peak position error measures the distance between the center-of-mass
-    of the estimate and the true source.
+    of the estimated and the true source.
 
     .. math::
 
@@ -468,8 +468,8 @@ def stc_peak_position_error(stc_true, stc_est, src, threshold='50%',
     :math:`r_i` and :math:`|s_i|` denote respectively the position
     and amplitude of i-th dipole in source estimate.
 
-    Threshold is used on estimate source for focusing the metric to strong
-    estimated amplitudes and omitting the low-amplitude values.
+    Threshold is used on estimated source for focusing the metric to strong
+    amplitudes and omitting the low-amplitude values.
 
     Parameters
     ----------
@@ -531,8 +531,8 @@ def stc_spacial_deviation(stc_true, stc_est, src, threshold='50%',
     :math:`r_i` and :math:`|s_i|` denote respectively the position
     and amplitude of i-th dipole in source estimate.
 
-    Threshold is used on estimate source for focusing the metric to strong
-    estimated amplitudes and omitting the low-amplitude values.
+    Threshold is used on estimated source for focusing the metric to strong
+    amplitudes and omitting the low-amplitude values.
 
     Parameters
     ----------

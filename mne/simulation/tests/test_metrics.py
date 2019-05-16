@@ -252,6 +252,7 @@ def test_peak_position_error():
     score = stc_peak_position_error(stc_true, stc_est, src, per_sample=False)
     assert_almost_equal(score, np.inf)
 
+
 @testing.requires_testing_data
 def test_spacial_deviation():
     """Test simulation metrics."""
@@ -262,8 +263,8 @@ def test_spacial_deviation():
     data2 = np.array([[1, 1.]]).T
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
-    std = np.sqrt(0.5 * (0 + norm(src[0]['rr'][vert2[0][1]]
-                  - src[0]['rr'][vert2[0][0]])**2))
+    std = np.sqrt(0.5 * (0 + norm(src[0]['rr'][vert2[0][1]] -
+                                  src[0]['rr'][vert2[0][0]])**2))
     score = stc_spacial_deviation(stc_true, stc_est, src, per_sample=False)
     assert_almost_equal(score, std)
 
