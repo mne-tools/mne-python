@@ -585,7 +585,8 @@ def _download_all_example_data(verbose=True):
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
-    sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
+    sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1],
+                                   update_path=True)
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
     fetch_fsaverage(None)
