@@ -557,6 +557,7 @@ def _download_all_example_data(verbose=True):
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti)
+    from .sleep_physionet import age
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -585,6 +586,7 @@ def _download_all_example_data(verbose=True):
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    age.fetch_data(subjects=[0, 1], recording=[1])
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
     fetch_fsaverage(None)
