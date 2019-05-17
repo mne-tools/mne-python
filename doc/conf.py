@@ -348,6 +348,8 @@ def reset_warnings(gallery_conf, fname):
     # restrict
     warnings.filterwarnings('error')
     # allow these, but show them
+    warnings.filterwarnings('always', '.*non-standard config type: "foo".*')
+    warnings.filterwarnings('always', '.*config type: "MNEE_USE_CUUDAA".*')
     warnings.filterwarnings('always', '.*cannot make axes width small.*')
     warnings.filterwarnings('always', '.*Axes that are not compatible.*')
     warnings.filterwarnings('always', '.*FastICA did not converge.*')

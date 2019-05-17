@@ -84,7 +84,7 @@ this package. You can also find a gallery of these examples in the
     glossary.rst
     auto_examples/index.rst
     generated/commands.rst
-    auto_tutorials/misc/plot_configuration.rst
+    auto_tutorials/intro/plot_configuration.rst
     cited.rst
     faq.rst
 
