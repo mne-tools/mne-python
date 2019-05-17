@@ -274,7 +274,7 @@ jobs:
             key: data-cache-8
             paths:
               - ~/mne_data/MNE-visual_92_categories-data
-              - ~~mne_data/MNE-limo-data
+              - ~/mne_data/MNE-limo-data
 
 
     linkcheck:
