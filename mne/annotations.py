@@ -815,7 +815,8 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 
 
 @verbose
-def events_from_annotations(raw, event_id="auto", regexp=None,
+def events_from_annotations(raw, event_id="auto",
+                            regexp=r'^(?![Bb][Aa][Dd]|[Ee][Dd][Gg][Ee]).*$',
                             use_rounding=True, chunk_duration=None,
                             verbose=None):
     """Get events and event_id from an Annotations object.
@@ -844,7 +845,11 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
           .. versionadded:: 0.18
     regexp : str | None
         Regular expression used to filter the annotations whose
-        descriptions is a match.
+        descriptions is a match. The default ignores descriptions beginning
+        ``'bad'`` or ``'edge'`` (case-insensitive).
+
+        .. versionchanged:: 0.18
+           Default ignores bad and edge descriptions.
     use_rounding : boolean
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
@@ -865,6 +870,7 @@ def events_from_annotations(raw, event_id="auto", regexp=None,
         The event_id variable that can be passed to Epochs.
     """
     if len(raw.annotations) == 0:
+        event_id = dict() if not isinstance(event_id, dict) else event_id
         return np.empty((0, 3), dtype=int), event_id
 
     annotations = raw.annotations
