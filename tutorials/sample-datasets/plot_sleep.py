@@ -13,7 +13,7 @@ answers the following question:
 
 .. important:: Given two subjects from the Sleep Physionet dataset [1]_ [2]_,
                namely *Alice* and *Bob*, how well can we predict the sleep
-               stages of *Bob* from *Alice* data?
+               stages of *Bob* from *Alice's* data?
 
 This problem is tackled as supervised multiclass classification task. The aim
 is to predict the sleep stage from 5 possible stages for each chunk of 30
