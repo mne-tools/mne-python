@@ -10,7 +10,7 @@ matlab [1]_. We will show how the :class:`mne.decoding.ReceptiveField` class
 can perform a similar function along with scikit-learn. We will first fit a
 linear encoding model using the continuously-varying speech envelope to predict
 activity of a 128 channel EEG system. Then, we will take the reverse approach
-and try to predict the speech envelope from the EEG (known in the litterature
+and try to predict the speech envelope from the EEG (known in the literature
 as a decoding model, or simply stimulus reconstruction).
 
 References

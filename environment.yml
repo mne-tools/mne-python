@@ -35,7 +35,7 @@ dependencies:
   - mne
   - vtk
   - pyvista
-  - https://api.github.com/repos/enthought/mayavi/zipball/226189a6ad3dc3c01d031ef21d0d0cde554ac851
+  - https://api.github.com/repos/enthought/mayavi/zipball/e2569be1096be3deecb15f8fa8581a3ae3fb77d3
   - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel

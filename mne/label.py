@@ -1010,7 +1010,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     Returns
     -------
     labels : list of Label
-        The contiguous labels, in order of decending size.
+        The contiguous labels, in order of descending size.
     """
     # Convert to correct input if necessary
     label_to_split, subject, subjects_dir = _prep_label_split(label_to_split,
