@@ -4,10 +4,8 @@
 
 import os
 import os.path as op
-import re
 import shutil
 import zipfile
-import tarfile
 from sys import stdout
 
 import scipy.io
@@ -17,7 +15,7 @@ import pandas as pd
 from ...channels import read_montage
 from ...epochs import EpochsArray
 from ...io.meas_info import create_info
-from ...utils import _fetch_file, _url_to_local_path, verbose
+from ...utils import _fetch_file, verbose
 from ..utils import _get_path, _do_path_update
 
 # root url for LIMO files
@@ -34,7 +32,7 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     """Get path to local copy of LIMO dataset URL.
 
     This is a low-level function useful for getting a local copy of the
-    remote LIMO dataset [1]_. The complete dataset is available at 
+    remote LIMO dataset [1]_. The complete dataset is available at
     datashare.is.ed.ac.uk/ [2]_.
 
     Parameters
