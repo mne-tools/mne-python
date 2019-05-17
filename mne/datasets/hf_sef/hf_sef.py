@@ -7,7 +7,7 @@
 import tarfile
 import os.path as op
 import os
-from ...utils import _fetch_file, verbose
+from ...utils import _fetch_file, verbose, _check_option
 from ..utils import _get_path, logger, _do_path_update
 
 
@@ -53,12 +53,14 @@ def data_path(dataset='evoked', path=None, force_update=False,
     destdir = op.join(path, 'HF_SEF')
 
     urls = {'evoked':
-            'https://zenodo.org/record/889235/files/hf_sef_evoked.tar.gz',
+            'https://osf.io/25f8d/download?version=1',
             'raw':
             'https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz'}
-    if dataset not in urls:
-        raise ValueError('Invalid dataset specified')
+    hashes = {'evoked': 'a3e36f006dcece8f1da50b602bfc9cbe',
+              'raw': None}  # don't have raw hash yet
+    _check_option('dataset', dataset, sorted(urls.keys()))
     url = urls[dataset]
+    hash_ = hashes[dataset]
     fn = url.split('/')[-1]  # pick the filename from the url
     archive = op.join(destdir, fn)
 
@@ -67,13 +69,13 @@ def data_path(dataset='evoked', path=None, force_update=False,
     subjdir = op.join(destdir, 'subjects')
     megdir_a = op.join(destdir, 'MEG', 'subject_a')
     has['evoked'] = op.isdir(destdir) and op.isdir(subjdir)
-    has['raw'] = op.isdir(destdir) and any(['raw' in fn_ for fn_ in
-                                            os.listdir(megdir_a)])
+    has['raw'] = op.isdir(megdir_a) and any(['raw' in fn_ for fn_ in
+                                             os.listdir(megdir_a)])
 
     if not has[dataset] or force_update:
         if not op.isdir(destdir):
             os.mkdir(destdir)
-        _fetch_file(url, archive)
+        _fetch_file(url, archive, hash_=hash_)
 
         with tarfile.open(archive) as tar:
             logger.info('Decompressing %s' % archive)
