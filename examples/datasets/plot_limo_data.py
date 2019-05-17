@@ -23,8 +23,6 @@ mne.datasets.limo.load_data() creates a custom info and
 epochs structure in MNE-Python.
 Missing channels can be interpolated if desired.
 
-.. note:: Downloading the LIMO dataset for the first time can take some time (8 GB).
-
 
 References
 ----------
@@ -37,14 +35,16 @@ References
 #
 # License: BSD (3-clause)
 
+import numpy as np
+
 import mne
 from mne.datasets import limo
 from mne.stats import linear_regression
 
 print(__doc__)
 
-# fetch data from subject 2
-limo_epochs = load_data(subject=2, interpolate=True)
+# fetch data from subject 2 and interpolate missing channels
+limo_epochs = limo.load_data(subject=2, interpolate=True)
 
 # check distribution of events (should be ordered)
 mne.viz.plot_events(limo_epochs.events)
@@ -67,12 +67,14 @@ design[names].head()
 # fit linear model
 reg = linear_regression(limo_epochs, design[names], names=names)
 
-reg['Face_Effect'].beta.plot_joint(title='Face_Effect',
-                                   ts_args=dict(time_unit='s'),
-                                   topomap_args=dict(time_unit='s'),
-                                   times=[.16])
-
+# plot effect of noise variable
 reg['Noise'].beta.plot_joint(title='Effect of Noise',
                              ts_args=dict(time_unit='s'),
                              topomap_args=dict(time_unit='s'),
                              times=[.125, .225])
+
+# plot effect of condition
+reg['Face_Effect'].beta.plot_joint(title='Face_Effect',
+                                   ts_args=dict(time_unit='s'),
+                                   topomap_args=dict(time_unit='s'),
+                                   times=[.16])

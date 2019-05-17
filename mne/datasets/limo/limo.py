@@ -20,19 +20,27 @@ from ...io.meas_info import create_info
 from ...utils import _fetch_file, _url_to_local_path, verbose
 from ..utils import _get_path, _do_path_update
 
+# root url for LIMO files
+root_url = 'https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/'
+
+# subject identifier
+subject_ids = {'S1': '5cde823c8d6e050018595862',
+               'S2': '5cde825e23fec40017e0561a'}
+
 
 @verbose
-def data_path(url, path=None, force_update=False, update_path=None,
+def data_path(subject, path=None, force_update=False, update_path=None,
               verbose=None):
     """Get path to local copy of LIMO dataset URL.
 
     This is a low-level function useful for getting a local copy of the
-    remote LIMO dataset [1]_ which is available at datashare.is.ed.ac.uk/ [2]_.
+    remote LIMO dataset [1]_. The complete dataset is available at 
+    datashare.is.ed.ac.uk/ [2]_.
 
     Parameters
     ----------
-    url : str
-        The location from where the dataset should be downloaded.
+    subject : int
+        Subject to download. Must be of class ìnt in the range from 1 to 18.
     path : None | str
         Location of where to look for the LIMO data storing directory.
         If None, the environment variable or config parameter
@@ -50,23 +58,21 @@ def data_path(url, path=None, force_update=False, update_path=None,
     Returns
     -------
     path : str
-        Local path to the given data file. This path is contained inside a list
-        of length one, for compatibility.
+        Local path to the given data file.
 
     Notes
     -----
     For example, one could do:
 
         >>> from mne.datasets import limo
-        >>> url = 'http://datashare.is.ed.ac.uk/download/DS_10283_2189.zip'
-        >>> limo.data_path(url, os.getenv('HOME') + '/datasets') # doctest:+SKIP
+        >>> limo.data_path(subject=1, path=os.getenv('HOME') + '/datasets') # doctest:+SKIP
 
     This would download the LIMO data file to the 'datasets' folder,
     and prompt the user to save the 'datasets' path to the mne-python config,
     if it isn't there already.
 
     References
-    ----------           
+    ----------
     .. [1] Guillaume, Rousselet. (2016). LIMO EEG Dataset, [dataset].
            University of Edinburgh, Centre for Clinical Brain Sciences.
            https://doi.org/10.7488/ds/1556.
@@ -77,57 +83,36 @@ def data_path(url, path=None, force_update=False, update_path=None,
     name = 'LIMO'
     path = _get_path(path, key, name)
     limo_dir = op.join(path, 'MNE-limo-data')
-    destination = re.sub('/download', '', _url_to_local_path(url, limo_dir))
+    subject_id = 'S%s' % subject
+    destination = op.join(limo_dir, '%s.zip') % subject_id
 
-    # fetch data from online repository if required
+    # url for subject in question
+    url = op.join(root_url, subject_ids[subject_id], '?zip=')
+
+    # check if LIMO directory exists; update if desired
     if not op.isdir(limo_dir) or force_update:
         if op.isdir(limo_dir):
             shutil.rmtree(limo_dir)
         if not op.isdir(limo_dir):
             os.makedirs(limo_dir)
+
+    # check if subject in question exists
+    if not op.isdir(op.join(limo_dir, subject_id)):
+        os.makedirs(op.join(limo_dir, subject_id))
         _fetch_file(url, destination, print_destination=False)
 
         # check if download is a zip-folder
         if any(group.endswith(".zip") for group in op.splitext(destination)):
+            if not op.isdir(op.join(limo_dir, subject_id)):
+                os.makedirs(op.join(limo_dir, subject_id))
             with zipfile.ZipFile(destination) as z1:
                 files = [op.join(limo_dir, file) for file in z1.namelist()]
                 stdout.write('Decompressing %g files from\n'
                              '"%s" ...' % (len(files), destination))
-                z1.extractall(limo_dir)
+                z1.extractall(op.join(limo_dir, subject_id))
                 stdout.write(' [done]\n')
                 z1.close()
                 os.remove(destination)
-
-            # check if further .zip-folders are contained
-            zips = [file for file in files if file.endswith('.zip')]
-            if zips:
-                for file in zips:
-                    with zipfile.ZipFile(file) as z2:
-                        in_zip = z2.namelist()
-                        stdout.write('Decompressing .zip-files ...\n')
-                        z2.extractall(limo_dir)
-                        z2.close()
-                        os.remove(file)
-                    # continue decompressing if necessary
-                    zfiles = [file for file in in_zip if file.endswith('.zip')]
-                    if zfiles:
-                        for zfile in zfiles:
-                            zfile = op.join(limo_dir, zfile)
-                            with zipfile.ZipFile(zfile) as z3:
-                                z3.extractall(op.split(zfile)[0])
-                                z3.close()
-                                os.remove(zfile)
-
-            # check if .tar-folders are contained
-            tars = [file for file in files if file.endswith('.tar')]
-            if tars:
-                for file in tars:
-                    with tarfile.open(op.join(limo_dir, file)) as tar:
-                        stdout.write('Decompressing .tar-files ...\n')
-                        tar.extractall(limo_dir)
-                        tar.close()
-                        os.remove(op.join(limo_dir, file))
-            stdout.write(' [done]\n')
 
     # update path if desired
     _do_path_update(path, update_path, key, name)
@@ -137,7 +122,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
 
 @verbose
 def load_data(subject, path=None, interpolate=False, force_update=False,
-              update_path=None, url=None, verbose=None):  # noqa: D301
+              update_path=None, verbose=None):
     """Fetch subjects epochs data for the LIMO data set.
 
     Parameters
@@ -156,9 +141,6 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     update_path : bool | None
         If True, set the MNE_DATASETS_LIMO_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    url : str
-        The location from where the dataset should be downloaded, if not
-        found on drive.
     %(verbose)s
 
     Returns
@@ -166,17 +148,14 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     epochs : MNE Epochs data structure
         The epochs.
     """  # noqa: E501
-    if url is None:
-        url = 'http://datashare.is.ed.ac.uk/download/DS_10283_2189.zip'
-
-    # set limo path, download and decompress files if not found
-    limo_path = data_path(url, path, force_update, update_path)
-
     # subject in question
     if isinstance(subject, int) and 1 <= subject <= 18:
         subj = 'S%i' % subject
     else:
         raise ValueError('subject must be an int in the range from 1 to 18')
+
+    # set limo path, download and decompress files if not found
+    limo_path = data_path(subject, path, force_update, update_path)
 
     # -- 1) import .mat files
     # epochs info
