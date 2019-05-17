@@ -886,9 +886,10 @@ def _pick_data_or_ica(info, exclude=()):
 
 
 def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
-                  with_ref_meg=True):
+                  with_ref_meg=True, return_kind=False):
     """Convert and check pick validity."""
     from .meas_info import Info
+    picked_ch_type_or_generic = False
     #
     # None -> all, data, or data_or_ica (ndarray of int)
     #
@@ -920,7 +921,11 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     if picks.ndim != 1:
         raise ValueError('picks must be 1D, got %sD' % (picks.ndim,))
     if picks.dtype.char in ('S', 'U'):
-        picks = _picks_str_to_idx(info, picks, exclude, with_ref_meg)
+        picks = _picks_str_to_idx(info, picks, exclude, with_ref_meg,
+                                  return_kind)
+        if return_kind:
+            picked_ch_type_or_generic = picks[1]
+            picks = picks[0]
     if picks.dtype.kind not in ['i', 'u']:
         raise TypeError('picks must be a list of int or list of str, got '
                         'a data type of %s' % (picks.dtype,))
@@ -939,10 +944,12 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
         raise ValueError('All picks must be < n_channels (%d), got %r'
                          % (n_chan, orig_picks))
     picks %= n_chan  # ensure positive
+    if return_kind:
+        return picks, picked_ch_type_or_generic
     return picks
 
 
-def _picks_str_to_idx(info, picks, exclude, with_ref_meg):
+def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind=False):
     """Turn a list of str into ndarray of int."""
     # special case for _picks_to_idx w/no info: shouldn't really happen
     if isinstance(info, int):
@@ -1027,6 +1034,9 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg):
                            'picks for these')
     else:
         picks = np.array(all_picks[np.where(any_found)[0][0]])
+    if return_kind:
+        picked_ch_type_or_generic = not len(picks_name)
+        return picks, picked_ch_type_or_generic
     return picks
 
 

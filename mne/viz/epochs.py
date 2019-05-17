@@ -18,7 +18,6 @@ import numpy as np
 
 from ..utils import (verbose, get_config, set_config, logger, warn, _pl,
                      fill_doc)
-from ..utils.check import _is_numeric
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT)
@@ -169,14 +168,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if combine is not None:
         ts_args["show_sensors"] = False
 
-    if picks is None or not _is_numeric(picks):
-        picks = _picks_to_idx(epochs.info, picks)
-        if group_by is None:
-            logger.info("No picks and no groupby, showing the first five "
-                        "channels ...")
-            picks = picks[:5]  # take 5 picks to prevent spawning many figs
-    else:
-        picks = _picks_to_idx(epochs.info, picks)
+    picks, picked_ch_type_or_generic = _picks_to_idx(epochs.info, picks,
+                                                     return_kind=True)
+    if picked_ch_type_or_generic and group_by is None:
+        logger.info("No picks and no groupby, showing the first five "
+                    "channels ...")
+        picks = picks[:5]  # take 5 picks to prevent spawning too many figs
 
     if "invert_y" in ts_args:
         raise NotImplementedError("'invert_y' found in 'ts_args'. "
