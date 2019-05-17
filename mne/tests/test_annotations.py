@@ -582,6 +582,17 @@ def test_events_from_annot_in_raw_objects():
     with pytest.raises(ValueError, match='not find any of the events'):
         events_from_annotations(raw, regexp='not_there')
 
+    # concat does not introduce BAD or EDGE
+    raw_concat = concatenate_raws([raw.copy(), raw.copy()])
+    _, event_id = events_from_annotations(raw_concat)
+    assert isinstance(event_id, dict)
+    assert len(event_id) > 0
+    for kind in ('BAD', 'EDGE'):
+        assert '%s boundary' % kind in raw_concat.annotations.description
+        for key in event_id.keys():
+            assert kind not in key
+
+    # remove all events
     raw.set_annotations(None)
     events7, _ = events_from_annotations(raw)
     assert_array_equal(events7, np.empty((0, 3), dtype=int))

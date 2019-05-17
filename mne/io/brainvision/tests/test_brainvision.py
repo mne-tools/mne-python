@@ -15,7 +15,7 @@ import pytest
 from tempfile import NamedTemporaryFile
 
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, read_annotations
+from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
@@ -502,6 +502,13 @@ def test_read_vhdr_annotations_and_events():
     expected_event_id.update(YYY=10001, ZZZ=10002)  # others starting at 10001
     expected_event_id[s_10] = 10
     _, event_id = events_from_annotations(raw)
+    assert event_id == expected_event_id
+
+    # Concatenating two shouldn't change the resulting event_id
+    # (BAD and EDGE should be ignored)
+    with pytest.warns(RuntimeWarning, match='expanding outside'):
+        raw_concat = concatenate_raws([raw.copy(), raw.copy()])
+    _, event_id = events_from_annotations(raw_concat)
     assert event_id == expected_event_id
 
 
