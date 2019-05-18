@@ -5,43 +5,24 @@
 #
 # License: BSD (3-clause)
 
-
-import numpy as np
-import mne
 import os
 import re
+import numpy as np
+import mne
 
 
-def _read_curry(full_filename):
-    '''
-    Read curry into python.
-    Inspired by Matt Pontifex' EEGlab loadcurry() extension
+def _read_curry(full_fname):
+    """
+    Read curry files and convert the data for mne.
+    Inspired by Matt Pontifex' EEGlab loadcurry() extension.
 
-    :param full_filename:
+    :param full_fname:
     :return:
-    '''
+    """
 
-    # we don't use os.path.splitext to also handle extensions like .cdt.dpa
+    fname_base, curry_vers = _check_curry_file(full_fname)
 
-    file, ext = full_filename.split(".", maxsplit=1)
 
-    if 'cdt' in ext:
-        curry_vers = 8
-        for check_ext in [".cdt", ".cdt.dpa"]:
-            if not os.path.isfile(file + check_ext):
-                raise FileNotFoundError("The following required file cannot be"
-                                        " found: %s. Please make sure it is "
-                                        "located in the same directory as %s."
-                                        % (file + check_ext, full_filename))
-
-    else:
-        curry_vers = 7
-        for check_ext in [".dap", ".dat", ".rs3"]:
-            if not os.path.isfile(file + check_ext):
-                raise FileNotFoundError("The following required file cannot be"
-                                        " found: %s. Please make sure it is "
-                                        "located in the same directory as %s."
-                                        % (file + check_ext, full_filename))
 
     #####################################
     # read parameters from the param file
@@ -57,7 +38,7 @@ def _read_curry(full_filename):
                  'TRIGGER_OFFSET_USEC', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
 
     param_dict = dict()
-    with open(file + file_extension) as f:
+    with open(fname_base + file_extension) as f:
         for line in f:
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
@@ -66,7 +47,7 @@ def _read_curry(full_filename):
     if not len(param_dict) == 7:
         raise KeyError("Some variables cannot be found in the parameter file.")
 
-    if "NumSamples" in param_dict.keys():
+    if "NumSamples" in param_dict:
         n_samples = int(param_dict["NumSamples"])
         n_ch = int(param_dict["NumChannels"])
         n_trials = int(param_dict["NumTrials"])
@@ -100,7 +81,7 @@ def _read_curry(full_filename):
 
     save_labels = False
     save_ch_pos = False
-    with open(file + file_extension) as f:
+    with open(fname_base + file_extension) as f:
         for line in f:
 
             if re.match("LABELS.*? END_LIST", line):
@@ -131,37 +112,20 @@ def _read_curry(full_filename):
     # read events from cef/ceo files
 
     # TODO: actually read the event files
-    try:
-        if (curry_vers == 7):
-            if os.path.isfile(file + '.cef'):
-                file_extension = '.cef'
-            else:
-                file_extension = '.ceo'
+    if (curry_vers == 7):
+        if os.path.isfile(fname_base + '.cef'):
+            events = _read_events(fname_base + '.cef')
+        elif os.path.isfile(fname_base + '.ceo'):
+            events = _read_events(fname_base + '.ceo')
         else:
-            if os.path.isfile(file + '.cdt.cef'):
-                file_extension = '.cdt.cef'
-            else:
-                file_extension = '.cdt.ceo'
-
-        events = []
-
-        save_events = False
-        with open(file + file_extension) as f:
-            for line in f:
-
-                if "NUMBER_LIST END_LIST" in line:
-                    save_events = False
-
-                if save_events:
-                    # print(line)
-                    events.append(line)
-
-                if "NUMBER_LIST START_LIST" in line:
-                    save_events = True
-
-    # .cef or ceo files don't always exist, so don't read events here
-    except FileNotFoundError:
-        pass
+            pass
+    else:
+        if os.path.isfile(fname_base + '.cdt.cef'):
+            events = _read_events(fname_base + '.cdt.cef')
+        elif os.path.isfile(fname_base + '.cdt.ceo'):
+            events = _read_events(fname_base + '.cdt.ceo')
+        else:
+            pass
 
     #####################################
     # read data from dat/cdt files
@@ -172,11 +136,11 @@ def _read_curry(full_filename):
         file_extension = '.cdt'
 
     if data_format == "ASCII":
-        with open(file + file_extension) as f:
+        with open(fname_base + file_extension) as f:
             data = np.loadtxt(f).T / 1e6
 
     else:
-        with open(file + file_extension) as f:
+        with open(fname_base + file_extension) as f:
             data = np.fromfile(f, dtype='float32') / 1e6
             data = np.reshape(data, [n_ch, n_samples * n_trials], order="F")
 
@@ -185,13 +149,74 @@ def _read_curry(full_filename):
     return data, info, n_trials, offset
 
 
+def _read_events(fname):
+    """read events from event file."""
+
+    events = []
+
+    save_events = False
+    with open(fname) as f:
+        for line in f:
+
+            if "NUMBER_LIST END_LIST" in line:
+                save_events = False
+
+            if save_events:
+                # print(line)
+                events.append(line)
+
+            if "NUMBER_LIST START_LIST" in line:
+                save_events = True
+
+    return events
+
+
+def _check_curry_file(full_fname):
+    """
+    Check if all neccessary files exist and return the path without extension
+     and its CURRY version
+     """
+
+    # we don't use os.path.splitext to also handle extensions like .cdt.dpa
+    fname_base, ext = full_fname.split(".", maxsplit=1)
+
+    if 'cdt' in ext:
+        curry_vers = 8
+        for check_ext in [".cdt", ".cdt.dpa"]:
+            if not os.path.isfile(fname_base + check_ext):
+                raise FileNotFoundError("The following required file cannot be"
+                                        " found: %s. Please make sure it is "
+                                        "located in the same directory as %s."
+                                        % (fname_base + check_ext, full_fname))
+
+    else:
+        curry_vers = 7
+        for check_ext in [".dap", ".dat", ".rs3"]:
+            if not os.path.isfile(fname_base + check_ext):
+                raise FileNotFoundError("The following required file cannot be"
+                                        " found: %s. Please make sure it is "
+                                        "located in the same directory as %s."
+                                        % (fname_base + check_ext, full_fname))
+
+    return fname_base, curry_vers
+
+
 def read_raw_curry(input_fname):
-    '''
+    """
     Create a mne.io.RawArray from curry files.
 
-    :param input_fname:
-    :return:
-    '''
+    Parameters
+    ----------
+    input_fname : str
+        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
+        .cdt.cef or .cef.
+
+    Returns
+    -------
+    raw : instance of mne.io.RawArray
+        A Raw object containing CURRY data.
+
+    """
 
     data, info, n_trials, offset = _read_curry(input_fname)
 

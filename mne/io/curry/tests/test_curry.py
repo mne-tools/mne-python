@@ -5,15 +5,16 @@
 #
 # License: BSD (3-clause)
 
-import mne
+
 import inspect
 import os
 import os.path as op
+from numpy.testing import assert_allclose, assert_equal, assert_array_almost_equal
+import mne
 from mne.datasets import testing
 from mne.io.curry import read_raw_curry
 from mne.io.ctf import read_raw_ctf
 from mne.io.bti import read_raw_bti
-from numpy.testing import assert_allclose, assert_equal, assert_array_almost_equal
 
 FILE = inspect.getfile(inspect.currentframe())
 
