@@ -16,10 +16,10 @@ What's new
 
 .. currentmodule:: mne
 
-.. _current:
+.. _changes_0_18:
 
-Current
--------
+Version 0.18
+------------
 
 Changelog
 ~~~~~~~~~
