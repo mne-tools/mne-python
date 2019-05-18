@@ -946,28 +946,6 @@ Functions that assist with decoding and model fitting:
    get_coef
 
 
-Realtime
-========
-
-:py:mod:`mne.realtime`:
-
-.. automodule:: mne.realtime
-   :no-members:
-   :no-inherited-members:
-
-.. autosummary::
-   :toctree: generated/
-
-   FieldTripClient
-   LSLClient
-   MockLSLStream
-   MockRtClient
-   RtEpochs
-   RtClient
-   StimServer
-   StimClient
-
-
 MNE-Report
 ==========
 

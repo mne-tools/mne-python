@@ -66,11 +66,6 @@ before_install:
         if [ ! -z "$CONDA_ENVIRONMENT" ]; then
           pip uninstall --yes mne;
         fi;
-        if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-          pip install --upgrade pyqt5>=5.10 pylsl;
-        else
-          conda install -c tstenner pylsl;
-        fi;
       fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
     - if [ "${DEPS}" == "" ]; then
@@ -157,7 +152,7 @@ script:
         if [ "${SPLIT}" == "0" ]; then
           MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io";
         elif [ "${SPLIT}" == "1" ]; then
-          MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz";
+          MNE_DIRS="minimum_norm preprocessing simulation stats time_frequency viz";
         elif [ "${SPLIT}" == "2" ]; then
           MNE_DIRS=".";
         else

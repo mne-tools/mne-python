@@ -645,35 +645,6 @@ this package. You can also find a gallery of these examples in the
         </div>
       </div>
 
-
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse_realtime">Realtime</a>
-          </h4>
-        </div>
-        <div id="collapse_realtime" class="panel-collapse collapse">
-          <div class="panel-body">
-
-**Examples**
-
-.. toctree::
-    :maxdepth: 1
-
-    auto_examples/realtime/plot_ftclient_rt_average.rst
-    auto_examples/realtime/plot_ftclient_rt_compute_psd.rst
-    auto_examples/realtime/plot_compute_rt_average.rst
-    auto_examples/realtime/plot_compute_rt_decoder.rst
-    auto_examples/realtime/plot_lslclient_rt.rst
-    auto_examples/realtime/plot_rt_feedback_server.rst
-    auto_examples/realtime/rt_feedback_client.rst
-
-.. raw:: html
-
-          </div>
-        </div>
-      </div>
-
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">

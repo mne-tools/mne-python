@@ -46,4 +46,3 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
-  - pylsl>=1.12
