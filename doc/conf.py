@@ -410,7 +410,6 @@ sphinx_gallery_conf = {
                                        '../examples/connectivity/',
                                        '../examples/forward/',
                                        '../examples/inverse/',
-                                       '../examples/realtime/',
                                        '../examples/datasets/',
                                        '../tutorials/intro/',
                                        '../tutorials/raw/',
