@@ -13,7 +13,7 @@ evoked responses using moving averages.
 
 
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Mainak Jas <mainak@neuro.hut.fi>
+#          Mainak Jas <mainakjas@gmail.com>
 #
 # License: BSD (3-clause)
 

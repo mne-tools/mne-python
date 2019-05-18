@@ -393,6 +393,8 @@ def reset_warnings(gallery_conf, fname):
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)
+    warnings.filterwarnings(
+        'ignore', message='*mne-realtime*', category=DeprecationWarning)
 
 
 reset_warnings(None, None)
