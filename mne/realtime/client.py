@@ -11,7 +11,7 @@ import threading
 
 import numpy as np
 
-from ..utils import logger, verbose, fill_doc
+from ..utils import logger, verbose, fill_doc, deprecated
 from ..io.constants import FIFF
 from ..io.meas_info import read_meas_info
 from ..io.tag import Tag, read_tag
@@ -20,6 +20,8 @@ from ..io.tree import make_dir_tree
 # Constants for fiff realtime fiff messages
 MNE_RT_GET_CLIENT_ID = 1
 MNE_RT_SET_CLIENT_ALIAS = 2
+RT_MSG = ('The realtime module is being deprecated from `mne-python` '
+          'and moved to its own repo, `mne-realtime`.')
 
 
 def _recv_tag_raw(sock):
@@ -71,6 +73,7 @@ def _buffer_recv_worker(rt_client, nchan):
 
 
 @fill_doc
+@deprecated(RT_MSG)
 class RtClient(object):
     """Realtime Client.
 

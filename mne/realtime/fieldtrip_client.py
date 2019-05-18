@@ -14,11 +14,15 @@ from ..io import _empty_info
 from ..io.pick import _picks_to_idx, pick_info
 from ..io.constants import FIFF
 from ..epochs import EpochsArray
-from ..utils import logger, warn, fill_doc
+from ..utils import logger, warn, fill_doc, deprecated
 from ..externals.FieldTrip import Client as FtClient
+
+RT_MSG = ('The realtime module is being deprecated from `mne-python` '
+          'and moved to its own repo, `mne-realtime`.')
 
 
 @fill_doc
+@deprecated(RT_MSG)
 class FieldTripClient(_BaseClient):
     """Realtime FieldTrip client.
 

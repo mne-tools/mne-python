@@ -4,10 +4,14 @@
 import time
 from multiprocessing import Process
 
-from ..utils import _check_pylsl_installed
+from ..utils import _check_pylsl_installed, deprecated
 from ..io import constants
 
+RT_MSG = ('The realtime module is being deprecated from `mne-python` '
+          'and moved to its own repo, `mne-realtime`.')
 
+
+@deprecated(RT_MSG)
 class MockLSLStream(object):
     """Mock LSL Stream.
 
