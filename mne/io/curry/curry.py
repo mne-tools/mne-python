@@ -111,21 +111,44 @@ def _read_curry(full_fname):
     #####################################
     # read events from cef/ceo files
 
-    # TODO: actually read the event files
+    pass_events = True  # maybe make a function argument of this?
+
     if (curry_vers == 7):
         if os.path.isfile(fname_base + '.cef'):
-            events = _read_events(fname_base + '.cef')
+            file_extension = '.cef'
         elif os.path.isfile(fname_base + '.ceo'):
-            events = _read_events(fname_base + '.ceo')
+            file_extension = '.ceo'
         else:
-            pass
+            pass_events = False
     else:
         if os.path.isfile(fname_base + '.cdt.cef'):
-            events = _read_events(fname_base + '.cdt.cef')
+            file_extension = '.cdt.cef'
         elif os.path.isfile(fname_base + '.cdt.ceo'):
-            events = _read_events(fname_base + '.cdt.ceo')
+            file_extension = '.cdt.ceo'
         else:
-            pass
+            pass_events = False
+
+    if pass_events:
+
+        curry_events = []
+
+        save_events = False
+        with open(fname_base + file_extension) as f:
+            for line in f:
+
+                if "NUMBER_LIST END_LIST" in line:
+                    save_events = False
+
+                if save_events:
+                    # print(line)
+                    curry_events.append(line.split("\t"))
+
+                if "NUMBER_LIST START_LIST" in line:
+                    save_events = True
+
+    curry_events = np.array(curry_events, dtype=int)
+
+
 
     #####################################
     # read data from dat/cdt files
@@ -147,28 +170,6 @@ def _read_curry(full_fname):
     info = mne.create_info(ch_names, sfreq)
 
     return data, info, n_trials, offset
-
-
-def _read_events(fname):
-    """read events from event file."""
-
-    events = []
-
-    save_events = False
-    with open(fname) as f:
-        for line in f:
-
-            if "NUMBER_LIST END_LIST" in line:
-                save_events = False
-
-            if save_events:
-                # print(line)
-                events.append(line)
-
-            if "NUMBER_LIST START_LIST" in line:
-                save_events = True
-
-    return events
 
 
 def _check_curry_file(full_fname):
