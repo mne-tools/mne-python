@@ -2138,30 +2138,22 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
-    # default to plotting the GFP if all picks are channel type strs
-    if gfp is None and (picks is None or (
-            (picks == 'meg' or picks in _DATA_CH_TYPES_SPLIT) or
-            (isinstance(picks, Iterable) and
-             all(pick == 'meg' or pick in _DATA_CH_TYPES_SPLIT
-                 for pick in picks)))):
-        gfp = True
-
-    picks_was_str_title_was_none = False
-    picks = [] if picks is None else picks
-    if title is None and picks in _DATA_CH_TYPES_SPLIT:
-        title = _handle_default('titles')[picks]
-        if gfp:
-            picks_was_str_title_was_none = True
-
-    picks = _picks_to_idx(info, picks, allow_empty=True)
+    # is picks a channel type (or None)?
+    orig_picks = picks
+    picks, picked_types = _picks_to_idx(info, picks, allow_empty=True,
+                                        return_kind=True)
     if len(picks) == 0:
-        if axes != "topo" or gfp is not False:
-            logger.info("No picks, plotting the GFP ...")
-            gfp = True
         picks = _pick_data_channels(info, with_ref_meg=False)
 
-    if picks_was_str_title_was_none and gfp:
-        title += " (GFP)"
+    # gfp defaults to True if picks is a channel type (and not doing topoplot)
+    if gfp is None and picked_types and axes != 'topo':
+        logger.info('No picks, plotting the GFP...')
+        gfp = True
+
+    if title is None and picked_types:
+        title = _handle_default('titles')[orig_picks]
+        if gfp:
+            title += ' (GFP)'
 
     _validate_type(picks, (list, np.ndarray), "picks",
                    "list or np.array of integers")
