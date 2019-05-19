@@ -385,7 +385,7 @@ workflows:
             branches:
               only:
                 - master
-                - maint/0.17
+                - maint/0.18
 
   weekly:
     jobs:
