@@ -21,7 +21,8 @@ from ..io.tree import make_dir_tree
 MNE_RT_GET_CLIENT_ID = 1
 MNE_RT_SET_CLIENT_ALIAS = 2
 RT_MSG = ('The realtime module is being deprecated from `mne-python` '
-          'and moved to its own repo, `mne-realtime`.')
+          'and moved to its own package, `mne-realtime`. '
+          'To install, please use `$ pip install mne_realtime`.')
 
 
 def _recv_tag_raw(sock):

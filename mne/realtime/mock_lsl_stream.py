@@ -8,7 +8,8 @@ from ..utils import _check_pylsl_installed, deprecated
 from ..io import constants
 
 RT_MSG = ('The realtime module is being deprecated from `mne-python` '
-          'and moved to its own repo, `mne-realtime`.')
+          'and moved to its own package, `mne-realtime`. '
+          'To install, please use `$ pip install mne_realtime`.')
 
 
 @deprecated(RT_MSG)

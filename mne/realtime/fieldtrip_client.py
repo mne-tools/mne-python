@@ -18,7 +18,8 @@ from ..utils import logger, warn, fill_doc, deprecated
 from ..externals.FieldTrip import Client as FtClient
 
 RT_MSG = ('The realtime module is being deprecated from `mne-python` '
-          'and moved to its own repo, `mne-realtime`.')
+          'and moved to its own package, `mne-realtime`. '
+          'To install, please use `$ pip install mne_realtime`.')
 
 
 @fill_doc

@@ -12,7 +12,8 @@ from ..io.pick import _picks_to_idx, pick_info
 from ..utils import fill_doc, _check_pylsl_installed, deprecated
 
 RT_MSG = ('The realtime module is being deprecated from `mne-python` '
-          'and moved to its own repo, `mne-realtime`.')
+          'and moved to its own package, `mne-realtime`. '
+          'To install, please use `$ pip install mne_realtime`.')
 
 
 @deprecated(RT_MSG)

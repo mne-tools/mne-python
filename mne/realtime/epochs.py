@@ -17,7 +17,8 @@ from ..event import _find_events
 from ..io.pick import _picks_to_idx
 
 RT_MSG = ('The realtime module is being deprecated from `mne-python` '
-          'and moved to its own repo, `mne-realtime`.')
+          'and moved to its own package, `mne-realtime`. '
+          'To install, please use `$ pip install mne_realtime`.')
 
 
 @fill_doc
