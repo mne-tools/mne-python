@@ -129,6 +129,8 @@ orig_raw.plot(order=chan_idxs, start=12, duration=4)
 raw.plot(order=chan_idxs, start=12, duration=4)
 
 ###############################################################################
+# .. _overview-tut-events-section:
+#
 # Detecting experimental events
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

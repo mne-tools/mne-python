@@ -25,7 +25,7 @@ MNE-Python core terminology and general concepts
         sleep scores, sleep events (spindles, K-complex) etc.
         An :class:`Annotations` object is a container of multiple annotations.
         See :class:`Annotations` page for the API of the corresponding
-        object class and :ref:`tut-annotations`
+        object class and :doc:`auto_tutorials/intro/plot_object_annotations`
         for a tutorial on how to manipulate such objects.
 
     channels
