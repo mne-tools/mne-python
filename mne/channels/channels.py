@@ -737,8 +737,8 @@ class UpdateChannelsMixin(object):
 
         Parameters
         ----------
-        ch_names : list, set or str
-            List/set of channel name(s) or channel name to remove.
+        ch_names : iterable or str
+            Iterable (e.g. list) of channel name(s) or channel name to remove.
 
         Returns
         -------
@@ -755,15 +755,17 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        if isinstance(ch_names, list) or isinstance(ch_names, set):
-            if not all([isinstance(ch, str) for ch in ch_names]):
-                raise ValueError("'ch_names' must be a list of strings, got "
-                                 "{}.".format([type(ch) for ch in ch_names]))
-        elif isinstance(ch_names, str):
+        if isinstance(ch_names, str):
             ch_names = [ch_names]
+
+        try:
+            all_str = all([isinstance(ch, str) for ch in ch_names])
+        except TypeError:
+            raise ValueError("'ch_names' must be iterable.")
         else:
-            raise ValueError("'ch_names' must be a list or a string, got "
-                             "{}.".format(type(ch_names)))
+            if not all_str:
+                raise ValueError("Each element in 'ch_names' must be str, got "
+                                 "{}.".format([type(ch) for ch in ch_names]))
 
         missing = [ch for ch in ch_names if ch not in self.ch_names]
         if len(missing) > 0:
