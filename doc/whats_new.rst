@@ -295,6 +295,8 @@ API
 
 - The peak finder that was formerly accessible via ``from mne.preprocessing.peak_finder import peak_finder`` should now be imported directly from the enclosing namespace as ``from mne.preprocessing import peak_finder`` by `Eric Larson`_
 
+- Deprecate `mne.realtime` module to make a standalone module `mne-realtime` that will live outside of this package by `Teon Brooks`_
+
 .. _changes_0_17:
 
 Version 0.17

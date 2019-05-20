@@ -24,7 +24,7 @@ to test. However, it should be possible to adapt this script
 for a real experiment.
 
 """
-# Author: Mainak Jas <mainak@neuro.hut.fi>
+# Author: Mainak Jas <mainakjas@gmail.com>
 #
 # License: BSD (3-clause)
 

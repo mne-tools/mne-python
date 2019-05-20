@@ -7,7 +7,7 @@ Supervised machine learning applied to MEG data in sensor space.
 Here the classifier is updated every 5 trials and the decoding
 accuracy is plotted.
 """
-# Authors: Mainak Jas <mainak@neuro.hut.fi>
+# Authors: Mainak Jas <mainakjas@gmail.com>
 #
 # License: BSD (3-clause)
 
