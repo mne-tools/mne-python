@@ -737,8 +737,8 @@ class UpdateChannelsMixin(object):
 
         Parameters
         ----------
-        ch_names : list or str
-            List of channel name(s) or channel name to remove.
+        ch_names : list, set or str
+            List/set of channel name(s) or channel name to remove.
 
         Returns
         -------
@@ -755,7 +755,7 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        if isinstance(ch_names, list):
+        if isinstance(ch_names, list) or isinstance(ch_names, set):
             if not all([isinstance(ch, str) for ch in ch_names]):
                 raise ValueError("'ch_names' must be a list of strings, got "
                                  "{}.".format([type(ch) for ch in ch_names]))
