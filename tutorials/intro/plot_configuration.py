@@ -119,9 +119,9 @@ print(mne.get_config_path())
 # specific to MNE-Python (and thus is not in the JSON config file):
 
 # make sure it's not in the JSON file (no error means our assertion held):
-assert mne.get_config('CONDA_DEFAULT_ENV', use_env=False) is None
+assert mne.get_config('PATH', use_env=False) is None
 # but it *is* in the environment:
-print(mne.get_config('CONDA_DEFAULT_ENV'))
+print(mne.get_config('PATH'))
 
 ###############################################################################
 # Also by default, :func:`~mne.set_config` will set values in both the JSON
