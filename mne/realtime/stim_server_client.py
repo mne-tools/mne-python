@@ -9,7 +9,11 @@ import threading
 
 import numpy as np
 
-from ..utils import logger, verbose, fill_doc
+from ..utils import logger, verbose, fill_doc, deprecated
+
+RT_MSG = ('The realtime module is being deprecated from `mne-python` '
+          'and moved to its own package, `mne-realtime`. '
+          'To install, please use `$ pip install mne_realtime`.')
 
 
 class _ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -80,6 +84,7 @@ class _TriggerHandler(socketserver.BaseRequestHandler):
                     self.request.sendall("Empty".encode('utf-8'))
 
 
+@deprecated(RT_MSG)
 class StimServer(object):
     """Stimulation Server.
 
@@ -213,6 +218,7 @@ class StimServer(object):
 
 
 @fill_doc
+@deprecated(RT_MSG)
 class StimClient(object):
     """Stimulation Client.
 

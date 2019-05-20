@@ -11,13 +11,18 @@ import copy
 import numpy as np
 
 from .. import pick_channels
-from ..utils import logger, verbose, fill_doc
+from ..utils import logger, verbose, fill_doc, deprecated
 from ..epochs import BaseEpochs
 from ..event import _find_events
 from ..io.pick import _picks_to_idx
 
+RT_MSG = ('The realtime module is being deprecated from `mne-python` '
+          'and moved to its own package, `mne-realtime`. '
+          'To install, please use `$ pip install mne_realtime`.')
+
 
 @fill_doc
+@deprecated(RT_MSG)
 class RtEpochs(BaseEpochs):
     """Realtime Epochs.
 

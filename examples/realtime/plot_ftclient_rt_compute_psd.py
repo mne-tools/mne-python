@@ -11,7 +11,7 @@ computation of power spectra in real-time using the
 get_data_as_epoch function.
 
 """
-# Author: Mainak Jas <mainak@neuro.hut.fi>
+# Author: Mainak Jas <mainakjas@gmail.com>
 #
 # License: BSD (3-clause)
 
