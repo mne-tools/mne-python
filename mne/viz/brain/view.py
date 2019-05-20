@@ -20,15 +20,12 @@ views_dict = {'lateral': View(elev=5, azim=0),
               'dorsal': View(elev=90, azim=0),
               'ventral': View(elev=-90, azim=0),
               'frontal': View(elev=5, azim=110),
-              'parietal': View(elev=5, azim=-110),
-              'lat': View(elev=5, azim=0),
-              'med': View(elev=5, azim=180),
-              'fos': View(elev=5, azim=90),
-              'cau': View(elev=5, azim=-90),
-              'dor': View(elev=90, azim=0),
-              'ven': View(elev=-90, azim=0),
-              'fro': View(elev=5, azim=110),
-              'par': View(elev=5, azim=-110)}
+              'parietal': View(elev=5, azim=-110)}
+# add short-size version entries into the dict
+_views_dict = dict()
+for k, v in views_dict.items():
+    _views_dict[k[:3]] = v
+views_dict.update(_views_dict)
 
 
 class TimeViewer(object):
@@ -63,20 +60,17 @@ class TimeViewer(object):
 
         # hadler for changing of selected time moment
         def slider_handler(change):
-            k = brain.data['k']
-            b = brain.data['b']
-            lut = brain.data['lut']
             time_idx_new = int(change.new)
 
             for v in brain.views:
                 for h in brain.hemis:
-                    act_data = brain.data[h + '_array'][:, time_idx_new]
                     smooth_mat = brain.data[h + '_smooth_mat']
+                    act_data = brain.data[h + '_array'][:, time_idx_new]
                     act_data = smooth_mat.dot(act_data)
-                    act_data = k * act_data + b
+                    act_data = brain.data['k'] * act_data + brain.data['b']
                     act_data = np.clip(act_data, 0, 1)
-                    act_color_new = lut(act_data)
-                    brain.overlays[h + '_' + v].color = act_color_new
+                    brain.overlays[h + '_' + v].color = \
+                        brain.data['lut'](act_data)
 
             # change label value
             label.value = self._get_label(time[time_idx_new])
@@ -137,10 +131,9 @@ class ColorBar(object):
 
         if brain.data['center'] is None:
             dt_min = brain.data['fmin']
-            dt_max = brain.data['fmax']
         else:
             dt_min = -brain.data['fmax']
-            dt_max = brain.data['fmax']
+        dt_max = brain.data['fmax']
 
         self._lut = brain.data['lut']
         self._cbar_data = np.linspace(0, 1, self._lut.N)
@@ -181,11 +174,10 @@ class ColorBar(object):
             if center is None:
                 # 'hot' or another linear color map
                 dt_min = val_min
-                dt_max = val_max
             else:
                 # 'mne' or another divergent color map
                 dt_min = -val_max
-                dt_max = val_max
+            dt_max = val_max
 
             self._lut = self._brain.update_lut(fmin=val_min, fmid=val_mid,
                                                fmax=val_max)
