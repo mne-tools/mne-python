@@ -43,7 +43,7 @@ jobs:
       Set-StrictMode -Version Latest
       $ErrorActionPreference = "Stop"
       $PSDefaultParameterValues['*:ErrorAction']='Stop'
-      git clone --depth 1 git://github.com/vtkiorg/gl-ci-helpers.git
+      git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
       powershell gl-ci-helpers/appveyor/install_opengl.ps1
     displayName: Install OpenGL
   - powershell: |
@@ -61,7 +61,7 @@ jobs:
       $ErrorActionPreference = "Stop"
       $PSDefaultParameterValues['*:ErrorAction']='Stop'
       $env:PYTHON = '$(System.DefaultWorkingDirectory)' + '\conda'
-      git clone git://github.com/larsoner/ci-helpers.git
+      git clone git://github.com/astropy/ci-helpers.git
       cd ci-helpers
       git checkout nopip
       cd ..

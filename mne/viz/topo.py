@@ -25,7 +25,7 @@ from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
-                    axis_spinecolor='k', layout_scale=None):
+                    axis_spinecolor='k', layout_scale=None, legend=False):
     """Create iterator over channel positions.
 
     This function returns a generator that unpacks into
@@ -58,6 +58,10 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     layout_scale: float | None
         Scaling factor for adjusting the relative size of the layout
         on the canvas. If None, nothing will be scaled.
+    legend: bool
+        If True, an additional axis is created in the bottom right corner
+        that can be used to, e.g., construct a legend. The index of this
+        axis will be -1.
 
     Returns
     -------
@@ -70,12 +74,22 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     """
     return _iter_topography(info, layout, on_pick, fig, fig_facecolor,
-                            axis_facecolor, axis_spinecolor, layout_scale)
+                            axis_facecolor, axis_spinecolor, layout_scale,
+                            legend=legend)
+
+
+def _legend_axis(pos):
+    """Add a legend axis to the bottom right."""
+    import matplotlib.pyplot as plt
+    left, bottom = pos[:, 0].max(), pos[:, 1].min()
+    wid, hei = pos[-1, 2:]
+    return plt.axes([left, bottom + .05, wid, hei])
 
 
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                      axis_facecolor='k', axis_spinecolor='k',
-                     layout_scale=None, unified=False, img=False, axes=None):
+                     layout_scale=None, unified=False, img=False, axes=None,
+                     legend=False):
     """Iterate over topography.
 
     Has the same parameters as iter_topography, plus:
@@ -139,10 +153,12 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
         if not unified:  # old, slow way
             ax = plt.axes(pos[idx])
             ax.patch.set_facecolor(axis_facecolor)
-            plt.setp(list(ax.spines.values()), color=axis_spinecolor)
-            ax.set(xticklabels=[], yticklabels=[])
-            plt.setp(ax.get_xticklines(), visible=False)
-            plt.setp(ax.get_yticklines(), visible=False)
+            for spine in ax.spines.values():
+                spine.set_color(axis_spinecolor)
+            if not legend:
+                ax.set(xticklabels=[], yticklabels=[])
+                for tick in ax.get_xticklines() + ax.get_yticklines():
+                    tick.set_visible(False)
             ax._mne_ch_name = name
             ax._mne_ch_idx = ch_idx
             ax._mne_ax_face_color = axis_facecolor
@@ -153,6 +169,10 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                        _mne_ch_name=name, _mne_ch_idx=ch_idx,
                        _mne_ax_face_color=axis_facecolor)
             axs.append(ax)
+    if not unified and legend:
+        ax = _legend_axis(pos)
+        yield ax, -1
+
     if unified:
         under_ax._mne_axs = axs
         # Create a PolyCollection for the axis backgrounds
@@ -266,7 +286,7 @@ def _plot_topo_onpick(event, show_func):
         raise
 
 
-def _compute_scalings(bn, xlim, ylim):
+def _compute_ax_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot."""
     if isinstance(ylim[0], (tuple, list, np.ndarray)):
         ylim = (ylim[0][0], ylim[1][0])
@@ -322,7 +342,7 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
                         x_label=None, y_label=None, colorbar=False,
                         picker=True, cmap='RdBu_r', title=None, hline=None):
     """Show multiple tfrs on topo using a single axes."""
-    _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
+    _compute_ax_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
     ax = bn.ax
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax,
@@ -449,7 +469,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if not (ylim and not any(v is None for v in ylim)):
         ylim = [min(np.min(d) for d in data), max(np.max(d) for d in data)]
     # Translation and scale parameters to take data->under_ax normalized coords
-    _compute_scalings(bn, (tmin, tmax), ylim)
+    _compute_ax_scalings(bn, (tmin, tmax), ylim)
     pos = bn.pos
     data_lines = bn.data_lines
     ax = bn.ax
@@ -518,7 +538,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                              vlim_array=None):
     """Plot erfimage topography using a single axis."""
     from scipy import ndimage
-    _compute_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
+    _compute_ax_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,

@@ -607,4 +607,30 @@ def test_evoked_baseline():
     assert_allclose(evoked.data, np.zeros_like(evoked.data))
 
 
+def test_hilbert():
+    """Test hilbert on raw, epochs, and evoked."""
+    raw = read_raw_fif(raw_fname).load_data()
+    raw.del_proj()
+    raw.pick_channels(raw.ch_names[:2])
+    events = read_events(event_name)
+    epochs = Epochs(raw, events)
+    with pytest.raises(RuntimeError, match='requires epochs data to be load'):
+        epochs.apply_hilbert()
+    epochs.load_data()
+    evoked = epochs.average()
+    raw_hilb = raw.apply_hilbert()
+    epochs_hilb = epochs.apply_hilbert()
+    evoked_hilb = evoked.copy().apply_hilbert()
+    evoked_hilb_2_data = epochs_hilb.get_data().mean(0)
+    assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
+    # This one is only approximate because of edge artifacts
+    evoked_hilb_3 = Epochs(raw_hilb, events).average()
+    corr = np.corrcoef(np.abs(evoked_hilb_3.data.ravel()),
+                       np.abs(evoked_hilb.data.ravel()))[0, 1]
+    assert 0.96 < corr < 0.98
+    # envelope=True mode
+    evoked_hilb_env = evoked.apply_hilbert(envelope=True)
+    assert_allclose(evoked_hilb_env.data, np.abs(evoked_hilb.data))
+
+
 run_tests_if_main()

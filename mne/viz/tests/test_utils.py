@@ -120,19 +120,18 @@ def test_auto_scale():
                              ('stim', 'auto')])
 
         # Test for wrong inputs
-        pytest.raises(ValueError, inst.plot, scalings='foo')
-        pytest.raises(ValueError, _compute_scalings, 'foo', inst)
+        with pytest.raises(ValueError, match=r".*scalings.*'foo'.*"):
+            inst.plot(scalings='foo')
 
         # Make sure compute_scalings doesn't change anything not auto
         scalings_new = _compute_scalings(scalings_def, inst)
         assert (scale_grad == scalings_new['grad'])
         assert (scalings_new['eeg'] != 'auto')
 
-    pytest.raises(ValueError, _compute_scalings, scalings_def, rand_data)
+    with pytest.raises(ValueError, match='Must supply either Raw or Epochs'):
+        _compute_scalings(scalings_def, rand_data)
     epochs = epochs[0].load_data()
     epochs.pick_types(eeg=True, meg=False)
-    pytest.raises(ValueError, _compute_scalings,
-                  dict(grad='auto'), epochs)
 
 
 def test_validate_if_list_of_axes():

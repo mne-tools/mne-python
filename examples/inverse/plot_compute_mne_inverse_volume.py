@@ -1,4 +1,6 @@
 """
+.. _ex-inverse-volume:
+
 =======================================================================
 Compute MNE-dSPM inverse solution on evoked data in volume source space
 =======================================================================
@@ -10,8 +12,6 @@ space and stores the solution in a nifti file for visualisation.
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
-import matplotlib.pyplot as plt
 
 from nilearn.plotting import plot_stat_map
 from nilearn.image import index_img
@@ -51,4 +51,3 @@ t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
 # Plotting with nilearn ######################################################
 plot_stat_map(index_img(img, 61), t1_fname, threshold=8.,
               title='%s (t=%.1f s.)' % (method, stc.times[61]))
-plt.show()

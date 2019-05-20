@@ -5,7 +5,7 @@ Morphing source estimates: Moving data from one brain to another
 ================================================================
 
 Morphing refers to the operation of transferring
-:ref:`source estimates <sphx_glr_auto_tutorials_plot_object_source_estimate.py>`
+:ref:`source estimates <tut-source-estimate-class>`
 from one anatomy to another. It is commonly referred as realignment in fMRI
 literature. This operation is necessary for group studies as one needs
 then data in a common space.
@@ -15,7 +15,7 @@ between individual subject spaces using :class:`mne.SourceMorph` object.
 
 We will use precomputed data and morph surface and volume source estimates to a
 reference anatomy. The common space of choice will be FreeSurfer's 'fsaverage'
-See :ref:`sphx_glr_auto_tutorials_plot_background_freesurfer.py` for more
+See :ref:`tut-freesurfer` for more
 information. Method used for cortical surface data in based
 on spherical registration [1]_ and Symmetric Diffeomorphic Registration (SDR)
 for volumic data [2]_.
@@ -52,10 +52,8 @@ functional similar structures are represented at the same spatial location for
 Since brains vary, morphing comes into play to tell us how the data
 produced by subject A, would be represented on the brain of subject B.
 
-See also this :ref:`tutorial on surface source estimation
-<sphx_glr_auto_tutorials_plot_mne_solutions.py>`
-or this :ref:`example on volumetric source estimation
-<sphx_glr_auto_examples_inverse_plot_compute_mne_inverse_volume.py>`.
+See also this :ref:`tutorial on surface source estimation <tut-mne-fixed-free>`
+or this :ref:`example on volumetric source estimation <ex-inverse-volume>`.
 
 Morphing **volume** source estimates
 ====================================
@@ -84,13 +82,12 @@ in dipy_ [3]_ (See
 from dipy_ for more details).
 
 :class:`mne.SourceMorph` uses segmented anatomical MR images computed
-using :ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+using :ref:`FreeSurfer <tut-freesurfer>`
 to compute the transformations. In order tell SourceMorph which MRIs to use,
 ``subject_from`` and ``subject_to`` need to be defined as the name of the
 respective folder in FreeSurfer's home directory.
 
-See :ref:`sphx_glr_auto_examples_inverse_plot_morph_volume_stc.py`
-usage and for more details on:
+See :ref:`ex-morph-volume` usage and for more details on:
 
     - How to create a SourceMorph object for volumetric data
 
@@ -108,7 +105,7 @@ the cortical surface computed using FreeSurfer. This mesh is defined by
 its vertices. If we want to morph our data from one brain to another, then
 this translates to finding the correct transformation to transform each
 vertex from Subject A into a corresponding vertex of Subject B. Under the hood
-:ref:`FreeSurfer <sphx_glr_auto_tutorials_plot_background_freesurfer.py>`
+:ref:`FreeSurfer <tut-freesurfer>`
 uses spherical representations to compute the morph, as relies on so
 called *morphing maps*.
 
@@ -217,8 +214,7 @@ be used together with :class:`mne.SourceSpaces` or without.
 The morph was successful if functional data of Subject A overlaps with
 anatomical surface data of Subject B, in the same way it does for Subject A.
 
-See :ref:`sphx_glr_auto_examples_inverse_plot_morph_surface_stc.py`
-usage and for more details:
+See :ref:`ex-morph-surface` usage and for more details:
 
     - How to create a :class:`mne.SourceMorph` object using
       :func:`mne.compute_source_morph` for surface data

@@ -264,6 +264,14 @@ def test_ica_core(method):
         assert_equal(raw_sources._filenames, [None])
         print(raw_sources)
 
+        # test for gh-6271 (scaling of ICA traces)
+        fig = raw_sources.plot()
+        assert len(fig.axes[0].lines) in (4, 5)
+        for line in fig.axes[0].lines[1:-1]:  # first and last are markers
+            y = line.get_ydata()
+            assert np.ptp(y) < 10
+        plt.close('all')
+
         sources = raw_sources[:, :][0]
         assert (sources.shape[0] == ica.n_components_)
 
@@ -521,7 +529,7 @@ def test_ica_additional(method):
         assert (ica.n_components_ == len(scores))
 
     # check univariate stats
-    scores = ica.score_sources(raw, score_func=stats.skew)
+    scores = ica.score_sources(raw, start=0, stop=50, score_func=stats.skew)
     # check exception handling
     pytest.raises(ValueError, ica.score_sources, raw,
                   target=np.arange(1))
@@ -533,6 +541,16 @@ def test_ica_additional(method):
         ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=ch_name,
                              eog_ch=ch_name, skew_criterion=idx,
                              var_criterion=idx, kurt_criterion=idx)
+
+    # Make sure detect_artifacts marks the right components.
+    # For int criterion, the doc says "E.g. range(2) would return the two
+    # sources with the highest score". Assert that's what it does.
+    # Only test for skew, since it's always the same code.
+    ica.exclude = []
+    ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=None,
+                         eog_ch=None, skew_criterion=0,
+                         var_criterion=None, kurt_criterion=None)
+    assert np.abs(scores[ica.exclude]) == np.max(np.abs(scores))
 
     evoked = epochs.average()
     evoked_data = evoked.data.copy()

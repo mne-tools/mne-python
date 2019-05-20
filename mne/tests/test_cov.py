@@ -607,13 +607,13 @@ def test_low_rank_methods(rank, raw_epochs_events):
     n_ch = 366
     methods = ('empirical', 'diagonal_fixed', 'oas')
     bounds = {
-        'None': dict(empirical=(-6000, -5000),
+        'None': dict(empirical=(-15000, -5000),
                      diagonal_fixed=(-1500, -500),
                      oas=(-700, -600)),
-        'full': dict(empirical=(-9000, -8000),
+        'full': dict(empirical=(-18000, -8000),
                      diagonal_fixed=(-2000, -1600),
                      oas=(-1600, -1000)),
-        'info': dict(empirical=(-6000, -5000),
+        'info': dict(empirical=(-15000, -5000),
                      diagonal_fixed=(-700, -600),
                      oas=(-700, -600)),
     }

@@ -262,7 +262,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
             if pick_ori == 'max-power':
                 # Compute the power
-                if inversion == 'single' and weight_norm == 'unit-noise-gain':
+                if inversion == 'single' and weight_norm is not None:
                     # First make the filters unit gain, then apply them to the
                     # cov matrix to compute power.
                     Wk_norm = Wk / np.sqrt(np.sum(Wk ** 2, axis=1,
@@ -329,6 +329,36 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         W = W.reshape(-1, W.shape[-1])
 
     return W
+
+
+def _compute_power(Cm, W, n_orient):
+    """Use beamformer filters to compute source power.
+
+    Parameters
+    ----------
+    Cm : ndarray, shape (n_channels, n_channels)
+        Data covariance matrix or CSD matrix.
+    W : ndarray, shape (nvertices*norient, nchannels)
+        Beamformer weights.
+
+    Returns
+    -------
+    power : ndarray, shape (nvertices,)
+        Source power.
+    """
+    n_sources = W.shape[0] // n_orient
+
+    source_power = np.zeros(n_sources)
+    for k in range(n_sources):
+        Wk = W[n_orient * k: n_orient * k + n_orient]
+        power = Wk.dot(Cm).dot(Wk.T)
+
+        if n_orient > 1:  # Pool the orientations
+            source_power[k] = np.abs(power.trace())
+        else:
+            source_power[k] = np.abs(power)
+
+    return source_power
 
 
 class Beamformer(dict):

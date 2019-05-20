@@ -137,6 +137,7 @@ def test_plot_epochs_image():
     """Test plotting of epochs image."""
     epochs = _get_epochs()
     epochs.plot_image(picks=[1, 2])
+    epochs.plot_image(picks='mag')
     overlay_times = [0.1]
     epochs.plot_image(picks=[1], order=[0], overlay_times=overlay_times,
                       vmin=0.01, title="test"

@@ -5,9 +5,14 @@
 
 What's new
 ==========
-..
-    Note, we are now using links to highlight new functions and classes.
-    Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
+.. NOTE: we are now using links to highlight new functions and classes.
+   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
+   whats_new page will have a link to the function/class documentation.
+
+.. NOTE: there are 3 separate sections for changes, based on type:
+   - "Changelog" for new features
+   - "Bug" for bug fixes
+   - "API" for backward-incompatible changes
 
 .. currentmodule:: mne
 
@@ -18,6 +23,27 @@ Current
 
 Changelog
 ~~~~~~~~~
+
+Bug
+~~~
+
+API
+~~~
+
+.. _changes_0_18:
+
+Version 0.18
+------------
+
+Changelog
+~~~~~~~~~
+
+- Add ``event_id='auto'`` in :func:`mne.events_from_annotations` to accommodate Brainvision markers by `Jona Sassenhagen`_, `Joan Massich`_ and `Eric Larson`_
+
+- Add example on how to simulate raw data using subject anatomy, by `Ivana Kojcic`_,`Eric Larson`_,`Samuel Deslauriers-Gauthier`_ and`Kostiantyn Maksymenko`_
+
+- :func:`mne.beamformer.apply_lcmv_cov` returns static source power after supplying a data covariance matrix to the beamformer filter by `Britta Westner`_ and `Marijn van Vliet`_
+
 - Add ``butterfly`` and ``order`` arguments to :func:`mne.viz.plot_epochs` and offer separated traces for non-meg data (seeg, eeg, ecog) in butterfly view by `Stefan Repplinger`_ and `Eric Larson`_
 
 - :meth:`mne.Epochs.get_data` now takes a ``picks`` parameter by `Jona Sassenhagen`_
@@ -36,7 +62,9 @@ Changelog
 
 - Add example on how to load standard montage :ref:`plot_montage` by `Joan Massich`_
 
-- Add new tutorial on :ref:`plot_eeg_no_mri` by `Alex Gramfort`_, and `Joan Massich`_
+- Add new tutorial on :ref:`tut-eeg-fsaverage-source-modeling` by `Alex Gramfort`_, and `Joan Massich`_
+
+- Add :meth:`mne.Epochs.apply_hilbert` and :meth:`mne.Evoked.apply_hilbert` by `Eric Larson`_
 
 - Add convenience ``fsaverage`` subject dataset fetcher / updater :func:`mne.datasets.fetch_fsaverage` by `Eric Larson`_
 
@@ -48,11 +76,13 @@ Changelog
 
 - Add support for picking channels using channel name and type strings to functions with ``picks`` arguments, along with a convenience :meth:`mne.io.Raw.pick`, :meth:`mne.Epochs.pick`, and :meth:`mne.Evoked.pick` method, by `Eric Larson`_
 
-- Add new tutorial on :ref:`sphx_glr_auto_tutorials_plot_sleep.py` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
+- Add new tutorial on :ref:`tut-sleep-stage-classif` by `Alex Gramfort`_, `Stanislas Chambon`_ and `Joan Massich`_
 
 - Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
 
 - Add envelope correlation code in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
+
+- Add option to toggle all projectors in :meth:`mne.io.Raw.plot` and related functions by `Eric Larson`_
 
 - Add support for indexing, slicing, and iterating :class:`mne.Annotations` by `Joan Massich`_
 
@@ -96,6 +126,8 @@ Changelog
 
 - Add support for CUDA-based correlation computations and progress bars in :class:`mne.decoding.ReceptiveField` by `Eric Larson`_
 
+- Add support for file-like objects in :func:`mne.io.read_raw_fif` as long as preloading is used by `Eric Larson`_
+
 - Add keyboard shortcuts to nativate volume source estimates in time using (shift+)left/right arrow keys by `Mainak Jas`_
 
 - Add option to SSP preprocessing functions (e.g., :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.compute_proj_epochs`) to process MEG channels jointly with ``meg='combined'`` by `Eric Larson`_
@@ -128,13 +160,24 @@ Changelog
 
 - Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
 
+- Add partial support for PyVista as a 3D backend using :func:`mne.viz.use_3d_backend` by `Guillaume Favelier`_
+
 - Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
 
 - Add :class:`mne.realtime.MockLSLStream` to simulate an LSL stream for testing and examples by `Teon Brooks`_
 
 Bug
 ~~~
+
+- Fix annotations in split fif files :func:`mne.io.read_raw_fif` by `Joan Massich`_
+
+- Fix :meth:`mne.Epochs.plot` with ``scalings='auto'`` to properly compute channel-wise scalings by `Stefan Repplinger`_
+
+- Fix :func:`mne.gui.coregistration` and :ref:`mne coreg <gen_mne_coreg>` crashing with segmentation fault when switching subjects by `Eric Larson`_
+
 - Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
+
+- Fix :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` to auto-scale ``misc`` channel types by default by `Eric Larson`_
 
 - Fix filtering functions (e.g., :meth:`mne.io.Raw.filter`) to properly take into account the two elements in ``n_pad`` parameter by `Bruno Nicenboim`_
 
@@ -145,6 +188,10 @@ Bug
 - Fix bug with ``weight_norm='unit-gain'`` in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` by `Britta Westner`_
 
 - Fix 32bits annotations in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
+
+- Fix :func:`mne.events_from_annotations` to ignore ``'BAD_'` and ``'EDGE_'`` annotations by default using a new default ``regexp`` by `Eric Larson`_
+
+- Fix bug in :func:`mne.preprocessing.mark_flat` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
 
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
@@ -183,6 +230,8 @@ Bug
 
 - Fix saving of rejection parameters in :meth:`mne.Epochs.save` by `Eric Larson`_
 
+- Fix orientations returned by :func:`mne.dipole.get_phantom_dipoles` (half were flipped 180 degrees) by `Eric Larson`_
+
 - Fix bug in :func:`mne.viz.plot_compare_evokeds` when ``evoked.times[0] >= 0`` would cause a problem with ``vlines='auto'`` mode by `Eric Larson`_
 
 - Fix path bugs in :func:`mne.bem.make_flash_bem` and :ref:`gen_mne_flash_bem` by `Eric Larson`_
@@ -202,6 +251,16 @@ Bug
 - Fix :func:`mne.io.read_raw_eeglab` incorrectly parsing event durations by `Clemens Brunner`_
 
 - Fix :func:`mne.io.read_raw_egi` when cropping non-preloaded EGI MFF data by `Alex Gramfort`_
+
+- Fix :meth:`mne.io.Raw.interpolate_bads` for interpolating CTF MEG channels when reference sensors are present by `jeythekey`_
+
+- Fix a bug in :meth:`mne.io.Raw.resample`, where resampling events could result in indices > n_times-1, by `jeythekey`_
+
+- Fix :meth:`mne.preprocessing.ICA.score_sources` to use the ``sfreq`` of the raw data to filter rather than the ``sfreq`` when the ICA was fit, by `jeythekey`_
+
+- Fix a bug in :class:`mne.preprocessing.ICA`, where manually setting the attribute ``ICA.exclude`` to an np.array resulted in the removal of random components when later also providing the ``exclude`` argument to any ``apply...``-method, by `jeythekey`_
+
+- Ascending changed to descending sorting of scores for integer ``..._criterion`` arguments in :func:`mne.preprocessing.ICA.detect_artifacts` and :func:`mne.preprocessing.run_ica`, as it used to  be documented; the docstring in these functions was corrected for float ``..._criterion`` arguments, by `jeythekey`_
 
 API
 ~~~
@@ -235,6 +294,8 @@ API
 - Fix support for supplying ``extrapolate`` via :meth:`ica.plot_properties(..., topomap_args=dict(extrapolate=...)) <mne.preprocessing.ICA.plot_properties>` by `Sebastian Castano`_
 
 - The peak finder that was formerly accessible via ``from mne.preprocessing.peak_finder import peak_finder`` should now be imported directly from the enclosing namespace as ``from mne.preprocessing import peak_finder`` by `Eric Larson`_
+
+- Deprecate `mne.realtime` module to make a standalone module `mne-realtime` that will live outside of this package by `Teon Brooks`_
 
 .. _changes_0_17:
 
@@ -1204,7 +1265,7 @@ Changelog
 
 - Add ``yscale`` keyword argument to :meth:`mne.time_frequency.AverageTFR.plot` that allows specifying whether to present the frequency axis in linear (``'linear'``) or log (``'log'``) scale. The default value is ``'auto'`` which detects whether frequencies are log-spaced and sets yscale to log. Added by `Mikołaj Magnuski`_
 
-- Add :ref:`Representational Similarity Analysis (RSA) <rsa_noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
+- Add :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
 
 - Add support for NeuroScan files with event type 3 in :func:`mne.io.read_raw_cnt` by `Marijn van Vliet`_
 
@@ -3313,11 +3374,15 @@ of commits):
 
 .. _Jeff Hanna: https://github.com/jshanna100
 
+.. _kalenkovich: https://github.com/kalenkovich
+
 .. _Antoine Gauthier: https://github.com/Okamille
 
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
 
 .. _Sebastian Castano: https://github.com/jscastanoc
+
+.. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
 .. _Katarina Slama: https://katarinaslama.github.io
 

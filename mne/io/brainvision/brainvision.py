@@ -132,6 +132,11 @@ class RawBrainVision(BaseRaw):
                     block[:n_data_ch, ii] = [float(l) for l in line]
             _mult_cal_one(data, block, idx, cals, mult)
 
+    @classmethod
+    def _get_auto_event_id(cls):
+        """Return default ``event_id`` behavior for Brainvision."""
+        return _BVEventParser()
+
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     """Read chunk of vectorized raw data."""
@@ -207,7 +212,8 @@ def _read_vmrk(fname):
     # extract Marker Infos block
     m = re.search(r"\[Marker Infos\]", txt, re.IGNORECASE)
     if not m:
-        return np.zeros((0, 3))
+        return np.array(list()), np.array(list()), np.array(list()), ''
+
     mk_txt = txt[m.end():]
     m = re.search(r"^\[.*\]$", mk_txt)
     if m:
@@ -256,26 +262,20 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    markers = _read_vmrk(fname)
-    if len(markers) > 0:
-        onset, duration, description, date_str = markers
-        orig_time = _str_to_meas_date(date_str)
+    onset, duration, description, date_str = _read_vmrk(fname)
+    orig_time = None if date_str == '' else _str_to_meas_date(date_str)
 
-        if sfreq == 'auto':
-            vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-            logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-            _, _, _, info = _aux_vhdr_info(vhdr_fname)
-            sfreq = info['sfreq']
+    if sfreq == 'auto':
+        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
+        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
+        _, _, _, info = _aux_vhdr_info(vhdr_fname)
+        sfreq = info['sfreq']
 
-        onset = np.array(onset, dtype=float) / sfreq
-        duration = np.array(duration, dtype=float) / sfreq
-        annotations = Annotations(onset=onset, duration=duration,
-                                  description=description,
-                                  orig_time=orig_time)
-    else:
-        annotations = Annotations(onset=0, duration=0,
-                                  description=None,
-                                  orig_time=None)
+    onset = np.array(onset, dtype=float) / sfreq
+    duration = np.array(duration, dtype=float) / sfreq
+    annotations = Annotations(onset=onset, duration=duration,
+                              description=description,
+                              orig_time=orig_time)
     return annotations
 
 
@@ -836,3 +836,36 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,
                           stim_channel=stim_channel, verbose=verbose)
+
+
+_BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 2000}
+_OTHER_ACCEPTED_MARKERS = {
+    'New Segment/': 99999, 'SyncStatus/Sync On': 99998
+}
+_OTHER_OFFSET = 10001  # where to start "unknown" event_ids
+
+
+class _BVEventParser(object):
+    """Parse standard brainvision events, accounting for non-standard ones."""
+
+    def __init__(self):
+        self.other_event_ids = dict()
+
+    def __call__(self, description):
+        """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
+        offsets = _BV_EVENT_IO_OFFSETS
+
+        maybe_digit = description[-3:].strip()
+        kind = description[:-3]
+        if maybe_digit.isdigit() and kind in offsets:
+            code = int(maybe_digit) + offsets[kind]
+        elif description in _OTHER_ACCEPTED_MARKERS:
+            code = _OTHER_ACCEPTED_MARKERS[description]
+        else:
+            if description not in self.other_event_ids:
+                # Each time a new one is added, len(self.other_event_ids)
+                # will grow, so implicitly this is a counter for us
+                self.other_event_ids[description] = \
+                    _OTHER_OFFSET + len(self.other_event_ids)
+            code = self.other_event_ids[description]
+        return code

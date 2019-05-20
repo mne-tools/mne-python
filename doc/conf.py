@@ -14,6 +14,7 @@
 
 from datetime import date
 from distutils.version import LooseVersion
+import gc
 import os
 import os.path as op
 import sys
@@ -22,12 +23,15 @@ import warnings
 import sphinx_gallery
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
+import matplotlib
 import mne
 from mne.utils import linkcode_resolve  # noqa, analysis:ignore
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
                       '%s' % (sphinx_gallery.__version__,))
+
+matplotlib.use('agg')
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -294,6 +298,7 @@ intersphinx_mapping = {
     'scipy': ('https://scipy.github.io/devdocs', None),
     'matplotlib': ('https://matplotlib.org', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
+    'joblib': ('https://joblib.readthedocs.io/en/latest', None),
     'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
@@ -330,7 +335,12 @@ class Resetter(object):
         return '<%s>' % (self.__class__.__name__,)
 
     def __call__(self, gallery_conf, fname):
+        import matplotlib.pyplot as plt
         reset_warnings(gallery_conf, fname)
+        # in case users have interactive mode turned on in matplotlibrc,
+        # turn it off here (otherwise the build can be very slow)
+        plt.ioff()
+        gc.collect()
 
 
 def reset_warnings(gallery_conf, fname):
@@ -366,7 +376,9 @@ def reset_warnings(gallery_conf, fname):
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
+                "DocumenterBridge requires a state object",  # sphinx dev
                 "'U' mode is deprecated",  # sphinx io
+                r"joblib is deprecated in 0\.21",  # nilearn
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -381,6 +393,8 @@ def reset_warnings(gallery_conf, fname):
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)
+    warnings.filterwarnings(
+        'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
 
 
 reset_warnings(None, None)
@@ -400,7 +414,20 @@ sphinx_gallery_conf = {
                                        '../examples/inverse/',
                                        '../examples/realtime/',
                                        '../examples/datasets/',
-                                       '../tutorials/']),
+                                       '../tutorials/intro/',
+                                       '../tutorials/raw/',
+                                       '../tutorials/preprocessing/',
+                                       '../tutorials/epochs/',
+                                       '../tutorials/evoked/',
+                                       '../tutorials/time-freq/',
+                                       '../tutorials/source-modeling/',
+                                       '../tutorials/stats-sensor-space/',
+                                       '../tutorials/stats-source-space/',
+                                       '../tutorials/machine-learning/',
+                                       '../tutorials/simulation/',
+                                       '../tutorials/sample-datasets/',
+                                       '../tutorials/discussions/',
+                                       '../tutorials/misc/']),
     'gallery_dirs': gallery_dirs,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
     'backreferences_dir': 'generated',
@@ -427,6 +454,7 @@ numpydoc_attributes_as_param_list = False
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     'Popen': 'python:subprocess.Popen',
+    'file-like': ':term:`file-like <python:file object>`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
@@ -439,6 +467,8 @@ numpydoc_xref_aliases = {
     'mlab.Figure': 'mayavi.core.api.Scene',
     # sklearn
     'LeaveOneOut': 'sklearn.model_selection.LeaveOneOut',
+    # joblib
+    'joblib.Parallel': 'joblib.Parallel',
     # nibabel
     'Nifti1Image': 'nibabel.nifti1.Nifti1Image',
     'Nifti2Image': 'nibabel.nifti2.Nifti2Image',

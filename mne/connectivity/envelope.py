@@ -7,6 +7,7 @@
 import numpy as np
 
 from ..filter import next_fast_len
+from ..source_estimate import _BaseSourceEstimate
 from ..utils import verbose, _check_combine
 
 
@@ -19,7 +20,8 @@ def envelope_correlation(data, combine='mean', verbose=None):
     data : array-like, shape=(n_epochs, n_signals, n_times) | generator
         The data from which to compute connectivity.
         The array-like object can also be a list/generator of array,
-        each with shape (n_signals, n_times). If it's float data,
+        each with shape (n_signals, n_times), or a :class:`~mne.SourceEstimate`
+        object (and ``stc.data`` will be used). If it's float data,
         the Hilbert transform will be applied; if it's complex data,
         it's assumed the Hilbert has already been applied.
     combine : 'mean' | callable | None
@@ -53,23 +55,28 @@ def envelope_correlation(data, combine='mean', verbose=None):
            Neuroimage 174:57–68
     """
     from scipy.signal import hilbert
-    corrs = list()
     n_nodes = None
     if combine is not None:
         fun = _check_combine(combine, valid=('mean',))
     else:  # None
         fun = np.array
 
-    for epoch_data in data:
+    corrs = list()
+    # Note: This is embarassingly parallel, but the overhead of sending
+    # the data to different workers is roughly the same as the gain of
+    # using multiple CPUs. And we require too much GIL for prefer='threading'
+    # to help.
+    for ei, epoch_data in enumerate(data):
+        if isinstance(epoch_data, _BaseSourceEstimate):
+            epoch_data = epoch_data.data
         if epoch_data.ndim != 2:
             raise ValueError('Each entry in data must be 2D, got shape %s'
                              % (epoch_data.shape,))
-        this_n_nodes, n_times = epoch_data.shape
-        if n_nodes is None:
-            n_nodes = this_n_nodes
-        if this_n_nodes != n_nodes:
-            raise ValueError('n_nodes mismatch between epochs, got %s and %s'
-                             % (n_nodes, this_n_nodes))
+        n_nodes, n_times = epoch_data.shape
+        if ei > 0 and n_nodes != corrs[0].shape[0]:
+            raise ValueError('n_nodes mismatch between data[0] and data[%d], '
+                             'got %s and %s'
+                             % (ei, n_nodes, corrs[0].shape[0]))
         # Get the complex envelope (allowing complex inputs allows people
         # to do raw.apply_hilbert if they want)
         if epoch_data.dtype in (np.float32, np.float64):

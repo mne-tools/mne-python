@@ -1,4 +1,6 @@
 """
+.. _ex-morph-volume:
+
 ================================
 Morph volumetric source estimate
 ================================
@@ -10,8 +12,8 @@ an affine transformation and a nonlinear registration method
 known as Symmetric Diffeomorphic Registration (SDR) by Avants et al. [1]_.
 
 Transformation is estimated from the subject's anatomical T1 weighted MRI
-(brain) to FreeSurfer's 'fsaverage' T1 weighted MRI (brain). See
-https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage .
+(brain) to `FreeSurfer's 'fsaverage' T1 weighted MRI (brain)
+<https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage>`__.
 
 Afterwards the transformation will be applied to the volumetric source
 estimate. The result will be plotted, showing the fsaverage T1 weighted

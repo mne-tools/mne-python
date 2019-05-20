@@ -10,7 +10,7 @@ replace this with the stream of your choice by changing the host id to
 the desired stream.
 
 """
-# Author: Teon Brooks <teon.brooks@gmail.com>
+# Author: Teon L Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 import matplotlib.pyplot as plt

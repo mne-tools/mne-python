@@ -332,8 +332,9 @@ class SourceMorph(object):
         stc_from : VolSourceEstimate | VolVectorSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
         output : str
-            Can be 'stc' (default), 'nifti1', or 'nifti2'.
-            If a V
+            Can be 'stc' (default) or possibly 'nifti1', or 'nifti2'
+            when working with a volume source space defined on a regular
+            grid.
         mri_resolution: bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be

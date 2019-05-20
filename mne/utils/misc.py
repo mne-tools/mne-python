@@ -180,9 +180,11 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
             command_name = command[0]
         logger.error('Command not found: %s' % command_name)
         raise
-    yield p
-    getattr(p, after)()
-    p.wait()
+    try:
+        yield p
+    finally:
+        getattr(p, after)()
+        p.wait()
 
 
 def _clean_names(names, remove_whitespace=False, before_dash=True):

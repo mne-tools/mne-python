@@ -51,6 +51,123 @@ picks : list | slice | None
     interpreted as channel indices. None (default) will pick all channels.
 """
 
+# Filtering
+docdict['l_freq'] = """
+l_freq : float | None
+    For FIR filters, the lower pass-band edge; for IIR filters, the upper
+    cutoff frequency. If None the data are only low-passed.
+"""
+docdict['h_freq'] = """
+h_freq : float | None
+    For FIR filters, the upper pass-band edge; for IIR filters, the upper
+    cutoff frequency. If None the data are only low-passed.
+"""
+docdict['filter_length'] = """
+filter_length : str | int
+    Length of the FIR filter to use (if applicable):
+
+    * **'auto' (default)**: The filter length is chosen based
+      on the size of the transition regions (6.6 times the reciprocal
+      of the shortest transition band for fir_window='hamming'
+      and fir_design="firwin2", and half that for "firwin").
+    * **str**: A human-readable time in
+      units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+      converted to that number of samples if ``phase="zero"``, or
+      the shortest power-of-two length at least that duration for
+      ``phase="zero-double"``.
+    * **int**: Specified length in samples. For fir_design="firwin",
+      this should not be used.
+
+"""
+docdict['l_trans_bandwidth'] = """
+l_trans_bandwidth : float | str
+    Width of the transition band at the low cut-off frequency in Hz
+    (high pass or cutoff 1 in bandpass). Can be "auto"
+    (default) to use a multiple of ``l_freq``::
+
+        min(max(l_freq * 0.25, 2), l_freq)
+
+    Only used for ``method='fir'``.
+"""
+docdict['h_trans_bandwidth'] = """
+h_trans_bandwidth : float | str
+    Width of the transition band at the high cut-off frequency in Hz
+    (low pass or cutoff 2 in bandpass). Can be "auto"
+    (default in 0.14) to use a multiple of ``h_freq``::
+
+        min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+    Only used for ``method='fir'``.
+"""
+docdict['phase'] = """
+phase : str
+    Phase of the filter, only used if ``method='fir'``.
+    Symmetric linear-phase FIR filters are constructed, and if ``phase='zero'``
+    (default), the delay of this filter is compensated for, making it
+    non-causal. If ``phase=='zero-double'``,
+    then this filter is applied twice, once forward, and once backward
+    (also making it non-causal). If 'minimum', then a minimum-phase filter will
+    be constricted and applied, which is causal but has weaker stop-band
+    suppression.
+
+    .. versionadded:: 0.13
+"""
+docdict['fir_design'] = """
+fir_design : str
+    Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+    or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+    a time-domain design technique that generally gives improved
+    attenuation using fewer samples than "firwin2".
+
+    .. versionadded:: 0.15
+"""
+docdict['fir_window'] = """
+fir_window : str
+    The window to use in FIR design, can be "hamming" (default),
+    "hann" (default in 0.13), or "blackman".
+
+    .. versionadded:: 0.15
+"""
+docdict['pad-fir'] = """
+pad : str
+    The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+    options. Can also be "reflect_limited", which pads with a
+    reflected version of each vector mirrored on the first and last
+    values of the vector, followed by zeros. Only used for ``method='fir'``.
+"""
+docdict['method-fir'] = """
+method : str
+    'fir' will use overlap-add FIR filtering, 'iir' will use IIR
+    forward-backward filtering (via filtfilt).
+"""
+docdict['n_jobs-fir'] = """
+n_jobs : int | str
+    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+    is installed properly and method='fir'.
+"""
+docdict['n_jobs-cuda'] = """
+n_jobs : int | str
+    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+    is installed properly.
+"""
+docdict['iir_params'] = """
+iir_params : dict | None
+    Dictionary of parameters to use for IIR filtering.
+    If iir_params is None and method="iir", 4th order Butterworth will be used.
+    For more information, see :func:`mne.filter.construct_iir_filter`.
+"""
+docdict['npad'] = """
+npad : int | str
+    Amount to pad the start and end of the data.
+    Can also be "auto" to use a padding that will result in
+    a power-of-two size (can be much faster).
+"""
+docdict['window-resample'] = """
+window : str | tuple
+    Frequency-domain window to use in resampling.
+    See :func:`scipy.signal.resample`.
+"""
+
 # Rank
 docdict['rank'] = """
 rank : None | dict | 'info' | 'full'

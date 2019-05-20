@@ -6,6 +6,7 @@
 
 from copy import deepcopy
 from functools import partial
+from io import BytesIO
 import os.path as op
 import pickle
 import sys
@@ -381,14 +382,18 @@ def test_split_files(tmpdir):
     assert op.exists(split_fname_bids_part1)
     assert op.exists(split_fname_bids_part2)
 
+    annot = Annotations(np.arange(20), np.ones((20,)), 'test')
+    raw_1.set_annotations(annot)
     split_fname = op.join(tempdir, 'split_raw.fif')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1., atol=1e-2)  # samp rate
-    assert_array_almost_equal(raw_1.annotations.onset, raw_2.annotations.onset)
-    assert_array_equal(raw_1.annotations.duration, raw_2.annotations.duration)
+    assert_allclose(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_allclose(raw_1.annotations.duration, raw_2.annotations.duration,
+                    rtol=0.001 / raw_2.info['sfreq'])
     assert_array_equal(raw_1.annotations.description,
                        raw_2.annotations.description)
+
     data_1, times_1 = raw_1[:, :]
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
@@ -406,6 +411,8 @@ def test_split_files(tmpdir):
     # somehow, the numbers below for e.g. split_size might need to be
     # adjusted.
     raw_crop = raw_1.copy().crop(0, 5)
+    raw_crop.set_annotations(Annotations([2.], [5.5], 'test'),
+                             emit_warning=False)
     with pytest.raises(ValueError,
                        match='after writing measurement information'):
         raw_crop.save(split_fname, split_size='1MB',  # too small a size
@@ -1054,7 +1061,7 @@ def test_resample(tmpdir):
 
     # test resampling events: this should no longer give a warning
     # we often have first_samp != 0, include it here too
-    stim = [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0]
+    stim = [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1]  # an event at end
     # test is on half the sfreq, but should work with trickier ones too
     o_sfreq, sfreq_ratio = len(stim), 0.5
     n_sfreq = o_sfreq * sfreq_ratio
@@ -1063,13 +1070,17 @@ def test_resample(tmpdir):
                    first_samp=first_samp)
     events = find_events(raw)
     raw, events = raw.resample(n_sfreq, events=events, npad='auto')
+    # Try index into raw.times with resampled events:
+    raw.times[events[:, 0] - raw.first_samp]
     n_fsamp = int(first_samp * sfreq_ratio)  # how it's calc'd in base.py
     # NB np.round used for rounding event times, which has 0.5 as corner case:
     # https://docs.scipy.org/doc/numpy/reference/generated/numpy.around.html
     assert_array_equal(
         events,
         np.array([[np.round(1 * sfreq_ratio) + n_fsamp, 0, 1],
-                  [np.round(10 * sfreq_ratio) + n_fsamp, 0, 1]]))
+                  [np.round(10 * sfreq_ratio) + n_fsamp, 0, 1],
+                  [np.minimum(np.round(15 * sfreq_ratio),
+                              raw._data.shape[1] - 1) + n_fsamp, 0, 1]]))
 
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
@@ -1112,7 +1123,7 @@ def test_hilbert():
     assert raw_filt._data.shape == raw_filt_2._data.shape
     assert_allclose(raw_filt._data[:, 50:-50], raw_filt_2._data[:, 50:-50],
                     atol=1e-13, rtol=1e-2)
-    with pytest.raises(ValueError, match='n_fft must be greater than n_times'):
+    with pytest.raises(ValueError, match='n_fft.*must be at least the number'):
         raw3.apply_hilbert(picks, n_fft=raw3.n_times - 100)
 
     env = np.abs(raw._data[picks, :])
@@ -1492,6 +1503,42 @@ def test_memmap(tmpdir):
     # other things like drop_channels and crop work but do not use memmapping,
     # eventually we might want to add support for some of these as users
     # require them.
+
+
+@pytest.mark.parametrize('split', (False, True))
+@pytest.mark.parametrize('kind', ('file', 'bytes'))
+@pytest.mark.parametrize('preload', (True, str))
+def test_file_like(kind, preload, split, tmpdir):
+    """Test handling with file-like objects."""
+    if split:
+        fname = op.join(str(tmpdir), 'test_raw.fif')
+        read_raw_fif(test_fif_fname).save(fname, split_size='5MB')
+        assert op.isfile(fname)
+        assert op.isfile(fname[:-4] + '-1.fif')
+    else:
+        fname = test_fif_fname
+    if preload is str:
+        preload = op.join(str(tmpdir), 'memmap')
+    with open(fname, 'rb') as file_fid:
+        fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
+        assert not fid.closed
+        assert not file_fid.closed
+        with pytest.raises(ValueError, match='preload must be used with file'):
+            read_raw_fif(fid)
+        assert not fid.closed
+        assert not file_fid.closed
+        # Use test_preloading=False but explicitly pass the preload type
+        # so that we don't bother testing preload=False
+        kwargs = dict(fname=fid, preload=preload,
+                      test_preloading=False, test_kwargs=False)
+        if split:
+            with pytest.warns(RuntimeWarning, match='Split raw file detected'):
+                _test_raw_reader(read_raw_fif, **kwargs)
+        else:
+            _test_raw_reader(read_raw_fif, **kwargs)
+        assert not fid.closed
+        assert not file_fid.closed
+    assert file_fid.closed
 
 
 run_tests_if_main()
