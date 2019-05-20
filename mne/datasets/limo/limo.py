@@ -9,13 +9,11 @@ import zipfile
 from sys import stdout
 
 import numpy as np
-from scipy import io
-from pandas import DataFrame
 
 from ...channels import read_montage
 from ...epochs import EpochsArray
 from ...io.meas_info import create_info
-from ...utils import _fetch_file, verbose
+from ...utils import _fetch_file, requires_pandas, verbose
 from ..utils import _get_path, _do_path_update
 
 # root url for LIMO files
@@ -118,6 +116,7 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     return limo_dir
 
 
+@requires_pandas
 @verbose
 def load_data(subject, path=None, interpolate=False, force_update=False,
               update_path=None, verbose=None):
@@ -146,6 +145,9 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     epochs : MNE Epochs data structure
         The epochs.
     """  # noqa: E501
+    import pandas as pd
+    from scipy.io import loadmat
+
     # subject in question
     if isinstance(subject, int) and 1 <= subject <= 18:
         subj = 'S%i' % subject
@@ -158,13 +160,13 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     # -- 1) import .mat files
     # epochs info
     fname_info = op.join(limo_path, subj, 'LIMO.mat')
-    data_info = io.loadmat(fname_info)
+    data_info = loadmat(fname_info)
     # number of epochs per condition
     design = data_info['LIMO']['design'][0][0]['X'][0][0]
     data_info = data_info['LIMO']['data'][0][0][0][0]
     # epochs data
     fname_eeg = op.join(limo_path, subj, 'Yr.mat')
-    data = io.loadmat(fname_eeg)
+    data = loadmat(fname_eeg)
 
     # -- 2) get epochs information from structure
     # sampling rate
@@ -217,7 +219,7 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     noise = list(design[:, 2])
     # create epochs metadata
     metadata = {'Face': faces, 'Noise': noise}
-    metadata = DataFrame(metadata)
+    metadata = pd.DataFrame(metadata)
 
     # -- 6) Create custom epochs array
     epochs = EpochsArray(data, info, events, tmin, event_id, metadata=metadata)
