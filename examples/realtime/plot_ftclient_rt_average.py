@@ -26,7 +26,7 @@ measurement info from the Fieldtrip Header object.
 Together with RtEpochs, this can be used to compute evoked
 responses using moving averages.
 """
-# Author: Mainak Jas <mainak@neuro.hut.fi>
+# Author: Mainak Jas <mainakjas@gmail.com>
 #
 # License: BSD (3-clause)
 

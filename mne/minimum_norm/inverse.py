@@ -1114,8 +1114,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
             # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel
 
-            logger.info('combining the current components...')
             if pick_ori != 'vector':
+                logger.info('combining the current components...')
                 sol = combine_xyz(sol)
 
             if noise_norm is not None:

@@ -499,9 +499,11 @@ def modified_env(**d):
             os.environ[key] = val
         elif key in os.environ:
             del os.environ[key]
-    yield
-    for key, val in orig_env.items():
-        if val is not None:
-            os.environ[key] = val
-        elif key in os.environ:
-            del os.environ[key]
+    try:
+        yield
+    finally:
+        for key, val in orig_env.items():
+            if val is not None:
+                os.environ[key] = val
+            elif key in os.environ:
+                del os.environ[key]

@@ -852,7 +852,7 @@ def _read_gdf_header(fname, exclude):
                 else:
                     chn = np.zeros(n_events, dtype=np.int32)
                     dur = np.ones(n_events, dtype=np.uint32)
-                np.clip(dur, 1, np.inf, out=dur)
+                np.maximum(dur, 1, out=dur)
                 events = [n_events, pos, typ, chn, dur]
 
         # GDF 2.x

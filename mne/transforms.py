@@ -412,6 +412,7 @@ def _ensure_trans(trans, fro='mri', to='head'):
         trans = [trans]
     # Ensure that we have exactly one match
     idx = list()
+    misses = list()
     for ti, this_trans in enumerate(trans):
         if not isinstance(this_trans, Transform):
             raise ValueError('%s None' % err_str)
@@ -419,8 +420,8 @@ def _ensure_trans(trans, fro='mri', to='head'):
                 this_trans['to']} == {from_const, to_const}:
             idx.append(ti)
         else:
-            misses = '%s->%s' % (_frame_to_str[this_trans['from']],
-                                 _frame_to_str[this_trans['to']])
+            misses += ['%s->%s' % (_frame_to_str[this_trans['from']],
+                                   _frame_to_str[this_trans['to']])]
     if len(idx) != 1:
         raise ValueError('%s %s' % (err_str, ', '.join(misses)))
     trans = trans[idx[0]]

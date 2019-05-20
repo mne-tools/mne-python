@@ -41,7 +41,7 @@ from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
-from .filter import detrend, FilterMixin
+from .filter import detrend, FilterMixin, HilbertMixin
 from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
@@ -185,7 +185,8 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
+                 ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin,
+                 HilbertMixin):
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -850,6 +851,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             data = np.zeros((n_channels, n_times))
             n_events = 0
             for e in self:
+                if np.iscomplexobj(e):
+                    data = data.astype(np.complex128)
                 data += e
                 n_events += 1
 

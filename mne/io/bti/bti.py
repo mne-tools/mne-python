@@ -973,7 +973,7 @@ class RawBTi(BaseRaw):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
 
-        ..versionadded:: 0.11
+        .. versionadded:: 0.11
 
     %(verbose)s
     """
@@ -1311,8 +1311,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
 
-        ..versionadded:: 0.11
-
+        .. versionadded:: 0.11
     %(verbose)s
 
     Returns

@@ -310,7 +310,7 @@ def _get_dpss():
 # Backporting scipy.signal.sosfiltfilt (0.18)
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
-    """copy of SciPy sosfiltfilt"""
+    """Do SciPy sosfiltfilt."""
     from scipy.signal import sosfilt, sosfilt_zi
     sos, n_sections = _validate_sos(sos)
 
@@ -449,13 +449,25 @@ def const_ext(x, n, axis=-1):
 
 
 def get_sosfiltfilt():
-    """Helper to get sosfiltfilt from scipy"""
+    """Get sosfiltfilt from SciPy."""
     try:
         from scipy.signal import sosfiltfilt
     except ImportError:
         sosfiltfilt = _sosfiltfilt
     return sosfiltfilt
 
+
+def _sosfreqz(sos, worN=512, whole=False):
+    """Do sosfreqz from SciPy."""
+    from scipy.signal import freqz
+    sos, n_sections = _validate_sos(sos)
+    if n_sections == 0:
+        raise ValueError('Cannot compute frequencies with no sections')
+    h = 1.
+    for row in sos:
+        w, rowh = freqz(row[:3], row[3:], worN=worN, whole=whole)
+        h *= rowh
+    return w, h
 
 def minimum_phase(h):
     """Convert a linear-phase FIR filter to minimum phase.
@@ -1224,3 +1236,14 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     outline[6:, 1] += cbar.norm(cbar_vmin)
     cbar.outline.set_xy(outline)
     cbar.set_ticks(new_tick_locs, update_ticks=True)
+
+
+###############################################################################
+# Matplotlib
+
+def _get_status(checks):
+    """Deal with old MPL to get check box statuses."""
+    try:
+        return list(checks.get_status())
+    except AttributeError:
+        return [x[0].get_visible() for x in checks.lines]

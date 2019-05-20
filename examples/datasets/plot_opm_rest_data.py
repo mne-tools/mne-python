@@ -1,4 +1,6 @@
 """
+.. _ex-opm-resting-state:
+
 =========================================
 VectorView and OPM resting state datasets
 =========================================

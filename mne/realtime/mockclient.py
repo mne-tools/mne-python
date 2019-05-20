@@ -9,10 +9,15 @@ import numpy as np
 
 from ..event import find_events
 from ..io.pick import _picks_to_idx
-from ..utils import fill_doc
+from ..utils import fill_doc, deprecated
+
+RT_MSG = ('The realtime module is being deprecated from `mne-python` '
+          'and moved to its own package, `mne-realtime`. '
+          'To install, please use `$ pip install mne_realtime`.')
 
 
 @fill_doc
+@deprecated(RT_MSG)
 class MockRtClient(object):
     """Mock Realtime Client.
 

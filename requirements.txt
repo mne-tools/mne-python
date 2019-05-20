@@ -1,7 +1,7 @@
 numpy
 scipy
-matplotlib
-mayavi
+matplotlib<3.1
+https://api.github.com/repos/enthought/mayavi/zipball/e2569be1096be3deecb15f8fa8581a3ae3fb77d3
 pyqt5
 pyqt5-sip
 sip
@@ -29,5 +29,5 @@ xlrd
 pydocstyle
 flake8
 https://api.github.com/repos/vispy/vispy/zipball/47f3cd0cf179286774b8ec5d1fbe063a28b8e56b
-vtki
+pyvista
 pylsl>=1.12

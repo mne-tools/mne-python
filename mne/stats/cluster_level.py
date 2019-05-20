@@ -1174,8 +1174,7 @@ def permutation_cluster_1samp_test(
     mathematically equivalent to a paired t-test, internally this function
     computes a 1-sample t-test (by default) and uses sign flipping (always)
     to perform permutations. This might not be suitable for the case where
-    there is truly a single observation under test; see
-    :ref:`sphx_glr_auto_tutorials_plot_background_statistics.py`.
+    there is truly a single observation under test; see :ref:`disc-stats`.
 
     If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
     ``n_permutations`` and ``seed`` will be ignored since an exact test

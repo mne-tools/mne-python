@@ -17,8 +17,7 @@ Using the UNIX commands this is accomplished with two programs:
 :ref:`mne_inverse_operator` and :ref:`mne_make_movie` or in Python
 using :func:`mne.minimum_norm.make_inverse_operator`
 and the ``apply`` functions. The use of these functions is
-presented in the tutorial
-:ref:`sphx_glr_auto_tutorials_plot_mne_dspm_source_localization.py`.
+presented in the tutorial :ref:`tut-inverse-methods`.
 
 The page starts with a mathematical description of the method.
 The interactive program for inspecting data and inverse solutions,

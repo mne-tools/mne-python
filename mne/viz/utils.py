@@ -11,6 +11,7 @@
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 import math
 from functools import partial
 import difflib
@@ -26,6 +27,7 @@ import warnings
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
+from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
@@ -290,11 +292,26 @@ def _toggle_options(event, params):
             params['fig_proj'] = None
 
 
-def _toggle_proj(event, params):
+@contextmanager
+def _events_off(obj):
+    obj.eventson = False
+    try:
+        yield
+    finally:
+        obj.eventson = True
+
+
+def _toggle_proj(event, params, all_=False):
     """Perform operations when proj boxes clicked."""
     # read options if possible
     if 'proj_checks' in params:
-        bools = [x[0].get_visible() for x in params['proj_checks'].lines]
+        bools = _get_status(params['proj_checks'])
+        if all_:
+            new_bools = [not all(bools)] * len(bools)
+            with _events_off(params['proj_checks']):
+                for bi, (old, new) in enumerate(zip(bools, new_bools)):
+                    if old != new:
+                        params['proj_checks'].set_active(bi)
         for bi, (b, p) in enumerate(zip(bools, params['projs'])):
             # see if they tried to deactivate an active one
             if not b and p['active']:
@@ -450,17 +467,19 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
                params.get('proj_bools', [params['apply_proj']] * len(projs)))
 
     width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
-    height = len(projs) / 6.0 + 1.5
+    height = (len(projs) + 1) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
     fig_proj.canvas.set_window_title('SSP projection vectors')
+    offset = (1. / 6. / height)
     params['fig_proj'] = fig_proj  # necessary for proper toggling
-    ax_temp = fig_proj.add_axes((0, 0, 1, 0.8), frameon=False)
+    ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
     ax_temp.set_title('Projectors marked with "X" are active')
 
     proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
     # make edges around checkbox areas
-    [rect.set_edgecolor('0.5') for rect in proj_checks.rectangles]
-    [rect.set_linewidth(1.) for rect in proj_checks.rectangles]
+    for rect in proj_checks.rectangles:
+        rect.set_edgecolor('0.5')
+        rect.set_linewidth(1.)
 
     # change already-applied projectors to red
     for ii, p in enumerate(projs):
@@ -473,6 +492,12 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
     fig_proj.canvas.mpl_connect('key_press_event', _key_press)
+
+    # Toggle all
+    ax_temp = fig_proj.add_axes((0, 0, 1, offset), frameon=False)
+    proj_all = widgets.Button(ax_temp, 'Toggle all')
+    proj_all.on_clicked(partial(_toggle_proj, params=params, all_=True))
+    params['proj_all'] = proj_all
 
     # this should work for non-test cases
     try:
@@ -1222,10 +1247,9 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
         x, y = ax.transData.transform_point(point)
-    elif xform == 'pix':
-        x, y = point
     else:
-        raise ValueError('unknown transform')
+        assert xform == 'pix'
+        x, y = point
     if kind == 'press':
         func = partial(fig.canvas.button_press_event, x=x, y=y, button=button)
     elif kind == 'release':
@@ -1622,21 +1646,13 @@ def _compute_scalings(scalings, inst):
     """
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
+    scalings = _handle_default('scalings_plot_raw', scalings)
     if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
-    if scalings is None:
-        # If scalings is None just return it and do nothing
-        return scalings
 
     ch_types = channel_indices_by_type(inst.info)
     ch_types = {i_type: i_ixs
                 for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
-    if scalings == 'auto':
-        # If we want to auto-compute everything
-        scalings = {i_type: 'auto' for i_type in ch_types.keys()}
-    if not isinstance(scalings, dict):
-        raise ValueError('scalings must be a dictionary of ch_type: val pairs,'
-                         ' not type %s ' % type(scalings))
     scalings = deepcopy(scalings)
 
     if inst.preload is False:
@@ -1658,13 +1674,20 @@ def _compute_scalings(scalings, inst):
     else:
         data = inst._data
     if isinstance(inst, BaseEpochs):
-        data = inst._data.reshape([len(inst.ch_names), -1])
+        data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
-        if value != 'auto':
-            continue
         if key not in ch_types.keys():
-            raise ValueError("Sensor {} doesn't exist in data".format(key))
+            continue
+        if not (isinstance(value, str) and value == 'auto'):
+            try:
+                scalings[key] = float(value)
+            except Exception:
+                raise ValueError('scalings must be "auto" or float, got '
+                                 'scalings[%r]=%r which could not be '
+                                 'converted to float'
+                                 % (key, value))
+            continue
         this_data = data[ch_types[key]]
         scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
         scale_factor = np.max(np.abs(scale_factor))
@@ -2309,13 +2332,14 @@ def _set_ax_facecolor(ax, face_color):
 
 
 def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
-                     ymax_bound=None, unit=None, truncate_xaxis=True):
+                     ymax_bound=None, unit=None, truncate_xaxis=True,
+                     skip_axlabel=True):
     ymin, ymax = axes.get_ylim()
     y_range = -np.subtract(ymin, ymax)
 
     # style the spines/axes
     axes.spines["top"].set_position('zero')
-    if truncate_xaxis is True:
+    if truncate_xaxis:
         axes.spines["top"].set_smart_bounds(True)
     else:
         axes.spines['top'].set_bounds(tmin, tmax)
@@ -2326,31 +2350,48 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     current_ymin = axes.get_ylim()[0]
 
     # set x label
-    axes.set_xlabel('Time (s)')
+    if not skip_axlabel:
+        axes.set_xlabel('Time (s)')
     axes.xaxis.get_label().set_verticalalignment('center')
 
     # set y label and ylabel position
     if unit is not None:
-        axes.set_ylabel(unit + "\n", rotation=90)
+        if not skip_axlabel:
+            axes.set_ylabel(unit + "\n", rotation=90)
         ylabel_height = (-(current_ymin / y_range)
                          if 0 > current_ymin  # ... if we have negative values
                          else (axes.get_yticks()[-1] / 2 / y_range))
         axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
                                     if invert_y else ylabel_height)
 
+    # the axes can become very small with topo plotting. This prevents the
+    # x-axis from shrinking to length zero if truncate_xaxis=True, by adding
+    # new ticks that are nice round numbers close to (but less extreme than)
+    # tmin and tmax
     vlines = [] if vlines is None else vlines
     xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
-    axes.set_xticks(xticks)
-    x_extrema = [t for t in xticks if tmax >= t >= tmin]
-    if len(x_extrema) == 0:  # can happen with one time point
-        x_extrema = [tmin, tmax]
-    if truncate_xaxis is True:
-        axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    ticks_in_range = [t for t in xticks if tmax >= t >= tmin]
+    if len(ticks_in_range) < 2:
+        def log_fix(tval):
+            exp = np.log10(np.abs(tval))
+            return np.sign(tval) * 10 ** (np.fix(exp) - (exp < 0))
+        tlims = np.array([tmin, tmax])
+        temp_ticks = log_fix(tlims)
+        closer_idx = np.argmin(np.abs(tlims - temp_ticks))
+        further_idx = np.argmax(np.abs(tlims - temp_ticks))
+        start_stop = [temp_ticks[closer_idx], tlims[further_idx]]
+        step = np.sign(np.diff(start_stop)) * np.max(np.abs(temp_ticks))
+        tts = np.arange(*start_stop, step)
+        ticks_in_range = sorted(ticks_in_range + [tts[0]] + [tts[-1]])
+
+    if truncate_xaxis:
+        axes.spines['bottom'].set_bounds(ticks_in_range[0], ticks_in_range[-1])
     else:
         axes.spines['bottom'].set_bounds(tmin, tmax)
     if ymin >= 0:
         axes.spines["top"].set_color('none')
     axes.spines["left"].set_zorder(0)
+    axes.set_xticks(ticks_in_range)
 
     # finishing touches
     if invert_y:

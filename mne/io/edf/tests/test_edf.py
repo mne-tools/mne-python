@@ -298,8 +298,8 @@ def test_load_generator(fname, recwarn):
                 'sine 50 Hz']
     assert raw.get_data().shape == (11, 120000)
     assert raw.ch_names == ch_names
-    assert event_id == {'RECORD START': 1, 'REC STOP': 2}
-    assert_array_equal(events, [[0, 0, 1], [120000, 0, 2]])
+    assert event_id == {'RECORD START': 2, 'REC STOP': 1}
+    assert_array_equal(events, [[0, 0, 2], [120000, 0, 1]])
 
 
 @pytest.mark.parametrize('EXPECTED, test_input', [

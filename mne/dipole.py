@@ -1337,6 +1337,7 @@ def get_phantom_dipoles(kind='vectorview'):
         c = [22.9, 23.5, 25.5, 23.1, 52.0, 46.4, 41.0, 33.0]
         d = [44.4, 34.0, 21.6, 12.7, 62.4, 51.5, 39.1, 27.9]
         z = np.concatenate((c, c, d, d))
+        signs = ([1, -1] * 4 + [-1, 1] * 4) * 2
     elif kind == 'otaniemi':
         # these values were pulled from an Neuromag manual
         # (NM20456A, 13.7.1999, p.65)
@@ -1346,18 +1347,20 @@ def get_phantom_dipoles(kind='vectorview'):
         x = np.concatenate((a, b, c, c, -a, -b, c, c))
         y = np.concatenate((c, c, -a, -b, c, c, b, a))
         z = np.concatenate((b, a, b, a, b, a, a, b))
+        signs = [-1] * 8 + [1] * 16 + [-1] * 8
     pos = np.vstack((x, y, z)).T / 1000.
     # Locs are always in XZ or YZ, and so are the oris. The oris are
     # also in the same plane and tangential, so it's easy to determine
     # the orientation.
     ori = list()
-    for this_pos in pos:
+    for pi, this_pos in enumerate(pos):
         this_ori = np.zeros(3)
         idx = np.where(this_pos == 0)[0]
         # assert len(idx) == 1
         idx = np.setdiff1d(np.arange(3), idx[0])
         this_ori[idx] = (this_pos[idx][::-1] /
                          np.linalg.norm(this_pos[idx])) * [1, -1]
+        this_ori *= signs[pi]
         # Now we have this quality, which we could uncomment to
         # double-check:
         # np.testing.assert_allclose(np.dot(this_ori, this_pos) /

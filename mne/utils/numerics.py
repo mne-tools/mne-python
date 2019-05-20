@@ -17,11 +17,11 @@ import shutil
 import sys
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from ..fixes import _infer_dimension_, svd_flip, stable_cumsum
+from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import deprecated
 
 
@@ -140,7 +140,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
 
     # Decompose the matrix
-    U, s, V = linalg.svd(x)
+    U, s, V = _safe_svd(x)
 
     # Estimate the rank before regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -148,7 +148,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
     # Decompose the matrix again after regularization
     loading_factor = reg * np.mean(s)
-    U, s, V = linalg.svd(x + loading_factor * np.eye(len(x)))
+    U, s, V = _safe_svd(x + loading_factor * np.eye(len(x)))
 
     # Estimate the rank after regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -821,7 +821,7 @@ class _PCA(object):
         self.mean_ = np.mean(X, axis=0)
         X -= self.mean_
 
-        U, S, V = linalg.svd(X, full_matrices=False)
+        U, S, V = _safe_svd(X, full_matrices=False)
         # flip eigenvectors' sign to enforce deterministic output
         U, V = svd_flip(U, V)
 

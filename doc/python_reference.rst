@@ -651,6 +651,7 @@ Inverse Solutions
    apply_lcmv
    apply_lcmv_epochs
    apply_lcmv_raw
+   apply_lcmv_cov
    make_dics
    apply_dics
    apply_dics_csd
@@ -997,6 +998,19 @@ Logging and Configuration
    set_config
    sys_info
    verbose
+
+:py:mod:`mne.utils`:
+
+.. currentmodule:: mne.utils
+
+.. automodule:: mne.utils
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   deprecated
 
 :py:mod:`mne.cuda`:
 
