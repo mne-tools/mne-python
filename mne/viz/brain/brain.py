@@ -130,16 +130,14 @@ class Brain(object):
         elif hemi in ('lh', 'rh'):
             self._hemis = (hemi, )
         else:
-            raise ValueError('hemi has to be either "lh", "rh", "split", ' +
+            raise ValueError('hemi has to be either "lh", "rh", "split", '
                              'or "both"')
 
         if isinstance(size, int):
             fig_size = (size, size)
 
-        self.geo = {}
+        self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
         self._renderers = [[] for v in views]
-        self._hemi_meshes = {}
-        self._overlays = {}
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -411,10 +409,10 @@ class Brain(object):
         mid = self._data['mid'] if mid is None else mid
         max = self._data['max'] if max is None else max
 
-        lut = _calculate_lut(colormap, alpha=alpha, fmin=min, fmid=mid,
-                             fmax=max, center=center)
-        self._data['lut'] = lut
-        return lut
+        self._data['lut'] = _calculate_lut(
+            colormap, alpha=alpha, fmin=min, fmid=mid, fmax=max, center=center)
+
+        return self._data['lut']
 
     @property
     def overlays(self):
@@ -443,7 +441,8 @@ class Brain(object):
                 hemi = self._hemi
         elif hemi not in ['lh', 'rh']:
             extra = ' or None' if self._hemi in ['lh', 'rh'] else ''
-            raise ValueError('hemi must be either "lh" or "rh"' + extra)
+            raise ValueError('hemi must be either "lh" or "rh"' +
+                             extra + ", got " + str(hemi))
         return hemi
 
 
