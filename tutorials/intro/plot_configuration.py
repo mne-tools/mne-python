@@ -226,4 +226,4 @@ raw = mne.io.read_raw_kit(kit_data_path, verbose='debug')
 # .. LINKS
 #
 # .. _json: https://en.wikipedia.org/wiki/JSON
-# .. _`environment variables`: https://en.wikipedia.org/wiki/Environment_variable`
+# .. _`environment variables`: https://wikipedia.org/wiki/Environment_variable
