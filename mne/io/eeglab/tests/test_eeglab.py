@@ -128,11 +128,7 @@ def test_io_set_raw(fnames, tmpdir):
                                      'X': 6.3023, 'Z': -2.9423},
                         'times': eeg.times[:3], 'pnts': 3}},
                appendmat=False, oned_as='row')
-    with pytest.warns(None) as w:
-        read_raw_eeglab(input_fname=one_chan_fname, preload=True,
-                        stim_channel=False)
-    # no warning for 'no events found'
-    assert len(w) == 0
+    read_raw_eeglab(input_fname=one_chan_fname, preload=True)
 
     # test reading file with 3 channels - one without position information
     # first, create chanlocs structured array
@@ -199,8 +195,7 @@ def test_io_set_raw(fnames, tmpdir):
                         'times': eeg.times[:2], 'pnts': 2}},
                appendmat=False, oned_as='row')
     # load the file
-    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True,
-                          stim_channel=False)
+    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
 
     # test that channel names have been loaded but not channel positions
     for i in range(3):
