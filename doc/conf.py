@@ -306,6 +306,7 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
     'dipy': ('http://nipy.org/dipy', None),
+    'mne_realtime': ('https://mne-tools.github.io/mne-realtime', None),
 }
 
 ##############################################################################
