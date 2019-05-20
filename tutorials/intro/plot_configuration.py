@@ -34,7 +34,7 @@ print(type(mne.get_config('MNE_USE_CUDA')))
 
 ###############################################################################
 # Note that the string values read from the JSON file are not parsed in any
-# way, so :func:`~mne.get_config` returns a string even true/false config
+# way, so :func:`~mne.get_config` returns a string even for true/false config
 # values, rather than a Python :ref:`boolean <bltin-boolean-values>`.
 # Similarly, :func:`~mne.set_config` will only set string values (or ``None``
 # values, to unset a variable):
@@ -78,16 +78,17 @@ mne.set_config('MNEE_USE_CUUDAA', 'false')
 # Let's delete that config variable we just created. To unset a config
 # variable, use :func:`~mne.set_config` with ``value=None``. Since we're still
 # dealing with an unrecognized key (as far as MNE-Python is concerned) we'll
-# still get a warning:
+# still get a warning, but the key will be unset:
 
 mne.set_config('MNEE_USE_CUUDAA', None)
+assert 'MNEE_USE_CUUDAA' not in mne.get_config('')
 
 ###############################################################################
 # Where configurations are stored
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # MNE-Python stores configuration variables in a `JSON`_ file. By default, this
-# file is located in :file:`{%USERPROFILE%}\.mne\mne-python.json` on Windows
+# file is located in :file:`{%USERPROFILE%}\\.mne\\mne-python.json` on Windows
 # and :file:`{$HOME}/.mne/mne-python.json` on Linux or macOS. You can get the
 # full path to the config file with :func:`mne.get_config_path`.
 
