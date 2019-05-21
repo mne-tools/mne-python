@@ -495,7 +495,6 @@ numpydoc_xref_aliases = {
     'Dipole': 'mne.Dipole', 'DipoleFixed': 'mne.DipoleFixed',
     'InverseOperator': 'mne.minimum_norm.InverseOperator',
     'CrossSpectralDensity': 'mne.time_frequency.CrossSpectralDensity',
-    'RtEpochs': 'mne.realtime.RtEpochs',
     'SourceMorph': 'mne.SourceMorph',
     'Xdawn': 'mne.preprocessing.Xdawn',
     'Report': 'mne.Report', 'Forward': 'mne.Forward',
