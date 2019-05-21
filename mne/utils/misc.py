@@ -50,6 +50,7 @@ def _sort_keys(x):
 
 class _DefaultEventParser:
     """Parse none standard events."""
+
     def __init__(self):
         self.event_ids = dict()
 
