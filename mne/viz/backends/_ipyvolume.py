@@ -106,7 +106,7 @@ class _Renderer(_BaseRenderer):
                                       vertex_data=scalars,
                                       levels=levels)
 
-        x, y, z = np.squeeze(np.hsplit(verts, 3))
+        x, y, z = verts.T
         plot(x, y, z, color=color)
 
     def surface(self, surface, color=None, opacity=1.0,
@@ -121,7 +121,7 @@ class _Renderer(_BaseRenderer):
             cmap = ListedColormap(colormap / 255.0)
 
         vertices = np.array(surface['rr'])
-        x, y, z = np.squeeze(np.hsplit(vertices, 3))
+        x, y, z = vertices.T
         triangles = np.array(surface['tris'])
 
         if scalars is not None:
@@ -171,7 +171,7 @@ class _Renderer(_BaseRenderer):
                 current_vertices.T[:, 0:3]
             voffset += n_vertices
 
-        x, y, z = np.squeeze(np.hsplit(acc_vertices, 3))
+        x, y, z = acc_vertices.T
         color = np.append(color, opacity)
 
         ipv.squarelim()
