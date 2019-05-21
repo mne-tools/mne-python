@@ -158,13 +158,13 @@ Changelog
 
 - Improved clicking in :meth:`mne.io.Raw.plot` (left click on trace toggles bad, left click on background sets green line, right click anywhere removes green line) by `Clemens Brunner`_
 
-- Add :class:`mne.realtime.LSLClient` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
+- Add ``mne.realtime.LSLClient`` for realtime data acquisition with LSL streams of data by `Teon Brooks`_ and `Mainak Jas`_
 
 - Add partial support for PyVista as a 3D backend using :func:`mne.viz.use_3d_backend` by `Guillaume Favelier`_
 
 - Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
 
-- Add :class:`mne.realtime.MockLSLStream` to simulate an LSL stream for testing and examples by `Teon Brooks`_
+- Add ``mne.realtime.MockLSLStream`` to simulate an LSL stream for testing and examples by `Teon Brooks`_
 
 Bug
 ~~~
@@ -295,7 +295,7 @@ API
 
 - The peak finder that was formerly accessible via ``from mne.preprocessing.peak_finder import peak_finder`` should now be imported directly from the enclosing namespace as ``from mne.preprocessing import peak_finder`` by `Eric Larson`_
 
-- Deprecate `mne.realtime` module to make a standalone module `mne-realtime` that will live outside of this package by `Teon Brooks`_
+- Deprecate ``mne.realtime`` module to make a standalone module `mne-realtime` that will live outside of this package by `Teon Brooks`_
 
 .. _changes_0_17:
 
@@ -466,7 +466,7 @@ Bug
 
 - Fix bug in :func:`mne.create_info` passing ``int`` as ``ch_names`` on Windows by `Eric Larson`_
 
-- Fix bug in :class:`mne.realtime.RtEpochs` where events during the buildup of the buffer were not correctly processed when incoming data buffers are smaller than the epochs by `Henrich Kolkhorst`_
+- Fix bug in ``mne.realtime.RtEpochs`` where events during the buildup of the buffer were not correctly processed when incoming data buffers are smaller than the epochs by `Henrich Kolkhorst`_
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` where 1-indexed BrainVision events were not being converted into 0-indexed mne events by `Steven Bethard`_
 
@@ -549,7 +549,7 @@ API
 
 - Calling :meth:`mne.Epochs.decimate` with ``decim=1`` no longer copies the data by `Henrich Kolkhorst`_
 
-- Removed blocking (waiting for new epochs) in :meth:`mne.realtime.RtEpochs.get_data()` by `Henrich Kolkhorst`_
+- Removed blocking (waiting for new epochs) in ``mne.realtime.RtEpochs.get_data()`` by `Henrich Kolkhorst`_
 
 - Warning messages are now only emitted as :func:`warnings.warn_explicit` rather than also being emitted as ``logging`` messages (unless a logging file is being used) to avoid duplicate warning messages, by `Eric Larson`_
 
@@ -559,7 +559,7 @@ API
 
 - Deprecation of :attr:`mne.io.Raw.annotations` property in favor of :meth:`mne.io.Raw.set_annotations` by `Joan Massich`_
 
-- The default value of ``stop_receive_thread`` in :meth:`mne.realtime.RtEpochs.stop` has been changed to ``True`` by `Henrich Kolkhorst`_
+- The default value of ``stop_receive_thread`` in ``mne.realtime.RtEpochs.stop`` has been changed to ``True`` by `Henrich Kolkhorst`_
 
 - Using the :meth:`mne.io.Raw.add_channels` on an instance with memmapped data will now resize the memmap file to append the new channels on Windows and Linux, by `Eric Larson`_
 
@@ -1326,7 +1326,7 @@ BUG
 
 - Fix :meth:`inst.set_montage(montage) <mne.io.Raw.set_montage>` to only set ``inst.info['dev_head_t']`` if ``dev_head_t=True`` in :func:`mne.channels.read_dig_montage` by `Eric Larson`_
 
-- Fix handling of events in :class:`mne.realtime.RtEpochs` when the triggers were split between two buffers resulting in missing and/or duplicate epochs by `Mainak Jas`_ and `Antti Rantala`_
+- Fix handling of events in ``mne.realtime.RtEpochs`` when the triggers were split between two buffers resulting in missing and/or duplicate epochs by `Mainak Jas`_ and `Antti Rantala`_
 
 - Fix bug with automatic decimation in :func:`mne.io.read_raw_kit` by `Keith Doelling`_
 
@@ -1567,7 +1567,7 @@ BUG
 
 - Fixed :class:`mne.Epochs` to ensure that detrend parameter is not a boolean by `Jean-Remi King`_
 
-- Fixed bug with :func:`mne.realtime.FieldTripClient.get_data_as_epoch` when ``picks=None`` which crashed the function by `Mainak Jas`_
+- Fixed bug with ``mne.realtime.FieldTripClient.get_data_as_epoch`` when ``picks=None`` which crashed the function by `Mainak Jas`_
 
 - Fixed reading of units in ``.elc`` montage files (from ``UnitsPosition`` field) so that :class:`mne.channels.Montage` objects are now returned with the ``pos`` attribute correctly in meters, by `Chris Mullins`_
 
@@ -1834,7 +1834,7 @@ BUG
 
 - Fix bug in :func:`mne.io.Raw.save` where, in rare cases, automatically split files could end up writing an extra empty file that wouldn't be read properly by `Eric Larson`_
 
-- Fix :class:`mne.realtime.StimServer` by removing superfluous argument ``ip`` used while initializing the object by `Mainak Jas`_.
+- Fix :class:``mne.realtime.StimServer`` by removing superfluous argument ``ip`` used while initializing the object by `Mainak Jas`_.
 
 - Fix removal of projectors in :func:`mne.preprocessing.maxwell_filter` in ``st_only=True`` mode by `Eric Larson`_
 
