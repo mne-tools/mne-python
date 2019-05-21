@@ -35,7 +35,6 @@ public_modules = [
     'mne.io.kit',
     'mne.minimum_norm',
     'mne.preprocessing',
-    'mne.realtime',
     'mne.report',
     'mne.simulation',
     'mne.source_estimate',
