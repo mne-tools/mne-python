@@ -48,13 +48,16 @@ def _sort_keys(x):
     return keys
 
 
-class _Counter():
-    count = 1
+class _DefaultEventParser:
+    """Parse none standard events."""
+    def __init__(self):
+        self.event_ids = dict()
 
-    def __call__(self, *args, **kargs):
-        c = self.count
-        self.count += 1
-        return c
+    def __call__(self, description, offset=1):
+        if description not in self.event_ids:
+            self.event_ids[description] = offset + len(self.event_ids)
+
+        return self.event_ids[description]
 
 
 class _FormatDict(dict):
