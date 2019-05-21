@@ -212,7 +212,7 @@ print(events_from_annot[:5])
 
 custom_mapping = {'rt': 77, 'square': 42}
 (events_from_annot,
- event_dict) = mne.events_from_annotations(raw, event_id=custom_mapping)
+ event_dict) = mne.events_from_annotations(eeglab_raw, event_id=custom_mapping)
 print(event_dict)
 print(events_from_annot[:5])
 
