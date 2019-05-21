@@ -2689,7 +2689,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     
     If encountering a ``ValueError`` due to mismatch between number of
     source points in the subject source space and computed ``stc`` object set
-    ``'src'`` argument to ``'fwd['src']'`` to ensure the source space is
+    ``src`` argument to ``fwd['src']`` to ensure the source space is
     compatible between forward and inverse routines.
 
     """
