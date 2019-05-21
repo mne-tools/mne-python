@@ -761,11 +761,12 @@ class UpdateChannelsMixin(object):
         try:
             all_str = all([isinstance(ch, str) for ch in ch_names])
         except TypeError:
-            raise ValueError("'ch_names' must be iterable.")
-        else:
-            if not all_str:
-                raise ValueError("Each element in 'ch_names' must be str, got "
-                                 "{}.".format([type(ch) for ch in ch_names]))
+            raise ValueError("'ch_names' must be iterable, got "
+                             "type {} ({}).".format(type(ch_names), ch_names))
+
+        if not all_str:
+            raise ValueError("Each element in 'ch_names' must be str, got "
+                             "{}.".format([type(ch) for ch in ch_names]))
 
         missing = [ch for ch in ch_names if ch not in self.ch_names]
         if len(missing) > 0:
