@@ -655,7 +655,7 @@ this package. You can also find a gallery of these examples in the
         <div id="collapse_realtime" class="panel-collapse collapse">
           <div class="panel-body">
 
-**All realtime functionality has migrated to :mod:`mne_realtime`.**
+**All realtime functionality has migrated to** :mod:`mne_realtime`.
 
 .. raw:: html
 
