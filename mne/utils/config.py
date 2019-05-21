@@ -406,11 +406,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
         stim_channel = [info['ch_names'][ch_] for ch_ in stim_channel]
     elif raise_error:
         raise ValueError("No stim channels found. Consider specifying them "
-                         "manually using the 'stim_channel' parameter. In "
-                         "many file formats, discrete markers are now "
-                         "available in raw.annotations. Consider using "
-                         "mne.events_from_annotations to convert these to "
-                         "events.")
+                         "manually using the 'stim_channel' parameter.")
     return stim_channel
 
 
