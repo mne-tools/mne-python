@@ -59,6 +59,7 @@ before_install:
         pip uninstall -y numpy;
         pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --pre numpy scipy;
         pip install vtk;
+        pip install $PIP_DEPENDENCIES;
         pip install --upgrade -r requirements.txt;
       else
         git clone https://github.com/astropy/ci-helpers.git;
@@ -131,10 +132,8 @@ install:
         ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg;
         ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc;
         cd ${MNE_DIR}/../;
-        COVERAGE=;
       else
         cd ${SRC_DIR};
-        COVERAGE=--with-coverage;
       fi;
 
 
@@ -178,8 +177,8 @@ script:
         pip install -e .;
         python mne/tests/test_evoked.py;
       fi;
-    - echo pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
-    - pytest -m "${CONDITION}" ${USE_DIRS} --cov=mne;
+    - echo pytest -m "${CONDITION}" ${USE_DIRS}
+    - pytest -m "${CONDITION}" ${USE_DIRS}
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;
