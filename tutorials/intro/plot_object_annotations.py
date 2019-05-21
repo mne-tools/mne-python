@@ -63,16 +63,15 @@ raw.crop(tmax=60).load_data()
 # What is a STIM channel?
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Many EEG and MEG systems incorporate one or more recording channels that do
-# not receive signals from a sensor; instead, those channels record voltages
-# (usually short, rectangular DC pulses of fixed magnitudes sent from the
-# experiment-controlling computer) that are time-locked to experimental events,
-# such as the onset of a stimulus or a button-press response by the subject. In
-# other cases, these pulses may not be strictly time-locked to an experimental
-# event, but instead may occur in between trials to indicate the type of
-# stimulus (or experimental condition) that is about to occur on the upcoming
-# trial. In MNE-Python, those channels are referred to as :term:`"STIM"
-# channels <stim channel>`.
+# :term:`STIM channels <stim channel>` (short for "stimulus channels") are
+# channels that do not receive signals from an EEG, MEG, or other sensor.
+# Instead, those channels record voltages (usually short, rectangular DC pulses
+# of fixed magnitudes sent from the experiment-controlling computer) that are
+# time-locked to experimental events, such as the onset of a stimulus or a
+# button-press response by the subject. In other cases, these pulses may not be
+# strictly time-locked to an experimental event, but instead may occur in
+# between trials to indicate the type of stimulus (or experimental condition)
+# that is about to occur on the upcoming trial.
 #
 # The DC pulses may be all on one STIM channel (in which case different
 # experimental events or trial types are encoded as different voltage
@@ -82,17 +81,17 @@ raw.crop(tmax=60).load_data()
 # one channel that records a weighted sum of the other STIM channels, in such a
 # way that voltage levels on that channel can be unambiguously decoded as
 # particular event types. On older Neuromag systems (such as that used to
-# record the sample data) this was typically the ``STI 014`` channel; on newer
-# systems it is more commonly ``STI101``. You can see the STIM channels in the
-# raw data file here:
+# record the sample data) this "summation channel" was typically ``STI 014``;
+# on newer systems it is more commonly ``STI101``. You can see the STIM
+# channels in the raw data file here:
 
 raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
 
 ###############################################################################
-# Above, you can see that ``STI 014`` (the "sum channel") contains pulses of
+# You can see that ``STI 014`` (the summation channel) contains pulses of
 # different magnitudes whereas pulses on other channels have consistent
-# magnitudes. You can also see that every time there is a pulse on ``STI 001``
-# through ``STI 006`` there is a corresponding pulse on ``STI 014``.
+# magnitudes. You can also see that every time there is a pulse on one of the
+# other STIM channels, there is a corresponding pulse on ``STI 014``.
 #
 #
 # Converting a STIM channel signal to an Events array
