@@ -111,6 +111,7 @@ def test_raw_array_orig_times():
         raw.set_annotations(empty_annot)
         assert isinstance(raw.annotations, Annotations)
         assert len(raw.annotations) == 0
+        assert not raw.annotations
         assert raw.annotations.orig_time == expected_orig_time
 
 

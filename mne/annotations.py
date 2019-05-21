@@ -474,7 +474,7 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         for kind in kinds:
             _validate_type(kind, 'str', "All entries")
 
-    if len(raw.annotations) == 0:
+    if not raw.annotations:
         onsets, ends = np.array([], int), np.array([], int)
     else:
         idxs = [idx for idx, desc in enumerate(raw.annotations.description)
@@ -869,7 +869,7 @@ def events_from_annotations(raw, event_id="auto",
     event_id : dict
         The event_id variable that can be passed to Epochs.
     """
-    if len(raw.annotations) == 0:
+    if not raw.annotations:
         event_id = dict() if not isinstance(event_id, dict) else event_id
         return np.empty((0, 3), dtype=int), event_id
 

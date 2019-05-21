@@ -184,7 +184,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     compute_proj_ecg
     """
     if reject_by_annotation is None:
-        if len(raw.annotations) > 0:
+        if raw.annotations:
             warn('reject_by_annotation in find_ecg_events defaults to False '
                  'in 0.18 but will change to True in 0.19, set it explicitly '
                  'to avoid this warning', DeprecationWarning)

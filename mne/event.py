@@ -681,7 +681,7 @@ def find_events(raw, stim_channel=None, output='onset',
     try:
         stim_channel = _get_stim_channel(stim_channel, raw.info)
     except ValueError:
-        if len(raw.annotations) > 0:
+        if raw.annotations:
             raise ValueError("No stim channels found, but the raw object has "
                              "annotations. Consider using "
                              "mne.events_from_annotations to convert these to "
