@@ -306,6 +306,7 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
     'dipy': ('http://nipy.org/dipy', None),
+    'mne_realtime': ('https://mne-tools.github.io/mne-realtime', None),
 }
 
 ##############################################################################
@@ -355,6 +356,8 @@ def reset_warnings(gallery_conf, fname):
     # restrict
     warnings.filterwarnings('error')
     # allow these, but show them
+    warnings.filterwarnings('always', '.*non-standard config type: "foo".*')
+    warnings.filterwarnings('always', '.*config type: "MNEE_USE_CUUDAA".*')
     warnings.filterwarnings('always', '.*cannot make axes width small.*')
     warnings.filterwarnings('always', '.*Axes that are not compatible.*')
     warnings.filterwarnings('always', '.*FastICA did not converge.*')
@@ -492,7 +495,6 @@ numpydoc_xref_aliases = {
     'Dipole': 'mne.Dipole', 'DipoleFixed': 'mne.DipoleFixed',
     'InverseOperator': 'mne.minimum_norm.InverseOperator',
     'CrossSpectralDensity': 'mne.time_frequency.CrossSpectralDensity',
-    'RtEpochs': 'mne.realtime.RtEpochs',
     'SourceMorph': 'mne.SourceMorph',
     'Xdawn': 'mne.preprocessing.Xdawn',
     'Report': 'mne.Report', 'Forward': 'mne.Forward',

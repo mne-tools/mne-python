@@ -25,7 +25,7 @@ from ...utils import verbose, logger, warn, fill_doc
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
-from ..utils import _read_segments_file, _mult_cal_one, _deprecate_stim_channel
+from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 
 
@@ -57,11 +57,6 @@ class RawBrainVision(BaseRaw):
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
     %(verbose)s
 
     See Also
@@ -72,9 +67,7 @@ class RawBrainVision(BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                 scale=1., preload=False, stim_channel=False,
-                 verbose=None):  # noqa: D107
-        _deprecate_stim_channel(stim_channel)
+                 scale=1., preload=False, verbose=None):  # noqa: D107
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
@@ -789,8 +782,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 @fill_doc
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                         scale=1., preload=False, stim_channel=False,
-                         verbose=None):
+                         scale=1., preload=False, verbose=None):
     """Reader for Brain Vision EEG file.
 
     Parameters
@@ -816,11 +808,6 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
     %(verbose)s
 
     Returns
@@ -835,7 +822,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,
-                          stim_channel=stim_channel, verbose=verbose)
+                          verbose=verbose)
 
 
 _BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 2000}

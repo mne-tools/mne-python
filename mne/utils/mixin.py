@@ -289,7 +289,7 @@ class GetEpochsMixin(object):
             >>>     print(epoch)  # doctest: +SKIP
 
         Where ``epoch`` is given by successive outputs of
-        :func:`mne.Epochs.next`.
+        :meth:`mne.Epochs.next`.
         """
         self._current = 0
         return self

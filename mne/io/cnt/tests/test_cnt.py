@@ -6,6 +6,8 @@
 
 import os.path as op
 
+import numpy as np
+from numpy.testing import assert_array_equal
 import pytest
 
 from mne import pick_types
@@ -38,28 +40,20 @@ def test_data():
 
 
 @testing.requires_testing_data
-def test_compare_events_and_annotations(recwarn):
+def test_compare_events_and_annotations():
     """Test comparing annotations and events."""
-    from mne import find_events
-    from numpy.testing import assert_array_equal
-
-    raw = read_raw_cnt(input_fname=fname, montage=None, preload=False,
-                       stim_channel=True)
-    events = find_events(raw)
+    with pytest.warns(RuntimeWarning, match='Could not parse meas date'):
+        raw = read_raw_cnt(fname)
+    events = np.array([[333, 0, 7],
+                       [1010, 0, 7],
+                       [1664, 0, 109],
+                       [2324, 0, 7],
+                       [2984, 0, 109]])
 
     annot = read_annotations(fname)
     assert len(annot) == 6
     assert_array_equal(annot.onset[:-1], events[:, 0] / raw.info['sfreq'])
-
-
-@testing.requires_testing_data
-@pytest.mark.parametrize('stim_channel', [True, False])
-def test_stim_channel(stim_channel):
-    """Test making sure that stim_channel toggle works."""
-    with pytest.warns(RuntimeWarning, match='Setting to None.'):
-        raw = read_raw_cnt(input_fname=fname, montage=None, preload=False,
-                           stim_channel=stim_channel)
-    assert ('STI 014' in raw.info['ch_names']) == stim_channel
+    assert 'STI 014' not in raw.info['ch_names']
 
 
 run_tests_if_main()
