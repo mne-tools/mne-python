@@ -582,6 +582,9 @@ def test_events_from_annot_in_raw_objects():
     with pytest.raises(ValueError, match='not find any of the events'):
         events_from_annotations(raw, regexp='not_there')
 
+    with pytest.raises(ValueError, match='Invalid input event_id'):
+        events_from_annotations(raw, event_id='wrong')
+
     # concat does not introduce BAD or EDGE
     raw_concat = concatenate_raws([raw.copy(), raw.copy()])
     _, event_id = events_from_annotations(raw_concat)
