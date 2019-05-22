@@ -27,7 +27,7 @@ Changelog
 Bug
 ~~~
 
-- Fix bug in handling of :class:`mne.Evoked` types that not produced by MNE-Python (e.g., altenating average) by `Eric Larson`_
+- Fix bug in handling of :class:`mne.Evoked` types that were not produced by MNE-Python (e.g., alternating average) by `Eric Larson`_
 
 API
 ~~~
