@@ -280,7 +280,7 @@ class Brain(object):
         if thresh is not None:
             raise ValueError('"threshold" parameter is not supported yet.')
         if transparent is not None:
-            raise ValueError('"trasparent" is not supported yet.')
+            raise ValueError('"transparent" is not supported yet.')
         if remove_existing is not None:
             raise ValueError('"remove_existing" is not supported yet.')
         if time_label_size is not None:
