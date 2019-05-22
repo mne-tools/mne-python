@@ -286,7 +286,7 @@ def _plot_topo_onpick(event, show_func):
         raise
 
 
-def _compute_scalings(bn, xlim, ylim):
+def _compute_ax_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot."""
     if isinstance(ylim[0], (tuple, list, np.ndarray)):
         ylim = (ylim[0][0], ylim[1][0])
@@ -342,7 +342,7 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
                         x_label=None, y_label=None, colorbar=False,
                         picker=True, cmap='RdBu_r', title=None, hline=None):
     """Show multiple tfrs on topo using a single axes."""
-    _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
+    _compute_ax_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
     ax = bn.ax
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax,
@@ -469,7 +469,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if not (ylim and not any(v is None for v in ylim)):
         ylim = [min(np.min(d) for d in data), max(np.max(d) for d in data)]
     # Translation and scale parameters to take data->under_ax normalized coords
-    _compute_scalings(bn, (tmin, tmax), ylim)
+    _compute_ax_scalings(bn, (tmin, tmax), ylim)
     pos = bn.pos
     data_lines = bn.data_lines
     ax = bn.ax
@@ -538,7 +538,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                              vlim_array=None):
     """Plot erfimage topography using a single axis."""
     from scipy import ndimage
-    _compute_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
+    _compute_ax_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,

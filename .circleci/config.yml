@@ -69,10 +69,9 @@ jobs:
             name: Get Python running
             # pip install --user --upgrade --progress-bar off https://api.github.com/repos/larsoner/numpydoc/zipball/xref-param-type
             command: |
-              pip install --user -q --upgrade pip numpy vtk
-              pip install --user --progress-bar off -r requirements.txt
-              pip install --user pylsl
-              pip install --user --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+              pip install --user --upgrade --progress-bar off pip numpy vtk
+              pip install --user --upgrade --progress-bar off -r requirements.txt
+              pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
 
         - save_cache:
             key: pip-cache
@@ -86,6 +85,7 @@ jobs:
                which python
                python -c "import mne; mne.sys_info()"
                LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
+               python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
@@ -102,7 +102,7 @@ jobs:
               if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
                 echo html_dev > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
-              elif [ "$CIRCLE_BRANCH" == "maint/0.17" ]; then
+              elif [ "$CIRCLE_BRANCH" == "maint/0.18" ]; then
                 echo html_stable > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
@@ -131,8 +131,8 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
                     fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*physionet_sleep.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.physionet_sleep.fetch_data([0], update_path=True))";
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*sleep_physionet.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1], update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*hf_sef.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";
@@ -342,7 +342,7 @@ jobs:
             name: Deploy docs
             command: |
               set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.17" ]; then
+              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.18" ]; then
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
@@ -386,7 +386,7 @@ workflows:
             branches:
               only:
                 - master
-                - maint/0.17
+                - maint/0.18
 
   weekly:
     jobs:

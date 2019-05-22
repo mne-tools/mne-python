@@ -23,12 +23,15 @@ import warnings
 import sphinx_gallery
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
+import matplotlib
 import mne
 from mne.utils import linkcode_resolve  # noqa, analysis:ignore
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
     raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
                       '%s' % (sphinx_gallery.__version__,))
+
+matplotlib.use('agg')
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -303,6 +306,7 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
     'dipy': ('http://nipy.org/dipy', None),
+    'mne_realtime': ('https://mne-tools.github.io/mne-realtime', None),
 }
 
 ##############################################################################
@@ -332,7 +336,11 @@ class Resetter(object):
         return '<%s>' % (self.__class__.__name__,)
 
     def __call__(self, gallery_conf, fname):
+        import matplotlib.pyplot as plt
         reset_warnings(gallery_conf, fname)
+        # in case users have interactive mode turned on in matplotlibrc,
+        # turn it off here (otherwise the build can be very slow)
+        plt.ioff()
         gc.collect()
 
 
@@ -348,6 +356,8 @@ def reset_warnings(gallery_conf, fname):
     # restrict
     warnings.filterwarnings('error')
     # allow these, but show them
+    warnings.filterwarnings('always', '.*non-standard config type: "foo".*')
+    warnings.filterwarnings('always', '.*config type: "MNEE_USE_CUUDAA".*')
     warnings.filterwarnings('always', '.*cannot make axes width small.*')
     warnings.filterwarnings('always', '.*Axes that are not compatible.*')
     warnings.filterwarnings('always', '.*FastICA did not converge.*')
@@ -369,6 +379,7 @@ def reset_warnings(gallery_conf, fname):
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
+                "DocumenterBridge requires a state object",  # sphinx dev
                 "'U' mode is deprecated",  # sphinx io
                 r"joblib is deprecated in 0\.21",  # nilearn
                 ):
@@ -385,6 +396,8 @@ def reset_warnings(gallery_conf, fname):
     # allow this ImportWarning, but don't show it
     warnings.filterwarnings(
         'ignore', message="can't resolve package from", category=ImportWarning)
+    warnings.filterwarnings(
+        'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
 
 
 reset_warnings(None, None)
@@ -482,7 +495,6 @@ numpydoc_xref_aliases = {
     'Dipole': 'mne.Dipole', 'DipoleFixed': 'mne.DipoleFixed',
     'InverseOperator': 'mne.minimum_norm.InverseOperator',
     'CrossSpectralDensity': 'mne.time_frequency.CrossSpectralDensity',
-    'RtEpochs': 'mne.realtime.RtEpochs',
     'SourceMorph': 'mne.SourceMorph',
     'Xdawn': 'mne.preprocessing.Xdawn',
     'Report': 'mne.Report', 'Forward': 'mne.Forward',

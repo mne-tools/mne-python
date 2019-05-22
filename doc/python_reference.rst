@@ -958,24 +958,7 @@ Functions that assist with decoding and model fitting:
 Realtime
 ========
 
-:py:mod:`mne.realtime`:
-
-.. automodule:: mne.realtime
-   :no-members:
-   :no-inherited-members:
-
-.. autosummary::
-   :toctree: generated/
-
-   FieldTripClient
-   LSLClient
-   MockLSLStream
-   MockRtClient
-   RtEpochs
-   RtClient
-   StimServer
-   StimClient
-
+Realtime functionality has moved to the standalone module :mod:`mne_realtime`.
 
 MNE-Report
 ==========
