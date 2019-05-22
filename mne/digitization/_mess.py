@@ -1,5 +1,5 @@
 """Do not look at this !! or blame Teon !!!."""
-from ..utils import logger, warn
+from ..utils import warn
 import numpy as np
 
 
