@@ -44,7 +44,7 @@ class Brain(object):
         Color of the foreground (will be used for colorbars and text).
         None (default) will use black or white depending on the value
         of ``background``.
-    figure : list of ipyvolume.pylab.figure | None | int
+    figure : list of Figure | None | int
         Not supported yet.
         If None (default), a new window will be created with the appropriate
         views. For single view plots, the figure can be specified as int to
@@ -198,7 +198,7 @@ class Brain(object):
             then ``array`` must be have all 3 dimensions.
             If vectors with no time dimension are desired, consider using a
             singleton (e.g., ``np.newaxis``) to create a "time" dimension
-            and pass ``time_label=None``(vector values are not supported).
+            and pass ``time_label=None`` (vector values are not supported).
         min : float
             Min value in colormap (uses real min if None).
         mid : float
