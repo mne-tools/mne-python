@@ -904,16 +904,27 @@ Simulation
    simulate_stc
    simulate_sparse_stc
    select_source_in_label
-   stc_cosine_score
-   stc_region_localization_error
-   stc_f1_score
-   stc_precision_score
-   stc_recall_score
-   stc_roc_auc_score
-   stc_spacial_deviation
-   stc_peak_position_error
    SourceSimulator
 
+:py:mod:`mne.simulation.metrics`:
+
+.. automodule:: mne.simulation.metrics
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.simulation.metrics
+
+.. autosummary::
+   :toctree: generated/
+
+   cosine_score
+   region_localization_error
+   f1_score
+   precision_score
+   recall_score
+   roc_auc_score
+   spacial_deviation_error
+   peak_position_error
 
 .. _api_decoding:
 

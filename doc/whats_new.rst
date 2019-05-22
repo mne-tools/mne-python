@@ -37,7 +37,7 @@ Version 0.18
 
 Changelog
 ~~~~~~~~~
-- Add :func:`mne.simulation.stc_cosine_score`, :func:`mne.simulation.stc_roc_auc_score`, :func:`mne.simulation.stc_region_localization_error`, :func:`mne.simulation.stc_f1_score`, :func:`mne.simulation.stc_precision_score`, :func:`mne.simulation.stc_recall_score`, :func:`mne.simulation.stc_peak_position_error` and :func:`mne.simulation.stc_spacial_deviation` to compute metrics between source estimates, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
+- Add :func:`mne.simulation.metrics.cosine_score`, :func:`mne.simulation.metrics.roc_auc_score`, :func:`mne.simulation.metrics.region_localization_error`, :func:`mne.simulation.metrics.f1_score`, :func:`mne.simulation.precision_score`, :func:`mne.simulation.recall_score`, :func:`mne.simulation.peak_position_error` and :func:`mne.simulation.spacial_deviation_error` to compute metrics between source estimates, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
 
 - Add ``event_id='auto'`` in :func:`mne.events_from_annotations` to accommodate Brainvision markers by `Jona Sassenhagen`_, `Joan Massich`_ and `Eric Larson`_
 

@@ -18,14 +18,15 @@ from mne import SourceEstimate
 from mne import read_source_spaces
 from mne.datasets import testing
 from mne.utils import requires_sklearn
-from mne.simulation import (simulate_sparse_stc,
-                            source_estimate_quantification,
-                            stc_cosine_score, stc_region_localization_error,
-                            stc_precision_score, stc_recall_score,
-                            stc_f1_score, stc_roc_auc_score,
-                            stc_peak_position_error, stc_spacial_deviation)
-from mne.simulation.metrics import (_uniform_stc, _thresholding,
-                                    _check_threshold)
+from mne.simulation import simulate_sparse_stc
+from mne.simulation import metrics
+from mne.simulation.metrics import (source_estimate_quantification,
+                                    cosine_score,
+                                    region_localization_error,
+                                    precision_score, recall_score,
+                                    f1_score, roc_auc_score,
+                                    peak_position_error,
+                                    spacial_deviation_error)
 from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
@@ -69,16 +70,16 @@ def test_uniform_and_thresholding():
     stc_true = SourceEstimate(data, vert, 0, 0.002, subject='sample')
     stc_bad = SourceEstimate(data, vert, 0, 0.002, subject='sample')
     stc_bad.vertices = [stc_bad.vertices[0]]
-    pytest.raises(ValueError, _uniform_stc, stc_true, stc_bad)
+    pytest.raises(ValueError, metrics._uniform_stc, stc_true, stc_bad)
 
     threshold = 0.9
-    stc1, stc2 = _thresholding(stc_true, stc_true, threshold)
+    stc1, stc2 = metrics._thresholding(stc_true, stc_true, threshold)
     assert_almost_equal(stc1._data, np.array([[0, -1.]]))
     assert_almost_equal(stc2._data, np.array([[0, -1.]]))
-    assert_almost_equal(threshold, _check_threshold(threshold))
+    assert_almost_equal(threshold, metrics._check_threshold(threshold))
 
     threshold = '90'
-    pytest.raises(ValueError, _check_threshold, threshold)
+    pytest.raises(ValueError, metrics._check_threshold, threshold)
 
 
 @testing.requires_testing_data
@@ -93,11 +94,11 @@ def test_cosine_score():
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     stc_est2 = SourceEstimate(data2, vert1, 0, 0.002, subject='sample')
 
-    E_per_sample1 = stc_cosine_score(stc_true, stc_est1)
-    E_unique1 = stc_cosine_score(stc_true, stc_est1, per_sample=False)
+    E_per_sample1 = cosine_score(stc_true, stc_est1)
+    E_unique1 = cosine_score(stc_true, stc_est1, per_sample=False)
 
-    E_per_sample2 = stc_cosine_score(stc_true, stc_est2)
-    E_unique2 = stc_cosine_score(stc_true, stc_est2, per_sample=False)
+    E_per_sample2 = cosine_score(stc_true, stc_est2)
+    E_unique2 = cosine_score(stc_true, stc_est2, per_sample=False)
 
     assert_almost_equal(E_per_sample1, np.zeros(2))
     assert_almost_equal(E_unique1, 0.)
@@ -118,11 +119,11 @@ def test_region_localization_error():
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
 
-    E_per_sample1 = stc_region_localization_error(stc_true, stc_est1, src)
-    E_per_sample2 = stc_region_localization_error(stc_true, stc_est1, src,
-                                                  threshold='70%')
-    E_unique = stc_region_localization_error(stc_true, stc_est1, src,
-                                             per_sample=False)
+    E_per_sample1 = region_localization_error(stc_true, stc_est1, src)
+    E_per_sample2 = region_localization_error(stc_true, stc_est1, src,
+                                              threshold='70%')
+    E_unique = region_localization_error(stc_true, stc_est1, src,
+                                         per_sample=False)
 
     # ### Tests to add
     assert_almost_equal(E_per_sample1, [np.inf, dist])
@@ -147,11 +148,11 @@ def test_precision_score():
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        E_unique1 = stc_precision_score(stc_true, stc_est1, per_sample=False)
-        E_unique2 = stc_precision_score(stc_true, stc_est2, per_sample=False)
-        E_per_sample1 = stc_precision_score(stc_true, stc_est2)
-        E_per_sample2 = stc_precision_score(stc_true, stc_est2,
-                                            threshold='70%')
+        E_unique1 = precision_score(stc_true, stc_est1, per_sample=False)
+        E_unique2 = precision_score(stc_true, stc_est2, per_sample=False)
+        E_per_sample1 = precision_score(stc_true, stc_est2)
+        E_per_sample2 = precision_score(stc_true, stc_est2,
+                                        threshold='70%')
 
     # ### Tests to add
     assert_almost_equal(E_unique1, 0.5)
@@ -175,10 +176,10 @@ def test_recall_score():
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     stc_est2 = SourceEstimate(data3, vert3, 0, 0.002, subject='sample')
 
-    E_unique1 = stc_recall_score(stc_true, stc_est1, per_sample=False)
-    E_unique2 = stc_recall_score(stc_true, stc_est2, per_sample=False)
-    E_per_sample1 = stc_recall_score(stc_true, stc_est2)
-    E_per_sample2 = stc_recall_score(stc_true, stc_est2, threshold='70%')
+    E_unique1 = recall_score(stc_true, stc_est1, per_sample=False)
+    E_unique2 = recall_score(stc_true, stc_est2, per_sample=False)
+    E_per_sample1 = recall_score(stc_true, stc_est2)
+    E_per_sample2 = recall_score(stc_true, stc_est2, threshold='70%')
 
     # ### Tests to add
     assert_almost_equal(E_unique1, 0.5)
@@ -204,10 +205,10 @@ def test_f1_score():
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        E_unique1 = stc_f1_score(stc_true, stc_est1, per_sample=False)
-        E_unique2 = stc_f1_score(stc_true, stc_est2, per_sample=False)
-        E_per_sample1 = stc_f1_score(stc_true, stc_est2)
-        E_per_sample2 = stc_f1_score(stc_true, stc_est2, threshold='70%')
+        E_unique1 = f1_score(stc_true, stc_est1, per_sample=False)
+        E_unique2 = f1_score(stc_true, stc_est2, per_sample=False)
+        E_per_sample1 = f1_score(stc_true, stc_est2)
+        E_per_sample2 = f1_score(stc_true, stc_est2, threshold='70%')
     assert_almost_equal(E_unique1, 0.5)
     assert_almost_equal(E_unique2, 1. / 1.5)
     assert_almost_equal(E_per_sample1, [0., 1. / 1.5])
@@ -226,7 +227,7 @@ def test_roc_auc_score():
     stc_true = SourceEstimate(data1, vert1, 0, 0.002, subject='sample')
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
 
-    score = stc_roc_auc_score(stc_true, stc_est, per_sample=False)
+    score = roc_auc_score(stc_true, stc_est, per_sample=False)
     assert_almost_equal(score, 0.75)
 
 
@@ -242,14 +243,14 @@ def test_peak_position_error():
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     r_mean = 0.5 * (src[0]['rr'][vert2[0][0]] + src[0]['rr'][vert2[0][1]])
     r_true = src[0]['rr'][vert2[0][0]]
-    score = stc_peak_position_error(stc_true, stc_est, src, per_sample=False)
+    score = peak_position_error(stc_true, stc_est, src, per_sample=False)
 
     assert_almost_equal(score, norm(r_true - r_mean))
-    pytest.raises(ValueError, stc_peak_position_error, stc_est, stc_est, src)
+    pytest.raises(ValueError, peak_position_error, stc_est, stc_est, src)
 
     data2 = np.array([[0, 0.]]).T
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
-    score = stc_peak_position_error(stc_true, stc_est, src, per_sample=False)
+    score = peak_position_error(stc_true, stc_est, src, per_sample=False)
     assert_almost_equal(score, np.inf)
 
 
@@ -265,12 +266,14 @@ def test_spacial_deviation():
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     std = np.sqrt(0.5 * (0 + norm(src[0]['rr'][vert2[0][1]] -
                                   src[0]['rr'][vert2[0][0]])**2))
-    score = stc_spacial_deviation(stc_true, stc_est, src, per_sample=False)
+    score = spacial_deviation_error(stc_true, stc_est, src,
+                                    per_sample=False)
     assert_almost_equal(score, std)
 
     data2 = np.array([[0, 0.]]).T
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
-    score = stc_spacial_deviation(stc_true, stc_est, src, per_sample=False)
+    score = spacial_deviation_error(stc_true, stc_est, src,
+                                    per_sample=False)
     assert_almost_equal(score, np.inf)
 
 run_tests_if_main()

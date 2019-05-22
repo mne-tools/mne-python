@@ -9,7 +9,7 @@ from functools import partial
 
 import numpy as np
 from scipy.linalg import norm
-from ..utils import _check_option, fill_doc
+from mne.utils import _check_option, fill_doc
 
 
 # TODO: Add more localization accuracy functions. For example, distance between
@@ -149,7 +149,7 @@ def _cosine(x, y):
 
 
 @fill_doc
-def stc_cosine_score(stc_true, stc_est, per_sample=True):
+def cosine_score(stc_true, stc_est, per_sample=True):
     """Compute cosine similarity between 2 source estimates.
 
     Parameters
@@ -201,8 +201,8 @@ def _dle(p, q, src, stc):
 
 
 @fill_doc
-def stc_region_localization_error(stc_true, stc_est, src, threshold='90%',
-                                  per_sample=True):
+def region_localization_error(stc_true, stc_est, src, threshold='90%',
+                              per_sample=True):
     r"""Compute region localization error (RLE) between 2 source estimates.
 
     .. math::
@@ -271,7 +271,7 @@ def _roc_auc_score(p, q):
 
 
 @fill_doc
-def stc_roc_auc_score(stc_true, stc_est, per_sample=True):
+def roc_auc_score(stc_true, stc_est, per_sample=True):
     """Compute ROC AUC between 2 source estimates.
 
     ROC stands for receiver operating curve and AUC is Area under the curve.
@@ -305,7 +305,7 @@ def _f1_score(p, q):
 
 
 @fill_doc
-def stc_f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
+def f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
     """Compute the F1 score, also known as balanced F-score or F-measure.
 
     The F1 score can be interpreted as a weighted average of the precision
@@ -347,7 +347,7 @@ def _precision_score(p, q):
 
 
 @fill_doc
-def stc_precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
+def precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
     """Compute the precision.
 
     The precision is the ratio ``tp / (tp + fp)`` where ``tp`` is the number of
@@ -388,7 +388,7 @@ def _recall_score(p, q):
 
 
 @fill_doc
-def stc_recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
+def recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
     """Compute the recall.
 
     The recall is the ratio ``tp / (tp + fn)`` where ``tp`` is the number of
@@ -452,8 +452,8 @@ def _peak_position_error(p, q, r_est, r_true):
 
 
 @fill_doc
-def stc_peak_position_error(stc_true, stc_est, src, threshold='50%',
-                            per_sample=True):
+def peak_position_error(stc_true, stc_est, src, threshold='50%',
+                        per_sample=True):
     r"""Compute the peak position error.
 
     The peak position error measures the distance between the center-of-mass
@@ -516,8 +516,8 @@ def _spacial_deviation(p, q, r_est, r_true):
 
 
 @fill_doc
-def stc_spacial_deviation(stc_true, stc_est, src, threshold='50%',
-                          per_sample=True):
+def spacial_deviation_error(stc_true, stc_est, src, threshold='50%',
+                            per_sample=True):
     r"""Compute the spacial deviation.
 
     The spacial deviation characterizes the spread of the estimate source

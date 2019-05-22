@@ -21,10 +21,11 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-from mne.simulation import (stc_region_localization_error,
-                            stc_f1_score, stc_precision_score,
-                            stc_recall_score, stc_cosine_score,
-                            stc_peak_position_error, stc_spacial_deviation)
+from mne.simulation.metrics import (region_localization_error,
+                                    f1_score, precision_score,
+                                    recall_score, cosine_score,
+                                    peak_position_error,
+                                    spacial_deviation_error)
 
 print(__doc__)
 
@@ -205,21 +206,22 @@ y_std = np.empty(len(thresholds))
 x = range(len(thresholds))
 for i, thr in enumerate(thresholds):
     # Region
-    dles[i] = stc_region_localization_error(stc_true_region, stc_est_region,
-                                            src, threshold=thr,
-                                            per_sample=False)
-    f1s[i] = stc_f1_score(stc_true_region, stc_est_region, threshold=thr,
-                          per_sample=False)
-    precs[i] = stc_precision_score(stc_true_region, stc_est_region,
-                                   threshold=thr, per_sample=False)
-    recs[i] = stc_recall_score(stc_true_region, stc_est_region, threshold=thr,
-                               per_sample=False)
+    dles[i] = region_localization_error(stc_true_region, stc_est_region,
+                                        src, threshold=thr,
+                                        per_sample=False)
+    f1s[i] = f1_score(stc_true_region, stc_est_region, threshold=thr,
+                      per_sample=False)
+    precs[i] = precision_score(stc_true_region, stc_est_region,
+                               threshold=thr, per_sample=False)
+    recs[i] = recall_score(stc_true_region, stc_est_region, threshold=thr,
+                           per_sample=False)
 
     # Dipole
-    y_mean[i] = stc_peak_position_error(stc_true_dipole, stc_est_dipole, src,
-                                        threshold=thr, per_sample=False)
-    y_std[i] = stc_spacial_deviation(stc_true_dipole, stc_est_dipole, src,
-                                     threshold=thr, per_sample=False)
+    y_mean[i] = peak_position_error(stc_true_dipole, stc_est_dipole, src,
+                                    threshold=thr, per_sample=False)
+    y_std[i] = spacial_deviation_error(stc_true_dipole, stc_est_dipole,
+                                       src, threshold=thr,
+                                       per_sample=False)
 
 ###############################################################################
 # Scores plotting
@@ -257,7 +259,7 @@ ax4.set_ylim([0, 1])
 
 plt.figure()
 plt.plot(stc_true_region.times,
-         stc_cosine_score(stc_true_region, stc_est_region))  # Cosine score
+         cosine_score(stc_true_region, stc_est_region))  # Cosine score
 plt.xlabel('Time')
 plt.ylabel('Score')
 plt.title('Cosine score')
