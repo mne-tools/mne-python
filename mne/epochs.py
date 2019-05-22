@@ -982,7 +982,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         .. warning:: This operation is slow since all epochs have to be read
                      from disk. To avoid reading epochs from disk multiple
-                     times, use :func:`mne.Epochs.load_data()`.
+                     times, use :meth:`mne.Epochs.load_data()`.
 
         Parameters
         ----------
@@ -1080,8 +1080,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   external indices (e.g., behavioral logs). To drop epochs
                   based on external criteria, do not use the ``preload=True``
                   flag when constructing an Epochs object, and call this
-                  method before calling the :func:`mne.Epochs.drop_bad` or
-                  :func:`mne.Epochs.load_data` methods.
+                  method before calling the :meth:`mne.Epochs.drop_bad` or
+                  :meth:`mne.Epochs.load_data` methods.
 
         Parameters
         ----------

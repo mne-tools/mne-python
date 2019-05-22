@@ -8,7 +8,8 @@ import pytest
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, pick_channels,
-                 read_evokeds, Epochs, create_info, compute_raw_covariance)
+                 read_evokeds, Epochs, create_info, compute_raw_covariance,
+                 Annotations)
 from mne.io import read_raw_fif, RawArray
 from mne.utils import _TempDir, run_tests_if_main
 from mne.event import (define_target_events, merge_events, AcqParserFIF,
@@ -361,6 +362,17 @@ def test_find_events():
     assert_array_equal(find_events(raw, 'MYSTI'), [[30, 0, 200]])
     assert_array_equal(find_events(raw, 'MYSTI', initial_event=True),
                        [[0, 0, 100], [30, 0, 200]])
+
+    # test error message for raw without stim channels
+    raw = read_raw_fif(raw_fname, preload=True)
+    raw.pick_types(meg=True, stim=False)
+    # raw does not have annotations
+    with pytest.raises(ValueError, match="'stim_channel'"):
+        find_events(raw)
+    # if raw has annotations, we show a different error message
+    raw.set_annotations(Annotations(0, 2, "test"))
+    with pytest.raises(ValueError, match="mne.events_from_annotations"):
+        find_events(raw)
 
 
 def test_pick_events():

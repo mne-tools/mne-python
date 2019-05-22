@@ -298,6 +298,7 @@ def test_drop_channels():
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
     raw.drop_channels(["MEG 0111"])  # list argument
     raw.drop_channels("MEG 0112")  # str argument
+    raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
     pytest.raises(ValueError, raw.drop_channels, ["MEG 0111", 5])
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
 
