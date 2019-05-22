@@ -180,7 +180,7 @@ print(eeglab_raw.annotations.onset[0])
 # Once your experimental events are read into MNE-Python (as either an Events
 # array or an :class:`~mne.Annotations` object), you can easily convert between
 # the two formats as needed. You might do this because, e.g., an Events array
-# is needed for epoching continous data, or because you want to take advantage
+# is needed for epoching continuous data, or because you want to take advantage
 # of the "annotation-aware" capability of some functions, that automatically
 # omit spans of data if they overlap with certain annotations.
 #
