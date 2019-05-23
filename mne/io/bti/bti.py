@@ -154,12 +154,6 @@ def _read_head_shape(fname):
     nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
     hpi = idx_points[3:len(idx_points), :]
 
-    # XXX: refactor assert to make sure we do not screw up
-    np.testing.assert_array_equal(
-        np.vstack([lpa, rpa, nasion, hpi]),
-        idx_points
-    )
-
     return nasion, lpa, rpa, hpi, dig_points
 
 
