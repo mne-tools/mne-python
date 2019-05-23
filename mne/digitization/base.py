@@ -7,6 +7,7 @@
 import numpy as np
 from ..transforms import _coord_frame_name
 from ..io.constants import FIFF
+from ..utils._bunch import MNEObjectsList
 
 _dig_kind_dict = {
     'cardinal': FIFF.FIFFV_POINT_CARDINAL,
@@ -73,3 +74,16 @@ class DigPoint(dict):
             return False
         else:
             return np.allclose(self['r'], other['r'])
+
+
+class Digitization(MNEObjectsList):
+    """Represent a list of DigPoint objects.
+
+    Parameters
+    ----------
+    elements : list
+        A list of DigPoint objects.
+    """
+
+    def __init__(self, elements=None):
+        super(Digitization, self).__init__(elements=elements, kls=DigPoint)
