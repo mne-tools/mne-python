@@ -2,7 +2,7 @@ import numpy as np
 import os.path as op
 from ...utils import logger
 from ...transforms import rotation3d_align_z_axis
-from ...digitization._mess import _foo_read_pos
+from ...digitization._utils import _artemis123_read_pos
 
 
 def _load_mne_locs(fname=None):
@@ -116,4 +116,4 @@ def _read_pos(fname):
                     extra.append(np.array([float(p)
                                            for p in parts[-3:]]) / 100.)
 
-    return _foo_read_pos(nas, lpa, rpa, hpi, extra)
+    return _artemis123_read_pos(nas, lpa, rpa, hpi, extra)

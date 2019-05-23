@@ -29,10 +29,10 @@ from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
 from ...event import read_events
 
-from ...digitization._mess import _set_dig_kit
+from ...digitization._utils import _set_dig_kit
 
 
-def _foo_digitization(info, mrk, elp, hsp):
+def _call_digitization(info, mrk, elp, hsp):
     # prepare mrk
     if isinstance(mrk, list):
         mrk = [read_mrk(marker) if isinstance(marker, str)
@@ -142,11 +142,11 @@ class RawKIT(BaseRaw):
             info, preload, last_samps=last_samps, filenames=[input_fname],
             raw_extras=self._raw_extras, verbose=verbose)
 
-        self.info = _foo_digitization(info=self.info,
-                                      mrk=mrk,
-                                      elp=elp,
-                                      hsp=hsp,
-                                      )
+        self.info = _call_digitization(info=self.info,
+                                       mrk=mrk,
+                                       elp=elp,
+                                       hsp=hsp,
+                                       )
 
         logger.info('Ready.')
 
@@ -423,11 +423,11 @@ class EpochsKIT(BaseEpochs):
             reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
 
         # XXX: This should be unified with kitraw
-        self.info = _foo_digitization(info=self.info,
-                                      mrk=mrk,
-                                      elp=elp,
-                                      hsp=hsp,
-                                      )
+        self.info = _call_digitization(info=self.info,
+                                       mrk=mrk,
+                                       elp=elp,
+                                       hsp=hsp,
+                                       )
 
         logger.info('Ready.')
 
