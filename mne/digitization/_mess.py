@@ -7,8 +7,8 @@ import numpy as np
 # Things that should be common to every reader
 
 # from ..io.meas_info import _empty_info
-from ..io.meas_info import _read_dig_points
-from ..io.meas_info import _make_dig_points
+from ._utils import _read_dig_points
+from ._utils import _make_dig_points
 from ..transforms import apply_trans
 from ..transforms import als_ras_trans
 from ..transforms import get_ras_to_neuromag_trans

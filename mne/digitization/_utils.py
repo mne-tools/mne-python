@@ -25,7 +25,7 @@ from mne.utils import logger
 from mne.utils import warn
 from mne.utils.check import _check_option
 from mne import __version__
-from .base import _format_dig_points
+from .base import _format_dig_points, Digitization
 
 b = bytes  # alias
 
@@ -173,6 +173,7 @@ def _write_dig_points(fname, dig_points):
         raise ValueError(msg)
 
 
+# XXX: all points are supposed to be in FIFFV_COORD_HEAD
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                      extra_points=None, dig_ch_pos=None):
     """Construct digitizer info for the info.
@@ -194,8 +195,8 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
 
     Returns
     -------
-    dig : list
-        List of digitizer points to be added to the info['dig'].
+    dig : Digitization
+        A container of DigPoints to be added to the info['dig'].
     """
     dig = []
     if lpa is not None:
@@ -250,4 +251,5 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
             dig.append({'r': dig_ch_pos[key], 'ident': ident,
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    return _format_dig_points(dig)
+
+    return Digitization(_format_dig_points(dig))
