@@ -663,15 +663,13 @@ def object_size(x):
     x : object
         Object to approximate the size of.
         Can be anything comprised of nested versions of:
-        {dict, list, tuple, ndarray, str, bytes, float, int, None,
-        Digitization}.
+        {dict, list, tuple, ndarray, str, bytes, float, int, None}.
 
     Returns
     -------
     size : int
         The estimated size in bytes of the object.
     """
-    from ..digitization import Digitization
     # Note: this will not process object arrays properly (since those only)
     # hold references
     if isinstance(x, (bytes, str, int, float, type(None))):
@@ -687,7 +685,7 @@ def object_size(x):
         for key, value in x.items():
             size += object_size(key)
             size += object_size(value)
-    elif isinstance(x, (list, tuple, Digitization)):
+    elif isinstance(x, (list, tuple)):
         size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
     elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
         size = sum(sys.getsizeof(xx)
@@ -712,9 +710,9 @@ def object_diff(a, b, pre=''):
     ----------
     a : object
         Currently supported: dict, list, tuple, ndarray, int, str, bytes,
-        float, StringIO, BytesIO, Digitization.
+        float, StringIO, BytesIO.
     b : object
-        Must be same type as ``a``.
+        Must be same type as x1.
     pre : str
         String to prepend to each line.
 
@@ -723,7 +721,6 @@ def object_diff(a, b, pre=''):
     diffs : str
         A string representation of the differences.
     """
-    from ..digitization import Digitization
     out = ''
     if type(a) != type(b):
         out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
@@ -744,7 +741,7 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes, np.generic, Digitization)):
+    elif isinstance(a, (str, int, float, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:

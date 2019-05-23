@@ -34,7 +34,7 @@ from ..transforms import _to_const
 from ..utils.check import _check_option
 from .. import __version__
 
-from .base import _format_dig_points, Digitization
+from .base import _format_dig_points
 
 b = bytes  # alias
 
@@ -261,7 +261,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
 
-    return Digitization(_format_dig_points(dig))
+    return _format_dig_points(dig)
 
 
 def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):

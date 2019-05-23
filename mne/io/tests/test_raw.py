@@ -20,8 +20,6 @@ from mne.io import read_raw_fif, RawArray, BaseRaw
 from mne.utils import _TempDir, catch_logging, _raw_annot
 from mne.io.meas_info import _get_valid_units
 
-from mne.digitization import Digitization
-
 
 def test_orig_units():
     """Test the error handling for original units."""
@@ -89,7 +87,6 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True, **kwargs):
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
-    assert isinstance(raw.info['dig'], (type(None), Digitization))
 
     # gh-5604
     assert _handle_meas_date(raw.info['meas_date']) >= 0

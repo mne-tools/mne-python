@@ -2,12 +2,10 @@
 """Bunch-related classes."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 
 from copy import deepcopy
-from collections.abc import MutableSequence
 
 
 ###############################################################################
@@ -96,58 +94,10 @@ def _named_subclass(klass):
 class NamedInt(_Named, int):
     """Int with a name in __repr__."""
 
+    pass
+
 
 class NamedFloat(_Named, float):
     """Float with a name in __repr__."""
 
-
-class MNEObjectsList(MutableSequence):
-    """All the bolierplate for a list of specific MNE objects.
-
-    Parameters
-    ----------
-    elements : list
-        A list of Objects objects.
-
-    Attributes
-    ----------
-    _items : list
-        The container
-    """
-
-    def __init__(self, elements=None, kls=None):
-        if kls is None:
-            raise ValueError('kls is necessary')
-        if elements is None:
-            self._items = list()
-        elif all([isinstance(_, kls) for _ in elements]):
-            if elements is None:
-                self._items = list()
-            else:
-                self._items = deepcopy(list(elements))
-        else:
-            # XXX: _msg should not be Digitization related
-            _msg = 'Digitization expected a iterable of DigPoint objects.'
-            raise ValueError(_msg)
-
-    def __len__(self):  # noqa: D105
-        return len(self._items)
-
-    def __getitem__(self, index):  # noqa: D105
-        return self._items[index]
-
-    def __setitem__(self, index, value):  # noqa: D105
-        self._items[index] = value
-
-    def __delitem__(self, index):  # noqa: D105
-        del self._items[index]
-
-    def insert(self, index, value):  # noqa: D102
-        self._items.insert(index, value)
-
-    def __eq__(self, other):  # noqa: D105
-        # if not isinstance(other, Digitization) or len(self) != len(other):
-        if len(self) != len(other):
-            return False
-        else:
-            return all([ss == oo for ss, oo in zip(self, other)])
+    pass
