@@ -69,8 +69,8 @@ this package. You can also find a gallery of these examples in the
 .. toctree::
     :maxdepth: 1
 
-    getting_started
-    advanced_setup
+    install/overview
+    install/advanced
 
 **MNE basics**
 
@@ -718,7 +718,7 @@ this package. You can also find a gallery of these examples in the
 .. toctree::
     :maxdepth: 1
 
-    contributing.rst
+    install/contributing
 
 .. raw:: html
 
