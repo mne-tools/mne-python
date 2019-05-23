@@ -137,7 +137,7 @@ class Brain(object):
             fig_size = (size, size)
 
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
-        self._renderers = [[] for v in views]
+        self._renderers = [[] for _ in views]
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -350,8 +350,6 @@ class Brain(object):
                                           smoothing_steps)
             act_data = smooth_mat.dot(act_data)
             self._data[hemi + '_smooth_mat'] = smooth_mat
-        else:
-            smooth_mat = None
 
         # data mapping into [0, 1] interval
         dt_max = max
