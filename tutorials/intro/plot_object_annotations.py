@@ -15,8 +15,12 @@ In the :ref:`introductory tutorial <overview-tut-events-section>` we saw an
 example of reading experimental events from a :term:`"STIM" channel <stim
 channel>`; here we'll discuss :term:`events` and :term:`annotations` more
 broadly, give more detailed information about reading from STIM channels, and
-give an example of reading events that are included in the data file as an
-embedded array.
+give an example of reading events that are in a marker file or included in the
+data file as an embedded array. The tutorials :doc:`../raw/plot_events` and
+:doc:`../raw/plot_annotating_raw` discuss how to plot, combine, load, save, and
+export :term:`events` and :class:`~mne.Annotations` (respectively), and the
+latter tutorial also covers interactive annotation of :class:`~mne.io.Raw`
+objects.
 
 We'll begin by loading the Python modules we need, and loading the same
 :ref:`example data <sample-dataset>` we used in the :doc:`introductory tutorial
@@ -44,28 +48,31 @@ raw.crop(tmax=60).load_data()
 # times. In other words, they associate a *when* with a *what*. The main
 # differences are:
 #
-# 1. the Events data structure represents the *when* in terms of samples,
-#    whereas the :class:`~mne.Annotations` data structure represents the *when*
-#    in seconds.
-# 2. the Events data structure represents the *what* as an integer "Event ID"
-#    code, whereas the :class:`~mne.Annotations` data structure represents the
-#    *what* as a string.
-# 3. Events in an Event array do not have a duration (though it is possible to
-#    represent duration with pairs of onset/offset events within an Events
-#    array), whereas each element of an :class:`~mne.Annotations` object
-#    necessarily includes a duration (though the duration can be zero if an
-#    instantaneous event is desired).
-# 4. Events are stored as an ordinary :class:`NumPy array <numpy.ndarray>`,
-#    whereas :class:`~mne.Annotations` is a :class:`list`-like class defined in
-#    MNE-Python.
+# 1. **Units**: the Events data structure represents the *when* in terms of
+#    samples, whereas the :class:`~mne.Annotations` data structure represents
+#    the *when* in seconds.
+# 2. **Limits on the description**: the Events data structure represents the
+#    *what* as an integer "Event ID" code, whereas the
+#    :class:`~mne.Annotations` data structure represents the *what* as a
+#    string.
+# 3. **How duration is encoded**: Events in an Event array do not have a
+#    duration (though it is possible to represent duration with pairs of
+#    onset/offset events within an Events array), whereas each element of an
+#    :class:`~mne.Annotations` object necessarily includes a duration (though
+#    the duration can be zero if an instantaneous event is desired).
+# 4. **Internal representation**: Events are stored as an ordinary
+#    :class:`NumPy array <numpy.ndarray>`, whereas :class:`~mne.Annotations` is
+#    a :class:`list`-like class defined in MNE-Python.
 #
+#
+# .. _stim-channel-defined:
 #
 # What is a STIM channel?
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# :term:`STIM channels <stim channel>` (short for "stimulus channels") are
-# channels that do not receive signals from an EEG, MEG, or other sensor.
-# Instead, those channels record voltages (usually short, rectangular DC pulses
+# A :term:`STIM channel` (short for "stimulus channel") is a
+# channel that does not receive signals from an EEG, MEG, or other sensor.
+# Instead, STIM channels record voltages (usually short, rectangular DC pulses
 # of fixed magnitudes sent from the experiment-controlling computer) that are
 # time-locked to experimental events, such as the onset of a stimulus or a
 # button-press response by the subject. In other cases, these pulses may not be
@@ -92,6 +99,10 @@ raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
 # different magnitudes whereas pulses on other channels have consistent
 # magnitudes. You can also see that every time there is a pulse on one of the
 # other STIM channels, there is a corresponding pulse on ``STI 014``.
+#
+# .. TODO: somewhere in prev. section, link out to a table of which systems
+#    have STIM channels vs. which have marker files or embedded event arrays
+#    (once such a table has been created).
 #
 #
 # Converting a STIM channel signal to an Events array
@@ -181,7 +192,7 @@ print(eeglab_raw.annotations.onset[0])
 # array or an :class:`~mne.Annotations` object), you can easily convert between
 # the two formats as needed. You might do this because, e.g., an Events array
 # is needed for epoching continuous data, or because you want to take advantage
-# of the "annotation-aware" capability of some functions, that automatically
+# of the "annotation-aware" capability of some functions, which automatically
 # omit spans of data if they overlap with certain annotations.
 #
 # To convert an :class:`~mne.Annotations` object to an Events array, use the
@@ -192,7 +203,9 @@ print(eeglab_raw.annotations.onset[0])
 # array. By default, one event will be created at the onset of each annotation;
 # this can be modified via the ``chunk_duration`` parameter of
 # :func:`~mne.events_from_annotations` to create equally spaced events within
-# each annotation span. See the function documentation for further details.
+# each annotation span (see :ref:`chunk-duration`, below, or see
+# :ref:`fixed-length-events` for direct creation of an Events array of
+# equally-spaced events).
 
 events_from_annot, event_dict = mne.events_from_annotations(eeglab_raw)
 print(event_dict)
@@ -236,3 +249,40 @@ annot_from_events = mne.Annotations(onset=onsets, duration=durations,
                                     description=descriptions,
                                     orig_time=raw.info['meas_date'])
 raw.set_annotations(annot_from_events)
+
+###############################################################################
+# Now, the annotations will appear automatically when plotting the raw data,
+# and will be color-coded by their label value:
+
+raw.plot(start=5, duration=5)
+
+###############################################################################
+# .. _`chunk-duration`:
+#
+# Making multiple events per annotation
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# As mentioned above, you can generate equally-spaced events from an
+# :class:`~mne.Annotations` object using the ``chunk_duration`` parameter of
+# :func:`~mne.events_from_annotations`. For example, suppose we have an
+# annotation in our :class:`~mne.io.Raw` object indicating when the subject was
+# in REM sleep, and we want to perform a resting-state analysis on those spans
+# of data. We can create an Events array with a series of equally-spaced events
+# within each "REM" span, and then use those events to generate (potentially
+# overlapping) epochs that we can analyze further.
+
+# create the REM annotations
+rem_annot = mne.Annotations(onset=[5, 41],
+                            duration=[16, 11],
+                            description=['REM'] * 2)
+raw.set_annotations(rem_annot)
+(rem_events,
+ rem_event_dict) = mne.events_from_annotations(raw, chunk_duration=1.5)
+
+###############################################################################
+# Now we can check that our events indeed fall in the ranges 5-21 seconds and
+# 41-52 seconds, and are ~1.5 seconds apart (modulo some jitter due to the
+# sampling frequency). Here are the event times rounded to the nearest
+# millisecond:
+
+print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info['sfreq'], 3))

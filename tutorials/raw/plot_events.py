@@ -8,7 +8,7 @@ subselect data.
 
 .. contents:: Page contents
    :local:
-   :depth: 1
+   :depth: 2
 
 As usual we'll start by importing the modules we need, loading some example
 data, and cropping it to save memory:
@@ -25,18 +25,19 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
 
 ###############################################################################
-# The tutorial :doc:`../intro/plot_object_annotations` describes in detail how
-# to obtain an Events array from either :term:`STIM channels <stim channel>` or
-# embedded event arrays within a raw data file, so we won't discuss that in
-# detail here. As a quick reminder, the :ref:`sample dataset <sample-dataset>`
-# includes experimental events recorded on channel ``STI 014``. Here parse the
+# The tutorial :doc:`../intro/plot_object_annotations` describes in detail the
+# different ways of obtaining an :term:`Events array <events>` from a
+# :class:`~mne.io.Raw` object (see the section
+# :ref:`overview-tut-events-section` for details). Since the :ref:`sample
+# dataset <sample-dataset>` includes experimental events recorded on
+# :term:`STIM channel` ``STI 014``, we'll start this tutorial by parsing the
 # events from that channel using :func:`mne.find_events`:
 
 events = mne.find_events(raw, stim_channel='STI 014')
 
 ###############################################################################
-# Reading and writing events to file
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Reading and writing events from/to a file
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Event arrays are :class:`NumPy array <numpy.ndarray>` objects, so they could
 # be saved to disk as binary :file:`.npy` files using :func:`numpy.save`.
@@ -146,8 +147,34 @@ fig = mne.viz.plot_events(events, sfreq=raw.info['sfreq'],
 fig.subplots_adjust(right=0.7)  # make room for legend
 
 ###############################################################################
+# Plotting events and raw data together
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
 # Events can also be plotted alongside the :class:`~mne.io.Raw` object they
-# were extracted from:
+# were extracted from, by passing the Event array as the ``events`` parameter
+# of :meth:`raw.plot <mne.io.Raw.plot>`:
 
 raw.plot(events=events, start=5, duration=10, color='gray',
          event_color={1: 'r', 2: 'g', 3: 'b', 4: 'm', 5: 'y', 32: 'k'})
+
+###############################################################################
+# .. _`fixed-length-events`:
+#
+# Making equally-spaced Events arrays
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# For some experiments (such as those intending to analyze resting-state
+# activity) there may not be any experimental events included in the raw
+# recording. In such cases, an Events array of equally-spaced events can be
+# generated using :func:`mne.make_fixed_length_events`:
+
+new_events = mne.make_fixed_length_events(raw, start=5, stop=50, duration=2.)
+
+###############################################################################
+# By default, the events will all be given the integer Event ID of `1`, but you
+# can change that with the ``id`` parameter. It is also possible to specify an
+# ``overlap`` duration — i.e., if you ultimately want :term:`epochs` that are
+# 2.5 seconds long, but you want them to overlap by 0.5 seconds, you can
+# specify ``duration=2.5, overlap=0.5`` in the call to
+# :func:`~mne.make_fixed_length_events` (this will yield the same spacing of
+# events as ``duration=2, overlap=0)``.
