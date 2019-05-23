@@ -31,9 +31,6 @@ dependencies:
 - pyface>=6
 - traitsui>=6
 - testpath<0.4
-- ipyvolume
-- bqplot
-- pythreejs
 - pip:
   - mne
   - vtk
@@ -50,4 +47,7 @@ dependencies:
   - codespell
   - python-picard
   - pylsl>=1.12
+  - bqplot
+  - ipyvolume
+  - pythreejs
   - ipywidgets>=7.4
