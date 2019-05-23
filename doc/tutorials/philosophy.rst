@@ -1,4 +1,4 @@
-.. include:: ../git_links.inc
+.. include:: ../links.inc
 
 MNE quickstart and background
 =============================
