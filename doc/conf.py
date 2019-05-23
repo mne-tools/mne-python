@@ -169,7 +169,7 @@ html_theme_options = {
     'navbar_class': "navbar",
     'bootstrap_version': "3",  # default
     'navbar_links': [
-        ("Install", "install/overview"),
+        ("Install", "install/index"),
         ("Documentation", "documentation"),
         ("API", "python_reference"),
         ("Glossary", "glossary"),

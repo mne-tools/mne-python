@@ -69,7 +69,7 @@ this package. You can also find a gallery of these examples in the
 .. toctree::
     :maxdepth: 1
 
-    install/overview
+    install/index
     install/advanced
 
 **MNE basics**
