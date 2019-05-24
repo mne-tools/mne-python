@@ -6,6 +6,7 @@ from mne.viz import Brain, get_3d_backend
 
 
 def test_brain_init(backends_3d):
+    """Test initialization of the Brain instance."""
     backend_name = get_3d_backend()
     data_path = mne.datasets.sample.data_path()
     hemi = 'both'
@@ -28,6 +29,7 @@ def test_brain_init(backends_3d):
 
 
 def test_brain_add_data(backends_3d):
+    """Test adding data in Brain instance."""
     backend_name = get_3d_backend()
     data_path = mne.datasets.sample.data_path()
     act_data = path.join(data_path, 'MEG/sample/sample_audvis-meg-eeg')
