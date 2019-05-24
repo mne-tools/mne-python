@@ -1,9 +1,7 @@
 :orphan:
 
-.. include:: links.inc
-
 Installation — overview
-=========================
+=======================
 
 The MNE software products are open-source tools for processing, analysis, and
 visualization of functional neuroimaging data (EEG, MEG, sEEG, ECoG, and
@@ -13,7 +11,8 @@ fNIRS). Pages describing the installation procedure are listed below.
     :maxdepth: 2
 
     pre_install
-    install_mne_python
-    install_freesurfer
-    install_mne_c
-    advanced_setup
+    mne_python
+    freesurfer
+    mne_c
+    advanced
+    contributing

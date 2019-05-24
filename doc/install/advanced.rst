@@ -1,4 +1,4 @@
-.. include:: links.inc
+.. include:: ../links.inc
 
 .. _advanced_setup:
 

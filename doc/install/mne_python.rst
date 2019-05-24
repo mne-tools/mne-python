@@ -1,4 +1,4 @@
-.. include:: links.inc
+.. include:: ../links.inc
 
 .. _install_python_and_mne_python:
 
@@ -100,8 +100,8 @@ Troubleshooting MNE-Python installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If something went wrong during installation and you can't figure it out
-yourself, check out the :doc:`advanced_setup` page to see if your problem is
+yourself, check out the :doc:`advanced` page to see if your problem is
 discussed there. If not, the `MNE mailing list`_ and `MNE gitter channel`_ are
 good resources for troubleshooting installation problems.
 
-**Next:** :doc:`install_freesurfer`
+**Next:** :doc:`freesurfer`
