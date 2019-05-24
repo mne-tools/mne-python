@@ -100,7 +100,7 @@ class Brain(object):
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
         if hemi == 'split':
-            raise ValueError('Option hemi="split" is not suppoerted yet.')
+            raise ValueError('Option hemi="split" is not supported yet.')
 
         if figure is not None:
             raise ValueError('figure parameter is not supported yet.')
@@ -130,8 +130,8 @@ class Brain(object):
         elif hemi in ('lh', 'rh'):
             self._hemis = (hemi, )
         else:
-            raise ValueError('hemi has to be either "lh", "rh", "split", '
-                             'or "both"')
+            raise KeyError('hemi has to be either "lh", "rh", "split", '
+                           'or "both"')
 
         if isinstance(size, int):
             fig_size = (size, size)
