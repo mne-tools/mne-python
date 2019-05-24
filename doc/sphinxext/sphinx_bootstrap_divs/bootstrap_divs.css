@@ -1,23 +1,7 @@
 .panel-title a {
     display: block !important;
-    padding: 5px;
     text-decoration: none;
 }
-
-.plus {
-    float: right;
-    color: #212121;
-}
-
-.panel {
-    margin-bottom: 3px;
-}
-
-.example_details {
-    padding-left: 20px;
-    margin-bottom: 10px;
-}
-
 @media (max-width: 991px) {
     .collapse.in{
         display:block !important;
