@@ -187,7 +187,7 @@ class _Renderer(_BaseRenderer):
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
         color = np.append(color, opacity)
-        x, y, z = [_check_array(n) for n in [x, y, z]]
+        x, y, z = map(_check_array, [x, y, z])
         scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color)
         _add_transperent_material(scatter)
 
@@ -278,6 +278,7 @@ def _isoline(vertices, tris, vertex_data, levels):
         data at vertex.
     levels : ndarray, shape (Nl,)
         Levels at which to generate an isocurve
+
     Returns
     -------
     lines : ndarray, shape (Nvout, 3)
@@ -286,6 +287,7 @@ def _isoline(vertices, tris, vertex_data, levels):
         Indices of line element into the vertex array.
     vertex_level: ndarray, shape (Nvout,)
         level for vertex in lines
+
     Notes
     -----
     Uses a marching squares algorithm to generate the isolines.
@@ -347,20 +349,18 @@ def _color2rgba(color, opacity):
         # no need to update colors
         return color
 
-    try:
-        _, n_components = color.shape
-        if n_components == 4:
-            color[:, -1] = opacity
-        elif n_components == 3:
-            # add new axis
-            rgba_color = np.zeros((len(color), 4))
-            rgba_color[:, :-1] = color
-            rgba_color[:, -1] = opacity
-            color = rgba_color
-    except AttributeError:
-        # not numpy array
-        color = np.array(color)
-        np.append(color, opacity)
+    color = np.array(color)
+    if color.ndim == 1:
+        color = np.expand_dims(color, axis=0)
+    _, n_components = color.shape
+    if n_components == 4:
+        color[:, -1] = opacity
+    elif n_components == 3:
+        # add new axis
+        rgba_color = np.zeros((len(color), 4))
+        rgba_color[:, :-1] = color
+        rgba_color[:, -1] = opacity
+        color = rgba_color
 
     return color
 
