@@ -46,16 +46,18 @@ class _Renderer(_BaseRenderer):
         self.off_screen = False
         self.name = name
 
-        if fig is None:
-            fig_w, fig_h = size
-            self.plotter = ipv.figure(width=fig_w, height=fig_h)
-            self.plotter.animation = 0
-            ipv.style.box_off()
-            ipv.style.axes_off()
-            bgcolor = tuple(int(c) for c in bgcolor)
-            ipv.style.background_color('#%02x%02x%02x' % bgcolor)
-        else:
-            self.plotter = ipv.figure(key=fig)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            if fig is None:
+                fig_w, fig_h = size
+                self.plotter = ipv.figure(width=fig_w, height=fig_h)
+                self.plotter.animation = 0
+                ipv.style.box_off()
+                ipv.style.axes_off()
+                bgcolor = tuple(int(c) for c in bgcolor)
+                ipv.style.background_color('#%02x%02x%02x' % bgcolor)
+            else:
+                self.plotter = ipv.figure(key=fig)
 
     def scene(self):
         return self.plotter
@@ -107,7 +109,9 @@ class _Renderer(_BaseRenderer):
                                       levels=levels)
 
         x, y, z = verts.T
-        plot(x, y, z, color=color)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            plot(x, y, z, color=color)
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,

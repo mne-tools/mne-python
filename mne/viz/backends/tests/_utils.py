@@ -31,7 +31,9 @@ def has_mayavi():
 def has_ipyvolume():
     """Check that ipyvolume is not installed."""
     try:
-        import ipyvolume # noqa F401
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            import ipyvolume # noqa F401
         return True
     except ImportError:
         return False

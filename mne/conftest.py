@@ -158,6 +158,7 @@ def _bias_params(evoked, noise_cov, fwd):
 @pytest.fixture(scope="module", params=[
     "mayavi",
     "pyvista",
+    "ipyvolume",
 ])
 def backend_name(request):
     """Get the backend name."""
@@ -168,12 +169,16 @@ def backend_name(request):
 def backends_3d(backend_name):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
-    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
+    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
+                                               has_ipyvolume)
     if backend_name == 'mayavi':
         if not has_mayavi():
             pytest.skip("Test skipped, requires mayavi.")
     elif backend_name == 'pyvista':
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
+    if backend_name == 'ipyvolume':
+        if not has_ipyvolume():
+            pytest.skip("Test skipped, requires ipyvolume.")
     with _use_test_3d_backend(backend_name):
         yield
