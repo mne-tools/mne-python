@@ -19,7 +19,6 @@ using dynamic statistical parametric mapping (dSPM) inverse operator.
 import os.path as op
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
@@ -109,6 +108,7 @@ region_names = list(activations.keys())
 # simulate source activity for a single condition at a time. Therefore, each
 # evoked response will be parametrized by latency and duration.
 
+
 def data_fun(times, latency, duration):
     """Function to generate source time courses for evoked responses,
     parametrized by latency and duration."""
@@ -116,7 +116,7 @@ def data_fun(times, latency, duration):
     sigma = 0.375 * duration
     sin = np.sin(2 * np.pi * f * (times - latency))
     gf = np.exp(- (times - latency - (sigma / 4.) * rng.rand(1)) ** 2 /
-                 (2 * (sigma ** 2)))
+                (2 * (sigma ** 2)))
     return 1e-9 * sin * gf
 
 
