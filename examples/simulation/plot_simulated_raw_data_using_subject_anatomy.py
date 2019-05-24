@@ -19,15 +19,17 @@ using dynamic statistical parametric mapping (dSPM) inverse operator.
 import os.path as op
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
 
 print(__doc__)
 
-# To simulate the sample dataset, information of the sample subject needs to be
-# loaded. This step will download the data if it not already on your machine.
-# Subjects directory is also set so it doesn't need to be given to functions.
+# In this example, raw data will be simulated for the sample subject, so its
+# information needs to be loaded. This step will download the data if it not
+# already on your machine. Subjects directory is also set so it doesn't need
+# to be given to functions.
 data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
@@ -99,29 +101,49 @@ label_names = sorted(set(activation[0]
                          for activation in activation_list))
 region_names = list(activations.keys())
 
-#  Define the time course of the activity for each region to activate. We use a
-#  sine wave and it will be the same for all 4 regions.
-source_time_series = np.sin(np.linspace(0, 4 * np.pi, 100)) * 10e-9
-
 ###############################################################################
 # Create simulated source activity
 # --------------------------------
 #
+# Generate source time courses for each region. In this example, we want to
+# simulate source activity for a single condition at a time. Therefore, each
+# evoked response will be parametrized by latency and duration.
+
+def data_fun(times, latency, duration):
+    """Function to generate source time courses for evoked responses,
+    parametrized by latency and duration."""
+    f = 15  # oscillating frequency, beta band [Hz]
+    sigma = 0.375 * duration
+    sin = np.sin(2 * np.pi * f * (times - latency))
+    gf = np.exp(- (times - latency - (sigma / 4.) * rng.rand(1)) ** 2 /
+                 (2 * (sigma ** 2)))
+    return 1e-9 * sin * gf
+
+
+###############################################################################
 # Here, :class:`~mne.simulation.SourceSimulator` is used, which allows to
 # specify where (label), what (source_time_series), and when (events) event
 # type will occur.
 #
 # We will add data for 4 areas, each of which contains 2 labels. Since add_data
 # method accepts 1 label per call, it will be called 2 times per area.
-# All activations will contain the same waveform, but the amplitude will be 2
-# times higher in the contralateral label, as explained before.
+#
+# Evoked responses are generated such that the main component peaks at 100ms
+# with a duration of around 30ms, which first appears in the contralateral
+# cortex. This is followed by a response in the ipsilateral cortex with a peak
+# about 15ms after. The amplitude of the activations will be 2 times higher in
+# the contralateral region, as explained before.
 #
 # When the activity occurs is defined using events. In this case, they are
 # taken from the original raw data. The first column is the sample of the
 # event, the second is not used. The third one is the event id, which is
 # different for each of the 4 areas.
 
+times = np.arange(300, dtype=np.float) / info['sfreq'] - 0.1
+duration = 0.03
+rng = np.random.RandomState(7)
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)
+
 for region_id, region_name in enumerate(region_names, 1):
     events_tmp = events[np.where(events[:, 2] == region_id)[0], :]
     for i in range(2):
@@ -132,10 +154,14 @@ for region_id, region_name in enumerate(region_names, 1):
                                                verbose=False)
         label_tmp = label_tmp[0]
         amplitude_tmp = activations[region_name][i][1]
+        if region_name.split('/')[1][0] == label_tmp.hemi[0]:
+            latency_tmp = 0.115
+        else:
+            latency_tmp = 0.1
+        wf_tmp = data_fun(times, latency_tmp, duration)
         source_simulator.add_data(label_tmp,
-                                  amplitude_tmp * source_time_series,
+                                  amplitude_tmp * wf_tmp,
                                   events_tmp)
-
 # To obtain a SourceEstimate object, we need to use `get_stc()` method of
 # SourceSimulator class.
 stc_data = source_simulator.get_stc()
@@ -184,7 +210,7 @@ stc_vis = mne.minimum_norm.apply_inverse(
     epochs['visual/right'].average(), inv, lambda2, method)
 stc_diff = stc_aud - stc_vis
 
-brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1,
+brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.2,
                       hemi='split', views=['lat', 'med'])
 
 ###############################################################################
