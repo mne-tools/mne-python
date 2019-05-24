@@ -1,11 +1,11 @@
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. _contributing:
 
 Contributing to MNE-Python
 ==========================
+
+.. contents:: Page contents
+   :local:
+   :depth: 2
 
 .. NOTE: this first section (up until "overview of contribution process") is
    basically a copy/paste of CONTRIBUTING.rst from the repository root, with
@@ -64,10 +64,10 @@ process in more detail.
 
 
 Setting up your local environment for MNE-Python development
-============================================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Configuring git
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 .. sidebar:: Git GUI alternative
 
@@ -118,7 +118,7 @@ and create a `fork`_ into your GitHub user account.
 
 
 Setting up the development environment
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Supported Python environments
 
@@ -238,7 +238,7 @@ documentation:
 .. _basic-git:
 
 Basic git commands
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 Learning to work with git can take a long time, because it is a complex and
 powerful tool for managing versions of files across multiple users, each of
@@ -366,7 +366,7 @@ Learning Lab`_ tutorial series, and the `pro git book`_.
 .. _github-ssh:
 
 Connecting to GitHub with SSH (optional)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One easy way to speed up development is to reduce the number of times you have
 to type your password. SSH (secure shell) allows authentication with pre-shared
@@ -390,20 +390,20 @@ example:
 
 
 MNE-Python coding conventions
-=============================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 General requirements
-^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~
 
 All new functionality must have test coverage
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------
 
 For example, a new :class:`mne.Evoked` method in :file:`mne/evoked.py` should
 have a corresponding test in :file:`mne/tests/test_evoked.py`.
 
 
 All new functionality must be documented
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------
 
 This includes thorough docstring descriptions for all public API changes, as
 well as how-to examples or longer tutorials for major contributions. Docstrings
@@ -411,7 +411,7 @@ for private functions may be more sparse, but should not be omitted.
 
 
 Avoid API changes when possible
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------
 
 Changes to the public API (e.g., class/function/method names and signatures)
 should not be made lightly, as they can break existing user scripts. Changes to
@@ -427,7 +427,7 @@ they are included in the :doc:`python_reference`
 
 
 Describe your changes in the changelog
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------
 
 Include in your changeset a brief description of the change in the
 :doc:`changelog <whats_new>` (:file:`doc/whats_new.rst`; this can be skipped
@@ -439,7 +439,7 @@ merge conflicts (since the changelog is updated with almost every PR).
 
 
 Test locally before opening pull requests (PRs)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------
 
 MNE-Python uses `continuous integration`_ (CI) to ensure code quality and
 test across multiple installation targets. However, the CIs are often slower
@@ -451,7 +451,7 @@ changes to an already-open PR.
 
 
 Make tests fast and thorough
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 Whenever possible, use the testing dataset rather than one of the sample
 datasets when writing tests; it includes small versions of most MNE-Python
@@ -470,10 +470,10 @@ not slow down the test suite too much.
 
 
 Code style
-^^^^^^^^^^
+~~~~~~~~~~
 
 Adhere to standard Python style guidelines
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------
 
 All contributions to MNE-Python are checked against style guidelines described
 in `PEP 8`_. We also check for common coding errors (such as variables that are
@@ -494,7 +494,7 @@ most editors have plug-ins that provide similar functionality. Search for
 
 
 Use consistent variable naming
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 Classes should be named using ``CamelCase``. Functions and instances/variables
 should use ``snake_case`` (``n_samples`` rather than ``nsamples``). Avoid
@@ -503,7 +503,7 @@ comprehension>` or :ref:`generator <tut-generators>`.
 
 
 Follow NumPy style for docstrings
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
 In most cases imitating existing docstrings will be sufficient, but consult the
 `Numpy docstring style guidelines`_ for more complicated formatting such as
@@ -519,7 +519,7 @@ relatively complex. To run some basic tests on documentation, you can use:
 
 
 Cross-reference everywhere
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 Both the docstrings and dedicated documentation pages (tutorials, how-to
 examples, discussions, and glossary) should include cross-references to any
@@ -543,7 +543,7 @@ we link to.
 
 
 Other style guidance
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 - Use single quotes whenever possible.
 
@@ -562,10 +562,10 @@ Other style guidance
 
 
 Code organization
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 Importing
-~~~~~~~~~
+---------
 
 Import modules in this order:
 
@@ -581,7 +581,7 @@ be nested (i.e., within a function or method, not at the top of a file).
 
 
 Return types
-~~~~~~~~~~~~
+------------
 
 Methods should modify inplace and return ``self``, functions should return
 copies (where applicable). Docstrings should always give an informative name
@@ -590,7 +590,7 @@ stored under that name in the code.
 
 
 Vizualization
-~~~~~~~~~~~~~
+-------------
 
 Visualization capabilities should be made available in both function and method
 forms. Add public visualization functions to the :mod:`mne.viz` submodule, and
@@ -612,7 +612,7 @@ to both visualization functions and tutorials/examples.
 .. _run_tests:
 
 Running the test suite
-^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~
 
 Running the full test suite is as simple as running
 
@@ -652,7 +652,7 @@ a Python interpreter::
 .. _build-docs:
 
 Building the documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Our documentation (including docstrings in code files) is in
 reStructuredText_ format and is built using Sphinx_ and `Sphinx-Gallery`_.
@@ -688,7 +688,7 @@ consult the `Sphinx-Gallery`_ documentation for additional details.
 .. _`github-workflow`:
 
 GitHub workflow
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 Nearly everyone in the community of MNE-Python contributors and maintainers is
 a working scientist, engineer, or student who contributes to MNE-Python in

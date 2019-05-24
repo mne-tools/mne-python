@@ -36,12 +36,59 @@ def set_3d_backend(backend_name):
     """Set the backend for MNE.
 
     The backend will be set as specified and operations will use
-    that backend
+    that backend.
 
     Parameters
     ----------
     backend_name : str
-        The 3d backend to select.
+        The 3d backend to select. See Notes for the capabilities of each
+        backend.
+
+    Notes
+    -----
+    This table shows the capabilities of each backend ("✓" for full support,
+    and "-" for partial support):
+
+    .. table::
+       :widths: auto
+
+       +--------------------------------------+--------+---------+
+       | 3D function:                         | mayavi | pyvista |
+       +======================================+========+=========+
+       | :func:`plot_source_estimates`        | ✓      |         |
+       +--------------------------------------+--------+---------+
+       | :func:`plot_alignment`               | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | :func:`plot_sparse_source_estimates` | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | :func:`plot_evoked_field`            | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | :func:`snapshot_brain_montage`       | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | :func:`plot_evoked_field`            | ✓      |         |
+       +--------------------------------------+--------+---------+
+       +--------------------------------------+--------+---------+
+       | **3D feature:**                                         +
+       +--------------------------------------+--------+---------+
+       | Large data                           | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | Opacity/transparency                 | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | Support geometric glyph              | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | Jupyter notebook                     | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | Interactivity in Jupyter notebook    | ✓      |         |
+       +--------------------------------------+--------+---------+
+       | Smooth shading                       | ✓      |         |
+       +--------------------------------------+--------+---------+
+       | Subplotting                          | ✓      |         |
+       +--------------------------------------+--------+---------+
+       | Eye-dome lighting                    |        |         |
+       +--------------------------------------+--------+---------+
+       | Exports to movie/GIF                 |        |         |
+       +--------------------------------------+--------+---------+
+
     """
     Backends3D.check_backend(backend_name)
     global MNE_3D_BACKEND
