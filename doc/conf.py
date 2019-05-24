@@ -178,7 +178,7 @@ html_theme_options = {
         ("Tutorials", "auto_tutorials/index"),
         ("Contribute", "install/contributing"),
     ],
-    }
+}
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".

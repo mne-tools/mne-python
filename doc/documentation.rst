@@ -81,7 +81,7 @@ this package. You can also find a gallery of these examples in the
         manual/memory.rst
         manual/migrating.rst
 
-    .. details:: **Examples**
+    .. details:: Examples
         :class: example_details
 
         .. toctree::
@@ -138,7 +138,7 @@ this package. You can also find a gallery of these examples in the
         auto_tutorials/preprocessing/plot_artifacts_correction_maxwell_filtering.rst
 
 
-    .. details:: **Examples**
+    .. details:: Examples
         :class: example_details
 
       .. toctree::
@@ -171,7 +171,7 @@ this package. You can also find a gallery of these examples in the
         auto_tutorials/evoked/plot_whitened.rst
         tutorials/report.rst
 
-    .. details:: **Examples**
+    .. details:: Examples
         :class: example_details
 
         .. toctree::
@@ -204,7 +204,7 @@ this package. You can also find a gallery of these examples in the
         auto_tutorials/time-freq/plot_sensors_time_frequency.rst
         manual/time_frequency.rst
 
-    .. details:: **Examples**
+    .. details:: Examples
         :class: example_details
 
         .. toctree::
@@ -320,7 +320,7 @@ this package. You can also find a gallery of these examples in the
         auto_tutorials/stats-sensor-space/plot_stats_cluster_time_frequency.rst
         auto_tutorials/stats-sensor-space/plot_stats_cluster_erp.rst
 
-    .. details:: **Examples**
+    .. details:: Examples
         :class: example_details
 
         .. toctree::
@@ -351,7 +351,7 @@ this package. You can also find a gallery of these examples in the
 
         auto_tutorials/machine-learning/plot_sensors_decoding.rst
 
-    .. details:: **Examples**
+    .. details:: Examples
         :class: example_details
 
         .. toctree::
@@ -375,7 +375,7 @@ this package. You can also find a gallery of these examples in the
 
         auto_tutorials/machine-learning/plot_receptive_field.rst
 
-    .. details:: **Examples**
+    .. details:: Examples
         :class: example_details
 
         .. toctree::
