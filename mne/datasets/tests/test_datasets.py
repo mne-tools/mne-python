@@ -100,9 +100,12 @@ _zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']
 
 def _fake_zip_fetch(url, fname, hash_):
     with zipfile.ZipFile(fname, 'w') as zipf:
+        with zipf.open('foo/', 'w'):
+            pass
         for fname in _zip_fnames:
             with zipf.open(fname, 'w'):
                 pass
+
 
 @pytest.mark.skipif(sys.version_info < (3, 6),
                     reason="writing zip files requires python3.6 or higher")

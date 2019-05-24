@@ -21,11 +21,11 @@ from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn, fill_doc
+from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
-from ..utils import _read_segments_file, _mult_cal_one, _deprecate_stim_channel
+from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 
 
@@ -57,11 +57,6 @@ class RawBrainVision(BaseRaw):
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
     %(verbose)s
 
     See Also
@@ -72,9 +67,7 @@ class RawBrainVision(BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                 scale=1., preload=False, stim_channel=False,
-                 verbose=None):  # noqa: D107
-        _deprecate_stim_channel(stim_channel)
+                 scale=1., preload=False, verbose=None):  # noqa: D107
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
@@ -131,6 +124,11 @@ class RawBrainVision(BaseRaw):
                     line = line.strip().replace(',', '.').split()
                     block[:n_data_ch, ii] = [float(l) for l in line]
             _mult_cal_one(data, block, idx, cals, mult)
+
+    @classmethod
+    def _get_auto_event_id(cls):
+        """Return default ``event_id`` behavior for Brainvision."""
+        return _BVEventParser()
 
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
@@ -207,7 +205,8 @@ def _read_vmrk(fname):
     # extract Marker Infos block
     m = re.search(r"\[Marker Infos\]", txt, re.IGNORECASE)
     if not m:
-        return np.zeros((0, 3))
+        return np.array(list()), np.array(list()), np.array(list()), ''
+
     mk_txt = txt[m.end():]
     m = re.search(r"^\[.*\]$", mk_txt)
     if m:
@@ -256,26 +255,20 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    markers = _read_vmrk(fname)
-    if len(markers) > 0:
-        onset, duration, description, date_str = markers
-        orig_time = _str_to_meas_date(date_str)
+    onset, duration, description, date_str = _read_vmrk(fname)
+    orig_time = None if date_str == '' else _str_to_meas_date(date_str)
 
-        if sfreq == 'auto':
-            vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-            logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-            _, _, _, info = _aux_vhdr_info(vhdr_fname)
-            sfreq = info['sfreq']
+    if sfreq == 'auto':
+        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
+        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
+        _, _, _, info = _aux_vhdr_info(vhdr_fname)
+        sfreq = info['sfreq']
 
-        onset = np.array(onset, dtype=float) / sfreq
-        duration = np.array(duration, dtype=float) / sfreq
-        annotations = Annotations(onset=onset, duration=duration,
-                                  description=description,
-                                  orig_time=orig_time)
-    else:
-        annotations = Annotations(onset=0, duration=0,
-                                  description=None,
-                                  orig_time=None)
+    onset = np.array(onset, dtype=float) / sfreq
+    duration = np.array(duration, dtype=float) / sfreq
+    annotations = Annotations(onset=onset, duration=duration,
+                              description=description,
+                              orig_time=orig_time)
     return annotations
 
 
@@ -789,8 +782,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 @fill_doc
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                         scale=1., preload=False, stim_channel=False,
-                         verbose=None):
+                         scale=1., preload=False, verbose=None):
     """Reader for Brain Vision EEG file.
 
     Parameters
@@ -816,11 +808,6 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
     %(verbose)s
 
     Returns
@@ -835,4 +822,30 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,
-                          stim_channel=stim_channel, verbose=verbose)
+                          verbose=verbose)
+
+
+_BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 2000}
+_OTHER_ACCEPTED_MARKERS = {
+    'New Segment/': 99999, 'SyncStatus/Sync On': 99998
+}
+_OTHER_OFFSET = 10001  # where to start "unknown" event_ids
+
+
+class _BVEventParser(_DefaultEventParser):
+    """Parse standard brainvision events, accounting for non-standard ones."""
+
+    def __call__(self, description):
+        """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
+        offsets = _BV_EVENT_IO_OFFSETS
+
+        maybe_digit = description[-3:].strip()
+        kind = description[:-3]
+        if maybe_digit.isdigit() and kind in offsets:
+            code = int(maybe_digit) + offsets[kind]
+        elif description in _OTHER_ACCEPTED_MARKERS:
+            code = _OTHER_ACCEPTED_MARKERS[description]
+        else:
+            code = (super(_BVEventParser, self)
+                    .__call__(description, offset=_OTHER_OFFSET))
+        return code

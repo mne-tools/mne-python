@@ -433,23 +433,12 @@ class FilterEstimator(TransformerMixin):
     ----------
     info : instance of Info
         Measurement info.
-    l_freq : float | None
-        Low cut-off frequency in Hz. If None the data are only low-passed.
-    h_freq : float | None
-        High cut-off frequency in Hz. If None the data are only
-        high-passed.
+    %(l_freq)s
+    %(h_freq)s
     %(picks_good_data)s
-    filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
-    l_trans_bandwidth : float
-        Width of the transition band at the low cut-off frequency in Hz.
-    h_trans_bandwidth : float
-        Width of the transition band at the high cut-off frequency in Hz.
+    %(filter_length)s
+    %(l_trans_bandwidth)s
+    %(h_trans_bandwidth)s
     n_jobs : int | str
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
@@ -460,14 +449,7 @@ class FilterEstimator(TransformerMixin):
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    fir_design : str
-        Can be "firwin" (default in 0.16) to use
-        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-        time-domain design technique that generally gives improved
-        attenuation using fewer samples than "firwin2".
-
-        ..versionadded:: 0.15
+    %(fir_design)s
     %(verbose)s
 
     See Also
@@ -477,7 +459,7 @@ class FilterEstimator(TransformerMixin):
     Notes
     -----
     This is primarily meant for use in conjunction with
-    :class:`mne.realtime.RtEpochs`. In general it is not recommended in a
+    :class:`mne_realtime.RtEpochs`. In general it is not recommended in a
     normal processing pipeline as it may result in edge artifacts. Use with
     caution.
     """
@@ -768,7 +750,7 @@ class TemporalFilter(TransformerMixin):
         a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
-        ..versionadded:: 0.15
+        .. versionadded:: 0.15
     %(verbose)s
 
     See Also

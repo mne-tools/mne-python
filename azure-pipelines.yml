@@ -43,7 +43,7 @@ jobs:
       Set-StrictMode -Version Latest
       $ErrorActionPreference = "Stop"
       $PSDefaultParameterValues['*:ErrorAction']='Stop'
-      git clone --depth 1 git://github.com/vtkiorg/gl-ci-helpers.git
+      git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
       powershell gl-ci-helpers/appveyor/install_opengl.ps1
     displayName: Install OpenGL
   - powershell: |
@@ -61,7 +61,7 @@ jobs:
       $ErrorActionPreference = "Stop"
       $PSDefaultParameterValues['*:ErrorAction']='Stop'
       $env:PYTHON = '$(System.DefaultWorkingDirectory)' + '\conda'
-      git clone git://github.com/larsoner/ci-helpers.git
+      git clone git://github.com/astropy/ci-helpers.git
       cd ci-helpers
       git checkout nopip
       cd ..
@@ -78,7 +78,7 @@ jobs:
     displayName: 'Print config'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not ultraslowtest" mne --cov=mne
+  - script: pytest -m "not ultraslowtest" mne
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'

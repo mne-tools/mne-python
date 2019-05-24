@@ -22,14 +22,16 @@ from mne.utils import (run_tests_if_main, _TempDir, requires_version,
                        catch_logging)
 from mne.utils import assert_and_remove_boundary_annot, _raw_annot
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.annotations import _sync_onset, _handle_meas_date
-from mne.annotations import _read_annotations_txt_parse_header
+from mne.annotations import (_sync_onset, _handle_meas_date,
+                             _read_annotations_txt_parse_header)
 from mne.datasets import testing
 
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
+
+first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
 
 
 def test_basics():
@@ -67,7 +69,9 @@ def test_basics():
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
 
-    # Test combining with RawArray and orig_times
+
+def test_raw_array_orig_times():
+    """Test combining with RawArray and orig_times."""
     data = np.random.randn(2, 1000) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
@@ -190,12 +194,13 @@ def test_crop():
     assert len(raw_read.annotations.onset) == 0  # XXX to be fixed in #5416
 
 
-def test_chunk_duration():
+@first_samps
+def test_chunk_duration(first_samp):
     """Test chunk_duration."""
     # create dummy raw
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1.),
-                   first_samp=0)
+                   first_samp=first_samp)
     raw.info['meas_date'] = 0
     raw.set_annotations(Annotations(description='foo', onset=[0],
                                     duration=[10], orig_time=None))
@@ -205,6 +210,7 @@ def test_chunk_duration():
     expected_events = np.atleast_2d(np.repeat(range(10), repeats=2)).T
     expected_events = np.insert(expected_events, 1, 0, axis=1)
     expected_events = np.insert(expected_events, 2, 1, axis=1)
+    expected_events[:, 0] += first_samp
 
     events, events_id = events_from_annotations(raw, chunk_duration=.5,
                                                 use_rounding=False)
@@ -213,7 +219,7 @@ def test_chunk_duration():
     # test chunk durations that do not fit equally in annotation duration
     expected_events = np.zeros((3, 3))
     expected_events[:, -1] = 1
-    expected_events[:, 0] = np.arange(0, 9, step=3)
+    expected_events[:, 0] = np.arange(0, 9, step=3) + first_samp
     events, events_id = events_from_annotations(raw, chunk_duration=3.)
     assert_array_equal(events, expected_events)
 
@@ -257,11 +263,12 @@ def test_read_brainstorm_annotations():
     assert np.unique(annot.description).size == 5
 
 
-def test_raw_reject():
+@first_samps
+def test_raw_reject(first_samp):
     """Test raw data getter with annotation reject."""
     sfreq = 100.
     info = create_info(['a', 'b', 'c', 'd', 'e'], sfreq, ch_types='eeg')
-    raw = RawArray(np.ones((5, 15000)), info)
+    raw = RawArray(np.ones((5, 15000)), info, first_samp=first_samp)
     with pytest.warns(RuntimeWarning, match='outside the data range'):
         raw.set_annotations(Annotations([2, 100, 105, 148],
                                         [2, 8, 5, 8], 'BAD'))
@@ -307,12 +314,14 @@ def test_raw_reject():
     assert_array_almost_equal(times, _sync_onset(raw, onsets, True))
 
 
-def test_annotation_filtering():
+@first_samps
+def test_annotation_filtering(first_samp):
     """Test that annotations work properly with filtering."""
     # Create data with just a DC component
     data = np.ones((1, 1000))
     info = create_info(1, 1000., 'eeg')
-    raws = [RawArray(data * (ii + 1), info) for ii in range(4)]
+    raws = [RawArray(data * (ii + 1), info, first_samp=first_samp)
+            for ii in range(4)]
     kwargs_pass = dict(l_freq=None, h_freq=50., fir_design='firwin')
     kwargs_stop = dict(l_freq=50., h_freq=None, fir_design='firwin')
     # lowpass filter, which should not modify the data
@@ -380,11 +389,12 @@ def test_annotation_filtering():
     assert_allclose(raw_filt[:][0], expected, atol=1e-14)
 
 
-def test_annotation_omit():
+@first_samps
+def test_annotation_omit(first_samp):
     """Test raw.get_data with annotations."""
     data = np.concatenate([np.ones((1, 1000)), 2 * np.ones((1, 1000))], -1)
     info = create_info(1, 1000., 'eeg')
-    raw = RawArray(data, info)
+    raw = RawArray(data, info, first_samp=first_samp)
     raw.set_annotations(Annotations([0.5], [1], ['bad']))
     expected = raw[0][0]
     assert_allclose(raw.get_data(reject_by_annotation=None), expected)
@@ -538,6 +548,11 @@ def test_events_from_annot_in_raw_objects():
     assert_array_equal(events[:, 0], events3[:, 0])
     assert set(event_id.keys()) == set(event_id3.keys())
 
+    # ensure that these actually got sorted properly
+    expected_event_id = {
+        desc: idx + 1 for idx, desc in enumerate(sorted(event_id.keys()))}
+    assert event_id3 == expected_event_id
+
     first = np.unique(events3[:, 2])
     second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
     assert_array_equal(first, second)
@@ -567,6 +582,20 @@ def test_events_from_annot_in_raw_objects():
     with pytest.raises(ValueError, match='not find any of the events'):
         events_from_annotations(raw, regexp='not_there')
 
+    with pytest.raises(ValueError, match='Invalid input event_id'):
+        events_from_annotations(raw, event_id='wrong')
+
+    # concat does not introduce BAD or EDGE
+    raw_concat = concatenate_raws([raw.copy(), raw.copy()])
+    _, event_id = events_from_annotations(raw_concat)
+    assert isinstance(event_id, dict)
+    assert len(event_id) > 0
+    for kind in ('BAD', 'EDGE'):
+        assert '%s boundary' % kind in raw_concat.annotations.description
+        for key in event_id.keys():
+            assert kind not in key
+
+    # remove all events
     raw.set_annotations(None)
     events7, _ = events_from_annotations(raw)
     assert_array_equal(events7, np.empty((0, 3), dtype=int))
@@ -910,6 +939,23 @@ def test_sorting():
     onset.insert(want_before, 10)
     assert_array_equal(annot.onset, onset)
     assert_array_equal(annot.duration, duration)
+
+
+def test_date_none(tmpdir):
+    """Test that DATE_NONE is used properly."""
+    # Regression test for gh-5908
+    n_chans = 139
+    n_samps = 20
+    data = np.random.random_sample((n_chans, n_samps))
+    ch_names = ['E{}'.format(x) for x in range(n_chans)]
+    ch_types = ['eeg'] * n_chans
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
+    assert info['meas_date'] is None
+    raw = RawArray(data=data, info=info)
+    fname = op.join(str(tmpdir), 'test-raw.fif')
+    raw.save(fname)
+    raw_read = read_raw_fif(fname, preload=True)
+    assert raw_read.info['meas_date'] is None
 
 
 run_tests_if_main()

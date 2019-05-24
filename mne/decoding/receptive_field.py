@@ -220,7 +220,7 @@ class ReceptiveField(BaseEstimator):
                     'Estimator fit_intercept (%s) != initialization '
                     'fit_intercept (%s), initialize ReceptiveField with the '
                     'same fit_intercept value or use fit_intercept=None'
-                    % (estimator.fit_intercept, self.fit_itercept))
+                    % (estimator.fit_intercept, self.fit_intercept))
             self.fit_intercept = estimator.fit_intercept
         else:
             raise ValueError('`estimator` must be a float or an instance'
@@ -376,10 +376,10 @@ class ReceptiveField(BaseEstimator):
                              ' n_features), got %s' % (X.shape,))
         if y is not None:
             if X.shape[0] != y.shape[0]:
-                raise ValueError('X any y do not have the same n_times\n'
+                raise ValueError('X and y do not have the same n_times\n'
                                  '%s != %s' % (X.shape[0], y.shape[0]))
             if X.shape[1] != y.shape[1]:
-                raise ValueError('X any y do not have the same n_epochs\n'
+                raise ValueError('X and y do not have the same n_epochs\n'
                                  '%s != %s' % (X.shape[1], y.shape[1]))
             if predict and y.shape[-1] != len(self.estimator_.coef_):
                 raise ValueError('Number of outputs does not match'
@@ -493,7 +493,7 @@ def _corr_score(y_true, y, multioutput=None):
     assert multioutput == 'raw_values'
     for this_y in (y_true, y):
         if this_y.ndim != 2:
-            raise ValueError('inputs must shape (samples, outputs), got %s'
+            raise ValueError('inputs must be shape (samples, outputs), got %s'
                              % (this_y.shape,))
     return np.array([pearsonr(y_true[:, ii], y[:, ii])[0]
                      for ii in range(y.shape[-1])])

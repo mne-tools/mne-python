@@ -26,20 +26,67 @@ logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 if MNE_3D_BACKEND == 'mayavi':
     from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == 'vtki':
-    from ._vtki import _Renderer, _Projection  # lgtm # noqa: F401
+elif MNE_3D_BACKEND == 'pyvista':
+    from ._pyvista import _Renderer, _Projection  # lgtm # noqa: F401
 
 
 def set_3d_backend(backend_name):
     """Set the backend for MNE.
 
     The backend will be set as specified and operations will use
-    that backend
+    that backend.
 
     Parameters
     ----------
     backend_name : str
-        The 3d backend to select.
+        The 3d backend to select. See Notes for the capabilities of each
+        backend.
+
+    Notes
+    -----
+    This table shows the capabilities of each backend ("✓" for full support,
+    and "-" for partial support):
+
+    .. table::
+       :widths: auto
+
+       +--------------------------------------+--------+---------+
+       | 3D function:                         | mayavi | pyvista |
+       +======================================+========+=========+
+       | :func:`plot_source_estimates`        | ✓      |         |
+       +--------------------------------------+--------+---------+
+       | :func:`plot_alignment`               | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | :func:`plot_sparse_source_estimates` | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | :func:`plot_evoked_field`            | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | :func:`snapshot_brain_montage`       | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | :func:`plot_evoked_field`            | ✓      |         |
+       +--------------------------------------+--------+---------+
+       +--------------------------------------+--------+---------+
+       | **3D feature:**                                         +
+       +--------------------------------------+--------+---------+
+       | Large data                           | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | Opacity/transparency                 | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | Support geometric glyph              | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | Jupyter notebook                     | ✓      | ✓       |
+       +--------------------------------------+--------+---------+
+       | Interactivity in Jupyter notebook    | ✓      |         |
+       +--------------------------------------+--------+---------+
+       | Smooth shading                       | ✓      |         |
+       +--------------------------------------+--------+---------+
+       | Subplotting                          | ✓      |         |
+       +--------------------------------------+--------+---------+
+       | Eye-dome lighting                    |        |         |
+       +--------------------------------------+--------+---------+
+       | Exports to movie/GIF                 |        |         |
+       +--------------------------------------+--------+---------+
+
     """
     _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
     global MNE_3D_BACKEND
@@ -70,8 +117,10 @@ def use_3d_backend(backend_name):
     """
     old_backend = get_3d_backend()
     set_3d_backend(backend_name)
-    yield
-    set_3d_backend(old_backend)
+    try:
+        yield
+    finally:
+        set_3d_backend(old_backend)
 
 
 @contextmanager
@@ -85,6 +134,6 @@ def _use_test_3d_backend(backend_name):
     """
     with use_3d_backend(backend_name):
         global MNE_3D_BACKEND_TEST_DATA
-        if backend_name == 'vtki':
+        if backend_name == 'pyvista':
             MNE_3D_BACKEND_TEST_DATA = True
         yield

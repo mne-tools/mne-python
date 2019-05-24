@@ -678,7 +678,16 @@ def find_events(raw, stim_channel=None, output='onset',
     min_samples = min_duration * raw.info['sfreq']
 
     # pull stim channel from config if necessary
-    stim_channel = _get_stim_channel(stim_channel, raw.info)
+    try:
+        stim_channel = _get_stim_channel(stim_channel, raw.info)
+    except ValueError:
+        if len(raw.annotations) > 0:
+            raise ValueError("No stim channels found, but the raw object has "
+                             "annotations. Consider using "
+                             "mne.events_from_annotations to convert these to "
+                             "events.")
+        else:
+            raise
 
     picks = pick_channels(raw.info['ch_names'], include=stim_channel)
     if len(picks) == 0:

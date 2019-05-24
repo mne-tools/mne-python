@@ -38,8 +38,19 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_id)
 from .io.base import ToDataFrameMixin, TimeMixin, _check_maxshield
 
-_aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
-                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
+_aspect_dict = {
+    'average': FIFF.FIFFV_ASPECT_AVERAGE,
+    'standard_error': FIFF.FIFFV_ASPECT_STD_ERR,
+    'single_epoch': FIFF.FIFFV_ASPECT_SINGLE,
+    'partial_average': FIFF.FIFFV_ASPECT_SUBAVERAGE,
+    'alternating_subaverage': FIFF.FIFFV_ASPECT_ALTAVERAGE,
+    'sample_cut_out_by_graph': FIFF.FIFFV_ASPECT_SAMPLE,
+    'power_density_spectrum': FIFF.FIFFV_ASPECT_POWER_DENSITY,
+    'dipole_amplitude_cuvre': FIFF.FIFFV_ASPECT_DIPOLE_WAVE,
+    'squid_modulation_lower_bound': FIFF.FIFFV_ASPECT_IFII_LOW,
+    'squid_modulation_upper_bound': FIFF.FIFFV_ASPECT_IFII_HIGH,
+    'squid_gate_setting': FIFF.FIFFV_ASPECT_GATE,
+}
 _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 
 
@@ -110,12 +121,21 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.info, self.nave, self._aspect_kind, self.first, self.last, \
             self.comment, self.times, self.data = _read_evoked(
                 fname, condition, kind, allow_maxshield)
-        self.kind = _aspect_rev.get(self._aspect_kind, 'unknown')
         self.verbose = verbose
         self.preload = True
         # project and baseline correct
         if proj:
             self.apply_proj()
+
+    @property
+    def kind(self):
+        """The data kind."""
+        return _aspect_rev[self._aspect_kind]
+
+    @kind.setter
+    def kind(self, kind):
+        _check_option('kind', kind, list(_aspect_dict.keys()))
+        self._aspect_kind = _aspect_dict[kind]
 
     @property
     def data(self):
@@ -175,9 +195,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         write_evokeds(fname, self)
 
     def __repr__(self):  # noqa: D105
-        _kind_swap = dict(average='mean', standard_error='SEM')
-        s = "'%s' (%s, N=%s)" % (self.comment, _kind_swap[self.kind],
-                                 self.nave)
+        s = "'%s' (%s, N=%s)" % (self.comment, self.kind, self.nave)
         s += ", [%0.5g, %0.5g] sec" % (self.times[0], self.times[-1])
         s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
@@ -734,7 +752,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
         fid.close()
         raise ValueError('Dataset names in FIF file '
                          'could not be found.')
-    t = [_aspect_rev.get(a, 'unknown') for a in aspect_kinds]
+    t = [_aspect_rev[a] for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
     t = '\n'.join(t)
     return comments, aspect_kinds, t

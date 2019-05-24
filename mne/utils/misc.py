@@ -48,13 +48,17 @@ def _sort_keys(x):
     return keys
 
 
-class _Counter():
-    count = 1
+class _DefaultEventParser:
+    """Parse none standard events."""
 
-    def __call__(self, *args, **kargs):
-        c = self.count
-        self.count += 1
-        return c
+    def __init__(self):
+        self.event_ids = dict()
+
+    def __call__(self, description, offset=1):
+        if description not in self.event_ids:
+            self.event_ids[description] = offset + len(self.event_ids)
+
+        return self.event_ids[description]
 
 
 class _FormatDict(dict):
@@ -180,9 +184,11 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
             command_name = command[0]
         logger.error('Command not found: %s' % command_name)
         raise
-    yield p
-    getattr(p, after)()
-    p.wait()
+    try:
+        yield p
+    finally:
+        getattr(p, after)()
+        p.wait()
 
 
 def _clean_names(names, remove_whitespace=False, before_dash=True):

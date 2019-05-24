@@ -11,6 +11,7 @@
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 import math
 from functools import partial
 import difflib
@@ -26,6 +27,7 @@ import warnings
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
+from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
@@ -290,11 +292,26 @@ def _toggle_options(event, params):
             params['fig_proj'] = None
 
 
-def _toggle_proj(event, params):
+@contextmanager
+def _events_off(obj):
+    obj.eventson = False
+    try:
+        yield
+    finally:
+        obj.eventson = True
+
+
+def _toggle_proj(event, params, all_=False):
     """Perform operations when proj boxes clicked."""
     # read options if possible
     if 'proj_checks' in params:
-        bools = [x[0].get_visible() for x in params['proj_checks'].lines]
+        bools = _get_status(params['proj_checks'])
+        if all_:
+            new_bools = [not all(bools)] * len(bools)
+            with _events_off(params['proj_checks']):
+                for bi, (old, new) in enumerate(zip(bools, new_bools)):
+                    if old != new:
+                        params['proj_checks'].set_active(bi)
         for bi, (b, p) in enumerate(zip(bools, params['projs'])):
             # see if they tried to deactivate an active one
             if not b and p['active']:
@@ -450,17 +467,19 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
                params.get('proj_bools', [params['apply_proj']] * len(projs)))
 
     width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
-    height = len(projs) / 6.0 + 1.5
+    height = (len(projs) + 1) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
     fig_proj.canvas.set_window_title('SSP projection vectors')
+    offset = (1. / 6. / height)
     params['fig_proj'] = fig_proj  # necessary for proper toggling
-    ax_temp = fig_proj.add_axes((0, 0, 1, 0.8), frameon=False)
+    ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
     ax_temp.set_title('Projectors marked with "X" are active')
 
     proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
     # make edges around checkbox areas
-    [rect.set_edgecolor('0.5') for rect in proj_checks.rectangles]
-    [rect.set_linewidth(1.) for rect in proj_checks.rectangles]
+    for rect in proj_checks.rectangles:
+        rect.set_edgecolor('0.5')
+        rect.set_linewidth(1.)
 
     # change already-applied projectors to red
     for ii, p in enumerate(projs):
@@ -473,6 +492,12 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
     fig_proj.canvas.mpl_connect('key_press_event', _key_press)
+
+    # Toggle all
+    ax_temp = fig_proj.add_axes((0, 0, 1, offset), frameon=False)
+    proj_all = widgets.Button(ax_temp, 'Toggle all')
+    proj_all.on_clicked(partial(_toggle_proj, params=params, all_=True))
+    params['proj_all'] = proj_all
 
     # this should work for non-test cases
     try:
@@ -1222,10 +1247,9 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
         x, y = ax.transData.transform_point(point)
-    elif xform == 'pix':
-        x, y = point
     else:
-        raise ValueError('unknown transform')
+        assert xform == 'pix'
+        x, y = point
     if kind == 'press':
         func = partial(fig.canvas.button_press_event, x=x, y=y, button=button)
     elif kind == 'release':
@@ -1622,21 +1646,13 @@ def _compute_scalings(scalings, inst):
     """
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
+    scalings = _handle_default('scalings_plot_raw', scalings)
     if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
-    if scalings is None:
-        # If scalings is None just return it and do nothing
-        return scalings
 
     ch_types = channel_indices_by_type(inst.info)
     ch_types = {i_type: i_ixs
                 for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
-    if scalings == 'auto':
-        # If we want to auto-compute everything
-        scalings = {i_type: 'auto' for i_type in ch_types.keys()}
-    if not isinstance(scalings, dict):
-        raise ValueError('scalings must be a dictionary of ch_type: val pairs,'
-                         ' not type %s ' % type(scalings))
     scalings = deepcopy(scalings)
 
     if inst.preload is False:
@@ -1661,10 +1677,17 @@ def _compute_scalings(scalings, inst):
         data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
-        if value != 'auto':
-            continue
         if key not in ch_types.keys():
-            raise ValueError("Sensor {} doesn't exist in data".format(key))
+            continue
+        if not (isinstance(value, str) and value == 'auto'):
+            try:
+                scalings[key] = float(value)
+            except Exception:
+                raise ValueError('scalings must be "auto" or float, got '
+                                 'scalings[%r]=%r which could not be '
+                                 'converted to float'
+                                 % (key, value))
+            continue
         this_data = data[ch_types[key]]
         scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
         scale_factor = np.max(np.abs(scale_factor))

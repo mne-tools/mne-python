@@ -287,11 +287,21 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         scale = (maxs - mins).max() / 2.
         xlim, ylim, zlim = (maxs + mins)[:, np.newaxis] / 2. + [-scale, scale]
         ax.set(xlabel='x', ylabel='y', zlabel='z',
-               xlim=xlim, ylim=ylim, zlim=zlim, aspect='equal')
+               xlim=xlim, ylim=ylim, zlim=zlim)
+        _set_aspect_equal(ax)
         ax.view_init(30, 45)
     tight_layout(fig=fig)
     plt_show(show)
     return fig
+
+
+def _set_aspect_equal(ax):
+    # XXX recent MPL throws an error for 3D axis aspect setting, not much
+    # we can do about it at this point
+    try:
+        ax.set_aspect('equal')
+    except NotImplementedError:
+        pass
 
 
 def _pivot_kwargs():
@@ -1386,7 +1396,7 @@ def _smooth_plot(this_time, params):
     colors[:, 3] = 1.
     facecolors[:] = colors
     ax.set_title(params['time_label'] % (times[time_idx] * scaler), color='w')
-    ax.set_aspect('equal')
+    _set_aspect_equal(ax)
     ax.axis('off')
     ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
     ax.figure.canvas.draw()
@@ -2510,8 +2520,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     from .backends.renderer import _Renderer
     from .backends.renderer import get_3d_backend
 
-    if get_3d_backend() == 'vtki':
-        raise RuntimeError('This feature is not available yet with VTKI')
+    if get_3d_backend() == 'pyvista':
+        raise RuntimeError('This feature is not available yet with PyVista')
 
     if fig is None:
         raise ValueError('The figure must have a scene')

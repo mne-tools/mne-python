@@ -11,6 +11,8 @@ as importing raw data from NumPy arrays.
    :local:
    :depth: 2
 
+.. _data-formats:
+
 Cheatsheet
 ##########
 
@@ -43,7 +45,7 @@ Importing data from MEG devices
 ###############################
 
 This section describes the data reading and conversion utilities included
-with MNE. 
+with MNE.
 
 .. note::
     All IO functions in MNE-Python performing reading/conversion of MEG and

@@ -10,14 +10,17 @@ from mne.io import RawArray
 from mne.preprocessing import mark_flat
 
 
-def test_mark_flat():
+@pytest.mark.parametrize('first_samp', (0, 10000))
+def test_mark_flat(first_samp):
     """Test marking flat segments."""
     # Test if ECG analysis will work on data that is not preloaded
     n_ch, n_times = 11, 1000
     data = np.random.RandomState(0).randn(n_ch, n_times)
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
     info = create_info(n_ch, 1000., 'eeg')
-    raw = RawArray(data, info)
+    info['meas_date'] = (1, 2)
+    # test first_samp != for gh-6295
+    raw = RawArray(data, info, first_samp=first_samp)
     raw.info['bads'] = [raw.ch_names[-1]]
 
     #

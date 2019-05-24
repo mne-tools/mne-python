@@ -419,8 +419,8 @@ def test_plot_dipole_mri_orthoview():
 def test_snapshot_brain_montage(backends_3d):
     """Test snapshot brain montage."""
     from mne.viz import get_3d_backend
-    if get_3d_backend() == 'vtki':
-        pytest.skip("This feature is not available yet on VTKI")
+    if get_3d_backend() == 'pyvista':
+        pytest.skip("This feature is not available yet on PyVista")
 
     info = read_info(evoked_fname)
     fig = plot_alignment(

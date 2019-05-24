@@ -97,8 +97,8 @@ def test_make_sphere_model():
     pytest.raises(ValueError, make_sphere_model, 'auto', 'auto', None)
     pytest.raises(ValueError, make_sphere_model, 'auto', 'auto', info,
                   relative_radii=(), sigmas=())
-    pytest.raises(ValueError, make_sphere_model, 'auto', 'auto', info,
-                  relative_radii=(1,))  # wrong number of radii
+    with pytest.raises(ValueError, match='relative_radii.*must match.*sigmas'):
+        make_sphere_model('auto', 'auto', info, relative_radii=(1,))
     # here we just make sure it works -- the functionality is actually
     # tested more extensively e.g. in the forward and dipole code
     with catch_logging() as log:
@@ -116,8 +116,8 @@ def test_make_sphere_model():
     bem = make_sphere_model('auto', None, info)
     assert 'no layers' in repr(bem)
     assert 'Sphere ' in repr(bem)
-    pytest.raises(ValueError, make_sphere_model, sigmas=(0.33,),
-                  relative_radii=(1.0,))
+    with pytest.raises(ValueError, match='at least 2 sigmas.*head_radius'):
+        make_sphere_model(sigmas=(0.33,), relative_radii=(1.0,))
 
 
 @testing.requires_testing_data

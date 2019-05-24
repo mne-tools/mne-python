@@ -13,7 +13,9 @@ import collections
 import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
-                    _check_pandas_installed, _Counter, _mask_to_onsets_offsets)
+                    _check_pandas_installed, _mask_to_onsets_offsets)
+from .utils import _DefaultEventParser
+
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
 from .io.constants import FIFF
@@ -779,12 +781,11 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
     """Get a collection of descriptions and returns index of selected."""
     regexp_comp = re.compile('.*' if regexp is None else regexp)
 
-    if event_id is None:
-        event_id = _Counter()
-
     event_id_ = dict()
     dropped = []
-    for desc in descriptions:
+    # Iterate over the sorted descriptions so that the Counter mapping
+    # is slightly less arbitrary
+    for desc in sorted(descriptions):
         if desc in event_id_:
             continue
 
@@ -812,26 +813,53 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
     return event_sel, event_id_
 
 
+def _check_event_id(event_id, raw):
+    if event_id is None:
+        return _DefaultEventParser()
+    elif event_id == 'auto':
+        return getattr(raw, '_get_auto_event_id', _DefaultEventParser)()
+    elif callable(event_id) or isinstance(event_id, dict):
+        return event_id
+    else:
+        raise ValueError('Invalid input event_id')
+
+
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
-                            chunk_duration=None, verbose=None):
+def events_from_annotations(raw, event_id="auto",
+                            regexp=r'^(?![Bb][Aa][Dd]|[Ee][Dd][Gg][Ee]).*$',
+                            use_rounding=True, chunk_duration=None,
+                            verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | callable | None
-        Dictionary of string keys and integer values as used in mne.Epochs
-        to map annotation descriptions to integer event codes. Only the
-        keys present will be mapped and the annotations with other descriptions
-        will be ignored. Otherwise, a callable that provides an integer given
-        a string or that returns None for an event to ignore.
-        If None, all descriptions of annotations are mapped
-        and assigned arbitrary unique integer values.
+    event_id : dict | callable | None | 'auto'
+        Can be:
+
+        - **dict**: map descriptions (keys) to integer event codes (values).
+          Only the descriptions present will be mapped, others will be ignored.
+        - **callable**: must take a string input and returns an integer event
+          code or None to ignore it.
+        - **None**: Map descriptions to unique integer values based on their
+          ``sorted`` order.
+        - **'auto' (default)**: prefer a raw-format-specific parser:
+
+          - Brainvision: map stimulus events to their integer part; response
+            events to integer part + 1000; optic events to integer part + 2000;
+            'SyncStatus/Sync On' to 99998; 'New Segment/' to 99999;
+            all others like ``None`` with an offset of 10000.
+          - Other raw formats: Behaves like None.
+
+          .. versionadded:: 0.18
     regexp : str | None
         Regular expression used to filter the annotations whose
-        descriptions is a match.
+        descriptions is a match. The default ignores descriptions beginning
+        ``'bad'`` or ``'edge'`` (case-insensitive).
+
+        .. versionchanged:: 0.18
+           Default ignores bad and edge descriptions.
     use_rounding : boolean
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
@@ -852,9 +880,12 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         The event_id variable that can be passed to Epochs.
     """
     if len(raw.annotations) == 0:
+        event_id = dict() if not isinstance(event_id, dict) else event_id
         return np.empty((0, 3), dtype=int), event_id
 
     annotations = raw.annotations
+
+    event_id = _check_event_id(event_id, raw)
 
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp)

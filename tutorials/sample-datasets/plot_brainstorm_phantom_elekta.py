@@ -52,27 +52,18 @@ raw = read_raw_fif(raw_fname)
 
 events = find_events(raw, 'STI201')
 raw.plot(events=events)
-raw.info['bads'] = ['MEG2421']
+raw.info['bads'] = ['MEG1933', 'MEG2421']
 
 ###############################################################################
 # The data have strong line frequency (60 Hz and harmonics) and cHPI coil
 # noise (five peaks around 300 Hz). Here we plot only out to 60 seconds
 # to save memory:
 
-raw.plot_psd(tmax=60., average=False)
+raw.plot_psd(tmax=30., average=False)
 
 ###############################################################################
-# Let's use Maxwell filtering to clean the data a bit.
-# Ideally we would have the fine calibration and cross-talk information
-# for the site of interest, but we don't, so we just do:
+# Our phantom produces sinusoidal bursts at 20 Hz:
 
-raw.fix_mag_coil_types()
-raw = mne.preprocessing.maxwell_filter(raw, origin=(0., 0., 0.))
-
-###############################################################################
-# We know our phantom produces sinusoidal bursts below 25 Hz, so let's filter.
-
-raw.filter(None, 40., fir_design='firwin')
 raw.plot(events=events)
 
 ###############################################################################
@@ -81,9 +72,10 @@ raw.plot(events=events)
 # we can also decimate our data to save memory.
 
 tmin, tmax = -0.1, 0.1
+bmax = -0.05  # Avoid capture filter ringing into baseline
 event_id = list(range(1, 33))
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01),
-                    decim=3, preload=True)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, bmax),
+                    preload=False)
 epochs['1'].average().plot(time_unit='s')
 
 ###############################################################################
@@ -94,7 +86,7 @@ epochs['1'].average().plot(time_unit='s')
 # is properly modeled by a single-shell sphere with origin (0., 0., 0.).
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
 
-mne.viz.plot_alignment(raw.info, subject='sample', show_axes=True,
+mne.viz.plot_alignment(epochs.info, subject='sample', show_axes=True,
                        bem=sphere, dig=True, surfaces='inner_skull')
 
 ###############################################################################
@@ -104,17 +96,17 @@ mne.viz.plot_alignment(raw.info, subject='sample', show_axes=True,
 
 # here we can get away with using method='oas' for speed (faster than "shrunk")
 # but in general "shrunk" is usually better
-cov = mne.compute_covariance(
-    epochs, tmax=0, method='oas', rank=None)
+cov = mne.compute_covariance(epochs, tmax=bmax)
 mne.viz.plot_evoked_white(epochs['1'].average(), cov)
 
 data = []
 t_peak = 0.036  # true for Elekta phantom
 for ii in event_id:
-    evoked = epochs[str(ii)].average().crop(t_peak, t_peak)
+    # Avoid the first and last trials -- can contain dipole-switching artifacts
+    evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
-del epochs, raw
+del epochs
 dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
 
 ###############################################################################
@@ -163,7 +155,9 @@ plt.show()
 ###############################################################################
 # Let's plot the positions and the orientations of the actual and the estimated
 # dipoles
+
 def plot_pos_ori(pos, ori, color=(0., 0., 0.), opacity=1.):
+    """Plot dipole positions and orientations in 3D."""
     x, y, z = pos.T
     u, v, w = ori.T
     mlab.points3d(x, y, z, scale_factor=0.005, opacity=opacity, color=color)

@@ -1,8 +1,5 @@
 .. title:: MNE
 
-.. include:: links.inc
-
-
 .. container:: row limitedwidth table-like
 
     .. title image and description

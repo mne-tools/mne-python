@@ -266,11 +266,12 @@ FIFF.FIFF_REF_PATH           = 1101
 FIFF.FIFFV_ASPECT_AVERAGE       = 100  # Normal average of epochs
 FIFF.FIFFV_ASPECT_STD_ERR       = 101  # Std. error of mean
 FIFF.FIFFV_ASPECT_SINGLE        = 102  # Single epoch cut out from the continuous data
-FIFF.FIFFV_ASPECT_SUBAVERAGE    = 103
+FIFF.FIFFV_ASPECT_SUBAVERAGE    = 103  # Partial average (subaverage)
 FIFF.FIFFV_ASPECT_ALTAVERAGE    = 104  # Alternating subaverage
 FIFF.FIFFV_ASPECT_SAMPLE        = 105  # A sample cut out by graph
 FIFF.FIFFV_ASPECT_POWER_DENSITY = 106  # Power density spectrum
 FIFF.FIFFV_ASPECT_DIPOLE_WAVE   = 200  # Dipole amplitude curve
+
 #
 # BEM surface IDs
 #

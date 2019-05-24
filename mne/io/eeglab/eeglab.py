@@ -8,8 +8,7 @@ import os.path as op
 
 import numpy as np
 
-from ..utils import (_read_segments_file, _find_channels,
-                     _deprecate_stim_channel)
+from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
@@ -136,7 +135,7 @@ def _get_info(eeg, montage, eog=()):
 
 @fill_doc
 def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
-                    uint16_codec=None, stim_channel=False, verbose=None):
+                    uint16_codec=None, verbose=None):
     r"""Read an EEGLAB .set file.
 
     Parameters
@@ -166,11 +165,6 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
     %(verbose)s
 
     Returns
@@ -187,8 +181,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
-                     eog=eog, verbose=verbose, uint16_codec=uint16_codec,
-                     stim_channel=stim_channel)
+                     eog=eog, verbose=verbose, uint16_codec=uint16_codec)
 
 
 @fill_doc
@@ -283,11 +276,6 @@ class RawEEGLAB(BaseRaw):
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
     %(verbose)s
 
     Notes
@@ -301,9 +289,7 @@ class RawEEGLAB(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=(), preload=False,
-                 uint16_codec=None, stim_channel=False,
-                 verbose=None):  # noqa: D102
-        _deprecate_stim_channel(stim_channel)
+                 uint16_codec=None, verbose=None):  # noqa: D102
         basedir = op.dirname(input_fname)
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:

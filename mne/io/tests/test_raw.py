@@ -39,7 +39,7 @@ def test_orig_units():
         BaseRaw(info, last_samps=[1], orig_units=True)
 
 
-def _test_raw_reader(reader, test_preloading=True, **kwargs):
+def _test_raw_reader(reader, test_preloading=True, test_kwargs=True, **kwargs):
     """Test reading, writing and slicing of raw classes.
 
     Parameters
@@ -92,9 +92,10 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     assert _handle_meas_date(raw.info['meas_date']) >= 0
 
     # test resetting raw
-    raw2 = reader(**raw._init_kwargs)
-    assert set(raw.info.keys()) == set(raw2.info.keys())
-    assert_array_equal(raw.times, raw2.times)
+    if test_kwargs:
+        raw2 = reader(**raw._init_kwargs)
+        assert set(raw.info.keys()) == set(raw2.info.keys())
+        assert_array_equal(raw.times, raw2.times)
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')

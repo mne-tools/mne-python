@@ -154,7 +154,11 @@ dt:target code {
     color: inherit !important;
     background-color: inherit !important;
 }
-
+div.sidebar {
+    background-color: rgb(221, 236, 236) !important;
+    border: 1px solid rgb(164, 195, 195) !important;
+    border-radius: 4px;
+}
 .label {  /* Necessary for multiple refs, from bootstrap.min.css:7 */
     color: #2c3e50;
 }
@@ -291,6 +295,12 @@ h4.list-group-item-heading {
   .collapse.in{
       display:block !important;
   }
+}
+details.example_details summary {
+    font-weight: bold;
+}
+.panel {
+    margin-bottom: 3px;
 }
 
 .skinnytable {
