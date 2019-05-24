@@ -368,3 +368,5 @@ def _color2rgba(color, opacity):
 def _check_array(n):
     if np.isscalar(n):
         return np.array([n])
+    else:
+        return n
