@@ -187,6 +187,7 @@ class _Renderer(_BaseRenderer):
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
         color = np.append(color, opacity)
+        x, y, z = [_check_array(n) for n in [x, y, z]]
         scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color)
         _add_transperent_material(scatter)
 
@@ -362,3 +363,8 @@ def _color2rgba(color, opacity):
         np.append(color, opacity)
 
     return color
+
+
+def _check_array(n):
+    if np.isscalar(n):
+        return np.array([n])
