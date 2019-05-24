@@ -10,8 +10,11 @@ import re
 import numpy as np
 import mne
 
+from ..utils import _read_segments_file, _find_channels, _create_chs
+from ..base import BaseRaw, _check_update_montage
 
-def _read_curry(full_fname):
+
+def _read_curry_events(fname_base, curry_vers):
     """
     Read curry files and convert the data for mne.
     Inspired by Matt Pontifex' EEGlab loadcurry() extension.
@@ -20,10 +23,79 @@ def _read_curry(full_fname):
     :return:
     """
 
-    fname_base, curry_vers = _check_curry_file(full_fname)
+    #####################################
+    # read events from cef/ceo files
+
+    curry_events = []
+
+    if (curry_vers == 7):
+        if os.path.isfile(fname_base + '.cef'):
+            file_extension = '.cef'
+        elif os.path.isfile(fname_base + '.ceo'):
+            file_extension = '.ceo'
+        else:
+            curry_events = None
+    else:
+        if os.path.isfile(fname_base + '.cdt.cef'):
+            file_extension = '.cdt.cef'
+        elif os.path.isfile(fname_base + '.cdt.ceo'):
+            file_extension = '.cdt.ceo'
+        else:
+            curry_events = None
+
+    if curry_events != None:
+
+        save_events = False
+        with open(fname_base + file_extension) as f:
+            for line in f:
+
+                if "NUMBER_LIST END_LIST" in line:
+                    save_events = False
+
+                if save_events:
+                    # print(line)
+                    curry_events.append(line.split("\t"))
+
+                if "NUMBER_LIST START_LIST" in line:
+                    save_events = True
+
+        curry_events = np.array(curry_events, dtype=int)
+
+    # TODO: This returns events in a curry specific format. This might be reformatted to fit mne
+    return curry_events
 
 
+def _check_curry_file(full_fname):
+    """
+    Check if all neccessary files exist and return the path without extension
+     and its CURRY version
+     """
 
+    # we don't use os.path.splitext to also handle extensions like .cdt.dpa
+    fname_base, ext = full_fname.split(".", maxsplit=1)
+
+    if 'cdt' in ext:
+        curry_vers = 8
+        for check_ext in [".cdt", ".cdt.dpa"]:
+            if not os.path.isfile(fname_base + check_ext):
+                raise FileNotFoundError("The following required file cannot be"
+                                        " found: %s. Please make sure it is "
+                                        "located in the same directory as %s."
+                                        % (fname_base + check_ext, full_fname))
+
+    else:
+        curry_vers = 7
+        for check_ext in [".dap", ".dat", ".rs3"]:
+            if not os.path.isfile(fname_base + check_ext):
+                raise FileNotFoundError("The following required file cannot be"
+                                        " found: %s. Please make sure it is "
+                                        "located in the same directory as %s."
+                                        % (fname_base + check_ext, full_fname))
+
+    return fname_base, curry_vers
+
+
+def _read_curry_info(fname_base, curry_vers):
     #####################################
     # read parameters from the param file
 
@@ -49,21 +121,21 @@ def _read_curry(full_fname):
 
     if "NumSamples" in param_dict:
         n_samples = int(param_dict["NumSamples"])
-        n_ch = int(param_dict["NumChannels"])
+        # n_ch = int(param_dict["NumChannels"])
         n_trials = int(param_dict["NumTrials"])
         sfreq = float(param_dict["SampleFreqHz"])
         offset = float(param_dict["TriggerOffsetUsec"]) / 1e6  # convert to s
         time_step = float(param_dict["SampleTimeUsec"]) / 1e6
-        data_format = param_dict["DataFormat"]
+        # data_format = param_dict["DataFormat"]
 
     else:
         n_samples = int(param_dict["NUM_SAMPLES"])
-        n_ch = int(param_dict["NUM_CHANNELS"])
+        # n_ch = int(param_dict["NUM_CHANNELS"])
         n_trials = int(param_dict["NUM_TRIALS"])
         sfreq = float(param_dict["SAMPLE_FREQ_HZ"])
         offset = float(param_dict["TRIGGER_OFFSET_USEC"]) / 1e6
         time_step = float(param_dict["SAMPLE_TIME_USEC"]) / 1e6
-        data_format = param_dict["DATA_FORMAT"]
+        # data_format = param_dict["DATA_FORMAT"]
 
     if (sfreq == 0) and (time_step != 0):
         sfreq = 1 / time_step
@@ -108,98 +180,13 @@ def _read_curry(full_fname):
     ch_pos = np.array(ch_pos, dtype=float)
     # TODO find a good method to set montage (do it in read_montage instead?)
 
-    #####################################
-    # read events from cef/ceo files
-
-    pass_events = True  # maybe make a function argument of this?
-
-    if (curry_vers == 7):
-        if os.path.isfile(fname_base + '.cef'):
-            file_extension = '.cef'
-        elif os.path.isfile(fname_base + '.ceo'):
-            file_extension = '.ceo'
-        else:
-            pass_events = False
-    else:
-        if os.path.isfile(fname_base + '.cdt.cef'):
-            file_extension = '.cdt.cef'
-        elif os.path.isfile(fname_base + '.cdt.ceo'):
-            file_extension = '.cdt.ceo'
-        else:
-            pass_events = False
-
-    if pass_events:
-
-        curry_events = []
-
-        save_events = False
-        with open(fname_base + file_extension) as f:
-            for line in f:
-
-                if "NUMBER_LIST END_LIST" in line:
-                    save_events = False
-
-                if save_events:
-                    # print(line)
-                    curry_events.append(line.split("\t"))
-
-                if "NUMBER_LIST START_LIST" in line:
-                    save_events = True
-
-    curry_events = np.array(curry_events, dtype=int)
-
-
-
-    #####################################
-    # read data from dat/cdt files
-
-    if (curry_vers == 7):
-        file_extension = '.dat'
-    else:
-        file_extension = '.cdt'
-
-    if data_format == "ASCII":
-        with open(fname_base + file_extension) as f:
-            data = np.loadtxt(f).T / 1e6
-
-    else:
-        with open(fname_base + file_extension) as f:
-            data = np.fromfile(f, dtype='float32') / 1e6
-            data = np.reshape(data, [n_ch, n_samples * n_trials], order="F")
-
     info = mne.create_info(ch_names, sfreq)
 
-    return data, info, n_trials, offset
+    # TODO; There's still a lot more information that can be brought into info["chs"]. However i'm not sure what to do with MEG chans here
+    for ch_dict in info["chs"]:
+        ch_dict["cal"] = 1e-6
 
-
-def _check_curry_file(full_fname):
-    """
-    Check if all neccessary files exist and return the path without extension
-     and its CURRY version
-     """
-
-    # we don't use os.path.splitext to also handle extensions like .cdt.dpa
-    fname_base, ext = full_fname.split(".", maxsplit=1)
-
-    if 'cdt' in ext:
-        curry_vers = 8
-        for check_ext in [".cdt", ".cdt.dpa"]:
-            if not os.path.isfile(fname_base + check_ext):
-                raise FileNotFoundError("The following required file cannot be"
-                                        " found: %s. Please make sure it is "
-                                        "located in the same directory as %s."
-                                        % (fname_base + check_ext, full_fname))
-
-    else:
-        curry_vers = 7
-        for check_ext in [".dap", ".dat", ".rs3"]:
-            if not os.path.isfile(fname_base + check_ext):
-                raise FileNotFoundError("The following required file cannot be"
-                                        " found: %s. Please make sure it is "
-                                        "located in the same directory as %s."
-                                        % (fname_base + check_ext, full_fname))
-
-    return fname_base, curry_vers
+    return info, n_trials, n_samples, offset, curry_vers
 
 
 def read_raw_curry(input_fname):
@@ -219,7 +206,38 @@ def read_raw_curry(input_fname):
 
     """
 
-    data, info, n_trials, offset = _read_curry(input_fname)
+    fname_base, curry_vers = _check_curry_file(input_fname)
 
-    # TODO: create a RawCurry class instead of RawArray?
-    return mne.io.RawArray(data, info, first_samp=offset)
+    info, n_trials, n_samples, offset, curry_vers = _read_curry_info(fname_base, curry_vers)
+
+    events = _read_curry_events(fname_base, curry_vers)
+
+    info["events"] = events
+
+    if (curry_vers == 7):
+        file_extension = ".dat"
+    else:  # curry_vers == 8
+        file_extension = ".cdt"
+
+    raw = RawCurry(fname_base + file_extension, info, n_samples)
+
+    return raw
+
+
+class RawCurry(BaseRaw):
+    """"""
+
+    def __init__(self, data_fname, info, n_samples, montage=None, eog=(), ecg=(),
+                 emg=(), misc=(), preload=False, verbose=None):  # noqa: D102
+
+        data_fname = os.path.abspath(data_fname)
+
+        last_samps = [n_samples - 1]
+
+        super(RawCurry, self).__init__(
+            info, preload, filenames=[data_fname], last_samps=last_samps, orig_format='int',
+            verbose=verbose)
+
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a chunk of raw data."""
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="float32")
