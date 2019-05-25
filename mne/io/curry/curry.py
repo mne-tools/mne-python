@@ -99,7 +99,7 @@ def _read_curry_info(fname_base, curry_vers):
     #####################################
     # read parameters from the param file
 
-    if (curry_vers == 7):
+    if curry_vers == 7:
         file_extension = '.dap'
     else:
         file_extension = '.cdt.dpa'
