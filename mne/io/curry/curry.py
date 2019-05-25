@@ -153,7 +153,7 @@ def _read_curry_info(fname_base, curry_vers):
 
     save_labels = False
     save_ch_pos = False
-    with open(fname_base + file_extension) as f:
+    with open(fname_base + file_extension) as fid:
         for line in f:
 
             if re.match("LABELS.*? END_LIST", line):
