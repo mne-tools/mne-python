@@ -10,8 +10,9 @@ import re
 import numpy as np
 import mne
 
-from ..utils import _read_segments_file, _find_channels, _create_chs
 from ..base import BaseRaw, _check_update_montage
+from ..meas_info import create_info
+from ..utils import _read_segments_file, _find_channels, _create_chs
 
 
 def _read_curry_events(fname_base, curry_vers):
@@ -180,7 +181,7 @@ def _read_curry_info(fname_base, curry_vers):
     ch_pos = np.array(ch_pos, dtype=float)
     # TODO find a good method to set montage (do it in read_montage instead?)
 
-    info = mne.create_info(ch_names, sfreq)
+    info = create_info(ch_names, sfreq)
 
     # TODO; There's still a lot more information that can be brought into info["chs"]. However i'm not sure what to do with MEG chans here
     for ch_dict in info["chs"]:
@@ -191,7 +192,7 @@ def _read_curry_info(fname_base, curry_vers):
 
 def read_raw_curry(input_fname):
     """
-    Create a mne.io.RawArray from curry files.
+    Read raw data from Curry files.
 
     Parameters
     ----------
@@ -201,7 +202,7 @@ def read_raw_curry(input_fname):
 
     Returns
     -------
-    raw : instance of mne.io.RawArray
+    raw : instance of RawCurry
         A Raw object containing CURRY data.
 
     """
