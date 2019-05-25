@@ -43,7 +43,7 @@ def _read_curry_events(fname_base, curry_vers):
         else:
             curry_events = None
 
-    if curry_events != None:
+    if curry_events is not None:
 
         save_events = False
         with open(fname_base + file_extension) as f:
