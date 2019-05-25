@@ -43,7 +43,7 @@ def _read_curry_events(fname_base, curry_vers):
         else:
             curry_events = None
 
-    if curry_events != None:
+    if curry_events is not None:
 
         save_events = False
         with open(fname_base + file_extension) as f:
@@ -99,7 +99,7 @@ def _read_curry_info(fname_base, curry_vers):
     #####################################
     # read parameters from the param file
 
-    if (curry_vers == 7):
+    if curry_vers == 7:
         file_extension = '.dap'
     else:
         file_extension = '.cdt.dpa'
@@ -110,7 +110,7 @@ def _read_curry_info(fname_base, curry_vers):
                  'TRIGGER_OFFSET_USEC', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
 
     param_dict = dict()
-    with open(fname_base + file_extension) as f:
+    with open(fname_base + file_extension) as fid:
         for line in f:
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
@@ -138,12 +138,12 @@ def _read_curry_info(fname_base, curry_vers):
         # data_format = param_dict["DATA_FORMAT"]
 
     if (sfreq == 0) and (time_step != 0):
-        sfreq = 1 / time_step
+        sfreq = 1. / time_step
 
     #####################################
     # read labels from label files
 
-    if (curry_vers == 7):
+    if curry_vers == 7:
         file_extension = '.rs3'
     else:
         file_extension = '.cdt.dpa'
@@ -153,7 +153,7 @@ def _read_curry_info(fname_base, curry_vers):
 
     save_labels = False
     save_ch_pos = False
-    with open(fname_base + file_extension) as f:
+    with open(fname_base + file_extension) as fid:
         for line in f:
 
             if re.match("LABELS.*? END_LIST", line):
