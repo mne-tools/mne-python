@@ -110,7 +110,7 @@ def _read_curry_info(fname_base, curry_vers):
                  'TRIGGER_OFFSET_USEC', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
 
     param_dict = dict()
-    with open(fname_base + file_extension) as f:
+    with open(fname_base + file_extension) as fid:
         for line in f:
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
