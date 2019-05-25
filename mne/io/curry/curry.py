@@ -28,7 +28,7 @@ def _read_curry_events(fname_base, curry_vers):
 
     curry_events = []
 
-    if (curry_vers == 7):
+    if curry_vers == 7:
         if os.path.isfile(fname_base + '.cef'):
             file_extension = '.cef'
         elif os.path.isfile(fname_base + '.ceo'):
@@ -46,8 +46,8 @@ def _read_curry_events(fname_base, curry_vers):
     if curry_events is not None:
 
         save_events = False
-        with open(fname_base + file_extension) as f:
-            for line in f:
+        with open(fname_base + file_extension) as fid:
+            for line in fid:
 
                 if "NUMBER_LIST END_LIST" in line:
                     save_events = False
@@ -111,7 +111,7 @@ def _read_curry_info(fname_base, curry_vers):
 
     param_dict = dict()
     with open(fname_base + file_extension) as fid:
-        for line in f:
+        for line in fid:
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
                 param_dict[key] = val
@@ -154,7 +154,7 @@ def _read_curry_info(fname_base, curry_vers):
     save_labels = False
     save_ch_pos = False
     with open(fname_base + file_extension) as fid:
-        for line in f:
+        for line in fid:
 
             if re.match("LABELS.*? END_LIST", line):
                 save_labels = False
@@ -214,7 +214,7 @@ def read_raw_curry(input_fname):
 
     info["events"] = events
 
-    if (curry_vers == 7):
+    if curry_vers == 7:
         file_extension = ".dat"
     else:  # curry_vers == 8
         file_extension = ".cdt"
