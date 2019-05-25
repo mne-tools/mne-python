@@ -64,7 +64,7 @@ event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 
 
 # Take only a few events for speed
-events = events[:100]
+events = events[:80]
 
 ###############################################################################
 # In order to simulate source time courses, labels of desired active regions
@@ -83,17 +83,17 @@ events = events[:100]
 
 activations = {
     'auditory/left':
-        [('G_temp_sup-G_T_transv-lh', 100),          # label, activation (nAm)
-         ('G_temp_sup-G_T_transv-rh', 200)],
+        [('G_temp_sup-G_T_transv-lh', 30),          # label, activation (nAm)
+         ('G_temp_sup-G_T_transv-rh', 60)],
     'auditory/right':
-        [('G_temp_sup-G_T_transv-lh', 200),
-         ('G_temp_sup-G_T_transv-rh', 100)],
+        [('G_temp_sup-G_T_transv-lh', 60),
+         ('G_temp_sup-G_T_transv-rh', 30)],
     'visual/left':
-        [('S_calcarine-lh', 100),
-         ('S_calcarine-rh', 200)],
+        [('S_calcarine-lh', 30),
+         ('S_calcarine-rh', 60)],
     'visual/right':
-        [('S_calcarine-lh', 200),
-         ('S_calcarine-rh', 100)],
+        [('S_calcarine-lh', 60),
+         ('S_calcarine-rh', 30)],
 }
 
 annot = 'aparc.a2009s'
