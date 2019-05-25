@@ -138,7 +138,7 @@ def _read_curry_info(fname_base, curry_vers):
         # data_format = param_dict["DATA_FORMAT"]
 
     if (sfreq == 0) and (time_step != 0):
-        sfreq = 1 / time_step
+        sfreq = 1. / time_step
 
     #####################################
     # read labels from label files
