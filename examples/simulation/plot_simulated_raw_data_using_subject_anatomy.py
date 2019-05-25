@@ -62,6 +62,10 @@ noise_cov = mne.read_cov(fname_cov)
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
 
+
+# Take only a few events for speed
+events = events[:100]
+
 ###############################################################################
 # In order to simulate source time courses, labels of desired active regions
 # need to be specified for each of the 4 simulation conditions.
@@ -114,10 +118,10 @@ def data_fun(times, latency, duration):
     parametrized by latency and duration."""
     f = 15  # oscillating frequency, beta band [Hz]
     sigma = 0.375 * duration
-    sin = np.sin(2 * np.pi * f * (times - latency))
+    sinusoid = np.sin(2 * np.pi * f * (times - latency))
     gf = np.exp(- (times - latency - (sigma / 4.) * rng.rand(1)) ** 2 /
                 (2 * (sigma ** 2)))
-    return 1e-9 * sin * gf
+    return 1e-9 * sinusoid * gf
 
 
 ###############################################################################
@@ -139,7 +143,7 @@ def data_fun(times, latency, duration):
 # event, the second is not used. The third one is the event id, which is
 # different for each of the 4 areas.
 
-times = np.arange(300, dtype=np.float) / info['sfreq'] - 0.1
+times = np.arange(150, dtype=np.float) / info['sfreq']
 duration = 0.03
 rng = np.random.RandomState(7)
 source_simulator = mne.simulation.SourceSimulator(src, tstep=tstep)
@@ -162,6 +166,7 @@ for region_id, region_name in enumerate(region_names, 1):
         source_simulator.add_data(label_tmp,
                                   amplitude_tmp * wf_tmp,
                                   events_tmp)
+
 # To obtain a SourceEstimate object, we need to use `get_stc()` method of
 # SourceSimulator class.
 stc_data = source_simulator.get_stc()
@@ -183,7 +188,7 @@ stc_data = source_simulator.get_stc()
 
 raw_sim = mne.simulation.simulate_raw(info, source_simulator, forward=fwd,
                                       cov=None)
-raw_sim.set_eeg_reference(projection=True).crop(0, 60)  # for speed
+raw_sim.set_eeg_reference(projection=True)
 
 mne.simulation.add_noise(raw_sim, cov=noise_cov, random_state=0)
 mne.simulation.add_eog(raw_sim, random_state=0)
@@ -191,6 +196,20 @@ mne.simulation.add_ecg(raw_sim, random_state=0)
 
 # Plot original and simulated raw data.
 raw_sim.plot(title='Simulated raw data')
+
+###############################################################################
+# Extract epochs and compute evoked responsses
+# --------------------------------------------
+#
+
+epochs = mne.Epochs(raw_sim, events, event_id, tmin=-0.2, tmax=0.3,
+                    baseline=(None, 0))
+evoked_aud_left = epochs['auditory/left'].average()
+evoked_vis_right = epochs['visual/right'].average()
+
+# Visualize the evoked data
+evoked_aud_left.plot(spatial_colors=True)
+evoked_vis_right.plot(spatial_colors=True)
 
 ###############################################################################
 # Reconstruct simulated source time courses using dSPM inverse operator
@@ -201,16 +220,16 @@ raw_sim.plot(title='Simulated raw data')
 # visual representation of source reconstruction.
 # As expected, when high activations appear in primary auditory areas, primary
 # visual areas will have low activations and vice versa.
+
 method, lambda2 = 'dSPM', 1. / 9.
-epochs = mne.Epochs(raw_sim, events, event_id)
 inv = mne.minimum_norm.make_inverse_operator(epochs.info, fwd, noise_cov)
 stc_aud = mne.minimum_norm.apply_inverse(
-    epochs['auditory/left'].average(), inv, lambda2, method)
+    evoked_aud_left, inv, lambda2, method)
 stc_vis = mne.minimum_norm.apply_inverse(
-    epochs['visual/right'].average(), inv, lambda2, method)
+    evoked_vis_right, inv, lambda2, method)
 stc_diff = stc_aud - stc_vis
 
-brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.2,
+brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1,
                       hemi='split', views=['lat', 'med'])
 
 ###############################################################################
