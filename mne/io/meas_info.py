@@ -316,7 +316,7 @@ class Info(dict):
 
     * ``dig`` list:
 
-        See :class:`~mne.DigPoint`.
+        See :class:`~mne.digitization.DigPoint`.
 
     * ``events`` list of dict:
 
