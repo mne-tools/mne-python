@@ -90,7 +90,7 @@ def write_dig(fname, pts, coord_frame=None):
 
 
 def _read_dig_points(fname, comments='%', unit='auto'):
-    """Read digitizer data from a text file.
+    """Read digitizer data from a file.
 
     If fname ends in .hsp or .esp, the function assumes digitizer files in [m],
     otherwise it assumes space-delimited text files in [mm].
@@ -204,7 +204,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
 
     Returns
     -------
-    dig : Digitization
+    dig : list of dicts
         A container of DigPoints to be added to the info['dig'].
     """
     dig = []
@@ -299,14 +299,14 @@ def _set_dig_kit(mrk, elp, hsp):
 
     Parameters
     ----------
-    mrk : None | str | array_like, shape = (5, 3)
+    mrk : None | str | array_like, shape (5, 3)
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
-    elp : None | str | array_like, shape = (8, 3)
+    elp : None | str | array_like, shape (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
         file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
+    hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
@@ -346,8 +346,6 @@ def _set_dig_kit(mrk, elp, hsp):
     if isinstance(mrk, str):
         mrk = read_mrk(mrk)
 
-    # hsp = apply_trans(als_ras_trans, hsp)
-    # elp = apply_trans(als_ras_trans, elp)
     mrk = apply_trans(als_ras_trans, mrk)
 
     nasion, lpa, rpa = elp[:3]
