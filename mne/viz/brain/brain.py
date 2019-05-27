@@ -2,6 +2,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Oleh Kozynets <ok7mailbox@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
+#          jona-sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: Simplified BSD
 
@@ -78,6 +79,7 @@ class Brain(object):
     overlays : dict
         The overlays.
     """
+
     def __init__(self, subject_id, hemi, surf, title=None,
                  alpha=1.0, size=800, background=(0, 0, 0),
                  foreground=None, figure=None, subjects_dir=None,

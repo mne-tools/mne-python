@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# Author: Eric Larson <larson.eric.d@gmail.com>
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: BSD (3-clause)
 
