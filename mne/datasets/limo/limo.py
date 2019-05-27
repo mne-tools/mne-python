@@ -174,7 +174,7 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     # tmin and tmax
     tmin = data_info['start'][0][0]
     # create events matrix
-    sample = list(range(len(design)))
+    sample = np.arange(len(design))
     prev_id = np.zeros(len(design))
     ev_id = design[:, 1]
     events = np.array([sample, prev_id, ev_id]).astype(int).T
@@ -215,10 +215,10 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     info = create_info(ch_names, sfreq, types, montage)
     # get faces and noise variables from design matrix
     event_list = list(events[:, 2])
-    faces = ['A' if event == 0 else 'B' for event in event_list]
+    faces = ['B' if event else 'A' for event in event_list]
     noise = list(design[:, 2])
     # create epochs metadata
-    metadata = {'Face': faces, 'Noise': noise}
+    metadata = {'face': faces, 'phase-coherence': noise}
     metadata = pd.DataFrame(metadata)
 
     # -- 6) Create custom epochs array
