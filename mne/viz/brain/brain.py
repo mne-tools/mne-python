@@ -121,6 +121,8 @@ class Brain(object):
 
         if isinstance(size, int):
             fig_size = (size, size)
+        elif isinstance(size, tuple):
+            fig_size = size
 
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
         self._renderers = [[] for _ in views]

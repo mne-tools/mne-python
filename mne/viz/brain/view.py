@@ -6,10 +6,10 @@
 #
 # License: Simplified BSD
 
-from collections import namedtuple
-import sys
-
 import numpy as np
+import sys
+import warnings
+from collections import namedtuple
 
 
 View = namedtuple('View', 'elev azim')
@@ -50,10 +50,12 @@ class TimeViewer(object):
         time = brain.data['time']
         time_idx = brain.data['time_idx']
         overlays = tuple(brain.overlays.values())
-        control = ipv.animation_control(overlays,
-                                        len(time),
-                                        add=False,
-                                        interval=500)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            control = ipv.animation_control(overlays,
+                                            len(time),
+                                            add=False,
+                                            interval=500)
         slider = control.children[1]
         slider.readout = False
         slider.value = time_idx
@@ -103,7 +105,7 @@ class TimeViewer(object):
         if isinstance(time_label, str):
             label = time_label % time
         elif callable(time_label):
-            label = time_label
+            label = time_label()
 
         return label
 
