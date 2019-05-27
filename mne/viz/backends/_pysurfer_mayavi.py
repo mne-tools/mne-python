@@ -78,12 +78,27 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
+        scalars = None
+        vertex_color = None
+        n_colors = len(color)
+        if isinstance(color, np.ndarray) and color.ndim > 1:
+            if color.shape[1] == 3:
+                vertex_color = np.c_[color, np.ones(n_colors)] * 255.0
+            else:
+                vertex_color = color * 255.0
+            # create a lookup table to enable one color per vertex
+            scalars = np.arange(n_colors)
+            color = None
         with warnings.catch_warnings(record=True):  # traits
             surface = self.mlab.triangular_mesh(x, y, z, triangles,
                                                 color=color,
+                                                scalars=scalars,
                                                 opacity=opacity,
                                                 figure=self.fig,
                                                 **kwargs)
+            if vertex_color is not None:
+                surface.module_manager.scalar_lut_manager.lut.table = \
+                    vertex_color
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
             return surface

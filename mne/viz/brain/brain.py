@@ -78,22 +78,6 @@ class Brain(object):
     overlays : dict
         The overlays.
     """
-
-    def __new__(cls, *args, **kwargs):
-        """Prepare a class instance.
-
-        Provides backward compatibility with PySurfer and mayavi.
-        """
-        from ..backends.renderer import get_3d_backend
-        from ..backends._utils import Backends3D
-
-        if get_3d_backend() == Backends3D.mayavi:
-            from surfer import Brain
-            # enables support for mayavi-based rendering
-            return Brain(*args, **kwargs)
-        else:
-            return super().__new__(cls)
-
     def __init__(self, subject_id, hemi, surf, title=None,
                  alpha=1.0, size=800, background=(0, 0, 0),
                  foreground=None, figure=None, subjects_dir=None,
@@ -374,8 +358,7 @@ class Brain(object):
                                  y=self.geo[hemi].coords[:, 1],
                                  z=self.geo[hemi].coords[:, 2],
                                  triangles=self.geo[hemi].faces,
-                                 color=act_color,
-                                 opacity=None)
+                                 color=act_color)
             self._overlays[hemi + '_' + v] = mesh
 
         # How can we make this bit universal as well???
