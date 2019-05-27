@@ -4,7 +4,7 @@ import os.path as path
 from mne import read_source_estimate
 from mne.datasets import sample
 from mne.viz import Brain, get_3d_backend
-from mne.viz.brain.view import TimeViewer
+from mne.viz.brain.view import TimeViewer, ColorBar
 from mne.viz.brain.colormap import _calculate_lut
 
 
@@ -100,7 +100,6 @@ def test_brain_colormap():
 def test_brain_time_viewer(backends_3d):
     """Test of brain's time viewer."""
     backend_name = get_3d_backend()
-    backend_name = get_3d_backend()
     data_path = sample.data_path()
     hemi = 'both'
     surf = 'inflated'
@@ -125,3 +124,31 @@ def test_brain_time_viewer(backends_3d):
 
     time_viewer = TimeViewer(brain)
     time_viewer.show()
+
+
+def test_brain_colorbar(backends_3d):
+    """Test of brain's colorbar."""
+    from matplotlib import cm
+
+    backend_name = get_3d_backend()
+    data_path = sample.data_path()
+    hemi = 'both'
+    surf = 'inflated'
+    subject_id = 'sample'
+    subjects_dir = path.join(data_path, 'subjects')
+    brain = Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
+
+    with pytest.raises(KeyError):
+        ColorBar(brain)
+
+    if backend_name != "ipyvolume":
+        pytest.skip()
+
+    brain.data['center'] = None
+    brain.data['fmin'] = 0.0
+    brain.data['fmid'] = 0.5
+    brain.data['fmax'] = 1.0
+    brain.data['lut'] = cm.get_cmap("coolwarm")
+
+    color_bar = ColorBar(brain)
+    color_bar.show()

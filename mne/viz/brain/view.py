@@ -121,7 +121,9 @@ class ColorBar(object):
     """
 
     def __init__(self, brain):
-        from bqplot import Axis, ColorScale, Figure, HeatMap, LinearScale
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            from bqplot import Axis, ColorScale, Figure, HeatMap, LinearScale
         import ipyvolume as ipv
         import ipywidgets as widgets
 
@@ -148,9 +150,11 @@ class ColorBar(object):
 
         x_sc, col_sc = LinearScale(), ColorScale(colors=self._colors)
         ax_x = Axis(scale=x_sc)
-        heat = HeatMap(x=cbar_ticks,
-                       color=color,
-                       scales={'x': x_sc, 'color': col_sc})
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            heat = HeatMap(x=cbar_ticks,
+                           color=color,
+                           scales={'x': x_sc, 'color': col_sc})
 
         self._add_inputs()
         fig_layout = widgets.Layout(width='%dpx' % cbar_w,
@@ -273,3 +277,8 @@ class ColorBar(object):
                                             disabled=False,
                                             button_style='',
                                             tooltip='Update mesh')
+
+    def show(self):
+        u"""Display widget."""
+        import ipyvolume as ipv
+        ipv.show()
