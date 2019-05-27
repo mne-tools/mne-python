@@ -8,11 +8,10 @@
 import numpy as np
 from scipy import linalg
 
-from ..io.pick import pick_channels_evoked
-from ..cov import compute_whitener
-from ..utils import logger, verbose
+from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
+from ..utils import logger, verbose, _check_info_inv
 from ..dipole import Dipole
-from ._compute_beamformer import _prepare_beamformer_input, _setup_picks
+from ._compute_beamformer import _prepare_beamformer_input
 
 
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
@@ -33,9 +32,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         The noise covariance.
     n_dipoles : int
         The number of dipoles to estimate. The default value is 2.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
+    picks : list of int
+        Caller ensures this is a list of int.
 
     Returns
     -------
@@ -46,18 +44,16 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         selected active dipoles and their estimated orientation.
         Computed only if return_explained_data is True.
     """
-    is_free_ori, ch_names, proj, vertno, G, _ = _prepare_beamformer_input(
-        info, forward, label=None, picks=picks, pick_ori=None)
+    info = pick_info(info, picks)
+    del picks
+    is_free_ori, info, _, _, G, whitener, _, _ = _prepare_beamformer_input(
+        info, forward, noise_cov=noise_cov, rank=None)
+    forward = pick_channels_forward(forward, info['ch_names'], ordered=True)
+    del info
 
-    gain = G.copy()
+    gain = forward['sol']['data'].copy()
 
-    # Handle whitening + data covariance
-    whitener, _ = compute_whitener(noise_cov, info, picks)
-    if info['projs']:
-        whitener = np.dot(whitener, proj)
-
-    # whiten the leadfield and the data
-    G = np.dot(whitener, G)
+    # whiten the data (leadfield already whitened)
     data = np.dot(whitener, data)
 
     eig_values, eig_vectors = linalg.eigh(np.dot(data, data.T))
@@ -208,9 +204,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -244,7 +238,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     data = evoked.data
     times = evoked.times
 
-    picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
+    picks = _check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
 
     data = data[picks]
 

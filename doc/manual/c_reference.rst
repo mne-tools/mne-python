@@ -2188,7 +2188,7 @@ Visualization options
     are *lat* (lateral), *med* (medial), *ven* (ventral),
     and *occ* (occipital). You can override these
     defaults by creating the directory .mne under your home directory
-    and copying the eyes file there. Each line of the eyes file contais
+    and copying the eyes file there. Each line of the eyes file contains
     the name of the view, the viewpoint for the left hemisphere, the
     viewpoint for the right hemisphere, left hemisphere up vector, and
     right hemisphere up vector. The entities are separated by semicolons.
@@ -2561,7 +2561,8 @@ mne_process_raw
 
     Name of the composite digital trigger channel. The default value
     is 'STI 014'. Underscores in the channel name
-    will be replaced by spaces.
+    will be replaced by spaces. May also be specified by an environment
+    variable ``MNE_TRIGGER_CH_NAME``.
 
 ``--digtrigmask <*number*>``
 
@@ -2573,7 +2574,8 @@ mne_process_raw
     to the acquisition system. The number can be given in decimal or
     hexadecimal format (beginning with 0x or 0X). For example, the value
     255 (0xFF) means that only the lowest order byte (usually trigger
-    lines 1 - 8 or bits 0 - 7) will be considered.
+    lines 1 - 8 or bits 0 - 7) will be considered. May also be specified by an
+    environment variable ``MNE_TRIGGER_CH_MASK``.
 
 ``--proj <*name*>``
 

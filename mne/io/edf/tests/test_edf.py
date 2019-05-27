@@ -21,7 +21,7 @@ import pytest
 from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
-from mne.io import read_raw_edf
+from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_annotations_edf
@@ -71,11 +71,11 @@ def test_orig_units():
 
 def test_bdf_data():
     """Test reading raw bdf files."""
-    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
+    raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
                               eog=eog, misc=misc,
                               exclude=['M2', 'IEOG'])
     assert len(raw_py.ch_names) == 71
-    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
+    raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc,
                               exclude=['M2', 'IEOG'])
     assert len(raw_py.ch_names) == 71
@@ -185,17 +185,21 @@ def test_find_events_backward_compatibility():
 
 
 @requires_pandas
-def test_to_data_frame():
-    """Test edf Raw Pandas exporter."""
-    for path in [edf_path, bdf_path]:
-        raw = read_raw_edf(path, preload=True, verbose='error')
-        _, times = raw[0, :10]
-        df = raw.to_data_frame()
-        assert (df.columns == raw.ch_names).all()
-        assert_array_equal(np.round(times * 1e3), df.index.values[:10])
-        df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
-        assert 'time' in df.index.names
-        assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
+@pytest.mark.parametrize('fname', [edf_path, bdf_path])
+def test_to_data_frame(fname):
+    """Test EDF/BDF Raw Pandas exporter."""
+    ext = op.splitext(fname)[1][1:].lower()
+    if ext == 'edf':
+        raw = read_raw_edf(fname, preload=True, verbose='error')
+    elif ext == 'bdf':
+        raw = read_raw_bdf(fname, preload=True, verbose='error')
+    _, times = raw[0, :10]
+    df = raw.to_data_frame()
+    assert (df.columns == raw.ch_names).all()
+    assert_array_equal(np.round(times * 1e3), df.index.values[:10])
+    df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
+    assert 'time' in df.index.names
+    assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
 
 
 def test_find_edf_events_deprecation():
@@ -278,7 +282,11 @@ def test_read_annotations(fname, recwarn):
 @pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
 def test_load_generator(fname, recwarn):
     """Test IO of annotations from edf and bdf files with raw info."""
-    raw = read_raw_edf(fname)
+    ext = op.splitext(fname)[1][1:].lower()
+    if ext == 'edf':
+        raw = read_raw_edf(fname)
+    elif ext == 'bdf':
+        raw = read_raw_bdf(fname)
     assert len(raw.annotations.onset) == 2
     found_types = [k for k, v in
                    channel_indices_by_type(raw.info, picks=None).items()
@@ -290,8 +298,8 @@ def test_load_generator(fname, recwarn):
                 'sine 50 Hz']
     assert raw.get_data().shape == (11, 120000)
     assert raw.ch_names == ch_names
-    assert event_id == {'RECORD START': 1, 'REC STOP': 2}
-    assert_array_equal(events, [[0, 0, 1], [120000, 0, 2]])
+    assert event_id == {'RECORD START': 2, 'REC STOP': 1}
+    assert_array_equal(events, [[0, 0, 2], [120000, 0, 1]])
 
 
 @pytest.mark.parametrize('EXPECTED, test_input', [

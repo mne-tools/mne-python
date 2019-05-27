@@ -163,9 +163,9 @@ def test_make_forward_solution_kit():
     # now let's use mne-python all the way
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     # without ignore_ref=True, this should throw an error:
-    pytest.raises(NotImplementedError, make_forward_solution, raw_py.info,
-                  src=src, eeg=False, meg=True,
-                  bem=fname_bem_meg, trans=trans_path)
+    with pytest.raises(NotImplementedError, match='Cannot.*KIT reference'):
+        make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
+                              bem=fname_bem_meg, trans=trans_path)
 
     # check that asking for eeg channels (even if they don't exist) is handled
     meg_only_info = pick_info(raw_py.info, pick_types(raw_py.info, meg=True,
@@ -220,11 +220,15 @@ def test_make_forward_solution_kit():
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python."""
     fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
-                                   fname_bem, mindist=5.0, eeg=True, meg=True)
+                                   fname_bem, mindist=5.)
     assert (isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert (isinstance(fwd, Forward))
     _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3)
+    # Homogeneous model
+    with pytest.raises(RuntimeError, match='homogeneous.*1-layer.*EEG'):
+        make_forward_solution(fname_raw, fname_trans, fname_src,
+                              fname_bem_meg)
 
 
 @testing.requires_testing_data
@@ -280,6 +284,10 @@ def test_make_forward_solution_sphere():
     fwd_1 = make_forward_solution(fname_raw, fname_trans, src, sphere,
                                   meg=True, eeg=False)
     _compare_forwards(fwd, fwd_1, 306, 108, meg_rtol=1e-12, meg_atol=1e-12)
+    # Homogeneous model
+    sphere = make_sphere_model(head_radius=None)
+    with pytest.raises(RuntimeError, match='zero shells.*EEG'):
+        make_forward_solution(fname_raw, fname_trans, src, sphere)
 
 
 @pytest.mark.slowtest
@@ -322,13 +330,14 @@ def test_forward_mixed_source_space():
     fname_img = op.join(temp_dir, 'temp-image.mgz')
 
     # head coordinates and mri_resolution, but trans file
-    pytest.raises(ValueError, src_from_fwd.export_volume, fname_img,
-                  mri_resolution=True, trans=None)
+    with pytest.raises(ValueError, match='trans containing mri to head'):
+        src_from_fwd.export_volume(fname_img, mri_resolution=True, trans=None)
 
     # head coordinates and mri_resolution, but wrong trans file
     vox_mri_t = vol1[0]['vox_mri_t']
-    pytest.raises(ValueError, src_from_fwd.export_volume, fname_img,
-                  mri_resolution=True, trans=vox_mri_t)
+    with pytest.raises(ValueError, match='mri<->head, got mri_voxel->mri'):
+        src_from_fwd.export_volume(fname_img, mri_resolution=True,
+                                   trans=vox_mri_t)
 
 
 @pytest.mark.slowtest
@@ -373,7 +382,7 @@ def test_make_forward_dipole():
     # Now simulate evoked responses for each of the test dipoles,
     # and fit dipoles to them (sphere model, MEG and EEG)
     times, pos, amplitude, ori, gof = [], [], [], [], []
-    nave = 100  # add a tiny amount of noise to the simulated evokeds
+    nave = 200  # add a tiny amount of noise to the simulated evokeds
     for s in stc:
         evo_test = simulate_evoked(fwd, s, info, cov,
                                    nave=nave, random_state=rng)
@@ -413,8 +422,8 @@ def test_make_forward_dipole():
                          pos=[[0., 0., 1.0], [0., 0., 0.040]],
                          amplitude=[100e-9, 100e-9],
                          ori=[[1., 0., 0.], [1., 0., 0.]], gof=1)
-    pytest.raises(ValueError, make_forward_dipole, dip_outside, fname_bem,
-                  info, fname_trans)
+    with pytest.raises(ValueError, match='outside the inner skull'):
+        make_forward_dipole(dip_outside, fname_bem, info, fname_trans)
     # if we get this far, can safely assume the code works with BEMs too
     # -> use sphere again below for speed
 

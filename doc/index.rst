@@ -1,8 +1,5 @@
 .. title:: MNE
 
-.. include:: links.inc
-
-
 .. container:: row limitedwidth table-like
 
     .. title image and description
@@ -14,7 +11,7 @@
         Open-source Python software for exploring, visualizing, and
         analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
         and more.
-        </h4>
+        </p>
       </div>
       <div class="cell-like col-sm-4 text-right">
         <h3><i class="fa fa-bolt"></i> Speed</h3>

@@ -11,13 +11,13 @@ import math
 import pytest
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
-                           assert_equal, assert_array_equal)
+                           assert_array_equal)
 
 from mne import concatenate_raws, create_info, Annotations
 from mne.annotations import _handle_meas_date
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw
-from mne.utils import _TempDir, catch_logging
+from mne.utils import _TempDir, catch_logging, _raw_annot
 from mne.io.meas_info import _get_valid_units
 
 
@@ -39,7 +39,7 @@ def test_orig_units():
         BaseRaw(info, last_samps=[1], orig_units=True)
 
 
-def _test_raw_reader(reader, test_preloading=True, **kwargs):
+def _test_raw_reader(reader, test_preloading=True, test_kwargs=True, **kwargs):
     """Test reading, writing and slicing of raw classes.
 
     Parameters
@@ -92,9 +92,10 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     assert _handle_meas_date(raw.info['meas_date']) >= 0
 
     # test resetting raw
-    raw2 = reader(**raw._init_kwargs)
-    assert set(raw.info.keys()) == set(raw2.info.keys())
-    assert_array_equal(raw.times, raw2.times)
+    if test_kwargs:
+        raw2 = reader(**raw._init_kwargs)
+        assert set(raw.info.keys()) == set(raw2.info.keys())
+        assert_array_equal(raw.times, raw2.times)
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
@@ -117,9 +118,9 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     first_samp = raw.first_samp
     last_samp = raw.last_samp
     concat_raw = concatenate_raws([raw.copy(), raw])
-    assert_equal(concat_raw.n_times, 2 * raw.n_times)
-    assert_equal(concat_raw.first_samp, first_samp)
-    assert_equal(concat_raw.last_samp - last_samp + first_samp, last_samp + 1)
+    assert concat_raw.n_times == 2 * raw.n_times
+    assert concat_raw.first_samp == first_samp
+    assert concat_raw.last_samp - last_samp + first_samp == last_samp + 1
     idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
 
     if concat_raw.info['meas_date'] is None:
@@ -134,7 +135,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
     if raw.info['meas_id'] is not None:
         for key in ['secs', 'usecs', 'version']:
-            assert_equal(raw.info['meas_id'][key], raw3.info['meas_id'][key])
+            assert raw.info['meas_id'][key] == raw3.info['meas_id'][key]
         assert_array_equal(raw.info['meas_id']['machid'],
                            raw3.info['meas_id']['machid'])
 
@@ -219,15 +220,6 @@ def test_time_as_index_ref(offset, origin):
     assert_array_equal(inds, np.arange(raw.n_times))
 
 
-def _raw_annot(meas_date, orig_time):
-    info = create_info(ch_names=10, sfreq=10.)
-    raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
-    annot = Annotations([.5], [.2], ['dummy'], orig_time)
-    raw.set_annotations(annotations=annot)
-    return raw
-
-
 def test_meas_date_orig_time():
     """Test the relation between meas_time in orig_time."""
     # meas_time is set and orig_time is set:
@@ -302,9 +294,9 @@ def test_5839():
     #    latency  .         0    0    1    1    2    2    3
     #             .              5    0    5    0    5    0
     #
-    EXPECTED_ONSET = [1.5, 2.5, 2., 2.]
-    EXPECTED_DURATION = [0.2, 0.2, 0., 0.]
-    EXPECTED_DESCRIPTION = ['dummy', 'dummy', 'BAD boundary', 'EDGE boundary']
+    EXPECTED_ONSET = [1.5, 2., 2., 2.5]
+    EXPECTED_DURATION = [0.2, 0., 0., 0.2]
+    EXPECTED_DESCRIPTION = ['dummy', 'BAD boundary', 'EDGE boundary', 'dummy']
 
     def raw_factory(meas_date):
         raw = RawArray(data=np.empty((10, 10)),

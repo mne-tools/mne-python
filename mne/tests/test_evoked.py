@@ -20,6 +20,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  Epochs, EpochsArray)
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
+from mne.io.constants import FIFF
 from mne.utils import (_TempDir, requires_pandas, requires_version,
                        run_tests_if_main)
 
@@ -97,12 +98,38 @@ def test_hash_evoked():
     """Test evoked hashing."""
     ave = read_evokeds(fname, 0)
     ave_2 = read_evokeds(fname, 0)
-    assert_equal(hash(ave), hash(ave_2))
+    assert hash(ave) == hash(ave_2)
+    assert ave == ave_2
     # do NOT use assert_equal here, failing output is terrible
-    assert (pickle.dumps(ave) == pickle.dumps(ave_2))
+    assert pickle.dumps(ave) == pickle.dumps(ave_2)
 
     ave_2.data[0, 0] -= 1
     assert hash(ave) != hash(ave_2)
+
+
+def _aspect_kinds():
+    """Yield evoked aspect kinds."""
+    kinds = list()
+    for key in FIFF:
+        if not key.startswith('FIFFV_ASPECT_'):
+            continue
+        kinds.append(getattr(FIFF, str(key)))
+    return kinds
+
+
+@pytest.mark.parametrize('aspect_kind', _aspect_kinds())
+def test_evoked_aspects(aspect_kind, tmpdir):
+    """Test handling of evoked aspects."""
+    # gh-6359
+    ave = read_evokeds(fname, 0)
+    ave._aspect_kind = aspect_kind
+    assert 'Evoked' in repr(ave)
+    # for completeness let's try a round-trip
+    temp_fname = op.join(str(tmpdir), 'test-ave.fif')
+    ave.save(temp_fname)
+    ave_2 = read_evokeds(temp_fname, condition=0)
+    assert_allclose(ave.data, ave_2.data)
+    assert ave.kind == ave_2.kind
 
 
 @pytest.mark.slowtest
@@ -278,6 +305,13 @@ def test_to_data_frame():
     assert ('time' in df.columns)
     assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
     assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)
+
+    df = ave.to_data_frame(long_format=True)
+    assert(len(df) == ave.data.size)
+    assert("time" in df.columns)
+    assert("channel" in df.columns)
+    assert("ch_type" in df.columns)
+    assert("observation" in df.columns)
 
 
 def test_evoked_proj():
@@ -535,8 +569,10 @@ def test_array_epochs():
     assert_equal(evoked1.nave, evoked3.nave)
 
     # test kind check
-    pytest.raises(TypeError, EvokedArray, data1, info, tmin=0, kind=1)
-    pytest.raises(ValueError, EvokedArray, data1, info, kind='mean')
+    with pytest.raises(ValueError, match='Invalid value'):
+        EvokedArray(data1, info, tmin=0, kind=1)
+    with pytest.raises(ValueError, match='Invalid value'):
+        EvokedArray(data1, info, kind='mean')
 
     # test match between channels info and data
     ch_names = ['EEG %03d' % (i + 1) for i in range(19)]
@@ -597,6 +633,32 @@ def test_evoked_baseline():
     evoked.apply_baseline((None, None))
 
     assert_allclose(evoked.data, np.zeros_like(evoked.data))
+
+
+def test_hilbert():
+    """Test hilbert on raw, epochs, and evoked."""
+    raw = read_raw_fif(raw_fname).load_data()
+    raw.del_proj()
+    raw.pick_channels(raw.ch_names[:2])
+    events = read_events(event_name)
+    epochs = Epochs(raw, events)
+    with pytest.raises(RuntimeError, match='requires epochs data to be load'):
+        epochs.apply_hilbert()
+    epochs.load_data()
+    evoked = epochs.average()
+    raw_hilb = raw.apply_hilbert()
+    epochs_hilb = epochs.apply_hilbert()
+    evoked_hilb = evoked.copy().apply_hilbert()
+    evoked_hilb_2_data = epochs_hilb.get_data().mean(0)
+    assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
+    # This one is only approximate because of edge artifacts
+    evoked_hilb_3 = Epochs(raw_hilb, events).average()
+    corr = np.corrcoef(np.abs(evoked_hilb_3.data.ravel()),
+                       np.abs(evoked_hilb.data.ravel()))[0, 1]
+    assert 0.96 < corr < 0.98
+    # envelope=True mode
+    evoked_hilb_env = evoked.apply_hilbert(envelope=True)
+    assert_allclose(evoked_hilb_env.data, np.abs(evoked_hilb.data))
 
 
 run_tests_if_main()

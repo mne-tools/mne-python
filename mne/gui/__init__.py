@@ -111,9 +111,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         bugs.
 
         .. versionadded:: 0.18
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----

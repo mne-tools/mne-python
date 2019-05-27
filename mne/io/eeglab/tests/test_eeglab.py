@@ -12,7 +12,7 @@ from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import pytest
 from scipy import io
 
@@ -28,6 +28,7 @@ base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
 raw_fname_mat = op.join(base_dir, 'test_raw.set')
 raw_fname_onefile_mat = op.join(base_dir, 'test_raw_onefile.set')
+raw_fname_event_duration = op.join(base_dir, 'test_raw_event_duration.set')
 epochs_fname_mat = op.join(base_dir, 'test_epochs.set')
 epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
@@ -127,11 +128,7 @@ def test_io_set_raw(fnames, tmpdir):
                                      'X': 6.3023, 'Z': -2.9423},
                         'times': eeg.times[:3], 'pnts': 3}},
                appendmat=False, oned_as='row')
-    with pytest.warns(None) as w:
-        read_raw_eeglab(input_fname=one_chan_fname, preload=True,
-                        stim_channel=False)
-    # no warning for 'no events found'
-    assert len(w) == 0
+    read_raw_eeglab(input_fname=one_chan_fname, preload=True)
 
     # test reading file with 3 channels - one without position information
     # first, create chanlocs structured array
@@ -198,8 +195,7 @@ def test_io_set_raw(fnames, tmpdir):
                         'times': eeg.times[:2], 'pnts': 2}},
                appendmat=False, oned_as='row')
     # load the file
-    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True,
-                          stim_channel=False)
+    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
 
     # test that channel names have been loaded but not channel positions
     for i in range(3):
@@ -273,7 +269,7 @@ def test_eeglab_annotations(fname):
     _check_h5(fname)
     annotations = read_annotations(fname)
     assert len(annotations) == 154
-    assert set(annotations.description) == set(['rt', 'square'])
+    assert set(annotations.description) == {'rt', 'square'}
     assert np.all(annotations.duration == 0.)
 
 
@@ -287,6 +283,11 @@ def test_eeglab_read_annotations():
     assert annotations.orig_time is None
     assert_array_almost_equal(annotations.onset[validation_samples],
                               expected_onset, decimal=2)
+
+    # test if event durations are imported correctly
+    raw = read_raw_eeglab(raw_fname_event_duration, preload=True)
+    # file contains 3 annotations with 0.5 s (64 samples) duration each
+    assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
 
 
 @testing.requires_testing_data

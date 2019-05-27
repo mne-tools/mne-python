@@ -47,8 +47,8 @@ class ProgressBar(object):
     max_total_width : int | str
         Maximum total message width. Can use "auto" (default) to try to set
         a sane value based on the current terminal width.
-    verbose_bool : bool
-        If True, show progress.
+    verbose_bool : bool | 'auto'
+        If True, show progress. 'auto' will use the current MNE verbose level.
 
     Example
     -------
@@ -228,8 +228,13 @@ class ProgressBar(object):
         self._mmap = None
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
+        self.done()
+
+    def done(self):
+        """Print a newline."""
         if self._do_print:
-            print('')
+            sys.stdout.write('\n')
+            sys.stdout.flush()
 
 
 class _PBSubsetUpdater(object):

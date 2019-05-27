@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from contextlib import contextmanager
 import fnmatch
 import inspect
 from io import StringIO
@@ -17,6 +18,7 @@ import traceback
 
 import numpy as np
 
+from ..utils import _check_option, _validate_type
 from ..fixes import _get_args
 from ._logging import logger, verbose, warn
 
@@ -46,13 +48,17 @@ def _sort_keys(x):
     return keys
 
 
-class _Counter():
-    count = 1
+class _DefaultEventParser:
+    """Parse none standard events."""
 
-    def __call__(self, *args, **kargs):
-        c = self.count
-        self.count += 1
-        return c
+    def __init__(self):
+        self.event_ids = dict()
+
+    def __call__(self, description, offset=1):
+        if description not in self.event_ids:
+            self.event_ids[description] = offset + len(self.event_ids)
+
+        return self.event_ids[description]
 
 
 class _FormatDict(dict):
@@ -88,10 +94,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     ----------
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(verbose)s
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
 
@@ -102,6 +105,51 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     stderr : str
         Stderr returned by the process.
     """
+    with running_subprocess(command, *args, **kwargs) as p:
+        pass
+
+    stdout_, stderr = p.communicate()
+    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
+    stderr = u'' if stderr is None else stderr.decode('utf-8')
+    output = (stdout_, stderr)
+
+    if p.returncode:
+        print(output)
+        err_fun = subprocess.CalledProcessError.__init__
+        if 'output' in _get_args(err_fun):
+            raise subprocess.CalledProcessError(p.returncode, command, output)
+        else:
+            raise subprocess.CalledProcessError(p.returncode, command)
+
+    return output
+
+
+@contextmanager
+def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
+    """Context manager to do something with a command running via Popen.
+
+    Parameters
+    ----------
+    command : list of str | str
+        Command to run as subprocess (see :class:`python:subprocess.Popen`).
+    after : str
+        Can be:
+
+        - "wait" to use :meth:`~python:subprocess.Popen.wait`
+        - "terminate" to use :meth:`~python:subprocess.Popen.terminate`
+        - "kill" to use :meth:`~python:subprocess.Popen.kill`
+
+    %(verbose)s
+    *args, **kwargs : arguments
+        Additional arguments to pass to subprocess.Popen.
+
+    Returns
+    -------
+    p : instance of Popen
+        The process.
+    """
+    _validate_type(after, str, 'after')
+    _check_option('after', after, ['wait', 'terminate', 'kill'])
     for stdxxx, sys_stdxxx, thresh in (
             ['stderr', sys.stderr, logging.ERROR],
             ['stdout', sys.stdout, logging.WARNING]):
@@ -136,20 +184,11 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
             command_name = command[0]
         logger.error('Command not found: %s' % command_name)
         raise
-    stdout_, stderr = p.communicate()
-    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
-    stderr = u'' if stderr is None else stderr.decode('utf-8')
-    output = (stdout_, stderr)
-
-    if p.returncode:
-        print(output)
-        err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in _get_args(err_fun):
-            raise subprocess.CalledProcessError(p.returncode, command, output)
-        else:
-            raise subprocess.CalledProcessError(p.returncode, command)
-
-    return output
+    try:
+        yield p
+    finally:
+        getattr(p, after)()
+        p.wait()
 
 
 def _clean_names(names, remove_whitespace=False, before_dash=True):
@@ -186,11 +225,18 @@ def _get_argvalues():
     """Return all arguments (except self) and values of read_raw_xxx."""
     # call stack
     # read_raw_xxx -> EOF -> verbose() -> BaseRaw.__init__ -> get_argvalues
-    frame = inspect.stack()[4][0]
-    fname = frame.f_code.co_filename
-    if not fnmatch.fnmatch(fname, '*/mne/io/*'):
-        return None
-    args, _, _, values = inspect.getargvalues(frame)
+
+    # This is equivalent to `frame = inspect.stack(0)[4][0]` but faster
+    frame = inspect.currentframe()
+    try:
+        for _ in range(4):
+            frame = frame.f_back
+        fname = frame.f_code.co_filename
+        if not fnmatch.fnmatch(fname, '*/mne/io/*'):
+            return None
+        args, _, _, values = inspect.getargvalues(frame)
+    finally:
+        del frame
     params = dict()
     for arg in args:
         params[arg] = values[arg]

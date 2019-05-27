@@ -1,23 +1,26 @@
+import copy as cp
 import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_equal)
 import pytest
+from scipy import linalg
 
-import copy as cp
-
-import mne
-from mne.datasets import testing
-from mne.io import read_raw_fif
 from mne import (compute_proj_epochs, compute_proj_evoked, compute_proj_raw,
                  pick_types, read_events, Epochs, sensitivity_map,
-                 read_source_estimate)
+                 read_source_estimate, compute_raw_covariance, create_info,
+                 read_forward_solution, convert_forward_solution)
+from mne.cov import regularize, compute_whitener
+from mne.datasets import testing
+from mne.io import read_raw_fif, RawArray
 from mne.io.proj import (make_projector, activate_proj,
                          _needs_eeg_average_ref_proj)
+from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
-from mne.utils import _TempDir, run_tests_if_main
+from mne.rank import _compute_rank_int
+from mne.utils import _TempDir, run_tests_if_main, requires_version
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -72,15 +75,15 @@ def test_bad_proj():
     raw = read_raw_fif(raw_fname).crop(0, 1)
     raw.set_eeg_reference(projection=True)
     raw.info['bads'] = ['MEG 0111']
-    meg_picks = mne.pick_types(raw.info, meg=True, exclude=())
+    meg_picks = pick_types(raw.info, meg=True, exclude=())
     ch_names = [raw.ch_names[pick] for pick in meg_picks]
     for p in raw.info['projs'][:-1]:
         data = np.zeros((1, len(ch_names)))
         idx = [ch_names.index(ch_name) for ch_name in p['data']['col_names']]
         data[:, idx] = p['data']['data']
         p['data'].update(ncol=len(meg_picks), col_names=ch_names, data=data)
-    mne.cov.regularize(mne.compute_raw_covariance(raw, verbose='error'),
-                       raw.info, rank=None)
+    # smoke test for no warnings during reg
+    regularize(compute_raw_covariance(raw, verbose='error'), raw.info)
 
 
 def _check_warnings(raw, events, picks=None, count=3):
@@ -95,8 +98,8 @@ def _check_warnings(raw, events, picks=None, count=3):
 @testing.requires_testing_data
 def test_sensitivity_maps():
     """Test sensitivity map computation."""
-    fwd = mne.read_forward_solution(fwd_fname)
-    fwd = mne.convert_forward_solution(fwd, surf_ori=True)
+    fwd = read_forward_solution(fwd_fname)
+    fwd = convert_forward_solution(fwd, surf_ori=True)
     projs = read_proj(eog_fname)
     projs.extend(read_proj(ecg_fname))
     decim = 6
@@ -137,7 +140,7 @@ def test_sensitivity_maps():
     pytest.raises(RuntimeError, sensitivity_map, fwd, projs=[], mode='angle')
     # test volume source space
     fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
-    fwd = mne.read_forward_solution(fname)
+    fwd = read_forward_solution(fname)
     sensitivity_map(fwd)
 
 
@@ -277,10 +280,41 @@ def test_compute_proj_raw():
     assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
 
 
+@requires_version('scipy', '1.0')
+@pytest.mark.parametrize('duration', [1, np.pi / 2.])
+@pytest.mark.parametrize('sfreq', [600.614990234375, 1000.])
+def test_proj_raw_duration(duration, sfreq):
+    """Test equivalence of `duration` options."""
+    n_ch, n_dim = 30, 3
+    rng = np.random.RandomState(0)
+    signals = rng.randn(n_dim, 10000)
+    mixing = rng.randn(n_ch, n_dim) + [0, 1, 2]
+    data = np.dot(mixing, signals)
+    raw = RawArray(data, create_info(n_ch, sfreq, 'eeg'))
+    raw.set_eeg_reference(projection=True)
+    n_eff = int(round(raw.info['sfreq'] * duration))
+    # crop to an even "duration" number of epochs
+    stop = ((len(raw.times) // n_eff) * n_eff - 1) / raw.info['sfreq']
+    raw.crop(0, stop)
+    proj_def = compute_proj_raw(raw, n_eeg=n_dim)
+    proj_dur = compute_proj_raw(raw, duration=duration, n_eeg=n_dim)
+    proj_none = compute_proj_raw(raw, duration=None, n_eeg=n_dim)
+    assert len(proj_dur) == len(proj_none) == len(proj_def) == n_dim
+    # proj_def is not in here because it does not necessarily evenly divide
+    # the signal length:
+    for pu, pn in zip(proj_dur, proj_none):
+        assert_allclose(pu['data']['data'], pn['data']['data'])
+    # but we can test it here since it should still be a small subspace angle:
+    for proj in (proj_dur, proj_none, proj_def):
+        computed = np.concatenate([p['data']['data'] for p in proj], 0)
+        angle = np.rad2deg(linalg.subspace_angles(computed.T, mixing)[0])
+        assert angle < 1e-5
+
+
 def test_make_eeg_average_ref_proj():
     """Test EEG average reference projection."""
     raw = read_raw_fif(raw_fname, preload=True)
-    eeg = mne.pick_types(raw.info, meg=False, eeg=True)
+    eeg = pick_types(raw.info, meg=False, eeg=True)
 
     # No average EEG reference
     assert not np.all(raw._data[eeg].mean(axis=0) < 1e-19)
@@ -332,6 +366,35 @@ def test_needs_eeg_average_ref_proj():
     raw = read_raw_fif(raw_fname)
     raw.info['custom_ref_applied'] = True
     assert not _needs_eeg_average_ref_proj(raw.info)
+
+
+def test_sss_proj():
+    """Test `meg` proj option."""
+    raw = read_raw_fif(raw_fname)
+    raw.crop(0, 1.0).load_data().pick_types(exclude=())
+    raw.pick_channels(raw.ch_names[:51]).del_proj()
+    with pytest.raises(ValueError, match='can only be used with Maxfiltered'):
+        compute_proj_raw(raw, meg='combined')
+    raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
+    sss_rank = 21  # really low due to channel picking
+    assert len(raw_sss.info['projs']) == 0
+    for meg, n_proj, want_rank in (('separate', 6, sss_rank),
+                                   ('combined', 3, sss_rank - 3)):
+        proj = compute_proj_raw(raw_sss, n_grad=3, n_mag=3, meg=meg,
+                                verbose='error')
+        this_raw = raw_sss.copy().add_proj(proj).apply_proj()
+        assert len(this_raw.info['projs']) == n_proj
+        sss_proj_rank = _compute_rank_int(this_raw)
+        cov = compute_raw_covariance(this_raw, verbose='error')
+        W, ch_names, rank = compute_whitener(cov, this_raw.info,
+                                             return_rank=True)
+        assert ch_names == this_raw.ch_names
+        assert want_rank == sss_proj_rank == rank  # proper reduction
+        if meg == 'combined':
+            assert this_raw.info['projs'][0]['data']['col_names'] == ch_names
+        else:
+            mag_names = ch_names[2::3]
+            assert this_raw.info['projs'][3]['data']['col_names'] == mag_names
 
 
 run_tests_if_main()

@@ -70,13 +70,9 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
-def test_plot_topo():
-    """Test plotting of ERP topography."""
-    # Show topography
+def test_plot_joint():
+    """Test joint plot."""
     evoked = _get_epochs().average()
-    # should auto-find layout
-    plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
-    # Test jointplot
     evoked.plot_joint(ts_args=dict(time_unit='s'),
                       topomap_args=dict(time_unit='s'))
 
@@ -92,9 +88,18 @@ def test_plot_topo():
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
     evoked.plot_joint(times=[0], picks=[6, 7, 8],  ts_args=dict(axes=axes[0]),
                       topomap_args={"axes": axes[1:], "time_unit": "s"})
-    plt.close()
-    pytest.raises(ValueError, evoked.plot_joint, picks=[6, 7, 8],
-                  ts_args=dict(axes=axes[0]), topomap_args=dict(axes=axes[2:]))
+    with pytest.raises(ValueError, match='array of length 6'):
+        evoked.plot_joint(picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
+                          topomap_args=dict(axes=axes[2:]))
+    plt.close('all')
+
+
+def test_plot_topo():
+    """Test plotting of ERP topography."""
+    # Show topography
+    evoked = _get_epochs().average()
+    # should auto-find layout
+    plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
 
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -133,10 +138,12 @@ def test_plot_topo():
     # Test RMS plot of grad pairs
     picked_evoked.plot_topo(merge_grads=True, background_color='w')
     plt.close('all')
-    for ax, idx in iter_topography(evoked.info):
+    for ax, idx in iter_topography(evoked.info, legend=True):
         ax.plot(evoked.data[idx], color='red')
         # test status bar message
-        assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
+        if idx != -1:
+            assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
+    assert idx == -1
     plt.close('all')
     cov = read_cov(cov_fname)
     cov['projs'] = []
@@ -147,6 +154,11 @@ def test_plot_topo():
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
                         evoked.times)
+    plt.close('all')
+
+    for ax, idx in iter_topography(evoked.info):  # brief test with false
+        ax.plot([0, 1, 2])
+        break
     plt.close('all')
 
 
@@ -187,6 +199,14 @@ def test_plot_topo_image_epochs():
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.64))
     assert num_figures_before + 1 == len(plt.get_fignums())
+    # test for auto-showing a colorbar when only 1 sensor type
+    ep = epochs.copy().pick_types(meg=False, eeg=True)
+    fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None,
+                                 cmap=cmap)
+    ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
+    qm_cmap = [y.cmap for x in ax for y in x.get_children()
+               if isinstance(y, matplotlib.collections.QuadMesh)]
+    assert qm_cmap[0] is cmap
     plt.close('all')
 
 

@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-evoked-topomap:
+
 ========================================
 Plotting topographic maps of evoked data
 ========================================

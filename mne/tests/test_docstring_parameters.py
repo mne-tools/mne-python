@@ -19,6 +19,7 @@ public_modules = [
     'mne.beamformer',
     'mne.chpi',
     'mne.connectivity',
+    'mne.cov',
     'mne.cuda',
     'mne.datasets',
     'mne.datasets.brainstorm',
@@ -28,12 +29,12 @@ public_modules = [
     'mne.decoding',
     'mne.dipole',
     'mne.filter',
+    'mne.forward',
     'mne.inverse_sparse',
     'mne.io',
     'mne.io.kit',
     'mne.minimum_norm',
     'mne.preprocessing',
-    'mne.realtime',
     'mne.report',
     'mne.simulation',
     'mne.source_estimate',
@@ -45,35 +46,39 @@ public_modules = [
 ]
 
 
-def get_name(func):
+def get_name(func, cls=None):
     """Get the name."""
     parts = []
     module = inspect.getmodule(func)
     if module:
         parts.append(module.__name__)
-    if hasattr(func, 'im_class'):
-        parts.append(func.im_class.__name__)
+    if cls is not None:
+        parts.append(cls.__name__)
     parts.append(func.__name__)
     return '.'.join(parts)
 
 
 # functions to ignore args / docstring of
-_docstring_ignores = [
+docstring_ignores = [
     'mne.io.Info',  # Parameters
     'mne.io.write',  # always ignore these
     'mne.datasets.sample.sample.requires_sample_data',
     # Deprecations
 ]
-
-_tab_ignores = [
+char_limit = 800  # XX eventually we should probably get this lower
+docstring_length_ignores = [
+    'mne.viz.evoked.plot_compare_evokeds::cmap',
+    'mne.filter.construct_iir_filter::iir_params',
+]
+tab_ignores = [
 ]
 
 
-def check_parameters_match(func, doc=None):
+def check_parameters_match(func, doc=None, cls=None):
     """Check docstring, return list of incorrect results."""
     from numpydoc import docscrape
     incorrect = []
-    name_ = get_name(func)
+    name_ = get_name(func, cls=cls)
     if not name_.startswith('mne.') or name_.startswith('mne.externals'):
         return incorrect
     if inspect.isdatadescriptor(func):
@@ -93,20 +98,30 @@ def check_parameters_match(func, doc=None):
         if len(w):
             raise RuntimeError('Error for %s:\n%s' % (name_, w[0]))
     # check set
-    param_names = [name for name, _, _ in doc['Parameters']]
+    parameters = doc['Parameters']
     # clean up some docscrape output:
-    param_names = [name.split(':')[0].strip('` ') for name in param_names]
-    param_names = [name for name in param_names if '*' not in name]
+    parameters = [[p[0].split(':')[0].strip('` '), p[2]]
+                  for p in parameters]
+    parameters = [p for p in parameters if '*' not in p[0]]
+    param_names = [p[0] for p in parameters]
     if len(param_names) != len(args):
         bad = str(sorted(list(set(param_names) - set(args)) +
                          list(set(args) - set(param_names))))
-        if not any(re.match(d, name_) for d in _docstring_ignores) and \
+        if not any(re.match(d, name_) for d in docstring_ignores) and \
                 'deprecation_wrapped' not in func.__code__.co_name:
             incorrect += [name_ + ' arg mismatch: ' + bad]
     else:
         for n1, n2 in zip(param_names, args):
             if n1 != n2:
                 incorrect += [name_ + ' ' + n1 + ' != ' + n2]
+        for param_name, desc in parameters:
+            desc = '\n'.join(desc)
+            full_name = name_ + '::' + param_name
+            if full_name in docstring_length_ignores:
+                assert len(desc) > char_limit  # assert it actually needs to be
+            elif len(desc) > char_limit:
+                incorrect += ['%s too long (%d > %d chars)'
+                              % (full_name, len(desc), char_limit)]
     return incorrect
 
 
@@ -140,12 +155,12 @@ def test_docstring_parameters():
                     raise RuntimeError('Error for __init__ of %s in %s:\n%s'
                                        % (cls, name, ww))
             if hasattr(cls, '__init__'):
-                incorrect += check_parameters_match(cls.__init__, cdoc)
+                incorrect += check_parameters_match(cls.__init__, cdoc, cls)
             for method_name in cdoc.methods:
                 method = getattr(cls, method_name)
-                incorrect += check_parameters_match(method)
+                incorrect += check_parameters_match(method, cls=cls)
             if hasattr(cls, '__call__'):
-                incorrect += check_parameters_match(cls.__call__)
+                incorrect += check_parameters_match(cls.__call__, cls=cls)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
             if fname.startswith('_'):
@@ -159,7 +174,7 @@ def test_docstring_parameters():
 def test_tabs():
     """Test that there are no tabs in our source files."""
     # avoid importing modules that require mayavi if mayavi is not installed
-    ignore = _tab_ignores[:]
+    ignore = tab_ignores[:]
     try:
         import mayavi  # noqa: F401 analysis:ignore
     except ImportError:
@@ -197,12 +212,14 @@ BaseEstimator
 ContainsMixin
 CrossSpectralDensity
 FilterMixin
+HilbertMixin
 GeneralizationAcrossTime
 RawFIF
 TimeMixin
 ToDataFrameMixin
 TransformerMixin
 UpdateChannelsMixin
+activate_proj
 adjust_axes
 apply_maxfilter
 apply_trans
@@ -223,6 +240,7 @@ get_score_funcs
 get_version
 invert_transform
 is_power2
+is_fixed_orient
 iter_topography
 kit2fiff
 label_src_vertno_sel
@@ -238,6 +256,7 @@ plot_epochs_psd_topomap
 plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
+read_bad_channels
 read_fiducials
 read_tag
 requires_sample_data

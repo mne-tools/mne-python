@@ -14,6 +14,8 @@ from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
+commit = 'a3feddb3011335586d50bc40d1c4e36cea20913f'  # mne-tools/fiff-constants
+
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
 tag_dups = (3501, 3507)  # in both MEGIN and MNE files
@@ -23,6 +25,8 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
+_tag_ignore_names = (  # for fiff-constants pending updates
+)
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
     'dacq_system', 'diffusion_param', 'gantry_type', 'map_surf',
@@ -67,8 +71,8 @@ def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
-    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/'
-                '066541057377b694a7d65fc18838fd80d8ffc284', dest)
+    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
+                commit, dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
@@ -242,7 +246,7 @@ def test_constants(tmpdir):
             elif name.startswith('FIFFV_SUBJ_'):
                 check = name.split('_')[2].lower()
             elif name in ('FIFFV_POINT_LPA', 'FIFFV_POINT_NASION',
-                          'FIFFV_POINT_RPA'):
+                          'FIFFV_POINT_RPA', 'FIFFV_POINT_INION'):
                 check = 'cardinal_point'
             else:
                 for check in used_enums:
@@ -259,7 +263,7 @@ def test_constants(tmpdir):
             check = 'tags'
         else:
             unknowns.append((name, val))
-        if check is not None:
+        if check is not None and name not in _tag_ignore_names:
             assert val in fif[check], '%s: %s, %s' % (check, val, name)
             if val in con[check]:
                 msg = "%s='%s'  ?" % (name, con[check][val])
@@ -271,7 +275,7 @@ def test_constants(tmpdir):
 
     # Assert that all the FIF defs are in our constants
     assert set(fif.keys()) == set(con.keys())
-    for key in sorted(set(fif.keys()) - set(['defines'])):
+    for key in sorted(set(fif.keys()) - {'defines'}):
         this_fif, this_con = fif[key], con[key]
         assert len(set(this_fif.keys())) == len(this_fif)
         assert len(set(this_con.keys())) == len(this_con)

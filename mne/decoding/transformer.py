@@ -13,8 +13,9 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import _check_type_picks, check_version
-from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
+from ..utils import check_version, fill_doc, _check_option
+from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
+                       _picks_to_idx)
 from ..cov import _check_scalings_user
 
 
@@ -113,10 +114,8 @@ class Scaler(TransformerMixin, BaseEstimator):
         if not (scalings is None or isinstance(scalings, (dict, str))):
             raise ValueError('scalings type should be dict, str, or None, '
                              'got %s' % type(scalings))
-        if isinstance(scalings, str) and \
-                scalings not in ('mean', 'median'):
-            raise ValueError('Invalid method for scaling, must be "mean" or '
-                             '"median" but got %s' % scalings)
+        if isinstance(scalings, str):
+            _check_option('scalings', scalings, ['mean', 'median'])
         if scalings is None or isinstance(scalings, dict):
             if info is None:
                 raise ValueError('Need to specify "info" if scalings is'
@@ -321,6 +320,7 @@ class Vectorizer(TransformerMixin):
         return X.reshape((len(X),) + self.features_shape_)
 
 
+@fill_doc
 class PSDEstimator(TransformerMixin):
     """Compute power spectrum density (PSD) using a multi-taper method.
 
@@ -338,7 +338,7 @@ class PSDEstimator(TransformerMixin):
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
@@ -346,9 +346,7 @@ class PSDEstimator(TransformerMixin):
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -413,6 +411,7 @@ class PSDEstimator(TransformerMixin):
         return psd
 
 
+@fill_doc
 class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs.
 
@@ -434,25 +433,12 @@ class FilterEstimator(TransformerMixin):
     ----------
     info : instance of Info
         Measurement info.
-    l_freq : float | None
-        Low cut-off frequency in Hz. If None the data are only low-passed.
-    h_freq : float | None
-        High cut-off frequency in Hz. If None the data are only
-        high-passed.
-    picks : array-like of int | None
-        Indices of channels to filter. If None only the data (MEG/EEG)
-        channels will be filtered.
-    filter_length : str (Default: '10s') | int | None
-        Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, if int, overlap-add
-        filtering with a filter of the specified length in samples) is
-        used (faster for long signals). If str, a human-readable time in
-        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
-        to the shortest power-of-two length at least that duration.
-    l_trans_bandwidth : float
-        Width of the transition band at the low cut-off frequency in Hz.
-    h_trans_bandwidth : float
-        Width of the transition band at the high cut-off frequency in Hz.
+    %(l_freq)s
+    %(h_freq)s
+    %(picks_good_data)s
+    %(filter_length)s
+    %(l_trans_bandwidth)s
+    %(h_trans_bandwidth)s
     n_jobs : int | str
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
@@ -463,18 +449,8 @@ class FilterEstimator(TransformerMixin):
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    fir_design : str
-        Can be "firwin" (default in 0.16) to use
-        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-        time-domain design technique that generally gives improved
-        attenuation using fewer samples than "firwin2".
-
-        ..versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+    %(fir_design)s
+    %(verbose)s
 
     See Also
     --------
@@ -483,7 +459,7 @@ class FilterEstimator(TransformerMixin):
     Notes
     -----
     This is primarily meant for use in conjunction with
-    :class:`mne.realtime.RtEpochs`. In general it is not recommended in a
+    :class:`mne_realtime.RtEpochs`. In general it is not recommended in a
     normal processing pipeline as it may result in edge artifacts. Use with
     caution.
     """
@@ -495,7 +471,7 @@ class FilterEstimator(TransformerMixin):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
-        self.picks = _check_type_picks(picks)
+        self.picks = _picks_to_idx(info, picks)
         self.filter_length = filter_length
         self.l_trans_bandwidth = l_trans_bandwidth
         self.h_trans_bandwidth = h_trans_bandwidth
@@ -700,6 +676,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         return X
 
 
+@fill_doc
 class TemporalFilter(TransformerMixin):
     """Estimator to filter data array along the last dimension.
 
@@ -773,11 +750,8 @@ class TemporalFilter(TransformerMixin):
         a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
-        ..versionadded:: 0.15
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
-        self.verbose.
+        .. versionadded:: 0.15
+    %(verbose)s
 
     See Also
     --------

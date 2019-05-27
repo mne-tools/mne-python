@@ -12,14 +12,18 @@ import tarfile
 import stat
 import sys
 import zipfile
+import tempfile
 from distutils.version import LooseVersion
 
 import numpy as np
 
+from ._fsaverage.base import fetch_fsaverage
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir, hashfunc)
+                     verbose, get_subjects_dir, hashfunc, _pl)
+from ..utils.docs import docdict
+from ..externals.doccer import docformat
 
 
 _data_path_doc = """Get path to local copy of {name} dataset.
@@ -43,15 +47,14 @@ _data_path_doc = """Get path to local copy of {name} dataset.
         it will not be downloaded and the path will be returned as
         '' (empty string). This is mostly used for debugging purposes
         and can be safely ignored by most users.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`).
+    %(verbose)s
 
     Returns
     -------
     path : str
         Path to {name} dataset directory.
 """
-
+_data_path_doc = docformat(_data_path_doc, docdict)
 
 _version_doc = """Get version of the local {name} dataset.
 
@@ -190,8 +193,9 @@ def _get_path(path, key, name):
 def _do_path_update(path, update_path, key, name):
     """Update path."""
     path = op.abspath(path)
-    if update_path is None:
-        if get_config(key, '') != path:
+    identical = get_config(key, '', use_env=False) == path
+    if not identical:
+        if update_path is None:
             update_path = True
             if '--update-dataset-path' in sys.argv:
                 answer = 'y'
@@ -202,11 +206,9 @@ def _do_path_update(path, update_path, key, name):
                 answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
-        else:
-            update_path = False
 
-    if update_path is True:
-        set_config(key, path, set_env=False)
+        if update_path:
+            set_config(key, path, set_env=False)
     return path
 
 
@@ -234,7 +236,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.61', misc='0.3')
+    releases = dict(testing='0.66', misc='0.3')
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -243,29 +245,29 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # try to match url->archive_name->folder_name
     urls = dict(  # the URLs to use
         brainstorm=dict(
-            bst_auditory='https://osf.io/5t9n8/download',
-            bst_phantom_ctf='https://osf.io/sxr8y/download',
-            bst_phantom_elekta='https://osf.io/dpcku/download',
-            bst_raw='https://osf.io/9675n/download',
-            bst_resting='https://osf.io/m7bd3/download'),
+            bst_auditory='https://osf.io/5t9n8/download?version=1',
+            bst_phantom_ctf='https://osf.io/sxr8y/download?version=1',
+            bst_phantom_elekta='https://osf.io/dpcku/download?version=1',
+            bst_raw='https://osf.io/9675n/download?version=2',
+            bst_resting='https://osf.io/m7bd3/download?version=3'),
         fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
              'datasets/foo.tgz',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
-        sample="https://osf.io/86qa2/download",
-        somato='https://osf.io/tp4sg/download',
-        spm='https://osf.io/je4s8/download',
+        sample="https://osf.io/86qa2/download?version=4",
+        somato='https://osf.io/tp4sg/download?version=2',
+        spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
-        opm='https://osf.io/p6ae7/download',
+        opm='https://osf.io/p6ae7/download?version=2',
         visual_92_categories=[
-            'https://osf.io/8ejrs/download',
-            'https://osf.io/t4yjp/download'],
-        mtrf='https://osf.io/h85s2/download',
-        kiloword='https://osf.io/qkvf9/download',
-        fieldtrip_cmc='https://osf.io/j9b6s/download',
-        phantom_4dbti='https://osf.io/v2brw/download',
+            'https://osf.io/8ejrs/download?version=1',
+            'https://osf.io/t4yjp/download?version=1'],
+        mtrf='https://osf.io/h85s2/download?version=1',
+        kiloword='https://osf.io/qkvf9/download?version=1',
+        fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
+        phantom_4dbti='https://osf.io/v2brw/download?version=1',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -310,15 +312,15 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_phantom_ctf='80819cb7f5b92d1a5289db3fb6acb33c',
             bst_phantom_elekta='1badccbe17998d18cc373526e86a7aaf',
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
-            bst_resting='b0139548e459bcff0e55a7acd85cdc5b'),
+            bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
         misc='d822a720ef94302467cb6ad1d320b669',
         sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
         somato='77a7601948c9e38d2da52446e2eab10f',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='db282fff3ac5eaeade52f9237da181da',
+        testing='f84d441c8e72fcc4e632332d49cf38fd',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
-        opm='56e4ad38af7f5550fc0a6c6ad655f888',
+        opm='370ad1dcfd5c47e029e692c85358a374',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
                               '203410a98afc9df9ae8ba9f933370e20'],
         kiloword='3a124170795abbd2e48aae8727e719a8',
@@ -466,7 +468,7 @@ def _extract(path, name, folder_path, archive_name, folder_orig, remove_dir):
             if do:
                 func(path)
             else:
-                raise
+                raise exc_info[1]
         shutil.rmtree(folder_path, onerror=onerror)
 
     logger.info('Decompressing the archive: %s' % archive_name)
@@ -554,7 +556,7 @@ def _download_all_example_data(verbose=True):
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword, phantom_4dbti)
+                   kiloword, phantom_4dbti, sleep_physionet)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -571,9 +573,7 @@ def _download_all_example_data(verbose=True):
     try:
         brainstorm.bst_raw.data_path()
         brainstorm.bst_auditory.data_path()
-        # not currently used; remember to add entry to .circleci/config.yml if
-        # we ever do use it
-        # brainstorm.bst_resting.data_path()
+        brainstorm.bst_resting.data_path()
         brainstorm.bst_phantom_elekta.data_path()
         brainstorm.bst_phantom_ctf.data_path()
     finally:
@@ -585,6 +585,11 @@ def _download_all_example_data(verbose=True):
     megsim.load_data(condition='visual', data_format='evoked',
                      data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1],
+                                   update_path=True)
+    # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
+    # (probably on CircleCI, or otherwise advanced user)
+    fetch_fsaverage(None)
     sys.argv += ['--accept-hcpmmp-license']
     try:
         fetch_hcp_mmp_parcellation()
@@ -604,8 +609,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     subjects_dir : str | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     References
     ----------
@@ -640,8 +644,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     combine : bool
         If True, also produce the combined/reduced set of 23 labels per
         hemisphere as ``HCPMMP1_combined.annot`` [3]_.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Notes
     -----
@@ -770,3 +773,31 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
         assert len(labels_out) == 46
         write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
                               hemi='both', subjects_dir=subjects_dir)
+
+
+def _manifest_check_download(manifest_path, destination, url, hash_):
+    with open(manifest_path, 'r') as fid:
+        names = [name.strip() for name in fid.readlines()]
+    need = list()
+    for name in names:
+        if not op.isfile(op.join(destination, name)):
+            need.append(name)
+    logger.info('%d file%s missing from %s in %s'
+                % (len(need), _pl(need), manifest_path, destination))
+    if len(need) > 0:
+        with tempfile.TemporaryDirectory() as path:
+            logger.info('Downloading missing files remotely')
+
+            fname_path = op.join(path, 'temp.zip')
+            _fetch_file(url, fname_path, hash_=hash_)
+            logger.info('Extracting missing file%s' % (_pl(need),))
+            with zipfile.ZipFile(fname_path, 'r') as ff:
+                members = set(f for f in ff.namelist() if not f.endswith('/'))
+                missing = sorted(members.symmetric_difference(set(names)))
+                if len(missing):
+                    raise RuntimeError('Zip file did not have correct names:'
+                                       '\n%s' % ('\n'.join(missing)))
+                for name in need:
+                    ff.extract(name, path=destination)
+        logger.info('Successfully extracted %d file%s'
+                    % (len(need), _pl(need)))

@@ -12,7 +12,224 @@ import warnings
 import webbrowser
 
 from .config import get_config
+from ..externals.doccer import filldoc, unindent_dict
+from .check import _check_option
 
+
+##############################################################################
+# Define our standard documentation entries
+
+docdict = dict()
+
+# Verbose
+docdict['verbose'] = """
+verbose : bool, str, int, or None
+    If not None, override default verbose level (see :func:`mne.verbose`
+    and :ref:`Logging documentation <tut_logging>` for more)."""
+docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
+
+# Picks
+docdict['picks_header'] = 'picks : str | list | slice | None'
+docdict['picks_base'] = docdict['picks_header'] + """
+    Channels to include. Slices and lists of integers will be
+    interpreted as channel indices. In lists, channel *type* strings
+    (e.g., ``['meg', 'eeg']``) will pick channels of those
+    types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
+    will pick the given channels. Can also be the string values
+    "all" to pick all channels, or "data" to pick data channels.
+    None (default) will pick """
+docdict['picks_all'] = docdict['picks_base'] + 'all channels.\n'
+docdict['picks_all_data'] = docdict['picks_base'] + 'all data channels.\n'
+docdict['picks_all_data_noref'] = (docdict['picks_all_data'][:-2] +
+                                   '(excluding reference MEG channels).\n')
+docdict['picks_good_data'] = docdict['picks_base'] + 'good data channels.\n'
+docdict['picks_good_data_noref'] = (docdict['picks_good_data'][:-2] +
+                                    '(excluding reference MEG channels).\n')
+docdict['picks_nostr'] = """
+picks : list | slice | None
+    Channels to include. Slices and lists of integers will be
+    interpreted as channel indices. None (default) will pick all channels.
+"""
+
+# Filtering
+docdict['l_freq'] = """
+l_freq : float | None
+    For FIR filters, the lower pass-band edge; for IIR filters, the upper
+    cutoff frequency. If None the data are only low-passed.
+"""
+docdict['h_freq'] = """
+h_freq : float | None
+    For FIR filters, the upper pass-band edge; for IIR filters, the upper
+    cutoff frequency. If None the data are only low-passed.
+"""
+docdict['filter_length'] = """
+filter_length : str | int
+    Length of the FIR filter to use (if applicable):
+
+    * **'auto' (default)**: The filter length is chosen based
+      on the size of the transition regions (6.6 times the reciprocal
+      of the shortest transition band for fir_window='hamming'
+      and fir_design="firwin2", and half that for "firwin").
+    * **str**: A human-readable time in
+      units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+      converted to that number of samples if ``phase="zero"``, or
+      the shortest power-of-two length at least that duration for
+      ``phase="zero-double"``.
+    * **int**: Specified length in samples. For fir_design="firwin",
+      this should not be used.
+
+"""
+docdict['l_trans_bandwidth'] = """
+l_trans_bandwidth : float | str
+    Width of the transition band at the low cut-off frequency in Hz
+    (high pass or cutoff 1 in bandpass). Can be "auto"
+    (default) to use a multiple of ``l_freq``::
+
+        min(max(l_freq * 0.25, 2), l_freq)
+
+    Only used for ``method='fir'``.
+"""
+docdict['h_trans_bandwidth'] = """
+h_trans_bandwidth : float | str
+    Width of the transition band at the high cut-off frequency in Hz
+    (low pass or cutoff 2 in bandpass). Can be "auto"
+    (default in 0.14) to use a multiple of ``h_freq``::
+
+        min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+    Only used for ``method='fir'``.
+"""
+docdict['phase'] = """
+phase : str
+    Phase of the filter, only used if ``method='fir'``.
+    Symmetric linear-phase FIR filters are constructed, and if ``phase='zero'``
+    (default), the delay of this filter is compensated for, making it
+    non-causal. If ``phase=='zero-double'``,
+    then this filter is applied twice, once forward, and once backward
+    (also making it non-causal). If 'minimum', then a minimum-phase filter will
+    be constricted and applied, which is causal but has weaker stop-band
+    suppression.
+
+    .. versionadded:: 0.13
+"""
+docdict['fir_design'] = """
+fir_design : str
+    Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+    or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+    a time-domain design technique that generally gives improved
+    attenuation using fewer samples than "firwin2".
+
+    .. versionadded:: 0.15
+"""
+docdict['fir_window'] = """
+fir_window : str
+    The window to use in FIR design, can be "hamming" (default),
+    "hann" (default in 0.13), or "blackman".
+
+    .. versionadded:: 0.15
+"""
+docdict['pad-fir'] = """
+pad : str
+    The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+    options. Can also be "reflect_limited", which pads with a
+    reflected version of each vector mirrored on the first and last
+    values of the vector, followed by zeros. Only used for ``method='fir'``.
+"""
+docdict['method-fir'] = """
+method : str
+    'fir' will use overlap-add FIR filtering, 'iir' will use IIR
+    forward-backward filtering (via filtfilt).
+"""
+docdict['n_jobs-fir'] = """
+n_jobs : int | str
+    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+    is installed properly and method='fir'.
+"""
+docdict['n_jobs-cuda'] = """
+n_jobs : int | str
+    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+    is installed properly.
+"""
+docdict['iir_params'] = """
+iir_params : dict | None
+    Dictionary of parameters to use for IIR filtering.
+    If iir_params is None and method="iir", 4th order Butterworth will be used.
+    For more information, see :func:`mne.filter.construct_iir_filter`.
+"""
+docdict['npad'] = """
+npad : int | str
+    Amount to pad the start and end of the data.
+    Can also be "auto" to use a padding that will result in
+    a power-of-two size (can be much faster).
+"""
+docdict['window-resample'] = """
+window : str | tuple
+    Frequency-domain window to use in resampling.
+    See :func:`scipy.signal.resample`.
+"""
+
+# Rank
+docdict['rank'] = """
+rank : None | dict | 'info' | 'full'
+    This controls the rank computation that can be read from the
+    measurement info or estimated from the data. See ``Notes``
+    of :func:`mne.compute_rank` for details."""
+docdict['rank_None'] = docdict['rank'] + 'The default is None.'
+docdict['rank_info'] = docdict['rank'] + 'The default is "info".'
+
+# Inverses
+docdict['depth'] = """
+depth : None | float | dict
+    How to weight (or normalize) the forward using a depth prior.
+    If float (default 0.8), it acts as the depth weighting exponent (``exp``)
+    to use, which must be between 0 and 1. None is equivalent to 0, meaning
+    no depth weighting is performed. It can also be a `dict` containing
+    keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
+    (see docstring for details and defaults).
+"""
+
+# Forward
+docdict['on_missing'] = """
+on_missing : str
+        Behavior when ``stc`` has vertices that are not in ``fwd``.
+        Can be "ignore", "warn"", or "raise"."""
+
+# Simulation
+docdict['random_state'] = """
+random_state : None | int | ~numpy.random.RandomState
+    The random generator state used for blink, ECG, and sensor
+    noise randomization. Default is None, which does not set the seed.
+"""
+docdict['interp'] = """
+interp : str
+    Either 'hann', 'cos2' (default), 'linear', or 'zero', the type of
+    forward-solution interpolation to use between forward solutions
+    at different head positions.
+"""
+docdict['head_pos'] = """
+head_pos : None | str | dict | tuple | array
+    Name of the position estimates file. Should be in the format of
+    the files produced by MaxFilter. If dict, keys should
+    be the time points and entries should be 4x4 ``dev_head_t``
+    matrices. If None, the original head position (from
+    ``info['dev_head_t']``) will be used. If tuple, should have the
+    same format as data returned by `head_pos_to_trans_rot_t`.
+    If array, should be of the form returned by
+    :func:`mne.chpi.read_head_pos`.
+"""
+docdict['n_jobs'] = """
+n_jobs : int
+    The number of jobs to run in parallel (default 1).
+    Requires the joblib package.
+"""
+
+# Finalize
+docdict = unindent_dict(docdict)
+fill_doc = filldoc(docdict, unindent_params=False)
+
+
+##############################################################################
+# Utilities for docstring manipulation.
 
 def copy_doc(source):
     """Copy the docstring from another function (decorator).
@@ -128,6 +345,12 @@ def copy_function_doc_to_method_doc(source):
     """
     def wrapper(func):
         doc = source.__doc__.split('\n')
+        if len(doc) == 1:
+            doc = doc[0]
+            if func.__doc__ is not None:
+                doc += func.__doc__
+            func.__doc__ = doc
+            return func
 
         # Find parameter block
         for line, text in enumerate(doc[:-2]):
@@ -185,6 +408,42 @@ def copy_function_doc_to_method_doc(source):
     return wrapper
 
 
+def copy_base_doc_to_subclass_doc(subclass):
+    """Use the docstring from a parent class methods in derived class.
+
+    The docstring of a parent class method is prepended to the
+    docstring of the method of the class wrapped by this decorator.
+
+    Parameters
+    ----------
+    subclass : wrapped class
+        Class to copy the docstring to.
+
+    Returns
+    -------
+    subclass : Derived class
+        The decorated class with copied docstrings.
+    """
+    ancestors = subclass.mro()[1:-1]
+
+    for source in ancestors:
+        methodList = [method for method in dir(source)
+                      if callable(getattr(source, method))]
+        for method_name in methodList:
+            # discard private methods
+            if method_name[0] == '_':
+                continue
+            base_method = getattr(source, method_name)
+            sub_method = getattr(subclass, method_name)
+            if base_method is not None and sub_method is not None:
+                doc = base_method.__doc__
+                if sub_method.__doc__ is not None:
+                    doc += '\n' + sub_method.__doc__
+                sub_method.__doc__ = doc
+
+    return subclass
+
+
 def linkcode_resolve(domain, info):
     """Determine the URL corresponding to a Python object.
 
@@ -223,6 +482,9 @@ def linkcode_resolve(domain, info):
             obj = getattr(obj, part)
         except Exception:
             return None
+    # deal with our decorators properly
+    while hasattr(obj, '__wrapped__'):
+        obj = obj.__wrapped__
 
     try:
         fn = inspect.getsourcefile(obj)
@@ -235,8 +497,6 @@ def linkcode_resolve(domain, info):
             fn = None
     if not fn:
         return None
-    if fn == '<string>':  # verbose decorator
-        fn = inspect.getmodule(obj).__file__
     fn = op.relpath(fn, start=op.dirname(mne.__file__))
     fn = '/'.join(op.normpath(fn).split(os.sep))  # in case on Windows
 
@@ -276,16 +536,11 @@ def open_docs(kind=None, version=None):
         kind = get_config('MNE_DOCS_KIND', 'api')
     help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
                      examples='auto_examples/index.html')
-    if kind not in help_dict:
-        raise ValueError('kind must be one of %s, got %s'
-                         % (sorted(help_dict.keys()), kind))
+    _check_option('kind', kind, sorted(help_dict.keys()))
     kind = help_dict[kind]
     if version is None:
         version = get_config('MNE_DOCS_VERSION', 'stable')
-    versions = ('stable', 'dev')
-    if version not in versions:
-        raise ValueError('version must be one of %s, got %s'
-                         % (version, versions))
+    _check_option('version', version, ['stable', 'dev'])
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
 
 

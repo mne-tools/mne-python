@@ -38,7 +38,7 @@ def _get_data(ch_decim=1):
 
     noise_cov = mne.read_cov(fname_cov)
     noise_cov['projs'] = []
-    noise_cov = regularize(noise_cov, evoked.info, rank=None)
+    noise_cov = regularize(noise_cov, evoked.info, rank='full', proj=False)
     return evoked, noise_cov
 
 
@@ -128,7 +128,7 @@ def test_rap_music_simulated():
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
-    assert (0.98 < dipoles[0].gof.max() < 1.)
+    assert (0.97 < dipoles[0].gof.max() < 1.)
     assert (dipoles[0].gof.min() >= 0.)
     assert_array_equal(dipoles[0].gof, dipoles[1].gof)
 
@@ -173,6 +173,19 @@ def test_rap_music_sphere():
     dip_fit = mne.fit_dipole(evoked, noise_cov, sphere)[0]
     assert (np.max(np.abs(np.dot(dip_fit.ori, dipoles[0].ori[0]))) > 0.99)
     assert (np.max(np.abs(np.dot(dip_fit.ori, dipoles[1].ori[0]))) > 0.99)
+
+
+@testing.requires_testing_data
+def test_rap_music_picks():
+    """Test RAP-MUSIC with picking."""
+    evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
+                              baseline=(None, 0))
+    evoked.crop(tmin=0.05, tmax=0.15)  # select N100
+    evoked.pick_types(meg=True, eeg=False)
+    forward = mne.read_forward_solution(fname_fwd)
+    noise_cov = mne.read_cov(fname_cov)
+    dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2)
+    assert len(dipoles) == 2
 
 
 run_tests_if_main()

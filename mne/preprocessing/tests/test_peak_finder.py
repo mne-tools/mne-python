@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 from mne.utils import run_tests_if_main
-from mne.preprocessing.peak_finder import peak_finder
+from mne.preprocessing import peak_finder
 
 
 def test_peak_finder():

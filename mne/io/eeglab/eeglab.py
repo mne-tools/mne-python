@@ -8,12 +8,11 @@ import os.path as op
 
 import numpy as np
 
-from ..utils import (_read_segments_file, _find_channels,
-                     _deprecate_stim_channel)
-from ..constants import FIFF, Bunch
+from ..utils import _read_segments_file, _find_channels
+from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
-from ...utils import logger, verbose, warn
+from ...utils import logger, verbose, warn, fill_doc, Bunch
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -134,8 +133,9 @@ def _get_info(eeg, montage, eog=()):
     return info
 
 
+@fill_doc
 def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
-                    uint16_codec=None, stim_channel=False, verbose=None):
+                    uint16_codec=None, verbose=None):
     r"""Read an EEGLAB .set file.
 
     Parameters
@@ -165,14 +165,7 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -188,10 +181,10 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
-                     eog=eog, verbose=verbose, uint16_codec=uint16_codec,
-                     stim_channel=stim_channel)
+                     eog=eog, verbose=verbose, uint16_codec=uint16_codec)
 
 
+@fill_doc
 def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
                        eog=(), verbose=None, uint16_codec=None):
     r"""Reader function for EEGLAB epochs files.
@@ -226,9 +219,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -256,6 +247,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
+@fill_doc
 class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
@@ -284,14 +276,7 @@ class RawEEGLAB(BaseRaw):
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -304,9 +289,7 @@ class RawEEGLAB(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=(), preload=False,
-                 uint16_codec=None, stim_channel=False,
-                 verbose=None):  # noqa: D102
-        _deprecate_stim_channel(stim_channel)
+                 uint16_codec=None, verbose=None):  # noqa: D102
         basedir = op.dirname(input_fname)
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
@@ -421,9 +404,7 @@ class EpochsEEGLAB(BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -479,8 +460,7 @@ class EpochsEEGLAB(BaseEpochs):
                     unique_ev.append(event_type)
 
                 # invent event dict but use id > 0 so you know its a trigger
-                event_id = dict((ev, idx + 1) for idx, ev
-                                in enumerate(unique_ev))
+                event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
 
             # warn about multiple events in epoch if necessary
             if warn_multiple_events:
@@ -610,12 +590,12 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
         duration[:] = [event.duration for event in events]
 
     return Annotations(onset=np.array(onset) / eeg.srate,
-                       duration=duration,
+                       duration=duration / eeg.srate,
                        description=description,
                        orig_time=None)
 
 
 def _dol_to_lod(dol):
     """Convert a dict of lists to a list of dicts."""
-    return [dict((key, dol[key][ii]) for key in dol.keys())
+    return [{key: dol[key][ii] for key in dol.keys()}
             for ii in range(len(dol[list(dol.keys())[0]]))]

@@ -30,7 +30,7 @@ def _check_input_st(x_in, n_fft):
         raise ValueError("n_fft cannot be smaller than signal size. "
                          "Got %s < %s." % (n_fft, n_times))
     if n_times < n_fft:
-        warn('The input signal is shorter ({0}) than "n_fft" ({1}). '
+        warn('The input signal is shorter ({}) than "n_fft" ({}). '
              'Applying zero padding.'.format(x_in.shape[-1], n_fft))
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
@@ -227,9 +227,7 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
         Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
         The number of jobs to run in parallel (over channels).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

@@ -9,6 +9,7 @@ from inspect import getmembers
 import numpy as np
 
 from .utils import check_indices
+from ..utils import _check_option
 from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
@@ -82,7 +83,7 @@ class _CohEst(_CohEstBase):
 
     name = 'Coherence'
 
-    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
+    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):  # lgtm
         """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
@@ -95,7 +96,7 @@ class _CohyEst(_CohEstBase):
 
     name = 'Coherency'
 
-    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
+    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):  # lgtm
         """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape,
@@ -109,7 +110,7 @@ class _ImCohEst(_CohEstBase):
 
     name = 'Imaginary Coherence'
 
-    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
+    def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):  # lgtm
         """Compute final con. score for some connections."""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
@@ -317,44 +318,37 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
         con_methods = [mtype(n_cons, n_freqs, n_times_spectrum)
                        for mtype in con_method_types]
 
+    _check_option('mode', mode, ('cwt_morlet', 'multitaper', 'fourier'))
     if len(sig_idx) == n_signals:
         # we use all signals: use a slice for faster indexing
         sig_idx = slice(None, None)
 
     # compute tapered spectra
-    if mode in ('multitaper', 'fourier'):
-        x_mt = list()
-        this_psd = list()
-        sig_pos_start = 0
-        for this_data in data:
-            this_n_sig = this_data.shape[0]
-            sig_pos_end = sig_pos_start + this_n_sig
-            if not isinstance(sig_idx, slice):
-                this_sig_idx = sig_idx[(sig_idx >= sig_pos_start) &
-                                       (sig_idx < sig_pos_end)] - sig_pos_start
-            else:
-                this_sig_idx = sig_idx
+    x_t = list()
+    this_psd = list()
+    for this_data in data:
+        if mode in ('multitaper', 'fourier'):
             if isinstance(this_data, _BaseSourceEstimate):
                 _mt_spectra_partial = partial(_mt_spectra, dpss=window_fun,
                                               sfreq=sfreq)
-                this_x_mt = this_data.transform_data(
-                    _mt_spectra_partial, idx=this_sig_idx, tmin_idx=tmin_idx,
+                this_x_t = this_data.transform_data(
+                    _mt_spectra_partial, idx=sig_idx, tmin_idx=tmin_idx,
                     tmax_idx=tmax_idx)
             else:
-                this_x_mt, _ = _mt_spectra(this_data[this_sig_idx,
-                                                     tmin_idx:tmax_idx],
-                                           window_fun, sfreq)
+                this_x_t, _ = _mt_spectra(
+                    this_data[sig_idx, tmin_idx:tmax_idx],
+                    window_fun, sfreq)
 
             if mt_adaptive:
                 # compute PSD and adaptive weights
                 _this_psd, weights = _psd_from_mt_adaptive(
-                    this_x_mt, eigvals, freq_mask, return_weights=True)
+                    this_x_t, eigvals, freq_mask, return_weights=True)
 
                 # only keep freqs of interest
-                this_x_mt = this_x_mt[:, :, freq_mask]
+                this_x_t = this_x_t[:, :, freq_mask]
             else:
                 # do not use adaptive weights
-                this_x_mt = this_x_mt[:, :, freq_mask]
+                this_x_t = this_x_t[:, :, freq_mask]
                 if mode == 'multitaper':
                     weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
                 else:
@@ -362,55 +356,26 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
                     weights = np.array([1.])[:, None, None]
 
                 if accumulate_psd:
-                    _this_psd = _psd_from_mt(this_x_mt, weights)
-
-            x_mt.append(this_x_mt)
-            if accumulate_psd:
-                this_psd.append(_this_psd)
-
-        x_mt = np.concatenate(x_mt, axis=0)
-        if accumulate_psd:
-            this_psd = np.concatenate(this_psd, axis=0)
-
-        # advance position
-        sig_pos_start = sig_pos_end
-
-    elif mode == 'cwt_morlet':
-        # estimate spectra using CWT
-        x_cwt = list()
-        this_psd = list()
-        sig_pos_start = 0
-        for this_data in data:
-            this_n_sig = this_data.shape[0]
-            sig_pos_end = sig_pos_start + this_n_sig
-            if not isinstance(sig_idx, slice):
-                this_sig_idx = sig_idx[(sig_idx >= sig_pos_start) &
-                                       (sig_idx < sig_pos_end)] - sig_pos_start
-            else:
-                this_sig_idx = sig_idx
+                    _this_psd = _psd_from_mt(this_x_t, weights)
+        else:  # mode == 'cwt_morlet'
             if isinstance(this_data, _BaseSourceEstimate):
                 cwt_partial = partial(cwt, Ws=wavelets, use_fft=True,
                                       mode='same')
-                this_x_cwt = this_data.transform_data(
-                    cwt_partial, idx=this_sig_idx, tmin_idx=tmin_idx,
+                this_x_t = this_data.transform_data(
+                    cwt_partial, idx=sig_idx, tmin_idx=tmin_idx,
                     tmax_idx=tmax_idx)
             else:
-                this_x_cwt = cwt(this_data[this_sig_idx, tmin_idx:tmax_idx],
-                                 wavelets, use_fft=True, mode='same')
+                this_x_t = cwt(this_data[sig_idx, tmin_idx:tmax_idx],
+                               wavelets, use_fft=True, mode='same')
+            _this_psd = (this_x_t * this_x_t.conj()).real
 
-            if accumulate_psd:
-                this_psd.append((this_x_cwt * this_x_cwt.conj()).real)
-
-            x_cwt.append(this_x_cwt)
-
-            # advance position
-            sig_pos_start = sig_pos_end
-
-        x_cwt = np.concatenate(x_cwt, axis=0)
+        x_t.append(this_x_t)
         if accumulate_psd:
-            this_psd = np.concatenate(this_psd, axis=0)
-    else:
-        raise RuntimeError('invalid mode')
+            this_psd.append(_this_psd)
+
+    x_t = np.concatenate(x_t, axis=0)
+    if accumulate_psd:
+        this_psd = np.concatenate(this_psd, axis=0)
 
     # accumulate or return psd
     if accumulate_psd:
@@ -430,29 +395,27 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
         for i in range(0, n_cons, block_size):
             con_idx = slice(i, i + block_size)
             if mt_adaptive:
-                csd = _csd_from_mt(x_mt[idx_map[0][con_idx]],
-                                   x_mt[idx_map[1][con_idx]],
+                csd = _csd_from_mt(x_t[idx_map[0][con_idx]],
+                                   x_t[idx_map[1][con_idx]],
                                    weights[idx_map[0][con_idx]],
                                    weights[idx_map[1][con_idx]])
             else:
-                csd = _csd_from_mt(x_mt[idx_map[0][con_idx]],
-                                   x_mt[idx_map[1][con_idx]],
+                csd = _csd_from_mt(x_t[idx_map[0][con_idx]],
+                                   x_t[idx_map[1][con_idx]],
                                    weights, weights)
 
             for method in con_methods:
                 method.accumulate(con_idx, csd)
-    elif mode in ('cwt_morlet',):  # reminder to add alternative TFR methods
+    else:  # mode == 'cwt_morlet'  # reminder to add alternative TFR methods
         for i_block, i in enumerate(range(0, n_cons, block_size)):
             con_idx = slice(i, i + block_size)
             # this codes can be very slow
-            csd = (x_cwt[idx_map[0][con_idx]] *
-                   x_cwt[idx_map[1][con_idx]].conjugate())
+            csd = (x_t[idx_map[0][con_idx]] *
+                   x_t[idx_map[1][con_idx]].conjugate())
 
             for method in con_methods:
                 method.accumulate(con_idx, csd)
                 # future estimator types need to be explicitly handled here
-    else:
-        raise RuntimeError('This should never happen')
 
     return con_methods, psd
 
@@ -568,6 +531,94 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     All methods are based on estimates of the cross- and power spectral
     densities (CSD/PSD) Sxy and Sxx, Syy.
 
+    Parameters
+    ----------
+    data : array-like, shape=(n_epochs, n_signals, n_times) | Epochs
+        The data from which to compute connectivity. Note that it is also
+        possible to combine multiple signals by providing a list of tuples,
+        e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
+        corresponds to 3 epochs, and arr_* could be an array with the same
+        number of time points as stc_*. The array-like object can also
+        be a list/generator of array, shape =(n_signals, n_times),
+        or a list/generator of SourceEstimate or VolSourceEstimate objects.
+    method : string | list of string
+        Connectivity measure(s) to compute.
+    indices : tuple of array | None
+        Two arrays with indices of connections for which to compute
+        connectivity. If None, all connections are computed.
+    sfreq : float
+        The sampling frequency.
+    mode : str
+        Spectrum estimation mode can be either: 'multitaper', 'fourier', or
+        'cwt_morlet'.
+    fmin : float | tuple of float
+        The lower frequency of interest. Multiple bands are defined using
+        a tuple, e.g., (8., 20.) for two bands with 8Hz and 20Hz lower freq.
+        If None the frequency corresponding to an epoch length of 5 cycles
+        is used.
+    fmax : float | tuple of float
+        The upper frequency of interest. Multiple bands are dedined using
+        a tuple, e.g. (13., 30.) for two band with 13Hz and 30Hz upper freq.
+    fskip : int
+        Omit every "(fskip + 1)-th" frequency bin to decimate in frequency
+        domain.
+    faverage : boolean
+        Average connectivity scores for each frequency band. If True,
+        the output freqs will be a list with arrays of the frequencies
+        that were averaged.
+    tmin : float | None
+        Time to start connectivity estimation. Note: when "data" is an array,
+        the first sample is assumed to be at time 0. For other types
+        (Epochs, etc.), the time information contained in the object is used
+        to compute the time indices.
+    tmax : float | None
+        Time to end connectivity estimation. Note: when "data" is an array,
+        the first sample is assumed to be at time 0. For other types
+        (Epochs, etc.), the time information contained in the object is used
+        to compute the time indices.
+    mt_bandwidth : float | None
+        The bandwidth of the multitaper windowing function in Hz.
+        Only used in 'multitaper' mode.
+    mt_adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD.
+        Only used in 'multitaper' mode.
+    mt_low_bias : bool
+        Only use tapers with more than 90%% spectral concentration within
+        bandwidth. Only used in 'multitaper' mode.
+    cwt_freqs : array
+        Array of frequencies of interest. Only used in 'cwt_morlet' mode.
+    cwt_n_cycles: float | array of float
+        Number of cycles. Fixed number or one per frequency. Only used in
+        'cwt_morlet' mode.
+    block_size : int
+        How many connections to compute at once (higher numbers are faster
+        but require more memory).
+    n_jobs : int
+        How many epochs to process in parallel.
+    %(verbose)s
+
+    Returns
+    -------
+    con : array | list of array
+        Computed connectivity measure(s). The shape of each array is either
+        (n_signals, n_signals, n_freqs) mode: 'multitaper' or 'fourier'
+        (n_signals, n_signals, n_freqs, n_times) mode: 'cwt_morlet'
+        when "indices" is None, or
+        (n_con, n_freqs) mode: 'multitaper' or 'fourier'
+        (n_con, n_freqs, n_times) mode: 'cwt_morlet'
+        when "indices" is specified and "n_con = len(indices[0])".
+    freqs : array
+        Frequency points at which the connectivity was computed.
+    times : array
+        Time points for which the connectivity was computed.
+    n_epochs : int
+        Number of epochs used for computation.
+    n_tapers : int
+        The number of DPSS tapers used. Only defined in 'multitaper' mode.
+        Otherwise None is returned.
+
+    Notes
+    -----
     The spectral densities can be estimated using a multitaper method with
     digital prolate spheroidal sequence (DPSS) windows, a discrete Fourier
     transform with Hanning windows, or a continuous wavelet transform using
@@ -636,94 +687,6 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
         'wpli2_debiased' : Debiased estimator of squared WPLI [5]_.
 
-
-    Parameters
-    ----------
-    data : array-like, shape=(n_epochs, n_signals, n_times) | Epochs
-        The data from which to compute connectivity. Note that it is also
-        possible to combine multiple signals by providing a list of tuples,
-        e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
-        corresponds to 3 epochs, and arr_* could be an array with the same
-        number of time points as stc_*. The array-like object can also
-        be a list/generator of array, shape =(n_signals, n_times),
-        or a list/generator of SourceEstimate or VolSourceEstimate objects.
-    method : string | list of string
-        Connectivity measure(s) to compute.
-    indices : tuple of array | None
-        Two arrays with indices of connections for which to compute
-        connectivity. If None, all connections are computed.
-    sfreq : float
-        The sampling frequency.
-    mode : str
-        Spectrum estimation mode can be either: 'multitaper', 'fourier', or
-        'cwt_morlet'.
-    fmin : float | tuple of float
-        The lower frequency of interest. Multiple bands are defined using
-        a tuple, e.g., (8., 20.) for two bands with 8Hz and 20Hz lower freq.
-        If None the frequency corresponding to an epoch length of 5 cycles
-        is used.
-    fmax : float | tuple of float
-        The upper frequency of interest. Multiple bands are dedined using
-        a tuple, e.g. (13., 30.) for two band with 13Hz and 30Hz upper freq.
-    fskip : int
-        Omit every "(fskip + 1)-th" frequency bin to decimate in frequency
-        domain.
-    faverage : boolean
-        Average connectivity scores for each frequency band. If True,
-        the output freqs will be a list with arrays of the frequencies
-        that were averaged.
-    tmin : float | None
-        Time to start connectivity estimation. Note: when "data" is an array,
-        the first sample is assumed to be at time 0. For other types
-        (Epochs, etc.), the time information contained in the object is used
-        to compute the time indices.
-    tmax : float | None
-        Time to end connectivity estimation. Note: when "data" is an array,
-        the first sample is assumed to be at time 0. For other types
-        (Epochs, etc.), the time information contained in the object is used
-        to compute the time indices.
-    mt_bandwidth : float | None
-        The bandwidth of the multitaper windowing function in Hz.
-        Only used in 'multitaper' mode.
-    mt_adaptive : bool
-        Use adaptive weights to combine the tapered spectra into PSD.
-        Only used in 'multitaper' mode.
-    mt_low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
-        bandwidth. Only used in 'multitaper' mode.
-    cwt_freqs : array
-        Array of frequencies of interest. Only used in 'cwt_morlet' mode.
-    cwt_n_cycles: float | array of float
-        Number of cycles. Fixed number or one per frequency. Only used in
-        'cwt_morlet' mode.
-    block_size : int
-        How many connections to compute at once (higher numbers are faster
-        but require more memory).
-    n_jobs : int
-        How many epochs to process in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    con : array | list of array
-        Computed connectivity measure(s). The shape of each array is either
-        (n_signals, n_signals, n_freqs) mode: 'multitaper' or 'fourier'
-        (n_signals, n_signals, n_freqs, n_times) mode: 'cwt_morlet'
-        when "indices" is None, or
-        (n_con, n_freqs) mode: 'multitaper' or 'fourier'
-        (n_con, n_freqs, n_times) mode: 'cwt_morlet'
-        when "indices" is specified and "n_con = len(indices[0])".
-    freqs : array
-        Frequency points at which the connectivity was computed.
-    times : array
-        Time points for which the connectivity was computed.
-    n_epochs : int
-        Number of epochs used for computation.
-    n_tapers : int
-        The number of DPSS tapers used. Only defined in 'multitaper' mode.
-        Otherwise None is returned.
 
     References
     ----------

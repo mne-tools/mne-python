@@ -4,18 +4,24 @@
 #
 # License: BSD (3-clause)
 
-
+from contextlib import contextmanager
 import hashlib
 from io import BytesIO, StringIO
+from math import sqrt
+import numbers
 import operator
+import os
+import os.path as op
 from math import ceil
+import shutil
 import sys
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import sparse
 
-from ._logging import logger, warn
+from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
+from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import deprecated
 
 
@@ -134,7 +140,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
 
     # Decompose the matrix
-    U, s, V = linalg.svd(x)
+    U, s, V = _safe_svd(x)
 
     # Estimate the rank before regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -142,7 +148,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
     # Decompose the matrix again after regularization
     loading_factor = reg * np.mean(s)
-    U, s, V = linalg.svd(x + loading_factor * np.eye(len(x)))
+    U, s, V = _safe_svd(x + loading_factor * np.eye(len(x)))
 
     # Estimate the rank after regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -286,22 +292,25 @@ def random_permutation(n_samples, random_state=None):
     return randperm
 
 
-def _apply_scaling_array(data, picks_list, scalings):
+@verbose
+def _apply_scaling_array(data, picks_list, scalings, verbose=None):
     """Scale data type-dependently for estimation."""
     scalings = _check_scaling_inputs(data, picks_list, scalings)
     if isinstance(scalings, dict):
+        logger.debug('    Scaling using mapping %s.' % (scalings,))
         picks_dict = dict(picks_list)
         scalings = [(picks_dict[k], v) for k, v in scalings.items()
                     if k in picks_dict]
         for idx, scaling in scalings:
             data[idx, :] *= scaling  # F - order
     else:
+        logger.debug('    Scaling using computed norms.')
         data *= scalings[:, np.newaxis]  # F - order
 
 
 def _invert_scalings(scalings):
     if isinstance(scalings, dict):
-        scalings = dict((k, 1. / v) for k, v in scalings.items())
+        scalings = {k: 1. / v for k, v in scalings.items()}
     elif isinstance(scalings, np.ndarray):
         scalings = 1. / scalings
     return scalings
@@ -310,7 +319,17 @@ def _invert_scalings(scalings):
 def _undo_scaling_array(data, picks_list, scalings):
     scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
                                                       scalings))
-    return _apply_scaling_array(data, picks_list, scalings)
+    return _apply_scaling_array(data, picks_list, scalings, verbose=False)
+
+
+@contextmanager
+def _scaled_array(data, picks_list, scalings):
+    """Scale, use, unscale array."""
+    _apply_scaling_array(data, picks_list=picks_list, scalings=scalings)
+    try:
+        yield
+    finally:
+        _undo_scaling_array(data, picks_list=picks_list, scalings=scalings)
 
 
 def _apply_scaling_cov(data, picks_list, scalings):
@@ -420,6 +439,17 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
     return hasher.hexdigest()
 
 
+def _replace_md5(fname):
+    """Replace a file based on MD5sum."""
+    # adapted from sphinx-gallery
+    assert fname.endswith('.new')
+    fname_old = fname[:-4]
+    if op.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+        os.remove(fname)
+    else:
+        shutil.move(fname, fname_old)
+
+
 def create_slices(start, stop, step=None, length=1):
     """Generate slices of time indexes.
 
@@ -474,6 +504,34 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
         raise ValueError('No samples remain when using tmin=%s and tmax=%s '
                          '(original time bounds are [%s, %s])'
                          % (orig_tmin, orig_tmax, times[0], times[-1]))
+    return mask
+
+
+def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
+    """Safely find frequency boundaries."""
+    orig_fmin = fmin
+    orig_fmax = fmax
+    fmin = -np.inf if fmin is None else fmin
+    fmax = np.inf if fmax is None else fmax
+    if not np.isfinite(fmin):
+        fmin = freqs[0]
+    if not np.isfinite(fmax):
+        fmax = freqs[-1]
+    if sfreq is None:
+        raise ValueError('sfreq can not be None')
+    # Push 0.5/sfreq past the nearest frequency boundary first
+    sfreq = float(sfreq)
+    fmin = int(round(fmin * sfreq)) / sfreq - 0.5 / sfreq
+    fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq
+    if raise_error and fmin > fmax:
+        raise ValueError('fmin (%s) must be less than or equal to fmax (%s)'
+                         % (orig_fmin, orig_fmax))
+    mask = (freqs >= fmin)
+    mask &= (freqs <= fmax)
+    if raise_error and not mask.any():
+        raise ValueError('No frequencies remain when using fmin=%s and '
+                         'fmax=%s (original frequency bounds are [%s, %s])'
+                         % (orig_fmin, orig_fmax, freqs[0], freqs[-1]))
     return mask
 
 
@@ -538,7 +596,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         from ..time_frequency.tfr import combine_tfr as combine
 
     if drop_bads:
-        bads = list(set((b for inst in all_inst for b in inst.info['bads'])))
+        bads = list({b for inst in all_inst for b in inst.info['bads']})
         if bads:
             for inst in all_inst:
                 inst.drop_channels(bads)
@@ -683,7 +741,7 @@ def object_diff(a, b, pre=''):
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
                 out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes)):
+    elif isinstance(a, (str, int, float, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
@@ -711,3 +769,108 @@ def object_diff(a, b, pre=''):
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
+
+
+class _PCA(object):
+    """Principal component analysis (PCA)."""
+
+    # Adapted from sklearn and stripped down to just use linalg.svd
+    # and make it easier to later provide a "center" option if we want
+
+    def __init__(self, n_components=None, whiten=False):
+        self.n_components = n_components
+        self.whiten = whiten
+
+    def fit_transform(self, X, y=None):
+        X = X.copy()
+        U, S, _ = self._fit(X)
+        U = U[:, :self.n_components_]
+
+        if self.whiten:
+            # X_new = X * V / S * sqrt(n_samples) = U * sqrt(n_samples)
+            U *= sqrt(X.shape[0] - 1)
+        else:
+            # X_new = X * V = U * S * V^T * V = U * S
+            U *= S[:self.n_components_]
+
+        return U
+
+    def _fit(self, X):
+        if self.n_components is None:
+            n_components = min(X.shape)
+        else:
+            n_components = self.n_components
+        n_samples, n_features = X.shape
+
+        if n_components == 'mle':
+            if n_samples < n_features:
+                raise ValueError("n_components='mle' is only supported "
+                                 "if n_samples >= n_features")
+        elif not 0 <= n_components <= min(n_samples, n_features):
+            raise ValueError("n_components=%r must be between 0 and "
+                             "min(n_samples, n_features)=%r with "
+                             "svd_solver='full'"
+                             % (n_components, min(n_samples, n_features)))
+        elif n_components >= 1:
+            if not isinstance(n_components, (numbers.Integral, np.integer)):
+                raise ValueError("n_components=%r must be of type int "
+                                 "when greater than or equal to 1, "
+                                 "was of type=%r"
+                                 % (n_components, type(n_components)))
+
+        self.mean_ = np.mean(X, axis=0)
+        X -= self.mean_
+
+        U, S, V = _safe_svd(X, full_matrices=False)
+        # flip eigenvectors' sign to enforce deterministic output
+        U, V = svd_flip(U, V)
+
+        components_ = V
+
+        # Get variance explained by singular values
+        explained_variance_ = (S ** 2) / (n_samples - 1)
+        total_var = explained_variance_.sum()
+        explained_variance_ratio_ = explained_variance_ / total_var
+        singular_values_ = S.copy()  # Store the singular values.
+
+        # Postprocess the number of components required
+        if n_components == 'mle':
+            n_components = \
+                _infer_dimension_(explained_variance_, n_samples, n_features)
+        elif 0 < n_components < 1.0:
+            # number of components for which the cumulated explained
+            # variance percentage is superior to the desired threshold
+            ratio_cumsum = stable_cumsum(explained_variance_ratio_)
+            n_components = np.searchsorted(ratio_cumsum, n_components) + 1
+
+        # Compute noise covariance using Probabilistic PCA model
+        # The sigma2 maximum likelihood (cf. eq. 12.46)
+        if n_components < min(n_features, n_samples):
+            self.noise_variance_ = explained_variance_[n_components:].mean()
+        else:
+            self.noise_variance_ = 0.
+
+        self.n_samples_, self.n_features_ = n_samples, n_features
+        self.components_ = components_[:n_components]
+        self.n_components_ = n_components
+        self.explained_variance_ = explained_variance_[:n_components]
+        self.explained_variance_ratio_ = \
+            explained_variance_ratio_[:n_components]
+        self.singular_values_ = singular_values_[:n_components]
+
+        return U, S, V
+
+
+def _mask_to_onsets_offsets(mask):
+    """Group boolean mask into contiguous onset:offset pairs."""
+    assert mask.dtype == bool and mask.ndim == 1
+    mask = mask.astype(int)
+    diff = np.diff(mask)
+    onsets = np.where(diff > 0)[0] + 1
+    if mask[0]:
+        onsets = np.concatenate([[0], onsets])
+    offsets = np.where(diff < 0)[0] + 1
+    if mask[-1]:
+        offsets = np.concatenate([offsets, [len(mask)]])
+    assert len(onsets) == len(offsets)
+    return onsets, offsets

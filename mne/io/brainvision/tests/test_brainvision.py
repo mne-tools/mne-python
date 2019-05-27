@@ -4,24 +4,25 @@
 #
 # License: BSD (3-clause)
 
-import inspect
 import os.path as op
+from os import unlink
 import shutil
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
+from tempfile import NamedTemporaryFile
 
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, read_annotations
+from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
+from mne.annotations import events_from_annotations
 
-FILE = inspect.getfile(inspect.currentframe())
-data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
+data_dir = op.join(op.dirname(__file__), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 vmrk_path = op.join(data_dir, 'test.vmrk')
 eeg_path = op.join(data_dir, 'test.eeg')
@@ -52,6 +53,9 @@ neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
 
 # Test for nanovolts as unit
 vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
+
+# Test bad date
+vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
 
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
@@ -88,6 +92,12 @@ def test_vmrk_meas_date():
     # Test files with no date, we should get DATE_NONE from mne.io.write
     with pytest.warns(RuntimeWarning, match='coordinate information'):
         raw = read_raw_brainvision(vhdr_v2_path)
+    assert raw.info['meas_date'] is None
+    assert 'unspecified' in repr(raw.info)
+
+    # Test files with faulty dates introduced by segmenting a file without
+    # date information. Should not raise a strptime ValueError
+    raw = read_raw_brainvision(vhdr_bad_date)
     assert raw.info['meas_date'] is None
     assert 'unspecified' in repr(raw.info)
 
@@ -425,23 +435,88 @@ def test_brainvision_neuroone_export():
 def test_read_vmrk_annotations():
     """Test load brainvision annotations."""
     sfreq = 1000.0
-    annotations = read_annotations(vmrk_path, sfreq=sfreq)
-    assert annotations.orig_time == 1384359243.794231
-    expected = np.array([0, 486., 496., 1769., 1779., 3252., 3262., 4935.,
-                         4945., 5999., 6619., 6629., 7629., 7699.]) / sfreq
-    description = ['New Segment/',
-                   'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
-                   'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255',
-                   'Stimulus/S253', 'Stimulus/S255', 'Response/R255',
-                   'Stimulus/S254', 'Stimulus/S255',
-                   'SyncStatus/Sync On', 'Optic/O  1']
-    assert_array_almost_equal(annotations.onset,
-                              expected, decimal=7)
-    assert_array_equal(annotations.description, description)
 
-    # Test automatic detection of sfreq from header file
-    annotations_auto = read_annotations(vmrk_path)
-    assert_array_equal(annotations.onset, annotations_auto.onset)
+    # Test vmrk file without annotations
+    # delete=False is for Windows compatibility
+    with open(vmrk_path) as myfile:
+        head = [next(myfile) for x in range(6)]
+    with NamedTemporaryFile(mode='w+', suffix='.vmrk', delete=False) as temp:
+        for item in head:
+            temp.write(item)
+        temp.seek(0)
+        read_annotations(temp.name, sfreq=sfreq)
+    try:
+        temp.close()
+        unlink(temp.name)
+    except FileNotFoundError:
+        pass
+
+
+@testing.requires_testing_data
+def test_read_vhdr_annotations_and_events():
+    """Test load brainvision annotations and parse them to events."""
+    sfreq = 1000.0
+    expected_orig_time = 1384359243.794231
+    expected_onset_latency = np.array(
+        [0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945., 5999., 6619.,
+         6629., 7629., 7699.]
+    )
+    expected_annot_description = [
+        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
+        'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255', 'Stimulus/S253',
+        'Stimulus/S255', 'Response/R255', 'Stimulus/S254', 'Stimulus/S255',
+        'SyncStatus/Sync On', 'Optic/O  1'
+    ]
+    expected_events = np.stack([
+        expected_onset_latency,
+        np.zeros_like(expected_onset_latency),
+        [99999, 253, 255, 254, 255, 254, 255, 253, 255, 1255, 254, 255, 99998,
+         2001],
+    ]).astype('int64').T
+    expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
+                         'Stimulus/S255': 255, 'Stimulus/S254': 254,
+                         'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
+                         'Optic/O  1': 2001}
+
+    raw = read_raw_brainvision(vhdr_path, eog=eog)
+
+    # validate annotations
+    assert raw.annotations.orig_time == expected_orig_time
+    assert_allclose(raw.annotations.onset, expected_onset_latency / sfreq)
+    assert_array_equal(raw.annotations.description, expected_annot_description)
+
+    # validate event extraction
+    events, event_id = events_from_annotations(raw)
+    assert_array_equal(events, expected_events)
+    assert event_id == expected_event_id
+
+    # validate that None gives us a sorted list
+    expected_none_event_id = {desc: idx + 1 for idx, desc in enumerate(sorted(
+        event_id.keys()))}
+    events, event_id = events_from_annotations(raw, event_id=None)
+    assert event_id == expected_none_event_id
+
+    # Add some custom ones, plus a 2-digit one
+    s_10 = 'Stimulus/S 10'
+    raw.annotations.append([1, 2, 3], 10, ['ZZZ', s_10, 'YYY'])
+    expected_event_id.update(YYY=10001, ZZZ=10002)  # others starting at 10001
+    expected_event_id[s_10] = 10
+    _, event_id = events_from_annotations(raw)
+    assert event_id == expected_event_id
+
+    # Concatenating two shouldn't change the resulting event_id
+    # (BAD and EDGE should be ignored)
+    with pytest.warns(RuntimeWarning, match='expanding outside'):
+        raw_concat = concatenate_raws([raw.copy(), raw.copy()])
+    _, event_id = events_from_annotations(raw_concat)
+    assert event_id == expected_event_id
+
+
+@testing.requires_testing_data
+def test_automatic_vmrk_sfreq_recovery():
+    """Test proper sfreq inference by checking the onsets."""
+    assert_array_equal(read_annotations(vmrk_path, sfreq='auto'),
+                       read_annotations(vmrk_path, sfreq=1000.0))
 
 
 run_tests_if_main()

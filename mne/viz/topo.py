@@ -13,9 +13,8 @@ from itertools import cycle
 
 import numpy as np
 
-from ..io.constants import Bunch
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn
+from ..utils import _clean_names, warn, _check_option, Bunch
 from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
@@ -26,7 +25,7 @@ from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
-                    axis_spinecolor='k', layout_scale=None):
+                    axis_spinecolor='k', layout_scale=None, legend=False):
     """Create iterator over channel positions.
 
     This function returns a generator that unpacks into
@@ -59,6 +58,10 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     layout_scale: float | None
         Scaling factor for adjusting the relative size of the layout
         on the canvas. If None, nothing will be scaled.
+    legend: bool
+        If True, an additional axis is created in the bottom right corner
+        that can be used to, e.g., construct a legend. The index of this
+        axis will be -1.
 
     Returns
     -------
@@ -71,12 +74,22 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     """
     return _iter_topography(info, layout, on_pick, fig, fig_facecolor,
-                            axis_facecolor, axis_spinecolor, layout_scale)
+                            axis_facecolor, axis_spinecolor, layout_scale,
+                            legend=legend)
+
+
+def _legend_axis(pos):
+    """Add a legend axis to the bottom right."""
+    import matplotlib.pyplot as plt
+    left, bottom = pos[:, 0].max(), pos[:, 1].min()
+    wid, hei = pos[-1, 2:]
+    return plt.axes([left, bottom + .05, wid, hei])
 
 
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                      axis_facecolor='k', axis_spinecolor='k',
-                     layout_scale=None, unified=False, img=False, axes=None):
+                     layout_scale=None, unified=False, img=False, axes=None,
+                     legend=False):
     """Iterate over topography.
 
     Has the same parameters as iter_topography, plus:
@@ -140,10 +153,12 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
         if not unified:  # old, slow way
             ax = plt.axes(pos[idx])
             ax.patch.set_facecolor(axis_facecolor)
-            plt.setp(list(ax.spines.values()), color=axis_spinecolor)
-            ax.set(xticklabels=[], yticklabels=[])
-            plt.setp(ax.get_xticklines(), visible=False)
-            plt.setp(ax.get_yticklines(), visible=False)
+            for spine in ax.spines.values():
+                spine.set_color(axis_spinecolor)
+            if not legend:
+                ax.set(xticklabels=[], yticklabels=[])
+                for tick in ax.get_xticklines() + ax.get_yticklines():
+                    tick.set_visible(False)
             ax._mne_ch_name = name
             ax._mne_ch_idx = ch_idx
             ax._mne_ax_face_color = axis_facecolor
@@ -154,6 +169,10 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                        _mne_ch_name=name, _mne_ch_idx=ch_idx,
                        _mne_ax_face_color=axis_facecolor)
             axs.append(ax)
+    if not unified and legend:
+        ax = _legend_axis(pos)
+        yield ax, -1
+
     if unified:
         under_ax._mne_axs = axs
         # Create a PolyCollection for the axis backgrounds
@@ -188,7 +207,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
     click_func = show_func if click_func is None else click_func
     on_pick = partial(click_func, tmin=tmin, tmax=tmax, vmin=vmin,
                       vmax=vmax, ylim=ylim, x_label=x_label,
-                      y_label=y_label, colorbar=colorbar)
+                      y_label=y_label)
 
     if axes is None:
         fig = plt.figure()
@@ -257,6 +276,7 @@ def _plot_topo_onpick(event, show_func):
 
         # allow custom function to override parameters
         show_func(ax, ch_idx)
+        plt_show(fig=fig)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
@@ -266,7 +286,7 @@ def _plot_topo_onpick(event, show_func):
         raise
 
 
-def _compute_scalings(bn, xlim, ylim):
+def _compute_ax_scalings(bn, xlim, ylim):
     """Compute scale factors for a unified plot."""
     if isinstance(ylim[0], (tuple, list, np.ndarray)):
         ylim = (ylim[0][0], ylim[1][0])
@@ -291,15 +311,13 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
-    if yscale not in ['auto', 'linear', 'log']:
-        raise ValueError("yscale should be either 'auto', 'linear', or 'log'"
-                         ", got {}".format(yscale))
+    _check_option('yscale', yscale, ['auto', 'linear', 'log'])
 
     cmap, interactive_cmap = cmap
     times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
 
     img, t_end = _plot_masked_image(
-        ax, tfr[ch_idx], times, mask, picks=None, yvals=freq, cmap=cmap,
+        ax, tfr[ch_idx], times, mask, yvals=freq, cmap=cmap,
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
         mask_cmap=mask_cmap, yscale=yscale)
 
@@ -324,7 +342,7 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
                         x_label=None, y_label=None, colorbar=False,
                         picker=True, cmap='RdBu_r', title=None, hline=None):
     """Show multiple tfrs on topo using a single axes."""
-    _compute_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
+    _compute_ax_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
     ax = bn.ax
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax,
@@ -350,44 +368,38 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.plot(times_, data_[ch_idx], color=color_)
 
-    if x_label is not None:
-        ax.set(xlabel=x_label)
-
-    if y_label is not None:
-        if isinstance(y_label, list):
-            ax.set_ylabel(y_label[ch_idx])
-        else:
-            ax.set_ylabel(y_label)
-
     def _format_coord(x, y, labels, ax):
         """Create status string based on cursor coordinates."""
         # find indices for datasets near cursor (if any)
         tdiffs = [np.abs(tvec - x).min() for tvec in times]
         nearby = [k for k, tdiff in enumerate(tdiffs) if
                   tdiff < (tmax - tmin) / 100]
-        timestr = '%6.3f s: ' % x
+        xlabel = ax.get_xlabel()
+        xunit = (xlabel[xlabel.find('(') + 1:xlabel.find(')')]
+                 if '(' in xlabel and ')' in xlabel else 's')
+        timestr = '%6.3f %s: ' % (x, xunit)
         if not nearby:
             return '%s Nothing here' % timestr
+        labels = [''] * len(nearby) if labels is None else labels
         nearby_data = [(data[n], labels[n], times[n]) for n in nearby]
         ylabel = ax.get_ylabel()
-        unit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
-                if '(' in ylabel and ')' in ylabel else '')
-        labels = [''] * len(nearby_data) if labels is None else labels
+        yunit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
+                 if '(' in ylabel and ')' in ylabel else '')
         # try to estimate whether to truncate condition labels
-        slen = 10 + sum([12 + len(unit) + len(label) for label in labels])
+        slen = 9 + len(xunit) + sum([12 + len(yunit) + len(label)
+                                     for label in labels])
         bar_width = (ax.figure.get_size_inches() * ax.figure.dpi)[0] / 5.5
         # show labels and y values for datasets near cursor
         trunc_labels = bar_width < slen
         s = timestr
         for data_, label, tvec in nearby_data:
             idx = np.abs(tvec - x).argmin()
-            s += '%7.2f %s' % (data_[ch_idx, idx], unit)
+            s += '%7.2f %s' % (data_[ch_idx, idx], yunit)
             if trunc_labels:
                 label = (label if len(label) <= 10 else
                          '%s..%s' % (label[:6], label[-2:]))
             s += ' [%s] ' % label if label else ' '
         return s
-
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)
 
     def _cursor_vline(event):
@@ -429,6 +441,15 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     ax.xaxis.label.set_color(hvline_color)
     ax.yaxis.label.set_color(hvline_color)
 
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+
+    if y_label is not None:
+        if isinstance(y_label, list):
+            ax.set_ylabel(y_label[ch_idx])
+        else:
+            ax.set_ylabel(y_label)
+
     if vline:
         plt.axvline(vline, color=hvline_color, linewidth=1.0,
                     linestyle='--')
@@ -448,7 +469,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     if not (ylim and not any(v is None for v in ylim)):
         ylim = [min(np.min(d) for d in data), max(np.max(d) for d in data)]
     # Translation and scale parameters to take data->under_ax normalized coords
-    _compute_scalings(bn, (tmin, tmax), ylim)
+    _compute_ax_scalings(bn, (tmin, tmax), ylim)
     pos = bn.pos
     data_lines = bn.data_lines
     ax = bn.ax
@@ -480,11 +501,13 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
 def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
                      epochs=None, sigma=None, order=None, scalings=None,
                      vline=None, x_label=None, y_label=None, colorbar=False,
-                     cmap='RdBu_r'):
+                     cmap='RdBu_r', vlim_array=None):
     """Plot erfimage on sensor topography."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
-    this_data = data[:, ch_idx, :].copy() * scalings[ch_idx]
+    this_data = data[:, ch_idx, :]
+    if vlim_array is not None:
+        vmin, vmax = vlim_array[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -511,15 +534,17 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
 def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                              data=None, epochs=None, sigma=None, order=None,
                              scalings=None, vline=None, x_label=None,
-                             y_label=None, colorbar=False, cmap='RdBu_r'):
+                             y_label=None, colorbar=False, cmap='RdBu_r',
+                             vlim_array=None):
     """Plot erfimage topography using a single axis."""
     from scipy import ndimage
-    _compute_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
+    _compute_ax_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,
               bn.y_t + bn.y_s * len(epochs.events))
-    this_data = data[:, ch_idx, :].copy() * scalings[ch_idx]
+    this_data = data[:, ch_idx, :]
+    vmin, vmax = (None, None) if vlim_array is None else vlim_array[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -680,19 +705,19 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not merge_grads:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
         chs_in_layout = set(layout.names) & set(ch_names)
-        types_used = set(channel_type(info, ch_names.index(ch))
-                         for ch in chs_in_layout)
+        types_used = {channel_type(info, ch_names.index(ch))
+                      for ch in chs_in_layout}
         # remove possible reference meg channels
         types_used = set.difference(types_used, set('ref_meg'))
         # one check for all vendors
-        meg_types = set(('mag', 'grad'))
+        meg_types = {'mag', 'grad'}
         is_meg = len(set.intersection(types_used, meg_types)) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         else:
-            types_used_kwargs = dict((t, True) for t in types_used)
+            types_used_kwargs = {t: True for t in types_used}
             picks = [pick_types(info, meg=False, exclude=[],
                                 **types_used_kwargs)]
         assert isinstance(picks, list) and len(types_used) == len(picks)
@@ -797,7 +822,7 @@ def _plot_update_evoked_topo_proj(params, bools):
 
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
-                           vmax=None, colorbar=True, order=None, cmap='RdBu_r',
+                           vmax=None, colorbar=None, order=None, cmap='RdBu_r',
                            layout_scale=.95, title=None, scalings=None,
                            border='none', fig_facecolor='k',
                            fig_background=None, font_color='w', show=True):
@@ -805,7 +830,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
 
     Parameters
     ----------
-    epochs : instance of Epochs
+    epochs : instance of :class:`~mne.Epochs`
         The epochs.
     layout: instance of Layout
         System specific sensor positions.
@@ -818,8 +843,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     vmax : float
         The max value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
-    colorbar : bool
-        Display or not a colorbar.
+    colorbar : bool | None
+        Whether to display a colorbar or not. If ``None`` a colorbar will be
+        shown only if all channels are of the same type. Defaults to ``None``.
     order : None | array of int | callable
         If not None, order is used to reorder the epochs on the y-axis
         of the image. If it's an array of int it should be of length
@@ -835,40 +861,69 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         Title of the figure.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If
-        None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        ``None``, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     border : str
         matplotlib borders style to be used for each sensor plot.
     fig_facecolor : color
         The figure face color. Defaults to black.
     fig_background : None | array
         A background image for the figure. This must be a valid input to
-        `matplotlib.pyplot.imshow`. Defaults to None.
+        :func:`matplotlib.pyplot.imshow`. Defaults to ``None``.
     font_color : color
         The color of tick labels in the colorbar. Defaults to white.
     show : bool
-        Show figure if True.
+        Whether to show the figure. Defaults to ``True``.
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
+    fig : instance of :class:`matplotlib.figure.Figure`
         Figure distributing one image per channel across sensor topography.
+
+    Notes
+    -----
+    In an interactive Python session, this plot will be interactive; clicking
+    on a channel image will pop open a larger view of the image; this image
+    will always have a colorbar even when the topo plot does not (because it
+    shows multiple sensor types).
     """
     scalings = _handle_default('scalings', scalings)
-    data = epochs.get_data()
-    scale_coeffs = list()
-    for idx in range(epochs.info['nchan']):
-        ch_type = channel_type(epochs.info, idx)
-        scale_coeffs.append(scalings.get(ch_type, 1))
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
+    # make a copy because we discard non-data channels and scale the data
+    epochs = epochs.copy().load_data()
+    # use layout to subset channels present in epochs object
     if layout is None:
         layout = find_layout(epochs.info)
+    ch_names = set(layout.names) & set(epochs.ch_names)
+    idxs = [epochs.ch_names.index(ch_name) for ch_name in ch_names]
+    epochs = epochs.pick(idxs)
+    # iterate over a sequential index to get lists of chan. type & scale coef.
+    ch_idxs = range(epochs.info['nchan'])
+    ch_types = [channel_type(epochs.info, idx) for idx in ch_idxs]
+    scale_coeffs = [scalings.get(ch_type, 1) for ch_type in ch_types]
+    # scale the data
+    epochs._data *= np.array(scale_coeffs)[:, np.newaxis]
+    data = epochs.get_data()
+    # get vlims for each channel type
+    vlim_dict = dict()
+    for ch_type in set(ch_types):
+        this_data = data[:, np.where(np.array(ch_types) == ch_type)]
+        vlim_dict[ch_type] = _setup_vmin_vmax(this_data, vmin, vmax)
+    vlim_array = np.array([vlim_dict[ch_type] for ch_type in ch_types])
+    # only show colorbar if we have a single channel type
+    if colorbar is None:
+        colorbar = (len(set(ch_types)) == 1)
+    # if colorbar=True, we know we have only 1 channel type so all entries
+    # in vlim_array are the same, just take the first one
+    if colorbar and vmin is None and vmax is None:
+        vmin, vmax = vlim_array[0]
 
     show_func = partial(_erfimage_imshow_unified, scalings=scale_coeffs,
                         order=order, data=data, epochs=epochs, sigma=sigma,
-                        cmap=cmap)
+                        cmap=cmap, vlim_array=vlim_array)
+
     erf_imshow = partial(_erfimage_imshow, scalings=scale_coeffs, order=order,
-                         data=data, epochs=epochs, sigma=sigma, cmap=cmap)
+                         data=data, epochs=epochs, sigma=sigma, cmap=cmap,
+                         vlim_array=vlim_array, colorbar=True)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
                      click_func=erf_imshow, show_func=show_func, layout=layout,

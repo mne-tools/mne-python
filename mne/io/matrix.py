@@ -32,9 +32,7 @@ def _read_named_matrix(fid, node, matkind, indent='    ', transpose=False,
         The type of matrix.
     transpose : bool
         If True, transpose the matrix. Default is False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

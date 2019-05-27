@@ -8,7 +8,7 @@ import numpy as np
 
 from ..fixes import _get_dpss
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose, logger
+from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
 def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
@@ -382,7 +382,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
@@ -390,9 +390,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         the signal (as in nitime).
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -413,9 +411,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     -----
     .. versionadded:: 0.14.0
     """
-    if normalization not in ('length', 'full'):
-        raise ValueError('Normalization must be "length" or "full", not %s'
-                         % normalization)
+    _check_option('normalization', normalization, ['length', 'full'])
 
     # Reshape data so its 2-D for parallelization
     ndim_in = x.ndim
@@ -510,9 +506,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     n_jobs : int
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.
-    verbose : bool, str, int, or None, default None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

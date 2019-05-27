@@ -5,6 +5,7 @@
 
 import os.path as op
 
+import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
 import pytest
 import matplotlib.pyplot as plt
@@ -100,8 +101,8 @@ def test_plot_ica_components():
     assert (lbl == title)
 
     ica.info = None
-    pytest.raises(ValueError, ica.plot_components, 1)
-    pytest.raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
+    with pytest.raises(RuntimeError, match='fit the ICA'):
+        ica.plot_components(1, ch_type='mag')
     plt.close('all')
 
 
@@ -115,6 +116,7 @@ def test_plot_ica_properties():
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
     raw.pick_channels(pick_names)
+    reject = dict(grad=4000e-13, mag=4e-12)
 
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
                     baseline=(None, 0), preload=True)
@@ -134,7 +136,7 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
                         topomap_args={'res': 10, 'colorbar': True},
                         psd_args={'fmax': 65.}, plot_std=False,
-                        figsize=[4.5, 4.5])
+                        figsize=[4.5, 4.5], reject=reject)
     plt.close('all')
 
     pytest.raises(TypeError, ica.plot_properties, epochs, dB=list('abc'))
@@ -180,9 +182,12 @@ def test_plot_ica_sources():
     fig.canvas.key_press_event('escape')
     # Sadly close_event isn't called on Agg backend and the test always passes.
     assert_array_equal(ica.exclude, [1])
+    plt.close('all')
 
+    # dtype can change int->np.int after load, test it explicitly
+    ica.n_components_ = np.int64(ica.n_components_)
     fig = ica.plot_sources(raw, [1])
-    # test mouse clicks
+    # also test mouse clicks
     data_ax = fig.axes[0]
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
 

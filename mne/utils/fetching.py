@@ -16,23 +16,30 @@ from .misc import sizeof_fmt
 from ._logging import warn, logger, verbose
 
 
+# Adapted from nilearn
+
+
 def _get_http(url, temp_file_name, initial_size, file_size, timeout,
               verbose_bool):
     """Safely (resume a) download to a file from http(s)."""
     # Actually do the reading
     req = request.Request(url)
     if initial_size > 0:
-        req.headers['Range'] = 'bytes=%s-' % (initial_size,)
-    try:
-        response = request.urlopen(req, timeout=timeout)
-    except Exception:
-        # There is a problem that may be due to resuming, some
-        # servers may not support the "Range" header. Switch
-        # back to complete download method
-        logger.info('Resuming download failed (server '
-                    'rejected the request). Attempting to '
-                    'restart downloading the entire file.')
-        del req.headers['Range']
+        logger.debug('  Resuming at %s' % (initial_size,))
+        req.add_header('Range', "bytes=%s-" % (initial_size,))
+        try:
+            response = request.urlopen(req, timeout=timeout)
+            content_range = response.info().get('Content-Range')
+            if (content_range is None or not content_range.startswith(
+                    'bytes %s-' % (initial_size,))):
+                raise IOError('Server does not support resuming')
+        except Exception:
+            # A wide number of errors can be raised here. HTTPError,
+            # URLError... I prefer to catch them all and rerun without
+            # resuming.
+            return _get_http(
+                url, temp_file_name, 0, file_size, timeout, verbose_bool)
+    else:
         response = request.urlopen(req, timeout=timeout)
     total_size = int(response.headers.get('Content-Length', '1').strip())
     if initial_size > 0 and file_size == total_size:
@@ -98,9 +105,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         The URL open timeout.
     hash_type : str
         The type of hashing to use such as "md5" or "sha1"
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py

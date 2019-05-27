@@ -12,10 +12,11 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, pick_types, read_cov
+from mne import (read_events, Epochs, pick_types, read_cov, create_info,
+                 EpochsArray)
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.utils import run_tests_if_main, requires_version
+from mne.utils import run_tests_if_main
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
 
@@ -25,28 +26,28 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 1.0
-n_chan = 20
 layout = read_layout('Vectorview-all')
 
 
-def _get_epochs():
+def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
     """Get epochs."""
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+    picks = pick_types(raw.info, meg=meg, eeg=eeg, stim=False,
                        ecg=False, eog=False, exclude='bads')
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+        epochs = Epochs(raw, events[:stop], event_id, tmin, tmax, picks=picks,
                         proj=False)
     epochs.info.normalize_proj()  # avoid warnings
     return epochs
 
 
-def test_plot_epochs():
+def test_plot_epochs(capsys):
     """Test epoch plotting."""
-    epochs = _get_epochs()
+    epochs = _get_epochs().load_data()
+    assert len(epochs.events) == 1
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
@@ -78,35 +79,25 @@ def test_plot_epochs():
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
     plt.close('all')
+    keystotest = ['b', 'b', 'left', 'right', 'up', 'down',
+                  'pageup', 'pagedown', '-', '+', '=',
+                  'f11', 'home', '?', 'h', 'o', 'end']
     fig = epochs.plot()
-    fig.canvas.key_press_event('left')
-    fig.canvas.key_press_event('right')
+    with pytest.warns(None):  # sometimes matplotlib warns about limits
+        for key in keystotest:
+            fig.canvas.key_press_event(key)
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event('pageup')
-    fig.canvas.key_press_event('pagedown')
-    fig.canvas.key_press_event('-')
-    fig.canvas.key_press_event('+')
-    fig.canvas.key_press_event('=')
-    fig.canvas.key_press_event('b')
-    fig.canvas.key_press_event('f11')
-    fig.canvas.key_press_event('home')
-    fig.canvas.key_press_event('?')
-    fig.canvas.key_press_event('h')
-    fig.canvas.key_press_event('o')
-    fig.canvas.key_press_event('end')
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')
-    pytest.raises(RuntimeError, epochs.plot, picks=[])
+    pytest.raises(ValueError, epochs.plot, picks=[])
     plt.close('all')
     fig = epochs.plot(events=epochs.events)
     # test mouse clicks
-    x = fig.get_axes()[0].get_xlim()[1] / 2
-    y = fig.get_axes()[0].get_ylim()[0] / 2
     data_ax = fig.get_axes()[0]
+    x = data_ax.get_xlim()[1] / 2
+    y = data_ax.get_ylim()[0] / 2
     n_epochs = len(epochs)
     _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
     _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
@@ -120,12 +111,33 @@ def test_plot_epochs():
     plt.close('all')
     epochs.plot_sensors()  # Test plot_sensors
     plt.close('all')
+    # gh-5906
+    epochs = _get_epochs(None).load_data()
+    epochs.load_data()
+    assert len(epochs) == 7
+    epochs.info['bads'] = [epochs.ch_names[0]]
+    capsys.readouterr()
+    fig = epochs.plot(n_epochs=3)
+    data_ax = fig.get_axes()[0]
+    _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+    fig.canvas.key_press_event('right')  # move right
+    x = fig.get_axes()[0].get_xlim()[1] / 6.
+    y = fig.get_axes()[0].get_ylim()[0] / 2
+    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
+    fig.canvas.key_press_event('left')  # move back
+    out, err = capsys.readouterr()
+    assert 'out of bounds' not in out
+    assert 'out of bounds' not in err
+    fig.canvas.close_event()
+    assert len(epochs) == 6
+    plt.close('all')
 
 
 def test_plot_epochs_image():
     """Test plotting of epochs image."""
     epochs = _get_epochs()
     epochs.plot_image(picks=[1, 2])
+    epochs.plot_image(picks='mag')
     overlay_times = [0.1]
     epochs.plot_image(picks=[1], order=[0], overlay_times=overlay_times,
                       vmin=0.01, title="test"
@@ -144,6 +156,7 @@ def test_plot_epochs_image():
                   picks=[1, 2])
     pytest.raises(ValueError, epochs.plot_image, units={"hi": 1},
                   scalings={"ho": 1})
+    assert len(epochs.plot_image(picks=["eeg", "mag", "grad"])) < 6
     epochs.load_data().pick_types(meg='mag')
     epochs.info.normalize_proj()
     epochs.plot_image(group_by='type', combine='mean')
@@ -173,7 +186,32 @@ def test_plot_drop_log():
     plt.close('all')
 
 
-@requires_version('scipy', '0.12')
+def test_plot_butterfly():
+    """Test butterfly view in epochs browse window."""
+    rng = np.random.RandomState(0)
+    n_epochs, n_channels, n_times = 50, 30, 20
+    sfreq = 1000.
+    data = np.sin(rng.randn(n_epochs, n_channels, n_times))
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, np.ones([n_epochs],
+                       dtype=np.int)]).T
+    chanlist = ['eeg' if chan < n_channels // 3 else 'ecog'
+                if chan < n_channels // 2 else 'seeg'
+                for chan in range(n_channels)]
+    info = create_info(n_channels, sfreq, chanlist)
+    epochs = EpochsArray(data, info, events)
+    fig = epochs.plot(butterfly=True)
+    keystotest = ['b', 'b', 'left', 'right', 'up', 'down',
+                  'pageup', 'pagedown', '-', '+', '=',
+                  'f11', 'home', '?', 'h', 'o', 'end']
+    for key in keystotest:
+        fig.canvas.key_press_event(key)
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    fig.canvas.resize_event()
+    fig.canvas.close_event()  # closing and epoch dropping
+    plt.close('all')
+
+
 def test_plot_psd_epochs():
     """Test plotting epochs psd (+topomap)."""
     epochs = _get_epochs()

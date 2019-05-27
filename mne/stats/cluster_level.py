@@ -16,7 +16,7 @@ from scipy import sparse
 from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
-                     check_random_state)
+                     check_random_state, _check_option)
 from ..source_estimate import SourceEstimate
 
 
@@ -287,8 +287,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         Sum of x values in clusters.
     """
     from scipy import ndimage
-    if tail not in [-1, 0, 1]:
-        raise ValueError('invalid tail parameter')
+    _check_option('tail', tail, [-1, 0, 1])
 
     x = np.asanyarray(x)
 
@@ -489,8 +488,7 @@ def _pval_from_histogram(T, H0, tail):
     For each stat compute a p-value as percentile of its statistics
     within all statistics in surrogate data
     """
-    if tail not in [-1, 0, 1]:
-        raise ValueError('invalid tail parameter')
+    _check_option('tail', tail, [-1, 0, 1])
 
     # from pct to fraction
     if tail == -1:  # up tail
@@ -509,7 +507,6 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
                          "scipy sparse matrix.")
     if connectivity.shape[0] == n_vertices:  # use global algorithm
         connectivity = connectivity.tocoo()
-        n_times = None
     else:  # use temporal adjacency algorithm
         if not round(n_vertices / float(connectivity.shape[0])) == n_times:
             raise ValueError('connectivity must be of the correct size')
@@ -743,8 +740,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     either a 1 sample t-test or an F test / more sample permutation scheme
     is elicited.
     """
-    if out_type not in ['mask', 'indices']:
-        raise ValueError('out_type must be either \'mask\' or \'indices\'')
+    _check_option('out_type', out_type, ['mask', 'indices'])
     if not isinstance(threshold, dict) and (tail < 0 and threshold > 0 or
                                             tail > 0 and threshold < 0 or
                                             tail == 0 and threshold < 0):
@@ -1041,9 +1037,7 @@ def permutation_cluster_test(
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
         for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1111,10 +1105,8 @@ def permutation_cluster_1samp_test(
         (n_vertices). Default is None, i.e, a regular lattice connectivity.
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time. Can also be False
-        to assume no connectivity. Can also be False to assume no connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        to assume no connectivity.
+    %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int | instance of RandomState | None
@@ -1182,8 +1174,7 @@ def permutation_cluster_1samp_test(
     mathematically equivalent to a paired t-test, internally this function
     computes a 1-sample t-test (by default) and uses sign flipping (always)
     to perform permutations. This might not be suitable for the case where
-    there is truly a single observation under test; see
-    :ref:`sphx_glr_auto_tutorials_plot_background_statistics.py`.
+    there is truly a single observation under test; see :ref:`disc-stats`.
 
     If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
     ``n_permutations`` and ``seed`` will be ignored since an exact test
@@ -1291,9 +1282,7 @@ def spatio_temporal_cluster_1samp_test(
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
         for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1365,9 +1354,7 @@ def spatio_temporal_cluster_test(
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int | instance of RandomState | None

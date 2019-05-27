@@ -13,22 +13,15 @@ import os.path as op
 import warnings
 
 from ..fixes import _get_args
-from ..externals.decorator import decorator
+from ..externals.decorator import FunctionMaker
 
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
-@decorator
-def verbose(function, *args, **kwargs):
+def verbose(function):
     """Verbose decorator to allow functions to override log-level.
-
-    This decorator is used to set the verbose level during a function or method
-    call, such as :func:`mne.compute_covariance`. The `verbose` keyword
-    argument can be 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', True (an
-    alias for 'INFO'), or False (an alias for 'WARNING'). To set the global
-    verbosity level for all functions, use :func:`mne.set_log_level`.
 
     Parameters
     ----------
@@ -54,24 +47,50 @@ def verbose(function, *args, **kwargs):
     --------
     set_log_level
     set_config
+
+    Notes
+    -----
+    This decorator is used to set the verbose level during a function or method
+    call, such as :func:`mne.compute_covariance`. The `verbose` keyword
+    argument can be 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', True (an
+    alias for 'INFO'), or False (an alias for 'WARNING'). To set the global
+    verbosity level for all functions, use :func:`mne.set_log_level`.
+
+    This function also serves as a docstring filler.
     """  # noqa: E501
+    # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
+    # #dealing-with-third-party-decorators
+    from .docs import fill_doc
     arg_names = _get_args(function)
-    default_level = verbose_level = None
-    if len(arg_names) > 0 and arg_names[0] == 'self':
-        default_level = getattr(args[0], 'verbose', None)
-    if 'verbose' in arg_names:
-        verbose_level = args[arg_names.index('verbose')]
-    elif 'verbose' in kwargs:
-        verbose_level = kwargs.pop('verbose')
+    try:
+        fill_doc(function)
+    except TypeError:  # nothing to add
+        pass
 
-    # This ensures that object.method(verbose=None) will use object.verbose
-    verbose_level = default_level if verbose_level is None else verbose_level
+    def wrapper(*args, **kwargs):
+        default_level = verbose_level = None
+        if len(arg_names) > 0 and arg_names[0] == 'self':
+            default_level = getattr(args[0], 'verbose', None)
+        if 'verbose' in kwargs:
+            verbose_level = kwargs.pop('verbose')
+        else:
+            try:
+                verbose_level = args[arg_names.index('verbose')]
+            except (IndexError, ValueError):
+                pass
 
-    if verbose_level is not None:
-        # set it back if we get an exception
-        with use_log_level(verbose_level):
-            return function(*args, **kwargs)
-    return function(*args, **kwargs)
+        # This ensures that object.method(verbose=None) will use object.verbose
+        if verbose_level is None:
+            verbose_level = default_level
+        if verbose_level is not None:
+            # set it back if we get an exception
+            with use_log_level(verbose_level):
+                return function(*args, **kwargs)
+        return function(*args, **kwargs)
+    return FunctionMaker.create(
+        function, 'return decfunc(%(signature)s)',
+        dict(decfunc=wrapper), __wrapped__=function,
+        __qualname__=function.__qualname__)
 
 
 class use_log_level(object):
@@ -218,6 +237,9 @@ class WrapStdOut(object):
             raise AttributeError("'file' object has not attribute '%s'" % name)
 
 
+_verbose_dec_re = re.compile('^<.*decorator\\.py:decorator-gen.*>$')
+
+
 def warn(message, category=RuntimeWarning, module='mne'):
     """Emit a warning with trace outside the mne namespace.
 
@@ -246,7 +268,8 @@ def warn(message, category=RuntimeWarning, module='mne'):
             fname = frame.f_code.co_filename
             lineno = frame.f_lineno
             # in verbose dec
-            if fname == '<string>' and last_fname == op.basename(__file__):
+            if _verbose_dec_re.match(fname) and \
+                    last_fname == op.basename(__file__):
                 last_fname = fname
                 frame = frame.f_back
                 continue

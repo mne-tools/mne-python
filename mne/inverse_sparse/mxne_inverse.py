@@ -9,12 +9,11 @@ from scipy import linalg, signal
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
-                                    _check_reference, _check_loose_forward)
-from ..forward import (compute_orient_prior, is_fixed_orient,
-                       convert_forward_solution)
+                                    _check_reference)
+from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn, _check_depth
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -52,61 +51,20 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     return gain, source_weighting, mask
 
 
-@verbose
-def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
-                         weights_min, verbose=None):
-    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
-                                                       noise_cov, pca)
-
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
-    is_fixed_ori = is_fixed_orient(forward)
-
-    if depth is not None:
-        depth_prior = np.sum(gain ** 2, axis=0)
-        if not is_fixed_ori:
-            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)
-        # Spherical leadfield can be zero at the center
-        depth_prior[depth_prior == 0.] = np.min(
-            depth_prior[depth_prior != 0.])
-        depth_prior **= depth
-        if not is_fixed_ori:
-            depth_prior = np.repeat(depth_prior, 3)
-        source_weighting = np.sqrt(1. / depth_prior)
-    else:
-        source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
-
-    assert (is_fixed_ori or (0 <= loose <= 1))
-    if loose is not None and loose < 1.:
-        source_weighting *= np.sqrt(compute_orient_prior(forward, loose))
-
-    gain *= source_weighting[None, :]
+def _prepare_gain(forward, info, noise_cov, pca, depth, loose, rank,
+                  weights=None, weights_min=None):
+    depth = _check_depth(depth, 'depth_sparse')
+    forward, gain_info, gain, _, _, source_weighting, _, _, whitener = \
+        _prepare_forward(forward, info, noise_cov, 'auto', loose, rank, pca,
+                         use_cps=True, **depth)
 
     if weights is None:
         mask = None
     else:
-        gain, source_weighting, mask = _prepare_weights(forward, gain,
-                                                        source_weighting,
-                                                        weights, weights_min)
+        gain, source_weighting, mask = _prepare_weights(
+            forward, gain, source_weighting, weights, weights_min)
 
-    return gain, gain_info, whitener, source_weighting, mask
-
-
-def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
-                  weights_min, verbose=None):
-    if not isinstance(depth, float):
-        raise ValueError('Invalid depth parameter. '
-                         'A float is required (got %s).'
-                         % type(depth))
-    elif depth < 0.0:
-        raise ValueError('Depth parameter must be positive (got %s).'
-                         % depth)
-
-    gain, gain_info, whitener, source_weighting, mask = \
-        _prepare_gain_column(forward, info, noise_cov, pca, depth,
-                             loose, weights, weights_min)
-
-    return gain, gain_info, whitener, source_weighting, mask
+    return forward, gain, gain_info, whitener, source_weighting, mask
 
 
 def _reapply_source_weighting(X, source_weighting, active_set):
@@ -211,8 +169,8 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
             i_ori = i_ori.repeat(len(times), axis=0)
         else:
             if forward['surf_ori']:
-                X_ = np.dot(forward['source_nn'][i_dip *
-                            n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
+                X_ = np.dot(forward['source_nn'][
+                    i_dip * n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
 
             amplitude = np.sqrt(np.sum(X_ ** 2, axis=0))
             i_ori = np.zeros((len(times), 3))
@@ -234,9 +192,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
         The dipoles to convert.
     src : instance of SourceSpaces
         The source space used to generate the forward operator.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -279,10 +235,11 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
 
 @verbose
 def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
-               maxit=3000, tol=1e-4, active_set_size=10, pca=True,
+               maxit=3000, tol=1e-4, active_set_size=10, pca=None,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
-               return_as_dipoles=False, dgap_freq=10, verbose=None):
+               return_as_dipoles=False, dgap_freq=10, rank=None,
+               verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution [1]_ or L0.5/L2 [2]_ mixed-norm
@@ -306,8 +263,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         If loose is 1, it corresponds to free orientations.
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumic or discrete source space.
-    depth: None | float in [0, 1]
-        Depth weighting coefficients. If None, no depth weighting is performed.
+    %(depth)s
     maxit : int
         Maximum number of iterations.
     tol : float
@@ -343,9 +299,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations. Ignored if
         solver is 'cd'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
@@ -381,6 +338,11 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
 
+    if pca is None:
+        pca = True
+    else:
+        warn('pca argument is deprecated and will be removed in 0.19, do '
+             'not set it. It should not affect results.', DeprecationWarning)
     if not isinstance(evoked, list):
         evoked = [evoked]
 
@@ -391,16 +353,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
 
-    loose, forward = _check_loose_forward(loose, forward)
-
-    # put the forward solution in fixed orientation if it's not already
-    if loose == 0. and not is_fixed_orient(forward):
-        forward = convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
-
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked[0].info, noise_cov, pca, depth, loose, weights,
-        weights_min)
+    forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+        forward, evoked[0].info, noise_cov, pca, depth, loose, rank,
+        weights, weights_min)
 
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
@@ -473,7 +428,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
         if return_residual:
             residual.append(_compute_residual(forward, e, Xe, active_set,
-                            gain_info))
+                                              gain_info))
 
     logger.info('[done]')
 
@@ -515,7 +470,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
                   tol=1e-4, weights=None, weights_min=None, pca=True,
                   debias=True, wsize=64, tstep=4, window=0.02,
                   return_residual=False, return_as_dipoles=False,
-                  alpha=None, l1_ratio=None, dgap_freq=10, verbose=None):
+                  alpha=None, l1_ratio=None, dgap_freq=10, rank=None,
+                  verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -536,8 +492,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         If loose is 1, it corresponds to free orientations.
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumic or discrete source space.
-    depth: None | float in [0, 1]
-        Depth weighting coefficients. If None, no depth weighting is performed.
+    %(depth)s
     maxit : int
         Maximum number of iterations.
     tol : float
@@ -584,9 +539,10 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         * l1_ratio. 0 means no time regularization aka MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(rank_None)s
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
 
     Returns
@@ -648,18 +604,10 @@ def tf_mixed_norm(evoked, forward, noise_cov,
                          'passed. Got tstep = %s and wsize = %s' %
                          (tstep, wsize))
 
-    loose, forward = _check_loose_forward(loose, forward)
-
-    # put the forward solution in fixed orientation if it's not already
-    if loose == 0. and not is_fixed_orient(forward):
-        forward = convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
-
+    forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+        forward, evoked.info, noise_cov, pca, depth, loose, rank,
+        weights, weights_min)
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
-
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked.info, noise_cov, pca, depth, loose, weights,
-        weights_min)
 
     if window is not None:
         evoked = _window_evoked(evoked, window)

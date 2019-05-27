@@ -13,10 +13,9 @@ from scipy.io import savemat
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
                            assert_array_less, assert_equal)
-from mne.tests.common import assert_dig_allclose
 from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
                                   get_builtin_montages)
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points

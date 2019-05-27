@@ -6,8 +6,9 @@ Plot single trial activity, grouped by ROI and sorted by RT
 This will produce what is sometimes called an event related
 potential / field (ERP/ERF) image.
 
-The EEGLAB example file - containing an experiment with button press responses
-to simple visual stimuli - is read in and response times are calculated.
+The EEGLAB example file, which contains an experiment with button press
+responses to simple visual stimuli, is read in and response times are
+calculated.
 Regions of Interest are determined by the channel types (in 10/20 channel
 notation, even channels are right, odd are left, and 'z' are central). The
 median and the Global Field Power within each channel group is calculated,
@@ -31,8 +32,7 @@ montage = data_path + "/EEGLAB/test_chans.locs"
 
 event_id = {"rt": 1, "square": 2}  # must be specified for str events
 eog = {"FPz", "EOG1", "EOG2"}
-raw = mne.io.read_raw_eeglab(fname, eog=eog, montage=montage,
-                             stim_channel=False)
+raw = mne.io.read_raw_eeglab(fname, eog=eog, montage=montage)
 events = mne.events_from_annotations(raw, event_id)[0]
 
 ###############################################################################

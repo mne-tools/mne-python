@@ -124,18 +124,14 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
 
-        ..versionadded:: 0.11
-
+        .. versionadded:: 0.11
     channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%d'
+        Channel naming convention for the data channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %03d'.
+        prior to 0.14.0 was 'EEG %%03d'.
 
-         ..versionadded:: 0.14.0
-
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+         .. versionadded:: 0.14.0
+    %(verbose)s
 
     Returns
     -------

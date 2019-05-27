@@ -388,6 +388,10 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
+        Note that when using an estimator which inherently returns
+        multidimensional output - in particular, SlidingEstimator
+        or GeneralizingEstimator - you should set the scorer
+        there, not here.
     cv : int, cross-validation generator | iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
@@ -471,8 +475,8 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = dict([(k, _index_param_value(X, v, train))
-                      for k, v in fit_params.items()])
+    fit_params = {k: _index_param_value(X, v, train)
+                  for k, v in fit_params.items()}
 
     if parameters is not None:
         estimator.set_params(**parameters)

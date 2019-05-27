@@ -8,20 +8,49 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-from collections import OrderedDict
 import collections
 
 import numpy as np
 
-from .utils import _pl, check_fname, _validate_type, verbose, warn, logger
-from .utils import _check_pandas_installed
-from .utils import _Counter as Counter
+from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
+                    _check_pandas_installed, _mask_to_onsets_offsets)
+from .utils import _DefaultEventParser
+
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
+
+
+def _check_o_d_s(onset, duration, description):
+    onset = np.atleast_1d(np.array(onset, dtype=float))
+    if onset.ndim != 1:
+        raise ValueError('Onset must be a one dimensional array, got %s '
+                         '(shape %s).'
+                         % (onset.ndim, onset.shape))
+    duration = np.array(duration, dtype=float)
+    if duration.ndim == 0 or duration.shape == (1,):
+        duration = np.repeat(duration, len(onset))
+    if duration.ndim != 1:
+        raise ValueError('Duration must be a one dimensional array, '
+                         'got %d.' % (duration.ndim,))
+
+    description = np.array(description, dtype=str)
+    if description.ndim == 0 or description.shape == (1,):
+        description = np.repeat(description, len(onset))
+    if description.ndim != 1:
+        raise ValueError('Description must be a one dimensional array, '
+                         'got %d.' % (description.ndim,))
+    if any([';' in desc for desc in description]):
+        raise ValueError('Semicolons in descriptions not supported.')
+
+    if not (len(onset) == len(duration) == len(description)):
+        raise ValueError('Onset, duration and description must be '
+                         'equal in sizes, got %s, %s, and %s.'
+                         % (len(onset), len(duration), len(description)))
+    return onset, duration, description
 
 
 class Annotations(object):
@@ -154,26 +183,9 @@ class Annotations(object):
         if orig_time is not None:
             orig_time = _handle_meas_date(orig_time)
         self.orig_time = orig_time
-
-        onset = np.array(onset, dtype=float)
-        if onset.ndim != 1:
-            raise ValueError('Onset must be a one dimensional array, got %s '
-                             '(shape %s).'
-                             % (onset.ndim, onset.shape))
-        duration = np.array(duration, dtype=float)
-        if isinstance(description, str):
-            description = np.repeat(description, len(onset))
-        if duration.ndim != 1:
-            raise ValueError('Duration must be a one dimensional array.')
-        if not (len(onset) == len(duration) == len(description)):
-            raise ValueError('Onset, duration and description must be '
-                             'equal in sizes.')
-        if any([';' in desc for desc in description]):
-            raise ValueError('Semicolons in descriptions not supported.')
-
-        self.onset = onset
-        self.duration = duration
-        self.description = np.array(description, dtype=str)
+        self.onset, self.duration, self.description = _check_o_d_s(
+            onset, duration, description)
+        self._sort()  # ensure we're sorted
 
     def __repr__(self):
         """Show the representation."""
@@ -223,7 +235,7 @@ class Annotations(object):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            return OrderedDict(zip(out_keys, out_vals))
+            return collections.OrderedDict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
             return Annotations(onset=self.onset[key],
@@ -236,12 +248,12 @@ class Annotations(object):
 
         Parameters
         ----------
-        onset : float
+        onset : float | array-like
             Annotation time onset from the beginning of the recording in
             seconds.
-        duration : float
+        duration : float | array-like
             Duration of the annotation in seconds.
-        description : str
+        description : str | array-like
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'
 
@@ -249,10 +261,19 @@ class Annotations(object):
         -------
         self : mne.Annotations
             The modified Annotations object.
-        """
+
+        Notes
+        -----
+        The array-like support for arguments allows this to be used similarly
+        to not only ``list.append``, but also
+        `list.extend <https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types>`__.
+        """  # noqa: E501
+        onset, duration, description = _check_o_d_s(
+            onset, duration, description)
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
+        self._sort()
         return self
 
     def copy(self):
@@ -264,8 +285,9 @@ class Annotations(object):
 
         Parameters
         ----------
-        idx : int | list of int
-            Index of the annotation to remove.
+        idx : int | array-like of int
+            Index of the annotation to remove. Can be array-like to
+            remove multiple indices.
         """
         self.onset = np.delete(self.onset, idx)
         self.duration = np.delete(self.duration, idx)
@@ -294,6 +316,16 @@ class Annotations(object):
         else:
             with start_file(fname) as fid:
                 _write_annotations(fid, self)
+
+    def _sort(self):
+        """Sort in place."""
+        # instead of argsort here we use sorted so that it gives us
+        # the onset-then-duration hierarchy
+        vals = sorted(zip(self.onset, self.duration, range(len(self))))
+        order = list(list(zip(*vals))[-1]) if len(vals) else []
+        self.onset = self.onset[order]
+        self.duration = self.duration[order]
+        self.description = self.description[order]
 
     def crop(self, tmin=None, tmax=None, emit_warning=False):
         """Remove all annotation that are outside of [tmin, tmax].
@@ -450,21 +482,30 @@ def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
         idxs = [idx for idx, desc in enumerate(raw.annotations.description)
                 if any(desc.upper().startswith(kind.upper())
                        for kind in kinds)]
+        # onsets are already sorted
         onsets = raw.annotations.onset[idxs]
         onsets = _sync_onset(raw, onsets)
         ends = onsets + raw.annotations.duration[idxs]
-        order = np.argsort(onsets)
-        onsets = raw.time_as_index(onsets[order], use_rounding=True)
-        ends = raw.time_as_index(ends[order], use_rounding=True)
+        onsets = raw.time_as_index(onsets, use_rounding=True)
+        ends = raw.time_as_index(ends, use_rounding=True)
+    assert (onsets <= ends).all()  # all durations >= 0
     if invert:
-        # We invert the relationship (i.e., get segments that do not satisfy)
-        if len(onsets) == 0 or onsets[0] != 0:
-            onsets = np.concatenate([[0], onsets])
-            ends = np.concatenate([[0], ends])
-        if len(ends) == 1 or ends[-1] != len(raw.times):
-            onsets = np.concatenate([onsets, [len(raw.times)]])
-            ends = np.concatenate([ends, [len(raw.times)]])
-        onsets, ends = ends[:-1], onsets[1:]
+        # We need to eliminate overlaps here, otherwise wacky things happen,
+        # so we carefully invert the relationship
+        mask = np.zeros(len(raw.times), bool)
+        for onset, end in zip(onsets, ends):
+            mask[onset:end] = True
+        mask = ~mask
+        extras = (onsets == ends)
+        extra_onsets, extra_ends = onsets[extras], ends[extras]
+        onsets, ends = _mask_to_onsets_offsets(mask)
+        # Keep ones where things were exactly equal
+        del extras
+        # we could do this with a np.insert+np.searchsorted, but our
+        # ordered-ness should get us it for free
+        onsets = np.sort(np.concatenate([onsets, extra_onsets]))
+        ends = np.sort(np.concatenate([ends, extra_ends]))
+        assert (onsets <= ends).all()
     return onsets, ends
 
 
@@ -536,10 +577,17 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     -------
     annot : instance of Annotations | None
         The annotations.
+
+    Notes
+    -----
+    The annotations stored in a .csv require the onset columns to be
+    timestamps. If you have onsets as floats (in seconds), you should use the
+    .txt extension.
     """
     from .io.brainvision.brainvision import _read_annotations_brainvision
     from .io.eeglab.eeglab import _read_annotations_eeglab
     from .io.edf.edf import _read_annotations_edf
+    from .io.cnt.cnt import _read_annotations_cnt
 
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
@@ -559,6 +607,9 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     elif name.endswith('csv'):
         annotations = _read_annotations_csv(fname)
+
+    elif name.endswith('cnt'):
+        annotations = _read_annotations_cnt(fname)
 
     elif name.endswith('set'):
         annotations = _read_annotations_eeglab(fname,
@@ -598,13 +649,22 @@ def _read_annotations_csv(fname):
     pd = _check_pandas_installed(strict=True)
     df = pd.read_csv(fname)
     orig_time = df['onset'].values[0]
+    try:
+        float(orig_time)
+        warn('It looks like you have provided annotation onsets as floats. '
+             'These will be interpreted as MILLISECONDS. If that is not what '
+             'you want, save your CSV as a TXT file; the TXT reader accepts '
+             'onsets in seconds.')
+    except ValueError:
+        pass
     orig_time = _handle_meas_date(orig_time)
     onset_dt = pd.to_datetime(df['onset'])
-    onset = (onset_dt - onset_dt[0]).dt.seconds.astype(float)
+    onset = (onset_dt - onset_dt[0]).dt.total_seconds()
     duration = df['duration'].values.astype(float)
     description = df['description'].values
     if orig_time == 0:
         orig_time = None
+
     return Annotations(onset, duration, description, orig_time)
 
 
@@ -649,7 +709,6 @@ def _read_brainstorm_annotations(fname, orig_time=None):
 
 
 def _is_iso8601(candidate_str):
-    import re
     ISO8601 = r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
     return re.compile(ISO8601).match(candidate_str) is not None
 
@@ -722,12 +781,11 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
     """Get a collection of descriptions and returns index of selected."""
     regexp_comp = re.compile('.*' if regexp is None else regexp)
 
-    if event_id is None:
-        event_id = Counter()
-
     event_id_ = dict()
     dropped = []
-    for desc in descriptions:
+    # Iterate over the sorted descriptions so that the Counter mapping
+    # is slightly less arbitrary
+    for desc in sorted(descriptions):
         if desc in event_id_:
             continue
 
@@ -755,39 +813,64 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
     return event_sel, event_id_
 
 
+def _check_event_id(event_id, raw):
+    if event_id is None:
+        return _DefaultEventParser()
+    elif event_id == 'auto':
+        return getattr(raw, '_get_auto_event_id', _DefaultEventParser)()
+    elif callable(event_id) or isinstance(event_id, dict):
+        return event_id
+    else:
+        raise ValueError('Invalid input event_id')
+
+
 @verbose
-def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
-                            chunk_duration=None, verbose=None):
+def events_from_annotations(raw, event_id="auto",
+                            regexp=r'^(?![Bb][Aa][Dd]|[Ee][Dd][Gg][Ee]).*$',
+                            use_rounding=True, chunk_duration=None,
+                            verbose=None):
     """Get events and event_id from an Annotations object.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | callable | None
-        Dictionary of string keys and integer values as used in mne.Epochs
-        to map annotation descriptions to integer event codes. Only the
-        keys present will be mapped and the annotations with other descriptions
-        will be ignored. Otherwise, a callable that provides an integer given
-        a string or that returns None for an event to ignore.
-        If None, all descriptions of annotations are mapped
-        and assigned arbitrary unique integer values.
+    event_id : dict | callable | None | 'auto'
+        Can be:
+
+        - **dict**: map descriptions (keys) to integer event codes (values).
+          Only the descriptions present will be mapped, others will be ignored.
+        - **callable**: must take a string input and returns an integer event
+          code or None to ignore it.
+        - **None**: Map descriptions to unique integer values based on their
+          ``sorted`` order.
+        - **'auto' (default)**: prefer a raw-format-specific parser:
+
+          - Brainvision: map stimulus events to their integer part; response
+            events to integer part + 1000; optic events to integer part + 2000;
+            'SyncStatus/Sync On' to 99998; 'New Segment/' to 99999;
+            all others like ``None`` with an offset of 10000.
+          - Other raw formats: Behaves like None.
+
+          .. versionadded:: 0.18
     regexp : str | None
         Regular expression used to filter the annotations whose
-        descriptions is a match.
+        descriptions is a match. The default ignores descriptions beginning
+        ``'bad'`` or ``'edge'`` (case-insensitive).
+
+        .. versionchanged:: 0.18
+           Default ignores bad and edge descriptions.
     use_rounding : boolean
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
     chunk_duration: float | None
-        If chunk_duration parameter in events_from_annotations is None, events
-        correspond to the annotation onsets.
+        Chunk duration in seconds. If ``chunk_duration`` is set to None
+        (default), generated events correspond to the annotation onsets.
         If not, :func:`mne.events_from_annotations` returns as many events as
         they fit within the annotation duration spaced according to
-        `chunk_duration`, which is given in seconds.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more). Defaults to self.verbose.
+        ``chunk_duration``. As a consequence annotations with duration shorter
+        than ``chunk_duration`` will not contribute events.
+    %(verbose)s
 
     Returns
     -------
@@ -797,9 +880,12 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
         The event_id variable that can be passed to Epochs.
     """
     if len(raw.annotations) == 0:
+        event_id = dict() if not isinstance(event_id, dict) else event_id
         return np.empty((0, 3), dtype=int), event_id
 
     annotations = raw.annotations
+
+    event_id = _check_event_id(event_id, raw)
 
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp)
@@ -813,18 +899,21 @@ def events_from_annotations(raw, event_id=None, regexp=None, use_rounding=True,
     else:
         inds = values = np.array([]).astype(int)
         for annot in annotations[event_sel]:
-            _onsets = np.arange(start=annot['onset'],
-                                stop=(annot['onset'] + annot['duration']),
+            annot_offset = annot['onset'] + annot['duration']
+            _onsets = np.arange(start=annot['onset'], stop=annot_offset,
                                 step=chunk_duration)
-            _inds = raw.time_as_index(_onsets,
-                                      use_rounding=use_rounding,
-                                      origin=annotations.orig_time)
-            _inds += raw.first_samp
-            inds = np.append(inds, _inds)
-            _values = np.full(shape=len(_inds),
-                              fill_value=event_id_[annot['description']],
-                              dtype=int)
-            values = np.append(values, _values)
+            good_events = annot_offset - _onsets >= chunk_duration
+            if good_events.any():
+                _onsets = _onsets[good_events]
+                _inds = raw.time_as_index(_onsets,
+                                          use_rounding=use_rounding,
+                                          origin=annotations.orig_time)
+                _inds += raw.first_samp
+                inds = np.append(inds, _inds)
+                _values = np.full(shape=len(_inds),
+                                  fill_value=event_id_[annot['description']],
+                                  dtype=int)
+                values = np.append(values, _values)
 
     events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 

@@ -22,15 +22,15 @@ from ..coreg import fit_matched_points
 from ..io.kit import read_mrk
 from ..io.meas_info import _write_dig_points
 from ._viewer import PointObject
+from ._backend import _check_pyface_backend
 
 
-backend_is_wx = False  # is there a way to determine this?
-if backend_is_wx:
-    mrk_wildcard = ['Supported Files (*.sqd, *.mrk, *.txt, *.pickled)|'
-                    '*.sqd;*.mrk;*.txt;*.pickled',
-                    'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
-                    'Text marker file (*.txt)|*.txt',
-                    'Pickled markers (*.pickled)|*.pickled']
+if _check_pyface_backend()[0] == 'wx':
+    mrk_wildcard = [
+        'Supported Files (*.sqd, *.mrk, *.txt, *.pickled)|*.sqd;*.mrk;*.txt;*.pickled',  # noqa:E501
+        'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
+        'Text marker file (*.txt)|*.txt',
+        'Pickled markers (*.pickled)|*.pickled']
     mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
     if sys.platform in ('win32',  'linux2'):

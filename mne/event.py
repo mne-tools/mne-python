@@ -12,7 +12,7 @@ from os.path import splitext
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type)
+                    _validate_type, _check_option)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -183,7 +183,7 @@ def _read_events_fif(fid, tree):
     if mappings is not None:  # deal with ':' in keys
         m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
               for m in mappings.split(';')]
-        mappings = dict((k, int(v)) for v, k in m_)
+        mappings = {k: int(v) for v, k in m_}
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
@@ -192,7 +192,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type='and'):
     """Read events from fif or text file.
 
-    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
+    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
     for more information about events.
 
     Parameters
@@ -277,8 +277,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn('{0} of {1} events masked'.format(unmasked_len - masked_len,
-                                                   unmasked_len))
+            warn('{} of {} events masked'.format(unmasked_len - masked_len,
+                                                 unmasked_len))
     return event_list
 
 
@@ -524,7 +524,7 @@ def find_events(raw, stim_channel=None, output='onset',
                 mask_type='and', initial_event=False, verbose=None):
     """Find events from raw file.
 
-    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
+    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
     for more information about events.
 
     Parameters
@@ -577,9 +577,7 @@ def find_events(raw, stim_channel=None, output='onset',
         at t=0s is present.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -680,7 +678,16 @@ def find_events(raw, stim_channel=None, output='onset',
     min_samples = min_duration * raw.info['sfreq']
 
     # pull stim channel from config if necessary
-    stim_channel = _get_stim_channel(stim_channel, raw.info)
+    try:
+        stim_channel = _get_stim_channel(stim_channel, raw.info)
+    except ValueError:
+        if len(raw.annotations) > 0:
+            raise ValueError("No stim channels found, but the raw object has "
+                             "annotations. Consider using "
+                             "mne.events_from_annotations to convert these to "
+                             "events.")
+        else:
+            raise
 
     picks = pick_channels(raw.info['ch_names'], include=stim_channel)
     if len(picks) == 0:
@@ -715,9 +722,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Mask digital trigger values."""
-    if not isinstance(mask_type, str) or mask_type not in ('not_and', 'and'):
-        raise ValueError('mask_type must be "not_and" or "and", got %s'
-                         % (mask_type,))
+    _check_option('mask_type', mask_type, ['not_and', 'and'])
     if mask is not None:
         _validate_type(mask, "int", "mask", "int or None")
     n_events = len(events)
@@ -753,7 +758,7 @@ def merge_events(events, ids, new_id, replace_events=True):
 
     Returns
     -------
-    new_events: array, shape (n_events_out, 3)
+    new_events : array, shape (n_events_out, 3)
         The new events
 
     Examples
@@ -804,7 +809,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     ----------
     events : array, shape=(n_events, 3)
         The events
-    ids : array int
+    ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
         Time-shift event. Use positive value tshift for forward shifting
@@ -818,8 +823,12 @@ def shift_time_events(events, ids, tshift, sfreq):
         The new events.
     """
     events = events.copy()
-    for ii in ids:
-        events[events[:, 2] == ii, 0] += int(tshift * sfreq)
+    if ids is None:
+        mask = slice(None)
+    else:
+        mask = np.in1d(events[:, 2], ids)
+    events[mask, 0] += int(tshift * sfreq)
+
     return events
 
 

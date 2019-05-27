@@ -15,8 +15,10 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
+from ..utils import fill_doc, _check_option
 
 
+@fill_doc
 class CSP(TransformerMixin, BaseEstimator):
     u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
@@ -60,8 +62,7 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    rank : None | int | dict | 'full'
-        See :func:`mne.compute_covariance`.
+    %(rank_None)s
 
         .. versionadded:: 0.17
 
@@ -112,9 +113,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self.cov_est = cov_est
 
         # Init default transform_into
-        if transform_into not in ('average_power', 'csp_space'):
-            raise ValueError('transform_into must be "average_power" or '
-                             '"csp_space".')
+        _check_option('transform_into', transform_into,
+                      ['average_power', 'csp_space'])
         self.transform_into = transform_into
 
         # Init default log
@@ -671,6 +671,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     return V, D
 
 
+@fill_doc
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering.
 
@@ -706,8 +707,7 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    rank : None | int | dict | 'full'
-        See :func:`mne.compute_covariance`.
+    %(rank_None)s
 
         .. versionadded:: 0.17
 
@@ -771,7 +771,7 @@ class SPoC(CSP):
         if len(np.unique(y)) < 2:
             raise ValueError("y must have at least two distinct values.")
 
-        # The following code is direclty copied from pyRiemann
+        # The following code is directly copied from pyRiemann
 
         # Normalize target variable
         target = y.astype(np.float64)

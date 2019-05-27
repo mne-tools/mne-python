@@ -1,7 +1,7 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+from numpy.testing import assert_allclose, assert_array_equal
 import matplotlib.pyplot as plt
 import pytest
 
@@ -15,7 +15,7 @@ from mne import (read_dipole, read_forward_solution,
 from mne.dipole import get_phantom_dipoles
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, _TempDir, requires_mne, run_subprocess
+from mne.utils import run_tests_if_main, requires_mne, run_subprocess
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -53,25 +53,24 @@ def _compare_dipoles(orig, new):
     assert_allclose(orig.amplitude, new.amplitude, err_msg='amplitude')
     assert_allclose(orig.gof, new.gof, err_msg='gof')
     assert_allclose(orig.ori, new.ori, rtol=1e-4, atol=1e-4, err_msg='ori')
-    assert_equal(orig.name, new.name)
+    assert orig.name == new.name
 
 
 def _check_dipole(dip, n_dipoles):
     """Check dipole sizes."""
-    assert_equal(len(dip), n_dipoles)
-    assert_equal(dip.pos.shape, (n_dipoles, 3))
-    assert_equal(dip.ori.shape, (n_dipoles, 3))
-    assert_equal(dip.gof.shape, (n_dipoles,))
-    assert_equal(dip.amplitude.shape, (n_dipoles,))
+    assert len(dip) == n_dipoles
+    assert dip.pos.shape == (n_dipoles, 3)
+    assert dip.ori.shape == (n_dipoles, 3)
+    assert dip.gof.shape == (n_dipoles,)
+    assert dip.amplitude.shape == (n_dipoles,)
 
 
 @testing.requires_testing_data
-def test_io_dipoles():
+def test_io_dipoles(tmpdir):
     """Test IO for .dip files."""
-    tempdir = _TempDir()
     dipole = read_dipole(fname_dip)
-    print(dipole)  # test repr
-    out_fname = op.join(tempdir, 'temp.dip')
+    assert 'Dipole ' in repr(dipole)  # test repr
+    out_fname = op.join(str(tmpdir), 'temp.dip')
     dipole.save(out_fname)
     dipole_new = read_dipole(out_fname)
     _compare_dipoles(dipole, dipole_new)
@@ -95,10 +94,10 @@ def test_dipole_fitting_ctf():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_mne
-def test_dipole_fitting():
+def test_dipole_fitting(tmpdir):
     """Test dipole fitting."""
     amp = 100e-9
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     rng = np.random.RandomState(0)
     fname_dtemp = op.join(tempdir, 'test.dip')
     fname_sim = op.join(tempdir, 'test-ave.fif')
@@ -145,7 +144,7 @@ def test_dipole_fitting():
     # Compare to original points
     transform_surface_to(fwd['src'][0], 'head', fwd['mri_head_t'])
     transform_surface_to(fwd['src'][1], 'head', fwd['mri_head_t'])
-    assert_equal(fwd['src'][0]['coord_frame'], FIFF.FIFFV_COORD_HEAD)
+    assert fwd['src'][0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     src_rr = np.concatenate([s['rr'][v] for s, v in zip(fwd['src'], vertices)],
                             axis=0)
     src_nn = np.concatenate([s['nn'][v] for s, v in zip(fwd['src'], vertices)],
@@ -164,7 +163,7 @@ def test_dipole_fitting():
         corrs += [np.corrcoef(src_rr.ravel(), new.ravel())[0, 1]]
         dists += [np.sqrt(np.mean(np.sum(diffs * diffs, axis=1)))]
         gc_dists += [180 / np.pi * np.mean(np.arccos(np.sum(src_nn * d.ori,
-                                                     axis=1)))]
+                                                            axis=1)))]
         amp_errs += [np.sqrt(np.mean((amp - d.amplitude) ** 2))]
         gofs += [np.mean(d.gof)]
     # XXX possibly some OpenBLAS numerical differences make
@@ -181,7 +180,7 @@ def test_dipole_fitting():
 
 
 @testing.requires_testing_data
-def test_dipole_fitting_fixed():
+def test_dipole_fitting_fixed(tmpdir):
     """Test dipole fitting with a fixed position."""
     tpeak = 0.073
     sphere = make_sphere_model(head_radius=0.1)
@@ -189,12 +188,12 @@ def test_dipole_fitting_fixed():
     evoked.pick_types(meg=True)
     t_idx = np.argmin(np.abs(tpeak - evoked.times))
     evoked_crop = evoked.copy().crop(tpeak, tpeak)
-    assert_equal(len(evoked_crop.times), 1)
+    assert len(evoked_crop.times) == 1
     cov = read_cov(fname_cov)
     dip_seq, resid = fit_dipole(evoked_crop, cov, sphere)
     assert isinstance(dip_seq, Dipole)
     assert isinstance(resid, Evoked)
-    assert_equal(len(dip_seq.times), 1)
+    assert len(dip_seq.times) == 1
     pos, ori, gof = dip_seq.pos[0], dip_seq.ori[0], dip_seq.gof[0]
     amp = dip_seq.amplitude[0]
     # Fix position, allow orientation to change
@@ -217,7 +216,7 @@ def test_dipole_fitting_fixed():
     assert_allclose(dip_fixed.info['chs'][0]['loc'][3:6], ori)
     assert_allclose(dip_fixed.data[1, t_idx], gof)
     assert_allclose(resid.data, resid_fixed.data[:, [t_idx]])
-    _check_roundtrip_fixed(dip_fixed)
+    _check_roundtrip_fixed(dip_fixed, tmpdir)
     # bad resetting
     evoked.info['bads'] = [evoked.ch_names[3]]
     dip_fixed, resid_fixed = fit_dipole(evoked, cov, sphere, pos=pos, ori=ori)
@@ -349,13 +348,13 @@ def test_accuracy():
 
 
 @testing.requires_testing_data
-def test_dipole_fixed():
+def test_dipole_fixed(tmpdir):
     """Test reading a fixed-position dipole (from Xfit)."""
     dip = read_dipole(fname_xfit_dip)
     # print the representation of the object DipoleFixed
-    print(dip)
+    assert 'DipoleFixed ' in repr(dip)
 
-    _check_roundtrip_fixed(dip)
+    _check_roundtrip_fixed(dip, tmpdir)
     with pytest.warns(RuntimeWarning, match='extra fields'):
         dip_txt = read_dipole(fname_xfit_dip_txt)
     assert_allclose(dip.info['chs'][0]['loc'][:3], dip_txt.pos[0])
@@ -365,17 +364,17 @@ def test_dipole_fixed():
     assert_allclose(dip_txt_seq.gof, [27.3, 46.4, 43.7, 41., 37.3, 32.5])
 
 
-def _check_roundtrip_fixed(dip):
+def _check_roundtrip_fixed(dip, tmpdir):
     """Check roundtrip IO for fixed dipoles."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     dip.save(op.join(tempdir, 'test-dip.fif.gz'))
     dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))
     assert_allclose(dip_read.data, dip_read.data)
     assert_allclose(dip_read.times, dip.times)
-    assert_equal(dip_read.info['xplotter_layout'], dip.info['xplotter_layout'])
-    assert_equal(dip_read.ch_names, dip.ch_names)
+    assert dip_read.info['xplotter_layout'] == dip.info['xplotter_layout']
+    assert dip_read.ch_names == dip.ch_names
     for ch_1, ch_2 in zip(dip_read.info['chs'], dip.info['chs']):
-        assert_equal(ch_1['ch_name'], ch_2['ch_name'])
+        assert ch_1['ch_name'] == ch_2['ch_name']
         for key in ('loc', 'kind', 'unit_mul', 'range', 'coord_frame', 'unit',
                     'cal', 'coil_type', 'scanno', 'logno'):
             assert_allclose(ch_1[key], ch_2[key], err_msg=key)
@@ -387,20 +386,19 @@ def test_get_phantom_dipoles():
     pytest.raises(ValueError, get_phantom_dipoles, 'foo')
     for kind in ('vectorview', 'otaniemi'):
         pos, ori = get_phantom_dipoles(kind)
-        assert_equal(pos.shape, (32, 3))
-        assert_equal(ori.shape, (32, 3))
+        assert pos.shape == (32, 3)
+        assert ori.shape == (32, 3)
 
 
 @testing.requires_testing_data
-def test_confidence():
+def test_confidence(tmpdir):
     """Test confidence limits."""
-    tempdir = _TempDir()
     evoked = read_evokeds(fname_evo_full, 'Left Auditory', baseline=(None, 0))
     evoked.crop(0.08, 0.08).pick_types()  # MEG-only
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model((0., 0., 0.04), 0.08)
     dip_py = fit_dipole(evoked, cov, sphere)[0]
-    fname_test = op.join(tempdir, 'temp-dip.txt')
+    fname_test = op.join(str(tmpdir), 'temp-dip.txt')
     dip_py.save(fname_test)
     dip_read = read_dipole(fname_test)
     with pytest.warns(RuntimeWarning, match="'noise/ft/cm', 'prob'"):
@@ -410,10 +408,10 @@ def test_confidence():
         assert_allclose(dip_check.gof, dip_xfit.gof, atol=5e-1)  # < 0.5%
         assert_array_equal(dip_check.nfree, dip_xfit.nfree)  # exact match
         assert_allclose(dip_check.khi2, dip_xfit.khi2, rtol=2e-2)  # 2% miss
-        assert_equal(set(dip_check.conf.keys()), set(dip_xfit.conf.keys()))
+        assert set(dip_check.conf.keys()) == set(dip_xfit.conf.keys())
         for key in sorted(dip_check.conf.keys()):
             assert_allclose(dip_check.conf[key], dip_xfit.conf[key],
                             rtol=1.5e-1, err_msg=key)
 
 
-run_tests_if_main(False)
+run_tests_if_main()

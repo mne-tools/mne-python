@@ -23,3 +23,12 @@ from . import phantom_4dbti
 from . import sleep_physionet
 from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
                     fetch_aparc_sub_parcellation)
+from ._fsaverage.base import fetch_fsaverage
+
+__all__ = [
+    '_download_all_example_data', '_fake', 'brainstorm', 'eegbci',
+    'fetch_aparc_sub_parcellation', 'fetch_fsaverage',
+    'fetch_hcp_mmp_parcellation', 'fieldtrip_cmc', 'hf_sef', 'kiloword',
+    'megsim', 'misc', 'mtrf', 'multimodal', 'opm', 'phantom_4dbti', 'sample',
+    'sleep_physionet', 'somato', 'spm_face', 'testing', 'visual_92_categories',
+]

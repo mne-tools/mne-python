@@ -11,10 +11,13 @@ from functools import partial
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
+from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels, channel_type)
+                       _PICK_TYPES_KEYS, pick_channels, channel_type,
+                       _picks_to_idx)
 from ..io.meas_info import create_info
-from ..utils import verbose, get_config, _ensure_int, _validate_type
+from ..utils import (verbose, get_config, _ensure_int, _validate_type,
+                     _check_option)
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -58,14 +61,19 @@ def _update_raw_data(params):
     if params['remove_dc'] is True:
         data -= np.mean(data, axis=1)[:, np.newaxis]
     if params['ba'] is not None:
-        # filter with the same defaults as `raw.filter`, except
-        # we might as well actually filter the bad segments, too
-        these_bounds = np.unique(
-            np.maximum(np.minimum(params['filt_bounds'], start), stop))
-        for start_, stop_ in zip(these_bounds[:-1], these_bounds[1:]):
-            data[data_picks, start_:stop:] = \
-                filtfilt(params['ba'][0], params['ba'][1],
-                         data[data_picks, start_:stop_], axis=1, padlen=0)
+        # filter with the same defaults as `raw.filter`
+        starts, stops = params['filt_bounds']
+        mask = (starts < stop) & (stops > start)
+        starts = np.maximum(starts[mask], start) - start
+        stops = np.minimum(stops[mask], stop) - start
+        for start_, stop_ in zip(starts, stops):
+            if isinstance(params['ba'], np.ndarray):
+                data[data_picks, start_:stop_] = _overlap_add_filter(
+                    data[data_picks, start_:stop_], params['ba'], copy=False)
+            else:
+                data[data_picks, start_:stop_] = filtfilt(
+                    params['ba'][0], params['ba'][1],
+                    data[data_picks, start_:stop_], axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
         ch_name = params['info']['ch_names'][di]
@@ -173,12 +181,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     lowpass : float | None
         Lowpass to apply when displaying data.
     filtorder : int
-        Filtering order. Note that for efficiency and simplicity,
-        filtering during plotting uses forward-backward IIR filtering,
-        so the effective filter order will be twice ``filtorder``.
-        Filtering the lines for display may also produce some edge
-        artifacts (at the left and right edges) of the signals
-        during display. Filtering requires scipy >= 0.10.
+        Filtering order. 0 will use FIR filtering with MNE defaults.
+        Other values will construct an IIR filter of the given order
+        and apply it with :func:`~scipy.signal.filtfilt` (making the effective
+        order twice ``filtorder``). Filtering may produce some edge artifacts
+        (at the left and right edges) of the signals during display.
+
+        .. versionchanged:: 0.18
+           Support for ``filtorder=0`` to use FIR filtering.
     clipping : str | None
         If None, channels are allowed to exceed their designated bounds in
         the plot. If "clamp", then values are clamped to the appropriate
@@ -256,6 +266,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     Annotation mode is toggled by pressing 'a', butterfly mode by pressing
     'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
+    By default, the channel means are removed when ``remove_dc`` is set to
+    ``True``. This flag can be toggled by pressing 'd'.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -263,39 +275,42 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     from ..io.base import BaseRaw
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
-    scalings = _handle_default('scalings_plot_raw', scalings)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     n_channels = min(len(raw.info['chs']), n_channels)
+    _check_option('clipping', clipping, [None, 'clamp', 'transparent'])
+    duration = min(raw.times[-1], float(duration))
 
-    if clipping is not None and clipping not in ('clamp', 'transparent'):
-        raise ValueError('clipping must be None, "clamp", or "transparent", '
-                         'not %s' % clipping)
     # figure out the IIR filtering parameters
-    nyq = raw.info['sfreq'] / 2.
+    sfreq = raw.info['sfreq']
+    nyq = sfreq / 2.
     if highpass is None and lowpass is None:
         ba = filt_bounds = None
     else:
         filtorder = int(filtorder)
-        if filtorder <= 0:
-            raise ValueError('filtorder (%s) must be >= 1' % filtorder)
         if highpass is not None and highpass <= 0:
             raise ValueError('highpass must be > 0, not %s' % highpass)
         if lowpass is not None and lowpass >= nyq:
-            raise ValueError('lowpass must be < nyquist (%s), not %s'
+            raise ValueError('lowpass must be < Nyquist (%s), not %s'
                              % (nyq, lowpass))
-        if highpass is None:
-            ba = butter(filtorder, lowpass / nyq, 'lowpass', analog=False)
-        elif lowpass is None:
-            ba = butter(filtorder, highpass / nyq, 'highpass', analog=False)
+        if highpass is not None and lowpass is not None and \
+                lowpass <= highpass:
+            raise ValueError('lowpass (%s) must be > highpass (%s)'
+                             % (lowpass, highpass))
+        if filtorder == 0:
+            ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
+                               sfreq, highpass, lowpass)
+        elif filtorder < 0:
+            raise ValueError('filtorder (%s) must be >= 0' % filtorder)
         else:
-            if lowpass <= highpass:
-                raise ValueError('lowpass (%s) must be > highpass (%s)'
-                                 % (lowpass, highpass))
-            ba = butter(filtorder, [highpass / nyq, lowpass / nyq], 'bandpass',
-                        analog=False)
-        sr, sp = _annotations_starts_stops(raw, ('edge', 'bad_acq_skip'),
-                                           invert=True)
-        filt_bounds = np.unique(np.concatenate([sr, sp]))
+            if highpass is None:
+                Wn, btype = lowpass / nyq, 'lowpass'
+            elif lowpass is None:
+                Wn, btype = highpass / nyq, 'highpass'
+            else:
+                Wn, btype = [highpass / nyq, lowpass / nyq], 'bandpass'
+            ba = butter(filtorder, Wn, btype, analog=False)
+        filt_bounds = _annotations_starts_stops(
+            raw, ('edge', 'bad_acq_skip'), invert=True)
 
     # make a copy of info, remove projection (for now)
     info = raw.info.copy()
@@ -324,6 +339,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         event_times = event_nums = None
 
     # reorganize the data in plotting order
+    # TODO Refactor this according to epochs.py
     inds = list()
     types = list()
     for t in ['grad', 'mag']:
@@ -368,8 +384,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     if not isinstance(event_color, dict):
         event_color = {-1: event_color}
-    event_color = dict((_ensure_int(key, 'event_color key'), event_color[key])
-                       for key in event_color)
+    event_color = {_ensure_int(key, 'event_color key'): event_color[key]
+                   for key in event_color}
     for key in event_color:
         if key <= 0 and key != -1:
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
@@ -378,7 +394,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     noise_cov = _check_cov(noise_cov, info)
 
     # set up projection and data parameters
-    duration = min(raw.times[-1], float(duration))
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
     event_id_rev = {val: key for key, val in (event_id or {}).items()}
@@ -546,8 +561,8 @@ _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    if area_mode not in [None, 'std', 'range']:
-        raise ValueError('"area_mode" must be "std", "range", or None')
+    _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
@@ -566,8 +581,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
                                           _data_types):
         these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
                                  ref_meg=False)
-        if picks is not None:
-            these_picks = np.intersect1d(these_picks, picks)
+        these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
             titles_list.append(titles[name])
@@ -686,8 +700,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Number of points to use in Welch FFT calculations.
         Default is None, which uses the minimum of 2048 and the
         number of time points.
-    picks : array-like of int | None
-        List of channels to use. Cannot be None if `ax` is supplied. If both
+    %(picks_good_data)s
+        Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
         each standard channel type (`mag`, `grad`, and `eeg`).
     ax : instance of matplotlib Axes | None
@@ -740,9 +754,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1063,7 +1075,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             for ev_time, ev_num in zip(event_times, event_nums):
                 if -1 in event_color or ev_num in event_color:
                     text = params['event_id_rev'].get(ev_num, ev_num)
-                    params['ax'].text(ev_time, -0.05, text, fontsize=8,
+                    params['ax'].text(ev_time, -0.1, text, fontsize=8,
                                       ha='center')
 
     if 'segments' in params:
@@ -1079,11 +1091,12 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 continue
             start = max(segment[0], times[0] + params['first_time'])
             end = min(times[-1] + params['first_time'], segment[1])
-            dscr = params['annot_description'][idx]
+            dscr = params['raw'].annotations.description[idx]
             segment_color = params['segment_colors'][dscr]
             params['ax'].fill_betweenx(ylim, start, end, color=segment_color,
                                        alpha=0.3)
-            params['ax'].text((start + end) / 2., ylim[0], dscr, ha='center')
+            params['ax'].text((start + end) / 2., ylim[1] - 0.1, dscr,
+                              ha='center', color=segment_color)
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0] + params['first_time'],
@@ -1102,6 +1115,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         params['fig_proj'].canvas.draw()
 
 
+@verbose
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
@@ -1151,9 +1165,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
         Number of jobs to run in parallel. Defaults to 1.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1211,11 +1223,12 @@ def _setup_browser_selection(raw, kind, selector=True):
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
+    _check_option('group_by', kind, ('position, selection'))
     if kind == 'position':
         order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
         kind = 'position'
-    elif 'selection':
+    else:  # kind == 'selection'
         from ..io import RawFIF, RawArray
         if not isinstance(raw, (RawFIF, RawArray)):
             raise ValueError("order='selection' only works for Neuromag data. "

@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ..constants import BunchConst
+from ...utils import BunchConst
 
 
 CTF = BunchConst()

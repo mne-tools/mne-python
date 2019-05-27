@@ -13,7 +13,7 @@ from ..decoding import TransformerMixin, BaseEstimator
 from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..io.pick import _pick_data_channels, pick_info
-from ..utils import logger
+from ..utils import logger, _check_option
 
 
 def _construct_signal_from_epochs(epochs, events, sfreq, tmin):
@@ -142,7 +142,8 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     evokeds : array, shape (n_class, n_components, n_times)
         The independent evoked responses per condition.
     """
-    n_epochs, n_channels, n_times = epochs_data.shape
+    if not isinstance(epochs_data, np.ndarray) or epochs_data.ndim != 3:
+        raise ValueError('epochs_data must be 3D ndarray')
 
     classes = np.unique(y)
 
@@ -317,7 +318,6 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         """
         # Check size
         X, _ = self._check_Xy(X)
-        n_components, n_channels = self.patterns_.shape
         n_epochs, n_comp, n_times = X.shape
         if n_comp != (self.n_components * len(self.classes_)):
             raise ValueError('X must have %i components, got %i instead' % (
@@ -409,8 +409,8 @@ class Xdawn(_XdawnTransformer):
         """Init."""
         super(Xdawn, self).__init__(n_components=n_components,
                                     signal_cov=signal_cov, reg=reg)
-        if correct_overlap not in ['auto', True, False]:
-            raise ValueError('correct_overlap must be a bool or "auto"')
+        _check_option('correct_overlap', correct_overlap,
+                      ['auto', True, False])
         self.correct_overlap = correct_overlap
 
     def fit(self, epochs, y=None):

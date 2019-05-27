@@ -50,8 +50,7 @@ assert isinstance(empty_room_proj, list)
 mne.viz.plot_projs_topomap(empty_room_proj)
 
 ###############################################################################
-# As shown in the tutorial on how to
-# :ref:`sphx_glr_auto_tutorials_plot_visualize_raw.py`
+# As shown in the tutorial on how to :ref:`tut-viz-raw`
 # the ECG projections can be loaded from a file and added to the raw object
 
 # read the projections

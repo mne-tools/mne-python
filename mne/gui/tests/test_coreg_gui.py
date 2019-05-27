@@ -18,7 +18,8 @@ import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.transforms import invert_transform
-from mne.utils import _TempDir, run_tests_if_main, requires_mayavi, traits_test
+from mne.utils import (run_tests_if_main, requires_mayavi, traits_test,
+                       modified_env)
 
 data_path = testing.data_path(download=False)
 raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -31,10 +32,10 @@ subjects_dir = op.join(data_path, 'subjects')
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_coreg_model_decimation():
+def test_coreg_model_decimation(tmpdir):
     """Test CoregModel decimation of high-res to low-res head."""
     from mne.gui._coreg_gui import CoregModel
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     subject_dir = op.join(tempdir, 'sample')
     shutil.copytree(op.join(subjects_dir, 'sample'), subject_dir)
     # This makes the test much faster
@@ -55,14 +56,15 @@ def test_coreg_model_decimation():
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_coreg_model():
+def test_coreg_model(tmpdir):
     """Test CoregModel."""
     from mne.gui._coreg_gui import CoregModel
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     trans_dst = op.join(tempdir, 'test-trans.fif')
 
     model = CoregModel()
-    pytest.raises(RuntimeError, model.save_trans, 'blah.fif')
+    with pytest.raises(RuntimeError, match='Not enough information for savin'):
+        model.save_trans('blah.fif')
 
     model.mri.subjects_dir = subjects_dir
     model.mri.subject = 'sample'
@@ -172,26 +174,27 @@ def _check_ci():
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_coreg_gui():
+def test_coreg_gui_display(tmpdir):
     """Test CoregFrame."""
     _check_ci()
-    home_dir = _TempDir()
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
-    try:
-        pytest.raises(ValueError, mne.gui.coregistration, subject='Elvis',
-                      subjects_dir=subjects_dir)
-
-        from pyface.api import GUI
-        from tvtk.api import tvtk
-        gui = GUI()
+    from mayavi import mlab
+    from tvtk.api import tvtk
+    home_dir = str(tmpdir)
+    with modified_env(**{'_MNE_GUI_TESTING_MODE': 'true',
+                         '_MNE_FAKE_HOME_DIR': home_dir}):
+        with pytest.raises(ValueError, match='not a valid subject'):
+            mne.gui.coregistration(subject='Elvis', subjects_dir=subjects_dir)
 
         # avoid modal dialog if SUBJECTS_DIR is set to a directory that
         # does not contain valid subjects
         ui, frame = mne.gui.coregistration(subjects_dir='')
+        mlab.process_ui_events()
+        ui.dispose()
+        mlab.process_ui_events()
 
-        frame.model.mri.subjects_dir = subjects_dir
-        frame.model.mri.subject = 'sample'
+        ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir,
+                                           subject='sample')
+        mlab.process_ui_events()
 
         assert not frame.model.mri.fid_ok
         frame.model.mri.lpa = [[-0.06, 0, 0]]
@@ -204,6 +207,7 @@ def test_coreg_gui():
         frame.data_panel.view_options_panel.eeg_obj.project_to_surface = True
         assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
                           tvtk.CylinderSource)
+        mlab.process_ui_events()
 
         # grow hair (faster for low-res)
         assert frame.data_panel.view_options_panel.head_high_res
@@ -227,24 +231,21 @@ def test_coreg_gui():
         frame.model.prepare_bem_model = False
         frame.save_config(home_dir)
         ui.dispose()
-        gui.process_events()
+        mlab.process_ui_events()
 
         ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
         assert not frame.model.prepare_bem_model
         assert not frame.data_panel.view_options_panel.head_high_res
         ui.dispose()
-        gui.process_events()
-    finally:
-        del os.environ['_MNE_GUI_TESTING_MODE']
-        del os.environ['_MNE_FAKE_HOME_DIR']
+        mlab.process_ui_events()
 
 
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_coreg_model_with_fsaverage():
+def test_coreg_model_with_fsaverage(tmpdir):
     """Test CoregModel with the fsaverage brain data."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     from mne.gui._coreg_gui import CoregModel
 
     mne.create_default_subject(subjects_dir=tempdir,
@@ -299,7 +300,7 @@ def test_coreg_model_with_fsaverage():
     assert_equal(sfrom, 'fsaverage')
     assert_equal(sto, 'scaled')
     assert_allclose(scale, model.parameters[6:9])
-    assert_equal(set(bemsol), set(('inner_skull-bem',)))
+    assert_equal(set(bemsol), {'inner_skull-bem'})
     model.prepare_bem_model = False
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('scaled', False)

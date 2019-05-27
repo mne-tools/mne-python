@@ -1,9 +1,19 @@
 import pytest
 
-from mne import open_docs
+from mne import open_docs, grade_to_tris
+from mne.epochs import add_channels_epochs
 from mne.utils import (copy_function_doc_to_method_doc, copy_doc,
                        linkcode_resolve, deprecated)
 import webbrowser
+
+
+@pytest.mark.parametrize('obj', (grade_to_tris, add_channels_epochs))
+def test_doc_filling(obj):
+    """Test that docs are filled properly."""
+    doc = obj.__doc__
+    assert 'verbose : ' in doc
+    if obj is add_channels_epochs:
+        assert 'for more). Defaults to True if' in doc
 
 
 @deprecated('message')
@@ -134,7 +144,6 @@ def test_copy_function_doc_to_method_doc():
         method_f3 own docstring"""
 
     assert A.method_f3.__doc__ == 'Docstring for f3.\n\n        '
-    pytest.raises(ValueError, copy_function_doc_to_method_doc(f4), A.method_f1)
     pytest.raises(ValueError, copy_function_doc_to_method_doc(f5), A.method_f1)
 
 

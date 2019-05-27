@@ -10,7 +10,7 @@ from scipy import linalg
 
 from ..io.constants import FIFF
 from ..io.pick import pick_channels
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _check_option
 from ..forward import convert_forward_solution
 from ..evoked import EvokedArray
 from ..source_estimate import SourceEstimate
@@ -82,9 +82,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -103,9 +101,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         (sum is taken across summary measures).
     """
     mode = mode.lower()
-    if mode not in ['mean', 'sum', 'svd']:
-        raise ValueError("mode must be 'svd', 'mean' or 'sum'. Got %s."
-                         % mode)
+    _check_option('mode', mode, ['mean', 'sum', 'svd'])
 
     logger.info("About to process %d labels" % len(labels))
 
@@ -364,9 +360,7 @@ def cross_talk_function(inverse_operator, forward, labels,
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

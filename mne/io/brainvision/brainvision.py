@@ -21,14 +21,15 @@ from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
-from ..utils import _read_segments_file, _mult_cal_one, _deprecate_stim_channel
+from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 
 
+@fill_doc
 class RawBrainVision(BaseRaw):
     """Raw object from Brain Vision EEG file.
 
@@ -56,14 +57,7 @@ class RawBrainVision(BaseRaw):
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -73,9 +67,7 @@ class RawBrainVision(BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                 scale=1., preload=False, stim_channel=False,
-                 verbose=None):  # noqa: D107
-        _deprecate_stim_channel(stim_channel)
+                 scale=1., preload=False, verbose=None):  # noqa: D107
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
@@ -132,6 +124,11 @@ class RawBrainVision(BaseRaw):
                     line = line.strip().replace(',', '.').split()
                     block[:n_data_ch, ii] = [float(l) for l in line]
             _mult_cal_one(data, block, idx, cals, mult)
+
+    @classmethod
+    def _get_auto_event_id(cls):
+        """Return default ``event_id`` behavior for Brainvision."""
+        return _BVEventParser()
 
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
@@ -208,7 +205,8 @@ def _read_vmrk(fname):
     # extract Marker Infos block
     m = re.search(r"\[Marker Infos\]", txt, re.IGNORECASE)
     if not m:
-        return np.zeros((0, 3))
+        return np.array(list()), np.array(list()), np.array(list()), ''
+
     mk_txt = txt[m.end():]
     m = re.search(r"^\[.*\]$", mk_txt)
     if m:
@@ -258,7 +256,7 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
         The annotations present in the file.
     """
     onset, duration, description, date_str = _read_vmrk(fname)
-    orig_time = _str_to_meas_date(date_str)
+    orig_time = None if date_str == '' else _str_to_meas_date(date_str)
 
     if sfreq == 'auto':
         vhdr_fname = op.splitext(fname)[0] + '.vhdr'
@@ -271,7 +269,6 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     annotations = Annotations(onset=onset, duration=duration,
                               description=description,
                               orig_time=orig_time)
-
     return annotations
 
 
@@ -300,7 +297,7 @@ def _check_mrk_version(header):
             'Brain Vision Data Exchange Marker File, Version 2.0',
             'BrainVision Data Exchange Marker File, Version 1.0']
     if header not in tags:
-        raise ValueError("Currently only support %r, not %r"
+        raise ValueError("Currently, MNE-Python only supports %r, not %r"
                          "Contact MNE-Developers for support."
                          % (str(tags), header))
 
@@ -327,7 +324,13 @@ def _str_to_meas_date(date_str):
     if date_str in ['0', '00000000000000000000']:
         return None
 
-    meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+    try:
+        meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
+    except ValueError as e:
+        if 'does not match format' in str(e):
+            return None
+        else:
+            raise
 
     # We need list of unix time in milliseconds and as second entry
     # the additional amount of microseconds
@@ -460,8 +463,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             raise NotImplementedError('BrainVision files with ASCII data in '
                                       'vectorized order (i.e. channels in rows'
                                       ') are not supported yet.')
-        fmt = dict((key, cfg.get('ASCII Infos', key))
-                   for key in cfg.options('ASCII Infos'))
+        fmt = {key: cfg.get('ASCII Infos', key)
+               for key in cfg.options('ASCII Infos')}
 
     # locate EEG binary file and marker file for the stim channel
     path = op.dirname(vhdr_fname)
@@ -478,7 +481,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         match = re.findall(regexp, line.strip())
 
         # Always take first measurement date we find
-        if match and match[0] != '00000000000000000000':
+        if match:
             date_str = match[0]
             info['meas_date'] = _str_to_meas_date(date_str)
             break
@@ -776,10 +779,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             orig_units)
 
 
+@fill_doc
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
-                         scale=1., preload=False, stim_channel=False,
-                         verbose=None):
+                         scale=1., preload=False, verbose=None):
     """Reader for Brain Vision EEG file.
 
     Parameters
@@ -805,14 +808,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -826,4 +822,30 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,
-                          stim_channel=stim_channel, verbose=verbose)
+                          verbose=verbose)
+
+
+_BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 2000}
+_OTHER_ACCEPTED_MARKERS = {
+    'New Segment/': 99999, 'SyncStatus/Sync On': 99998
+}
+_OTHER_OFFSET = 10001  # where to start "unknown" event_ids
+
+
+class _BVEventParser(_DefaultEventParser):
+    """Parse standard brainvision events, accounting for non-standard ones."""
+
+    def __call__(self, description):
+        """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
+        offsets = _BV_EVENT_IO_OFFSETS
+
+        maybe_digit = description[-3:].strip()
+        kind = description[:-3]
+        if maybe_digit.isdigit() and kind in offsets:
+            code = int(maybe_digit) + offsets[kind]
+        elif description in _OTHER_ACCEPTED_MARKERS:
+            code = _OTHER_ACCEPTED_MARKERS[description]
+        else:
+            code = (super(_BVEventParser, self)
+                    .__call__(description, offset=_OTHER_OFFSET))
+        return code
