@@ -1,14 +1,15 @@
-import mne
 import pytest
 import numpy as np
 import os.path as path
+from mne import read_source_estimate
+from mne.datasets import sample
 from mne.viz import Brain, get_3d_backend
 
 
 def test_brain_init(backends_3d):
     """Test initialization of the Brain instance."""
     backend_name = get_3d_backend()
-    data_path = mne.datasets.sample.data_path()
+    data_path = sample.data_path()
     hemi = 'both'
     surf = 'inflated'
     subject_id = 'sample'
@@ -31,10 +32,10 @@ def test_brain_init(backends_3d):
 def test_brain_add_data(backends_3d):
     """Test adding data in Brain instance."""
     backend_name = get_3d_backend()
-    data_path = mne.datasets.sample.data_path()
+    data_path = sample.data_path()
     act_data = path.join(data_path, 'MEG/sample/sample_audvis-meg-eeg')
 
-    stc = mne.read_source_estimate(act_data)
+    stc = read_source_estimate(act_data)
 
     hemi = 'lh'
     hemi_data = stc.data[:len(stc.vertices[0]), 10]
@@ -42,7 +43,6 @@ def test_brain_add_data(backends_3d):
 
     fmin = stc.data.min()
     fmax = stc.data.max()
-    data_path = mne.datasets.sample.data_path()
     surf = 'inflated'
     subject_id = 'sample'
     subjects_dir = path.join(data_path, 'subjects')
