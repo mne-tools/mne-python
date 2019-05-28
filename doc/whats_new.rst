@@ -37,7 +37,7 @@ Version 0.18
 
 Changelog
 ~~~~~~~~~
-- Add :func:`mne.simulation.metrics.cosine_score`, :func:`mne.simulation.metrics.roc_auc_score`, :func:`mne.simulation.metrics.region_localization_error`, :func:`mne.simulation.metrics.f1_score`, :func:`mne.simulation.metrics.precision_score`, :func:`mne.simulation.metrics.recall_score`, :func:`mne.simulation.metrics.peak_position_error` and :func:`mne.simulation.metrics.spacial_deviation_error` to compute metrics between source estimates, by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
+- Add eight new source estimate comparison metrics to submodule :mod:`mne.simulation.metrics` by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_
 
 - Add ``event_id='auto'`` in :func:`mne.events_from_annotations` to accommodate Brainvision markers by `Jona Sassenhagen`_, `Joan Massich`_ and `Eric Larson`_
 
