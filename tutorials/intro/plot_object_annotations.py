@@ -151,8 +151,8 @@ print(events[:5])  # show the first 5
 # can be found in the tutorial :doc:`../raw/plot_events`.
 #
 #
-# Reading embedded events as :class:`~mne.Annotations`
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Reading embedded events as Annotations
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Some EEG/MEG systems generate files where events are stored in a separate
 # data array rather than as pulses on one or more STIM channels. For example,

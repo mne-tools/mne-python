@@ -79,9 +79,6 @@ time_of_first_sample = raw.first_samp / raw.info['sfreq']
 print(my_annot.onset + time_of_first_sample)
 print(raw.annotations.onset)
 
-
-# ``2002-12-03 19:01:10.720100``. Below, you can also see that the annotation
-
 ###############################################################################
 # If you know that your annotation onsets are relative to some other time, you
 # can set ``orig_time`` before you call :meth:`~mne.io.Raw.set_annotations`,

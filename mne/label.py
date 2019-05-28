@@ -2460,7 +2460,7 @@ def select_sources(subject, label, location='center', extent=0.,
         Path to SUBJECTS_DIR if not set in the environment.
     name : None | str
         Assign name to the new label.
-    random_state : None | int | ~numpy.random.RandomState
+    random_state : None | int | ~numpy.random.mtrand.RandomState
         To specify the random generator state.
     surf : string
         The surface used to simulated the label, defaults to the white surface.
