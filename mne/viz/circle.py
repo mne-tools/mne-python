@@ -331,7 +331,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         nodes_n_con[j] += 1
 
     # initialize random number generator so plot is reproducible
-    rng = np.random.mtrand.RandomState(seed=0)
+    rng = np.random.mtrand.RandomState(0)
 
     n_con = len(indices[0])
     noise_max = 0.25 * node_width
