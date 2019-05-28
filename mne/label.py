@@ -1671,8 +1671,11 @@ def random_parcellation(subject, n_parcel, hemi, subjects_dir=None,
         Path to SUBJECTS_DIR if not set in the environment.
     surface : string
         The surface used to grow the labels, defaults to the white surface.
-    random_state : None | int | np.random.RandomState
-        To specify the random generator state.
+    random_state : None | int | instance of ~numpy.random.mtrand.RandomState
+        If ``random_state`` is an :class:`int`, it will be used as a seed for
+        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+        obtained from the operating system (see
+        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
 
     Returns
     -------

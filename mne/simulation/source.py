@@ -26,8 +26,11 @@ def select_source_in_label(src, label, random_state=None, location='random',
         The source space
     label : Label
         the label (read with mne.read_label)
-    random_state : None | int | ~numpy.random.RandomState
-        To specify the random generator state.
+    random_state : None | int | instance of ~numpy.random.mtrand.RandomState
+        If ``random_state`` is an :class:`int`, it will be used as a seed for
+        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+        obtained from the operating system (see
+        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
         to use :func:`mne.Label.center_of_mass` (restricting to vertices
@@ -112,8 +115,11 @@ def simulate_sparse_stc(src, n_dipoles, times,
         the same length containing the time courses.
     labels : None | list of Label
         The labels. The default is None, otherwise its size must be n_dipoles.
-    random_state : None | int | ~numpy.random.RandomState
-        To specify the random generator state.
+    random_state : None | int | instance of ~numpy.random.mtrand.RandomState
+        If ``random_state`` is an :class:`int`, it will be used as a seed for
+        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+        obtained from the operating system (see
+        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
         to use :func:`mne.Label.center_of_mass`. Note that for 'center'
