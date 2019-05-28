@@ -923,7 +923,7 @@ Simulation
    precision_score
    recall_score
    roc_auc_score
-   spacial_deviation_error
+   spatial_deviation_error
    peak_position_error
 
 .. _api_decoding:
