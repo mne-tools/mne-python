@@ -10,9 +10,10 @@ are used in later stages of data processing.
    :local:
    :depth: 1
 
-As usual we'll start by importing the modules we need, loading some example
-data, and (since we won't actually analyze the raw data in this tutorial)
-cropping it to save memory:
+As usual we'll start by importing the modules we need, loading some
+:ref:`example data <sample-dataset>`, and (since we won't actually analyze the
+raw data in this tutorial) cropping the :class:`~mne.io.Raw` object to just 60
+seconds before loading it into RAM to save memory:
 """
 
 import os
@@ -213,7 +214,7 @@ for ann in raw.annotations:
     descr = ann['description']
     start = ann['onset']
     end = ann['onset'] + ann['duration']
-    print(f"'{descr}' goes from {start} to {end}")
+    print("'{}' goes from {} to {}".format(descr, start, end))
 
 ###############################################################################
 # Note that iterating, indexing and slicing :class:`~mne.Annotations` all

@@ -61,12 +61,11 @@ MNE-Python core terminology and general concepts
     epochs
         Epochs (sometimes called "trials" in other software packages) are
         equal-length spans of data extracted from raw continuous data. Usually,
-        epochs are extracted around stimulus events or experimental trials (as
-        defined by the experimenter in their study), though sometimes
-        sequential or overlapping epochs are extracted (e.g., for analysis of
-        resting-state activity). See :class:`Epochs` for the API of the
-        corresponding object class, and :ref:`tut-epochs-class` for a narrative
-        overview.
+        epochs are extracted around stimulus events or subject responses,
+        though sometimes sequential or overlapping epochs are extracted (e.g.,
+        for analysis of resting-state activity). See :class:`Epochs` for the
+        API of the corresponding object class, and :ref:`tut-epochs-class` for
+        a narrative overview.
 
     evoked
         Evoked data are obtained by averaging epochs. Typically, an evoked object

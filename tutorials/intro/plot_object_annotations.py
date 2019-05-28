@@ -70,15 +70,16 @@ raw.crop(tmax=60).load_data()
 # What is a STIM channel?
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# A :term:`STIM channel` (short for "stimulus channel") is a
-# channel that does not receive signals from an EEG, MEG, or other sensor.
-# Instead, STIM channels record voltages (usually short, rectangular DC pulses
-# of fixed magnitudes sent from the experiment-controlling computer) that are
-# time-locked to experimental events, such as the onset of a stimulus or a
-# button-press response by the subject. In other cases, these pulses may not be
-# strictly time-locked to an experimental event, but instead may occur in
-# between trials to indicate the type of stimulus (or experimental condition)
-# that is about to occur on the upcoming trial.
+# A :term:`STIM channel` (short for "stimulus channel") is a channel that does
+# not receive signals from an EEG, MEG, or other sensor. Instead, STIM channels
+# record voltages (usually short, rectangular DC pulses of fixed magnitudes
+# sent from the experiment-controlling computer) that are time-locked to
+# experimental events, such as the onset of a stimulus or a button-press
+# response by the subject (those pulses are sometimes called `TTL`_ pulses,
+# event pulses, trigger signals, or just "triggers"). In other cases, these
+# pulses may not be strictly time-locked to an experimental event, but instead
+# may occur in between trials to indicate the type of stimulus (or experimental
+# condition) that is about to occur on the upcoming trial.
 #
 # The DC pulses may be all on one STIM channel (in which case different
 # experimental events or trial types are encoded as different voltage
@@ -144,10 +145,10 @@ print(events[:5])  # show the first 5
 # events to the onset or offset of the STIM channel pulses, setting the minimum
 # pulse duration, and handling of consecutive pulses (with no return to zero
 # between them). For example, you can effectively encode event duration by
-# passing ``output='step'`` to :func:`mne.find_events`;see the documentation of
-# :func:`~mne.find_events` for details. More information on working with events
-# arrays (including how to plot, combine, load, and save event arrays) can be
-# found in the tutorial :doc:`../raw/plot_events`.
+# passing ``output='step'`` to :func:`mne.find_events`; see the documentation
+# of :func:`~mne.find_events` for details. More information on working with
+# events arrays (including how to plot, combine, load, and save event arrays)
+# can be found in the tutorial :doc:`../raw/plot_events`.
 #
 #
 # Reading embedded events as :class:`~mne.Annotations`
@@ -286,3 +287,12 @@ raw.set_annotations(rem_annot)
 # millisecond:
 
 print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info['sfreq'], 3))
+
+###############################################################################
+# Other examples of resting-state analysis can be found in the online
+# documentation for :func:`mne.make_fixed_length_events`, such as
+# :doc:`../../auto_examples/connectivity/plot_mne_inverse_envelope_correlation`.
+#
+# .. LINKS
+#
+# .. _`TTL`: https://en.wikipedia.org/wiki/Transistor%E2%80%93transistor_logic

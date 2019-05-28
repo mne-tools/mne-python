@@ -10,8 +10,9 @@ subselect data.
    :local:
    :depth: 2
 
-As usual we'll start by importing the modules we need, loading some example
-data, and cropping it to save memory:
+As usual we'll start by importing the modules we need, loading some
+:ref:`example data <sample-dataset>`, and cropping the :class:`~mne.io.Raw`
+object to just 60 seconds before loading it into RAM to save memory:
 """
 
 import os
@@ -66,14 +67,12 @@ assert np.array_equal(events, events_from_file[:len(events)])
 # Subselecting and combining events
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# The output of :func:`~mne.find_events` above (copied here) told us the number
-# of events that were found, and the unique integer event IDs present:
-#
-# .. code-block:: none
-#
-#     86 events found
-#     Event IDs: [ 1  2  3  4  5 32]
-#
+# The output of :func:`~mne.find_events` above (repeated here) told us the
+# number of events that were found, and the unique integer event IDs present:
+
+mne.find_events(raw, stim_channel='STI 014')
+
+###############################################################################
 # If some of those events are not of interest, you can easily subselect events
 # using :func:`mne.pick_events`, which has parameters ``include`` and
 # ``exclude``. For example, in the sample data Event ID 32 corresponds to a
