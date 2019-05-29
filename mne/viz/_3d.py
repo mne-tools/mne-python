@@ -40,7 +40,8 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version,
                      _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
-                    plt_show, tight_layout, figure_nobar, _check_time_unit)
+                    plt_show, tight_layout, figure_nobar, _check_time_unit,
+                    fill_doc)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
@@ -316,6 +317,7 @@ def _pivot_kwargs():
     return kwargs
 
 
+@fill_doc
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                       n_jobs=1):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
@@ -331,8 +333,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         the average peak latency (across sensor types) is used.
     time_label : str
         How to print info about the time instant visualized.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
 
     Returns
     -------

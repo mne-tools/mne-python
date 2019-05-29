@@ -1185,6 +1185,7 @@ class Report(object):
                 html_template.substitute(div_klass=div_klass, id=global_id,
                                          caption=caption, html=html), replace)
 
+    @fill_doc
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
                            replace=False):
@@ -1202,8 +1203,7 @@ class Report(object):
         decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
-        n_jobs : int
-          Number of jobs to run in parallel.
+        %(n_jobs)s
         subjects_dir : str | None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
@@ -1393,8 +1393,7 @@ class Report(object):
             Filename pattern(s) to include in the report.
             Example: [\*raw.fif, \*ave.fif] will include Raw as well as Evoked
             files.
-        n_jobs : int
-          Number of jobs to run in parallel.
+        %(n_jobs)s
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).

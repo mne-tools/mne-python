@@ -1011,9 +1011,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         Must be positive. Note that because this is a constraint passed to
         a solver it is not strict but close, i.e. for a ``min_dist=5.`` the
         fits could be 4.9 mm from the inner skull.
-    n_jobs : int
-        Number of jobs to run in parallel (used in field computation
-        and fitting).
+    %(n_jobs)s
+        It is used in field computation and fitting.
     pos : ndarray, shape (3,) | None
         Position of the dipole to use. If None (default), sequential
         fitting (different position and orientation for each time instance)

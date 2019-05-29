@@ -486,8 +486,7 @@ class Label(object):
             a label filling the surface, use None.
         subjects_dir : str, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
-        n_jobs : int
-            Number of jobs to run in parallel
+        %(n_jobs)s
         %(verbose_meth)s
 
         Returns
@@ -536,8 +535,7 @@ class Label(object):
             a label filling the surface, use None.
         subjects_dir : str, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
-        n_jobs : int
-            Number of jobs to run in parallel.
+        %(n_jobs)s
         %(verbose_meth)s
 
         Returns
@@ -1489,10 +1487,9 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         Hemispheres to use for the labels (0: left, 1: right).
     subjects_dir : string
         Path to SUBJECTS_DIR if not set in the environment.
-    n_jobs : int
-        Number of jobs to run in parallel. Likely only useful if tens
-        or hundreds of labels are being expanded simultaneously. Does not
-        apply with ``overlap=False``.
+    %(n_jobs)s
+        Likely only useful if tens or hundreds of labels are being expanded
+        simultaneously. Does not apply with ``overlap=False``.
     overlap : bool
         Produce overlapping labels. If True (default), the resulting labels
         can be overlapping. If False, each label will be grown one step at a

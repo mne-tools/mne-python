@@ -738,8 +738,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         drag) to plot a topomap.
     show : bool
         Show figure if True.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     line_alpha : float | None
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
@@ -1161,8 +1160,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     block : bool
         Whether to halt program execution until the figure is closed.
         May not work on all systems / platforms. Defaults to False.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     %(verbose)s

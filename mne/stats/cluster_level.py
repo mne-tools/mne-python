@@ -995,8 +995,7 @@ def permutation_cluster_test(
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
         Can also be False to assume no connectivity.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
+    %(n_jobs)s
     %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the

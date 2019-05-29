@@ -116,8 +116,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
@@ -366,8 +365,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     zero_mean : bool
         Make sure the wavelets are zero mean.
     prepared : bool
@@ -465,8 +463,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         bandwidth.
 
         .. versionadded:: 0.17
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
+    %(n_jobs)s
+        It is only used if adaptive=True.
 
         .. versionadded:: 0.17
     return_sensor : bool
@@ -727,8 +725,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
+    %(n_jobs)s
+        It is only used if adaptive=True.
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
