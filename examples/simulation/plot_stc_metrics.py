@@ -130,13 +130,13 @@ mne.simulation.add_noise(raw_dipole, cov, iir_filter=[0.2, -0.2, 0.04])
 # Averaging epochs corresponding to events.
 
 # Region
-events = mne.find_events(raw_region)
+events = mne.find_events(raw_region, initial_event=True)
 tmax = (len(source_time_series) - 1) * tstep
 epochs = mne.Epochs(raw_region, events, 1, tmin=0, tmax=tmax)
 evoked_region = epochs.average()
 
 # Dipole
-events = mne.find_events(raw_dipole)
+events = mne.find_events(raw_dipole, initial_event=True)
 tmax = (len(source_time_series) - 1) * tstep
 epochs = mne.Epochs(raw_dipole, events, 1, tmin=0, tmax=tmax)
 evoked_dipole = epochs.average()

@@ -1,6 +1,4 @@
-# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Mark Wronkiewicz <wronk@uw.edu>
-#          Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
+# Authors: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
@@ -18,10 +16,8 @@ from mne import SourceEstimate
 from mne import read_source_spaces
 from mne.datasets import testing
 from mne.utils import requires_sklearn
-from mne.simulation import simulate_sparse_stc
 from mne.simulation import metrics
-from mne.simulation.metrics import (source_estimate_quantification,
-                                    cosine_score,
+from mne.simulation.metrics import (cosine_score,
                                     region_localization_error,
                                     precision_score, recall_score,
                                     f1_score, roc_auc_score,
@@ -32,33 +28,6 @@ from mne.utils import run_tests_if_main
 data_path = testing.data_path(download=False)
 src_fname = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
-
-
-@testing.requires_testing_data
-def test_metrics():
-    """Test simulation metrics."""
-    src = read_source_spaces(src_fname)
-    times = np.arange(600) / 1000.
-    rng = np.random.RandomState(42)
-    stc1 = simulate_sparse_stc(src, n_dipoles=2, times=times, random_state=rng)
-    stc2 = simulate_sparse_stc(src, n_dipoles=2, times=times, random_state=rng)
-    E1_rms = source_estimate_quantification(stc1, stc1, metric='rms')
-    E2_rms = source_estimate_quantification(stc2, stc2, metric='rms')
-    E1_cos = source_estimate_quantification(stc1, stc1, metric='cosine')
-    E2_cos = source_estimate_quantification(stc2, stc2, metric='cosine')
-
-    # ### Tests to add
-    assert (E1_rms == 0.)
-    assert (E2_rms == 0.)
-    assert_almost_equal(E1_cos, 0.)
-    assert_almost_equal(E2_cos, 0.)
-    stc_bad = stc2.copy().crop(0, 0.5)
-    pytest.raises(ValueError, source_estimate_quantification, stc1, stc_bad)
-    stc_bad = stc2.copy()
-    stc_bad.tmin -= 0.1
-    pytest.raises(ValueError, source_estimate_quantification, stc1, stc_bad)
-    pytest.raises(ValueError, source_estimate_quantification, stc1, stc2,
-                  metric='foo')
 
 
 @testing.requires_testing_data
@@ -275,5 +244,6 @@ def test_spacial_deviation():
     score = spacial_deviation_error(stc_true, stc_est, src,
                                     per_sample=False)
     assert_almost_equal(score, np.inf)
+
 
 run_tests_if_main()
