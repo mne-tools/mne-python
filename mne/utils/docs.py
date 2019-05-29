@@ -223,6 +223,23 @@ n_jobs : int
     Requires the joblib package.
 """
 
+# Random state
+docdict['random_state'] = """
+random_state : None | int | instance of ~numpy.random.mtrand.RandomState
+    If ``random_state`` is an :class:`int`, it will be used as a seed for
+    ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+    obtained from the operating system (see
+    ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+"""
+
+docdict['seed'] = """
+seed : None | int | instance of ~numpy.random.mtrand.RandomState
+    If ``seed`` is an :class:`int`, it will be used as a seed for
+    ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+    obtained from the operating system (see
+    ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)

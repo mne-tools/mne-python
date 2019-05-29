@@ -997,11 +997,7 @@ def permutation_cluster_test(
         Can also be False to assume no connectivity.
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : None | int | instance of ~numpy.random.mtrand.RandomState
-        If ``seed`` is an :class:`int`, it will be used as a seed for
-        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
-        obtained from the operating system (see
-        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+    %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1110,13 +1106,8 @@ def permutation_cluster_1samp_test(
         extent to save on memory and computation time. Can also be False
         to assume no connectivity.
     %(verbose)s
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : None | int | instance of ~numpy.random.mtrand.RandomState
-        If ``seed`` is an :class:`int`, it will be used as a seed for
-        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
-        obtained from the operating system (see
-        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+    %(n_jobs)s
+    %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1248,13 +1239,8 @@ def spatio_temporal_cluster_1samp_test(
         (n_vertices). Default is None, i.e, a regular lattice connectivity.
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : None | int | instance of ~numpy.random.mtrand.RandomState
-        If ``seed`` is an :class:`int`, it will be used as a seed for
-        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
-        obtained from the operating system (see
-        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+    %(n_jobs)s
+    %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1364,13 +1350,8 @@ def spatio_temporal_cluster_test(
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
     %(verbose)s
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : None | int | instance of ~numpy.random.mtrand.RandomState
-        If ``seed`` is an :class:`int`, it will be used as a seed for
-        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
-        obtained from the operating system (see
-        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+    %(n_jobs)s
+    %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
