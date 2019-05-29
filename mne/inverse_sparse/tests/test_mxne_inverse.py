@@ -114,6 +114,7 @@ def test_mxne_inverse_standard():
     with pytest.warns(None):  # CD
         stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
+                            weights=stc_dspm,  # gh-6382
                             active_set_size=10, return_residual=True,
                             solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
