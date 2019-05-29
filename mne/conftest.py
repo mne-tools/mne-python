@@ -178,7 +178,7 @@ def backends_3d(backend_name):
     elif backend_name == 'pyvista':
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
-    if backend_name == 'ipyvolume':
+    elif backend_name == 'ipyvolume':
         if not has_ipyvolume():
             pytest.skip("Test skipped, requires ipyvolume.")
     with _use_test_3d_backend(backend_name):

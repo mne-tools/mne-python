@@ -4,12 +4,14 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Oleh Kozynets <ok7mailbox@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: Simplified BSD
 
 import warnings
 import numpy as np
 from .base_renderer import _BaseRenderer
+from ._utils import _get_colormap_from_array, _get_color_from_scalars
 from ...utils import copy_base_doc_to_subclass_doc
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -76,18 +78,14 @@ class _Renderer(_BaseRenderer):
         return mesh
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
-        from matplotlib import cm
-        from matplotlib.colors import ListedColormap
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False):
         from ipyvolume.pylab import plot
 
         vertices = surface['rr']
         tris = surface['tris']
 
-        if colormap is None:
-            cmap = cm.get_cmap('coolwarm')
-        else:
-            cmap = ListedColormap(colormap / 255.0)
+        cmap = _get_colormap_from_array(colormap, normalized_colormap)
 
         if isinstance(contours, int):
             levels = np.linspace(vmin, vmax, num=contours)
@@ -95,18 +93,12 @@ class _Renderer(_BaseRenderer):
             levels = np.array(contours)
 
         if scalars is not None:
-            if vmin is None:
-                vmin = min(scalars)
-            if vmax is None:
-                vmax = max(scalars)
-            nscalars = (scalars - vmin) / (vmax - vmin)
-            color = cmap(nscalars)
-        else:
+            color = _get_color_from_scalars(cmap, scalars, vmin, vmax)
+        if len(color) == 3:
             color = np.append(color, opacity)
 
-        verts, faces, _, _ = _isoline(vertices=vertices, tris=tris,
-                                      vertex_data=scalars,
-                                      levels=levels)
+        verts, _, = _isoline(vertices=vertices, tris=tris,
+                             vertex_data=scalars, levels=levels)
 
         x, y, z = verts.T
         with warnings.catch_warnings():
@@ -114,28 +106,18 @@ class _Renderer(_BaseRenderer):
             plot(x, y, z, color=color)
 
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
                 backface_culling=False):
-        from matplotlib import cm
-        from matplotlib.colors import ListedColormap
-
-        if colormap is None:
-            cmap = cm.get_cmap('coolwarm')
-        else:
-            cmap = ListedColormap(colormap / 255.0)
+        cmap = _get_colormap_from_array(colormap, normalized_colormap)
 
         vertices = np.array(surface['rr'])
         x, y, z = vertices.T
         triangles = np.array(surface['tris'])
 
         if scalars is not None:
-            if vmin is None:
-                vmin = min(scalars)
-            if vmax is None:
-                vmax = max(scalars)
-            nscalars = (scalars - vmin) / (vmax - vmin)
-            color = cmap(nscalars)
-        else:
+            color = _get_color_from_scalars(cmap, scalars, vmin, vmax)
+        if len(color) == 3:
             color = np.append(color, opacity)
 
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
@@ -186,9 +168,11 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
+        # XXX: scale is not supported yet
         color = np.append(color, opacity)
-        x, y, z = map(_check_array, [x, y, z])
+        x, y, z, u, v, w = map(np.atleast_1d, [x, y, z, u, v, w])
         scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color)
+
         _add_transperent_material(scatter)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
@@ -285,26 +269,16 @@ def _isoline(vertices, tris, vertex_data, levels):
         Vertex coordinates for lines points
     connects : ndarray, shape (Ne, 2)
         Indices of line element into the vertex array.
-    vertex_level: ndarray, shape (Nvout,)
-        level for vertex in lines
 
     Notes
     -----
     Uses a marching squares algorithm to generate the isolines.
     """
-    lines = None
-    connects = None
-    vertex_level = None
-    level_index = None
+    lines, connects = (None, None)
     if not all([isinstance(x, np.ndarray) for x in (vertices, tris,
                 vertex_data, levels)]):
         raise ValueError('all inputs must be numpy arrays')
-    if vertices.shape[1] <= 3:
-        verts = vertices
-    elif vertices.shape[1] == 4:
-        verts = vertices[:, :-1]
-    else:
-        verts = None
+    verts = _check_vertices_shape(vertices)
     if (verts is not None and tris.shape[1] == 3 and
             vertex_data.shape[0] == verts.shape[0]):
         edges = np.vstack((tris.reshape((-1)),
@@ -324,23 +298,16 @@ def _isoline(vertices, tris, vertex_data, levels):
                               (edge_datas_Ok[:, 1] - edge_datas_Ok[:, 0])])
             point = xyz[:, 0, :] + ratio.T * (xyz[:, 1, :] - xyz[:, 0, :])
             nbr = point.shape[0] // 2
-            if connects is not None:
+            if connects is None:
+                lines = point
+                connects = np.arange(0, nbr * 2).reshape((nbr, 2))
+            else:
                 connect = np.arange(0, nbr * 2).reshape((nbr, 2)) + \
                     len(lines)
                 connects = np.append(connects, connect, axis=0)
                 lines = np.append(lines, point, axis=0)
-                vertex_level = np.append(vertex_level,
-                                         np.zeros(len(point)) + lev)
-                level_index = np.append(level_index, np.array(len(point)))
-            else:
-                lines = point
-                connects = np.arange(0, nbr * 2).reshape((nbr, 2))
-                vertex_level = np.zeros(len(point)) + lev
-                level_index = np.array(len(point))
 
-            vertex_level = vertex_level.reshape((vertex_level.size, 1))
-
-    return lines, connects, vertex_level, level_index
+    return lines, connects
 
 
 def _color2rgba(color, opacity):
@@ -365,8 +332,12 @@ def _color2rgba(color, opacity):
     return color
 
 
-def _check_array(n):
-    if np.isscalar(n):
-        return np.array([n])
+def _check_vertices_shape(vertices):
+    """Check vertices shape."""
+    if vertices.shape[1] <= 3:
+        verts = vertices
+    elif vertices.shape[1] == 4:
+        verts = vertices[:, :-1]
     else:
-        return n
+        verts = None
+    return verts

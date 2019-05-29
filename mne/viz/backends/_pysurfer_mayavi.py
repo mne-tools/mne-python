@@ -78,17 +78,17 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
-        scalars = None
-        vertex_color = None
-        n_colors = len(color)
         if isinstance(color, np.ndarray) and color.ndim > 1:
             if color.shape[1] == 3:
-                vertex_color = np.c_[color, np.ones(n_colors)] * 255.0
+                vertex_color = np.c_[color, np.ones(len(color))] * 255.0
             else:
                 vertex_color = color * 255.0
             # create a lookup table to enable one color per vertex
-            scalars = np.arange(n_colors)
+            scalars = np.arange(len(color))
             color = None
+        else:
+            scalars = None
+            vertex_color = None
         with warnings.catch_warnings(record=True):  # traits
             surface = self.mlab.triangular_mesh(x, y, z, triangles,
                                                 color=color,
@@ -101,10 +101,11 @@ class _Renderer(_BaseRenderer):
                     vertex_color
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
-            return surface
+        return surface
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False):
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
             cont = self.mlab.pipeline.contour_surface(
@@ -113,8 +114,11 @@ class _Renderer(_BaseRenderer):
             cont.module_manager.scalar_lut_manager.lut.table = colormap
 
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
                 backface_culling=False):
+        if normalized_colormap:
+            colormap = colormap * 255.0
         # Make a solid surface
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits

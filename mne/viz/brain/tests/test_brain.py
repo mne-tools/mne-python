@@ -55,20 +55,6 @@ def test_brain_add_data(backends_3d):
     with pytest.raises(ValueError):
         brain_data.add_data(array=np.zeros(3))
     with pytest.raises(ValueError):
-        brain_data.add_data(array=hemi_data, thresh=0)
-    with pytest.raises(ValueError):
-        brain_data.add_data(array=hemi_data, transparent=0)
-    with pytest.raises(ValueError):
-        brain_data.add_data(array=hemi_data, remove_existing=0)
-    with pytest.raises(ValueError):
-        brain_data.add_data(array=hemi_data, time_label_size=0)
-    with pytest.raises(ValueError):
-        brain_data.add_data(array=hemi_data, scale_factor=0)
-    with pytest.raises(ValueError):
-        brain_data.add_data(array=hemi_data, vector_alpha=0)
-    with pytest.raises(ValueError):
-        brain_data.add_data(array=hemi_data, verbose=0)
-    with pytest.raises(ValueError):
         brain_data.add_data(hemi_data, min=fmin, hemi=hemi,
                             max=fmax, vertices=None)
 
@@ -115,8 +101,10 @@ def test_brain_time_viewer(backends_3d):
     with pytest.raises(ValueError):
         TimeViewer(brain)
 
+    # XXX: only the pyvolume backend is supported for now
     if backend_name != "ipyvolume":
-        pytest.skip()
+        pytest.skip('This feature is not available on {} yet.'
+                    .format(backend_name))
 
     brain.data['time'] = np.zeros(1)
     brain.data['time_idx'] = np.zeros(1).astype(np.int)
@@ -141,8 +129,10 @@ def test_brain_colorbar(backends_3d):
     with pytest.raises(KeyError):
         ColorBar(brain)
 
+    # XXX: only the pyvolume backend is supported for now
     if backend_name != "ipyvolume":
-        pytest.skip()
+        pytest.skip('This feature is not available on {} yet.'
+                    .format(backend_name))
 
     brain.data['center'] = None
     brain.data['fmin'] = 0.0

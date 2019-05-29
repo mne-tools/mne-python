@@ -42,3 +42,28 @@ class Backends3D(str, Enum):
         """
         valid_values = tuple(b.value for b in cls)
         _check_option('MNE_3D_BACKEND', backend_value, valid_values)
+
+
+def _get_colormap_from_array(colormap=None, normalized_colormap=False,
+                             default_colormap='coolwarm'):
+    from matplotlib import cm
+    from matplotlib.colors import ListedColormap
+    if colormap is None:
+        cmap = cm.get_cmap(default_colormap)
+    elif normalized_colormap:
+        cmap = ListedColormap(colormap)
+    else:
+        cmap = ListedColormap(colormap / 255.0)
+    return cmap
+
+
+def _get_color_from_scalars(cmap, scalars=None, vmin=None, vmax=None):
+    color = None
+    if scalars is not None:
+        if vmin is None:
+            vmin = min(scalars)
+        if vmax is None:
+            vmax = max(scalars)
+        nscalars = (scalars - vmin) / (vmax - vmin)
+        color = cmap(nscalars)
+    return color

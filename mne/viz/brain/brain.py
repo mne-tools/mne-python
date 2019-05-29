@@ -3,6 +3,7 @@
 #          Oleh Kozynets <ok7mailbox@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #          jona-sassenhagen <jona.sassenhagen@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: Simplified BSD
 
@@ -11,12 +12,13 @@ import numpy as np
 from .colormap import _calculate_lut
 from .view import views_dict
 from .surface import Surface
+from ..utils import _check_option
 
 
 class Brain(object):
-    u"""Class for visualizing a brain using ipyvolume.
+    u"""Class for visualizing a brain.
 
-    It is used for creating ipyvolume meshes of the given subject's
+    It is used for creating meshes of the given subject's
     cortex. The activation data can be shown on a mesh using add_data
     method. Figures, meshes, activation data and other information
     are stored as attributes of a class instance.
@@ -75,7 +77,7 @@ class Brain(object):
     Attributes
     ----------
     geo : dict
-        A dictionary of ipysurfer.Surface objects for each hemisphere.
+        A dictionary of pysurfer.Surface objects for each hemisphere.
     overlays : dict
         The overlays.
     """
@@ -107,6 +109,8 @@ class Brain(object):
         self._colorbar_added = False
         # array of data used by TimeViewer
         self._data = {}
+        self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
+        self._renderers = [[] for _ in views]
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -123,9 +127,8 @@ class Brain(object):
             fig_size = (size, size)
         elif isinstance(size, tuple):
             fig_size = size
-
-        self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
-        self._renderers = [[] for _ in views]
+        else:
+            raise ValueError('"size" parameter must be int or tuple.')
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -265,20 +268,15 @@ class Brain(object):
         """
         if len(array.shape) == 3:
             raise ValueError('Vector values in "array" are not supported.')
-        if thresh is not None:
-            raise ValueError('"threshold" parameter is not supported yet.')
-        if transparent is not None:
-            raise ValueError('"transparent" is not supported yet.')
-        if remove_existing is not None:
-            raise ValueError('"remove_existing" is not supported yet.')
-        if time_label_size is not None:
-            raise ValueError('"time_label_size" is not supported yet.')
-        if scale_factor is not None:
-            raise ValueError('"scale_factor" is not supported yet.')
-        if vector_alpha is not None:
-            raise ValueError('"vector_alpha" is not supported yet.')
-        if verbose is not None:
-            raise ValueError('"verbose" is not supported yet.')
+
+        # those parameters are not supported yet, only None is allowed
+        _check_option('thresh', thresh, [None])
+        _check_option('transparent', transparent, [None])
+        _check_option('remove_existing', remove_existing, [None])
+        _check_option('time_label_size', time_label_size, [None])
+        _check_option('scale_factor', scale_factor, [None])
+        _check_option('vector_alpha', vector_alpha, [None])
+        _check_option('verbose', verbose, [None])
 
         from surfer.utils import mesh_edges, smoothing_matrix
 

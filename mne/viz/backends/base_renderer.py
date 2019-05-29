@@ -57,7 +57,8 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False):
         """Add a contour in the scene.
 
         Parameters
@@ -80,12 +81,16 @@ class _BaseRenderer(metaclass=ABCMeta):
             If None, the max of the data will be used
         colormap:
             The colormap to use.
+        normalized_colormap: bool
+            If True, the given colormap values lie in [0, 1],
+            [0, 255] otherwise.
         """
         pass
 
     @abstractclassmethod
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
                 backface_culling=False):
         """Add a surface in the scene.
 
@@ -105,6 +110,9 @@ class _BaseRenderer(metaclass=ABCMeta):
             If None, the max of the data will be used
         colormap:
             The colormap to use.
+        normalized_colormap: bool
+            If True, the given colormap values lie in [0, 1],
+            [0, 255] otherwise.
         scalars: ndarray, shape (n_vertices,)
             The scalar valued associated to the vertices.
         backface_culling: bool
