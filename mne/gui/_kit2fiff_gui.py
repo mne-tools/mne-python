@@ -13,7 +13,7 @@ import numpy as np
 from scipy.linalg import inv
 from threading import Thread
 
-from ..io.meas_info import _read_dig_points, _make_dig_points
+from ..digitization._utils import _read_dig_points, _make_dig_points
 from ..utils import get_config, set_config, logger, warn
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
