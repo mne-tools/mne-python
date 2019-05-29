@@ -192,5 +192,9 @@ MNE-Python core terminology and general concepts
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
 
-    :abbr:`GFP (Global Field Power)`
-        foo bar.
+    GFP
+        Global Field Power (abbr. ``GFP``) is a measure of the (non-)uniformity
+        of the electromagnetic field at the sensors. It is typically calculated
+        as the standard deviation of the sensor values at each time point; thus
+        it is a one-dimensional time series capturing the spatial variability
+        of the signal across sensor locations.

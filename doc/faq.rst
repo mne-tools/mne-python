@@ -239,7 +239,7 @@ Under the assumption that the baseline does not contain a systematic signal
 follow a multivariate Gaussian distribution, i.e.,
 whitened baseline signals should be between -1.96 and 1.96 at a given time sample.
 Based on the same reasoning, the expected value for the :term:`Global Field
-Power(GFP) <GFP>` is 1 (calculation of the :term:`GFP` should take into account the true
+Power (GFP) <GFP>` is 1 (calculation of the :term:`GFP` should take into account the true
 degrees of freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
 
     >>> evoked = epochs.average() # doctest: +SKIP
