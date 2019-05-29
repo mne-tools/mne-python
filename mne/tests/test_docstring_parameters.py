@@ -140,6 +140,10 @@ def test_docstring_parameters():
 
     incorrect = []
     for name in public_modules_:
+        # Assert that by default we import all public names with `import mne`
+        if name not in ('mne', 'mne.gui'):
+            extra = name.split('.')[1]
+            assert hasattr(mne, extra)
         with pytest.warns(None):  # traits warnings
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:

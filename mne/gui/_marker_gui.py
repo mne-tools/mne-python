@@ -20,7 +20,7 @@ from traitsui.menu import Action, CancelButton
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
 from ..io.kit import read_mrk
-from ..io.meas_info import _write_dig_points
+from ..digitization._utils import _write_dig_points
 from ._viewer import PointObject
 from ._backend import _check_pyface_backend
 

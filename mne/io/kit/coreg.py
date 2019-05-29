@@ -12,7 +12,7 @@ from struct import unpack
 import numpy as np
 
 from .constants import KIT
-from ..meas_info import _read_dig_points
+from ...digitization._utils import _read_dig_points
 
 
 def read_mrk(fname):
