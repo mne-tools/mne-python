@@ -1460,6 +1460,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
     return labels
 
 
+@fill_doc
 def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
                 overlap=True, names=None, surface='white'):
     """Generate circular labels in source space with region growing.

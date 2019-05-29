@@ -37,11 +37,10 @@ from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     has_nibabel, check_version,
+                     has_nibabel, check_version, fill_doc,
                      _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
-                    plt_show, tight_layout, figure_nobar, _check_time_unit,
-                    fill_doc)
+                    plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
