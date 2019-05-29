@@ -13,7 +13,7 @@ import numpy as np
 from ...channels import read_montage
 from ...epochs import EpochsArray
 from ...io.meas_info import create_info
-from ...utils import _fetch_file, requires_pandas, verbose
+from ...utils import _fetch_file, _check_pandas_installed, verbose
 from ..utils import _get_path, _do_path_update
 
 # root url for LIMO files
@@ -116,7 +116,6 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     return limo_dir
 
 
-@requires_pandas
 @verbose
 def load_data(subject, path=None, interpolate=False, force_update=False,
               update_path=None, verbose=None):
@@ -145,7 +144,7 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     epochs : MNE Epochs data structure
         The epochs.
     """  # noqa: E501
-    import pandas as pd
+    pd = _check_pandas_installed()
     from scipy.io import loadmat
 
     # subject in question
