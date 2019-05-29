@@ -236,7 +236,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
 @verbose
 def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=None,
-               debias=True, time_pca=True, weights=None, weights_min=None,
+               debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, rank=None,
                verbose=None):
@@ -467,7 +467,7 @@ def _window_evoked(evoked, size):
 @verbose
 def tf_mixed_norm(evoked, forward, noise_cov,
                   loose='auto', depth=0.8, maxit=3000,
-                  tol=1e-4, weights=None, weights_min=None, pca=True,
+                  tol=1e-4, weights=None, weights_min=0., pca=True,
                   debias=True, wsize=64, tstep=4, window=0.02,
                   return_residual=False, return_as_dipoles=False,
                   alpha=None, l1_ratio=None, dgap_freq=10, rank=None,
