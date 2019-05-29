@@ -442,7 +442,7 @@ def _update_limits(fmin, fmid, fmax, center, array):
         raise RuntimeError('min must be < mid, got %0.4g >= %0.4g'
                            % (fmin, fmid))
     if fmid >= fmax:
-        raise RuntimeError('mid must be < %smax, got %0.4g >= %0.4g'
+        raise RuntimeError('mid must be < max, got %0.4g >= %0.4g'
                            % (fmid, fmax))
 
     return fmin, fmid, fmax
