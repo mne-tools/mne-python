@@ -48,7 +48,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         * 'complex' : single trial complex.
         * 'power' : single trial power.
         * 'phase' : single trial phase.
-    n_jobs : int, default 1
+    %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
     %(verbose)s

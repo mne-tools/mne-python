@@ -621,8 +621,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
-        n_jobs : int
-            Number of jobs to run in parallel.
+        %(n_jobs)s
         %(verbose_meth)s
 
         Notes

@@ -318,7 +318,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
 
-    n_jobs : int, default 1
+    %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
     %(verbose)s
@@ -674,8 +674,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
         .. note:: Decimation may create aliasing artifacts.
 
-    n_jobs : int, default 1
-        The number of jobs to run in parallel.
+    %(n_jobs)s
     picks : array-like of int | None, default None
         The indices of the channels to decompose. If None, all available
         good data channels are decomposed.
@@ -759,7 +758,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
 
-    n_jobs : int
+    %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. default 1
     %(verbose)s
@@ -827,8 +826,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
         .. note:: Decimation may create aliasing artifacts.
 
-    n_jobs : int,  default 1
-        The number of jobs to run in parallel.
+    %(n_jobs)s
     %(picks_good_data)s
     average : bool, default True
         If True average across Epochs.
