@@ -66,8 +66,9 @@ print('Data from channel {0}:'.format(evoked.ch_names[10]))
 print(data[10])
 
 ###############################################################################
-# In the same vein, we can quickly extract (and, e.g., plot) the GFP as the
-# standard deviation across channels, here shown just for EEG.
+# In the same vein, we can quickly extract (and, e.g., plot) the
+# :term:`Global Field Power(GFP) <GFP>` as the standard deviation across
+# channels, here shown just for EEG.
 
 gfp = evoked.copy().pick_types(eeg=True, meg=False).data.std(axis=0)
 fig, ax = plt.subplots(1)
