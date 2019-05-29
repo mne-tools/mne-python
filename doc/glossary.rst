@@ -25,7 +25,7 @@ MNE-Python core terminology and general concepts
         sleep scores, sleep events (spindles, K-complex) etc.
         An :class:`Annotations` object is a container of multiple annotations.
         See :class:`Annotations` page for the API of the corresponding
-        object class and :ref:`tut-annotations`
+        object class and :doc:`auto_tutorials/intro/plot_object_annotations`
         for a tutorial on how to manipulate such objects.
 
     channels
@@ -59,10 +59,13 @@ MNE-Python core terminology and general concepts
         idealized point sources (dipoles) located on the cortical surface.
 
     epochs
-        Epochs are chunks of data extracted from raw continuous data. Typically,
-        they correspond to the trials of an experimental design.
-        See :class:`Epochs` for the API of the corresponding
-        object class, and :ref:`tut-epochs-class` for a narrative overview.
+        Epochs (sometimes called "trials" in other software packages) are
+        equal-length spans of data extracted from raw continuous data. Usually,
+        epochs are extracted around stimulus events or subject responses,
+        though sometimes sequential or overlapping epochs are extracted (e.g.,
+        for analysis of resting-state activity). See :class:`Epochs` for the
+        API of the corresponding object class, and :ref:`tut-epochs-class` for
+        a narrative overview.
 
     evoked
         Evoked data are obtained by averaging epochs. Typically, an evoked object
@@ -178,11 +181,12 @@ MNE-Python core terminology and general concepts
         A set of picks. E.g., all sensors included in a Region of Interest.
 
     stim channel
-        A stim channel, a.k.a. trigger channel, is a channel that encodes events
-        during the recording. It is typically a channel that is always zero and that
-        takes positive values when something happens such as the onset of a stimulus.
-        Classical names for stim channels is ``STI 014`` or ``STI 101``.
-        So-called events arrays are obtained from stim channels.
+        A stim channel, a.k.a. trigger channel, is a channel that encodes
+        events during the recording. It is typically a channel that is usually
+        zero and takes positive values when something happens (such as the
+        onset of a stimulus, or a subject response). Stim channels are often
+        prefixed with ``STI`` to distinguish them from other channel types. See
+        :ref:`stim-channel-defined` for more details.
 
     trans
         A coordinate frame affine transformation, usually between the Neuromag head

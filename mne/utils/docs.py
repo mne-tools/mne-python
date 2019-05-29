@@ -196,7 +196,7 @@ on_missing : str
 
 # Simulation
 docdict['random_state'] = """
-random_state : None | int | ~numpy.random.RandomState
+random_state : None | int | ~numpy.random.mtrand.RandomState
     The random generator state used for blink, ECG, and sensor
     noise randomization. Default is None, which does not set the seed.
 """

@@ -997,8 +997,11 @@ def permutation_cluster_test(
         Can also be False to assume no connectivity.
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+    seed : None | int | instance of ~numpy.random.mtrand.RandomState
+        If ``seed`` is an :class:`int`, it will be used as a seed for
+        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+        obtained from the operating system (see
+        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1109,8 +1112,11 @@ def permutation_cluster_1samp_test(
     %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+    seed : None | int | instance of ~numpy.random.mtrand.RandomState
+        If ``seed`` is an :class:`int`, it will be used as a seed for
+        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+        obtained from the operating system (see
+        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1244,8 +1250,11 @@ def spatio_temporal_cluster_1samp_test(
         extent to save on memory and computation time.
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+    seed : None | int | instance of ~numpy.random.mtrand.RandomState
+        If ``seed`` is an :class:`int`, it will be used as a seed for
+        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+        obtained from the operating system (see
+        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1357,8 +1366,11 @@ def spatio_temporal_cluster_test(
     %(verbose)s
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+    seed : None | int | instance of ~numpy.random.mtrand.RandomState
+        If ``seed`` is an :class:`int`, it will be used as a seed for
+        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
+        obtained from the operating system (see
+        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
