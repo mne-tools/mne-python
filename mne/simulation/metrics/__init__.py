@@ -5,5 +5,5 @@ from .metrics import (cosine_score,
                       precision_score, recall_score,
                       f1_score, roc_auc_score,
                       peak_position_error,
-                      spacial_deviation_error,
+                      spatial_deviation_error,
                       _thresholding, _check_threshold, _uniform_stc)

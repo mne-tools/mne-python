@@ -22,7 +22,7 @@ from mne.simulation.metrics import (cosine_score,
                                     precision_score, recall_score,
                                     f1_score, roc_auc_score,
                                     peak_position_error,
-                                    spacial_deviation_error)
+                                    spatial_deviation_error)
 from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
@@ -224,7 +224,7 @@ def test_peak_position_error():
 
 
 @testing.requires_testing_data
-def test_spacial_deviation():
+def test_spatial_deviation():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:1], []]
@@ -235,13 +235,13 @@ def test_spacial_deviation():
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     std = np.sqrt(0.5 * (0 + norm(src[0]['rr'][vert2[0][1]] -
                                   src[0]['rr'][vert2[0][0]])**2))
-    score = spacial_deviation_error(stc_true, stc_est, src,
+    score = spatial_deviation_error(stc_true, stc_est, src,
                                     per_sample=False)
     assert_almost_equal(score, std)
 
     data2 = np.array([[0, 0.]]).T
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
-    score = spacial_deviation_error(stc_true, stc_est, src,
+    score = spatial_deviation_error(stc_true, stc_est, src,
                                     per_sample=False)
     assert_almost_equal(score, np.inf)
 

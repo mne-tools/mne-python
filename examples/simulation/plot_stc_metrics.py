@@ -4,9 +4,9 @@ Compare simulated and estimated source activity
 ===============================================
 
 This example illustrates how to compare the simulated and estimated
-stcs by computing different metrics. Simulated source is a cortical region
-or dipole. It is meant to be a brief introduction and only highlights
-the simplest use case.
+source time courses (STC) by computing different metrics. Simulated
+source is a cortical region or dipole. It is meant to be a brief
+introduction and only highlights the simplest use case.
 
 """
 # Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
@@ -25,11 +25,11 @@ from mne.simulation.metrics import (region_localization_error,
                                     f1_score, precision_score,
                                     recall_score, cosine_score,
                                     peak_position_error,
-                                    spacial_deviation_error)
+                                    spatial_deviation_error)
 
 print(__doc__)
 
-np.random.seed(42)
+random_state = 42  # set random state to make this example deterministic
 
 # Import sample data
 data_path = sample.data_path()
@@ -50,6 +50,7 @@ src = fwd['src']
 selected_label = mne.read_labels_from_annot(
     subject, regexp='caudalmiddlefrontal-lh', subjects_dir=subjects_dir)[0]
 
+
 ###############################################################################
 # In this example we simulate two types of cortical sources: a region and
 # a dipole sources. We will test corresponding performance metrics.
@@ -68,14 +69,14 @@ location = 'center'  # Use the center of the label as a seed.
 extent = 20.  # Extent in mm of the region.
 label_region = mne.label.select_sources(
     subject, selected_label, location=location, extent=extent,
-    subjects_dir=subjects_dir)
+    subjects_dir=subjects_dir, random_state=random_state)
 
 # Dipole
 location = 1915  # Use the index of the vertex as a seed
 extent = 0.  # One dipole source
 label_dipole = mne.label.select_sources(
     subject, selected_label, location=location, extent=extent,
-    subjects_dir=subjects_dir)
+    subjects_dir=subjects_dir, random_state=random_state)
 
 # WHAT?
 # Define the time course of the activity
@@ -114,14 +115,16 @@ raw_region = mne.simulation.simulate_raw(info, source_simulator_region,
                                          forward=fwd)
 raw_region = raw_region.pick_types(meg=False, eeg=True, stim=True)
 cov = mne.make_ad_hoc_cov(raw_region.info)
-mne.simulation.add_noise(raw_region, cov, iir_filter=[0.2, -0.2, 0.04])
+mne.simulation.add_noise(raw_region, cov, iir_filter=[0.2, -0.2, 0.04],
+                         random_state=random_state)
 
 # Dipole
 raw_dipole = mne.simulation.simulate_raw(info, source_simulator_dipole,
                                          forward=fwd)
 raw_dipole = raw_dipole.pick_types(meg=False, eeg=True, stim=True)
 cov = mne.make_ad_hoc_cov(raw_dipole.info)
-mne.simulation.add_noise(raw_dipole, cov, iir_filter=[0.2, -0.2, 0.04])
+mne.simulation.add_noise(raw_dipole, cov, iir_filter=[0.2, -0.2, 0.04],
+                         random_state=random_state)
 
 ###############################################################################
 # Compute evoked from raw data
@@ -201,8 +204,8 @@ f1s = np.empty(len(thresholds))
 precs = np.empty(len(thresholds))
 recs = np.empty(len(thresholds))
 
-y_mean = np.empty(len(thresholds))
-y_std = np.empty(len(thresholds))
+ppes = np.empty(len(thresholds))
+sds = np.empty(len(thresholds))
 x = range(len(thresholds))
 for i, thr in enumerate(thresholds):
     # Region
@@ -217,11 +220,11 @@ for i, thr in enumerate(thresholds):
                            per_sample=False)
 
     # Dipole
-    y_mean[i] = peak_position_error(stc_true_dipole, stc_est_dipole, src,
-                                    threshold=thr, per_sample=False)
-    y_std[i] = spacial_deviation_error(stc_true_dipole, stc_est_dipole,
-                                       src, threshold=thr,
-                                       per_sample=False)
+    ppes[i] = peak_position_error(stc_true_dipole, stc_est_dipole, src,
+                                  threshold=thr, per_sample=False)
+    sds[i] = spatial_deviation_error(stc_true_dipole, stc_est_dipole,
+                                     src, threshold=thr,
+                                     per_sample=False)
 
 ###############################################################################
 # Scores plotting
@@ -267,16 +270,16 @@ plt.show()
 
 # Dipole
 f, ax1 = plt.subplots()
-ax1.plot(x, y_mean, '.-')
-ax1.set_title('PPE')
-ax1.set_ylabel('Error')
+ax1.plot(x, 100 * ppes, '.-')
+ax1.set_title('Peak Position Error')
+ax1.set_ylabel('Error (cm)')
 ax1.set_xlabel('Threshold')
 ax1.set_xticks(x)
 ax1.set_xticklabels(thresholds)
 
 f, ax2 = plt.subplots()
-ax2.plot(x, y_std, '.-')
-ax2.set_title('SD')
+ax2.plot(x, sds, '.-')
+ax2.set_title('Spatial Deviation')
 ax2.set_ylabel('Error')
 ax2.set_xlabel('Threshold')
 ax2.set_xticks(x)

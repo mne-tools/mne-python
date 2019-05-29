@@ -503,7 +503,7 @@ def peak_position_error(stc_true, stc_est, src, threshold='50%',
     return metric
 
 
-def _spacial_deviation(p, q, r_est, r_true):
+def _spatial_deviation(p, q, r_est, r_true):
     q = np.sum(np.abs(q), axis=1)
     if np.sum(q):
         q /= np.sum(q)
@@ -516,11 +516,11 @@ def _spacial_deviation(p, q, r_est, r_true):
 
 
 @fill_doc
-def spacial_deviation_error(stc_true, stc_est, src, threshold='50%',
+def spatial_deviation_error(stc_true, stc_est, src, threshold='50%',
                             per_sample=True):
-    r"""Compute the spacial deviation.
+    r"""Compute the spatial deviation.
 
-    The spacial deviation characterizes the spread of the estimate source
+    The spatial deviation characterizes the spread of the estimate source
     around the true source.
 
     .. math::
@@ -562,6 +562,6 @@ def spacial_deviation_error(stc_true, stc_est, src, threshold='50%',
     %(stc_metric)s
     """
     stc_est, r_true, r_est = _prepare_ppe_sd(stc_true, stc_est, src, threshold)
-    func = partial(_spacial_deviation, r_est=r_est, r_true=r_true)
+    func = partial(_spatial_deviation, r_est=r_est, r_true=r_true)
     metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
     return metric
