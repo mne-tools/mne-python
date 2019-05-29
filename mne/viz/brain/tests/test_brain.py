@@ -128,7 +128,7 @@ def test_brain_colorbar(backends_3d):
     with pytest.raises(KeyError):
         ColorBar(brain)
 
-    # XXX: only the pyvolume backend is supported for now
+    # XXX: only the ipyvolume backend is supported for now
     if backend_name != backends3D.ipyvolume:
         pytest.skip('This feature is not available on {} yet.'
                     .format(backend_name))
