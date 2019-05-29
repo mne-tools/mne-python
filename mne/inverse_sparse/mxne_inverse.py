@@ -4,7 +4,7 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import linalg, signal
+from scipy import linalg
 
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                _BaseSourceEstimate)
@@ -455,11 +455,9 @@ def _window_evoked(evoked, size):
     sfreq = float(evoked.info['sfreq'])
     lsize = int(lsize * sfreq)
     rsize = int(rsize * sfreq)
-    lhann = signal.hann(lsize * 2)
-    rhann = signal.hann(rsize * 2)
-    window = np.r_[lhann[:lsize],
-                   np.ones(len(evoked.times) - lsize - rsize),
-                   rhann[-rsize:]]
+    lhann = np.hanning(lsize * 2)[:lsize]
+    rhann = np.hanning(rsize * 2)[-rsize:]
+    window = np.r_[lhann, np.ones(len(evoked.times) - lsize - rsize), rhann]
     evoked.data *= window[None, :]
     return evoked
 
