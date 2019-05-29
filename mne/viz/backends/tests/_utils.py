@@ -41,8 +41,8 @@ def has_ipyvolume():
 
 
 skips_if_not_mayavi = pytest.mark.skipif(
-    not(has_mayavi()), reason='requires mayavi')
+    not has_mayavi(), reason='requires mayavi')
 skips_if_not_pyvista = pytest.mark.skipif(
     not has_pyvista(), reason='requires pyvista')
 skips_if_not_ipyvolume = pytest.mark.skipif(
-    not(has_ipyvolume()), reason='requires ipyvolume')
+    not has_ipyvolume(), reason='requires ipyvolume')

@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+#
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
+#          Guillaume Favelier <guillaume.favelier@gmail.com>
+#          Oleh Kozynets <ok7mailbox@gmail.com>
+#
+# License: Simplified BSD
+
 import pytest
 import numpy as np
 import os.path as path
@@ -94,7 +104,7 @@ def test_brain_time_viewer(backends_3d):
     with pytest.raises(ValueError):
         TimeViewer(brain)
 
-    # XXX: only the pyvolume backend is supported for now
+    # XXX: only the ipyvolume backend is supported for now
     if backend_name != backends3D.ipyvolume:
         pytest.skip('This feature is not available on {} yet.'
                     .format(backend_name))
