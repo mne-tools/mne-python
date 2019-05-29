@@ -12,7 +12,7 @@ import numpy as np
 from .colormap import _calculate_lut
 from .view import views_dict
 from .surface import Surface
-from ..utils import _check_option
+from ..utils import _check_option, logger
 
 
 class Brain(object):
@@ -161,9 +161,9 @@ class Brain(object):
 
                 self._hemi_meshes[h + '_' + v] = mesh
 
-    def add_data(self, array, min=None, mid=None, max=None, thresh=None,
-                 center=None, transparent=None, colormap="auto", alpha=1,
-                 vertices=None, smoothing_steps=None, time=None,
+    def add_data(self, array, fmin=None, fmid=None, fmax=None,
+                 thresh=None, center=None, transparent=None, colormap="auto",
+                 alpha=1, vertices=None, smoothing_steps=None, time=None,
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
@@ -177,7 +177,7 @@ class Brain(object):
         (i.e., a timecourse) or five-dimensional data (i.e., a
         vector-valued timecourse).
 
-        .. note:: ``min`` sets the low end of the colormap, and is separate
+        .. note:: ``fmin`` sets the low end of the colormap, and is separate
                   from thresh (this is a different convention from
                   :meth:`surfer.Brain.add_overlay`).
 
@@ -190,24 +190,24 @@ class Brain(object):
             If vectors with no time dimension are desired, consider using a
             singleton (e.g., ``np.newaxis``) to create a "time" dimension
             and pass ``time_label=None`` (vector values are not supported).
-        min : float
-            Min value in colormap (uses real min if None).
-        mid : float
-            Intermediate value in colormap (middle between min and max
-            if None).
-        max : float
-            Max value in colormap (uses real max if None).
+        fmin : float
+            Minimum value in colormap (uses real fmin if None).
+        fmid : float
+            Intermediate value in colormap (fmid between fmin and
+            fmax if None).
+        fmax : float
+            Maximum value in colormap (uses real max if None).
         thresh : None or float
             Not supported yet.
             if not None, values below thresh will not be visible
         center : float or None
             if not None, center of a divergent colormap, changes the meaning of
-            min, max and mid.
+            fmin, fmax and fmid.
         transparent : bool
             Not supported yet.
-            if True: use a linear transparency between min and mid and make
-            values below min fully transparent (symmetrically for divergent
-            colormaps)
+            if True: use a linear transparency between fmin and fmid
+            and make values below fmin fully transparent (symmetrically for
+            divergent colormaps)
         colormap : str, list of color, or array
             name of matplotlib colormap to use, a list of matplotlib colors,
             or a custom look up table (an n x 4 array coded with RBGA values
@@ -288,13 +288,6 @@ class Brain(object):
         else:
             time_idx = np.argmin(abs(time - initial_time))
 
-        self._data['time'] = time
-        self._data['initial_time'] = initial_time
-        self._data['time_label'] = time_label
-        self._data['time_idx'] = time_idx
-        # data specific for a hemi
-        self._data[hemi + '_array'] = array
-
         if time is not None and len(array.shape) == 2:
             # we have scalar_data with time dimension
             act_data = array[:, time_idx]
@@ -302,25 +295,23 @@ class Brain(object):
             # we have scalar data without time
             act_data = array
 
-        if center is None:
-            if min is None:
-                min = array.min() if array.size > 0 else 0
-            if max is None:
-                max = array.max() if array.size > 0 else 1
-        else:
-            if min is None:
-                min = 0
-            if max is None:
-                max = np.abs(center - array).max() if array.size > 0 else 1
-        if mid is None:
-            mid = (min + max) / 2.
-        _check_limits(min, mid, max, extra='')
+        fmin, fmid, fmax = _update_limits(
+            fmin, fmid, fmax, center, array
+        )
+
+        self._data['time'] = time
+        self._data['initial_time'] = initial_time
+        self._data['time_label'] = time_label
+        self._data['time_idx'] = time_idx
+        # data specific for a hemi
+        self._data[hemi + '_array'] = array
+
         self._data['alpha'] = alpha
         self._data['colormap'] = colormap
         self._data['center'] = center
-        self._data['min'] = min
-        self._data['mid'] = mid
-        self._data['max'] = max
+        self._data['fmin'] = fmin
+        self._data['fmid'] = fmid
+        self._data['fmax'] = fmax
 
         lut = self.update_lut()
 
@@ -338,8 +329,8 @@ class Brain(object):
             self._data[hemi + '_smooth_mat'] = smooth_mat
 
         # data mapping into [0, 1] interval
-        dt_max = max
-        dt_min = min if center is None else -1 * max
+        dt_max = fmax
+        dt_min = fmin if center is None else -1 * max
         k = 1 / (dt_max - dt_min)
         b = 1 - k * dt_max
         act_data = k * act_data + b
@@ -370,30 +361,34 @@ class Brain(object):
 
     def show(self):
         u"""Display widget."""
-        self._renderers[0][0].show()
+        try:
+            self._renderers[0][0].show()
+        except RuntimeError:
+            logger.info("No active/running renderer available.")
 
-    def update_lut(self, min=None, mid=None, max=None):
+    def update_lut(self, fmin=None, fmid=None, fmax=None):
         u"""Update color map.
 
         Parameters
         ----------
-        min : float | None
-            Min value in colormap.
-        mid : float | None
-            Intermediate value in colormap (middle between min and
-            max).
-        max : float | None
-            Max value in colormap.
+        fmin : float | None
+            Minimum value in colormap.
+        fmid : float | None
+            Intermediate value in colormap (fmid between fmin and
+            fmax).
+        fmax : float | None
+            Maximum value in colormap.
         """
         alpha = self._data['alpha']
         center = self._data['center']
         colormap = self._data['colormap']
-        min = self._data['min'] if min is None else min
-        mid = self._data['mid'] if mid is None else mid
-        max = self._data['max'] if max is None else max
+        fmin = self._data['fmin'] if fmin is None else fmin
+        fmid = self._data['fmid'] if fmid is None else fmid
+        fmax = self._data['fmax'] if fmax is None else fmax
 
-        self._data['lut'] = _calculate_lut(
-            colormap, alpha=alpha, fmin=min, fmid=mid, fmax=max, center=center)
+        self._data['lut'] = _calculate_lut(colormap, alpha=alpha,
+                                           fmin=fmin, fmid=fmid,
+                                           fmax=fmax, center=center)
 
         return self._data['lut']
 
@@ -429,11 +424,25 @@ class Brain(object):
         return hemi
 
 
-def _check_limits(min, mid, max, extra='f'):
-    u"""Check for monotonicity."""
-    if min >= mid:
-        raise ValueError('%smin must be < %smid, got %0.4g >= %0.4g'
-                         % (extra, extra, min, mid))
-    if mid >= max:
-        raise ValueError('%smid must be < %smax, got %0.4g >= %0.4g'
-                         % (extra, extra, mid, max))
+def _update_limits(fmin, fmid, fmax, center, array):
+    if center is None:
+        if fmin is None:
+            fmin = array.min() if array.size > 0 else 0
+        if fmax is None:
+            fmax = array.max() if array.size > 0 else 1
+    else:
+        if fmin is None:
+            fmin = 0
+        if fmax is None:
+            fmax = np.abs(center - array).max() if array.size > 0 else 1
+    if fmid is None:
+        fmid = (fmin + fmax) / 2.
+
+    if fmin >= fmid:
+        raise RuntimeError('min must be < mid, got %0.4g >= %0.4g'
+                           % (fmin, fmid))
+    if fmid >= fmax:
+        raise RuntimeError('mid must be < %smax, got %0.4g >= %0.4g'
+                           % (fmid, fmax))
+
+    return fmin, fmid, fmax

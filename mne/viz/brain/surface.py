@@ -64,12 +64,7 @@ class Surface(object):
         Can be 'm' or 'mm' (default).
     """
 
-    def __init__(self,
-                 subject_id,
-                 hemi,
-                 surf,
-                 subjects_dir=None,
-                 offset=None,
+    def __init__(self, subject_id, hemi, surf, subjects_dir=None, offset=None,
                  units='mm'):
         from surfer.utils import _check_units, _get_subjects_dir
 
@@ -95,6 +90,7 @@ class Surface(object):
         self.faces = None
         self.grey_curv = None
         self.nn = None
+        self.labels = dict()
 
         subjects_dir = _get_subjects_dir(subjects_dir)
         self.data_path = path.join(subjects_dir, subject_id)
@@ -178,12 +174,9 @@ class Surface(object):
                                                 'label',
                                                 '%s.%s.label' %
                                                 (self.hemi, name)))
-        label_array = np.zeros(len(self.x), np.int)
+        label_array = np.zeros_like(self.x).astype(np.int)
         label_array[label] = 1
-        try:
-            self.labels[name] = label_array
-        except AttributeError:
-            self.labels = {name: label_array}
+        self.labels[name] = label_array
 
     def apply_xfm(self, mtx):
         """Apply an affine transformation matrix to the x,y,z vectors."""

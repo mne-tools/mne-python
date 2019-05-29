@@ -7,41 +7,37 @@
 #          Oleh Kozynets <ok7mailbox@gmail.com>
 #
 # License: Simplified BSD
-from enum import Enum
 
-from ...utils import get_config
+from ...utils import get_config, BunchConst
 from ...utils.check import _check_option
 
 
 DEFAULT_3D_BACKEND = 'mayavi'
 
+backends3D = BunchConst(
+    mayavi='mayavi',
+    pyvista='pyvista',
+    ipyvolume='ipyvolume',
+)
 
-class Backends3D(str, Enum):
-    """Enumeration of valid 3D backends."""
 
-    ipyvolume = 'ipyvolume'
-    mayavi = 'mayavi'
-    pyvista = 'pyvista'
+def get_backend_based_on_env_and_defaults():
+    """Read MNE-Python preferences from environment or config file."""
+    backend = get_config(key='MNE_3D_BACKEND', default=DEFAULT_3D_BACKEND)
+    check_backend(backend)
 
-    @classmethod
-    def get_backend_based_on_env_and_defaults(cls):
-        """Read MNE-Python preferences from environment or config file."""
-        backend = get_config(key='MNE_3D_BACKEND', default=DEFAULT_3D_BACKEND)
-        cls.check_backend(backend)
+    return backend
 
-        return backend
 
-    @classmethod
-    def check_backend(cls, backend_value):
-        """Check the value of the backend against a list of valid options.
+def check_backend(backend):
+    """Check the value of the backend against a list of valid options.
 
-        Parameters
-        ----------
-        backend_value: str
-            Provided by user backend value.
-        """
-        valid_values = tuple(b.value for b in cls)
-        _check_option('MNE_3D_BACKEND', backend_value, valid_values)
+    Parameters
+    ----------
+    backend: str
+        Provided by user backend value.
+    """
+    _check_option('MNE_3D_BACKEND', backend, list(backends3D.keys()))
 
 
 def _get_colormap_from_array(colormap=None, normalized_colormap=False,

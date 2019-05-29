@@ -4,37 +4,38 @@ import os.path as path
 from mne import read_source_estimate
 from mne.datasets import sample
 from mne.viz import Brain, get_3d_backend
+from mne.viz.backends._utils import backends3D
 from mne.viz.brain.view import TimeViewer, ColorBar
 from mne.viz.brain.colormap import _calculate_lut
+
+data_path = sample.data_path()
+subject_id = 'sample'
+subjects_dir = path.join(data_path, 'subjects')
+surf = 'inflated'
 
 
 def test_brain_init(backends_3d):
     """Test initialization of the Brain instance."""
     backend_name = get_3d_backend()
-    data_path = sample.data_path()
     hemi = 'both'
-    surf = 'inflated'
-    subject_id = 'sample'
-    subjects_dir = path.join(data_path, 'subjects')
 
-    pytest.raises(ValueError, Brain, subject_id=subject_id,
-                  hemi="split", surf=surf)
-    pytest.raises(ValueError, Brain, subject_id=subject_id,
-                  hemi=hemi, surf=surf, figure=0)
-    pytest.raises(ValueError, Brain, subject_id=subject_id,
-                  hemi=hemi, surf=surf, interaction=0)
-    pytest.raises(KeyError, Brain, subject_id=subject_id,
-                  hemi="foo", surf=surf)
+    with pytest.raises(ValueError, match='hemi'):
+        Brain(subject_id=subject_id, hemi="split", surf=surf)
+    with pytest.raises(ValueError, match='figure'):
+        Brain(subject_id=subject_id, hemi=hemi, surf=surf, figure=0)
+    with pytest.raises(ValueError, match='interaction'):
+        Brain(subject_id=subject_id, hemi=hemi, surf=surf, interaction=0)
+    with pytest.raises(KeyError):
+        Brain(subject_id=subject_id, hemi="foo", surf=surf)
 
     brain = Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
-    if backend_name != "mayavi":
+    if backend_name != backends3D.mayavi:
         brain.show()
 
 
 def test_brain_add_data(backends_3d):
     """Test adding data in Brain instance."""
     backend_name = get_3d_backend()
-    data_path = sample.data_path()
     act_data = path.join(data_path, 'MEG/sample/sample_audvis-meg-eeg')
 
     stc = read_source_estimate(act_data)
@@ -42,27 +43,23 @@ def test_brain_add_data(backends_3d):
     hemi = 'lh'
     hemi_data = stc.data[:len(stc.vertices[0]), 10]
     hemi_vertices = stc.vertices[0]
-
     fmin = stc.data.min()
     fmax = stc.data.max()
-    surf = 'inflated'
-    subject_id = 'sample'
-    subjects_dir = path.join(data_path, 'subjects')
 
     brain_data = Brain(subject_id, hemi, surf, size=300,
                        subjects_dir=subjects_dir)
 
     with pytest.raises(ValueError):
-        brain_data.add_data(array=np.zeros(3))
+        brain_data.add_data(array=np.array([0, 1, 2]))
     with pytest.raises(ValueError):
-        brain_data.add_data(hemi_data, min=fmin, hemi=hemi,
-                            max=fmax, vertices=None)
+        brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi,
+                            fmax=fmax, vertices=None)
 
-    brain_data.add_data(hemi_data, min=fmin, hemi=hemi, max=fmax,
+    brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
                         colormap='hot', vertices=hemi_vertices,
                         colorbar=False)
 
-    if backend_name != "mayavi":
+    if backend_name != backends3D.mayavi:
         brain_data.show()
 
 
@@ -71,26 +68,22 @@ def test_brain_colormap():
     from matplotlib import cm
     colormap = "coolwarm"
     alpha = 1.0
-    min = 0.0
-    mid = 0.5
-    max = 1.0
+    fmin = 0.0
+    fmid = 0.5
+    fmax = 1.0
     center = None
-    _calculate_lut(colormap, alpha=alpha, fmin=min,
-                   fmid=mid, fmax=max, center=center)
+    _calculate_lut(colormap, alpha=alpha, fmin=fmin,
+                   fmid=fmid, fmax=fmax, center=center)
     center = 0.0
     colormap = cm.get_cmap(colormap)
-    _calculate_lut(colormap, alpha=alpha, fmin=min,
-                   fmid=mid, fmax=max, center=center)
+    _calculate_lut(colormap, alpha=alpha, fmin=fmin,
+                   fmid=fmid, fmax=fmax, center=center)
 
 
 def test_brain_time_viewer(backends_3d):
     """Test of brain's time viewer."""
     backend_name = get_3d_backend()
-    data_path = sample.data_path()
     hemi = 'both'
-    surf = 'inflated'
-    subject_id = 'sample'
-    subjects_dir = path.join(data_path, 'subjects')
     brain = Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
 
     with pytest.raises(KeyError):
@@ -102,7 +95,7 @@ def test_brain_time_viewer(backends_3d):
         TimeViewer(brain)
 
     # XXX: only the pyvolume backend is supported for now
-    if backend_name != "ipyvolume":
+    if backend_name != backends3D.ipyvolume:
         pytest.skip('This feature is not available on {} yet.'
                     .format(backend_name))
 
@@ -119,18 +112,14 @@ def test_brain_colorbar(backends_3d):
     from matplotlib import cm
 
     backend_name = get_3d_backend()
-    data_path = sample.data_path()
     hemi = 'both'
-    surf = 'inflated'
-    subject_id = 'sample'
-    subjects_dir = path.join(data_path, 'subjects')
     brain = Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
 
     with pytest.raises(KeyError):
         ColorBar(brain)
 
     # XXX: only the pyvolume backend is supported for now
-    if backend_name != "ipyvolume":
+    if backend_name != backends3D.ipyvolume:
         pytest.skip('This feature is not available on {} yet.'
                     .format(backend_name))
 

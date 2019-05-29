@@ -105,7 +105,7 @@ class TimeViewer(object):
         if isinstance(time_label, str):
             label = time_label % time
         elif callable(time_label):
-            label = time_label()
+            label = time_label(time)
 
         return label
 
@@ -156,7 +156,8 @@ class ColorBar(object):
                            color=color,
                            scales={'x': x_sc, 'color': col_sc})
 
-        self._add_inputs()
+        self._update_bounds()
+        self._update_buttons()
         fig_layout = widgets.Layout(width='%dpx' % cbar_w,
                                     height='60px')
         cbar_fig = Figure(axes=[ax_x],
@@ -242,8 +243,16 @@ class ColorBar(object):
 
         self._colors = colors
 
-    def _add_inputs(self):
-        u"""Add inputs and update button."""
+    def _update_buttons(self):
+        u"""Update the buttons."""
+        import ipywidgets as widgets
+        self._btn_upd_mesh = widgets.Button(description='Update mesh',
+                                            disabled=False,
+                                            button_style='',
+                                            tooltip='Update mesh')
+
+    def _update_bounds(self):
+        u"""Update the bounds."""
         import ipywidgets as widgets
 
         val_min = self._brain.data['fmin']
@@ -272,11 +281,6 @@ class ColorBar(object):
                                                     description='Fmax:',
                                                     step=0.1,
                                                     disabled=False)
-
-        self._btn_upd_mesh = widgets.Button(description='Update mesh',
-                                            disabled=False,
-                                            button_style='',
-                                            tooltip='Update mesh')
 
     def show(self):
         u"""Display widget."""

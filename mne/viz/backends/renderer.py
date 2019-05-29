@@ -12,23 +12,24 @@ import importlib
 from contextlib import contextmanager
 import sys
 
-from ._utils import Backends3D
+from ._utils import (get_backend_based_on_env_and_defaults,
+                     check_backend, backends3D)
 from ...utils import logger
 
 try:
     MNE_3D_BACKEND
     MNE_3D_BACKEND_TEST_DATA
 except NameError:
-    MNE_3D_BACKEND = Backends3D.get_backend_based_on_env_and_defaults()
+    MNE_3D_BACKEND = get_backend_based_on_env_and_defaults()
     MNE_3D_BACKEND_TEST_DATA = None
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
-if MNE_3D_BACKEND == Backends3D.mayavi:
+if MNE_3D_BACKEND == backends3D.mayavi:
     from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == Backends3D.ipyvolume:
+elif MNE_3D_BACKEND == backends3D.ipyvolume:
     from ._ipyvolume import _Renderer  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == Backends3D.pyvista:
+elif MNE_3D_BACKEND == backends3D.pyvista:
     from ._pyvista import _Renderer, _Projection  # lgtm # noqa: F401
 
 
@@ -88,7 +89,7 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+-----------+
 
     """
-    Backends3D.check_backend(backend_name)
+    check_backend(backend_name)
     global MNE_3D_BACKEND
     MNE_3D_BACKEND = backend_name
     importlib.reload(sys.modules[__name__])
@@ -134,6 +135,6 @@ def _use_test_3d_backend(backend_name):
     """
     with use_3d_backend(backend_name):
         global MNE_3D_BACKEND_TEST_DATA
-        if backend_name == Backends3D.pyvista:
+        if backend_name == backends3D.pyvista:
             MNE_3D_BACKEND_TEST_DATA = True
         yield

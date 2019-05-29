@@ -18,16 +18,16 @@ def _calculate_lut(lim_cmap, alpha, fmin, fmid, fmax, center=None):
 
         [fmin, fmid, fmax]
 
-    where fmin and fmax define the edges of the colormap and fmid will be
-    the value mapped to the center of the originally chosen colormap.
+    where fmin and fmax define the edges of the colormap and fmid
+    will be the value mapped to the center of the originally chosen colormap.
     A divergent colormap is characterised by::
 
         [center-fmax, center-fmid, center-fmin, center,
             center+fmin, center+fmid, center+fmax]
 
     i.e., values between center-fmin and center+fmin will not be shown
-    while center-fmid will map to the middle of the first half of the
-    original colormap and center-fmid to the middle of the second half.
+    while center-fmid will map to the fmid of the first half of the
+    original colormap and center-fmid to the fmid of the second half.
 
     Parameters
     ----------
