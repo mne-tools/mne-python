@@ -486,8 +486,7 @@ class Label(object):
             a label filling the surface, use None.
         subjects_dir : str, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
-        n_jobs : int
-            Number of jobs to run in parallel
+        %(n_jobs)s
         %(verbose_meth)s
 
         Returns
@@ -536,8 +535,7 @@ class Label(object):
             a label filling the surface, use None.
         subjects_dir : str, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
-        n_jobs : int
-            Number of jobs to run in parallel.
+        %(n_jobs)s
         %(verbose_meth)s
 
         Returns
@@ -1462,6 +1460,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
     return labels
 
 
+@fill_doc
 def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
                 overlap=True, names=None, surface='white'):
     """Generate circular labels in source space with region growing.
@@ -1489,10 +1488,9 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         Hemispheres to use for the labels (0: left, 1: right).
     subjects_dir : string
         Path to SUBJECTS_DIR if not set in the environment.
-    n_jobs : int
-        Number of jobs to run in parallel. Likely only useful if tens
-        or hundreds of labels are being expanded simultaneously. Does not
-        apply with ``overlap=False``.
+    %(n_jobs)s
+        Likely only useful if tens or hundreds of labels are being expanded
+        simultaneously. Does not apply with ``overlap=False``.
     overlap : bool
         Produce overlapping labels. If True (default), the resulting labels
         can be overlapping. If False, each label will be grown one step at a
@@ -1649,6 +1647,7 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
     return labels
 
 
+@fill_doc
 def random_parcellation(subject, n_parcel, hemi, subjects_dir=None,
                         surface='white', random_state=None):
     """Generate random cortex parcellation by growing labels.
@@ -1671,11 +1670,7 @@ def random_parcellation(subject, n_parcel, hemi, subjects_dir=None,
         Path to SUBJECTS_DIR if not set in the environment.
     surface : string
         The surface used to grow the labels, defaults to the white surface.
-    random_state : None | int | instance of ~numpy.random.mtrand.RandomState
-        If ``random_state`` is an :class:`int`, it will be used as a seed for
-        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
-        obtained from the operating system (see
-        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+    %(random_state)s
 
     Returns
     -------
@@ -2436,6 +2431,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         _write_annot(fname, annot, ctab, hemi_names)
 
 
+@fill_doc
 def select_sources(subject, label, location='center', extent=0.,
                    grow_outside=True, subjects_dir=None, name=None,
                    random_state=None, surf='white'):
@@ -2463,8 +2459,7 @@ def select_sources(subject, label, location='center', extent=0.,
         Path to SUBJECTS_DIR if not set in the environment.
     name : None | str
         Assign name to the new label.
-    random_state : None | int | ~numpy.random.mtrand.RandomState
-        To specify the random generator state.
+    %(random_state)s
     surf : string
         The surface used to simulated the label, defaults to the white surface.
 

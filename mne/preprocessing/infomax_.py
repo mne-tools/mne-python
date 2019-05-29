@@ -63,11 +63,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         Defaults to 1.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
-    random_state : None | int | instance of ~numpy.random.mtrand.RandomState
-        If ``random_state`` is an :class:`int`, it will be used as a seed for
-        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
-        obtained from the operating system (see
-        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+    %(random_state)s
     blowup : float
         The maximum difference allowed between two successive estimations of
         the unmixing matrix. Defaults to 10000.

@@ -30,7 +30,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         a string (e.g. scoring="roc_auc" calls predict_proba) but is not
         automatically set if scoring is a callable (e.g.
         scoring=sklearn.metrics.roc_auc_score).
-    n_jobs : int, optional (default=1)
+    %(n_jobs)s
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     %(verbose)s
@@ -436,7 +436,7 @@ class GeneralizingEstimator(SlidingEstimator):
         a string (e.g. scoring="roc_auc" calls predict_proba) but is not
         automatically set if scoring is a callable (e.g.
         scoring=sklearn.metrics.roc_auc_score).
-    n_jobs : int, optional (default=1)
+    %(n_jobs)s
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     %(verbose)s

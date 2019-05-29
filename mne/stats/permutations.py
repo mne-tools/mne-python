@@ -49,13 +49,8 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
         the alternative hypothesis is that the mean of the data is different
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
-    n_jobs : int
-        Number of CPUs to use for computation.
-    seed : None | int | instance of ~numpy.random.mtrand.RandomState
-        If ``seed`` is an :class:`int`, it will be used as a seed for
-        ~numpy.random.mtrand.RandomState. If ``None``, the seed will be
-        obtained from the operating system (see
-        ~numpy.random.mtrand.RandomState for details). Default is ``None``.
+    %(n_jobs)s
+    %(seed)s
     %(verbose)s
 
     Returns

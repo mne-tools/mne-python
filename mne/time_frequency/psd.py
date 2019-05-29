@@ -84,8 +84,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     n_per_seg : int | None
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
-    n_jobs : int
-        Number of CPUs to use in the computation.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -164,8 +163,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
-    n_jobs : int
-        Number of CPUs to use in the computation.
+    %(n_jobs)s
     reject_by_annotation : bool
         Whether to omit bad segments from the data while computing the
         PSD. If True, annotated segments with a description that starts
@@ -242,8 +240,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
-    n_jobs : int
-        Number of CPUs to use in the computation.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
