@@ -1,8 +1,8 @@
 """
 .. _tut-info-class:
 
-The :class:`~mne.Info` data structure
-=====================================
+The Info data structure
+=======================
 
 The :class:`~mne.Info` data object is typically created
 when data is imported into MNE-Python and contains details such as:

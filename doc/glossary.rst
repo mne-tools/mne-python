@@ -82,14 +82,15 @@ MNE-Python core terminology and general concepts
         object class, and :ref:`tut-evoked-class` for a narrative overview.
 
     first_samp
-        The attribute of raw objects called ``first_samp`` is an integer that
-        refers to the number of time samples passed between the onset of the
-        acquisition system and the time when data started to be written
-        on disk. This is a specificity of the Vectorview MEG systems (fif files)
-        but for consistency it is available for all file formats in MNE.
-        One benefit of this system is that croppping data only boils
-        down to a change of the ``first_samp`` attribute to know when cropped data
-        was acquired.
+        The :attr:`~mne.io.Raw.first_samp` attribute of :class:`~mne.io.Raw`
+        objects is an integer representing the number of time samples that
+        passed between the onset of the hardware acquisition system and the
+        time when data started to be recorded to disk. This approach to sample
+        numbering is a peculiarity of Vectorview MEG systems, but for
+        consistency it is present in all :class:`~mne.io.Raw` objects
+        regardless of the hardware used to collect the data. In other words,
+        :attr:`~mne.io.Raw.first_samp` will be ``0`` in :class:`~mne.io.Raw`
+        objects loaded from non-Vectorview systems.
 
     forward solution
         The forward solution (abbr. ``fwd``) is a linear operator capturing the

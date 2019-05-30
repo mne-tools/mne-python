@@ -177,6 +177,14 @@ div.sidebar {
     margin: 10px;
     float: left;
 }
+.table.midvalign td {
+    vertical-align: middle;
+    border-width: 2px;
+}
+.table.midvalign th {
+    border-width: 2px;
+    border-top-width: 2px;
+}
 /* our carousel */
 .chopper {
     overflow: hidden;
