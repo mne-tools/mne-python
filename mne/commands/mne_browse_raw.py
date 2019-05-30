@@ -63,7 +63,7 @@ def run():
                       help="Display filtering IIR order (or 0 to use FIR)",
                       default=4)
     parser.add_option("--clipping", dest="clipping",
-                      help="Enable trace clipping mode, either 'clip' or "
+                      help="Enable trace clipping mode, either 'clamp' or "
                       "'transparent'", default=None)
     parser.add_option("--filterchpi", dest="filterchpi",
                       help="Enable filtering cHPI signals.", default=None,
