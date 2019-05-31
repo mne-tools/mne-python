@@ -357,8 +357,8 @@ class Annotations(object):
         if tmin > tmax:
             raise ValueError('tmax should be greater than tmin.')
 
-        if tmin < 0:
-            raise ValueError('tmin should be positive.')
+        # if tmin < 0:
+        #     raise ValueError('tmin should be positive.')
 
         out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
 
