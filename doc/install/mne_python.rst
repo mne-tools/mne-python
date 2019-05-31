@@ -5,7 +5,7 @@
 Installing MNE-Python
 =====================
 
-.. contents::
+.. contents:: Page contents
    :local:
    :depth: 1
 
@@ -21,10 +21,10 @@ MNE-Python 0.18 only supports Python version 3.5 or higher. We strongly
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
 tool for installing new packages and managing different package sets
-("environments") for different projects. Follow the `installation instructions
-for Anaconda`_.
+("environments") for different projects.
 
-When you are done, if you type the following command in a ``bash`` terminal,
+To get started, follow the `installation instructions for Anaconda`_.
+When you are done, if you type the following commands in a ``bash`` terminal,
 you should see outputs similar to the following (assuming you installed
 conda to ``/home/user/anaconda3``)::
 
@@ -39,38 +39,40 @@ conda to ``/home/user/anaconda3``)::
 .. collapse:: |hand-stop-o| If you get an error or these look incorrect...
     :class: danger
 
-    - If you see something like::
+    **If you see something like**::
 
-         conda: command not found
+        conda: command not found
 
-      It means that your PATH (what the system uses to find programs) is not
-      set properly. In a correct installation, doing::
+    It means that your ``PATH`` variable (what the system uses to find
+    programs) is not set properly. In a correct installation, doing::
 
-          $ echo $PATH
-          ...:/home/user/anaconda3/bin:...
+        $ echo $PATH
+        ...:/home/user/anaconda3/bin:...
 
-      Will show the Anaconda binary path (above) somewhere in the output, but
-      the error suggests that it will be missing.
-      On Linux or OSX, the installer should have put something
-      like the following in your ``~/.bashrc`` or ``~/.bash_profile``
-      (or somewhere else if you are using a non-bash terminal)::
+    Will show the Anaconda binary path (above) somewhere in the output
+    (probably at or near the beginning), but the ``command not found`` error
+    suggests that it is missing.
+    On Linux or OSX, the installer should have put something
+    like the following in your ``~/.bashrc`` or ``~/.bash_profile``
+    (or somewhere else if you are using a non-bash terminal):
 
-          . ~/anaconda3/etc/profile.d/conda.sh
-          conda activate mne  # or "base", if you prefer manually switching
+    .. code-block:: bash
 
-      If these are missing, adding them can fix the problem.
+        . ~/anaconda3/etc/profile.d/conda.sh
 
-    - If you see an error like::
+    If these are missing, adding them can fix the problem.
 
-          CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
+    **If you see an error like**::
 
-      It means that you have used an old method to set up Anaconda. This
-      means that you have something like::
+        CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
 
-          PATH=~/anaconda3/bin:$PATH
+    It means that you have used an old method to set up Anaconda. This
+    means that you have something like::
 
-      in your ``~/.bash_profile``. You should update this line to use
-      the modern way using ``anaconda3/etc/profile.d/conda.sh`` above.
+        PATH=~/anaconda3/bin:$PATH
+
+    in your ``~/.bash_profile``. You should update this line to use
+    the modern way using ``anaconda3/etc/profile.d/conda.sh`` above.
 
     You can also consult the Anaconda documentation and search for
     Anaconda install tips (`Stack Overflow`_ results are often helpful)
@@ -92,8 +94,8 @@ you do not have ``curl``. Then you should activate the environment::
     $ conda activate mne
 
 You can activate the environment (``conda activate mne``) each time you
-open a terminal, or add this activation command in your ``.bashrc`` or
-``.profile`` so that it happens automatically. You should now see that
+open a terminal, or add this activation command in your ``~/.bashrc`` or
+``~/.profile`` so that it happens automatically. You should now see that
 ``python`` points to the one from your MNE environment::
 
     $ which python
@@ -139,7 +141,7 @@ MNE-Python and its dependencies. Typical output looks like this::
 .. collapse:: |hand-stop-o| If you get an error...
     :class: danger
 
-    If you see an error like::
+    **If you see an error like**::
 
         Traceback (most recent call last):
           File "<string>", line 1, in <module>
