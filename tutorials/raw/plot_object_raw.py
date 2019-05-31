@@ -282,7 +282,7 @@ print(eeg_data.shape)
 # each channel type separately, it requires making a :meth:`~mne.io.Raw.copy`
 # of the :class:`~mne.io.Raw` object each time, which can strain memory
 # resources).
-``
+
 eeg_and_eog = raw.copy().pick_types(meg=False, eeg=True, eog=True)
 print(len(eeg_and_eog.ch_names))
 
@@ -545,4 +545,5 @@ print(df.head())
 # .. _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file
 # .. _ten_twenty: https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
 # .. _ten_oh_five: https://doi.org/10.1016%2FS1388-2457%2800%2900527-7
-# .. _dict comprehension: https://docs.python.org/3/tutorial/datastructures.html#dictionaries
+# .. _dict comprehension:
+#    https://docs.python.org/3/tutorial/datastructures.html#dictionaries
