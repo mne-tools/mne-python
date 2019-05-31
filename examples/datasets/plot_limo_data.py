@@ -49,7 +49,7 @@ from mne.stats import linear_regression
 print(__doc__)
 
 # fetch data from subject 2 and interpolate missing channels
-limo_epochs = limo.load_data(subject=2, interpolate=True)
+limo_epochs = limo.load_data(subject=2)
 
 ###############################################################################
 # In the original LIMO experiment, participants performed a two-alternative
@@ -84,8 +84,13 @@ print(limo_epochs.metadata.head())
 ###############################################################################
 # Before going on, we'll drop the EOG channels present in the LIMO epochs
 # (coded with EXG-prefix in ``limo_epochs.info['ch_names']``, as data has
-# already been cleaned
+# already been cleaned.
 limo_epochs.drop_channels(['EXG1', 'EXG2', 'EXG3', 'EXG4'])
+
+# Furthermore, some datasets contain missing channels (stored in
+# ``limo_epochs.info[‘bads’]``), which were dropped during preprocessing of the
+# data. We’ll interpolate this channels for convenience.
+limo_epochs.interpolate_bads(reset_bads=True)
 
 ###############################################################################
 # Now we can go ahead and plot the ERPs evoked by Face A and Face B

@@ -117,21 +117,19 @@ def data_path(subject, path=None, force_update=False, update_path=None,
 
 
 @verbose
-def load_data(subject, path=None, interpolate=False, force_update=False,
-              update_path=None, verbose=None):
+def load_data(subject, path=None, force_update=False, update_path=None,
+              verbose=None):
     """Fetch subjects epochs data for the LIMO data set.
 
     Parameters
     ----------
     subject : int
-        Subject to use. Must be of class ìnt in the range from 1 to 18.
+        Subject to use. Must be of class ìnt in the range from 1 to 2.
     path : str
         Location of where to look for the LIMO data.
         If None, the environment variable or config parameter
         ``MNE_DATASETS_LIMO_PATH`` is used. If it doesn't exist, the
         "~/mne_data" directory is used.
-    interpolate : bool
-        Whether to interpolate missing channels.
     force_update : bool
         Force update of the dataset even if a local copy exists.
     update_path : bool | None
@@ -223,9 +221,5 @@ def load_data(subject, path=None, interpolate=False, force_update=False,
     # -- 6) Create custom epochs array
     epochs = EpochsArray(data, info, events, tmin, event_id, metadata=metadata)
     epochs.info['bads'] = missing_chans  # missing channels are marked as bad.
-
-    # -- 7) interpolate missing channels
-    if interpolate:
-        epochs.interpolate_bads(reset_bads=True)
 
     return epochs
