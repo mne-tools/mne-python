@@ -8,12 +8,14 @@ The Raw data structure: continuous data
 This tutorial covers the basics of working with raw EEG/MEG data in Python. It
 introduces the :class:`~mne.io.Raw` data structure in detail, including how to
 load, query, subselect, export, and plot data from a :class:`~mne.io.Raw`
-object (more info on visualization of :class:`~mne.io.Raw` objects see
-:doc:`plot_visualize_raw`). For info on creating a :class:`~mne.io.Raw` object
+object. For more info on visualization of :class:`~mne.io.Raw` objects, see
+:doc:`plot_visualize_raw`. For info on creating a :class:`~mne.io.Raw` object
 from simulated data in a :class:`NumPy array <numpy.ndarray>`, see
 :ref:`tut_creating_data_structures`.
 
-.. contents:: Page contents :local: :depth: 2
+.. contents:: Page contents
+   :local:
+   :depth: 2
 
 As usual we'll start by importing the modules we need:
 """
@@ -40,21 +42,22 @@ import mne
 # As mentioned in :doc:`the introductory tutorial
 # <../intro/plot_introduction>`, MNE-Python data structures are based around
 # the :file:`.fif` file format from Neuromag. This tutorial uses an
-# :ref:`example dataset <sample-dataset>` in :file:`.fif` format, but there are
+# :ref:`example dataset <sample-dataset>` in :file:`.fif` format, so here we'll
+# use the function :func:`mne.io.read_raw_fif` to load the raw data; there are
 # reader functions for :ref:`a wide variety of other data formats
 # <data-formats>` as well.
 #
-# MNE-Python also provides several example datasets that can be downloaded with
+# There are also several other example datasets that can be downloaded with
 # just a few lines of code. Functions for downloading example datasets are in
 # the :mod:`mne.datasets` submodule; here we'll use
 # :func:`mne.datasets.sample.data_path` to download the ":ref:`sample-dataset`"
 # dataset, which contains EEG, MEG, and structural MRI data from one subject
-# performing an audiovisual experiment. :func:`~mne.datasets.sample.data_path`
-# will return the folder location where it put the downloaded dataset; you can
-# navigate there with your file browser if you want to examine the files
-# yourself. Once we have the file path, we can load the data with
-# :func:`~mne.io.read_raw_fif`. This will return a :class:`~mne.io.Raw`
-# object, which we'll store in a variable called ``raw``.
+# performing an audiovisual experiment. When it's done downloading,
+# :func:`~mne.datasets.sample.data_path` will return the folder location where
+# it put the files; you can navigate there with your file browser if you want
+# to examine the files yourself. Once we have the file path, we can load the
+# data with :func:`~mne.io.read_raw_fif`. This will return a
+# :class:`~mne.io.Raw` object, which we'll store in a variable called ``raw``.
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
@@ -62,13 +65,17 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 ###############################################################################
-# :func:`~mne.io.read_raw_fif` automatically displays some information about
-# the file it's loading; for example, here it tells us that there are three
-# "projection items" in the file along with the recorded data; those are
-# :term:`SSP projectors <projector>` calculated to remove environmental noise
-# from the MEG signals, and are discussed in a later tutorial. In addition to
-# the information displayed during loading, you can get a glimpse of the basic
-# details of a :class:`~mne.io.Raw` object by printing it:
+# As you can see above, :func:`~mne.io.read_raw_fif` automatically displays
+# some information about the file it's loading. For example, here it tells us
+# that there are three "projection items" in the file along with the recorded
+# data; those are :term:`SSP projectors <projector>` calculated to remove
+# environmental noise from the MEG signals, and are discussed in a later
+# tutorial. In addition to the information displayed during loading, you can
+# get a glimpse of the basic details of a :class:`~mne.io.Raw` object by
+# printing it:
+#
+# .. TODO change "in a later tutorial" to crossref when the projectors tutorial
+#    is done.
 
 print(raw)
 
@@ -79,9 +86,10 @@ print(raw)
 # filtering) require that the data be copied into RAM; to do that we could have
 # passed the ``preload=True`` parameter to :func:`~mne.io.read_raw_fif`, but we
 # can also copy the data into RAM at any time using the
-# :meth:`~mne.io.Raw.load_data` method. However, to make this tutorial run
-# smoothly on our servers, we'll first :meth:`~mne.io.Raw.crop` the
-# :class:`~mne.io.Raw` object to 60 seconds.
+# :meth:`~mne.io.Raw.load_data` method. However, since this particular tutorial
+# doesn't do any serious analysis of the data, we'll first
+# :meth:`~mne.io.Raw.crop` the :class:`~mne.io.Raw` object to 60 seconds so it
+# uses less memory and runs more smoothly on our documentation server.
 
 raw.crop(tmax=60).load_data()
 
@@ -130,17 +138,18 @@ n_time_samps = raw.n_times
 time_secs = raw.times
 ch_names = raw.ch_names
 n_chan = len(ch_names)  # note: there is no raw.n_channels attribute
-print('the (cropped) sample data file has {} time samples and {} channels.\n'
-      'The last time sample is at {} seconds.\n'
-      'The first few channel names are {}.\n'
-      ''.format(n_time_samps, n_chan, time_secs[-1], ', '.join(ch_names[:3])))
+print('the (cropped) sample data object has {} time samples and {} channels.'
+      ''.format(n_time_samps, n_chan))
+print('The last time sample is at {} seconds.'.format(time_secs[-1]))
+print('The first few channel names are {}.'.format(', '.join(ch_names[:3])))
+print()  # insert a blank line in the output
 
 # some examples of raw.info:
-print(raw.info['bads'])         # channels marked "bad" during acquisition
-print(raw.info['sfreq'])        # sampling frequency
-print(raw.info['description'])  # miscellaneous acquisition info
+print('bad channels:', raw.info['bads'])  # chs marked "bad" during acquisition
+print(raw.info['sfreq'], 'Hz')            # sampling frequency
+print(raw.info['description'])            # miscellaneous acquisition info
 
-print('\n', raw.info)  # add a blank line before printing the Info object
+print('\n', raw.info)  # insert a blank line before printing the Info object
 
 ###############################################################################
 # .. note::
@@ -199,11 +208,11 @@ print('\n', np.diff(raw.time_as_index([1, 2, 3])))
 # To illustrate the above two points, let's select a couple seconds of data
 # from the first channel:
 
-sampling_frequency = raw.info['sfreq']
-starting_sample = int(11 * sampling_frequency)
-ending_sample = int(13 * sampling_frequency)
+sampling_freq = raw.info['sfreq']
+start_stop_seconds = np.array([11, 13])
+start_sample, stop_sample = (start_stop_seconds * sampling_freq).astype(int)
 channel_index = 0
-raw_selection = raw[channel_index, starting_sample:ending_sample]
+raw_selection = raw[channel_index, start_sample:stop_sample]
 print(raw_selection)
 
 ###############################################################################
@@ -226,11 +235,11 @@ plt.plot(x, y)
 # just one channel, or a list of strings to select multiple channels. As with
 # integer indexing, this will return a tuple of ``(data_array, times_array)``
 # that can be easily plotted. Since we're plotting 2 channels this time, we'll
-# add a vertical offset to the second channel so it's not plotted right on top
-# of the first one:
+# add a vertical offset to one channel so it's not plotted right on top
+# of the other one:
 
 channel_names = ['MEG 0712', 'MEG 1022']
-two_meg_chans = raw[channel_names, starting_sample:ending_sample]
+two_meg_chans = raw[channel_names, start_sample:stop_sample]
 y_offset = np.array([5e-11, 0])  # just enough to separate the channel traces
 x = two_meg_chans[1]
 y = two_meg_chans[0].T + y_offset
@@ -256,7 +265,7 @@ eeg_data, times = raw[eeg_channel_indices]
 print(eeg_data.shape)
 
 ###############################################################################
-# .. sidebar:: len(raw)
+# .. sidebar:: ``len(raw)``
 #
 #     Although the :class:`~mne.io.Raw` object underlyingly stores data samples
 #     in a :class:`NumPy array <numpy.ndarray>` of shape (n_channels,
@@ -284,7 +293,7 @@ print(eeg_data.shape)
 # resources).
 
 eeg_and_eog = raw.copy().pick_types(meg=False, eeg=True, eog=True)
-print(len(eeg_and_eog.ch_names))
+print(len(raw.ch_names), '→', len(eeg_and_eog.ch_names))
 
 ###############################################################################
 # Other methods of :class:`~mne.io.Raw` that operate in-place and return a
@@ -358,42 +367,42 @@ print(two_meg_chans_data.shape)
 # .. cssclass:: table-bordered
 # .. rst-class:: midvalign
 #
-# +----------------------------------+---------------------------+------------+
-# | Python code                      | Result                    | Modifies   |
-# |                                  |                           | Raw        |
-# |                                  |                           | in-place?  |
-# +==================================+===========================+============+
-# | ``raw.get_data()``               | :class:`NumPy array       |            |
-# |                                  | <numpy.ndarray>`          | no         |
-# |                                  | (n_chans × n_samps)       |            |
-# +----------------------------------+---------------------------+------------+
-# |                                  | :class:`tuple` of (data   |            |
-# | ``raw[:]``                       | (n_chans × n_samps),      | no         |
-# |                                  | times (1 × n_samps))      |            |
-# +----------------------------------+---------------------------+------------+
-# | ``raw[0, 1000:2000]``            |                           |            |
-# +----------------------------------+                           |            |
-# | ``raw['MEG 0113', 1000:2000]``   |                           |            |
-# +----------------------------------+                           |            |
-# | ``raw.get_data(picks=0,          | :class:`tuple` of         |            |
-# | start=1000, stop=2000,           | (data (1 × 1000),         | no         |
-# | return_times=True)``             | times (1 × 1000))         |            |
-# +----------------------------------+                           |            |
-# | ``raw.get_data(picks='MEG 0113', |                           |            |
-# | start=1000, stop=2000,           |                           |            |
-# | return_times=True)``             |                           |            |
-# +----------------------------------+---------------------------+------------+
-# | ``raw[[2, 5], 1000:2000]``       |                           |            |
-# +----------------------------------+                           |            |
-# | ``raw[['EEG 030', 'EOG 061'],    | :class:`tuple` of         |            |
-# | 1000:2000]``                     | (data (2 × 1000),         | no         |
-# +----------------------------------+ times (1 × 1000))         |            |
-# | ``raw[2:4, 1000:2000]``          |                           |            |
-# +----------------------------------+---------------------------+------------+
-# | ``raw.pick_types(meg=False,      | :class:`~mne.io.Raw`      |            |
-# | eeg=True)``                      | object w/ only EEG        | yes        |
-# |                                  | channels                  |            |
-# +----------------------------------+---------------------------+------------+
+# +-------------------------------------+-------------------------+-----------+
+# | Python code                         | Result                  | Modifies  |
+# |                                     |                         | Raw       |
+# |                                     |                         | in-place? |
+# +=====================================+=========================+===========+
+# | ``raw.get_data()``                  | :class:`NumPy array     |           |
+# |                                     | <numpy.ndarray>`        | no        |
+# |                                     | (n_chans × n_samps)     |           |
+# +-------------------------------------+-------------------------+-----------+
+# | ``raw[:]``                          | :class:`tuple` of (data |           |
+# +-------------------------------------+ (n_chans × n_samps),    | no        |
+# | ``raw.get_data(return_times=True)`` | times (1 × n_samps))    |           |
+# +-------------------------------------+-------------------------+-----------+
+# | ``raw[0, 1000:2000]``               |                         |           |
+# +-------------------------------------+                         |           |
+# | ``raw['MEG 0113', 1000:2000]``      |                         |           |
+# +-------------------------------------+                         |           |
+# | ``raw.get_data(picks=0,             | :class:`tuple` of       |           |
+# | start=1000, stop=2000,              | (data (1 × 1000),       | no        |
+# | return_times=True)``                | times (1 × 1000))       |           |
+# +-------------------------------------+                         |           |
+# | ``raw.get_data(picks='MEG 0113',    |                         |           |
+# | start=1000, stop=2000,              |                         |           |
+# | return_times=True)``                |                         |           |
+# +-------------------------------------+-------------------------+-----------+
+# | ``raw[7:9, 1000:2000]``             |                         |           |
+# +-------------------------------------+                         |           |
+# | ``raw[[2, 5], 1000:2000]``          | :class:`tuple` of       |           |
+# +-------------------------------------+ (data (2 × 1000),       | no        |
+# | ``raw[['EEG 030', 'EOG 061'],       | times (1 × 1000))       |           |
+# | 1000:2000]``                        |                         |           |
+# +-------------------------------------+-------------------------+-----------+
+# | ``raw.pick_types(meg=False,         | :class:`~mne.io.Raw`    |           |
+# | eeg=True)``                         | object w/ only EEG      | yes       |
+# |                                     | channels                |           |
+# +-------------------------------------+-------------------------+-----------+
 #
 #
 # Renaming channels
@@ -445,15 +454,16 @@ print(raw.copy().pick_types(meg=False, eog=True).ch_names)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We've already seen how to extract a short section of :class:`~mne.io.Raw`
-# data using indexing (``raw[channel_selection,
-# starting_sample:ending_sample]``) or the :meth:`~mne.io.Raw.get_data` method.
+# data using indexing (``raw[channel_selection, start_sample:stop_sample]``) or
+# the :meth:`~mne.io.Raw.get_data` method's ``start`` and ``stop`` parameters.
 # But those techniques return data arrays; if we want to limit the time domain
 # while still retaining a :class:`~mne.io.Raw` object, we can use the
 # :meth:`~mne.io.Raw.crop` method instead, which modifies the
-# :class:`~mne.io.Raw` object in place. :meth:`~mne.io.Raw.crop` takes
-# parameters ``tmin`` and ``tmax``, both in seconds (here we'll again use
-# :meth:`~mne.io.Raw.copy` first to avoid changing the original
-# :class:`~mne.io.Raw` object):
+# :class:`~mne.io.Raw` object in place (we've seen this already at the start of
+# this tutorial, when we cropped the :class:`~mne.io.Raw` object to 60 seconds
+# to reduce memory demands). :meth:`~mne.io.Raw.crop` takes parameters ``tmin``
+# and ``tmax``, both in seconds (here we'll again use :meth:`~mne.io.Raw.copy`
+# first to avoid changing the original :class:`~mne.io.Raw` object):
 
 raw_selection = raw.copy().crop(tmin=10, tmax=12.5)
 print(raw_selection)
@@ -461,7 +471,7 @@ print(raw_selection)
 ###############################################################################
 # :meth:`~mne.io.Raw.crop` also modifies the :attr:`~mne.io.Raw.first_samp` and
 # :attr:`~mne.io.Raw.times` attributes, so that the first sample of the cropped
-# object corresponds to ``time = 0``. Accordingly, if you wanted to re-crop
+# object now corresponds to ``time = 0``. Accordingly, if you wanted to re-crop
 # ``raw_selection`` from 11 to 12.5 seconds (instead of 10 to 12.5 as above)
 # then the subsequent call to :meth:`~mne.io.Raw.crop` should get ``tmin=1``
 # (not ``tmin=11``), and leave ``tmax`` unspecified to keep everything from
@@ -474,8 +484,8 @@ print(raw_selection.times.min(), raw_selection.times.max())
 ###############################################################################
 # Remember that sample times don't always align exactly with requested ``tmin``
 # or ``tmax`` values (due to sampling), which is why the ``max`` values of the
-# cropped files don't exactly match the requested ``tmax``. See
-# :ref:`time-as-index` for details.
+# cropped files don't exactly match the requested ``tmax`` (see
+# :ref:`time-as-index` for further details).
 #
 # If you need to concatenate selections (or entire :class:`~mne.io.Raw` files)
 # you can use the :meth:`~mne.io.Raw.append` method:
@@ -524,11 +534,10 @@ np.save(file='my_data.npy', arr=data)
 # the DataFrame index; see the ``scaling_time`` parameter in the documentation
 # of :meth:`~mne.io.Raw.to_data_frame` for more details.
 
-sampling_frequency = raw.info['sfreq']
-starting_sample = int(10 * sampling_frequency)
-ending_sample = int(13 * sampling_frequency)
-df = raw.to_data_frame(picks=['eeg'], start=starting_sample,
-                       stop=ending_sample)
+sampling_freq = raw.info['sfreq']
+start_end_secs = np.array([10, 13])
+start_sample, stop_sample = (start_end_secs * sampling_freq).astype(int)
+df = raw.to_data_frame(picks=['eeg'], start=start_sample, stop=stop_sample)
 # then save using df.to_csv(...), df.to_hdf(...), etc
 print(df.head())
 

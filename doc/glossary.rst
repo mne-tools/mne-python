@@ -86,11 +86,11 @@ MNE-Python core terminology and general concepts
         objects is an integer representing the number of time samples that
         passed between the onset of the hardware acquisition system and the
         time when data started to be recorded to disk. This approach to sample
-        numbering is a peculiarity of Vectorview MEG systems, but for
+        numbering is a peculiarity of VectorView MEG systems, but for
         consistency it is present in all :class:`~mne.io.Raw` objects
-        regardless of the hardware used to collect the data. In other words,
+        regardless of the source of the data. In other words,
         :attr:`~mne.io.Raw.first_samp` will be ``0`` in :class:`~mne.io.Raw`
-        objects loaded from non-Vectorview systems.
+        objects loaded from non-VectorView data files.
 
     forward solution
         The forward solution (abbr. ``fwd``) is a linear operator capturing the
