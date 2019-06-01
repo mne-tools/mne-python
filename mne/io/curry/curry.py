@@ -25,29 +25,18 @@ def _read_curry_events(fname_base, curry_vers):
     """
 
     #####################################
-    # read events from cef/ceo files
 
-    curry_events = []
+    EVENT_FILE_EXTENSION = {7: ['.cef', '.ceo'], 8: ['.cdt.cef', '.cdt.ceo']}
 
-    if curry_vers == 7:
-        if os.path.isfile(fname_base + '.cef'):
-            file_extension = '.cef'
-        elif os.path.isfile(fname_base + '.ceo'):
-            file_extension = '.ceo'
-        else:
-            curry_events = None
-    else:
-        if os.path.isfile(fname_base + '.cdt.cef'):
-            file_extension = '.cdt.cef'
-        elif os.path.isfile(fname_base + '.cdt.ceo'):
-            file_extension = '.cdt.ceo'
-        else:
-            curry_events = None
+    event_file = None
+    for ext in EVENT_FILE_EXTENSION[curry_vers]:
+        if os.path.isfile(fname_base + ext):
+            event_file = fname_base + ext
 
-    if curry_events is not None:
-
+    if event_file is not None:
+        curry_events = []
         save_events = False
-        with open(fname_base + file_extension) as fid:
+        with open(event_file) as fid:
             for line in fid:
 
                 if "NUMBER_LIST END_LIST" in line:
@@ -60,6 +49,9 @@ def _read_curry_events(fname_base, curry_vers):
                     save_events = True
 
         curry_events = np.array(curry_events, dtype=int)
+
+    else:
+        curry_events = None
 
     # TODO: This returns events in a curry specific format. This might be reformatted to fit mne
     return curry_events
@@ -101,13 +93,14 @@ def _check_missing_files(full_fname, fname_base, curry_vers):
 
 
 def _read_curry_info(fname_base, curry_vers):
+
     #####################################
     # read parameters from the param file
 
-    if curry_vers == 7:
-        file_extension = '.dap'
-    else:
-        file_extension = '.cdt.dpa'
+    CAL = 1e-6
+    INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
+    LABEL_FILE_EXTENSION = {7: '.rs3', 8: '.cdt.dpa'}
+
 
     var_names = ['NumSamples', 'NumChannels', 'NumTrials', 'SampleFreqHz',
                  'TriggerOffsetUsec', 'DataFormat', 'SampleTimeUsec',
@@ -115,7 +108,7 @@ def _read_curry_info(fname_base, curry_vers):
                  'TRIGGER_OFFSET_USEC', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
 
     param_dict = dict()
-    with open(fname_base + file_extension) as fid:
+    with open(fname_base + INFO_FILE_EXTENSION[curry_vers]) as fid:
         for line in fid:
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
@@ -130,8 +123,8 @@ def _read_curry_info(fname_base, curry_vers):
     # n_ch = int(param_dict["numchannels"])
     n_trials = int(param_dict["numtrials"])
     sfreq = float(param_dict["samplefreqhz"])
-    offset = float(param_dict["triggeroffsetusec"]) / 1e6  # convert to s
-    time_step = float(param_dict["sampletimeusec"]) / 1e6
+    offset = float(param_dict["triggeroffsetusec"]) * CAL
+    time_step = float(param_dict["sampletimeusec"]) * CAL
     data_format = param_dict["dataformat"]
 
     if (sfreq == 0) and (time_step != 0):
@@ -140,17 +133,12 @@ def _read_curry_info(fname_base, curry_vers):
     #####################################
     # read labels from label files
 
-    if curry_vers == 7:
-        file_extension = '.rs3'
-    else:
-        file_extension = '.cdt.dpa'
-
     ch_names = []
     ch_pos = []
 
     save_labels = False
     save_ch_pos = False
-    with open(fname_base + file_extension) as fid:
+    with open(fname_base + LABEL_FILE_EXTENSION[curry_vers]) as fid:
         for line in fid:
 
             if re.match("LABELS.*? END_LIST", line):
@@ -180,7 +168,7 @@ def _read_curry_info(fname_base, curry_vers):
 
     # TODO; There's still a lot more information that can be brought into info["chs"]. However i'm not sure what to do with MEG chans here
     for ch_dict in info["chs"]:
-        ch_dict["cal"] = 1e-6
+        ch_dict["cal"] = CAL
 
     return info, n_trials, n_samples, curry_vers, data_format
 
@@ -209,23 +197,19 @@ def read_raw_curry(input_fname, preload=False):
 
     """
 
+    DATA_FILE_EXTENSION = {7: '.dat', 8: '.cdt'}
+
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
     fname_base, ext = input_fname.split(".", maxsplit=1)
+
     curry_vers = _get_curry_version(ext)
     _check_missing_files(input_fname, fname_base, curry_vers)
 
     info, n_trials, n_samples, curry_vers, data_format = _read_curry_info(fname_base, curry_vers)
-
     events = _read_curry_events(fname_base, curry_vers)
-
     info["events"] = events
 
-    if curry_vers == 7:
-        file_extension = ".dat"
-    else:  # curry_vers == 8
-        file_extension = ".cdt"
-
-    raw = RawCurry(fname_base + file_extension, info, n_samples, data_format)
+    raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info, n_samples, data_format)
 
     return raw
 
