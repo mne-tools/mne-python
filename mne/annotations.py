@@ -347,6 +347,9 @@ class Annotations(object):
         self : instance of Annotations
             The cropped Annotations object.
         """
+        if len(self) == 0:
+            return  # no annotations, nothing to do
+
         offset = 0 if self.orig_time is None else self.orig_time
         absolute_onset = self.onset + offset
         absolute_offset = absolute_onset + self.duration
@@ -357,8 +360,8 @@ class Annotations(object):
         if tmin > tmax:
             raise ValueError('tmax should be greater than tmin.')
 
-        # if tmin < 0:
-        #     raise ValueError('tmin should be positive.')
+        if tmin < 0:
+            raise ValueError('tmin should be positive.')
 
         out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
 
