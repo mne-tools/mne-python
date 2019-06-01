@@ -151,7 +151,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         Number of vectors for magnetometers
     n_eeg : int
         Number of vectors for EEG channels
-    n_jobs : int
+    %(n_jobs)s
         Number of jobs to use to compute covariance
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
@@ -276,7 +276,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         Epoch rejection configuration (see Epochs).
     flat : dict | None
         Epoch flat configuration (see Epochs).
-    n_jobs : int
+    %(n_jobs)s
         Number of jobs to use to compute covariance.
     meg : str
         Can be 'separate' (default) or 'combined' to compute projectors

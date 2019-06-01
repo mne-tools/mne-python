@@ -2,7 +2,9 @@
 
 import os.path as op
 from docutils import nodes
-from docutils.parsers.rst.directives import flag
+from docutils.parsers.rst.directives import flag, class_option
+from docutils.parsers.rst.roles import set_classes
+from docutils.statemachine import StringList
 
 from sphinx.locale import _
 from sphinx.util.docutils import SphinxDirective
@@ -16,7 +18,7 @@ __version__ = '0.1.0.dev0'
 ###############################################################################
 # Super classes
 
-class DivNode(nodes.General, nodes.Element):
+class DivNode(nodes.Body, nodes.Element):
     """Generic DivNode class."""
 
     def __init__(self, **options):
@@ -25,15 +27,43 @@ class DivNode(nodes.General, nodes.Element):
         self.options = options
         super().__init__()
 
-    @staticmethod
     def visit_node(self, node):
         """Visit the node."""
-        self.body.append(node.HEADER.format(**node.options))
+        atts = {}
+        if node.BASECLASS:
+            atts['class'] = node.BASECLASS
+            if node.options.get('class'):
+                atts['class'] += \
+                    ' {}-{}'.format(node.BASECLASS, node.options['class'])
+        self.body.append(self.starttag(node, node.ELEMENT, **atts))
 
-    @staticmethod
     def depart_node(self, node):
         """Depart the node."""
-        self.body.append(node.FOOTER)
+        self.body.append('</{}>'.format(node.ELEMENT))
+
+
+def _assemble(node, directive):
+    title_text = directive.arguments[0]
+    directive.add_name(node)
+    header = node.HEADER_PRETITLE.format(**node.options).split('\n')
+    directive.state.nested_parse(
+        StringList(header), directive.content_offset, node)
+
+    textnodes, messages = directive.state.inline_text(
+        title_text, directive.lineno)
+    node += textnodes
+    node += messages
+
+    header = node.HEADER_POSTTITLE.format(**node.options).split('\n')
+    directive.state.nested_parse(
+        StringList(header), directive.content_offset, node)
+
+    directive.state.nested_parse(
+        directive.content, directive.content_offset, node)
+
+    footer = node.FOOTER.format(**node.options).split('\n')
+    directive.state.nested_parse(
+        StringList(footer), directive.content_offset, node)
 
 
 ###############################################################################
@@ -42,16 +72,21 @@ class DivNode(nodes.General, nodes.Element):
 class CollapseNode(DivNode):
     """Class for .. collapse:: directive."""
 
-    OPTION_KEYS = ('title', 'id_', 'extra', 'class_')
-    HEADER = """
-    <div class="panel panel-{class_}">
+    OPTION_KEYS = ('title', 'id_', 'extra', 'class')
+    ELEMENT = 'div'
+    BASECLASS = 'panel'
+    HEADER_PRETITLE = """.. raw:: html
+
     <div class="panel-heading"><h4 class="panel-title">
-    <a data-toggle="collapse" href="#collapse_{id_}">{title}</a>
-    </h4></div>
+    <a data-toggle="collapse" href="#collapse_{id_}">"""
+    HEADER_POSTTITLE = """.. raw:: html
+
+    </a></h4></div>
     <div id="collapse_{id_}" class="panel-collapse collapse{extra}">
-    <div class="panel-body">
-    """
-    FOOTER = "</div></div></div>"
+    <div class="panel-body">"""
+    FOOTER = """.. raw:: html
+
+    </div></div>"""
     KNOWN_CLASSES = (
         'default', 'primary', 'success', 'info', 'warning', 'danger')
 
@@ -75,18 +110,14 @@ class CollapseDirective(SphinxDirective):
 
     def run(self):
         """Parse."""
-        env = self.state.document.settings.env
         self.assert_has_content()
+        title_text = _(self.arguments[0])
         extra = _(' in' if 'open' in self.options else '')
-        title = _(self.arguments[0])
-        class_ = self.options.get('class', 'default')
-        id_ = env.new_serialno('Collapse')
-        collapse_node = CollapseNode(title=title, id_=id_, extra=extra,
-                                     class_=class_)
-        self.add_name(collapse_node)
-        self.state.nested_parse(
-            self.content, self.content_offset, collapse_node)
-        return [collapse_node]
+        class_ = {'class': self.options.get('class', 'default')}
+        id_ = nodes.make_id(title_text)
+        node = CollapseNode(title=title_text, id_=id_, extra=extra, **class_)
+        _assemble(node, self)
+        return [node]
 
 
 ###############################################################################
@@ -95,10 +126,16 @@ class CollapseDirective(SphinxDirective):
 class DetailsNode(DivNode):
     """Class for .. details:: directive."""
 
-    OPTION_KEYS = ('title', 'class_')
-    HEADER = """
-    <details class="{class_}"><summary>{title}</summary>"""
-    FOOTER = "</details>"
+    ELEMENT = 'details'
+    BASECLASS = ''
+    OPTION_KEYS = ('title', 'class')
+    HEADER_PRETITLE = """.. raw:: html
+
+    <summary>"""
+    HEADER_POSTTITLE = """.. raw:: html
+
+    </summary>"""
+    FOOTER = """"""
 
 
 class DetailsDirective(SphinxDirective):
@@ -107,19 +144,18 @@ class DetailsDirective(SphinxDirective):
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
-    option_spec = {'class': str}
+    option_spec = {'class': class_option}
     has_content = True
 
     def run(self):
         """Parse."""
+        set_classes(self.options)
         self.assert_has_content()
-        title = _(self.arguments[0])
-        class_ = self.options.get('class', '')
-        details_node = DetailsNode(title=title, class_=class_)
-        self.add_name(details_node)
-        self.state.nested_parse(
-            self.content, self.content_offset, details_node)
-        return [details_node]
+        title_text = _(self.arguments[0])
+        class_ = {'class': self.options.get('class', '')}
+        node = DetailsNode(title=title_text, **class_)
+        _assemble(node, self)
+        return [node]
 
 
 ###############################################################################

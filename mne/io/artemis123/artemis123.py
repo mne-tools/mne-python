@@ -11,7 +11,8 @@ from .utils import _load_mne_locs, _read_pos
 from ...utils import logger, warn, verbose
 from ..utils import _read_segments_file
 from ..base import BaseRaw
-from ..meas_info import _empty_info, _make_dig_points
+from ..meas_info import _empty_info
+from ...digitization._utils import _make_dig_points
 from ..constants import FIFF
 from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform

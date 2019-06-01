@@ -1,245 +1,298 @@
+# -*- coding: utf-8 -*-
 """
-.. _tut-annotations:
+Parsing events from raw data
+============================
 
-The :term:`Events <events>` and :class:`~mne.Annotations` data structures
-=========================================================================
+This tutorial describes how to read experimental events from raw recordings,
+and how to convert between the two different representations of events within
+MNE-Python (Events arrays and Annotations objects).
 
-:term:`Events <events>` and :term:`annotations` are quite similar.
-This tutorial highlights their differences and similarities, and tries to shed
-some light on which one is preferred to use in different situations when using
-MNE.
+.. contents:: Page contents
+   :local:
+   :depth: 1
 
-Both events and :class:`~mne.Annotations` can be seen as triplets
-where the first element answers to **when** something happens and the last
-element refers to **what** it is.
-The main difference is that events represent the onset in samples taking into
-account the first sample value
-(:attr:`raw.first_samp <mne.io.Raw.first_samp>`), and the description is
-an integer value.
-In contrast, :class:`~mne.Annotations` represents the
-``onset`` in seconds (relative to the reference ``orig_time``),
-and the ``description`` is an arbitrary string.
-There is no correspondence between the second element of events and
-:class:`~mne.Annotations`.
-For events, the second element corresponds to the previous value on the
-stimulus channel from which events are extracted. In practice, the second
-element is therefore in most cases zero.
-The second element of :class:`~mne.Annotations` is a float
-indicating its duration in seconds.
+In the :ref:`introductory tutorial <overview-tut-events-section>` we saw an
+example of reading experimental events from a :term:`"STIM" channel <stim
+channel>`; here we'll discuss :term:`events` and :term:`annotations` more
+broadly, give more detailed information about reading from STIM channels, and
+give an example of reading events that are in a marker file or included in the
+data file as an embedded array. The tutorials :doc:`../raw/plot_events` and
+:doc:`../raw/plot_annotating_raw` discuss how to plot, combine, load, save, and
+export :term:`events` and :class:`~mne.Annotations` (respectively), and the
+latter tutorial also covers interactive annotation of :class:`~mne.io.Raw`
+objects.
 
-See :ref:`ex-read-events`
-for a complete example of how to read, select, and visualize **events**;
-and :ref:`tut-artifact-rejection` to
-learn how :class:`~mne.Annotations` are used to mark bad segments
-of data.
-
-An example of events and annotations
-------------------------------------
-
-The following example shows the recorded events in `sample_audvis_raw.fif` and
-marks bad segments due to eye blinks.
+We'll begin by loading the Python modules we need, and loading the same
+:ref:`example data <sample-dataset>` we used in the :doc:`introductory tutorial
+<plot_introduction>`, but to save memory we'll crop the :class:`~mne.io.Raw`
+object to just 60 seconds before loading it into RAM:
 """
 
-import os.path as op
+import os
 import numpy as np
-
 import mne
 
-# Load the data
-data_path = mne.datasets.sample.data_path()
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(fname)
+sample_data_folder = mne.datasets.sample.data_path()
+sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                    'sample_audvis_raw.fif')
+raw = mne.io.read_raw_fif(sample_data_raw_file)
+raw.crop(tmax=60).load_data()
 
 ###############################################################################
-# First we'll create and plot events associated with the experimental paradigm:
-
-# extract the events array from the stim channel
-events = mne.find_events(raw)
-
-# Specify event_id dictionary based on the meaning of experimental triggers
-event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
-            'Visual/Left': 3, 'Visual/Right': 4,
-            'smiley': 5, 'button': 32}
-color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c', 5: 'black', 32: 'blue'}
-
-mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp, color=color,
-                    event_id=event_id)
-
-###############################################################################
-# Next, we're going to detect eye blinks and turn them into
-# :class:`~mne.Annotations`:
-
-# find blinks
-annotated_blink_raw = raw.copy()
-eog_events = mne.preprocessing.find_eog_events(raw)
-n_blinks = len(eog_events)
-
-# Turn blink events into Annotations of 0.5 seconds duration,
-# each centered on the blink event:
-onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
-duration = np.repeat(0.5, n_blinks)
-description = ['bad blink'] * n_blinks
-annot = mne.Annotations(onset, duration, description,
-                        orig_time=raw.info['meas_date'])
-annotated_blink_raw.set_annotations(annot)
-
-# plot the annotated raw
-annotated_blink_raw.plot()
-
-
-###############################################################################
-# Add :term:`annotations` to :term:`raw` objects
-# ----------------------------------------------
+# The Events and Annotations data structures
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# An important element of :class:`~mne.Annotations` is
-# ``orig_time`` which is the time reference for the ``onset``.
-# It is key to understand that when calling
-# :func:`raw.set_annotations <mne.io.Raw.set_annotations>`, given
-# annotations are copied and transformed so that
-# :class:`raw.annotations.orig_time <mne.Annotations>`
-# matches the recording time of the raw object.
-# Refer to the documentation of :class:`~mne.Annotations` to see
-# the expected behavior depending on ``meas_date`` and ``orig_time``.
-# Where ``meas_date`` is the recording time stored in
-# :class:`Info <mne.Info>`.
-# You can find more information about :class:`Info <mne.Info>` in
-# :ref:`tut-info-class`.
+# Generally speaking, both the Events and :class:`~mne.Annotations` data
+# structures serve the same purpose: they provide a mapping between times
+# during an EEG/MEG recording and a description of what happened at those
+# times. In other words, they associate a *when* with a *what*. The main
+# differences are:
 #
-# We'll now manipulate some simulated annotations.
-# The first annotations has ``orig_time`` set to ``None`` while the
-# second is set to a chosen POSIX timestamp for illustration purposes.
-# Note that both annotations have different ``onset`` values.
+# 1. **Units**: the Events data structure represents the *when* in terms of
+#    samples, whereas the :class:`~mne.Annotations` data structure represents
+#    the *when* in seconds.
+# 2. **Limits on the description**: the Events data structure represents the
+#    *what* as an integer "Event ID" code, whereas the
+#    :class:`~mne.Annotations` data structure represents the *what* as a
+#    string.
+# 3. **How duration is encoded**: Events in an Event array do not have a
+#    duration (though it is possible to represent duration with pairs of
+#    onset/offset events within an Events array), whereas each element of an
+#    :class:`~mne.Annotations` object necessarily includes a duration (though
+#    the duration can be zero if an instantaneous event is desired).
+# 4. **Internal representation**: Events are stored as an ordinary
+#    :class:`NumPy array <numpy.ndarray>`, whereas :class:`~mne.Annotations` is
+#    a :class:`list`-like class defined in MNE-Python.
+#
+#
+# .. _stim-channel-defined:
+#
+# What is a STIM channel?
+# ^^^^^^^^^^^^^^^^^^^^^^^
+#
+# A :term:`STIM channel` (short for "stimulus channel") is a channel that does
+# not receive signals from an EEG, MEG, or other sensor. Instead, STIM channels
+# record voltages (usually short, rectangular DC pulses of fixed magnitudes
+# sent from the experiment-controlling computer) that are time-locked to
+# experimental events, such as the onset of a stimulus or a button-press
+# response by the subject (those pulses are sometimes called `TTL`_ pulses,
+# event pulses, trigger signals, or just "triggers"). In other cases, these
+# pulses may not be strictly time-locked to an experimental event, but instead
+# may occur in between trials to indicate the type of stimulus (or experimental
+# condition) that is about to occur on the upcoming trial.
+#
+# The DC pulses may be all on one STIM channel (in which case different
+# experimental events or trial types are encoded as different voltage
+# magnitudes), or they may be spread across several channels, in which case the
+# channel(s) on which the pulse(s) occur can be used to encode different events
+# or conditions. Even on systems with multiple STIM channels, there is often
+# one channel that records a weighted sum of the other STIM channels, in such a
+# way that voltage levels on that channel can be unambiguously decoded as
+# particular event types. On older Neuromag systems (such as that used to
+# record the sample data) this "summation channel" was typically ``STI 014``;
+# on newer systems it is more commonly ``STI101``. You can see the STIM
+# channels in the raw data file here:
+
+raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
 
 ###############################################################################
+# You can see that ``STI 014`` (the summation channel) contains pulses of
+# different magnitudes whereas pulses on other channels have consistent
+# magnitudes. You can also see that every time there is a pulse on one of the
+# other STIM channels, there is a corresponding pulse on ``STI 014``.
+#
+# .. TODO: somewhere in prev. section, link out to a table of which systems
+#    have STIM channels vs. which have marker files or embedded event arrays
+#    (once such a table has been created).
+#
+#
+# Converting a STIM channel signal to an Events array
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# If your data has events recorded on a STIM channel, you can convert them into
+# an events array using :func:`mne.find_events`. The sample number of the onset
+# (or offset) of each pulse is recorded as the event time, the pulse magnitudes
+# are converted into integers, and these pairs of sample numbers plus integer
+# codes are stored in :class:`NumPy arrays <numpy.ndarray>` (usually called
+# "the events array" or just "the events"). In its simplest form, the function
+# requires only the :class:`~mne.io.Raw` object, and the name of the channel(s)
+# from which to read events:
 
-# Create an annotation object with orig_time undefined (default)
-annot_none = mne.Annotations(onset=[0, 2, 9], duration=[0.5, 4, 0],
-                             description=['foo', 'bar', 'foo'],
-                             orig_time=None)
-print(annot_none)
-
-# Create an annotation object with orig_time
-orig_time = '2002-12-03 19:01:31.676071'
-annot_orig = mne.Annotations(onset=[22, 24, 31], duration=[0.5, 4, 0],
-                             description=['foo', 'bar', 'foo'],
-                             orig_time=orig_time)
-print(annot_orig)
+events = mne.find_events(raw, stim_channel='STI 014')
+print(events[:5])  # show the first 5
 
 ###############################################################################
-# Now we create two raw objects and set each with different annotations.
-# Then we plot both raw objects to compare the annotations.
+# .. sidebar:: The middle column of the Events array
+#
+#     MNE-Python events are actually *three* values: in between the sample
+#     number and the integer event code is a value indicating what the event
+#     code was on the immediately preceding sample. In practice, that value is
+#     almost always `0`, but it can be used to detect the *endpoint* of an
+#     event whose duration is longer than one sample. See the documentation of
+#     :func:`mne.find_events` for more details.
+#
+# If you don't provide the name of a STIM channel, :func:`~mne.find_events`
+# will first look for MNE-Python :doc:`config variables <plot_configuration>`
+# for variables ``MNE_STIM_CHANNEL``, ``MNE_STIM_CHANNEL_1``, etc. If those are
+# not found, channels ``STI 014`` and ``STI101`` are tried, followed by the
+# first channel with type "STIM" present in ``raw.ch_names``. If you regularly
+# work with data from several different MEG systems with different STIM channel
+# names, setting the ``MNE_STIM_CHANNEL`` config variable may not be very
+# useful, but for researchers whose data is all from a single system it can be
+# a time-saver to configure that variable once and then forget about it.
+#
+# :func:`~mne.find_events` has several options, including options for aligning
+# events to the onset or offset of the STIM channel pulses, setting the minimum
+# pulse duration, and handling of consecutive pulses (with no return to zero
+# between them). For example, you can effectively encode event duration by
+# passing ``output='step'`` to :func:`mne.find_events`; see the documentation
+# of :func:`~mne.find_events` for details. More information on working with
+# events arrays (including how to plot, combine, load, and save event arrays)
+# can be found in the tutorial :doc:`../raw/plot_events`.
+#
+#
+# Reading embedded events as Annotations
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Some EEG/MEG systems generate files where events are stored in a separate
+# data array rather than as pulses on one or more STIM channels. For example,
+# the EEGLAB format stores events as a collection of arrays in the :file:`.set`
+# file. When reading those files, MNE-Python will automatically convert the
+# stored events into an :class:`~mne.Annotations` object and store it as the
+# :attr:`~mne.io.Raw.annotations` attribute of the :class:`~mne.io.Raw` object:
 
-# Create two cropped copies of raw with the two previous annotations
-raw_a = raw.copy().crop(tmax=12).set_annotations(annot_none)
-raw_b = raw.copy().crop(tmax=12).set_annotations(annot_orig)
-
-# Plot the raw objects
-raw_a.plot()
-raw_b.plot()
+testing_data_folder = mne.datasets.testing.data_path()
+eeglab_raw_file = os.path.join(testing_data_folder, 'EEGLAB', 'test_raw.set')
+eeglab_raw = mne.io.read_raw_eeglab(eeglab_raw_file)
+print(eeglab_raw.annotations)
 
 ###############################################################################
-# Note that although the ``onset`` values of both annotations were different,
-# due to complementary ``orig_time`` they are now identical. This is because
-# the first one (``annot_none``), once set in raw, adopted its ``orig_time``.
-# The second one (``annot_orig``) already had an ``orig_time``, so its
-# ``orig_time`` was changed to match the onset time of the raw. Changing an
-# already defined ``orig_time`` of annotations caused its ``onset`` to be
-# recalibrated with respect to the new ``orig_time``. As a result both
-# annotations have now identical ``onset`` and identical ``orig_time``:
+# The core data within an :class:`~mne.Annotations` object is accessible
+# through three of its attributes: ``onset``, ``duration``, and
+# ``description``. Here we can see that there were 154 events stored in the
+# EEGLAB file, they all had a duration of zero seconds, there were two
+# different types of events, and the first event occurred about 1 second after
+# the recording began:
 
-# Show the annotations in the raw objects
-print(raw_a.annotations)
-print(raw_b.annotations)
-
-# Show that the onsets are the same
-np.set_printoptions(precision=6)
-print(raw_a.annotations.onset)
-print(raw_b.annotations.onset)
+print(len(eeglab_raw.annotations))
+print(set(eeglab_raw.annotations.duration))
+print(set(eeglab_raw.annotations.description))
+print(eeglab_raw.annotations.onset[0])
 
 ###############################################################################
-# Notice again that for the case where ``orig_time`` is ``None``,
-# it is assumed that the ``orig_time`` is the time of the first sample of data.
+# More information on working with :class:`~mne.Annotations` objects, including
+# how to add annotations to :class:`~mne.io.Raw` objects interactively, and how
+# to plot, concatenate, load, save, and export :class:`~mne.Annotations`
+# objects can be found in the tutorial :doc:`../raw/plot_annotating_raw`.
+#
+#
+# Converting between Events arrays and Annotations objects
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Once your experimental events are read into MNE-Python (as either an Events
+# array or an :class:`~mne.Annotations` object), you can easily convert between
+# the two formats as needed. You might do this because, e.g., an Events array
+# is needed for epoching continuous data, or because you want to take advantage
+# of the "annotation-aware" capability of some functions, which automatically
+# omit spans of data if they overlap with certain annotations.
+#
+# To convert an :class:`~mne.Annotations` object to an Events array, use the
+# function :func:`mne.events_from_annotations` on the :class:`~mne.io.Raw` file
+# containing the annotations. This function will assign an integer Event ID to
+# each unique element of ``raw.annotations.description``, and will return the
+# mapping of descriptions to integer Event IDs along with the derived Event
+# array. By default, one event will be created at the onset of each annotation;
+# this can be modified via the ``chunk_duration`` parameter of
+# :func:`~mne.events_from_annotations` to create equally spaced events within
+# each annotation span (see :ref:`chunk-duration`, below, or see
+# :ref:`fixed-length-events` for direct creation of an Events array of
+# equally-spaced events).
 
-raw_delta = (1 / raw.info['sfreq'])
-print('raw.first_sample is {}'.format(raw.first_samp * raw_delta))
-print('annot_none.onset[0] is {}'.format(annot_none.onset[0]))
-print('raw_a.annotations.onset[0] is {}'.format(raw_a.annotations.onset[0]))
+events_from_annot, event_dict = mne.events_from_annotations(eeglab_raw)
+print(event_dict)
+print(events_from_annot[:5])
 
 ###############################################################################
-# Valid operations in :class:`mne.Annotations`
-# --------------------------------------------
+# If you want to control which integers are mapped to each unique description
+# value, you can pass a :class:`dict` specifying the mapping as the
+# ``event_id`` parameter of :func:`~mne.events_from_annotations`; this
+# :class:`dict` will be returned unmodified as the ``event_dict``.
 #
-# Concatenate
-# ~~~~~~~~~~~
-#
-# It is possible to concatenate two annotations with the + operator (just like
-# lists) if both share the same ``orig_time``
+# .. TODO add this when the other tutorial is nailed down:
+#    Note that this ``event_dict`` can be used when creating
+#    :class:`~mne.Epochs` from :class:`~mne.io.Raw` objects, as demonstrated
+#    in :doc:`epoching_tutorial_whatever_its_name_is`.
 
-annot = mne.Annotations(onset=[10], duration=[0.5],
-                        description=['foobar'],
-                        orig_time=orig_time)
-annot = annot_orig + annot  # concatenation
-print(annot)
+custom_mapping = {'rt': 77, 'square': 42}
+(events_from_annot,
+ event_dict) = mne.events_from_annotations(eeglab_raw, event_id=custom_mapping)
+print(event_dict)
+print(events_from_annot[:5])
 
 ###############################################################################
-# Iterating, Indexing and Slicing :class:`mne.Annotations`
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-# :class:`~mne.Annotations` supports iterating, indexing and slicing.
-# Iterating over :class:`~mne.Annotations` and indexing with an integer returns
-# a dictionary. While slicing returns a new :class:`~mne.Annotations` instance.
-#
-# See the following examples and usages:
+# To make the opposite conversion (from Events array to
+# :class:`~mne.Annotations` object), you can create a mapping from integer
+# Event ID to string descriptions, and use the :class:`~mne.Annotations`
+# constructor to create the :class:`~mne.Annotations` object, and use the
+# :meth:`~mne.io.Raw.set_annotations` method to add the annotations to the
+# :class:`~mne.io.Raw` object. Because the :ref:`sample data <sample-dataset>`
+# was recorded on a Neuromag system (where sample numbering starts when the
+# acquisition system is initiated, not when the *recording* is initiated), we
+# also need to pass in the ``orig_time`` parameter so that the onsets are
+# properly aligned relative to the start of recording:
 
-# difference between indexing and slicing a single element
-print(annot[0])  # indexing
-print(annot[:1])  # slicing
-
-###############################################################################
-# How about iterations?
-
-for key, val in annot[0].items():  # iterate on one element which is dictionary
-    print(key, val)
-
-###############################################################################
-
-for idx, my_annot in enumerate(annot):  # iterate on the Annotations object
-    print('annot #{0}: onset={1}'.format(idx, my_annot['onset']))
-    print('annot #{0}: duration={1}'.format(idx, my_annot['duration']))
-    print('annot #{0}: description={1}'.format(idx, my_annot['description']))
+mapping = {1: 'auditory/left', 2: 'auditory/right', 3: 'visual/left',
+           4: 'visual/right', 5: 'smiley', 32: 'buttonpress'}
+onsets = events[:, 0] / raw.info['sfreq']
+durations = np.zeros_like(onsets)  # assumes instantaneous events
+descriptions = [mapping[event_id] for event_id in events[:, 2]]
+annot_from_events = mne.Annotations(onset=onsets, duration=durations,
+                                    description=descriptions,
+                                    orig_time=raw.info['meas_date'])
+raw.set_annotations(annot_from_events)
 
 ###############################################################################
+# Now, the annotations will appear automatically when plotting the raw data,
+# and will be color-coded by their label value:
 
-for idx, my_annot in enumerate(annot[:1]):
-    for key, val in my_annot.items():
-        print('annot #{0}: {1} = {2}'.format(idx, key, val))
-
-###############################################################################
-# Iterating, indexing and slicing return a copy. This has implications like the
-# fact that changes are not kept.
-
-# this change is not kept
-annot[0]['onset'] = 42
-print(annot[0])
-
-# this change is kept
-annot.onset[0] = 42
-print(annot[0])
-
+raw.plot(start=5, duration=5)
 
 ###############################################################################
-# Save
-# ~~~~
+# .. _`chunk-duration`:
 #
-# Note that you can also save annotations to disk in FIF format::
+# Making multiple events per annotation
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-#     >>> annot.save('my-annot.fif')
+# As mentioned above, you can generate equally-spaced events from an
+# :class:`~mne.Annotations` object using the ``chunk_duration`` parameter of
+# :func:`~mne.events_from_annotations`. For example, suppose we have an
+# annotation in our :class:`~mne.io.Raw` object indicating when the subject was
+# in REM sleep, and we want to perform a resting-state analysis on those spans
+# of data. We can create an Events array with a series of equally-spaced events
+# within each "REM" span, and then use those events to generate (potentially
+# overlapping) epochs that we can analyze further.
+
+# create the REM annotations
+rem_annot = mne.Annotations(onset=[5, 41],
+                            duration=[16, 11],
+                            description=['REM'] * 2)
+raw.set_annotations(rem_annot)
+(rem_events,
+ rem_event_dict) = mne.events_from_annotations(raw, chunk_duration=1.5)
+
+###############################################################################
+# Now we can check that our events indeed fall in the ranges 5-21 seconds and
+# 41-52 seconds, and are ~1.5 seconds apart (modulo some jitter due to the
+# sampling frequency). Here are the event times rounded to the nearest
+# millisecond:
+
+print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info['sfreq'], 3))
+
+###############################################################################
+# Other examples of resting-state analysis can be found in the online
+# documentation for :func:`mne.make_fixed_length_events`, such as
+# :doc:`../../auto_examples/connectivity/plot_mne_inverse_envelope_correlation`.
 #
-# Or as CSV with onsets in (absolute) ISO timestamps::
+# .. LINKS
 #
-#     >>> annot.save('my-annot.csv')
-#
-# Or in plain text with onsets relative to ``orig_time``::
-#
-#     >>> annot.save('my-annot.txt')
-#
+# .. _`TTL`: https://en.wikipedia.org/wiki/Transistor%E2%80%93transistor_logic

@@ -908,8 +908,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         (instead of computed) for speed, since this is a common morph.
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment
-    n_jobs : int
-        Number of jobs to run in parallel. The default is n_jobs=1.
+    %(n_jobs)s
     %(verbose)s
 
     Returns

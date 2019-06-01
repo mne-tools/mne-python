@@ -463,6 +463,8 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     %(interp)s
     %(n_jobs)s
     %(random_state)s
+        The random generator state used for blink, ECG, and sensor noise
+        randomization.
     %(verbose)s
 
     Returns
@@ -516,6 +518,8 @@ def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     %(interp)s
     %(n_jobs)s
     %(random_state)s
+        The random generator state used for blink, ECG, and sensor noise
+        randomization.
     %(verbose)s
 
     Returns

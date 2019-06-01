@@ -166,8 +166,9 @@ class ICA(ContainsMixin):
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") prior to the whitening
         by PCA.
-    random_state : None | int | instance of np.random.RandomState
-        Random state to initialize ICA estimation for reproducible results.
+    %(random_state)s
+        As estimation can be non-deterministic it can be useful to fix the
+        random state to have reproducible results.
     method : {'fastica', 'infomax', 'picard'}
         The ICA method to use in the fit method. Use the fit_params argument to
         set additional parameters. Specifically, if you want Extended Infomax,
@@ -2251,10 +2252,10 @@ def run_ica(raw, n_components, max_pca_components=100,
     noise_cov : None | instance of Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
-    random_state : None | int | instance of np.random.RandomState
-        np.random.RandomState to initialize the FastICA estimation.
-        As the estimation is non-deterministic it can be useful to
-        fix the seed to have reproducible results.
+    %(random_state)s
+        Random state to initialize the FastICA estimation. As the estimation is
+        non-deterministic it can be useful to fix the random state to have
+        reproducible results.
     %(picks_good_data_noref)s
         This selection remains throughout the initialized ICA solution.
     start : int | float | None
