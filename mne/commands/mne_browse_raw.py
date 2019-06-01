@@ -5,7 +5,7 @@ Examples
 --------
 .. code-block:: console
 
-    $ mne browse_raw --raw sample_audvis_raw.fif \
+    $ mne browse_raw sample_audvis_raw.fif \
                      --proj sample_audvis_ecg-proj.fif \
                      --eve sample_audvis_raw-eve.fif
 """
@@ -22,10 +22,12 @@ def run():
 
     from mne.commands.utils import get_optparser
 
-    parser = get_optparser(__file__)
+    parser = get_optparser(__file__, usage='usage: %prog raw [options]')
 
     parser.add_option("--raw", dest="raw_in",
-                      help="Input raw FIF file", metavar="FILE")
+                      help="Input raw FIF file (can also be specified "
+                      "directly as an argument without the --raw prefix)",
+                      metavar="FILE")
     parser.add_option("--proj", dest="proj_in",
                       help="Projector file", metavar="FILE",
                       default='')
@@ -71,7 +73,10 @@ def run():
 
     options, args = parser.parse_args()
 
-    raw_in = options.raw_in
+    if len(args):
+        raw_in = args[0]
+    else:
+        raw_in = options.raw_in
     duration = options.duration
     start = options.start
     n_channels = options.n_channels
