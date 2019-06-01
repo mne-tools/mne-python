@@ -49,7 +49,7 @@ from mne.stats import linear_regression
 print(__doc__)
 
 # fetch data from subject 2 and interpolate missing channels
-limo_epochs = limo.load_data(subject=2, update_path=True)
+limo_epochs = limo.load_data(subject=2)
 
 ###############################################################################
 # In the original LIMO experiment, participants performed a two-alternative

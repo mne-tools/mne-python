@@ -595,7 +595,7 @@ def _download_all_example_data(verbose=True):
         fetch_hcp_mmp_parcellation()
     finally:
         sys.argv.pop(-1)
-    limo.load_data(subject=2, update_path=True)
+    limo.load_data(subject=2)
 
 
 @verbose
