@@ -12,7 +12,7 @@ import mne
 
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import create_info
-from ..utils import _read_segments_file, _find_channels, _create_chs
+from ..utils import _read_segments_file, warn, _find_channels, _create_chs
 
 
 def _read_curry_events(fname_base, curry_vers):
@@ -127,7 +127,7 @@ def _read_curry_info(fname_base, curry_vers):
         sfreq = float(param_dict["SampleFreqHz"])
         offset = float(param_dict["TriggerOffsetUsec"]) / 1e6  # convert to s
         time_step = float(param_dict["SampleTimeUsec"]) / 1e6
-        # data_format = param_dict["DataFormat"]
+        data_format = param_dict["DataFormat"]
 
     else:
         n_samples = int(param_dict["NUM_SAMPLES"])
@@ -136,7 +136,7 @@ def _read_curry_info(fname_base, curry_vers):
         sfreq = float(param_dict["SAMPLE_FREQ_HZ"])
         offset = float(param_dict["TRIGGER_OFFSET_USEC"]) / 1e6
         time_step = float(param_dict["SAMPLE_TIME_USEC"]) / 1e6
-        # data_format = param_dict["DATA_FORMAT"]
+        data_format = param_dict["DATA_FORMAT"]
 
     if (sfreq == 0) and (time_step != 0):
         sfreq = 1. / time_step
@@ -187,10 +187,10 @@ def _read_curry_info(fname_base, curry_vers):
     for ch_dict in info["chs"]:
         ch_dict["cal"] = 1e-6
 
-    return info, n_trials, n_samples, offset, curry_vers
+    return info, n_trials, n_samples, curry_vers, data_format
 
 
-def read_raw_curry(input_fname):
+def read_raw_curry(input_fname, preload=False):
     """
     Read raw data from Curry files.
 
@@ -199,6 +199,13 @@ def read_raw_curry(input_fname):
     input_fname : str
         Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
         .cdt.cef or .cef.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory). If the curry file
+        is stored in ASCII data format, then preload must be `True`.
 
     Returns
     -------
@@ -209,7 +216,7 @@ def read_raw_curry(input_fname):
 
     fname_base, curry_vers = _check_curry_file(input_fname)
 
-    info, n_trials, n_samples, offset, curry_vers = _read_curry_info(fname_base, curry_vers)
+    info, n_trials, n_samples, curry_vers, data_format = _read_curry_info(fname_base, curry_vers)
 
     events = _read_curry_events(fname_base, curry_vers)
 
@@ -220,7 +227,7 @@ def read_raw_curry(input_fname):
     else:  # curry_vers == 8
         file_extension = ".cdt"
 
-    raw = RawCurry(fname_base + file_extension, info, n_samples)
+    raw = RawCurry(fname_base + file_extension, info, n_samples, data_format)
 
     return raw
 
@@ -228,12 +235,16 @@ def read_raw_curry(input_fname):
 class RawCurry(BaseRaw):
     """"""
 
-    def __init__(self, data_fname, info, n_samples, montage=None, eog=(), ecg=(),
+    def __init__(self, data_fname, info, n_samples, data_format, montage=None, eog=(), ecg=(),
                  emg=(), misc=(), preload=False, verbose=None):  # noqa: D102
 
         data_fname = os.path.abspath(data_fname)
 
         last_samps = [n_samples - 1]
+
+        if preload == False and data_format == "ASCII":
+            warn('Got ASCII format data as input. Data will be preloaded.')
+
 
         super(RawCurry, self).__init__(
             info, preload, filenames=[data_fname], last_samps=last_samps, orig_format='int',
@@ -241,4 +252,5 @@ class RawCurry(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
+
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="float32")
