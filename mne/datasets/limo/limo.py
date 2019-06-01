@@ -25,7 +25,7 @@ subject_ids = {'S1': '5cde823c8d6e050018595862',
 
 
 @verbose
-def data_path(subject, path=None, force_update=False, update_path=None,
+def data_path(subject, path=None, force_update=False, update_path=True,
               verbose=None):
     """Get path to local copy of LIMO dataset URL.
 
@@ -117,7 +117,7 @@ def data_path(subject, path=None, force_update=False, update_path=None,
 
 
 @verbose
-def load_data(subject, path=None, force_update=False, update_path=None,
+def load_data(subject, path=None, force_update=False, update_path=True,
               verbose=None):
     """Fetch subjects epochs data for the LIMO data set.
 
