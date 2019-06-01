@@ -54,7 +54,6 @@ def _read_curry_events(fname_base, curry_vers):
                     save_events = False
 
                 if save_events:
-                    # print(line)
                     curry_events.append(line.split("\t"))
 
                 if "NUMBER_LIST START_LIST" in line:
@@ -66,17 +65,25 @@ def _read_curry_events(fname_base, curry_vers):
     return curry_events
 
 
-def _check_curry_file(full_fname):
+def _get_curry_version(file_extension):
+    """check out the curry file version"""
+
+    if 'cdt' in file_extension:
+        curry_vers = 8
+
+    else:
+        curry_vers = 7
+
+    return curry_vers
+
+
+def _check_missing_files(full_fname, fname_base, curry_vers):
     """
     Check if all neccessary files exist and return the path without extension
      and its CURRY version
      """
 
-    # we don't use os.path.splitext to also handle extensions like .cdt.dpa
-    fname_base, ext = full_fname.split(".", maxsplit=1)
-
-    if 'cdt' in ext:
-        curry_vers = 8
+    if curry_vers == 8:
         for check_ext in [".cdt", ".cdt.dpa"]:
             if not os.path.isfile(fname_base + check_ext):
                 raise FileNotFoundError("The following required file cannot be"
@@ -84,16 +91,13 @@ def _check_curry_file(full_fname):
                                         "located in the same directory as %s."
                                         % (fname_base + check_ext, full_fname))
 
-    else:
-        curry_vers = 7
+    if curry_vers == 7:
         for check_ext in [".dap", ".dat", ".rs3"]:
             if not os.path.isfile(fname_base + check_ext):
                 raise FileNotFoundError("The following required file cannot be"
                                         " found: %s. Please make sure it is "
                                         "located in the same directory as %s."
                                         % (fname_base + check_ext, full_fname))
-
-    return fname_base, curry_vers
 
 
 def _read_curry_info(fname_base, curry_vers):
@@ -115,28 +119,20 @@ def _read_curry_info(fname_base, curry_vers):
         for line in fid:
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
-                param_dict[key] = val
+                param_dict[key.lower().replace("_", "")] = val
 
-    if not len(param_dict) == 7:
-        raise KeyError("Some variables cannot be found in the parameter file.")
+    for var in var_names[:7]:
+        if var.lower() not in param_dict:
+            raise KeyError("Variable %s cannot be found in the parameter file."
+                           % var)
 
-    if "NumSamples" in param_dict:
-        n_samples = int(param_dict["NumSamples"])
-        # n_ch = int(param_dict["NumChannels"])
-        n_trials = int(param_dict["NumTrials"])
-        sfreq = float(param_dict["SampleFreqHz"])
-        offset = float(param_dict["TriggerOffsetUsec"]) / 1e6  # convert to s
-        time_step = float(param_dict["SampleTimeUsec"]) / 1e6
-        data_format = param_dict["DataFormat"]
-
-    else:
-        n_samples = int(param_dict["NUM_SAMPLES"])
-        # n_ch = int(param_dict["NUM_CHANNELS"])
-        n_trials = int(param_dict["NUM_TRIALS"])
-        sfreq = float(param_dict["SAMPLE_FREQ_HZ"])
-        offset = float(param_dict["TRIGGER_OFFSET_USEC"]) / 1e6
-        time_step = float(param_dict["SAMPLE_TIME_USEC"]) / 1e6
-        data_format = param_dict["DATA_FORMAT"]
+    n_samples = int(param_dict["numsamples"])
+    # n_ch = int(param_dict["numchannels"])
+    n_trials = int(param_dict["numtrials"])
+    sfreq = float(param_dict["samplefreqhz"])
+    offset = float(param_dict["triggeroffsetusec"]) / 1e6  # convert to s
+    time_step = float(param_dict["sampletimeusec"]) / 1e6
+    data_format = param_dict["dataformat"]
 
     if (sfreq == 0) and (time_step != 0):
         sfreq = 1. / time_step
@@ -164,8 +160,7 @@ def _read_curry_info(fname_base, curry_vers):
             if re.match("SENSORS.*? END_LIST", line):
                 save_ch_pos = False
 
-            if save_labels:
-                if line != "\n":
+            if save_labels and line != "\n":
                     ch_names.append(line.replace("\n", ""))
 
             if save_ch_pos:
@@ -214,7 +209,10 @@ def read_raw_curry(input_fname, preload=False):
 
     """
 
-    fname_base, curry_vers = _check_curry_file(input_fname)
+    # we don't use os.path.splitext to also handle extensions like .cdt.dpa
+    fname_base, ext = input_fname.split(".", maxsplit=1)
+    curry_vers = _get_curry_version(ext)
+    _check_missing_files(input_fname, fname_base, curry_vers)
 
     info, n_trials, n_samples, curry_vers, data_format = _read_curry_info(fname_base, curry_vers)
 
