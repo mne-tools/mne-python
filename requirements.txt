@@ -12,7 +12,7 @@ pandas
 numexpr
 python-picard
 statsmodels
-pytest
+pytest!=4.6.0
 pytest-cov
 pytest-faulthandler
 pytest-mock
