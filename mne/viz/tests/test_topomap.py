@@ -210,9 +210,11 @@ def test_plot_topomap():
     subplot = [x for x in p.get_children() if 'Subplot' in str(type(x))]
     assert len(subplot) >= 1, [type(x) for x in p.get_children()]
     subplot = subplot[0]
-    assert (all('MEG' not in x.get_text()
-                for x in subplot.get_children()
-                if isinstance(x, matplotlib.text.Text)))
+
+    have_all = all('MEG' not in x.get_text()
+                   for x in subplot.get_children()
+                   if isinstance(x, matplotlib.text.Text))
+    assert have_all
 
     # Plot array
     for ch_type in ('mag', 'grad'):
