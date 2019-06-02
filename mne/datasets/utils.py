@@ -556,7 +556,7 @@ def _download_all_example_data(verbose=True):
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword, phantom_4dbti, sleep_physionet)
+                   kiloword, phantom_4dbti, sleep_physionet, limo)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -595,6 +595,7 @@ def _download_all_example_data(verbose=True):
         fetch_hcp_mmp_parcellation()
     finally:
         sys.argv.pop(-1)
+    limo.load_data(subject=2, update_path=True)
 
 
 @verbose
