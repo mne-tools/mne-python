@@ -175,7 +175,7 @@ ax3d.view_init(azim=70, elev=15)
 # to :class:`~mne.io.Raw` objects with the :meth:`~mne.io.Raw.set_montage`
 # method; in the sample data this was done prior to saving the
 # :class:`~mne.io.Raw` object to disk, so the sensor positions are already
-# incorporated into the ``info`` attribute of the :class`~mne.io.Raw` object.
+# incorporated into the ``info`` attribute of the :class:`~mne.io.Raw` object.
 # See the documentation of :func:`~mne.channels.read_dig_montage` and
 # :meth:`~mne.io.Raw.set_montage` for further details. Once loaded,
 # :class:`~mne.channels.DigMontage` objects work similarly to
