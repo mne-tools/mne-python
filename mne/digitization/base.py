@@ -5,9 +5,10 @@
 #
 # License: BSD (3-clause)
 import numpy as np
+from copy import deepcopy
+
 from ..transforms import _coord_frame_name
 from ..io.constants import FIFF
-from ..utils._bunch import MNEObjectsList
 
 _dig_kind_dict = {
     'cardinal': FIFF.FIFFV_POINT_CARDINAL,
@@ -76,14 +77,28 @@ class DigPoint(dict):
             return np.allclose(self['r'], other['r'])
 
 
-class Digitization(MNEObjectsList):
+class Digitization(list):
     """Represent a list of DigPoint objects.
 
     Parameters
     ----------
-    elements : list
+    elements : list | None
         A list of DigPoint objects.
     """
 
     def __init__(self, elements=None):
-        super(Digitization, self).__init__(elements=elements, kls=DigPoint)
+
+        elements = list() if elements is None else elements
+
+        if not all([isinstance(_, DigPoint) for _ in elements]):
+            _msg = 'Digitization expected a iterable of DigPoint objects.'
+            raise ValueError(_msg)
+        else:
+            super(Digitization, self).__init__(deepcopy(elements))
+
+    def __eq__(self, other):  # noqa: D105
+        if not isinstance(other, (Digitization, list)) or \
+           len(self) != len(other):
+            return False
+        else:
+            return all([ss == oo for ss, oo in zip(self, other)])
