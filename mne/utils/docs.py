@@ -237,6 +237,7 @@ docdict['stc_metric'] = """
 metric : float | array, shape (n_times,)
     The metric. float if per_sample is False, else
     array with the values computed for each time point.
+"""
 
 # Random state
 docdict['random_state'] = """
