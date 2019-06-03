@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
 Bug
 ~~~
 
