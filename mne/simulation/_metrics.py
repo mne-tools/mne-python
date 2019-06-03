@@ -9,10 +9,6 @@ from scipy.linalg import norm
 from ..utils import _check_option
 from mne.utils import deprecated
 
-# TODO: Add more localization accuracy functions. For example, distance between
-#       true dipole position (in simulated stc) and the centroid of the
-#       estimated activity.
-
 
 def _check_stc(stc1, stc2):
     """Check that stcs are compatible."""
@@ -21,7 +17,9 @@ def _check_stc(stc1, stc2):
     if np.all(stc1.times != stc2.times):
         raise ValueError('Times of two stcs must match.')
 
-@deprecated()
+
+@deprecated("This function is deprecated and will be removed in version 0.20. "
+            "Use metrics module instead.")
 def source_estimate_quantification(stc1, stc2, metric='rms'):
     """Calculate matrix similarities.
     Parameters
