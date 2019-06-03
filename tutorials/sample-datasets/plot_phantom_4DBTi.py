@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-.. _tut_phantom_4dbti::
+.. _tut_phantom_4Dbti:
 
 ============================================
 4D Neuroimaging/BTi phantom dataset tutorial

@@ -159,7 +159,7 @@ with MRI images in DICOM format and FreeSurfer reconstructions.
 
 .. topic:: Examples
 
-    * :doc:`high-frequency SEF responses<plot_hf_sef_data>`.
+    * :ref:`high-frequency SEF responses <ex-hf-sef-data>`.
 
 Visual 92 object categories
 ===========================
@@ -213,7 +213,7 @@ center in La Timone hospital in Marseille.
 
 .. topic:: Examples
 
-    * :ref:`tut_phantom_4dbti`
+    * :ref:`tut_phantom_4Dbti`
 
 OPM
 ===
