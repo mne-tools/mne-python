@@ -95,6 +95,10 @@ def _named_subclass(klass):
 class NamedInt(_Named, int):
     """Int with a name in __repr__."""
 
+    pass  # noqa
+
 
 class NamedFloat(_Named, float):
     """Float with a name in __repr__."""
+
+    pass  # noqa
