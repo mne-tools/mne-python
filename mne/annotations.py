@@ -345,6 +345,9 @@ class Annotations(object):
         self : instance of Annotations
             The cropped Annotations object.
         """
+        if len(self) == 0:
+            return  # no annotations, nothing to do
+
         offset = 0 if self.orig_time is None else self.orig_time
         absolute_onset = self.onset + offset
         absolute_offset = absolute_onset + self.duration

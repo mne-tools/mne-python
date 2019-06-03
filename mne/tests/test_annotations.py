@@ -180,6 +180,7 @@ def test_crop():
     annot = read_annotations(fname)
     assert isinstance(annot, Annotations)
     assert len(annot) == 0
+    annot.crop()  # test if cropping empty annotations doesn't raise an error
     # Test that empty annotations can be saved with an object
     fname = op.join(tempdir, 'test_raw.fif')
     raw.set_annotations(annot)
