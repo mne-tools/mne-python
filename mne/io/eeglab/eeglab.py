@@ -441,7 +441,7 @@ class EpochsEEGLAB(BaseEpochs):
             epochs = _bunchify(eeg.epoch)
             events = _bunchify(eeg.event)
             for ep in epochs:
-                if isinstance(ep.eventtype, int):
+                if isinstance(ep.eventtype, (int, float)):
                     ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, str):
                     event_type = '/'.join([str(et) for et in ep.eventtype])
