@@ -52,6 +52,7 @@ conda to ``/home/user/anaconda3``)::
     Will show the Anaconda binary path (above) somewhere in the output
     (probably at or near the beginning), but the ``command not found`` error
     suggests that it is missing.
+
     On Linux or OSX, the installer should have put something
     like the following in your ``~/.bashrc`` or ``~/.bash_profile``
     (or somewhere else if you are using a non-bash terminal):
@@ -60,7 +61,12 @@ conda to ``/home/user/anaconda3``)::
 
         . ~/anaconda3/etc/profile.d/conda.sh
 
-    If these are missing, adding them can fix the problem.
+    If these are missing, it is possible that you are not on the same shell that was used
+    during the installation. You can verify which shell you are on by using the command::
+
+        $ echo $SHELL
+
+    If you do not find this line in the configuration file for either of your terminals (bash, tcsh, etc.), add them to fix the problem.
 
     **If you see an error like**::
 
