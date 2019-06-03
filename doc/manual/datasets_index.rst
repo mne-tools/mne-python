@@ -138,6 +138,8 @@ This dataset contains somatosensory data with event-related synchronizations
 .. topic:: Examples
 
     * :ref:`tut-sensors-time-freq`
+    * :ref:`ex-inverse-source-power`
+    * :ref:`ex-time-freq-global-field-power`
 
 Multimodal
 ==========
