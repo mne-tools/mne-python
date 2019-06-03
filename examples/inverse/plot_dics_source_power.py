@@ -1,4 +1,6 @@
 """
+.. _ex-inverse-source-power:
+
 =========================================
 Compute source power using DICS beamfomer
 =========================================
