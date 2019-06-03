@@ -204,7 +204,11 @@ mlab.view(azimuth=50, elevation=90, distance=0.5)
 # can also render MRI surfaces of the scalp, skull, and brain (by passing
 # keywords like ``'head'``, ``'outer_skull'``, or ``'brain'`` to the
 # ``surfaces`` parameter) making it useful for :ref:`assessing coordinate frame
-# transformations <plot_source_alignment>`.
+# transformations <plot_source_alignment>`. For examples of various uses of
+# :func:`~mne.viz.plot_alignment`, see
+# :doc:`../../auto_examples/plot_montage`,
+# :doc:`../../auto_examples/plot_eeg_on_scalp`, and
+# :doc:`../../auto_examples/plot_meg_sensors`.
 #
 # .. LINKS
 #
