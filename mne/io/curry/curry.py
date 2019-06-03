@@ -71,8 +71,7 @@ def _get_curry_version(file_extension):
 
 def _check_missing_files(full_fname, fname_base, curry_vers):
     """
-    Check if all neccessary files exist and return the path without extension
-     and its CURRY version
+    Check if all neccessary files exist.
      """
 
     if curry_vers == 8:
