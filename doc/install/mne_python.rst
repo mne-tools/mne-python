@@ -61,12 +61,15 @@ conda to ``/home/user/anaconda3``)::
 
         . ~/anaconda3/etc/profile.d/conda.sh
 
-    If these are missing, it is possible that you are not on the same shell that was used
-    during the installation. You can verify which shell you are on by using the command::
+    If this is missing, it is possible that you are not on the same shell that
+    was used during the installation. You can verify which shell you are on by
+    using the command::
 
         $ echo $SHELL
 
-    If you do not find this line in the configuration file for either of your terminals (bash, tcsh, etc.), add them to fix the problem.
+    If you do not find this line in the configuration file for the shell you
+    are using (bash, tcsh, etc.), add the line to that shell's ``rc`` or
+    ``profile`` file to fix the problem.
 
     **If you see an error like**::
 
