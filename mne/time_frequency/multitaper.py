@@ -388,8 +388,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -503,7 +502,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
 
-    n_jobs : int
+    %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.
     %(verbose)s

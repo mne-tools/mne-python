@@ -20,6 +20,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  Epochs, EpochsArray)
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
+from mne.io.constants import FIFF
 from mne.utils import (_TempDir, requires_pandas, requires_version,
                        run_tests_if_main)
 
@@ -104,6 +105,31 @@ def test_hash_evoked():
 
     ave_2.data[0, 0] -= 1
     assert hash(ave) != hash(ave_2)
+
+
+def _aspect_kinds():
+    """Yield evoked aspect kinds."""
+    kinds = list()
+    for key in FIFF:
+        if not key.startswith('FIFFV_ASPECT_'):
+            continue
+        kinds.append(getattr(FIFF, str(key)))
+    return kinds
+
+
+@pytest.mark.parametrize('aspect_kind', _aspect_kinds())
+def test_evoked_aspects(aspect_kind, tmpdir):
+    """Test handling of evoked aspects."""
+    # gh-6359
+    ave = read_evokeds(fname, 0)
+    ave._aspect_kind = aspect_kind
+    assert 'Evoked' in repr(ave)
+    # for completeness let's try a round-trip
+    temp_fname = op.join(str(tmpdir), 'test-ave.fif')
+    ave.save(temp_fname)
+    ave_2 = read_evokeds(temp_fname, condition=0)
+    assert_allclose(ave.data, ave_2.data)
+    assert ave.kind == ave_2.kind
 
 
 @pytest.mark.slowtest
@@ -543,8 +569,10 @@ def test_array_epochs():
     assert_equal(evoked1.nave, evoked3.nave)
 
     # test kind check
-    pytest.raises(TypeError, EvokedArray, data1, info, tmin=0, kind=1)
-    pytest.raises(ValueError, EvokedArray, data1, info, kind='mean')
+    with pytest.raises(ValueError, match='Invalid value'):
+        EvokedArray(data1, info, tmin=0, kind=1)
+    with pytest.raises(ValueError, match='Invalid value'):
+        EvokedArray(data1, info, kind='mean')
 
     # test match between channels info and data
     ch_names = ['EEG %03d' % (i + 1) for i in range(19)]

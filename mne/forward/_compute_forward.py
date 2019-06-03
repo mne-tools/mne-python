@@ -19,7 +19,7 @@ from copy import deepcopy
 from ..surface import fast_cross_3d, _project_onto_surface
 from ..io.constants import FIFF, FWD
 from ..transforms import apply_trans
-from ..utils import logger, verbose, _pl, warn
+from ..utils import logger, verbose, _pl, warn, fill_doc
 from ..parallel import parallel_func
 from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import pick_types
@@ -59,6 +59,7 @@ def _check_coil_frame(coils, coord_frame, bem):
     return coils, coord_frame
 
 
+@fill_doc
 def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
     """Parallel wrapper for _do_lin_field_coeff to compute linear coefficients.
 
@@ -77,8 +78,7 @@ def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
         Weights for MEG coil integration points
     bins : ndarray, shape (n_integration_points,)
         The sensor assignments for each rmag/cosmag/w.
-    n_jobs : int
-        Number of jobs to run in parallel
+    %(n_jobs)s
 
     Returns
     -------
@@ -169,6 +169,7 @@ def _concatenate_coils(coils):
     return rmags, cosmags, ws, bins
 
 
+@fill_doc
 def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     """Set up for computing the solution at a set of MEG coils.
 
@@ -182,8 +183,7 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
         Class constant identifying coordinate frame
     mults : ndarray, shape (1, n_BEM_vertices)
         Multiplier for every vertex in BEM
-    n_jobs : int
-        Number of jobs to run in parallel
+    %(n_jobs)s
 
     Returns
     -------
@@ -381,6 +381,7 @@ def _bem_inf_fields(rr, rmag, cosmag):
     return np.rollaxis(x / diff_norm, 1)
 
 
+@fill_doc
 def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
                       coil_type):
     """Calculate the magnetic field or electric potential forward solution.
@@ -403,8 +404,7 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
         Comes from _bem_specify_coils
     bem_rr : ndarray, shape (n_BEM_vertices, 3)
         3D vertex positions for all surfaces in the BEM
-    n_jobs : int
-        Number of jobs to run in parallel
+    %(n_jobs)s
     coil_type : str
         'meg' or 'eeg'
 
@@ -686,8 +686,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     fwd_data : dict
         Dict containing sensor information. Gets updated here with BEM and
         sensor information for later forward calculations
-    n_jobs : int
-        Number of jobs to run in parallel
+    %(n_jobs)s
     %(verbose)s
     """
     bem_rr = mults = mri_Q = head_mri_t = None
@@ -769,8 +768,7 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
         3D dipole positions in head coordinates
     fd : dict
         Dict containing forward data after update in _prep_field_computation
-    n_jobs : int
-        Number of jobs to run in parallel
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -840,8 +838,7 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
         Optional list of MEG compensation information
     coil_types : list of str
         Sensor types. May contain 'meg' and/or 'eeg'
-    n_jobs: int
-        Number of jobs to run in parallel
+    %(n_jobs)s
     infos : list, len(2)
         infos[0] is MEG info, infos[1] is EEG info
 

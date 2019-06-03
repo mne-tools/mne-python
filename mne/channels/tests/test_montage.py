@@ -21,7 +21,7 @@ from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
-from mne.io.meas_info import _read_dig_points
+from mne.digitization._utils import _read_dig_points
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk

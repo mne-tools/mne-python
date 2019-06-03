@@ -24,9 +24,9 @@ from .fetching import _fetch_file, _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
                        ETSContext)
-from .misc import (run_subprocess, _pl, _clean_names, _Counter, pformat,
+from .misc import (run_subprocess, _pl, _clean_names, pformat,
                    _explain_exception, _get_argvalues, sizeof_fmt,
-                   running_subprocess)
+                   running_subprocess, _DefaultEventParser)
 from .progressbar import ProgressBar
 from ._testing import (run_tests_if_main, requires_sklearn,
                        requires_version, requires_nibabel, requires_mayavi,

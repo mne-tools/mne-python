@@ -378,8 +378,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         at the same unit.
 
         .. versionadded:: 0.12
-    n_jobs : int (default 1)
-        Number of jobs to run in parallel.
+    %(n_jobs)s
 
         .. versionadded:: 0.12
     return_estimators : bool (default False)
@@ -627,8 +626,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale data to roughly the same order of
         magnitude.
-    n_jobs : int (default 1)
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     return_estimators : bool (default False)
         Whether to return all estimators or the best. Only considered if
         method equals 'auto' or is a list of str. Defaults to False

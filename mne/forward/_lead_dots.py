@@ -12,7 +12,7 @@ from numpy.polynomial import legendre
 
 from ..fixes import einsum
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _get_extra_data_path
+from ..utils import logger, verbose, _get_extra_data_path, fill_doc
 
 
 ##############################################################################
@@ -284,6 +284,7 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
     return out
 
 
+@fill_doc
 def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
     """Perform the lead field dot product integrations.
 
@@ -304,8 +305,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
 
     Returns
     -------
@@ -400,6 +400,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
     return products
 
 
+@fill_doc
 def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
                      lut, n_fact, n_jobs):
     """Compute the map construction products.
@@ -425,8 +426,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
         Look-up table for Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
 
     Returns
     -------

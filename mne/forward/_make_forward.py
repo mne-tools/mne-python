@@ -533,8 +533,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since forward computation
         with reference channels is not currently supported.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -648,8 +647,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
-    n_jobs : int
-        Number of jobs to run in parallel (used in making forward solution).
+    %(n_jobs)s
     %(verbose)s
 
     Returns

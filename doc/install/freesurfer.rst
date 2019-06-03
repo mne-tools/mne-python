@@ -1,13 +1,10 @@
-.. include:: links.inc
-
-.. _install_freesurfer:
-
 Installing FreeSurfer
 =====================
 
-`FreeSurfer`_ is software for analysis and visualization of MRI data. In the
-MNE ecosystem, freesurfer is used to convert structural MRI scans into models
-of the scalp, inner/outer skull, and cortical surfaces, which are used to
+`FreeSurfer <fs-wiki>`_ is software for analysis and visualization of MRI data.
+In the MNE ecosystem, freesurfer is used to convert structural MRI scans into
+models of the scalp, inner/outer skull, and cortical surfaces, which are used
+to
 
 1. model how changes in the electrical and magnetic field caused by neural
    activity propagate to the sensor locations (part of computing the "forward
@@ -22,4 +19,9 @@ need to install ``tcsh`` for FreeSurfer to work; ``tcsh`` is usually
 pre-installed with macOS, and is available in the package repositories for
 Linux-based systems (e.g., ``sudo apt install tcsh`` on Ubuntu-like systems).
 
-**Next:** :doc:`install_mne_c`
+**Next:** :doc:`mne_c`
+
+.. LINKS
+
+.. _fs-wiki: https://surfer.nmr.mgh.harvard.edu/fswiki/
+.. _`FreeSurfer download page`: https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall

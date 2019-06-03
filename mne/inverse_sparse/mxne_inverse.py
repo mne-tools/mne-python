@@ -4,7 +4,7 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import linalg, signal
+from scipy import linalg
 
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                _BaseSourceEstimate)
@@ -236,7 +236,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
 @verbose
 def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=None,
-               debias=True, time_pca=True, weights=None, weights_min=None,
+               debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, rank=None,
                verbose=None):
@@ -455,11 +455,9 @@ def _window_evoked(evoked, size):
     sfreq = float(evoked.info['sfreq'])
     lsize = int(lsize * sfreq)
     rsize = int(rsize * sfreq)
-    lhann = signal.hann(lsize * 2)
-    rhann = signal.hann(rsize * 2)
-    window = np.r_[lhann[:lsize],
-                   np.ones(len(evoked.times) - lsize - rsize),
-                   rhann[-rsize:]]
+    lhann = np.hanning(lsize * 2)[:lsize]
+    rhann = np.hanning(rsize * 2)[-rsize:]
+    window = np.r_[lhann, np.ones(len(evoked.times) - lsize - rsize), rhann]
     evoked.data *= window[None, :]
     return evoked
 
@@ -467,7 +465,7 @@ def _window_evoked(evoked, size):
 @verbose
 def tf_mixed_norm(evoked, forward, noise_cov,
                   loose='auto', depth=0.8, maxit=3000,
-                  tol=1e-4, weights=None, weights_min=None, pca=True,
+                  tol=1e-4, weights=None, weights_min=0., pca=True,
                   debias=True, wsize=64, tstep=4, window=0.02,
                   return_residual=False, return_as_dipoles=False,
                   alpha=None, l1_ratio=None, dgap_freq=10, rank=None,

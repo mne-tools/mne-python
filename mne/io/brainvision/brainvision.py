@@ -21,7 +21,7 @@ from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn, fill_doc
+from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
@@ -832,11 +832,8 @@ _OTHER_ACCEPTED_MARKERS = {
 _OTHER_OFFSET = 10001  # where to start "unknown" event_ids
 
 
-class _BVEventParser(object):
+class _BVEventParser(_DefaultEventParser):
     """Parse standard brainvision events, accounting for non-standard ones."""
-
-    def __init__(self):
-        self.other_event_ids = dict()
 
     def __call__(self, description):
         """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
@@ -849,10 +846,6 @@ class _BVEventParser(object):
         elif description in _OTHER_ACCEPTED_MARKERS:
             code = _OTHER_ACCEPTED_MARKERS[description]
         else:
-            if description not in self.other_event_ids:
-                # Each time a new one is added, len(self.other_event_ids)
-                # will grow, so implicitly this is a counter for us
-                self.other_event_ids[description] = \
-                    _OTHER_OFFSET + len(self.other_event_ids)
-            code = self.other_event_ids[description]
+            code = (super(_BVEventParser, self)
+                    .__call__(description, offset=_OTHER_OFFSET))
         return code

@@ -236,7 +236,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.65', misc='0.3')
+    releases = dict(testing='0.66', misc='0.3')
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -318,7 +318,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
         somato='77a7601948c9e38d2da52446e2eab10f',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='347e5b73864f3fda7324b0e2fc8747d3',
+        testing='f84d441c8e72fcc4e632332d49cf38fd',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         opm='370ad1dcfd5c47e029e692c85358a374',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
@@ -556,7 +556,7 @@ def _download_all_example_data(verbose=True):
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword, phantom_4dbti, sleep_physionet)
+                   kiloword, phantom_4dbti, sleep_physionet, limo)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -595,6 +595,7 @@ def _download_all_example_data(verbose=True):
         fetch_hcp_mmp_parcellation()
     finally:
         sys.argv.pop(-1)
+    limo.load_data(subject=2, update_path=True)
 
 
 @verbose

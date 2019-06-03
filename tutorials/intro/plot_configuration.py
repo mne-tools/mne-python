@@ -109,7 +109,7 @@ print(mne.get_config_path())
 # Using environment variables
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# For compatibility with :doc:`MNE-C <../../install_mne_c>`, MNE-Python
+# For compatibility with :doc:`MNE-C <../../install/mne_c>`, MNE-Python
 # also reads and writes `environment variables`_ to specify configuration. This
 # is done with the same functions that read and write the JSON configuration,
 # and is controlled with the parameters ``use_env`` and ``set_env``. By

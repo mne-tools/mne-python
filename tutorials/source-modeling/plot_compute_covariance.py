@@ -117,20 +117,21 @@ noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto',
 # be follow a multivariate Gaussian distribution, i.e.,
 # whitened baseline signals should be between -1.96 and 1.96 at a given time
 # sample.
-# Based on the same reasoning, the expected value for the global field power
-# (GFP) is 1 (calculation of the GFP should take into account the true degrees
-# of freedom, e.g. ``ddof=3`` with 2 active SSP vectors):
+# Based on the same reasoning, the expected value for the :term:`global field
+# power (GFP) <GFP>` is 1 (calculation of the GFP should take into account the
+# true degrees of freedom, e.g. ``ddof=3`` with 2 active SSP vectors):
 
 evoked = epochs.average()
 evoked.plot_white(noise_cov_reg, time_unit='s')
 
 ###############################################################################
 # This plot displays both, the whitened evoked signals for each channels and
-# the whitened GFP. The numbers in the GFP panel represent the estimated rank
-# of the data, which amounts to the effective degrees of freedom by which the
-# squared sum across sensors is divided when computing the whitened GFP.
-# The whitened GFP also helps detecting spurious late evoked components which
-# can be the consequence of over- or under-regularization.
+# the whitened :term:`GFP`. The numbers in the GFP panel represent the
+# estimated rank of the data, which amounts to the effective degrees of freedom
+# by which the squared sum across sensors is divided when computing the
+# whitened :term:`GFP`. The whitened :term:`GFP` also helps detecting spurious
+# late evoked components which can be the consequence of over- or
+# under-regularization.
 #
 # Note that if data have been processed using signal space separation
 # (SSS) [2]_,
@@ -155,7 +156,7 @@ evoked.plot_white(noise_covs, time_unit='s')
 
 ##############################################################################
 # This will plot the whitened evoked for the optimal estimator and display the
-# GFPs for all estimators as separate lines in the related panel.
+# :term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
 
 
 ##############################################################################

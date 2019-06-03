@@ -195,11 +195,6 @@ on_missing : str
         Can be "ignore", "warn"", or "raise"."""
 
 # Simulation
-docdict['random_state'] = """
-random_state : None | int | ~numpy.random.RandomState
-    The random generator state used for blink, ECG, and sensor
-    noise randomization. Default is None, which does not set the seed.
-"""
 docdict['interp'] = """
 interp : str
     Either 'hann', 'cos2' (default), 'linear', or 'zero', the type of
@@ -242,6 +237,24 @@ docdict['stc_metric'] = """
 metric : float | array, shape (n_times,)
     The metric. float if per_sample is False, else
     array with the values computed for each time point.
+
+# Random state
+docdict['random_state'] = """
+random_state : None | int | instance of ~numpy.random.mtrand.RandomState
+    If ``random_state`` is an :class:`int`, it will be used as a seed for
+    :class:`~numpy.random.mtrand.RandomState`. If ``None``, the seed will be
+    obtained from the operating system (see
+    :class:`~numpy.random.mtrand.RandomState` for details). Default is
+    ``None``.
+"""
+
+docdict['seed'] = """
+seed : None | int | instance of ~numpy.random.mtrand.RandomState
+    If ``seed`` is an :class:`int`, it will be used as a seed for
+    :class:`~numpy.random.mtrand.RandomState`. If ``None``, the seed will be
+    obtained from the operating system (see
+    :class:`~numpy.random.mtrand.RandomState` for details). Default is
+    ``None``.
 """
 
 # Finalize
