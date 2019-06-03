@@ -165,7 +165,7 @@ def backend_name(request):
 
 
 @pytest.yield_fixture
-def backends_3d(backend_name):
+def renderer(backend_name):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
     from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
@@ -176,4 +176,6 @@ def backends_3d(backend_name):
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
     with _use_test_3d_backend(backend_name):
-        yield
+        from mne.viz.backends import renderer
+        yield renderer
+        renderer._close_all()

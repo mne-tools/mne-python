@@ -24,8 +24,7 @@ from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
-                     plot_alignment, plot_volume_source_estimates,
-                     get_3d_backend)
+                     plot_alignment, plot_volume_source_estimates)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, requires_nibabel, check_version,
@@ -97,9 +96,8 @@ def test_plot_head_positions():
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-def test_plot_sparse_source_estimates(backends_3d):
+def test_plot_sparse_source_estimates(renderer):
     """Test plotting of (sparse) source estimates."""
-    backend_name = get_3d_backend()
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -132,16 +130,15 @@ def test_plot_sparse_source_estimates(backends_3d):
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                         opacity=0.5, high_resolution=False)
-    if backend_name == 'mayavi':
+    if renderer.get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(surf, mayavi.modules.surface.Surface)
 
 
 @testing.requires_testing_data
 @traits_test
-def test_plot_evoked_field(backends_3d):
+def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
-    backend_name = get_3d_backend()
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
@@ -151,7 +148,7 @@ def test_plot_evoked_field(backends_3d):
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
         fig = evoked.plot_field(maps, time=0.1)
-        if backend_name == 'mayavi':
+        if renderer.get_3d_backend() == 'mayavi':
             import mayavi  # noqa: F401 analysis:ignore
             assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -159,10 +156,8 @@ def test_plot_evoked_field(backends_3d):
 @testing.requires_testing_data
 @traits_test
 @pytest.mark.timeout(120)
-def test_plot_alignment(tmpdir, backends_3d):
+def test_plot_alignment(tmpdir, renderer):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
-    from mne.viz.backends.renderer import _Renderer
-    backend_name = get_3d_backend()
     # generate fiducials file for testing
     tempdir = str(tmpdir)
     fiducials_path = op.join(tempdir, 'fiducials.fif')
@@ -174,8 +169,7 @@ def test_plot_alignment(tmpdir, backends_3d):
             'r': [0.08436285, -0.02850276, -0.04127743]}]
     write_dig(fiducials_path, fid, 5)
 
-    if backend_name == 'mayavi':
-        mlab = _import_mlab()
+    renderer._close_all()
     evoked = read_evokeds(evoked_fname)[0]
     sample_src = read_source_spaces(src_fname)
     bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
@@ -192,11 +186,10 @@ def test_plot_alignment(tmpdir, backends_3d):
             meg.append('ref')
         fig = plot_alignment(info, trans_fname, subject='sample',
                              subjects_dir=subjects_dir, meg=meg)
-        renderer = _Renderer(fig=fig)
-        renderer.close()
+        rend = renderer._Renderer(fig=fig)
+        rend.close()
     # KIT ref sensor coil def is defined
-    if backend_name == 'mayavi':
-        mlab.close(all=True)
+    renderer._close_all()
     info = infos['Neuromag']
     pytest.raises(TypeError, plot_alignment, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
@@ -207,11 +200,9 @@ def test_plot_alignment(tmpdir, backends_3d):
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
                     brain='white')
-    if backend_name == 'mayavi':
-        mlab.close(all=True)
+    renderer._close_all()
     # no-head version
-    if backend_name == 'mayavi':
-        mlab.close(all=True)
+    renderer._close_all()
     # all coord frames
     pytest.raises(ValueError, plot_alignment, info)
     plot_alignment(info, surfaces=[])
@@ -220,8 +211,7 @@ def test_plot_alignment(tmpdir, backends_3d):
                              coord_frame=coord_frame, trans=trans_fname,
                              subject='sample', mri_fiducials=fiducials_path,
                              subjects_dir=subjects_dir, src=src_fname)
-        renderer = _Renderer(fig=fig)
-        renderer.close()
+    renderer._close_all()
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
@@ -233,8 +223,7 @@ def test_plot_alignment(tmpdir, backends_3d):
                        surfaces=['white', 'outer_skin', 'outer_skull'],
                        meg=['helmet', 'sensors'],
                        eeg=['original', 'projected'], ecog=True, seeg=True)
-    if backend_name == 'mayavi':
-        mlab.close(all=True)
+    renderer._close_all()
 
     sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
     bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
@@ -279,7 +268,8 @@ def test_plot_alignment(tmpdir, backends_3d):
     fig = plot_alignment(trans=trans_fname, subject='sample', meg=False,
                          coord_frame='mri', subjects_dir=subjects_dir,
                          surfaces=['brain'], bem=sphere, show_axes=True)
-    if backend_name == 'mayavi':
+    renderer._close_all()
+    if renderer.get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
 
@@ -321,8 +311,7 @@ def test_plot_alignment(tmpdir, backends_3d):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['foo'])
-    if backend_name == 'mayavi':
-        mlab.close(all=True)
+    renderer._close_all()
 
 
 @testing.requires_testing_data
@@ -432,10 +421,9 @@ def test_plot_dipole_mri_orthoview():
 
 @testing.requires_testing_data
 @traits_test
-def test_snapshot_brain_montage(backends_3d):
+def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
-    from mne.viz import get_3d_backend
-    if get_3d_backend() == 'pyvista':
+    if renderer.get_3d_backend() == 'pyvista':
         pytest.skip("This feature is not available yet on PyVista")
 
     info = read_info(evoked_fname)

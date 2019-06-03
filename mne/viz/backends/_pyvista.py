@@ -316,3 +316,7 @@ def _get_view_to_display_matrix(size):
                                  [0.,            0.,   1.,        0.],
                                  [0.,            0.,   0.,        1.]])
     return view_to_disp_mat
+
+
+def _close_all():
+    pass
