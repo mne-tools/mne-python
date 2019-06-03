@@ -3,12 +3,24 @@
 Datasets
 ########
 
-.. contents:: Contents
+All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
+use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
+
+All fetchers will check the default download location first to see if the dataset
+is already on your computer, and only download it if necessary. The default
+download location is also configurable; see the documentation of any of the
+``data_path`` functions for more information.
+
+.. sidebar:: Contributing datasets in MNE-Python
+
+    Do not hesitate to contact MNE-Python developers on the
+    `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
+    to discuss the possibility to add more publicly available datasets.
+
+.. contents:: Available datasets
    :local:
    :depth: 2
 
-All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
-use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
 
 .. _sample-dataset:
 
@@ -25,18 +37,8 @@ a smiley face was presented at the center of the visual field.
 The subject was asked to press a key with the right index finger
 as soon as possible after the appearance of the face.
 
-Once the ``data_path`` is known, its contents can be examined using :ref:`IO functions <ch_convert>`.
-
-fsaverage
-=========
-:func:`mne.datasets.fetch_fsaverage`
-
-For convenience, we provide a function to separately download and extract the
-(or update an existing) fsaverage subject.
-
-.. topic:: Examples
-
-    :ref:`tut-eeg-fsaverage-source-modeling`
+In MNE-Python, the **sample** dataset is distributed with :ref:`fsaverage` for
+convenience.
 
 Brainstorm
 ==========
@@ -119,14 +121,6 @@ The recordings were made using the BCI2000 system. To load a subject, do::
 
     * :ref:`ex-decoding-csp-eeg`
 
-Do not hesitate to contact MNE-Python developers on the
-`MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
-to discuss the possibility to add more publicly available datasets.
-
-.. _auditory dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetAuditory
-.. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
-.. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
-.. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
 
 Somatosensory
 =============
@@ -163,6 +157,9 @@ a sampling frequency of 3 kHz. The dataset is suitable for investigating
 high-frequency somatosensory responses. Data from two subjects are included
 with MRI images in DICOM format and FreeSurfer reconstructions.
 
+.. topic:: Examples
+
+    * :doc:`high-frequency SEF responses<plot_hf_sef_data>`.
 
 Visual 92 object categories
 ===========================
@@ -196,26 +193,6 @@ More details and a description of the package can be found in [5]_.
 
     * :ref:`Receptive Field Estimation and Prediction <ex-receptive-field-mtrf>`: Partially replicates the results from Crosse et al. (2016).
 
-Miscellaneous Datasets
-======================
-These datasets are used for specific purposes in the documentation and in
-general are not useful for separate analyses.
-
-ECoG Dataset
-^^^^^^^^^^^^
-:func:`mne.datasets.misc.data_path`. Data exists at ``/ecog/sample_ecog.mat``.
-
-This dataset contains a sample Electrocorticography (ECoG) dataset. It includes
-a single grid of electrodes placed over the temporal lobe during an auditory
-listening task. This dataset is primarily used to demonstrate visualization
-functions in MNE and does not contain useful metadata for analysis.
-
-.. topic:: Examples
-
-    * :ref:`How to convert 3D electrode positions to a 2D image.
-      <ex-electrode-pos-2d>`: Demonstrates
-      how to project a 3D electrode location onto a 2D image, a common procedure
-      in electrocorticography.
 
 
 Kiloword dataset
@@ -234,6 +211,9 @@ multiple regression estimation of EEG correlates of printed word processing.
 This dataset was obtained with a phantom on a 4D Neuroimaging / BTi system at the MEG
 center in La Timone hospital in Marseille.
 
+.. topic:: Examples
+
+    * :ref:`tut_phantom_4dbti`
 
 OPM
 ===
@@ -284,6 +264,41 @@ data please cite [7]_ and [8]_.
 
     * :ref:`tut-sleep-stage-classif`
 
+Miscellaneous Datasets
+======================
+These datasets are used for specific purposes in the documentation and in
+general are not useful for separate analyses.
+
+.. _fsaverage:
+
+fsaverage
+^^^^^^^^^
+:func:`mne.datasets.fetch_fsaverage`
+
+For convenience, we provide a function to separately download and extract the
+(or update an existing) fsaverage subject.
+
+.. topic:: Examples
+
+    :ref:`tut-eeg-fsaverage-source-modeling`
+
+
+ECoG Dataset
+^^^^^^^^^^^^
+:func:`mne.datasets.misc.data_path`. Data exists at ``/ecog/sample_ecog.mat``.
+
+This dataset contains a sample Electrocorticography (ECoG) dataset. It includes
+a single grid of electrodes placed over the temporal lobe during an auditory
+listening task. This dataset is primarily used to demonstrate visualization
+functions in MNE and does not contain useful metadata for analysis.
+
+.. topic:: Examples
+
+    * :ref:`How to convert 3D electrode positions to a 2D image.
+      <ex-electrode-pos-2d>`: Demonstrates
+      how to project a 3D electrode location onto a 2D image, a common procedure
+      in electrocorticography.
+
 References
 ==========
 
@@ -302,3 +317,9 @@ References
 .. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000). https://ieeexplore.ieee.org/document/867928
 
 .. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220 [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June 13).
+
+
+.. _auditory dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetAuditory
+.. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
+.. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
+.. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
