@@ -57,7 +57,7 @@ def test_io_curry():
     assert_array_almost_equal(curry7_alp.get_data(), ctf_alp.get_data())
     assert_array_almost_equal(curry8_alp.get_data(), ctf_alp.get_data())
 
-    bti_rfDC = read_raw_bti(bti_rfDC_file)  # where is the headfile for this?
+    bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)
     curry7_rfDC = read_raw_curry(curry7_rfDC_file)
     curry8_rfDC = read_raw_curry(curry8_rfDC_file)
 
