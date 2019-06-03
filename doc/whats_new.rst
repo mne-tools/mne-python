@@ -27,6 +27,8 @@ Changelog
 Bug
 ~~~
 
+- Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
+
 - Fix bug in handling of :class:`mne.Evoked` types that were not produced by MNE-Python (e.g., alternating average) by `Eric Larson`_
 
 - Fix bug in :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.tf_mixed_norm` where ``weights`` was supplied but ``weights_min`` was not, by `Eric Larson`_
@@ -3403,3 +3405,5 @@ of commits):
 .. _Alexander Kovrig: https://github.com/OpenSatori
 
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
+
+.. _Thomas Radman: https://github.com/tradman
