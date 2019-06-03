@@ -33,7 +33,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # many MEG and EEG systems. This information is stored in *layout files* and
 # *montages*, which are stored in your ``mne-python`` installation directory,
 # in the ``mne/channels/data/layouts`` and ``mne/channels/data/montages``
-# folders (respectively):
+# folders respectively:
 
 data_dir = os.path.join(os.path.dirname(mne.__file__), 'channels', 'data')
 for subfolder in ['layouts', 'montages']:
@@ -44,7 +44,8 @@ for subfolder in ['layouts', 'montages']:
 ###############################################################################
 # .. sidebar:: Computing sensor locations
 #
-#     If you are interested in how standard EEG sensor positions are computed,
+#     If you are interested in how standard ("idealized") EEG sensor positions
+#     are computed on a spherical head model,
 #     the `eeg_positions`_ repository provides code and documentation to this
 #     end.
 #
@@ -55,7 +56,7 @@ for subfolder in ['layouts', 'montages']:
 # ``y``, ``z``, in meters). In addition, montages come in two "flavors" —
 # :class:`~mne.channels.Montage` objects (for idealized sensor montages) and
 # :class:`~mne.channels.DigMontage` (for subject-specific digitizations of
-# sensor positions).
+# sensor positions, based on measurements during the recording session).
 #
 #
 # Working with layout files
@@ -83,7 +84,7 @@ biosemi_layout.plot(picks=midline)
 ###############################################################################
 # If you're working with a :class:`~mne.io.Raw` object that already has sensor
 # positions incorporated, you can create a :class:`~mne.channels.Layout` object
-# with either the :func:`mne.channels.make_eeg_layout` function or the
+# with either the :func:`mne.channels.make_eeg_layout` function or (equivalently) the
 # :func:`mne.channels.find_layout` function.
 
 layout_from_raw = mne.channels.make_eeg_layout(raw.info)
