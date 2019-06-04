@@ -85,12 +85,8 @@ def _update_raw_data(params):
             norm = params['scalings']['whitened']
         else:
             norm = params['scalings'][params['types'][di]]
+
         data[di] /= norm if norm != 0 else 1.
-    # clip
-    if params['clipping'] == 'transparent':
-        data[np.logical_or(data > 1, data < -1)] = np.nan
-    elif params['clipping'] == 'clamp':
-        data = np.clip(data, -1, 1, data)
     params['data'] = data
     params['times'] = times
 
@@ -397,6 +393,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
     event_id_rev = {val: key for key, val in (event_id or {}).items()}
+    units = _handle_default('units', None)
+    unit_scalings = _handle_default('scalings', None)
+
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
@@ -406,7 +405,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
-                  filt_bounds=filt_bounds)
+                  filt_bounds=filt_bounds, units=units,
+                  unit_scalings=unit_scalings)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -984,7 +984,14 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         ch_start = params['ch_start']
         offsets = params['offsets']
     params['bad_color'] = bad_color
-    labels = params['ax'].yaxis.get_ticklabels()
+    ax = params['ax']
+    labels = ax.yaxis.get_ticklabels()
+    # Scalebars
+    for bar in params.get('scalebars', {}).values():
+        ax.lines.remove(bar)
+    params['scalebars'] = dict()
+    # delete event and annotation texts as well as scale bar texts
+    params['ax'].texts = []
     # do the plotting
     tick_list = list()
     for ii in range(n_channels):
@@ -998,24 +1005,36 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             ch_name = info['ch_names'][inds[ch_ind]]
             tick_list += [ch_name]
             offset = offsets[ii]
+            this_type = params['types'][inds[ch_ind]]
             # do NOT operate in-place lest this get screwed up
-            this_data = params['data'][inds[ch_ind]] * params['scale_factor']
-            this_color = bad_color if ch_name in info['bads'] else color
 
+            # apply user-supplied scale factor
+            this_data = params['data'][inds[ch_ind]] * params['scale_factor']
+
+            # clip to range (if relevant)
+            if params['clipping'] == 'transparent':
+                this_data[np.logical_or(this_data > 1,
+                                        this_data < -1)] = np.nan
+            elif params['clipping'] == 'clamp':
+                np.clip(this_data, -1, 1, out=this_data)
+
+            # set color
+            this_color = bad_color if ch_name in info['bads'] else color
             if isinstance(this_color, dict):
-                this_color = this_color[params['types'][inds[ch_ind]]]
+                this_color = this_color[this_type]
 
             if inds[ch_ind] in params['data_picks']:
                 this_decim = params['decim']
             else:
                 this_decim = 1
             this_t = params['times'][::this_decim] + params['first_time']
+
             # subtraction here gets correct orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data[..., ::this_decim])
             lines[ii].set_xdata(this_t)
             lines[ii].set_color(this_color)
             vars(lines[ii])['ch_name'] = ch_name
-            vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
+            vars(lines[ii])['def_color'] = color[this_type]
             this_z = 0 if ch_name in info['bads'] else 1
             if butterfly:
                 if ch_name not in info['bads']:
@@ -1030,13 +1049,33 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 this_color = (bad_color if ch_name in info['bads'] else
                               this_color)
                 labels[ii].set_color(this_color)
+            # add a scale bar
+            if (not butterfly and this_type != 'stim' and
+                    ch_name not in params['whitened_ch_names'] and
+                    ch_name not in params['info']['bads']):
+                if this_type not in params['scalebars']:
+                    scale_color = 'k'
+                    x = this_t[0]
+                    # This is what our data get multiplied by
+                    norm = (params['scale_factor'] /
+                            params['scalings'][this_type] /
+                            params['unit_scalings'][this_type] /
+                            2)
+                    units = params['units'][this_type]
+                    bar = ax.plot([x, x], [offset - 1., offset + 1.],
+                                  color=scale_color, zorder=5, lw=4)[0]
+                    text = ax.text(x, offset + 1.,
+                                   '%0.1f %s ' % (1. / norm, units),
+                                   va='baseline', ha='right',
+                                   color=scale_color, zorder=5,
+                                   fontweight='bold', size='x-small')
+                    params['scalebars'][this_type] = bar
+
             lines[ii].set_zorder(this_z)
         else:
             # "remove" lines
             lines[ii].set_xdata([])
             lines[ii].set_ydata([])
-
-    params['ax'].texts = []   # delete event and annotation texts
 
     # deal with event lines
     if params['event_times'] is not None:

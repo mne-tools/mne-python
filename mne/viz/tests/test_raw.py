@@ -152,6 +152,29 @@ def _proj_status(ax):
     return [l.get_visible() for l in ax.findobj(matplotlib.lines.Line2D)][::2]
 
 
+def test_scale_bar():
+    """Test scale bar for raw."""
+    sfreq = 1000.
+    t = np.arange(10000) / sfreq
+    data = np.sin(2 * np.pi * 10. * t)
+    # +/- 1000 fT, 400 fT/cm, 20 uV
+    data = data * np.array([[1000e-15, 400e-13, 20e-6]]).T
+    info = create_info(3, sfreq, ('mag', 'grad', 'eeg'))
+    raw = RawArray(data, info)
+    fig = raw.plot()
+    ax = fig.axes[0]
+    assert len(ax.texts) == 3  # our labels
+    for text, want in zip(ax.texts, ('800.0 fT/cm', '2000.0 fT', '40.0 uV')):
+        assert text.get_text().strip() == want
+    assert len(ax.lines) == 8  # green, data, nan, bars
+    for data, bar in zip(ax.lines[1:4], ax.lines[5:8]):
+        y = data.get_ydata()
+        y_lims = [y.min(), y.max()]
+        bar_lims = bar.get_ydata()
+        assert_allclose(y_lims, bar_lims, atol=1e-4)
+    plt.close('all')
+
+
 def test_plot_raw():
     """Test plotting of raw data."""
     raw = _get_raw()
