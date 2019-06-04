@@ -322,7 +322,7 @@ class Vectorizer(TransformerMixin):
 
 @fill_doc
 class PSDEstimator(TransformerMixin):
-    """Compute power spectrum density (PSD) using a multi-taper method.
+    """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
     ----------
@@ -367,7 +367,7 @@ class PSDEstimator(TransformerMixin):
         self.normalization = normalization
 
     def fit(self, epochs_data, y):
-        """Compute power spectrum density (PSD) using a multi-taper method.
+        """Compute power spectral density (PSD) using a multi-taper method.
 
         Parameters
         ----------
@@ -388,7 +388,7 @@ class PSDEstimator(TransformerMixin):
         return self
 
     def transform(self, epochs_data):
-        """Compute power spectrum density (PSD) using a multi-taper method.
+        """Compute power spectral density (PSD) using a multi-taper method.
 
         Parameters
         ----------

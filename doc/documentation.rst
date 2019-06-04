@@ -214,6 +214,7 @@ this package. You can also find a gallery of these examples in the
             auto_examples/time_frequency/plot_compute_source_psd_epochs.rst
             auto_examples/time_frequency/plot_source_label_time_frequency.rst
             auto_examples/time_frequency/plot_source_power_spectrum.rst
+            auto_examples/time_frequency/plot_source_power_spectrum_opm.rst
             auto_examples/time_frequency/plot_source_space_time_frequency.rst
             auto_examples/time_frequency/plot_temporal_whitening.rst
             auto_examples/time_frequency/plot_time_frequency_global_field_power.rst
@@ -263,7 +264,6 @@ this package. You can also find a gallery of these examples in the
     .. details:: **Inverse examples**
         :class: example_details
 
-        auto_examples/datasets/plot_opm_rest_data.rst
         auto_examples/inverse/plot_compute_mne_inverse_epochs_in_label.rst
         auto_examples/inverse/plot_compute_mne_inverse_raw_in_label.rst
         auto_examples/inverse/plot_compute_mne_inverse_volume.rst
