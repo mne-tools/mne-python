@@ -217,7 +217,7 @@ class RawCurry(BaseRaw):
     """"""
 
     def __init__(self, data_fname, info, n_samples, data_format, montage=None, eog=(), ecg=(),
-                 emg=(), misc=(), preload=False, verbose=None):  # noqa: D102
+                 emg=(), misc=(), preload=False, verbose=None):
 
         data_fname = os.path.abspath(data_fname)
 
@@ -225,6 +225,9 @@ class RawCurry(BaseRaw):
 
         if preload == False and data_format == "ASCII":
             warn('Got ASCII format data as input. Data will be preloaded.')
+
+            cals = [[ch_dict["cal"]] for ch_dict in info["chs"]]
+            preload = np.loadtxt(data_fname).T * cals
 
 
         super(RawCurry, self).__init__(
