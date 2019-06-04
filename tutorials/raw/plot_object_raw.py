@@ -191,10 +191,21 @@ print(np.diff(raw.time_as_index([1, 2, 3])))
 # Modifying ``Raw`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
+# .. sidebar:: ``len(raw)``
+#
+#     Although the :class:`~mne.io.Raw` object underlyingly stores data samples
+#     in a :class:`NumPy array <numpy.ndarray>` of shape (n_channels,
+#     n_timepoints), the :class:`~mne.io.Raw` object behaves differently from
+#     :class:`NumPy arrays <numpy.ndarray>` with respect to the :func:`len`
+#     function. ``len(raw)`` will return the number of timepoints (length along
+#     data axis 1), not the number of channels (length along data axis 0).
+#     Hence in this section you'll see ``len(raw.ch_names)`` to get the number
+#     of channels.
+#
 # :class:`~mne.io.Raw` objects have a number of methods that modify the
 # :class:`~mne.io.Raw` instance in-place and return a reference to the modified
 # instance. This can be useful for `method chaining`_
-# (e.g., ``raw.filter(0.1, 40).pick_channels(['Fz', 'Cz', 'Pz']).plot()``)
+# (e.g., ``raw.crop(...).filter(...).pick_channels(...).plot()``)
 # but it also poses a problem during interactive analysis: if you modify your
 # :class:`~mne.io.Raw` object for an exploratory plot or analysis (say, by
 # dropping some channels), you will then need to re-load the data (and repeat
@@ -389,6 +400,7 @@ plt.plot(x, y)
 # add a vertical offset to one channel so it's not plotted right on top
 # of the other one:
 
+# sphinx_gallery_thumbnail_number = 2
 channel_names = ['MEG_0712', 'MEG_1022']
 two_meg_chans = raw[channel_names, start_sample:stop_sample]
 y_offset = np.array([5e-11, 0])  # just enough to separate the channel traces
@@ -416,15 +428,6 @@ eeg_data, times = raw[eeg_channel_indices]
 print(eeg_data.shape)
 
 ###############################################################################
-# .. sidebar:: ``len(raw)``
-#
-#     Although the :class:`~mne.io.Raw` object underlyingly stores data samples
-#     in a :class:`NumPy array <numpy.ndarray>` of shape (n_channels,
-#     n_timepoints), the :class:`~mne.io.Raw` object behaves differently from
-#     :class:`NumPy arrays <numpy.ndarray>` with respect to the :func:`len`
-#     function. ``len(raw)`` will return the number of timepoints (length along
-#     data axis 1), not the number of channels (length along data axis 0).
-#
 # Some of the parameters of :func:`mne.pick_types` accept string arguments as
 # well as booleans. For example, the ``meg`` parameter can take values
 # ``'mag'``, ``'grad'``, ``'planar1'``, or ``'planar2'`` to select only
@@ -561,5 +564,5 @@ print(df.head())
 # .. _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file
 # .. _ten_twenty: https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
 # .. _ten_oh_five: https://doi.org/10.1016%2FS1388-2457%2800%2900527-7
-# .. _dict comprehension:
+# .. _`dict comprehension`:
 #    https://docs.python.org/3/tutorial/datastructures.html#dictionaries
