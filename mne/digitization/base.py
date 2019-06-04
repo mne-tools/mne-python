@@ -28,7 +28,8 @@ _cardinal_kind_rev = {1: 'LPA', 2: 'Nasion', 3: 'RPA', 4: 'Inion'}
 
 def _format_dig_points(dig):
     """Format the dig points nicely."""
-    return [DigPoint(d) for d in dig] if dig is not None else dig
+    dig_points = [DigPoint(d) for d in dig] if dig is not None else dig
+    return Digitization(dig_points)
 
 
 class DigPoint(dict):
