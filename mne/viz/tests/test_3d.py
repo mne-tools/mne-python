@@ -29,7 +29,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, requires_nibabel, check_version,
-                       traits_test, requires_version)
+                       traits_test, requires_version, catch_logging)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -259,6 +259,16 @@ def test_plot_alignment(tmpdir, backends_3d):
     plot_alignment(info, trans_fname, subject='sample',
                    meg=True, subjects_dir=subjects_dir,
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
+    # single-layer BEM can still plot head surface
+    assert bem_surfs[-1]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
+    with catch_logging() as log:
+        plot_alignment(info, trans_fname, subject='sample',
+                       meg=True, subjects_dir=subjects_dir,
+                       surfaces=['head', 'inner_skull'], bem=bem_surfs[-1:],
+                       verbose=True)
+    log = log.getvalue()
+    assert 'not find the surface for head in the provided BEM model' in log
+    # sphere model
     sphere = make_sphere_model('auto', 'auto', evoked.info)
     src = setup_volume_source_space(sphere=sphere)
     plot_alignment(info, eeg='projected', meg='helmet', bem=sphere,
@@ -286,25 +296,31 @@ def test_plot_alignment(tmpdir, backends_3d):
         plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True)
 
     # one layer bem with skull surfaces:
-    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
-                  subject='sample', subjects_dir=subjects_dir,
-                  surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
+    with pytest.raises(ValueError, match='sphere conductor model must have'):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir,
+                       surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
     # wrong eeg value:
-    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
-                  subject='sample', subjects_dir=subjects_dir, eeg='foo')
+    with pytest.raises(ValueError, match='eeg must only contain'):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir, eeg='foo')
     # wrong meg value:
-    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
-                  subject='sample', subjects_dir=subjects_dir, meg='bar')
+    with pytest.raises(ValueError, match='meg must only contain'):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir, meg='bar')
     # multiple brain surfaces:
-    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
-                  subject='sample', subjects_dir=subjects_dir,
-                  surfaces=['white', 'pial'])
-    pytest.raises(TypeError, plot_alignment, info=info, trans=trans_fname,
-                  subject='sample', subjects_dir=subjects_dir,
-                  surfaces=[1])
-    pytest.raises(ValueError, plot_alignment, info=info, trans=trans_fname,
-                  subject='sample', subjects_dir=subjects_dir,
-                  surfaces=['foo'])
+    with pytest.raises(ValueError, match='Only one brain surface can be plot'):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir,
+                       surfaces=['white', 'pial'])
+    with pytest.raises(TypeError, match='all entries in surfaces must be'):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir,
+                       surfaces=[1])
+    with pytest.raises(ValueError, match='Unknown surface type'):
+        plot_alignment(info=info, trans=trans_fname,
+                       subject='sample', subjects_dir=subjects_dir,
+                       surfaces=['foo'])
     if backend_name == 'mayavi':
         mlab.close(all=True)
 

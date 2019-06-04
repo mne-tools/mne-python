@@ -37,7 +37,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     has_nibabel, check_version, fill_doc,
+                     has_nibabel, check_version, fill_doc, _pl,
                      _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
@@ -778,8 +778,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                 head_surf = this_surf
                                 break
                         else:
-                            raise ValueError('Could not find the surface for '
-                                             'head in the provided BEM model.')
+                            logger.info('Could not find the surface for '
+                                        'head in the provided BEM model, '
+                                        'looking in the subject directory.')
             if head_surf is None:
                 if subject is None:
                     raise ValueError('To plot the head surface, the BEM/sphere'
@@ -906,7 +907,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # we've looked through all of them, raise if some remain
     if len(surfaces) > 0:
-        raise ValueError('Unknown surfaces types: %s' % (surfaces,))
+        raise ValueError('Unknown surface type%s: %s'
+                         % (_pl(surfaces), surfaces,))
 
     skull_alpha = dict()
     skull_colors = dict()
