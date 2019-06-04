@@ -12,11 +12,6 @@ from scipy.linalg import norm
 from mne.utils import _check_option, fill_doc
 
 
-# TODO: Add more localization accuracy functions. For example, distance between
-#       true dipole position (in simulated stc) and the centroid of the
-#       estimated activity.
-
-
 def _check_stc(stc1, stc2):
     """Check that stcs are compatible."""
     if stc1.data.shape != stc2.data.shape:

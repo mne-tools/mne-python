@@ -19,9 +19,10 @@ def _check_stc(stc1, stc2):
 
 
 @deprecated("This function is deprecated and will be removed in version 0.20. "
-            "Use metrics module instead.")
+            "Use mne.simulation.metrics module instead.")
 def source_estimate_quantification(stc1, stc2, metric='rms'):
     """Calculate matrix similarities.
+
     Parameters
     ----------
     stc1 : SourceEstimate
@@ -30,15 +31,19 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
         Second source estimate for comparison.
     metric : str
         Metric to calculate, 'rms' or 'cosine'.
+
     Returns
     -------
     score : float | array
         Calculated metric.
+
     Notes
     -----
     Metric calculation has multiple options:
+
         * rms: Root mean square of difference between stc data matrices.
         * cosine: Normalized correlation of all elements in stc data matrices.
+
     .. versionadded:: 0.10.0
     """
     _check_option('metric', metric, ['rms', 'cosine'])

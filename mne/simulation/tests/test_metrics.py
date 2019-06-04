@@ -7,7 +7,7 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_allclose
 import pytest
 
 from mne import read_source_spaces
@@ -36,8 +36,8 @@ def test_metrics():
     # ### Tests to add
     assert (E1_rms == 0.)
     assert (E2_rms == 0.)
-    assert_almost_equal(E1_cos, 0.)
-    assert_almost_equal(E2_cos, 0.)
+    assert_allclose(E1_cos, 0.)
+    assert_allclose(E2_cos, 0.)
     stc_bad = stc2.copy().crop(0, 0.5)
     pytest.raises(ValueError, source_estimate_quantification, stc1, stc_bad)
     stc_bad = stc2.copy()

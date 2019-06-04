@@ -8,7 +8,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_allclose
 import pytest
 from scipy.linalg import norm
 
@@ -43,9 +43,9 @@ def test_uniform_and_thresholding():
 
     threshold = 0.9
     stc1, stc2 = metrics._thresholding(stc_true, stc_true, threshold)
-    assert_almost_equal(stc1._data, np.array([[0, -1.]]))
-    assert_almost_equal(stc2._data, np.array([[0, -1.]]))
-    assert_almost_equal(threshold, metrics._check_threshold(threshold))
+    assert_allclose(stc1._data, np.array([[0, -1.]]))
+    assert_allclose(stc2._data, np.array([[0, -1.]]))
+    assert_allclose(threshold, metrics._check_threshold(threshold))
 
     threshold = '90'
     pytest.raises(ValueError, metrics._check_threshold, threshold)
@@ -69,10 +69,10 @@ def test_cosine_score():
     E_per_sample2 = cosine_score(stc_true, stc_est2)
     E_unique2 = cosine_score(stc_true, stc_est2, per_sample=False)
 
-    assert_almost_equal(E_per_sample1, np.zeros(2))
-    assert_almost_equal(E_unique1, 0.)
-    assert_almost_equal(E_per_sample2, np.ones(2))
-    assert_almost_equal(E_unique2, 1.)
+    assert_allclose(E_per_sample1, np.zeros(2))
+    assert_allclose(E_unique1, 0.)
+    assert_allclose(E_per_sample2, np.ones(2))
+    assert_allclose(E_unique2, 1.)
 
 
 @testing.requires_testing_data
@@ -95,9 +95,9 @@ def test_region_localization_error():
                                          per_sample=False)
 
     # ### Tests to add
-    assert_almost_equal(E_per_sample1, [np.inf, dist])
-    assert_almost_equal(E_per_sample2, [dist, dist])
-    assert_almost_equal(E_unique, dist)
+    assert_allclose(E_per_sample1, [np.inf, dist])
+    assert_allclose(E_per_sample2, [dist, dist])
+    assert_allclose(E_unique, dist)
 
 
 @testing.requires_testing_data
@@ -124,10 +124,10 @@ def test_precision_score():
                                         threshold='70%')
 
     # ### Tests to add
-    assert_almost_equal(E_unique1, 0.5)
-    assert_almost_equal(E_unique2, 1.)
-    assert_almost_equal(E_per_sample1, [0., 1.])
-    assert_almost_equal(E_per_sample2, [1., 1.])
+    assert_allclose(E_unique1, 0.5)
+    assert_allclose(E_unique2, 1.)
+    assert_allclose(E_per_sample1, [0., 1.])
+    assert_allclose(E_per_sample2, [1., 1.])
 
 
 @testing.requires_testing_data
@@ -151,10 +151,10 @@ def test_recall_score():
     E_per_sample2 = recall_score(stc_true, stc_est2, threshold='70%')
 
     # ### Tests to add
-    assert_almost_equal(E_unique1, 0.5)
-    assert_almost_equal(E_unique2, 0.5)
-    assert_almost_equal(E_per_sample1, [0., 0.5])
-    assert_almost_equal(E_per_sample2, [0.5, 0.5])
+    assert_allclose(E_unique1, 0.5)
+    assert_allclose(E_unique2, 0.5)
+    assert_allclose(E_per_sample1, [0., 0.5])
+    assert_allclose(E_per_sample2, [0.5, 0.5])
 
 
 @testing.requires_testing_data
@@ -178,10 +178,10 @@ def test_f1_score():
         E_unique2 = f1_score(stc_true, stc_est2, per_sample=False)
         E_per_sample1 = f1_score(stc_true, stc_est2)
         E_per_sample2 = f1_score(stc_true, stc_est2, threshold='70%')
-    assert_almost_equal(E_unique1, 0.5)
-    assert_almost_equal(E_unique2, 1. / 1.5)
-    assert_almost_equal(E_per_sample1, [0., 1. / 1.5])
-    assert_almost_equal(E_per_sample2, [1. / 1.5, 1. / 1.5])
+    assert_allclose(E_unique1, 0.5)
+    assert_allclose(E_unique2, 1. / 1.5)
+    assert_allclose(E_per_sample1, [0., 1. / 1.5])
+    assert_allclose(E_per_sample2, [1. / 1.5, 1. / 1.5])
 
 
 @testing.requires_testing_data
@@ -197,7 +197,7 @@ def test_roc_auc_score():
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
 
     score = roc_auc_score(stc_true, stc_est, per_sample=False)
-    assert_almost_equal(score, 0.75)
+    assert_allclose(score, 0.75)
 
 
 @testing.requires_testing_data
@@ -214,13 +214,13 @@ def test_peak_position_error():
     r_true = src[0]['rr'][vert2[0][0]]
     score = peak_position_error(stc_true, stc_est, src, per_sample=False)
 
-    assert_almost_equal(score, norm(r_true - r_mean))
+    assert_allclose(score, norm(r_true - r_mean))
     pytest.raises(ValueError, peak_position_error, stc_est, stc_est, src)
 
     data2 = np.array([[0, 0.]]).T
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     score = peak_position_error(stc_true, stc_est, src, per_sample=False)
-    assert_almost_equal(score, np.inf)
+    assert_allclose(score, np.inf)
 
 
 @testing.requires_testing_data
@@ -237,13 +237,13 @@ def test_spatial_deviation():
                                   src[0]['rr'][vert2[0][0]])**2))
     score = spatial_deviation_error(stc_true, stc_est, src,
                                     per_sample=False)
-    assert_almost_equal(score, std)
+    assert_allclose(score, std)
 
     data2 = np.array([[0, 0.]]).T
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     score = spatial_deviation_error(stc_true, stc_est, src,
                                     per_sample=False)
-    assert_almost_equal(score, np.inf)
+    assert_allclose(score, np.inf)
 
 
 run_tests_if_main()
