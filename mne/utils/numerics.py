@@ -712,7 +712,7 @@ def object_diff(a, b, pre=''):
         Currently supported: dict, list, tuple, ndarray, int, str, bytes,
         float, StringIO, BytesIO.
     b : object
-        Must be same type as x1.
+        Must be same type as ``a``.
     pre : str
         String to prepend to each line.
 

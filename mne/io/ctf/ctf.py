@@ -21,6 +21,8 @@ from .trans import _make_ctf_coord_trans_set
 from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
 
+from ...digitization.base import _format_dig_points
+
 
 @fill_doc
 def read_raw_ctf(directory, system_clock='truncate', preload=False,
@@ -116,6 +118,7 @@ class RawCTF(BaseRaw):
         # Compose a structure which makes fiff writing a piece of cake
         info = _compose_meas_info(res4, coils, coord_trans, eeg)
         info['dig'] += digs
+        info['dig'] = _format_dig_points(info['dig'])
         info['bads'] += _read_bad_chans(directory, info)
 
         # Determine how our data is distributed across files

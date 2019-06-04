@@ -29,6 +29,7 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff, _validate_type
+from ..digitization.base import _format_dig_points
 from .compensator import get_current_comp
 
 # XXX: most probably the functions needing this, should go somewhere else
@@ -1129,7 +1130,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
     #   All kinds of auxliary stuff
-    info['dig'] = dig
+    info['dig'] = _format_dig_points(dig)
     info['bads'] = bads
     info._update_redundant()
     if clean_bads:
