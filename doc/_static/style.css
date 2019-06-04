@@ -177,6 +177,14 @@ div.sidebar {
     margin: 10px;
     float: left;
 }
+.table.midvalign td {
+    vertical-align: middle;
+    border-width: 2px;
+}
+.table.midvalign th {
+    border-width: 2px;
+    border-top-width: 2px;
+}
 /* our carousel */
 .chopper {
     overflow: hidden;
@@ -295,6 +303,12 @@ h4.list-group-item-heading {
   .collapse.in{
       display:block !important;
   }
+}
+details.example_details summary {
+    font-weight: bold;
+}
+.panel {
+    margin-bottom: 3px;
 }
 
 .skinnytable {

@@ -910,8 +910,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Alpha for the area.
     dB : bool
         If True, transform data to decibels.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     show : bool
         Show figure if True.
     %(verbose)s

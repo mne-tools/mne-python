@@ -24,7 +24,7 @@ subjects_dir = path.join(data_path, 'subjects')
 surf = 'inflated'
 
 
-def test_brain_init(backends_3d):
+def test_brain_init(renderer):
     """Test initialization of the Brain instance."""
     backend_name = get_3d_backend()
     hemi = 'both'
@@ -43,7 +43,7 @@ def test_brain_init(backends_3d):
         brain.show()
 
 
-def test_brain_add_data(backends_3d):
+def test_brain_add_data(renderer):
     """Test adding data in Brain instance."""
     backend_name = get_3d_backend()
     act_data = path.join(data_path, 'MEG/sample/sample_audvis-meg-eeg')
@@ -90,7 +90,7 @@ def test_brain_colormap():
                    fmid=fmid, fmax=fmax, center=center)
 
 
-def test_brain_time_viewer(backends_3d):
+def test_brain_time_viewer(renderer):
     """Test of brain's time viewer."""
     backend_name = get_3d_backend()
     hemi = 'both'
@@ -117,7 +117,7 @@ def test_brain_time_viewer(backends_3d):
     time_viewer.show()
 
 
-def test_brain_colorbar(backends_3d):
+def test_brain_colorbar(renderer):
     """Test of brain's colorbar."""
     from matplotlib import cm
 

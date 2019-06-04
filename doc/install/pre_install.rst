@@ -30,8 +30,8 @@ Overview of the MNE tools suite
 
 There are also Python tools for easily importing MEG data from the Human
 Connectome Project for use with MNE-Python (`MNE-HCP`_), and tools for
-managing MNE projects so that they comply with the Brain Imaging Data Structure
-specification (`MNE-BIDS`_).
+managing MNE projects so that they comply with the
+`Brain Imaging Data Structure`_ specification (`MNE-BIDS`_).
 
 What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^

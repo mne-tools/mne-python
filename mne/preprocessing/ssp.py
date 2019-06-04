@@ -177,8 +177,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         Compute SSP after averaging. Default is True.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     ch_name : string (or None)
         Channel to use for ECG detection (Required if no ECG found).
     reject : dict | None
@@ -291,8 +290,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Compute SSP after averaging. Default is True.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     reject : dict | None
         Epoch rejection configuration (see Epochs).
     flat : dict | None

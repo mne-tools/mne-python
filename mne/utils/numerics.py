@@ -22,7 +22,7 @@ from scipy import sparse
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
 from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
-from .docs import deprecated
+from .docs import deprecated, fill_doc
 
 
 def split_list(l, n, idx=False):
@@ -256,6 +256,7 @@ def compute_corr(x, y):
     return (np.dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
 
 
+@fill_doc
 def random_permutation(n_samples, random_state=None):
     """Emulate the randperm matlab function.
 
@@ -278,8 +279,7 @@ def random_permutation(n_samples, random_state=None):
     n_samples : int
         End point of the sequence to be permuted (excluded, i.e., the end point
         is equal to n_samples-1)
-    random_state : int | None
-        Random seed for initializing the pseudo-random number generator.
+    %(random_state)s
 
     Returns
     -------
@@ -712,7 +712,7 @@ def object_diff(a, b, pre=''):
         Currently supported: dict, list, tuple, ndarray, int, str, bytes,
         float, StringIO, BytesIO.
     b : object
-        Must be same type as x1.
+        Must be same type as ``a``.
     pre : str
         String to prepend to each line.
 

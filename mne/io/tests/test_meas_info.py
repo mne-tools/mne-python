@@ -21,10 +21,11 @@ from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     anonymize_info)
 from mne.io.constants import FIFF
 from mne.io.write import DATE_NONE
-from mne.io.meas_info import (Info, create_info, _write_dig_points,
-                              _read_dig_points, _make_dig_points, _merge_info,
+from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
                               _bad_chans_comp, _get_valid_units)
+from mne.digitization._utils import (_write_dig_points, _read_dig_points,
+                                     _make_dig_points,)
 from mne.io import read_raw_ctf
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
 from mne.channels.montage import read_montage, read_dig_montage

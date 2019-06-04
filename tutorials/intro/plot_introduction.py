@@ -66,7 +66,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # objects). The ``info`` data structure keeps track of channel locations,
 # applied filters, projectors, etc. Notice especially the ``chs`` entry,
 # showing that MNE-Python detects different sensor types and handles each
-# appropriately.
+# appropriately. See :doc:`plot_info` for more on the :class:`~mne.Info` class.
 #
 # .. TODO edit prev. paragraph when projectors tutorial is added: ...those are
 #     discussed in the tutorial :ref:`projectors-tutorial`. (or whatever link)
@@ -129,6 +129,8 @@ orig_raw.plot(order=chan_idxs, start=12, duration=4)
 raw.plot(order=chan_idxs, start=12, duration=4)
 
 ###############################################################################
+# .. _overview-tut-events-section:
+#
 # Detecting experimental events
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

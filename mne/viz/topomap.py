@@ -1958,8 +1958,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         If True, transform data to decibels (with ``10 * np.log10(data)``)
         following the application of `agg_fun`. Only valid if normalize is
         False.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     normalize : bool
         If True, each band will be divided by the total power. Defaults to
         False.

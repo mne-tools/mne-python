@@ -141,7 +141,8 @@ File I/O
    write_trans
    io.read_info
    io.show_fiff
-   io.DigPoint
+   digitization.DigPoint
+   digitization.Digitization
 
 Base class:
 

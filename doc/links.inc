@@ -173,6 +173,7 @@
 .. _python: http://www.python.org
 .. _travis: https://travis-ci.org/
 .. _linterflake8: https://atom.io/packages/linter-flake8
+.. _Brain Imaging Data Structure: https://bids.neuroimaging.io/
 
 .. python packages
 

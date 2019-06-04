@@ -20,8 +20,8 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
-from ..io.meas_info import (_make_dig_points, _read_dig_points, _read_dig_fif,
-                            write_dig)
+from ..digitization._utils import (_make_dig_points, _read_dig_points,
+                                   _read_dig_fif, write_dig)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF

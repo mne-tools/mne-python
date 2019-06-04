@@ -8,8 +8,8 @@
 #
 # License: Simplified BSD
 
-import importlib
 from contextlib import contextmanager
+import importlib
 import sys
 
 from ._utils import (get_backend_based_on_env_and_defaults,
@@ -25,12 +25,20 @@ except NameError:
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
-if MNE_3D_BACKEND == backends3D.mayavi:
-    from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == backends3D.ipyvolume:
-    from ._ipyvolume import _Renderer  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == backends3D.pyvista:
-    from ._pyvista import _Renderer, _Projection  # lgtm # noqa: F401
+_fromlist = ('_Renderer', '_Projection', '_close_all')
+_name_map = dict(
+    mayavi='_pysurfer_mayavi',
+    pyvista='_pyvista',
+    ipyvolume='_ipyvolume',
+)
+if MNE_3D_BACKEND in backends3D.keys():
+    # This is (hopefully) the equivalent to:
+    #    from ._whatever_name import ...
+    _mod = importlib.__import__(
+        _name_map[MNE_3D_BACKEND], {'__name__': __name__},
+        level=1, fromlist=_fromlist)
+    for key in _fromlist:
+        locals()[key] = getattr(_mod, key)
 
 
 def set_3d_backend(backend_name):
@@ -103,7 +111,6 @@ def get_3d_backend():
     backend_used : str
         The 3d backend currently in use.
     """
-    global MNE_3D_BACKEND
     return MNE_3D_BACKEND
 
 

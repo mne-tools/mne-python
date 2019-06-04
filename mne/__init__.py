@@ -107,6 +107,7 @@ from . import externals
 from . import io
 from . import filter
 from . import gui
+from . import inverse_sparse
 from . import minimum_norm
 from . import preprocessing
 from . import simulation

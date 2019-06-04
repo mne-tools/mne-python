@@ -20,6 +20,26 @@ with warnings.catch_warnings():
                            ShaderMaterial, Side)
 
 
+class _Projection(object):
+    """Class storing projection information.
+
+    Attributes
+    ----------
+    xy : array
+        Result of 2d projection of 3d data.
+    pts : None
+        Scene sensors handle.
+    """
+
+    def __init__(self, xy=None, pts=None):
+        """Store input projection information into attributes."""
+        raise NotImplementedError('This feature is not implemented yet')
+
+    def visible(self, state):
+        """Modify visibility attribute of the sensors."""
+        raise NotImplementedError('This feature is not implemented yet')
+
+
 @copy_base_doc_to_subclass_doc
 class _Renderer(_BaseRenderer):
     """Class managing rendering scene created with ipyvolume.
@@ -341,3 +361,8 @@ def _check_vertices_shape(vertices):
     else:
         verts = None
     return verts
+
+
+def _close_all():
+    # XXX This is not implemented yet
+    pass
