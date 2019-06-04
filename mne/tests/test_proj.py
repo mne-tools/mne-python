@@ -273,11 +273,15 @@ def test_compute_proj_raw():
     raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
+    assert len(projs) == 1
 
-    # test that bad channels can be excluded
-    proj, nproj, U = make_projector(projs, raw.ch_names,
-                                    bads=raw.ch_names)
-    assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+    # test that bad channels can be excluded, and empty support
+    for projs_ in (projs, []):
+        proj, nproj, U = make_projector(projs_, raw.ch_names,
+                                        bads=raw.ch_names)
+        assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+        assert nproj == 0  # all channels excluded
+        assert U.shape == (len(raw.ch_names), nproj)
 
 
 @requires_version('scipy', '1.0')
