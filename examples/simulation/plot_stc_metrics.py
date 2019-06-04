@@ -17,6 +17,7 @@ import os.path as op
 
 import numpy as np
 import matplotlib.pyplot as plt
+from functools import partial
 
 import mne
 from mne.datasets import sample
@@ -199,88 +200,65 @@ stc_est_dipole = apply_inverse(evoked_dipole, inverse_operator, lambda2,
 
 thresholds = ['10%', '30%', '50%', '70%', '80%', '90%', '95%', '99%']
 
-dles = np.empty(len(thresholds))
-f1s = np.empty(len(thresholds))
-precs = np.empty(len(thresholds))
-recs = np.empty(len(thresholds))
-
-ppes = np.empty(len(thresholds))
-sds = np.empty(len(thresholds))
-x = range(len(thresholds))
-for i, thr in enumerate(thresholds):
-    # Region
-    dles[i] = region_localization_error(stc_true_region, stc_est_region,
-                                        src, threshold=thr,
-                                        per_sample=False)
-    f1s[i] = f1_score(stc_true_region, stc_est_region, threshold=thr,
-                      per_sample=False)
-    precs[i] = precision_score(stc_true_region, stc_est_region,
-                               threshold=thr, per_sample=False)
-    recs[i] = recall_score(stc_true_region, stc_est_region, threshold=thr,
-                           per_sample=False)
-
-    # Dipole
-    ppes[i] = peak_position_error(stc_true_dipole, stc_est_dipole, src,
-                                  threshold=thr, per_sample=False)
-    sds[i] = spatial_deviation_error(stc_true_dipole, stc_est_dipole,
-                                     src, threshold=thr,
-                                     per_sample=False)
-
 ###############################################################################
-# Scores plotting
-# ---------------
+# For region
+# ^^^^^^^^^^
 #
 
-# Region
+# create a set of scorers
+scorers = {'RLE': partial(region_localization_error, src=src),
+           'Precision': precision_score, 'Recall': recall_score,
+           'F1 score': f1_score}
+
+# compute results
+region_results = {}
+for name, scorer in scorers.items():
+    region_results[name] = [scorer(stc_true_region, stc_est_region,
+                                   threshold=thx, per_sample=False)
+                            for thx in thresholds]
+
+# Plot the results
 f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col')
-f.suptitle('Performance scores per threshold')
+for ax, (title, results) in zip([ax1, ax2, ax3, ax4], region_results.items()):
+    ax.plot(results, '.-')
+    ax.set(title=title, ylabel='score', xlabel='Threshold',
+           xticks=range(len(thresholds)), xticklabels=thresholds)
 
-ax1.plot(dles, '.-')
-ax1.set_title('RLE')
-ax1.ticklabel_format(axis='y', style='sci', scilimits=(0, 1))
-ax1.set_ylabel('Score')
-
-ax2.plot(f1s, '.-')
-ax2.set_title('F1 score')
-ax2.set_ylim([0, 1])
-
-ax3.plot(precs, '.-')
-ax3.set_xlabel('Threshold')
-ax3.set_title('Precision')
-ax3.set_xticks(x)
-ax3.set_xticklabels(thresholds)
-ax3.set_ylim([0, 1])
-ax3.set_ylabel('Score')
-
-ax4.plot(recs, '.-')
-ax4.set_xlabel('Threshold')
-ax4.set_title('Recall')
-ax4.set_xticks(x)
-ax4.set_xticklabels(thresholds)
-ax4.set_ylim([0, 1])
+f.suptitle('Performance scores per threshold')  # Add Super title
+ax1.ticklabel_format(axis='y', style='sci', scilimits=(0, 1))  # tweak RLE
 
 
-plt.figure()
-plt.plot(stc_true_region.times,
-         cosine_score(stc_true_region, stc_est_region))  # Cosine score
-plt.xlabel('Time')
-plt.ylabel('Score')
-plt.title('Cosine score')
+# Cosine score with respect to time
+f, ax1 = plt.subplots()
+ax1.plot(stc_true_region.times, cosine_score(stc_true_region, stc_est_region))
+ax1.set(title='Cosine score', xlabel='Time', ylabel='Score')
 plt.show()
 
-# Dipole
-f, ax1 = plt.subplots()
-ax1.plot(x, 100 * ppes, '.-')
-ax1.set_title('Peak Position Error')
-ax1.set_ylabel('Error (cm)')
-ax1.set_xlabel('Threshold')
-ax1.set_xticks(x)
-ax1.set_xticklabels(thresholds)
 
-f, ax2 = plt.subplots()
-ax2.plot(x, sds, '.-')
-ax2.set_title('Spatial Deviation')
-ax2.set_ylabel('Error')
-ax2.set_xlabel('Threshold')
-ax2.set_xticks(x)
-ax2.set_xticklabels(thresholds)
+###############################################################################
+# For Dipoles
+# ^^^^^^^^^^^
+#
+
+# create a set of scorers
+scorers = {
+    'Peak Position Error': peak_position_error,
+    'Spatial Deviation Error': spatial_deviation_error,
+}
+
+
+# compute results
+dipole_results = {}
+for name, scorer in scorers.items():
+    dipole_results[name] = [scorer(stc_true_dipole, stc_est_dipole, src=src,
+                                   threshold=thx, per_sample=False)
+                            for thx in thresholds]
+
+
+# Plot the results
+for name, results in dipole_results.items():
+    f, ax1 = plt.subplots()
+    ax1.plot(100 * np.array(results), '.-')
+    ax1.set(title=name, ylabel='Error (cm)', xlabel='Threshold',
+            xticklabels=thresholds)
+    plt.show()
