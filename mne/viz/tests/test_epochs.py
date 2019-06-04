@@ -44,7 +44,7 @@ def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
     return epochs
 
 
-def test_plot_epochs(capsys):
+def test_plot_epochs_basic(capsys):
     """Test epoch plotting."""
     epochs = _get_epochs().load_data()
     assert len(epochs.events) == 1
@@ -131,6 +131,15 @@ def test_plot_epochs(capsys):
     fig.canvas.close_event()
     assert len(epochs) == 6
     plt.close('all')
+
+
+def test_plot_epochs_nodata():
+    """Test plotting of epochs when no data channels are present."""
+    data = np.random.RandomState(0).randn(10, 2, 1000)
+    info = create_info(2, 1000., 'stim')
+    epochs = EpochsArray(data, info)
+    with pytest.raises(ValueError, match='consider passing picks explicitly'):
+        epochs.plot()
 
 
 def test_plot_epochs_image():
