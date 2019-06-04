@@ -64,7 +64,9 @@ def _annotation_helper(raw, events=False):
     with pytest.warns(None):  # on old mpl we warns about no modifications
         fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
-    assert len(fig.axes[0].texts) == n_anns + n_events
+    # +2 from the scale bars
+    n_scale = 2
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     # modify description
     ann_fig = plt.gcf()
     for key in ' test':
@@ -84,7 +86,7 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD_ test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
     assert_allclose(onset, want_onset)
@@ -114,11 +116,11 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD_ test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     fig.canvas.key_press_event('shift+right')
-    assert len(fig.axes[0].texts) == 0
+    assert len(fig.axes[0].texts) == n_scale
     fig.canvas.key_press_event('shift+left')
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
@@ -131,20 +133,20 @@ def _annotation_helper(raw, events=False):
     if mpl_good_enough:
         assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
         assert_allclose(raw.annotations.duration[n_anns], 5.0)
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
     with pytest.warns(None):  # old mpl
         _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
                     kind='press')
         fig.canvas.key_press_event('a')  # exit annotation mode
     assert len(raw.annotations.onset) == n_anns
-    assert len(fig.axes[0].texts) == n_anns + n_events
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     with pytest.warns(None):  # old mpl
         fig.canvas.key_press_event('shift+right')
-    assert len(fig.axes[0].texts) == 0
+    assert len(fig.axes[0].texts) == n_scale
     with pytest.warns(None):  # old mpl
         fig.canvas.key_press_event('shift+left')
-    assert len(fig.axes[0].texts) == n_anns + n_events
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     plt.close('all')
 
 

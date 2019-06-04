@@ -85,7 +85,6 @@ def _update_raw_data(params):
             norm = params['scalings']['whitened']
         else:
             norm = params['scalings'][params['types'][di]]
-
         data[di] /= norm if norm != 0 else 1.
     params['data'] = data
     params['times'] = times
@@ -1052,24 +1051,27 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             # add a scale bar
             if (not butterfly and this_type != 'stim' and
                     ch_name not in params['whitened_ch_names'] and
-                    ch_name not in params['info']['bads']):
-                if this_type not in params['scalebars']:
-                    scale_color = 'k'
-                    x = this_t[0]
-                    # This is what our data get multiplied by
-                    norm = (params['scale_factor'] /
-                            params['scalings'][this_type] /
-                            params['unit_scalings'][this_type] /
-                            2)
-                    units = params['units'][this_type]
-                    bar = ax.plot([x, x], [offset - 1., offset + 1.],
-                                  color=scale_color, zorder=5, lw=4)[0]
-                    text = ax.text(x, offset + 1.,
-                                   '%0.1f %s ' % (1. / norm, units),
-                                   va='baseline', ha='right',
-                                   color=scale_color, zorder=5,
-                                   fontweight='bold', size='x-small')
-                    params['scalebars'][this_type] = bar
+                    ch_name not in params['info']['bads'] and
+                    this_type not in params['scalebars'] and
+                    this_type in params['scalings'] and
+                    this_type in params['unit_scalings'] and
+                    this_type in params['units']):
+                scale_color = 'k'
+                x = this_t[0]
+                # This is what our data get multiplied by
+                norm = (params['scale_factor'] /
+                        params['scalings'][this_type] /
+                        params['unit_scalings'][this_type] /
+                        2)
+                units = params['units'][this_type]
+                bar = ax.plot([x, x], [offset - 1., offset + 1.],
+                              color=scale_color, zorder=5, lw=4)[0]
+                text = ax.text(x, offset + 1.,
+                               '%0.1f %s ' % (1. / norm, units),
+                               va='baseline', ha='right',
+                               color=scale_color, zorder=5,
+                               fontweight='bold', size='x-small')
+                params['scalebars'][this_type] = bar
 
             lines[ii].set_zorder(this_z)
         else:
