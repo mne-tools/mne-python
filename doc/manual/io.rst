@@ -16,120 +16,46 @@ as importing raw data from NumPy arrays.
 Summary of supported data formats
 #################################
 
-When MNE-Python loads sensor data, the data are stored in a Python object of
-type :class:`mne.io.Raw`. Specialized loading functions are provided for the
-raw data file formats from a variety of equipment manufacturers. All raw data
-input/output functions in MNE-Python are found in :mod:`mne.io` and start
-with :samp:`read_raw_{*}`; see the documentation for each reader function for
-more info on reading specific file types.
-
-As seen in the table below, there are also a few formats defined by other
-neuroimaging analysis software packages that are supported (EEGLAB,
-FieldTrip). Like the equipment-specific loading functions, these will also
-return an object of class :class:`~mne.io.Raw`; additional functions are
-available for reading data that has already been epoched or averaged (see
-table).
-
-============  =============  =========  ===================================
-Data type     File format    Extension  MNE-Python function
-============  =============  =========  ===================================
-MEG           Artemis123     .bin       :func:`mne.io.read_raw_artemis123`
-
-MEG           4-D            .dir       :func:`mne.io.read_raw_bti`
-              Neuroimaging
-              / BTi
-
-MEG           CTF            .dir       :func:`mne.io.read_raw_ctf`
-
-MEG           Elekta         .fif       :func:`mne.io.read_raw_fif`
-              Neuromag
-
-MEG           KIT            .sqd       :func:`mne.io.read_raw_kit`,
-                                        :func:`mne.read_epochs_kit`
-
-
-MEG and EEG   FieldTrip      .mat       :func:`mne.io.read_raw_fieldtrip`,
-                                        :func:`mne.read_epochs_fieldtrip`,
-                                        :func:`mne.read_evoked_fieldtrip`
-
-EEG           Brainvision    .vhdr      :func:`mne.io.read_raw_brainvision`
-
-EEG           Biosemi data   .bdf       :func:`mne.io.read_raw_bdf`
-              format
-
-EEG           Neuroscan CNT  .cnt       :func:`mne.io.read_raw_cnt`
-
-EEG           European data  .edf       :func:`mne.io.read_raw_edf`
-              format
-
-EEG           EEGLAB         .set       :func:`mne.io.read_raw_eeglab`,
-                                        :func:`mne.read_epochs_eeglab`
-
-EEG           EGI simple     .egi       :func:`mne.io.read_raw_egi`
-              binary
-
-EEG           EGI MFF        .mff       :func:`mne.io.read_raw_egi`
-              format
-
-EEG           eXimia         .nxe       :func:`mne.io.read_raw_eximia`
-
-EEG           General data   .gdf       :func:`mne.io.read_raw_gdf`
-              format
-
-EEG           Nicolet        .data      :func:`mne.io.read_raw_nicolet`
-============  =============  =========  ===================================
+.. include:: ../data_formats.rst
+   :start-after: data-formats-begin-content
 
 .. note::
-    MNE-Python is aware of the measurement units used by each
-    manufacturer, and will always convert data into a common internal
-    representation. See :ref:`the section on internal representation <units>`
-    for more information.
+    MNE-Python is aware of the measurement units used by each manufacturer, and
+    will always convert data into a common internal representation. See
+    :doc:`../units` for more information.
 
 Importing data from MEG devices
 ###############################
 
 This section describes the data reading and conversion utilities included
-with MNE.
+with MNE. We begin with some general comments about importing data.
 
-.. note::
-    All IO functions in MNE-Python performing reading/conversion of MEG and
-    EEG data can be found in :mod:`mne.io` and start with `read_raw_`. All
-    supported data formats can be read in MNE-Python directly without first
-    saving it to fif.
+General comments
+================
 
-.. note::
-    Irrespective of the units used in your manufacturer's format, MNE-Python
-    will always use the units listed below and perform conversions during the
-    IO procedure if necessary.
+IO function naming
+------------------
 
-    * V: eeg, eog, seeg, emg, ecg, bio, ecog
-    * T: mag
-    * T/m: grad
-    * M: hbo, hbr
-    * Am: dipole
-    * AU: misc
+All IO functions in MNE-Python performing reading/conversion of MEG and
+EEG data can be found in :mod:`mne.io` and start with ``read_raw_``. All
+supported data formats can be read in MNE-Python directly without first
+saving it to :file:`fif`.
 
-.. note::
-    MNE-Python performs all computations in memory using the double-precision
-    64-bit floating point format. This means that the data is cast into the
-    `float64` format as soon as it is read into memory. The reason for this is
-    that operations such as filtering, preprocessing, etc. are more accurate when
-    using double precision. However, for backward compatibility, MNE
-    writes `fif` files in a 32-bit format by default. This is advantageous
-    when saving data to disk as it consumes less space.
+Unit conversion
+---------------
 
-    However, if you save intermediate results to disk, you should be aware
-    that this may lead to loss in precision. The reason is that writing to disk is
-    32-bit by default, and type-casting to 64-bit does not recover the lost
-    precision. If you would like to retain the 64-bit accuracy, there are two
-    possibilities:
+.. include:: ../units.rst
+   :start-after: units-begin-content
+   :end-before: units-end-of-list
 
-    * Chain the operations in memory and do not save intermediate results
-    * Save intermediate results, but change the ``dtype`` used for saving. However,
-      this may render the files unreadable in other software packages.
+Numerical precision
+-------------------
 
-Elekta NeuroMag (.fif)
-======================
+.. include:: ../precision.rst
+   :start-after: precision-begin-content
+
+Importing Elekta NeuroMag (.fif)
+================================
 
 Neuromag Raw FIF files can be loaded using :func:`mne.io.read_raw_fif`.
 
@@ -455,8 +381,8 @@ EEGLAB set files (.set)
 EEGLAB .set files can be read in using :func:`mne.io.read_raw_eeglab`
 and :func:`mne.read_epochs_eeglab`.
 
-Importing EEG data saved in the Tufts University format
-=======================================================
+Tufts University format
+=======================
 
 The command line utility :ref:`mne_tufts2fiff` was
 created in collaboration with Phillip Holcomb and Annette Schmid

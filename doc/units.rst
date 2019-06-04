@@ -1,19 +1,26 @@
 :orphan:
 
-.. _units:
-
 Internal representation (units)
 ===============================
 
-When importing data, MNE-Python will always convert measurements to the same
-standard units. Thus the in-memory representation of data are always in:
+.. NOTE: part of this file is included in manual/io.rst. changes here will be
+    reflected there. If you want to link to this info, link to :doc:`doc/units`
+    rather than linking to :ref:`doc/manual/io/<section_name>`. The next line
+    is a target for :start-after: so we can omit the title from the include:
+    units-begin-content
+
+Irrespective of the units used in your manufacturer's format, when importing
+data, MNE-Python will always convert measurements to the same standard units.
+Thus the in-memory representation of data are always in:
 
 - Volts (eeg, eog, seeg, emg, ecg, bio, ecog)
 - Teslas (magnetometers)
 - Teslas/meter (gradiometers)
-- Amperes*meter (dipole fits)
-- Molar (aka mol/L) (fNIRS data: oxyhemoglobin (hbo), deoxyhemoglobin (hbr))
+- Amperes*meter (dipole fits, minimum-norm estimates, etc.)
+- Moles/liter ("molar"; fNIRS data: oxyhemoglobin (hbo), deoxyhemoglobin (hbr))
 - Arbitrary units (various derived unitless quantities)
+
+.. NOTE: this is a target for :end-before: units-end-of-list
 
 Note, however, that most MNE-Python plotting functions will scale the data when
 plotted to yield nice-looking axis annotations in a sensible range; for
