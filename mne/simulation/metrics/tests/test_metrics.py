@@ -39,7 +39,8 @@ def test_uniform_and_thresholding():
     stc_true = SourceEstimate(data, vert, 0, 0.002, subject='sample')
     stc_bad = SourceEstimate(data, vert, 0, 0.002, subject='sample')
     stc_bad.vertices = [stc_bad.vertices[0]]
-    pytest.raises(ValueError, metrics._uniform_stc, stc_true, stc_bad)
+    with pytest.raises(ValueError, match='same number of vertices'):
+        metrics._uniform_stc(stc_true, stc_bad)
 
     threshold = 0.9
     stc1, stc2 = metrics._thresholding(stc_true, stc_true, threshold)
@@ -48,7 +49,8 @@ def test_uniform_and_thresholding():
     assert_allclose(threshold, metrics._check_threshold(threshold))
 
     threshold = '90'
-    pytest.raises(ValueError, metrics._check_threshold, threshold)
+    with pytest.raises(ValueError, match='Threshold if a str.*'):
+        metrics._check_threshold(threshold)
 
 
 @testing.requires_testing_data
@@ -214,7 +216,8 @@ def test_peak_position_error():
     score = peak_position_error(stc_true, stc_est, src, per_sample=False)
 
     assert_allclose(score, norm(r_true - r_mean))
-    pytest.raises(ValueError, peak_position_error, stc_est, stc_est, src)
+    with pytest.raises(ValueError, match='must contain only one dipole'):
+        peak_position_error(stc_est, stc_est, src)
 
     data2 = np.array([[0, 0.]]).T
     stc_est = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
