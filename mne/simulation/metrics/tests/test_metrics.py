@@ -70,9 +70,9 @@ def test_cosine_score():
     E_unique2 = cosine_score(stc_true, stc_est2, per_sample=False)
 
     assert_allclose(E_per_sample1, np.zeros(2))
-    assert_allclose(E_unique1, 0.)
+    assert_allclose(E_unique1, 0., atol=1e-08)
     assert_allclose(E_per_sample2, np.ones(2))
-    assert_allclose(E_unique2, 1.)
+    assert_allclose(E_unique2, 1., atol=1e-08)
 
 
 @testing.requires_testing_data
@@ -94,7 +94,6 @@ def test_region_localization_error():
     E_unique = region_localization_error(stc_true, stc_est1, src,
                                          per_sample=False)
 
-    # ### Tests to add
     assert_allclose(E_per_sample1, [np.inf, dist])
     assert_allclose(E_per_sample2, [dist, dist])
     assert_allclose(E_unique, dist)
