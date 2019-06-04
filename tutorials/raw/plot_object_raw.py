@@ -238,10 +238,6 @@ print(len(raw_temp.ch_names))
 channel_names = ['EOG 061', 'EEG 003', 'EEG 002', 'EEG 001']
 eog_and_frontal_eeg = raw.copy().reorder_channels(channel_names)
 print(eog_and_frontal_eeg.ch_names)
-#start, stop = eog_and_frontal_eeg.time_as_index([42, 45])
-#y, x = eog_and_frontal_eeg[:, start:stop]
-#y_offset = np.linspace(1e-3, 0, 5)
-#plt.plot(x, y.T + y_offset)
 
 ###############################################################################
 # Changing channel name and type
@@ -393,7 +389,7 @@ plt.plot(x, y)
 # add a vertical offset to one channel so it's not plotted right on top
 # of the other one:
 
-channel_names = ['MEG 0712', 'MEG 1022']
+channel_names = ['MEG_0712', 'MEG_1022']
 two_meg_chans = raw[channel_names, start_sample:stop_sample]
 y_offset = np.array([5e-11, 0])  # just enough to separate the channel traces
 x = two_meg_chans[1]
@@ -464,7 +460,7 @@ print(times.shape)
 
 first_channel_data = raw.get_data(picks=0)
 eeg_and_eog_data = raw.get_data(picks=['eeg', 'eog'])
-two_meg_chans_data = raw.get_data(picks=['MEG 0712', 'MEG 1022'],
+two_meg_chans_data = raw.get_data(picks=['MEG_0712', 'MEG_1022'],
                                   start=1000, stop=2000)
 
 print(first_channel_data.shape)
@@ -529,7 +525,7 @@ print(two_meg_chans_data.shape)
 # :meth:`~mne.io.Raw.get_data` method to extract the data, and use
 # :func:`numpy.save` to save the data array:
 
-data = raw.get_data()  # or data, times = raw[:]
+data = raw.get_data()
 np.save(file='my_data.npy', arr=data)
 
 ###############################################################################
