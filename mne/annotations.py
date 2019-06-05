@@ -817,10 +817,18 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 
 
 def _check_event_id(event_id, raw):
+    from mne.io.brainvision.brainvision import _BVEventParser
+    from mne.io.brainvision.brainvision import _check_bv_annot
+
     if event_id is None:
         return _DefaultEventParser()
     elif event_id == 'auto':
-        return getattr(raw, '_get_auto_event_id', _DefaultEventParser)()
+        candidate = getattr(raw, '_get_auto_event_id', _DefaultEventParser)
+        if candidate == _DefaultEventParser and \
+           _check_bv_annot(raw.annotations.description):
+            return _BVEventParser()
+        else:
+            return candidate()
     elif callable(event_id) or isinstance(event_id, dict):
         return event_id
     else:

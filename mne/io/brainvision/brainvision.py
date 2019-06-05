@@ -18,6 +18,7 @@ import re
 from datetime import datetime
 from math import modf
 from io import StringIO
+from itertools import chain
 
 import numpy as np
 
@@ -849,3 +850,10 @@ class _BVEventParser(_DefaultEventParser):
             code = (super(_BVEventParser, self)
                     .__call__(description, offset=_OTHER_OFFSET))
         return code
+
+
+def _check_bv_annot(descriptions):
+    markers_basename = set([dd.rstrip('0123456789 ') for dd in descriptions])
+    bv_markers = set(chain(_BV_EVENT_IO_OFFSETS.keys(),
+                           _OTHER_ACCEPTED_MARKERS.keys()))
+    return len(markers_basename - bv_markers) == 0
