@@ -14,6 +14,7 @@ that contains so-called event related synchronizations (ERS) /
 desynchronizations (ERD) in the beta band.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 import os.path as op
@@ -28,7 +29,9 @@ from mne.datasets import somato
 ###############################################################################
 # Set parameters
 data_path = somato.data_path()
-raw_fname = op.join(data_path, 'sub-01', 'meg', 'sub-01_task-somato_meg.fif')
+subj = 'sub-01'
+raw_fname = op.join(data_path, subj, 'meg',
+                    'subj_task-somato_meg.fif'.format(subj))
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)

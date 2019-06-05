@@ -37,7 +37,8 @@ print(__doc__)
 # Reading the raw data and creating epochs:
 data_path = somato.data_path()
 subj = 'sub-01'
-raw_fname = op.join(data_path, subj, 'meg', 'sub-01_task-somato_meg.fif')
+raw_fname = op.join(data_path, subj, 'meg',
+                    '{}_task-somato_meg.fif'.format(subj))
 
 raw = mne.io.read_raw_fif(raw_fname)
 

@@ -43,6 +43,7 @@ References
        Cambrdige University Press, Chapter 11.2.
 """
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 import os.path as op
@@ -59,7 +60,8 @@ from mne.stats import _bootstrap_ci
 # Set parameters
 data_path = somato.data_path()
 subj = 'sub-01'
-raw_fname = op.join(data_path, subj, 'meg', 'sub-01_task-somato_meg.fif')
+raw_fname = op.join(data_path, subj, 'meg',
+                    '{}_task-somato_meg.fif'.format(subj))
 
 # let's explore some frequency bands
 iter_freqs = [
