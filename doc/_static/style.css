@@ -373,3 +373,26 @@ dl.cmd-list dt::after {
 dd table.align-center {
     width: 100%;
 }
+/* institutions logos in footer */
+div.institutions {
+    text-align: center;
+  }
+div.institutions a {
+    border: 0px;
+}
+.institution_xs .institution_sm .institution_md .institution_lg {
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .institution_xs {
+    max-height: 22px;
+  }
+  .institution_sm {
+    max-height: 32px;
+  }
+  .institution_md {
+    max-height: 42px;
+  }
+  .institution_lg {
+    max-height: 52px;
+  }
