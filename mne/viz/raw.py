@@ -270,7 +270,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     from scipy.signal import butter
     from ..io.base import BaseRaw
     color = _handle_default('color', color)
-    scalings = _compute_scalings(scalings, raw)
+    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     n_channels = min(len(raw.info['chs']), n_channels)
     _check_option('clipping', clipping, [None, 'clamp', 'transparent'])
