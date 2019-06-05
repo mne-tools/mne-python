@@ -1,4 +1,10 @@
+"""Test check utilities."""
+# Authors: MNE Developers
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
+# License: BSD (3-clause)
 import os.path as op
+import shutil as sh
 import pytest
 
 import mne
@@ -24,6 +30,10 @@ def test_check():
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
     pytest.raises(TypeError, _check_subject, 1, None)
+
+    # _meg.fif is a valid ending and should not raise an error
+    sh.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))
+    mne.io.read_raw_fif(fname_raw.replace('_raw.', '_meg.'))
 
 
 @requires_mayavi
