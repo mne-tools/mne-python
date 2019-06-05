@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from pathlib import Path
 from os import unlink
 import shutil
 
@@ -523,7 +522,7 @@ def test_automatic_vmrk_sfreq_recovery():
 @testing.requires_testing_data
 def test_event_id_stability_when_save_and_fif_reload(tmpdir):
     """Test load events from brainvision annotations when read_raw_fif."""
-    fname = str(Path(tmpdir, 'bv-raw.fif'))
+    fname = op.join(str(tmpdir), 'bv-raw.fif')
     raw = read_raw_brainvision(vhdr_path, eog=eog)
     original_events, original_event_id = events_from_annotations(raw)
 
