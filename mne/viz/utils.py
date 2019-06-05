@@ -1655,8 +1655,8 @@ def _compute_scalings(scalings, inst, remove_dc=False):
     remove_dc : bool
         Whether to remove the mean (DC) before calculating the scalings. If
         True, the mean will be computed and subtracted for short epochs in
-        order to compensate not only a global mean, but also slow drifts in the
-        signals.
+        order to compensate not only for global mean offset, but also for slow
+        drifts in the signals.
 
     Returns
     -------
@@ -1709,7 +1709,7 @@ def _compute_scalings(scalings, inst, remove_dc=False):
             continue
         this_data = data[ch_types[key]]
         if remove_dc:
-            length = 10  # length of segments (in seconds)
+            length = int(10 * inst.info["sfreq"]) # length of segments (in s)
             # truncate data so that we can divide into segments of equal length
             this_data = this_data[:, :this_data.shape[1] // length * length]
             shape = this_data.shape  # original shape
