@@ -1117,7 +1117,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             opacity=0.75, glyph_height=0.25,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
-    renderer.set_camera(azimuth=90, elevation=90,
+    renderer.set_camera(azimuth=0.0, elevation=0.0,
                         focalpoint=(0., 0., 0.), distance=0.6)
     renderer.show()
     return renderer.scene()

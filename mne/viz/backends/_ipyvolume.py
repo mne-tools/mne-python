@@ -67,6 +67,8 @@ class _Renderer(_BaseRenderer):
         """
         self.off_screen = False
         self.name = name
+        self.vmin = 0.0
+        self.vmax = 0.0
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -81,6 +83,10 @@ class _Renderer(_BaseRenderer):
             else:
                 self.plotter = ipv.figure(key=fig)
 
+    def update_limits(self, x, y, z):
+        self.vmin = np.min([self.vmin, x.min(), y.min(), z.min()])
+        self.vmax = np.max([self.vmax, x.max(), y.max(), z.max()])
+
     def scene(self):
         return self.plotter
 
@@ -92,9 +98,8 @@ class _Renderer(_BaseRenderer):
         # opacity for overlays will be provided as part of color
         color = _color2rgba(color, opacity)
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        _add_transperent_material(mesh)
-        ipv.squarelim()
-
+        _add_transparent_material(mesh)
+        self.update_limits(x, y, z)
         return mesh
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
@@ -124,6 +129,7 @@ class _Renderer(_BaseRenderer):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             plot(x, y, z, color=color)
+        self.update_limits(x, y, z)
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -141,7 +147,8 @@ class _Renderer(_BaseRenderer):
             color = np.append(color, opacity)
 
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        _add_transperent_material(mesh)
+        _add_transparent_material(mesh)
+        self.update_limits(x, y, z)
 
     def sphere(self, center, color, scale, opacity=1.0, resolution=8,
                backface_culling=False):
@@ -180,9 +187,9 @@ class _Renderer(_BaseRenderer):
         x, y, z = acc_vertices.T
         color = np.append(color, opacity)
 
-        ipv.squarelim()
         mesh = ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
-        _add_transperent_material(mesh)
+        _add_transparent_material(mesh)
+        self.update_limits(x, y, z)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -193,12 +200,14 @@ class _Renderer(_BaseRenderer):
         x, y, z, u, v, w = map(np.atleast_1d, [x, y, z, u, v, w])
         scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color)
 
-        _add_transperent_material(scatter)
+        _add_transparent_material(scatter)
+        self.update_limits(x, y, z)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         pass
 
     def show(self):
+        ipv.xyzlim(self.vmin, self.vmax)
         ipv.show()
 
     def close(self):
@@ -206,7 +215,9 @@ class _Renderer(_BaseRenderer):
 
     def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
                    focalpoint=(0, 0, 0)):
-        ipv.view(azimuth=azimuth, elevation=elevation, distance=distance)
+        ipv.view(azimuth=azimuth,
+                 elevation=elevation,
+                 distance=distance)
 
     def screenshot(self):
         pass
@@ -255,7 +266,7 @@ def _create_sphere(rows, cols, radius, offset=True):
     return verts, faces
 
 
-def _add_transperent_material(mesh):
+def _add_transparent_material(mesh):
     """Change the mesh material so it will support transparency."""
     mat = ShaderMaterial()
     mat.alphaTest = 0.1
