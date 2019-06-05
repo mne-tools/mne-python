@@ -7,6 +7,8 @@
 import numpy as np
 from copy import deepcopy
 
+from ..utils import copy_function_doc_to_method_doc
+from ..viz import plot_alignment
 from ..transforms import _coord_frame_name
 from ..io.constants import FIFF
 
@@ -103,3 +105,18 @@ class Digitization(list):
             return False
         else:
             return all([ss == oo for ss, oo in zip(self, other)])
+
+    @copy_function_doc_to_method_doc(plot_alignment)
+    def plot(self, info=None, trans=None, subject=None, subjects_dir=None,
+             surfaces='head', coord_frame='head',
+             meg=None, eeg='original',
+             dig=False, ecog=True, src=None, mri_fiducials=False,
+             bem=None, seeg=True, show_axes=False, fig=None,
+             interaction='trackball', verbose=None):
+        return plot_alignment(info=info, trans=trans, subject=subject,
+                              subjects_dir=subjects_dir, surfaces=surfaces,
+                              coord_frame=coord_frame, meg=meg, eeg=eeg,
+                              dig=dig, ecog=ecog, src=src,
+                              mri_fiducials=mri_fiducials, bem=bem, seeg=seeg,
+                              show_axes=show_axes, fig=fig,
+                              interaction=interaction, verbose=verbose)
