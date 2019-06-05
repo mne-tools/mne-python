@@ -232,7 +232,6 @@ ax1.ticklabel_format(axis='y', style='sci', scilimits=(0, 1))  # tweak RLE
 f, ax1 = plt.subplots()
 ax1.plot(stc_true_region.times, cosine_score(stc_true_region, stc_est_region))
 ax1.set(title='Cosine score', xlabel='Time', ylabel='Score')
-plt.show()
 
 
 ###############################################################################
@@ -261,4 +260,3 @@ for name, results in dipole_results.items():
     ax1.plot(100 * np.array(results), '.-')
     ax1.set(title=name, ylabel='Error (cm)', xlabel='Threshold',
             xticklabels=thresholds)
-    plt.show()
