@@ -29,7 +29,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _draw_vert_line, warn)
+                    _set_ax_label_style, _draw_vert_line, warn,
+                    _simplify_float)
 from .evoked import _plot_lines
 
 
@@ -405,7 +406,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units,
-                  unit_scalings=unit_scalings)
+                  unit_scalings=unit_scalings, use_scalebars=True)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -1048,32 +1049,34 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 this_color = (bad_color if ch_name in info['bads'] else
                               this_color)
                 labels[ii].set_color(this_color)
+            lines[ii].set_zorder(this_z)
             # add a scale bar
-            if (not butterfly and this_type != 'stim' and
+            if (params['use_scalebars'] and
+                    not butterfly and
+                    this_type != 'stim' and
                     ch_name not in params['whitened_ch_names'] and
                     ch_name not in params['info']['bads'] and
                     this_type not in params['scalebars'] and
                     this_type in params['scalings'] and
-                    this_type in params['unit_scalings'] and
-                    this_type in params['units']):
-                scale_color = 'k'
+                    this_type in params.get('unit_scalings', {}) and
+                    this_type in params.get('units', {})):
+                scale_color = '#AA3377'  # purple
                 x = this_t[0]
                 # This is what our data get multiplied by
-                norm = (params['scale_factor'] /
-                        params['scalings'][this_type] /
-                        params['unit_scalings'][this_type] /
-                        2)
+                inv_norm = (
+                    params['scalings'][this_type] *
+                    params['unit_scalings'][this_type] *
+                    2. /
+                    params['scale_factor'])
                 units = params['units'][this_type]
                 bar = ax.plot([x, x], [offset - 1., offset + 1.],
                               color=scale_color, zorder=5, lw=4)[0]
                 text = ax.text(x, offset + 1.,
-                               '%0.1f %s ' % (1. / norm, units),
+                               '%s %s ' % (_simplify_float(inv_norm), units),
                                va='baseline', ha='right',
-                               color=scale_color, zorder=5,
-                               fontweight='bold', size='x-small')
+                               color=scale_color, zorder=5, size='xx-small')
                 params['scalebars'][this_type] = bar
 
-            lines[ii].set_zorder(this_z)
         else:
             # "remove" lines
             lines[ii].set_xdata([])

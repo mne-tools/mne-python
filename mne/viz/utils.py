@@ -393,9 +393,11 @@ def _get_help_text(params):
             text2.insert(7, 'Toggle butterfly plot on/off\n')
             text.insert(8, u'd : \n')
             text2.insert(8, 'Toggle remove DC on/off\n')
+            text.insert(9, u's : \n')
+            text2.insert(9, 'Toggle scale bars\n')
             if 'fig_selection' not in params:
-                text2.insert(11, 'Reduce the number of channels per view\n')
-                text2.insert(12, 'Increase the number of channels per view\n')
+                text2.insert(12, 'Reduce the number of channels per view\n')
+                text2.insert(13, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -505,6 +507,13 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
         plt_show(fig=fig_proj, warn=False)
     except Exception:
         pass
+
+
+def _simplify_float(label):
+    # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
+    if isinstance(label, float) and float(str(label)) != round(label):
+        label = round(label, 2)
+    return label
 
 
 def _layout_figure(params):
@@ -873,6 +882,9 @@ def _plot_raw_onkey(event, params):
     elif event.key == 'd':
         params['remove_dc'] = not params['remove_dc']
         params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 's':
+        params['use_scalebars'] = not params['use_scalebars']
         params['plot_fun']()
 
 

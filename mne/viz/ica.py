@@ -886,7 +886,8 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   ica=ica, n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
                   first_time=first_time, data_picks=[], decim=1,
-                  noise_cov=None, whitened_ch_names=(), clipping=None)
+                  noise_cov=None, whitened_ch_names=(), clipping=None,
+                  use_scalebars=False)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0

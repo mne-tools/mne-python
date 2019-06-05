@@ -266,10 +266,11 @@ def test_ica_core(method):
 
         # test for gh-6271 (scaling of ICA traces)
         fig = raw_sources.plot()
-        assert len(fig.axes[0].lines) in (4, 5)
-        for line in fig.axes[0].lines[1:-1]:  # first and last are markers
+        assert len(fig.axes[0].lines) in (4, 5, 6)
+        for line in fig.axes[0].lines:
             y = line.get_ydata()
-            assert np.ptp(y) < 10
+            if len(y) > 2:  # actual data, not markers
+                assert np.ptp(y) < 10
         plt.close('all')
 
         sources = raw_sources[:, :][0]
