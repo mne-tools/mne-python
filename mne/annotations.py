@@ -817,8 +817,8 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 
 
 def _check_event_id(event_id, raw):
-    from mne.io.brainvision.brainvision import _BVEventParser
-    from mne.io.brainvision.brainvision import _check_bv_annot
+    from .io.brainvision.brainvision import _BVEventParser
+    from .io.brainvision.brainvision import _check_bv_annot
 
     if event_id is None:
         return _DefaultEventParser()
