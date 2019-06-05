@@ -501,7 +501,7 @@ def test_read_vhdr_annotations_and_events():
     raw.annotations.append([1, 2, 3], 10, ['ZZZ', s_10, 'YYY'])
     expected_event_id.update(YYY=10001, ZZZ=10002)  # others starting at 10001
     expected_event_id[s_10] = 10
-    _, event_id = events_from_annotations(raw)
+    _, event_id = events_from_annotations(raw, event_id='brainvision')
     assert event_id == expected_event_id
 
     # Concatenating two shouldn't change the resulting event_id

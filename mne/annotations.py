@@ -823,12 +823,12 @@ def _check_event_id(event_id, raw):
     if event_id is None:
         return _DefaultEventParser()
     elif event_id == 'auto':
-        candidate = getattr(raw, '_get_auto_event_id', _DefaultEventParser)
-        if candidate == _DefaultEventParser and \
-           _check_bv_annot(raw.annotations.description):
+        if _check_bv_annot(raw.annotations.description):
             return _BVEventParser()
         else:
-            return candidate()
+            return _DefaultEventParser()
+    elif event_id == 'brainvision':
+        return _BVEventParser()
     elif callable(event_id) or isinstance(event_id, dict):
         return event_id
     else:
