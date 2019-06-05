@@ -104,17 +104,27 @@ class Digitization(list):
         else:
             return all([ss == oo for ss, oo in zip(self, other)])
 
-    def plot(self, info=None, trans=None, subject=None, subjects_dir=None,
-             surfaces='head', coord_frame='head',
-             meg=None, eeg='original',
-             dig=False, ecog=True, src=None, mri_fiducials=False,
-             bem=None, seeg=True, show_axes=False, fig=None,
-             interaction='trackball', verbose=None):
+    def plot(self, trans=None, subject=None, subjects_dir=None):
+        """Plot head, sensor, and source space alignment in 3D.
+
+        Parameters
+        ----------
+        trans : str | 'auto' | dict | None
+            The full path to the head<->MRI transform ``*-trans.fif`` file
+            produced during coregistration. If trans is None, an identity
+            matrix is assumed.
+        subject : str | None
+            The subject name corresponding to FreeSurfer environment
+            variable SUBJECT. Can be omitted if ``src`` is provided.
+        subjects_dir : str | None
+            The path to the freesurfer subjects reconstructions.
+            It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+
+        Returns
+        -------
+        fig : instance of mayavi.mlab.Figure
+            The mayavi figure.
+        """
         from ..viz import plot_alignment
-        return plot_alignment(info=info, trans=trans, subject=subject,
-                              subjects_dir=subjects_dir, surfaces=surfaces,
-                              coord_frame=coord_frame, meg=meg, eeg=eeg,
-                              dig=dig, ecog=ecog, src=src,
-                              mri_fiducials=mri_fiducials, bem=bem, seeg=seeg,
-                              show_axes=show_axes, fig=fig,
-                              interaction=interaction, verbose=verbose)
+        return plot_alignment(trans=trans, subject=subject,
+                              subjects_dir=subjects_dir)
