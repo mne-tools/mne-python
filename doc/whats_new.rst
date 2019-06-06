@@ -35,6 +35,8 @@ Changelog
 Bug
 ~~~
 
+- Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
+
 - Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
 
 - Fix bug in handling of :class:`mne.Evoked` types that were not produced by MNE-Python (e.g., alternating average) by `Eric Larson`_
