@@ -82,6 +82,7 @@ class _Renderer(_BaseRenderer):
                 ipv.style.background_color('#%02x%02x%02x' % bgcolor)
             else:
                 self.plotter = ipv.figure(key=fig)
+            self.plotter.camera.up = (0.0, 0.0, 1.0)
 
     def update_limits(self, x, y, z):
         self.vmin = np.min([self.vmin, x.min(), y.min(), z.min()])
@@ -217,7 +218,7 @@ class _Renderer(_BaseRenderer):
                    focalpoint=(0, 0, 0)):
         ipv.view(azimuth=azimuth,
                  elevation=elevation,
-                 distance=distance)
+                 distance=distance * 2.0)
 
     def screenshot(self):
         pass
