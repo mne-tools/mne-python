@@ -32,6 +32,8 @@ Changelog
 
 - Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
+- Change the behavior of :meth:`mne.io.Raw.plot` for ``autoscale=True`` and ``remove_dc=True`` to compute the scalings on the data with DC removed by `Clemens Brunner`_
+
 Bug
 ~~~
 
