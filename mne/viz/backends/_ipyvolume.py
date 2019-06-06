@@ -99,7 +99,7 @@ class _Renderer(_BaseRenderer):
         # opacity for overlays will be provided as part of color
         color = _color2rgba(color, opacity)
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        _add_transparent_material(mesh, opacity)
+        _add_transparent_material(mesh, opacity, backface_culling)
         self.update_limits(x, y, z)
         return mesh
 
@@ -156,7 +156,7 @@ class _Renderer(_BaseRenderer):
             color = np.append(color, opacity)
 
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        _add_transparent_material(mesh, opacity)
+        _add_transparent_material(mesh, opacity, backface_culling)
         self.update_limits(x, y, z)
 
     def sphere(self, center, color, scale, opacity=1.0, resolution=8,
@@ -197,7 +197,7 @@ class _Renderer(_BaseRenderer):
         color = np.append(color, opacity)
 
         mesh = ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
-        _add_transparent_material(mesh, opacity)
+        _add_transparent_material(mesh, opacity, backface_culling)
         self.update_limits(x, y, z)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
@@ -281,16 +281,20 @@ def _create_sphere(rows, cols, radius, offset=True):
     return verts, faces
 
 
-def _add_transparent_material(mesh, opacity):
+def _add_transparent_material(mesh, opacity, backface_culling):
     """Change the mesh material so it will support transparency."""
     mat = ShaderMaterial()
     mat.alphaTest = opacity
+    mat.depthTest = True
     mat.blending = BlendingMode.CustomBlending
     mat.blendDst = BlendFactors.OneMinusSrcAlphaFactor
     mat.blendEquation = Equations.AddEquation
     mat.blendSrc = BlendFactors.SrcAlphaFactor
     mat.transparent = True
-    mat.side = Side.DoubleSide
+    if backface_culling:
+        mat.side = Side.BackSide
+    else:
+        mat.side = Side.DoubleSide
 
     mesh.material = mat
 
