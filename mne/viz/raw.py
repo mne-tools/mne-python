@@ -1051,7 +1051,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             lines[ii].set_zorder(this_z)
             # add a scale bar
             if (params['use_scalebars'] and
-                    not butterfly and
                     this_type != 'stim' and
                     ch_name not in params['whitened_ch_names'] and
                     ch_name not in params['info']['bads'] and
