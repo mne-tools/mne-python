@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Accept filenames of raw .fif files to end on `_meg.fif` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
+
 - Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
 
 - Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_

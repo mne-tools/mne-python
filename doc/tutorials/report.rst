@@ -10,10 +10,10 @@ sample data set provided with MNE.
 First ensure that the files you want to render follow the filename conventions
 defined by MNE:
 
-==================   ====================================================
+==================   ==============================================================
 Data object          Filename convention (ends with)
-==================   ====================================================
-raw                  -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz)
+==================   ==============================================================
+raw                  -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
 events               -eve.fif(.gz)
 epochs               -epo.fif(.gz)
 evoked               -ave.fif(.gz)
@@ -21,7 +21,7 @@ covariance           -cov.fif(.gz)
 trans                -trans.fif(.gz)
 forward              -fwd.fif(.gz)
 inverse              -inv.fif(.gz)
-==================   ====================================================
+==================   ==============================================================
 
 The command line interface
 --------------------------
