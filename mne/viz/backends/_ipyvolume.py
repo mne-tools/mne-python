@@ -99,7 +99,8 @@ class _Renderer(_BaseRenderer):
         # opacity for overlays will be provided as part of color
         color = _color2rgba(color, opacity)
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        _add_transparent_material(mesh)
+        if opacity < 1.0:
+            _add_transparent_material(mesh, opacity)
         self.update_limits(x, y, z)
         return mesh
 
@@ -148,7 +149,8 @@ class _Renderer(_BaseRenderer):
             color = np.append(color, opacity)
 
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        _add_transparent_material(mesh)
+        if opacity < 1.0:
+            _add_transparent_material(mesh, opacity)
         self.update_limits(x, y, z)
 
     def sphere(self, center, color, scale, opacity=1.0, resolution=8,
@@ -189,7 +191,8 @@ class _Renderer(_BaseRenderer):
         color = np.append(color, opacity)
 
         mesh = ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
-        _add_transparent_material(mesh)
+        if opacity < 1.0:
+            _add_transparent_material(mesh, opacity)
         self.update_limits(x, y, z)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
@@ -199,9 +202,16 @@ class _Renderer(_BaseRenderer):
         # XXX: scale is not supported yet
         color = np.append(color, opacity)
         x, y, z, u, v, w = map(np.atleast_1d, [x, y, z, u, v, w])
-        scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color)
+        size = scale * 200
+        tr = scale / 2.0
+        x += tr * u
+        y += tr * v
+        z += tr * w
+        scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color,
+                             size=size)
 
-        _add_transparent_material(scatter)
+        if opacity < 1.0:
+            _add_transparent_material(scatter, opacity)
         self.update_limits(x, y, z)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
@@ -267,10 +277,10 @@ def _create_sphere(rows, cols, radius, offset=True):
     return verts, faces
 
 
-def _add_transparent_material(mesh):
+def _add_transparent_material(mesh, opacity):
     """Change the mesh material so it will support transparency."""
     mat = ShaderMaterial()
-    mat.alphaTest = 0.1
+    mat.alphaTest = opacity
     mat.blending = BlendingMode.CustomBlending
     mat.blendDst = BlendFactors.OneMinusSrcAlphaFactor
     mat.blendEquation = Equations.AddEquation
