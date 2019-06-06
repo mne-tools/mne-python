@@ -819,16 +819,19 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 def _check_event_id(event_id, raw):
     from .io.brainvision.brainvision import _BVEventParser
     from .io.brainvision.brainvision import _check_bv_annot
+    from .io.brainvision.brainvision import RawBrainVision
+    from .io import RawFIF, RawArray
 
     if event_id is None:
         return _DefaultEventParser()
     elif event_id == 'auto':
-        if _check_bv_annot(raw.annotations.description):
+        if isinstance(raw, RawBrainVision) or (
+            isinstance(raw, (RawFIF, RawArray)) and
+            _check_bv_annot(raw.annotations.description)
+        ):
             return _BVEventParser()
         else:
             return _DefaultEventParser()
-    elif event_id == 'brainvision':
-        return _BVEventParser()
     elif callable(event_id) or isinstance(event_id, dict):
         return event_id
     else:
