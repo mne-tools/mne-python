@@ -376,9 +376,14 @@ dd table.align-center {
 /* institutions logos in footer */
 div.institutions {
     text-align: center;
+    line-height: 52px;
+    margin-bottom: 8px;
+    padding-left: 5%;
+    padding-right: 5%;
   }
 div.institutions a {
     border: 0px;
+    margin-right: 8px;
 }
 .institution_xs .institution_sm .institution_md .institution_lg {
     margin-right: 6px;
