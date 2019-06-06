@@ -109,10 +109,11 @@ class Digitization(list):
 
         Parameters
         ----------
-        trans : str | 'auto' | dict | None
+        trans : str | 'auto' | None
             The full path to the head<->MRI transform ``*-trans.fif`` file
-            produced during coregistration. If trans is None, an identity
-            matrix is assumed.
+            produced during coregistration or if 'auto' is given, the
+            matrix is retrieved from the ``subject`` directory. If trans
+            is None, an identity matrix is assumed.
         subject : str | None
             The subject name corresponding to FreeSurfer environment
             variable SUBJECT. Can be omitted if ``src`` is provided.
