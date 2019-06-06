@@ -1013,8 +1013,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
 
             # clip to range (if relevant)
             if params['clipping'] == 'transparent':
-                this_data[np.logical_or(this_data > 1,
-                                        this_data < -1)] = np.nan
+                this_data[np.abs(this_data) > 1] = np.nan
             elif params['clipping'] == 'clamp':
                 np.clip(this_data, -1, 1, out=this_data)
 
