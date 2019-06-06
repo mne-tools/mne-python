@@ -96,11 +96,11 @@ def set_3d_backend(backend_name):
        | Exports to movie/GIF                 |        |         |           |
        +--------------------------------------+--------+---------+-----------+
 
-        **Backend-specific notes**
+    **Backend-specific notes**
 
-        - ipyvolume
-            Does not properly support setting directionality of views
-            in :func:`mne.viz.plot_alignment`
+    - ipyvolume
+        Does not properly support setting directionality of views
+        in :func:`mne.viz.plot_alignment`
 
     """
     check_backend(backend_name)
