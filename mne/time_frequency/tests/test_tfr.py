@@ -753,4 +753,18 @@ def test_getitem_epochsTFR():
     # Test that current state is maintained
     assert_array_equal(power.next(), power.data[ind + 1])
 
+    def test_source_tfr():
+
+        from mne.source_estimate import VectorSourceEstimate
+        from mne.time_frequency import tfr_multitaper
+
+        v_stc = VectorSourceEstimate(np.ones([1800, 3, 200]), vertices=[np.arange(1, 1799, 1), np.arange(1, 3, 1)],
+                                     tmin=0, tstep=1)
+
+        # try to feed a SurfaceVectorSourceEstimate into TFR
+        tfr_multitaper(v_stc, np.arange(1, 30, 3), 5, time_bandwidth=4.0,
+                       use_fft=True, return_itc=True, decim=1,
+                       n_jobs=1, picks=None, average=True, verbose=None)
+
+
 run_tests_if_main()
