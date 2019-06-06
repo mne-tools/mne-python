@@ -27,7 +27,8 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _grad_pair_pick_and_name, _handle_decim,
-                    _setup_plot_projector, _set_ax_label_style)
+                    _setup_plot_projector, _set_ax_label_style,
+                    _simplify_float)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
 
@@ -1327,10 +1328,7 @@ def _plot_traces(params):
                 labels[tick_pos] = (tickoffset_diff *
                                     params['scalings'][chan_type] *
                                     factor * scalings_default[chan_type])
-        # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
-        for li, label in enumerate(labels):
-            if isinstance(label, float) and float(str(label)) != round(label):
-                labels[li] = round(label, 2)
+        labels = [_simplify_float(label) for label in labels]
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         ax.set_yticklabels(tick_list, fontsize=12)

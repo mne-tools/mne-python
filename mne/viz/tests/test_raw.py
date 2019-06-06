@@ -64,7 +64,9 @@ def _annotation_helper(raw, events=False):
     with pytest.warns(None):  # on old mpl we warns about no modifications
         fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
-    assert len(fig.axes[0].texts) == n_anns + n_events
+    # +2 from the scale bars
+    n_scale = 2
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     # modify description
     ann_fig = plt.gcf()
     for key in ' test':
@@ -84,7 +86,7 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD_ test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
     assert_allclose(onset, want_onset)
@@ -114,11 +116,11 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD_ test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     fig.canvas.key_press_event('shift+right')
-    assert len(fig.axes[0].texts) == 0
+    assert len(fig.axes[0].texts) == n_scale
     fig.canvas.key_press_event('shift+left')
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
@@ -131,25 +133,48 @@ def _annotation_helper(raw, events=False):
     if mpl_good_enough:
         assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
         assert_allclose(raw.annotations.duration[n_anns], 5.0)
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
     with pytest.warns(None):  # old mpl
         _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
                     kind='press')
         fig.canvas.key_press_event('a')  # exit annotation mode
     assert len(raw.annotations.onset) == n_anns
-    assert len(fig.axes[0].texts) == n_anns + n_events
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     with pytest.warns(None):  # old mpl
         fig.canvas.key_press_event('shift+right')
-    assert len(fig.axes[0].texts) == 0
+    assert len(fig.axes[0].texts) == n_scale
     with pytest.warns(None):  # old mpl
         fig.canvas.key_press_event('shift+left')
-    assert len(fig.axes[0].texts) == n_anns + n_events
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     plt.close('all')
 
 
 def _proj_status(ax):
     return [l.get_visible() for l in ax.findobj(matplotlib.lines.Line2D)][::2]
+
+
+def test_scale_bar():
+    """Test scale bar for raw."""
+    sfreq = 1000.
+    t = np.arange(10000) / sfreq
+    data = np.sin(2 * np.pi * 10. * t)
+    # +/- 1000 fT, 400 fT/cm, 20 uV
+    data = data * np.array([[1000e-15, 400e-13, 20e-6]]).T
+    info = create_info(3, sfreq, ('mag', 'grad', 'eeg'))
+    raw = RawArray(data, info)
+    fig = raw.plot()
+    ax = fig.axes[0]
+    assert len(ax.texts) == 3  # our labels
+    for text, want in zip(ax.texts, ('800.0 fT/cm', '2000.0 fT', '40.0 uV')):
+        assert text.get_text().strip() == want
+    assert len(ax.lines) == 8  # green, data, nan, bars
+    for data, bar in zip(ax.lines[1:4], ax.lines[5:8]):
+        y = data.get_ydata()
+        y_lims = [y.min(), y.max()]
+        bar_lims = bar.get_ydata()
+        assert_allclose(y_lims, bar_lims, atol=1e-4)
+    plt.close('all')
 
 
 def test_plot_raw():
