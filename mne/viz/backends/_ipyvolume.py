@@ -106,15 +106,16 @@ class _Renderer(_BaseRenderer):
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False):
-        # XXX Colors on contour are not disabled
-        vertices = surface['rr']
-        tris = surface['tris']
+        surf_verts = surface['rr']
+        surf_faces = surface['tris']
 
         cmap = _get_colormap_from_array(colormap, normalized_colormap)
 
         if isinstance(contours, int):
+            n_levels = contours
             levels = np.linspace(vmin, vmax, num=contours)
         else:
+            n_levels = len(contours)
             levels = np.array(contours)
 
         if scalars is not None:
@@ -122,14 +123,20 @@ class _Renderer(_BaseRenderer):
         if len(color) == 3:
             color = np.append(color, opacity)
 
-        verts, faces = _isoline(vertices=vertices, tris=tris,
-                                vertex_data=scalars, levels=levels)
+        verts, faces, vertex_level, _ = \
+            _isoline(vertices=surf_verts, tris=surf_faces,
+                     vertex_data=scalars, levels=levels)
+
+        vertex_level = _normalize_array(vertex_level)
+        vertex_level = np.array(vertex_level * n_levels).astype(np.int)
+        vertex_level[(vertex_level == n_levels)] = n_levels - 1
 
         x, y, z = verts.T
+        colors = [color[level] for level in vertex_level]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
-            ipv.plot_trisurf(x, y, z, lines=faces.flatten())
+            ipv.plot_trisurf(x, y, z, color=colors, lines=faces.flatten())
 
         self.update_limits(x, y, z)
 
@@ -308,12 +315,14 @@ def _isoline(vertices, tris, vertex_data, levels):
         Vertex coordinates for lines points
     connects : ndarray, shape (Ne, 2)
         Indices of line element into the vertex array.
+    vertex_level: ndarray, shape (Nvout,)
+        level for vertex in lines
 
     Notes
     -----
     Uses a marching squares algorithm to generate the isolines.
     """
-    lines, connects = (None, None)
+    lines, connects, vertex_level, level_index = (None, None, None, None)
     if not all([isinstance(x, np.ndarray) for x in (vertices, tris,
                 vertex_data, levels)]):
         raise ValueError('all inputs must be numpy arrays')
@@ -340,13 +349,20 @@ def _isoline(vertices, tris, vertex_data, levels):
             if connects is None:
                 lines = point
                 connects = np.arange(0, nbr * 2).reshape((nbr, 2))
+                vertex_level = np.zeros(len(point)) + lev
+                level_index = np.array(len(point))
             else:
                 connect = np.arange(0, nbr * 2).reshape((nbr, 2)) + \
                     len(lines)
                 connects = np.append(connects, connect, axis=0)
                 lines = np.append(lines, point, axis=0)
+                vertex_level = np.append(vertex_level,
+                                         np.zeros(len(point)) +
+                                         lev)
+                level_index = np.append(level_index, np.array(len(point)))
+            vertex_level = vertex_level.reshape((vertex_level.size, 1))
 
-    return lines, connects
+    return lines, connects, vertex_level, level_index
 
 
 def _color2rgba(color, opacity):
@@ -380,6 +396,10 @@ def _check_vertices_shape(vertices):
     else:
         verts = None
     return verts
+
+
+def _normalize_array(arr):
+    return (arr - arr.min()) / (arr.max() - arr.min())
 
 
 def _close_all():
