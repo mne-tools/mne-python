@@ -81,9 +81,8 @@ def matplotlib_config():
     import matplotlib
     # "force" should not really be necessary but should not hurt
     kwargs = dict()
-    if 'warn' in _get_args(matplotlib.use):
-        kwargs['warn'] = False
-    matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
+    with warnings.catch_warnings(record=True):  # ignore warning
+        matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
     import matplotlib.pyplot as plt
     assert plt.get_backend() == 'agg'
     # overwrite some params that can horribly slow down tests that
