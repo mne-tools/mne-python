@@ -22,6 +22,7 @@ fname_fwd = op.join(base_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
+@testing.requires_testing_data
 def test_check():
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
