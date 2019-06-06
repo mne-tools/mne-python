@@ -7,7 +7,7 @@
 
 import os
 import os.path as op
-from numpy.testing import assert_allclose, assert_equal, assert_array_almost_equal
+from numpy.testing import assert_allclose, assert_equal
 import mne
 from mne.datasets import testing
 from mne.io.curry import read_raw_curry
@@ -54,15 +54,15 @@ def test_io_curry():
     assert_equal(curry7_alp.info["sfreq"], ctf_alp.info["sfreq"])
     assert_equal(curry8_alp.info["sfreq"], ctf_alp.info["sfreq"])
 
-    assert_array_almost_equal(curry7_alp.get_data(), ctf_alp.get_data())
-    assert_array_almost_equal(curry8_alp.get_data(), ctf_alp.get_data())
+    assert_allclose(curry7_alp.get_data(), ctf_alp.get_data())
+    assert_allclose(curry8_alp.get_data(), ctf_alp.get_data())
 
     bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)
     curry7_rfDC = read_raw_curry(curry7_rfDC_file)
     curry8_rfDC = read_raw_curry(curry8_rfDC_file)
 
-    assert_array_almost_equal(curry7_rfDC.get_data(), bti_rfDC.get_data())
-    assert_array_almost_equal(curry8_rfDC.get_data(), bti_rfDC.get_data())
+    assert_allclose(curry7_rfDC.get_data(), bti_rfDC.get_data())
+    assert_allclose(curry8_rfDC.get_data(), bti_rfDC.get_data())
 
     bdf = mne.io.read_raw_bdf(bdf_file)
     curry7_bdf = read_raw_curry(curry7_bdf_file)
@@ -78,7 +78,7 @@ def test_io_curry():
                     bdf.info["sfreq"])
 
     # we only use [0:3] here since the stim channel was already extracted for the curry files
-    assert_array_almost_equal(curry7_bdf.get_data(), bdf.get_data()[0:3])
-    assert_array_almost_equal(curry7_bdf_ascii.get_data(), bdf.get_data()[0:3])
-    assert_array_almost_equal(curry8_bdf.get_data(), bdf.get_data()[0:3])
-    assert_array_almost_equal(curry8_bdf_ascii.get_data(), bdf.get_data()[0:3])
+    assert_allclose(curry7_bdf.get_data(), bdf.get_data()[0:3])
+    assert_allclose(curry7_bdf_ascii.get_data(), bdf.get_data()[0:3], atol=1e-6)
+    assert_allclose(curry8_bdf.get_data(), bdf.get_data()[0:3])
+    assert_allclose(curry8_bdf_ascii.get_data(), bdf.get_data()[0:3], atol=1e-6)
