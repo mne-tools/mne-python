@@ -1708,7 +1708,7 @@ def _compute_scalings(scalings, inst, remove_dc=False):
                                  % (key, value))
             continue
         this_data = data[ch_types[key]]
-        if remove_dc:
+        if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= 10):
             length = int(10 * inst.info["sfreq"]) # length of segments (in s)
             # truncate data so that we can divide into segments of equal length
             this_data = this_data[:, :this_data.shape[1] // length * length]
@@ -1717,9 +1717,14 @@ def _compute_scalings(scalings, inst, remove_dc=False):
             this_data -= this_data.mean(0)  # subtract segment means
             this_data = this_data.T.reshape(shape)  # reshape into original
 
-        scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
-        scale_factor = np.max(np.abs(scale_factor))
+        # scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
+        # scale_factor = np.max(np.abs(scale_factor))
+        mad = np.median(np.abs(this_data - np.median(this_data)))
+        std = np.std(this_data)
+        iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
+        scale_factor = iqr / 2
         scalings[key] = scale_factor
+    print("SCALINGS:", scalings)
     return scalings
 
 
