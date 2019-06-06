@@ -99,8 +99,7 @@ class _Renderer(_BaseRenderer):
         # opacity for overlays will be provided as part of color
         color = _color2rgba(color, opacity)
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        if opacity < 1.0:
-            _add_transparent_material(mesh, opacity)
+        _add_transparent_material(mesh, opacity)
         self.update_limits(x, y, z)
         return mesh
 
@@ -149,8 +148,7 @@ class _Renderer(_BaseRenderer):
             color = np.append(color, opacity)
 
         mesh = ipv.plot_trisurf(x, y, z, triangles=triangles, color=color)
-        if opacity < 1.0:
-            _add_transparent_material(mesh, opacity)
+        _add_transparent_material(mesh, opacity)
         self.update_limits(x, y, z)
 
     def sphere(self, center, color, scale, opacity=1.0, resolution=8,
@@ -191,8 +189,7 @@ class _Renderer(_BaseRenderer):
         color = np.append(color, opacity)
 
         mesh = ipv.plot_trisurf(x, y, z, triangles=acc_faces, color=color)
-        if opacity < 1.0:
-            _add_transparent_material(mesh, opacity)
+        _add_transparent_material(mesh, opacity)
         self.update_limits(x, y, z)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
@@ -210,8 +207,7 @@ class _Renderer(_BaseRenderer):
         scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color,
                              size=size)
 
-        if opacity < 1.0:
-            _add_transparent_material(scatter, opacity)
+        _add_transparent_material(scatter, opacity)
         self.update_limits(x, y, z)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
