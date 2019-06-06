@@ -22,7 +22,6 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
-from mne.fixes import _get_args
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
