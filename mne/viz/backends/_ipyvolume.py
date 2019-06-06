@@ -106,8 +106,7 @@ class _Renderer(_BaseRenderer):
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False):
-        from ipyvolume.pylab import plot
-
+        # XXX Colors on contour are not disabled
         vertices = surface['rr']
         tris = surface['tris']
 
@@ -123,13 +122,15 @@ class _Renderer(_BaseRenderer):
         if len(color) == 3:
             color = np.append(color, opacity)
 
-        verts, _, = _isoline(vertices=vertices, tris=tris,
-                             vertex_data=scalars, levels=levels)
+        verts, faces = _isoline(vertices=vertices, tris=tris,
+                                vertex_data=scalars, levels=levels)
 
         x, y, z = verts.T
+
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
-            plot(x, y, z, color=color)
+            ipv.plot_trisurf(x, y, z, lines=faces.flatten())
+
         self.update_limits(x, y, z)
 
     def surface(self, surface, color=None, opacity=1.0,
