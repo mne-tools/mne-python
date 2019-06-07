@@ -156,7 +156,7 @@ fig.gca().view_init(azim=70, elev=15)
 
 fig = plt.figure()
 ax2d = fig.add_subplot(121)
-ax3d = fig.add_subplot(122, projection='3d', aspect='equal')
+ax3d = fig.add_subplot(122, projection='3d')
 raw.plot_sensors(ch_type='eeg', axes=ax2d)
 raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
 ax3d.view_init(azim=70, elev=15)
