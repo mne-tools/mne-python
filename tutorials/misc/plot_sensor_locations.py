@@ -154,12 +154,9 @@ fig.gca().view_init(azim=70, elev=15)
 # existing matplotlib ``axes`` object (so the channel positions can easily be
 # made as a subplot in a multi-panel figure):
 
-fig = plt.figure()
-ax2d = fig.add_subplot(121)
-ax3d = fig.add_subplot(122, projection='3d', aspect='equal')
-raw.plot_sensors(ch_type='eeg', axes=ax2d)
-raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
-ax3d.view_init(azim=70, elev=15)
+raw.plot_sensors(ch_type='eeg')
+fig_3d = raw.plot_sensors(ch_type='eeg', kind='3d')
+fig_3d.axes[0].view_init(azim=70, elev=15)
 
 ###############################################################################
 # .. _reading-dig-montages:
