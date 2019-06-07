@@ -58,6 +58,8 @@ class _Renderer(_BaseRenderer):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
         self.name = name
+        self.display = None
+        self.inside_notebook = _check_notebook()
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
@@ -80,7 +82,10 @@ class _Renderer(_BaseRenderer):
             self.plotter.reset_camera()
 
     def scene(self):
-        return self.plotter
+        if self.inside_notebook:
+            return self.display
+        else:
+            return self.plotter
 
     def set_interactive(self):
         self.plotter.enable_terrain_style()
@@ -235,7 +240,7 @@ class _Renderer(_BaseRenderer):
                               color=color)
 
     def show(self):
-        self.plotter.show(title=self.name)
+        self.display = self.plotter.show(title=self.name)
 
     def close(self):
         self.plotter.close()
@@ -320,3 +325,20 @@ def _get_view_to_display_matrix(size):
 
 def _close_all():
     pass
+
+
+def _check_notebook():
+    if _run_from_ipython():
+        try:
+            return type(get_ipython()).__module__.startswith('ipykernel.')  # noqa
+        except NameError:
+            return False
+
+
+def _run_from_ipython():
+    """ returns True when run from IPython """
+    try:
+        py = __IPYTHON__  # noqa
+        return True
+    except NameError:
+        return False

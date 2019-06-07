@@ -30,3 +30,4 @@ pydocstyle
 flake8
 pyvista
 pylsl>=1.12
+panel
