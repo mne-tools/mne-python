@@ -215,7 +215,7 @@ class _Renderer(_BaseRenderer):
         scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color,
                              size=size)
 
-        _add_transparent_material(scatter, opacity)
+        _add_transparent_material(scatter, opacity, backface_culling)
         self.update_limits(x, y, z)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
