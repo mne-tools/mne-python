@@ -491,7 +491,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         plt_show(show, block=block)
     except TypeError:  # not all versions have this
         plt_show(show)
-
+    params['fig']._mne_params = params
     return params['fig']
 
 
