@@ -172,6 +172,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
     ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
 
+    # are they trying to combine a single channel?
+    if len(picks) < 2 and combine is not None:
+        warn('Cannot combine by method "{}" if only one channel in "picks".'
+             .format(combine))
+
     # combine defaults to 'gfp' unless user gave specific picks and no group_by
     if combine is None and (group_by is not None or picked_types):
         combine = 'gfp'
