@@ -121,9 +121,6 @@ def _read_curry_lines(fname, regex_list):
 
 def _read_curry_info(fname_base, curry_vers):
 
-    #####################################
-    # read parameters from the param file
-
     CAL = 1e-6
     INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
     LABEL_FILE_EXTENSION = {7: '.rs3', 8: '.cdt.dpa'}
@@ -157,9 +154,7 @@ def _read_curry_info(fname_base, curry_vers):
     if (sfreq == 0) and (time_step != 0):
         sfreq = 1. / time_step
 
-    #####################################
     # read labels from label files
-
     data_dict = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
                                   ["LABELS.*?", "SENSORS.*?"])
 
@@ -168,7 +163,6 @@ def _read_curry_info(fname_base, curry_vers):
     ch_pos = np.array(data_dict["SENSORS.*?"], dtype=float)
     # TODO: include this in ch_dict
 
-    # ch_names = list(reversed(ch_names))
     info = create_info(ch_names, sfreq)
 
     # TODO; There's still a lot more information that can be brought into info["chs"]. However i'm not sure what to do with MEG chans here
