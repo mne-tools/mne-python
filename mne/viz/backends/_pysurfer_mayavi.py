@@ -58,7 +58,7 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False):
+                 name=None, show=False, **kwargs):
         self.mlab = _import_mlab()
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)

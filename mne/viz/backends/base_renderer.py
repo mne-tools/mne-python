@@ -13,7 +13,7 @@ from abc import ABCMeta, abstractclassmethod
 class _BaseRenderer(metaclass=ABCMeta):
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False):
+                 name=None, show=False, **kwargs):
         """Set up the scene."""
         pass
 
