@@ -124,7 +124,7 @@ def _create_arrow(rows, cols, radius=0.1, length=1.0,
         Vertices and faces computed for a cone surface.
     """
     # create the cylinder
-    md_cyl_verts = None
+    cyl_verts = None
     if cone_radius is None:
         cone_radius = radius * 2.0
     if cone_length is None:
@@ -142,7 +142,7 @@ def _create_arrow(rows, cols, radius=0.1, length=1.0,
     verts = con_verts
     nbr_verts_con = verts.size // 3
     faces = con_faces
-    if md_cyl_verts is not None:
+    if cyl_verts is not None:
         trans = np.array([[0.0, 0.0, cyl_L]])
         verts = np.vstack((verts + trans, cyl_faces))
         faces = np.vstack((faces, cyl_faces + nbr_verts_con))
