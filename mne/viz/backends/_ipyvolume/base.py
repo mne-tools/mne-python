@@ -330,7 +330,7 @@ def _add_transparent_material(mesh, opacity, backface_culling):
     mat.blendSrc = BlendFactors.SrcAlphaFactor
     mat.transparent = True
     if backface_culling:
-        mat.side = Side.BackSide
+        mat.side = Side.FrontSide
     else:
         mat.side = Side.DoubleSide
 
