@@ -12,8 +12,10 @@ import warnings
 import numpy as np
 from ._utils import _translate
 from ._utils import _rotate
-from ._utils import _create_cylinder
 from ._utils import _create_sphere
+from ._utils import _create_cone
+from ._utils import _create_cylinder
+from ._utils import _create_arrow
 from ._utils import _isoline
 
 from ..base_renderer import _BaseRenderer
@@ -210,64 +212,47 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
-        # XXX: scale is not supported yet
-        if mode == 'arrow':
-            raise NotImplementedError('Arrow quiver is not supported yet')
-        elif mode == 'cone':
-            color = np.append(color, opacity)
-            x, y, z, u, v, w = map(np.atleast_1d, [x, y, z, u, v, w])
-            size = scale * 200
-            tr = scale / 2.0
-            x += tr * u
-            y += tr * v
-            z += tr * w
-            scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color,
-                                 size=size)
+        source = np.column_stack((x, y, z))
+        destination = source + np.column_stack((u, v, w))
+        arr_pos = np.array(list(zip(source, destination)))
+        arr_pos.reshape(-1, 3)
 
-            _add_transparent_material(scatter, opacity, backface_culling)
-            self.update_limits(x, y, z)
-        elif mode == 'cylinder':
-            source = np.column_stack((x, y, z))
-            destination = source + np.column_stack((u, v, w))
-            arr_pos = np.array(list(zip(source, destination)))
-            arr_pos.reshape(-1, 3)
+        acc_vertices = list()
+        acc_faces = list()
+        foffset = 0
+        voffset = 0
+        for i in range(len(source)):
+            scalar = scalars[i] if scalars is not None else None
+            orig_vertices, orig_faces, mat = \
+                _create_quiver(mode=mode, source=source[i, :],
+                               destination=destination[i, :],
+                               scale=scale,
+                               scale_mode=scale_mode,
+                               scalar=scalar)
+            n_faces = len(orig_faces)
+            n_vertices = len(orig_vertices)
 
-            acc_vertices = list()
-            acc_faces = list()
-            foffset = 0
-            voffset = 0
-            for i in range(len(source)):
-                scalar = scalars[i] if scalars is not None else None
-                orig_vertices, orig_faces, mat = \
-                    _create_quiver(mode=mode, source=source[i, :],
-                                   destination=destination[i, :],
-                                   scale=scale,
-                                   scale_mode=scale_mode,
-                                   scalar=scalar)
-                n_faces = len(orig_faces)
-                n_vertices = len(orig_vertices)
+            # accumulate faces
+            current_faces = orig_faces + voffset
+            acc_faces.append(current_faces)
+            foffset += n_faces
 
-                # accumulate faces
-                current_faces = orig_faces + voffset
-                acc_faces.append(current_faces)
-                foffset += n_faces
+            # accumulate vertices
+            mat = mat.T
+            current_vertices = np.c_[orig_vertices, np.ones(n_vertices)]
+            current_vertices = mat.dot(current_vertices.T)
+            current_vertices = current_vertices.T[:, 0:3]
+            acc_vertices.append(current_vertices)
+            voffset += n_vertices
 
-                # accumulate vertices
-                mat = mat.T
-                current_vertices = np.c_[orig_vertices,
-                                         np.ones(n_vertices)]
-                current_vertices = mat.dot(current_vertices.T)
-                current_vertices = current_vertices.T[:, 0:3]
-                acc_vertices.append(current_vertices)
-                voffset += n_vertices
+        # concatenate
+        faces = np.concatenate(acc_faces, axis=0)
+        vertices = np.concatenate(acc_vertices, axis=0)
 
-            # concatenate
-            faces = np.concatenate(acc_faces, axis=0)
-            vertices = np.concatenate(acc_vertices, axis=0)
-            x, y, z = vertices.T
-            mesh = ipv.plot_trisurf(x, y, z, triangles=faces, color=color)
-            _add_transparent_material(mesh, opacity, backface_culling)
-            self.update_limits(x, y, z)
+        x, y, z = vertices.T
+        mesh = ipv.plot_trisurf(x, y, z, triangles=faces, color=color)
+        _add_transparent_material(mesh, opacity, backface_culling)
+        self.update_limits(x, y, z)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         pass
@@ -311,7 +296,17 @@ def _create_quiver(mode, source, destination, scale, scale_mode='none',
 
     radius = length / 20.0
 
-    if mode == 'cylinder':
+    if mode == 'arrow':
+        cone_radius = radius * 3.0
+        cone_length = length / 4.0
+        vertices, faces = _create_arrow(rows=resolution, cols=resolution,
+                                        length=length, radius=radius,
+                                        cone_radius=cone_radius,
+                                        cone_length=cone_length)
+    elif mode == 'cone':
+        vertices, faces = _create_cone(cols=resolution, length=length,
+                                       radius=radius)
+    elif mode == 'cylinder':
         vertices, faces = _create_cylinder(rows=resolution, cols=resolution,
                                            length=length,
                                            radius=[radius, radius])

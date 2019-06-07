@@ -8,13 +8,15 @@ import numpy as np
 
 
 def _translate(offset, dtype=None):
-    """Translate by an offset (x, y, z) .
+    """Translate by an offset (x, y, z).
+
     Parameters
     ----------
     offset : array-like, shape (3,)
         Translation in x, y, z.
     dtype : dtype | None
         Output type (if None, don't cast).
+
     Returns
     -------
     M : ndarray
@@ -30,13 +32,15 @@ def _translate(offset, dtype=None):
 
 
 def _rotate(angle, axis, dtype=None):
-    """The 3x3 rotation matrix for rotation about a vector.
+    """Compute the 3x3 rotation matrix for rotation around a given axis.
+
     Parameters
     ----------
     angle : float
         The angle of rotation, in degrees.
     axis : ndarray
         The x, y, z coordinates of the axis direction vector.
+
     Returns
     -------
     M : ndarray
@@ -55,7 +59,117 @@ def _rotate(angle, axis, dtype=None):
     return M
 
 
+def _create_cone(cols, radius=1.0, length=1.0):
+    """Create a cone.
+
+    Parameters
+    ----------
+    cols : int
+        Number of faces.
+    radius : float
+        Base cone radius.
+    length : float
+        Length of the cone.
+
+    Returns
+    -------
+    cone : MeshData
+        Vertices and faces computed for a cone surface.
+    """
+    verts = np.empty((cols + 1, 3), dtype=np.float32)
+    # compute vertices
+    th = np.linspace(2 * np.pi, 0, cols + 1).reshape(1, cols + 1)
+    verts[:-1, 2] = 0.0
+    verts[:-1, 0] = radius * np.cos(th[0, :-1])  # x = r cos(th)
+    verts[:-1, 1] = radius * np.sin(th[0, :-1])  # y = r sin(th)
+    # Add the extremity
+    verts[-1, 0] = 0.0
+    verts[-1, 1] = 0.0
+    verts[-1, 2] = length
+    verts = verts.reshape((cols + 1), 3)  # just reshape: no redundant vertices
+    # compute faces
+    faces = np.empty((cols, 3), dtype=np.uint32)
+    template = np.array([[0, 1]])
+    for pos in range(cols):
+        faces[pos, :-1] = template + pos
+    faces[:, 2] = cols
+    faces[-1, 1] = 0
+    return verts, faces
+
+
+def _create_arrow(rows, cols, radius=0.1, length=1.0,
+                  cone_radius=None, cone_length=None):
+    """Create a 3D arrow using a cylinder plus cone.
+
+    Parameters
+    ----------
+    rows : int
+        Number of rows.
+    cols : int
+        Number of columns.
+    radius : float
+        Base cylinder radius.
+    length : float
+        Length of the arrow.
+    cone_radius : float
+        Radius of the cone base.
+           If None, then this defaults to 2x the cylinder radius.
+    cone_length : float
+        Length of the cone.
+           If None, then this defaults to 1/3 of the arrow length.
+
+    Returns
+    -------
+    arrow : MeshData
+        Vertices and faces computed for a cone surface.
+    """
+    # create the cylinder
+    md_cyl_verts = None
+    if cone_radius is None:
+        cone_radius = radius * 2.0
+    if cone_length is None:
+        con_L = length / 3.0
+        cyl_L = length * 2.0 / 3.0
+    else:
+        cyl_L = max(0, length - cone_length)
+        con_L = min(cone_length, length)
+    if cyl_L != 0:
+        cyl_verts, cyl_faces = _create_cylinder(rows, cols,
+                                                radius=[radius, radius],
+                                                length=cyl_L)
+    # create the cone
+    con_verts, con_faces = _create_cone(cols, radius=cone_radius, length=con_L)
+    verts = con_verts
+    nbr_verts_con = verts.size // 3
+    faces = con_faces
+    if md_cyl_verts is not None:
+        trans = np.array([[0.0, 0.0, cyl_L]])
+        verts = np.vstack((verts + trans, cyl_faces))
+        faces = np.vstack((faces, cyl_faces + nbr_verts_con))
+    return verts, faces
+
+
 def _create_cylinder(rows, cols, radius=[1.0, 1.0], length=1.0, offset=False):
+    """Create a cylinder.
+
+    Parameters
+    ----------
+    rows : int
+        Number of rows.
+    cols : int
+        Number of columns.
+    radius : tuple of float
+        Cylinder radii.
+    length : float
+        Length of the cylinder.
+    offset : bool
+        Rotate each row by half a column.
+
+    Returns
+    -------
+    cylinder : MeshData
+        Vertices and faces computed for a cylindrical surface.
+    """
     verts = np.empty((rows + 1, cols, 3), dtype=np.float32)
     if isinstance(radius, int):
         radius = [radius, radius]  # convert to list
@@ -89,6 +203,32 @@ def _create_cylinder(rows, cols, radius=[1.0, 1.0], length=1.0, offset=False):
 
 
 def _create_sphere(rows, cols, radius, offset=True):
+    """Create a sphere.
+
+    Parameters
+    ----------
+    rows : int
+        Number of rows (for method='latitude' and 'cube').
+    cols : int
+        Number of columns (for method='latitude' and 'cube').
+    depth : int
+        Number of depth segments (for method='cube').
+    radius : float
+        Sphere radius.
+    offset : bool
+        Rotate each row by half a column (for method='latitude').
+    subdivisions : int
+        Number of subdivisions to perform (for method='ico')
+    method : str
+        Method for generating sphere. Accepts 'latitude' for latitude-
+        longitude, 'ico' for icosahedron, and 'cube' for cube based
+        tessellation.
+
+    Returns
+    -------
+    sphere : MeshData
+        Vertices and faces computed for a spherical surface.
+    """
     verts = np.empty((rows + 1, cols, 3), dtype=np.float32)
     # compute vertices
     phi = (np.arange(rows + 1) * np.pi / rows).reshape(rows + 1, 1)
