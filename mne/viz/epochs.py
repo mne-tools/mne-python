@@ -30,7 +30,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
-                    _simplify_float, _set_title_multiple_electrodes)
+                    _set_title_multiple_electrodes)
 from .misc import _handle_event_colors
 
 
