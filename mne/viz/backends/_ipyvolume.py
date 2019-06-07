@@ -221,7 +221,47 @@ class _Renderer(_BaseRenderer):
             _add_transparent_material(scatter, opacity, backface_culling)
             self.update_limits(x, y, z)
         elif mode == 'cylinder':
-            raise NotImplementedError('Cylinder quiver is not supported yet')
+            source = np.column_stack((x, y, z))
+            destination = source + np.column_stack((u, v, w))
+            arr_pos = np.array(list(zip(source, destination)))
+            arr_pos.reshape(-1, 3)
+
+            acc_vertices = list()
+            acc_faces = list()
+            foffset = 0
+            voffset = 0
+            for i in range(len(source)):
+                scalar = scalars[i] if scalars is not None else None
+                orig_vertices, orig_faces, mat = \
+                    _create_quiver(mode=mode, source=source[i, :],
+                                   destination=destination[i, :],
+                                   scale=scale,
+                                   scale_mode=scale_mode,
+                                   scalar=scalar)
+                n_faces = len(orig_faces)
+                n_vertices = len(orig_vertices)
+
+                # accumulate faces
+                current_faces = orig_faces + voffset
+                acc_faces.append(current_faces)
+                foffset += n_faces
+
+                # accumulate vertices
+                mat = mat.T
+                current_vertices = np.c_[orig_vertices,
+                                         np.ones(n_vertices)]
+                current_vertices = mat.dot(current_vertices.T)
+                current_vertices = current_vertices.T[:, 0:3]
+                acc_vertices.append(current_vertices)
+                voffset += n_vertices
+
+            # concatenate
+            faces = np.concatenate(acc_faces, axis=0)
+            vertices = np.concatenate(acc_vertices, axis=0)
+            x, y, z = vertices.T
+            mesh = ipv.plot_trisurf(x, y, z, triangles=faces, color=color)
+            _add_transparent_material(mesh, opacity, backface_culling)
+            self.update_limits(x, y, z)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         pass
@@ -246,9 +286,121 @@ class _Renderer(_BaseRenderer):
         pass
 
 
+def _translate(offset, dtype=None):
+    """Translate by an offset (x, y, z) .
+    Parameters
+    ----------
+    offset : array-like, shape (3,)
+        Translation in x, y, z.
+    dtype : dtype | None
+        Output type (if None, don't cast).
+    Returns
+    -------
+    M : ndarray
+        Transformation matrix describing the translation.
+    """
+    assert len(offset) == 3
+    x, y, z = offset
+    M = np.array([[1., 0., 0., 0.],
+                 [0., 1., 0., 0.],
+                 [0., 0., 1., 0.],
+                 [x, y, z, 1.0]], dtype)
+    return M
+
+
+def _rotate(angle, axis, dtype=None):
+    """The 3x3 rotation matrix for rotation about a vector.
+    Parameters
+    ----------
+    angle : float
+        The angle of rotation, in degrees.
+    axis : ndarray
+        The x, y, z coordinates of the axis direction vector.
+    Returns
+    -------
+    M : ndarray
+        Transformation matrix describing the rotation.
+    """
+    import math
+    angle = np.radians(angle)
+    assert len(axis) == 3
+    x, y, z = axis / np.linalg.norm(axis)
+    c, s = math.cos(angle), math.sin(angle)
+    cx, cy, cz = (1 - c) * x, (1 - c) * y, (1 - c) * z
+    M = np.array([[cx * x + c, cy * x - z * s, cz * x + y * s, .0],
+                  [cx * y + z * s, cy * y + c, cz * y - x * s, 0.],
+                  [cx * z - y * s, cy * z + x * s, cz * z + c, 0.],
+                  [0., 0., 0., 1.]], dtype).T
+    return M
+
+
+def _create_quiver(mode, source, destination, scale, scale_mode='none',
+                   scalar=None, resolution=8):
+    v1 = destination - source
+    vn = np.linalg.norm(v1)
+    v1 = v1 / vn
+
+    v2 = np.array([0, 0, 1])
+
+    cosangle = np.dot(v1, v2)
+    axis = np.cross(v2, v1)
+
+    length = vn
+    if scale_mode == 'none':
+        length = scale
+    elif scale_mode == 'scalar' and scalar is not None:
+        length = scale * scalar
+
+    radius = length / 20.0
+
+    if mode == 'cylinder':
+        vertices, faces = _create_cylinder(rows=resolution, cols=resolution,
+                                           length=length,
+                                           radius=[radius, radius])
+
+    # apply transform
+    mat = np.identity(4)
+    if cosangle != 1:
+        mat = np.dot(mat, _rotate(np.degrees(np.arccos(cosangle)), axis))
+    mat = np.dot(mat, _translate(source))
+    return vertices, faces, mat
+
+
+def _create_cylinder(rows, cols, radius=[1.0, 1.0], length=1.0, offset=False):
+    verts = np.empty((rows + 1, cols, 3), dtype=np.float32)
+    if isinstance(radius, int):
+        radius = [radius, radius]  # convert to list
+    # compute vertices
+    th = np.linspace(2 * np.pi, 0, cols).reshape(1, cols)
+    # radius as a function of z
+    r = np.linspace(radius[0], radius[1], num=rows + 1,
+                    endpoint=True).reshape(rows + 1, 1)
+    verts[..., 2] = np.linspace(0, length, num=rows + 1,
+                                endpoint=True).reshape(rows + 1, 1)  # z
+    if offset:
+        # rotate each row by 1/2 column
+        th = th + ((np.pi / cols) * np.arange(rows + 1).reshape(rows + 1, 1))
+    verts[..., 0] = r * np.cos(th)  # x = r cos(th)
+    verts[..., 1] = r * np.sin(th)  # y = r sin(th)
+    # just reshape: no redundant vertices...
+    verts = verts.reshape((rows + 1) * cols, 3)
+    # compute faces
+    faces = np.empty((rows * cols * 2, 3), dtype=np.uint32)
+    rowtemplate1 = (((np.arange(cols).reshape(cols, 1) +
+                      np.array([[0, 1, 0]])) % cols) +
+                    np.array([[0, 0, cols]]))
+    rowtemplate2 = (((np.arange(cols).reshape(cols, 1) +
+                      np.array([[0, 1, 1]])) % cols) +
+                    np.array([[cols, 0, cols]]))
+    for row in range(rows):
+        start = row * cols * 2
+        faces[start:start + cols] = rowtemplate1 + row * cols
+        faces[start + cols:start + (cols * 2)] = rowtemplate2 + row * cols
+    return verts, faces
+
+
 def _create_sphere(rows, cols, radius, offset=True):
     verts = np.empty((rows + 1, cols, 3), dtype=np.float32)
-
     # compute vertices
     phi = (np.arange(rows + 1) * np.pi / rows).reshape(rows + 1, 1)
     s = radius * np.sin(phi)
