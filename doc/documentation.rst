@@ -141,8 +141,8 @@ this package. You can also find a gallery of these examples in the
     .. details:: Examples
         :class: example_details
 
-      .. toctree::
-          :maxdepth: 1
+        .. toctree::
+            :maxdepth: 1
 
           auto_examples/preprocessing/plot_define_target_events.rst
           auto_examples/preprocessing/plot_eog_artifact_histogram.rst
@@ -263,6 +263,9 @@ this package. You can also find a gallery of these examples in the
 
     .. details:: **Inverse examples**
         :class: example_details
+
+        .. toctree::
+            :maxdepth: 1
 
         auto_examples/inverse/plot_compute_mne_inverse_epochs_in_label.rst
         auto_examples/inverse/plot_compute_mne_inverse_raw_in_label.rst

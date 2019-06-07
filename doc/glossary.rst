@@ -33,14 +33,14 @@ MNE-Python core terminology and general concepts
         model. Both are related to the forward model computation and more
         specifically the definion of the conductor model. The
         boundary element model consists of surfaces such as the inner skull,
-        outer skull and outer skiln (a.k.a. scalp) that define compartments
+        outer skull and outer skin (a.k.a. scalp) that define compartments
         of tissues of the head. You can compute the BEM surfaces with
         :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
         See :ref:`tut-forward` for usage demo.
 
     channels
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
-        or sensor such as EOG, ECG or sEEG, ECoG etc. Channels have typically
+        or sensor such as EOG, ECG or sEEG, ECoG etc. Channels usually have
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
 
