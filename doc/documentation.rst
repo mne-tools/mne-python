@@ -144,20 +144,20 @@ this package. You can also find a gallery of these examples in the
         .. toctree::
             :maxdepth: 1
 
-          auto_examples/preprocessing/plot_define_target_events.rst
-          auto_examples/preprocessing/plot_eog_artifact_histogram.rst
-          auto_examples/preprocessing/plot_find_ecg_artifacts.rst
-          auto_examples/preprocessing/plot_find_eog_artifacts.rst
-          auto_examples/preprocessing/plot_head_positions.rst
-          auto_examples/preprocessing/plot_ica_comparison.rst
-          auto_examples/preprocessing/plot_interpolate_bad_channels.rst
-          auto_examples/preprocessing/plot_movement_compensation.rst
-          auto_examples/preprocessing/plot_rereference_eeg.rst
-          auto_examples/preprocessing/plot_resample.rst
-          auto_examples/preprocessing/plot_run_ica.rst
-          auto_examples/preprocessing/plot_shift_evoked.rst
-          auto_examples/preprocessing/plot_virtual_evoked.rst
-          auto_examples/preprocessing/plot_xdawn_denoising.rst
+            auto_examples/preprocessing/plot_define_target_events.rst
+            auto_examples/preprocessing/plot_eog_artifact_histogram.rst
+            auto_examples/preprocessing/plot_find_ecg_artifacts.rst
+            auto_examples/preprocessing/plot_find_eog_artifacts.rst
+            auto_examples/preprocessing/plot_head_positions.rst
+            auto_examples/preprocessing/plot_ica_comparison.rst
+            auto_examples/preprocessing/plot_interpolate_bad_channels.rst
+            auto_examples/preprocessing/plot_movement_compensation.rst
+            auto_examples/preprocessing/plot_rereference_eeg.rst
+            auto_examples/preprocessing/plot_resample.rst
+            auto_examples/preprocessing/plot_run_ica.rst
+            auto_examples/preprocessing/plot_shift_evoked.rst
+            auto_examples/preprocessing/plot_virtual_evoked.rst
+            auto_examples/preprocessing/plot_xdawn_denoising.rst
 
 .. collapse:: Visualization
 
