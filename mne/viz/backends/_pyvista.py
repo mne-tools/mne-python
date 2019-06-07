@@ -336,7 +336,6 @@ def _check_notebook():
 
 
 def _run_from_ipython():
-    """ returns True when run from IPython """
     try:
         py = __IPYTHON__  # noqa
         return True
