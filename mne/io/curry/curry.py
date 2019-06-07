@@ -15,16 +15,9 @@ from ..meas_info import create_info
 from ..utils import _read_segments_file, warn, _find_channels, _create_chs
 
 
-def _read_curry_events(fname_base, curry_vers):
-    """
-    Read curry files and convert the data for mne.
-    Inspired by Matt Pontifex' EEGlab loadcurry() extension.
+def _read_curry_annotations(fname_base, curry_vers):
+    """read annotations from curry event files"""
 
-    :param full_fname:
-    :return:
-    """
-
-    #####################################
 
     EVENT_FILE_EXTENSION = {7: ['.cef', '.ceo'], 8: ['.cdt.cef', '.cdt.ceo']}
 
@@ -34,27 +27,14 @@ def _read_curry_events(fname_base, curry_vers):
             event_file = fname_base + ext
 
     if event_file is not None:
-        curry_events = []
-        save_events = False
-        with open(event_file) as fid:
-            for line in fid:
-
-                if "NUMBER_LIST END_LIST" in line:
-                    save_events = False
-
-                if save_events:
-                    curry_events.append(line.split("\t"))
-
-                if "NUMBER_LIST START_LIST" in line:
-                    save_events = True
-
-        curry_events = np.array(curry_events, dtype=int)
+        annotations_dict = _read_curry_lines(event_file, ["NUMBER_LIST "])
+        curry_annotations = np.array(annotations_dict["NUMBER_LIST "], dtype=int)
 
     else:
-        curry_events = None
+        curry_annotations = None
 
-    # TODO: This returns events in a curry specific format. This might be reformatted to fit mne
-    return curry_events
+    # TODO: This returns annotations in a curry specific format. This might be reformatted to fit mne
+    return curry_annotations
 
 
 def _get_curry_version(file_extension):
@@ -89,6 +69,54 @@ def _check_missing_files(full_fname, fname_base, curry_vers):
                                         " found: %s. Please make sure it is "
                                         "located in the same directory as %s."
                                         % (fname_base + check_ext, full_fname))
+
+
+def _read_curry_lines(fname, regex_list):
+    """
+    Read through the lines of a curry parameter files and save data.
+
+    Parameters
+    ----------
+    fname : str
+        Path to a curry file.
+    regex_list : list of str
+        A list of strings or regular expressions to search within the file.
+        Each element `regex` in `regex_list` must be formulated so that
+        `regex + "START_LIST"` initiates the start and `regex + "END_LIST"`
+        initiates the end of the elements that should be saved.
+
+    Returns
+    -------
+    data_dict : dict
+        A dictionary containing the extracted data. For each element `regex`
+        in `regex_list` a dictionary key `data_dict[regex]` is created, which
+        contains a list of the according data.
+
+    """
+
+    save_lines = {}
+    data_dict = {}
+
+    for regex in regex_list:
+        save_lines[regex] = False
+        data_dict[regex] = []
+
+    with open(fname) as fid:
+        for line in fid:
+            for regex in regex_list:
+                if re.match(regex + "END_LIST", line):
+                    save_lines[regex] = False
+
+                if save_lines[regex] and line != "\n":
+                    result = line.replace("\n", "")
+                    if "\t" in result:
+                        result = result.split("\t")
+                    data_dict[regex].append(result)
+
+                if re.match(regex + "START_LIST", line):
+                    save_lines[regex] = True
+
+    return data_dict
 
 
 def _read_curry_info(fname_base, curry_vers):
@@ -132,37 +160,15 @@ def _read_curry_info(fname_base, curry_vers):
     #####################################
     # read labels from label files
 
-    ch_names = []
-    ch_pos = []
+    data_dict = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
+                                  ["LABELS.*?", "SENSORS.*?"])
 
-    save_labels = False
-    save_ch_pos = False
-    with open(fname_base + LABEL_FILE_EXTENSION[curry_vers]) as fid:
-        for line in fid:
+    ch_names = data_dict["LABELS.*?"]
 
-            if re.match("LABELS.*? END_LIST", line):
-                save_labels = False
+    ch_pos = np.array(data_dict["SENSORS.*?"], dtype=float)
+    # TODO: include this in ch_dict
 
-            # if "SENSORS END_LIST" in line:
-            if re.match("SENSORS.*? END_LIST", line):
-                save_ch_pos = False
-
-            if save_labels and line != "\n":
-                    ch_names.append(line.replace("\n", ""))
-
-            if save_ch_pos:
-                ch_pos.append(line.split("\t"))
-
-            if re.match("LABELS.*? START_LIST", line):
-                save_labels = True
-
-            # if "SENSORS START_LIST" in line:
-            if re.match("SENSORS.*? START_LIST", line):
-                save_ch_pos = True
-
-    ch_pos = np.array(ch_pos, dtype=float)
-    # TODO find a good method to set montage (do it in read_montage instead?)
-
+    # ch_names = list(reversed(ch_names))
     info = create_info(ch_names, sfreq)
 
     # TODO; There's still a lot more information that can be brought into info["chs"]. However i'm not sure what to do with MEG chans here
@@ -205,8 +211,8 @@ def read_raw_curry(input_fname, preload=False):
     _check_missing_files(input_fname, fname_base, curry_vers)
 
     info, n_trials, n_samples, curry_vers, data_format = _read_curry_info(fname_base, curry_vers)
-    events = _read_curry_events(fname_base, curry_vers)
-    info["events"] = events
+    annotations = _read_curry_annotations(fname_base, curry_vers)
+    info["events"] = annotations
 
     raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info, n_samples, data_format)
 
@@ -237,4 +243,4 @@ class RawCurry(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
 
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="float32")
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="<f4")
