@@ -18,9 +18,8 @@ from matplotlib import pyplot as plt
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
-from mne.report import (Report, open_report,
-                        _ReportScraper, _SCRAPER_HEADER, _SCRAPER_FOOTER)
-from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
+from mne.report import Report, open_report, _ReportScraper
+from mne.utils import (_TempDir, requires_mayavi, requires_nibabel, Bunch,
                        run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
 
@@ -410,12 +409,21 @@ def test_scraper(tmpdir):
     fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'a', 'mysection')
     r.add_figs_to_section(fig2, 'b', 'mysection')
+    # Mock a Sphinx + sphinx_gallery config
+    app = Bunch(builder=Bunch(srcdir=str(tmpdir),
+                              outdir=op.join(str(tmpdir), '_build', 'html')))
     scraper = _ReportScraper()
-    block = gallery_conf = None
-    img_fname = op.join(str(tmpdir), 'sg_img.png')
+    scraper.app = app
+    gallery_conf = dict(src_dir=app.builder.srcdir, builder_name='html')
+    img_fname = op.join(app.builder.srcdir, 'auto_examples', 'images',
+                        'sg_img.png')
+    target_file = op.join(app.builder.srcdir, 'auto_examples', 'sg.py')
+    os.makedirs(op.dirname(img_fname))
+    os.makedirs(app.builder.outdir)
     block_vars = dict(image_path_iterator=(img for img in [img_fname]),
-                      example_globals=dict(a=1))
+                      example_globals=dict(a=1), target_file=target_file)
     # Nothing yet
+    block = None
     rst = scraper(block, block_vars, gallery_conf)
     assert rst == ''
     # Still nothing
@@ -426,10 +434,8 @@ def test_scraper(tmpdir):
     fname = op.join(str(tmpdir), 'my_html.html')
     r.save(fname, open_browser=False)
     rst = scraper(block, block_vars, gallery_conf)
-    assert rst.startswith(_SCRAPER_HEADER)
-    assert rst.endswith(_SCRAPER_FOOTER)
-    assert rst.count('"') == 4
-    assert "<html" in rst
+    assert rst.count('"') == 6
+    assert "<iframe" in rst
     assert op.isfile(img_fname.replace('png', 'svg'))
 
 

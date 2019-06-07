@@ -374,7 +374,6 @@ iframe.sg_report {
     height: 70vh;
     margin: 20px auto;
     display: block;
-    border-color: --a-hover-color;
     border-style: solid;
 }
 /* institutions logos in footer */
