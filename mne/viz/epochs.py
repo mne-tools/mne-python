@@ -47,11 +47,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     epochs : instance of Epochs
         The epochs.
     %(picks_good_data)s
-        If None and ``group_by`` is also None, only the first five good
-        channels are plotted.
+        ``picks`` interacts with ``group_by`` and ``combine`` to determine the
+        number of figures generated; see Notes.
     sigma : float
-        The standard deviation of the Gaussian smoothing to apply along
-        the epoch axis to apply in the image. If 0., no smoothing is applied.
+        The standard deviation of a Gaussian smoothing window applied along
+        the epochs axis of the image. If 0, no smoothing is applied.
         Defaults to 0.
     vmin : None | float | callable
         The min value in the image (and the ER[P/F]). The unit is uV for
@@ -60,7 +60,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         equalized within channel types.
         Hint: to specify the lower limit of the data, use
         ``vmin=lambda data: data.min()``.
-
     vmax : None | float | callable
         The max value in the image (and the ER[P/F]). The unit is uV for
         EEG channels, fT for magnetometers and fT/cm for gradiometers.
@@ -94,9 +93,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         If None, "RdBu_r" is used, unless the data is all positive, in which
         case "Reds" is used.
     fig : Figure | None
-        Figure instance to draw the image to. Figure must contain two axes for
-        drawing the single trials and evoked responses. If None a new figure is
-        created. Defaults to None.
+        :class:`~matplotlib.figure.Figure` instance to draw the image to.
+        Figure must contain two axes for drawing the single trials and evoked
+        responses. If ``None`` a new figure is created. Defaults to ``None``.
     axes : list of Axes | dict of list of Axes | None
         List of axes instances in which to draw the image, the evoked response,
         and (optionally) the colorbar (in that order). Must be of length 2 (or
@@ -105,44 +104,40 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         of lists of axes, with the keys matching those of ``group_by``. In that
         case, the provided axes will be used for the corresponding groups.
         Defaults to ``None``.
-    overlay_times : array-like, shape (n_epochs,) | None
-        If not None the parameter is interpreted as time instants in seconds
-        and is added to the image. It is typically useful to display reaction
-        times. Note that it is defined with respect to the order
-        of epochs such that overlay_times[0] corresponds to epochs[0].
+    overlay_times : array_like, shape (len(epochs),) | None
+        Times (in seconds) at which to draw a line on the corresponding row of
+        the image (e.g., a reaction time associated with each epoch). Note that
+        ``overlay_times`` should be ordered to correspond with the
+        :class:`~mne.Epochs` object (i.e., ``overlay_times[0]`` corresponds to
+        ``epochs[0]``, etc).
     combine : None | str | callable
-        How to combine information across channels. If ``None``, combines
-        channels by computing global field power, unless ``picks`` is a list of
-        channel names or indices, in which case result is one figure per pick.
-        If a :class:`str`, must be one of 'mean', 'median', 'std' (standard
-        deviation) or 'gfp' (global field power).
-        If callable, the callable must accept one positional input (data
-        of shape ``(n_epochs, n_channels, n_times)``) and return an
+        How to combine information across channels. If a :class:`str`, must be
+        one of 'mean', 'median', 'std' (standard deviation) or 'gfp' (global
+        field power). If callable, the callable must accept one positional
+        input (data of shape ``(n_epochs, n_channels, n_times)``) and return an
         :class:`array <numpy.ndarray>` of shape ``(n_epochs, n_times)``. For
         example::
 
             combine = lambda data: np.median(data, axis=1)
 
-        Defaults to ``None``.
+        If ``combine`` is ``None``, channels are combined by computing GFP,
+        unless ``group_by`` is also ``None`` and ``picks`` is a list of
+        specific channels (not channel types), in which case no combining is
+        performed and each channel gets its own figure. See Notes for further
+        details. Defaults to ``None``.
     group_by : None | dict
         Specifies which channels are aggregated into a single figure, with
-        aggregation method determined by the ``combine`` parameter. If
-        ``group_by`` is a :class:`dict`, there will be one
-        :class:`~matplotlib.figure.Figure` per dict entry; the key will be used
-        as the figure title and the dict values must be lists of picks (either
-        channel names or integer indices of ``epochs.ch_names``). Within a dict
-        entry all selected channels must have the same type. This is useful for
-        ROI analysis, e.g.::
+        aggregation method determined by the ``combine`` parameter. If not
+        ``None``, one :class:`~matplotlib.figure.Figure` is made per dict
+        entry; the dict key will be used as the figure title and the dict
+        values must be lists of picks (either channel names or integer indices
+        of ``epochs.ch_names``). For example::
 
             group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
-        If ``group_by=None`` and ``picks`` is ``None`` or a channel *type*,
-        result is one figure per channel type. If ``group_by=None`` and
-        ``picks`` is a (list of) individual channel names or indices, result is
-        one figure per channel (if ``combine=None``) or a single figure
-        aggregating across all picks (if ``combine`` is not ``None``). Defaults
-        to ``None``.
-
+        Note that within a dict entry all channels must have the same type.
+        ``group_by`` interacts with ``picks`` and ``combine`` to determine the
+        number of figures generated; see Notes. Defaults to ``None``.
     evoked : bool
         Draw the ER[P/F] below the image or not.
     ts_args : dict
@@ -150,15 +145,42 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         the evoked plot below the image. Defaults to an empty dictionary,
         meaning `plot_compare_evokeds` will be called with default parameters
         (yaxis truncation will be turned off, and inversion of the y axis
-        via `invert_y=True` will raise an error).
+        via ``invert_y=True`` will raise an error).
     title : None | str
-        If str, will be plotted as figure title. Else, the channels will be
-        indicated.
+        If :class:`str`, will be plotted as figure title. Otherwise, the
+        title will indicate channel(s) or channel type being plotted. Defaults
+        to ``None``.
 
     Returns
     -------
     figs : list of Figure
         One figure per channel displayed.
+
+    Notes
+    -----
+    The number of figures generated depends on the values of ``picks``,
+    ``group_by``, and ``combine``. If ``group_by`` is a :class:`dict`, the
+    result is one :class:`~matplotlib.figure.Figure` per dictionary key (for
+    any valid values of ``picks`` and ``combine``).  If ``group_by`` is
+    ``None``, the number and content of the figures generated depends on the
+    values of ``picks`` and ``combine``, as summarized in this table:
+
+    +----------+----------------------------+------------+-------------------+
+    | group_by | picks                      | combine    | result            |
+    +==========+============================+============+===================+
+    |          | None, int, list of int,    | None,      |                   |
+    | dict     | ch_name, list of ch_names, | string, or | 1 figure per      |
+    |          | ch_type, list of ch_types  | callable   | dict key          |
+    +----------+----------------------------+------------+-------------------+
+    |          | None,                      | None,      |                   |
+    |          | ch_type,                   | string, or | 1 figure per      |
+    |          | list of ch_types           | callable   | ch_type           |
+    | None     +----------------------------+------------+-------------------+
+    |          | int,                       | None       | 1 figure per pick |
+    |          | ch_name,                   +------------+-------------------+
+    |          | list of int,               | string or  | 1 figure          |
+    |          | list of ch_names           | callable   |                   |
+    +----------+----------------------------+------------+-------------------+
     """
     from .. import EpochsArray
 
