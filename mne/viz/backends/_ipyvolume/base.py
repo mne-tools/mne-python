@@ -10,9 +10,9 @@
 
 import warnings
 import numpy as np
-from .base_renderer import _BaseRenderer
-from ._utils import _get_colormap_from_array, _get_color_from_scalars
-from ...utils import copy_base_doc_to_subclass_doc
+from ..base_renderer import _BaseRenderer
+from .._utils import _get_colormap_from_array, _get_color_from_scalars
+from ....utils import copy_base_doc_to_subclass_doc
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import ipyvolume as ipv
