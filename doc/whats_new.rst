@@ -26,6 +26,8 @@ API
 
 - Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
 
+- Fix segmentation faults with :class:`mne.Report` by `Eric Larson`_ and `Mainak Jas`_
+
 .. _changes_0_18_1:
 
 Version 0.18.1
