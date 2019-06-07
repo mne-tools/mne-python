@@ -16,7 +16,7 @@ References
 ----------
 .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
        interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
-"""
+"""  # noqa: E501
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #         Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>

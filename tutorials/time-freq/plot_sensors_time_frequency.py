@@ -12,7 +12,7 @@ We will use the
 `somatosensory dataset <https://mne-tools.github.io/stable/manual/datasets_index.html?#somatosensory>`_
 that contains so-called event related synchronizations (ERS) /
 desynchronizations (ERD) in the beta band.
-"""
+"""  # noqa: E501
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #

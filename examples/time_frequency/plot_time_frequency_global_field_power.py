@@ -41,7 +41,7 @@ References
        vol. 108, 328-342, NeuroImage.
 .. [3] Efron B. and Hastie T. Computer Age Statistical Inference (2016).
        Cambrdige University Press, Chapter 11.2.
-"""
+"""  # noqa: E501
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
