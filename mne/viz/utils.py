@@ -1718,7 +1718,7 @@ def _compute_scalings(scalings, inst, remove_dc=False):
             this_data = this_data.T.reshape(shape)  # reshape into original
 
         iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
-        scalings[key] = iqr
+        scalings[key] = iqr.item()
     return scalings
 
 
