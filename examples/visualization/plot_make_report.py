@@ -26,8 +26,9 @@ evoked_fname = meg_path + '/sample_audvis-ave.fif'
 # Do standard folder parsing (this can take a couple of minutes):
 
 report = Report(image_format='png', subjects_dir=subjects_dir,
-                info_fname=evoked_fname, subject='sample', raw_psd=True)
-report.parse_folder(meg_path)
+                info_fname=evoked_fname, subject='sample',
+                raw_psd=False)  # use False for speed here
+report.parse_folder(meg_path, on_error='ignore', mri_decim=10)
 
 ###############################################################################
 # Add a custom section with an evoked slider:
@@ -37,6 +38,7 @@ evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                       baseline=(None, 0), verbose=False)
 evoked.crop(0, .2)
 times = evoked.times[::4]
+
 # Create a list of figs for the slider
 figs = list()
 for t in times:
@@ -47,4 +49,4 @@ report.add_slider_to_section(figs, times, 'Evoked Response',
                              image_format='svg')
 
 # to save report
-# report.save('foobar.html', True)
+report.save('my_report.html', overwrite=True)

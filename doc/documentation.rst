@@ -177,12 +177,12 @@ this package. You can also find a gallery of these examples in the
         .. toctree::
             :maxdepth: 1
 
-            auto_examples/visualization/make_report.rst
             auto_examples/visualization/plot_3d_to_2d.rst
             auto_examples/visualization/plot_channel_epochs_image.rst
             auto_examples/visualization/plot_eeg_on_scalp.rst
             auto_examples/visualization/plot_evoked_topomap.rst
             auto_examples/visualization/plot_evoked_whitening.rst
+            auto_examples/visualization/plot_make_report.rst
             auto_examples/visualization/plot_meg_sensors.rst
             auto_examples/visualization/plot_parcellation.rst
             auto_examples/visualization/plot_sensor_noise_level.rst

@@ -18,7 +18,8 @@ from matplotlib import pyplot as plt
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
-from mne.report import Report, open_report
+from mne.report import (Report, open_report,
+                        _ReportScraper, _SCRAPER_HEADER, _SCRAPER_FOOTER)
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
                        run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
@@ -401,6 +402,35 @@ def test_add_or_replace():
     assert r.html[0] == old_r.html[0]
     assert r.html[2] == old_r.html[2]
     assert r.html[3] == old_r.html[3]
+
+
+def test_scraper(tmpdir):
+    """Test report scraping."""
+    r = Report()
+    fig1, fig2 = _get_example_figures()
+    r.add_figs_to_section(fig1, 'a', 'mysection')
+    r.add_figs_to_section(fig2, 'b', 'mysection')
+    scraper = _ReportScraper()
+    block = gallery_conf = None
+    img_fname = op.join(str(tmpdir), 'sg_img.png')
+    block_vars = dict(image_path_iterator=(img for img in [img_fname]),
+                      example_globals=dict(a=1))
+    # Nothing yet
+    rst = scraper(block, block_vars, gallery_conf)
+    assert rst == ''
+    # Still nothing
+    block_vars['example_globals']['r'] = r
+    rst = scraper(block, block_vars, gallery_conf)
+    # Once it's saved, add it
+    assert rst == ''
+    fname = op.join(str(tmpdir), 'my_html.html')
+    r.save(fname, open_browser=False)
+    rst = scraper(block, block_vars, gallery_conf)
+    assert rst.startswith(_SCRAPER_HEADER)
+    assert rst.endswith(_SCRAPER_FOOTER)
+    assert rst.count('"') == 4
+    assert "<html" in rst
+    assert op.isfile(img_fname.replace('png', 'svg'))
 
 
 run_tests_if_main()

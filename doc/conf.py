@@ -316,13 +316,13 @@ intersphinx_mapping = {
 
 examples_dirs = ['../examples', '../tutorials']
 gallery_dirs = ['auto_examples', 'auto_tutorials']
-
+os.environ['_MNE_BUILDING_DOC'] = 'true'
 try:
     mlab = mne.utils._import_mlab()
     # Do not pop up any mayavi windows while running the
     # examples. These are very annoying since they steal the focus.
     mlab.options.offscreen = True
-    scrapers = ('matplotlib', 'mayavi')
+    scrapers = ('matplotlib', 'mayavi', mne.report._ReportScraper())
 except Exception:
     scrapers = ('matplotlib',)
 else:

@@ -368,6 +368,15 @@ dl.cmd-list dt::after {
 dd table.align-center {
     width: 100%;
 }
+/* Sphinx-gallery Report embedding */
+iframe.sg_report {
+    width: 95%;
+    height: 70vh;
+    margin: 20px auto;
+    display: block;
+    border-color: --a-hover-color;
+    border-style: solid;
+}
 /* institutions logos in footer */
 div.institutions {
     text-align: center;
