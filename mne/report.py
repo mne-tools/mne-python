@@ -145,14 +145,17 @@ def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
     from mayavi import mlab, core
+    from pyface.api import GUI
     fig = function(**kwargs)
-
+    gui = GUI()
+    gui.process_events()
     assert isinstance(fig, core.scene.Scene)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
         mlab.view(view[0], view[1])
+        gui.process_events()
         if fig.scene is not None:
             im = mlab.screenshot(figure=fig)
         else:  # Testing mode
