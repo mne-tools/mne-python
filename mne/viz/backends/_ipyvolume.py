@@ -33,7 +33,7 @@ class _Projection(object):
 
     def __init__(self, xy=None, pts=None):
         """Store input projection information into attributes."""
-        raise NotImplementedError('This feature is not implemented yet')
+        raise NotImplementedError('Projection class is not implemented yet')
 
     def visible(self, state):
         """Modify visibility attribute of the sensors."""
@@ -205,18 +205,23 @@ class _Renderer(_BaseRenderer):
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
         # XXX: scale is not supported yet
-        color = np.append(color, opacity)
-        x, y, z, u, v, w = map(np.atleast_1d, [x, y, z, u, v, w])
-        size = scale * 200
-        tr = scale / 2.0
-        x += tr * u
-        y += tr * v
-        z += tr * w
-        scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color,
-                             size=size)
+        if mode == 'arrow':
+            raise NotImplementedError('Arrow quiver is not supported yet')
+        elif mode == 'cone':
+            color = np.append(color, opacity)
+            x, y, z, u, v, w = map(np.atleast_1d, [x, y, z, u, v, w])
+            size = scale * 200
+            tr = scale / 2.0
+            x += tr * u
+            y += tr * v
+            z += tr * w
+            scatter = ipv.quiver(x, y, z, u, v, w, marker=mode, color=color,
+                                 size=size)
 
-        _add_transparent_material(scatter, opacity, backface_culling)
-        self.update_limits(x, y, z)
+            _add_transparent_material(scatter, opacity, backface_culling)
+            self.update_limits(x, y, z)
+        elif mode == 'cylinder':
+            raise NotImplementedError('Cylinder quiver is not supported yet')
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         pass
