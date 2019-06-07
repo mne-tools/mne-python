@@ -2066,6 +2066,8 @@ def _annotations_closed(event, params):
 
 def _on_hover(event, params):
     """Handle hover event."""
+    if event.key != "v":
+        return
     from matplotlib.patheffects import Stroke, Normal
     if (event.button is not None or
             event.inaxes != params['ax'] or event.xdata is None):
