@@ -2113,6 +2113,7 @@ class _ReportScraper(object):
                     self.app.builder.outdir,
                     op.relpath(op.dirname(block_vars['target_file']),
                                self.app.builder.srcdir), html_fname)
+                os.makedirs(op.dirname(out_fname))
                 copyfile(report.fname, op.join(report.fname, out_fname))
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)
