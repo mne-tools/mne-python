@@ -54,11 +54,11 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name="PyVista Scene", show=False, **kwargs):
+                 name="PyVista Scene", show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
         self.name = name
-        self.smooth_shading = kwargs.get("smooth_shading", True)
+        self.smooth_shading = True
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
