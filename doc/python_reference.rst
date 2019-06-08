@@ -995,6 +995,7 @@ Logging and Configuration
    :toctree: generated/
 
    deprecated
+   warn
 
 :py:mod:`mne.cuda`:
 
