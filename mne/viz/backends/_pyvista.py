@@ -330,14 +330,14 @@ def _close_all():
 def _check_notebook():
     if _run_from_ipython():
         try:
-            return type(get_ipython()).__module__.startswith('ipykernel.')  # noqa
+            return type(get_ipython()).__module__.startswith('ipykernel.')
         except NameError:
             return False
 
 
 def _run_from_ipython():
     try:
-        py = __IPYTHON__  # noqa
+        __IPYTHON__
         return True
     except NameError:
         return False
