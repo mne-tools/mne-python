@@ -1,6 +1,6 @@
 numpy
 scipy
-matplotlib<3.1
+matplotlib
 https://api.github.com/repos/enthought/mayavi/zipball/e2569be1096be3deecb15f8fa8581a3ae3fb77d3
 pyqt5
 pyqt5-sip
@@ -28,9 +28,10 @@ neo
 xlrd
 pydocstyle
 flake8
-pyvista
+pyvista>=0.20.3
 pylsl>=1.12
 bqplot
 ipyvolume
 pythreejs
 ipywidgets>=7.4
+panel

@@ -894,6 +894,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     # None -> all, data, or data_or_ica (ndarray of int)
     #
     orig_picks = picks
+    orig_repr = repr(orig_picks)
     if isinstance(info, Info):
         n_chan = info['nchan']
     else:
@@ -904,8 +905,10 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     if picks is None:
         if isinstance(info, int):  # special wrapper for no real info
             picks = np.arange(n_chan)
+            orig_repr += ', treated as range(%d)' % (n_chan,)
         else:
             picks = none  # let _picks_str_to_idx handle it
+            orig_repr += ', treated as "%s"' % (none,)
 
     #
     # slice
@@ -922,7 +925,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
         raise ValueError('picks must be 1D, got %sD' % (picks.ndim,))
     if picks.dtype.char in ('S', 'U'):
         picks = _picks_str_to_idx(info, picks, exclude, with_ref_meg,
-                                  return_kind)
+                                  return_kind, orig_repr)
         if return_kind:
             picked_ch_type_or_generic = picks[1]
             picks = picks[0]
@@ -949,7 +952,8 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     return picks
 
 
-def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind=False):
+def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
+                      orig_repr):
     """Turn a list of str into ndarray of int."""
     # special case for _picks_to_idx w/no info: shouldn't really happen
     if isinstance(info, int):
@@ -962,15 +966,19 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind=False):
 
     picks_generic = list()
     if len(picks) == 1:
-        if picks[0] == 'all':
-            use_exclude = info['bads'] if exclude == 'bads' else exclude
-            picks_generic = pick_channels(info['ch_names'], info['ch_names'],
-                                          exclude=use_exclude)
-        elif picks[0] == 'data':
-            picks_generic = _pick_data_channels(info, exclude=exclude,
-                                                with_ref_meg=with_ref_meg)
-        elif picks[0] == 'data_or_ica':
-            picks_generic = _pick_data_or_ica(info, exclude=exclude)
+        if picks[0] in ('all', 'data', 'data_or_ica'):
+            if picks[0] == 'all':
+                use_exclude = info['bads'] if exclude == 'bads' else exclude
+                picks_generic = pick_channels(
+                    info['ch_names'], info['ch_names'], exclude=use_exclude)
+            elif picks[0] == 'data':
+                picks_generic = _pick_data_channels(info, exclude=exclude,
+                                                    with_ref_meg=with_ref_meg)
+            elif picks[0] == 'data_or_ica':
+                picks_generic = _pick_data_or_ica(info, exclude=exclude)
+            if len(picks_generic) == 0 and orig_repr.startswith('None, '):
+                raise ValueError('picks (%s) yielded no channels, consider '
+                                 'passing picks explicitly' % (orig_repr,))
 
     #
     # second: match all to channel names
@@ -1024,10 +1032,10 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind=False):
     any_found = [len(p) > 0 for p in all_picks]
     if sum(any_found) == 0:
         raise ValueError(
-            'picks (array-like of str) could not be interpreted as '
+            'picks (%s) could not be interpreted as '
             'channel names (no channel "%s"), channel types (no '
             'type "%s"), or a generic type (just "all" or "data")'
-            % (bad_name, bad_type))
+            % (orig_repr, bad_name, bad_type))
     elif sum(any_found) > 1:
         raise RuntimeError('Some channel names are ambiguously equivalent to '
                            'channel types, cannot use string-based '

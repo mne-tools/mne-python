@@ -85,9 +85,9 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+-----------+
        | Jupyter notebook                     | ✓      | ✓       | ✓         |
        +--------------------------------------+--------+---------+-----------+
-       | Interactivity in Jupyter notebook    | ✓      |         | ✓         |
+       | Interactivity in Jupyter notebook    | ✓      | ✓       | ✓         |
        +--------------------------------------+--------+---------+-----------+
-       | Smooth shading                       | ✓      |         |           |
+       | Smooth shading                       | ✓      | ✓       |           |
        +--------------------------------------+--------+---------+-----------+
        | Subplotting                          | ✓      |         |           |
        +--------------------------------------+--------+---------+-----------+
@@ -101,7 +101,6 @@ def set_3d_backend(backend_name):
     - ipyvolume
         Does not properly support setting directionality of views
         in :func:`mne.viz.plot_alignment`
-
     """
     check_backend(backend_name)
     global MNE_3D_BACKEND

@@ -1508,8 +1508,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         fname : string
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
-            raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif
-            or raw_tsss.fif.gz.
+            raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
+            raw_tsss.fif.gz, or _meg.fif.
         %(picks_all)s
         tmin : float | None
             Time in seconds of first sample to save. If None first sample
@@ -1571,7 +1571,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
-                                   'raw_tsss.fif.gz'))
+                                   'raw_tsss.fif.gz', '_meg.fif'))
 
         split_size = _get_split_size(split_size)
 

@@ -24,7 +24,11 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Accept filenames of raw .fif files to end on `_meg.fif` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
+
 - Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
+
+- Add scale bars for data channels in :func:`mne.io.Raw.plot` by `Eric Larson`_
 
 - Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
@@ -355,7 +359,7 @@ Changelog
 
 - Add ability to read and write beamformers with :func:`mne.beamformer.read_beamformer` and :class:`mne.beamformer.Beamformer.save` by `Eric Larson`_
 
-- Add resting-state source power spectral estimation example :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py` by `Eric Larson`_, `Denis Engemann`_, and `Luke Bloy`_
+- Add resting-state source power spectral estimation example ``sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`` by `Eric Larson`_, `Denis Engemann`_, and `Luke Bloy`_
 
 - Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
 

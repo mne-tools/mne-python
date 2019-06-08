@@ -364,7 +364,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
 def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                          adaptive=False, low_bias=True, normalization='length',
                          n_jobs=1, verbose=None):
-    """Compute power spectrum density (PSD) using a multi-taper method.
+    """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
     ----------

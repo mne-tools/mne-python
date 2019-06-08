@@ -141,23 +141,23 @@ this package. You can also find a gallery of these examples in the
     .. details:: Examples
         :class: example_details
 
-      .. toctree::
-          :maxdepth: 1
+        .. toctree::
+            :maxdepth: 1
 
-          auto_examples/preprocessing/plot_define_target_events.rst
-          auto_examples/preprocessing/plot_eog_artifact_histogram.rst
-          auto_examples/preprocessing/plot_find_ecg_artifacts.rst
-          auto_examples/preprocessing/plot_find_eog_artifacts.rst
-          auto_examples/preprocessing/plot_head_positions.rst
-          auto_examples/preprocessing/plot_ica_comparison.rst
-          auto_examples/preprocessing/plot_interpolate_bad_channels.rst
-          auto_examples/preprocessing/plot_movement_compensation.rst
-          auto_examples/preprocessing/plot_rereference_eeg.rst
-          auto_examples/preprocessing/plot_resample.rst
-          auto_examples/preprocessing/plot_run_ica.rst
-          auto_examples/preprocessing/plot_shift_evoked.rst
-          auto_examples/preprocessing/plot_virtual_evoked.rst
-          auto_examples/preprocessing/plot_xdawn_denoising.rst
+            auto_examples/preprocessing/plot_define_target_events.rst
+            auto_examples/preprocessing/plot_eog_artifact_histogram.rst
+            auto_examples/preprocessing/plot_find_ecg_artifacts.rst
+            auto_examples/preprocessing/plot_find_eog_artifacts.rst
+            auto_examples/preprocessing/plot_head_positions.rst
+            auto_examples/preprocessing/plot_ica_comparison.rst
+            auto_examples/preprocessing/plot_interpolate_bad_channels.rst
+            auto_examples/preprocessing/plot_movement_compensation.rst
+            auto_examples/preprocessing/plot_rereference_eeg.rst
+            auto_examples/preprocessing/plot_resample.rst
+            auto_examples/preprocessing/plot_run_ica.rst
+            auto_examples/preprocessing/plot_shift_evoked.rst
+            auto_examples/preprocessing/plot_virtual_evoked.rst
+            auto_examples/preprocessing/plot_xdawn_denoising.rst
 
 .. collapse:: Visualization
 
@@ -214,6 +214,7 @@ this package. You can also find a gallery of these examples in the
             auto_examples/time_frequency/plot_compute_source_psd_epochs.rst
             auto_examples/time_frequency/plot_source_label_time_frequency.rst
             auto_examples/time_frequency/plot_source_power_spectrum.rst
+            auto_examples/time_frequency/plot_source_power_spectrum_opm.rst
             auto_examples/time_frequency/plot_source_space_time_frequency.rst
             auto_examples/time_frequency/plot_temporal_whitening.rst
             auto_examples/time_frequency/plot_time_frequency_global_field_power.rst
@@ -263,34 +264,36 @@ this package. You can also find a gallery of these examples in the
     .. details:: **Inverse examples**
         :class: example_details
 
-        auto_examples/datasets/plot_opm_rest_data.rst
-        auto_examples/inverse/plot_compute_mne_inverse_epochs_in_label.rst
-        auto_examples/inverse/plot_compute_mne_inverse_raw_in_label.rst
-        auto_examples/inverse/plot_compute_mne_inverse_volume.rst
-        auto_examples/inverse/plot_covariance_whitening_dspm.rst
-        auto_examples/inverse/plot_custom_inverse_solver.rst
-        auto_examples/inverse/plot_dics_source_power.rst
-        auto_examples/inverse/plot_gamma_map_inverse.rst
-        auto_examples/inverse/plot_label_activation_from_stc.rst
-        auto_examples/inverse/plot_label_from_stc.rst
-        auto_examples/inverse/plot_label_source_activations.rst
-        auto_examples/inverse/plot_lcmv_beamformer.rst
-        auto_examples/inverse/plot_lcmv_beamformer_volume.rst
-        auto_examples/inverse/plot_mixed_source_space_inverse.rst
-        auto_examples/inverse/plot_mixed_norm_inverse.rst
-        auto_examples/inverse/plot_mne_crosstalk_function.rst
-        auto_examples/inverse/plot_mne_point_spread_function.rst
-        auto_examples/inverse/plot_morph_surface_stc.rst
-        auto_examples/inverse/plot_morph_volume_stc.rst
-        auto_examples/inverse/plot_rap_music.rst
-        auto_examples/inverse/plot_read_stc.rst
-        auto_examples/inverse/plot_read_inverse.rst
-        auto_examples/inverse/plot_read_source_space.rst
-        auto_examples/inverse/plot_snr_estimate.rst
-        auto_examples/inverse/plot_tf_dics.rst
-        auto_examples/inverse/plot_tf_lcmv.rst
-        auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
-        auto_examples/inverse/plot_vector_mne_solution.rst
+        .. toctree::
+            :maxdepth: 1
+
+            auto_examples/inverse/plot_compute_mne_inverse_epochs_in_label.rst
+            auto_examples/inverse/plot_compute_mne_inverse_raw_in_label.rst
+            auto_examples/inverse/plot_compute_mne_inverse_volume.rst
+            auto_examples/inverse/plot_covariance_whitening_dspm.rst
+            auto_examples/inverse/plot_custom_inverse_solver.rst
+            auto_examples/inverse/plot_dics_source_power.rst
+            auto_examples/inverse/plot_gamma_map_inverse.rst
+            auto_examples/inverse/plot_label_activation_from_stc.rst
+            auto_examples/inverse/plot_label_from_stc.rst
+            auto_examples/inverse/plot_label_source_activations.rst
+            auto_examples/inverse/plot_lcmv_beamformer.rst
+            auto_examples/inverse/plot_lcmv_beamformer_volume.rst
+            auto_examples/inverse/plot_mixed_source_space_inverse.rst
+            auto_examples/inverse/plot_mixed_norm_inverse.rst
+            auto_examples/inverse/plot_mne_crosstalk_function.rst
+            auto_examples/inverse/plot_mne_point_spread_function.rst
+            auto_examples/inverse/plot_morph_surface_stc.rst
+            auto_examples/inverse/plot_morph_volume_stc.rst
+            auto_examples/inverse/plot_rap_music.rst
+            auto_examples/inverse/plot_read_stc.rst
+            auto_examples/inverse/plot_read_inverse.rst
+            auto_examples/inverse/plot_read_source_space.rst
+            auto_examples/inverse/plot_snr_estimate.rst
+            auto_examples/inverse/plot_tf_dics.rst
+            auto_examples/inverse/plot_tf_lcmv.rst
+            auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
+            auto_examples/inverse/plot_vector_mne_solution.rst
 
     .. details:: **Simulation examples**
 
