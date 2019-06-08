@@ -58,6 +58,7 @@ class _Renderer(_BaseRenderer):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
         self.name = name
+        self.smooth_shading = True
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
@@ -94,7 +95,8 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             pd = pyvista.PolyData(vertices, triangles)
             self.plotter.add_mesh(mesh=pd, color=color, opacity=opacity,
-                                  backface_culling=backface_culling)
+                                  backface_culling=backface_culling,
+                                  smooth_shading=self.smooth_shading)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None):
@@ -117,7 +119,8 @@ class _Renderer(_BaseRenderer):
                                   show_scalar_bar=False,
                                   line_width=line_width,
                                   cmap=cmap,
-                                  opacity=opacity)
+                                  opacity=opacity,
+                                  smooth_shading=self.smooth_shading)
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None, scalars=None,
@@ -142,7 +145,8 @@ class _Renderer(_BaseRenderer):
                                   show_scalar_bar=False,
                                   opacity=opacity,
                                   cmap=cmap,
-                                  backface_culling=backface_culling)
+                                  backface_culling=backface_culling,
+                                  smooth_shading=self.smooth_shading)
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
@@ -157,7 +161,8 @@ class _Renderer(_BaseRenderer):
             self.plotter.add_mesh(pd.glyph(orient=False, scale=False,
                                            factor=scale, geom=geom),
                                   color=color, opacity=opacity,
-                                  backface_culling=backface_culling)
+                                  backface_culling=backface_culling,
+                                  smooth_shading=self.smooth_shading)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -185,7 +190,8 @@ class _Renderer(_BaseRenderer):
                                                  factor=factor),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling)
+                                      backface_culling=backface_culling,
+                                      smooth_shading=self.smooth_shading)
             elif mode == "cone":
                 cone = vtk.vtkConeSource()
                 if glyph_height is not None:
@@ -203,7 +209,8 @@ class _Renderer(_BaseRenderer):
                                                  geom=geom),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling)
+                                      backface_culling=backface_culling,
+                                      smooth_shading=self.smooth_shading)
 
             elif mode == "cylinder":
                 cylinder = vtk.vtkCylinderSource()
@@ -227,7 +234,8 @@ class _Renderer(_BaseRenderer):
                                                  geom=geom),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling)
+                                      backface_culling=backface_culling,
+                                      smooth_shading=self.smooth_shading)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         self.plotter.add_text(text, position=(x, y),

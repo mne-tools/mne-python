@@ -28,5 +28,5 @@ neo
 xlrd
 pydocstyle
 flake8
-pyvista
+pyvista>=0.20.3
 pylsl>=1.12
