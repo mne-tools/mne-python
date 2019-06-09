@@ -846,11 +846,12 @@ _PICK_TYPES_DATA_DICT = dict(
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr')
+_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr',
+                        'ref_meg')
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
-                                'reg_mag', 'misc', 'stim', 'resp', 'chpi',
-                                'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
-                                'hbo', 'hbr', 'whitened')
+                                'ref_meg', 'misc', 'stim', 'resp',
+                                'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
+                                'ecog', 'hbo', 'hbr', 'whitened')
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
