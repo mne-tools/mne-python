@@ -1542,7 +1542,8 @@ def _combine_grad(evoked, picks):
     this_data = pair_and_combine(evoked.data[picks, :])
     ch_names = ch_names[::2]
     evoked = evoked.copy().pick_channels(ch_names)
-    combined_ch_names = [ch_name[:-1] + "X" for ch_name in ch_names]
+    combined_ch_names = [ch_name[:-3] + "%03dX" % (k + 1)
+                         for k, ch_name in enumerate(ch_names)]
     evoked.rename_channels({c_old: c_new for c_old, c_new
                             in zip(evoked.ch_names, combined_ch_names)})
     evoked.data = this_data
@@ -1771,7 +1772,7 @@ def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
 
 
 def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
-                                    truncate_yaxis,  truncate_xaxis, invert_y,
+                                    truncate_yaxis, truncate_xaxis, invert_y,
                                     vlines, tmin, tmax, unit,
                                     skip_axlabel=True):
     """Set ylims for an evoked plot. Helper for plot_compare_evokeds."""
@@ -1973,7 +1974,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         * If the selected channels are gradiometers, the signal from
           corresponding (gradiometer) pairs will be combined.
 
-    gfp : bool
+    gfp : bool | None
         If True, the channel type wise GFP is plotted.
         If None and `picks` is None or a (list of) channel type(s), this is set
         to True.
