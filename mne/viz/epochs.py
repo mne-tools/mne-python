@@ -104,7 +104,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         of lists of axes, with the keys matching those of ``group_by``. In that
         case, the provided axes will be used for the corresponding groups.
         Defaults to ``None``.
-    overlay_times : array_like, shape (len(epochs),) | None
+    overlay_times : array_like, shape (n_epochs,) | None
         Times (in seconds) at which to draw a line on the corresponding row of
         the image (e.g., a reaction time associated with each epoch). Note that
         ``overlay_times`` should be ordered to correspond with the
