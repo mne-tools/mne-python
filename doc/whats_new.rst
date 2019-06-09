@@ -45,6 +45,9 @@ Bug
 
 - Fix bug in :func:`mne.viz.plot_compare_evokeds` when using Neuromag 122 system by `Eric Larson`_
 
+- Fix bug in :func:`mne.viz.epochs.plot_epochs_psd` when some channels had zero/infinite ``psd`` values causing erroneous error messages by `Luke Bloy`_
+
+
 API
 ~~~
 
