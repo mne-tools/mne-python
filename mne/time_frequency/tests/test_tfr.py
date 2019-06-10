@@ -753,18 +753,39 @@ def test_getitem_epochsTFR():
     # Test that current state is maintained
     assert_array_equal(power.next(), power.data[ind + 1])
 
-    def test_source_tfr():
 
-        from mne.source_estimate import VectorSourceEstimate
-        from mne.time_frequency import tfr_multitaper
+def test_source_tfr():
+    import numpy as np  # !!! remove this later
+    import pytest  # !!! remove this too
+    from mne.source_estimate import VectorSourceEstimate
+    from mne.time_frequency import tfr_multitaper
+    import mne
 
-        v_stc = VectorSourceEstimate(np.ones([1800, 3, 200]), vertices=[np.arange(1, 1799, 1), np.arange(1, 3, 1)],
-                                     tmin=0, tstep=1)
+    # send in a normal TFR to see how the prints within should look like !!! remove NEXT PARAGRAPH
+    from mne.datasets import sample
+    import mne.io as io
+    data_path = sample.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+    event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+    raw = io.read_raw_fif(raw_fname)
+    events = mne.read_events(event_fname)
+    epochs = mne.Epochs(raw, events, 1, -0.2, 0.5, picks="eeg")
+    print("epochs.shape = ", epochs.get_data().shape)
+    tfr_multitaper(epochs, [10], 1)
 
-        # try to feed a SurfaceVectorSourceEstimate into TFR
+    v_stc = VectorSourceEstimate(epochs.get_data()[:, 0:3, :],
+                                 vertices=[np.arange(1, 71, 1),
+                                           np.arange(1, 3, 1)],
+                                 tmin=0, tstep=0.01)
+
+    # assert return_itc error
+    with pytest.raises(ValueError, match="return_itc must be False"):
         tfr_multitaper(v_stc, np.arange(1, 30, 3), 5, time_bandwidth=4.0,
                        use_fft=True, return_itc=True, decim=1,
                        n_jobs=1, picks=None, average=True, verbose=None)
+
+    # try to feed a SurfaceVectorSourceEstimate into TFR
+    tfr_multitaper(v_stc, np.arange(8, 12, 2), 1, return_itc=False)
 
 
 run_tests_if_main()
