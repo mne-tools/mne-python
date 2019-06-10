@@ -96,13 +96,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Figure must contain two axes for drawing the single trials and evoked
         responses. If ``None`` a new figure is created. Defaults to ``None``.
     axes : list of Axes | dict of list of Axes | None
-        List of axes instances in which to draw the image, the evoked response,
-        and (optionally) the colorbar (in that order). Must be of length 2 (or
-        3 if ``colorbar=True``). If both fig and axes are passed, an error is
-        raised. If ``group_by`` is a dict, ``axes`` must be ``None`` or a dict
-        of lists of axes, with the keys matching those of ``group_by``. In that
-        case, the provided axes will be used for the corresponding groups.
-        Defaults to ``None``.
+        List of :class:`~matplotlib.axes.Axes` objects in which to draw the
+        image, evoked response, and colorbar (in that order). Length of list
+        must be 1, 2, or 3 (depending on values of ``colorbar`` and ``evoked``
+        parameters). If a :class:`dict`, each entry must be a list of Axes
+        objects with the same constraints as above. If both ``axes`` and
+        ``group_by`` are dicts, their keys must match. Providing non-``None``
+        values for both ``fig`` and ``axes``  results in an error. Defaults to
+        ``None``.
     overlay_times : array_like, shape (n_epochs,) | None
         Times (in seconds) at which to draw a line on the corresponding row of
         the image (e.g., a reaction time associated with each epoch). Note that
@@ -193,14 +194,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
     ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
 
-    # are they trying to combine a single channel?
-    if len(picks) < 2 and combine is not None:
-        warn('Cannot combine by method "{}" if only one channel in "picks".'
-             .format(combine))
-
     # combine defaults to 'gfp' unless user gave specific picks and no group_by
     if combine is None and (group_by is not None or picked_types):
         combine = 'gfp'
+    # convert `combine` into callable (if None or str)
+    combine_func = _make_combine_callable(combine)
 
     # handle ts_args (params for the evoked time series)
     manual_ylims = 'ylim' in ts_args
@@ -233,22 +231,24 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                    _set_title_multiple_electrodes(None, combine, ch_names))
             group_by = {key: picks}
 
-    # check for heterogeneous sensor type combinations
+    # check for heterogeneous sensor type combinations / "combining" 1 channel
     for this_group, these_picks in group_by.items():
         this_ch_type = np.array(ch_types)[np.in1d(picks, these_picks)]
         if len(set(this_ch_type)) > 1:
             types = ', '.join(set(this_ch_type))
             raise ValueError('Cannot combine sensors of different types; "{}" '
                              'contains types {}.'.format(this_group, types))
-        # now we know they're all the same type
+        # now we know they're all the same type...
         group_by[this_group] = dict(picks=these_picks, ch_type=this_ch_type[0])
+
+        # are they trying to combine a single channel?
+        if len(these_picks) < 2 and combine is not None:
+            warn('Only one channel in group "{}"; cannot combine by method '
+                 '"{}".'.format(this_group, combine))
 
     # check for compatible `fig` / `axes`; instantiate figs if needed; add
     # fig(s) and axes into group_by
     group_by = _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar)
-
-    # convert `combine` into callable (if None or str)
-    combine_func = _make_combine_callable(combine)
 
     # handle `order`
     data = epochs.get_data()
@@ -258,7 +258,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # prepare images in advance to get consistent vmin/vmax.
     # At the same time, create a subsetted epochs object for each group
     vmin_vmax = {ch_type: dict(images=list(), norm=list())
-                 for ch_type in ch_types}
+                 for ch_type in set(ch_types)}
     for this_group, this_group_dict in group_by.items():
         these_picks = this_group_dict['picks']
         this_ch_type = this_group_dict['ch_type']
@@ -309,6 +309,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         title = _handle_default('titles').get(this_group, this_group)
         if isinstance(combine, str):
             _comb = combine.upper() if combine == 'gfp' else combine
+            _comb = 'std. dev.' if _comb == 'std' else _comb
             title += ' ({})'.format(_comb)
 
         # plot the image
@@ -345,61 +346,80 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
 def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
     """check user-provided fig/axes compatibility with plot_epochs_image."""
-    from matplotlib.pyplot import figure
+    from matplotlib.pyplot import figure, Axes, subplot2grid
 
     n_axes = 1 + int(evoked) + int(colorbar)
-    ax_keys = ('image', 'evoked', 'colorbar')
+    ax_names = ('image', 'evoked', 'colorbar')
     prefix = 'Since evoked={} and colorbar={}, '.format(evoked, colorbar)
 
-    # passed both fig and axes
+    # got both fig and axes
     if fig is not None and axes is not None:
-        raise ValueError('You may only pass "fig" or "axes" (not both).')
+        raise ValueError('At least one of "fig" or "axes" must be None; got '
+                         'fig={}, axes={}.'.format(fig, axes))
 
-    # passed figure instance
+    # got fig=None and axes=None: make fig(s) and axes
+    if fig is None and axes is None:
+        axes = dict()
+        colspan = 9 if colorbar else 10
+        rowspan = 2 if evoked else 3
+        shape = (3, 10)
+        for this_group in group_by:
+            this_fig = figure(this_group)
+            subplot2grid(shape, (0, 0), colspan=colspan, rowspan=rowspan,
+                         fig=this_fig)
+            if evoked:
+                subplot2grid(shape, (2, 0), colspan=colspan, rowspan=1,
+                             fig=this_fig)
+            if colorbar:
+                subplot2grid(shape, (0, 9), colspan=1, rowspan=rowspan,
+                             fig=this_fig)
+            axes[this_group] = this_fig.axes
+
+    # got a Figure instance
     if fig is not None:
-        if len(fig.axes != n_axes):
+        if len(fig.axes) != n_axes:
             raise ValueError('{}"fig" must contain {} axes, got {}.'
                              ''.format(prefix, n_axes, len(fig.axes)))
-        fig, axes = _make_epochs_image_axis_grid(fig, evoked, colorbar)
-        group_by_key = list(group_by.keys())[0]  # should be only 1 of them
-        group_by[group_by_key].update(fig=fig, axes=axes)
+        if len(list(group_by)) != 1:
+            raise ValueError('When "fig" is not None, "group_by" can only '
+                             'have one group (got {}: {}).'
+                             .format(len(group_by), ', '.join(group_by)))
+        key = list(group_by)[0]
+        axes = {key: fig.axes}
 
-    # passed list of axes, make it a dict
-    elif isinstance(axes, list):
+    # got an Axes instance, be forgiving (if evoked and colorbar are False)
+    if isinstance(axes, Axes):
+        axes = [axes]
+
+    # got a list of axes, make it a dict
+    if isinstance(axes, list):
         if len(axes) != n_axes:
             raise ValueError('{}"axes" must be of length {}, got {}.'
-                             ''.format(prefix, n_axes, len(fig.axes)))
+                             ''.format(prefix, n_axes, len(axes)))
         fig = axes[0].get_figure()
-        axes = {key: axis for key, axis in zip(ax_keys, axes)}
-        group_by_key = list(group_by.keys())[0]  # should be only 1 of them
-        group_by[group_by_key].update(fig=fig, axes=axes)
+        # should be only one group; gets tested below after conversion to dict
+        key = list(group_by)[0]
+        axes = {key: axes}
 
-    # passed dict of lists of axes
-    elif isinstance(axes, dict):
-        # TODO: is there ever a case where a user would pass a dict of axes but
-        # *NOT* pass a group_by dict? The next test could fail in that case
-        # because we've constructed a group_by dict and user won't have known
-        # what keys we chose.
-        if set(axes.keys()) != set(group_by.keys()):
+    # got a dict of lists of axes, make it dict of dicts
+    if isinstance(axes, dict):
+        # in theory a user could pass a dict of axes but *NOT* pass a group_by
+        # dict, but that is forbidden in the docstring so it shouldn't happen.
+        # The next test could fail in that case because we've constructed a
+        # group_by dict and the user won't have known what keys we chose.
+        if set(axes) != set(group_by):
             raise ValueError('If "axes" is a dict its keys must match the '
                              'keys in "group_by".')
         for this_group, this_axes_list in axes.items():
-            if len(this_axes_list != n_axes):
+            if len(this_axes_list) != n_axes:
                 raise ValueError('{}each value in "axes" must be a list of {} '
                                  'axes, got {}.'.format(prefix, n_axes,
                                                         len(this_axes_list)))
-            # TODO next line assumes all axes in each list are in same figure
+            # NB: next line assumes all axes in each list are in same figure
             group_by[this_group]['fig'] = this_axes_list[0].get_figure()
             group_by[this_group]['axes'] = {key: axis for key, axis in
-                                            zip(ax_keys, this_axes_list)}
-
-    # fig is None and axes is None
-    else:
-        for this_group in group_by:
-            fig = figure(this_group)
-            fig, axes = _make_epochs_image_axis_grid(fig, evoked, colorbar)
-            group_by[this_group].update(fig=fig, axes=axes)
-
+                                            zip(ax_names, this_axes_list)}
+            # unequal lengths passed to zip is OK here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
     return group_by
 
 
@@ -453,24 +473,6 @@ def _order_epochs(data, times, order=None, overlay_times=None):
     return data, overlay_times
 
 
-def _make_epochs_image_axis_grid(fig, evoked=False, colorbar=False):
-    """Create axes for image plotting. Helper for plot_epochs_image."""
-    from matplotlib.pyplot import subplot2grid
-    axes_dict = dict()
-    colspan = 9 if colorbar else 10
-    rowspan = 2 if evoked else 3
-    shape = (3, 10)
-    axes_dict['image'] = subplot2grid(shape, (0, 0), colspan=colspan,
-                                      rowspan=rowspan, fig=fig)
-    if evoked:
-        axes_dict['evoked'] = subplot2grid(shape, (2, 0), colspan=colspan,
-                                           rowspan=1, fig=fig)
-    if colorbar:
-        axes_dict['colorbar'] = subplot2grid(shape, (0, 9), colspan=1,
-                                             rowspan=rowspan, fig=fig)
-    return fig, axes_dict
-
-
 def _plot_epochs_image(data, style_axes=True, epochs=None, norm=False,
                        vmin=None, vmax=None, colorbar=False, show=False,
                        unit=None, cmap=None, ax=None, overlay_times=None,
@@ -483,6 +485,7 @@ def _plot_epochs_image(data, style_axes=True, epochs=None, norm=False,
     tmax = epochs.times[-1]
 
     # handle axes
+    # TODO bug here
     if isinstance(ax, dict):
         ax_im = ax['image']
     else:
