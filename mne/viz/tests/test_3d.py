@@ -250,13 +250,16 @@ def test_plot_alignment(tmpdir, renderer):
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
     # single-layer BEM can still plot head surface
     assert bem_surfs[-1]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
-    with catch_logging() as log:
-        plot_alignment(info, trans_fname, subject='sample',
-                       meg=True, subjects_dir=subjects_dir,
-                       surfaces=['head', 'inner_skull'], bem=bem_surfs[-1:],
-                       verbose=True)
-    log = log.getvalue()
-    assert 'not find the surface for head in the provided BEM model' in log
+    bem_sol_homog = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
+                                              'sample-1280-bem-sol.fif'))
+    for use_bem in (bem_surfs[-1:], bem_sol_homog):
+        with catch_logging() as log:
+            plot_alignment(info, trans_fname, subject='sample',
+                           meg=True, subjects_dir=subjects_dir,
+                           surfaces=['head', 'inner_skull'], bem=use_bem,
+                           verbose=True)
+        log = log.getvalue()
+        assert 'not find the surface for head in the provided BEM model' in log
     # sphere model
     sphere = make_sphere_model('auto', 'auto', evoked.info)
     src = setup_volume_source_space(sphere=sphere)
