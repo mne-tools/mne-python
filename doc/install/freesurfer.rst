@@ -1,7 +1,7 @@
 Installing FreeSurfer
 =====================
 
-`FreeSurfer <fs-wiki>`_ is software for analysis and visualization of MRI data.
+`FreeSurfer <fs-wiki_>`_ is software for analysis and visualization of MRI data.
 In the MNE ecosystem, freesurfer is used to convert structural MRI scans into
 models of the scalp, inner/outer skull, and cortical surfaces, which are used
 to
