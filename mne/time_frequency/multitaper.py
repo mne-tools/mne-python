@@ -62,6 +62,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     """
     from scipy import interpolate
     from ..filter import next_fast_len
+
+    print("N, half_nbw, kmax = ", N, half_nbw, Kmax)  # !!! remove
     # This np.int32 business works around a weird Windows bug, see
     # gh-5039 and https://github.com/scipy/scipy/pull/8608
     Kmax = np.int32(operator.index(Kmax))
@@ -103,6 +105,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     n_fft = next_fast_len(rxx_size)
     dpss_fft = np.fft.rfft(dpss, n_fft)
     dpss_rxx = np.fft.irfft(dpss_fft * dpss_fft.conj(), n_fft)
+    print("dpss.shape = ", dpss.shape)  # !!! remove this
     dpss_rxx = dpss_rxx[:, :N]
 
     r = 4 * W * np.sinc(2 * W * nidx)

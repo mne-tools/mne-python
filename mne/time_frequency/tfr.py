@@ -150,10 +150,12 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
 
             t_win = this_n_cycles / float(f)
             t = np.arange(0., t_win, 1.0 / sfreq)
+            print("twin, sfreq = ", t_win, sfreq)  # !!! remove
             # Making sure wavelets are centered before tapering
             oscillation = np.exp(2.0 * 1j * np.pi * f * (t - t_win / 2.))
 
             # Get dpss tapers
+            print("t.shape = ", t.shape)  # !!! remove
             tapers, conc = dpss_windows(t.shape[0], time_bandwidth / 2.,
                                         n_taps)
 
@@ -595,13 +597,18 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
     from ..epochs import BaseEpochs
+    from ..source_estimate import VectorSourceEstimate
+
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
-    info = inst.info
 
-    info, data = _prepare_picks(info, data, picks, axis=1)
-    del picks
+    if isinstance(inst, VectorSourceEstimate):
+        data = inst.data
+    else:
+        info = inst.info
+        info, data = _prepare_picks(info, data, picks, axis=1)
+        del picks
 
     if average:
         if output == 'complex':
@@ -616,9 +623,17 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    out = _compute_tfr(data, freqs, info['sfreq'], method=method,
-                       output=output, decim=decim, **tfr_params)
+    if isinstance(inst, VectorSourceEstimate):
+        out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
+                           output=output, decim=decim, **tfr_params)
+    else:
+        out = _compute_tfr(data, freqs, info['sfreq'], method=method,
+                           output=output, decim=decim, **tfr_params)
     times = inst.times[decim].copy()
+
+    # TODO integrate this correctly
+    if isinstance(inst, VectorSourceEstimate):
+        return
 
     if average:
         if return_itc:
@@ -2145,13 +2160,14 @@ def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    if not isinstance(inst, (BaseEpochs, Evoked)):
-        raise TypeError('inst must be Epochs or Evoked')
+    from ..source_estimate import VectorSourceEstimate
+    if not isinstance(inst, (BaseEpochs, Evoked, VectorSourceEstimate)):
+        raise TypeError('inst must be Epochs Evoked, or VectorSourceEstiamte')
     if isinstance(inst, BaseEpochs):
         data = inst.get_data()
     else:
         if return_itc:
-            raise ValueError('return_itc must be False for evoked data')
+            raise ValueError('return_itc must be False for Evoked and SourceEstimate data')
         data = inst.data[np.newaxis].copy()
     return data
 
