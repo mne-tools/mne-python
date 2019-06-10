@@ -262,7 +262,7 @@ print(eog_and_frontal_eeg.ch_names)
 #
 # You may have noticed that the EEG channel names in the sample data are
 # numbered rather than labelled according to a standard nomenclature such as
-# the `10-20 <ten_twenty>`_ or `10-05 <ten_oh_five>`_ systems, or perhaps it
+# the `10-20 <ten_twenty_>`_ or `10-05 <ten_oh_five_>`_ systems, or perhaps it
 # bothers you that the channel names contain spaces. It is possible to rename
 # channels using the :meth:`~mne.io.Raw.rename_channels` method, which takes a
 # Python dictionary to map old names to new names. You need not rename all
