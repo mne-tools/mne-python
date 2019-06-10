@@ -333,20 +333,17 @@ def test_plot_psd_epochs_ctf():
     raw = read_raw_ctf(ctf_fname, preload=True)
     evts = make_fixed_length_events(raw)
     epochs = Epochs(raw, evts, preload=True)
-
     pytest.raises(RuntimeError, epochs.plot_psd_topomap,
                   bands=[(0, 0.01, 'foo')])  # no freqs in range
     epochs.plot_psd_topomap()
 
-    # XXX This fails until PR #6439 is merged.
-    # epochs.plot_psd()
-    # with a flat channel
-    # err_str = r'channel\(s\) (%s){1}\.' % epochs.ch_names[2]
-    # epochs.get_data()[0, 2, :] = 0
-    # for dB in [True, False]:
-    #     with pytest.warns(UserWarning, match=err_str):
-    #         epochs.plot_psd(dB=dB)
-
+    # EEG060 is flat in this dataset
+    err_str = r'channel\(s\) EEG060\.'
+    for dB in [True, False]:
+        with pytest.warns(UserWarning, match=err_str):
+            epochs.plot_psd(dB=dB)
+    epochs.drop_channels(['EEG060'])
+    epochs.plot_psd()
     plt.close('all')
 
 
