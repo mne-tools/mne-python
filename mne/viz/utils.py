@@ -24,13 +24,11 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import warnings
 
-from ..channels.layout import (_auto_topomap_coords, _pair_grad_sensors,
-                               _merge_grad_data)
+from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
-from ..io.meas_info import create_info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
@@ -2482,37 +2480,6 @@ def _grad_pair_pick_and_name(info, picks):
     picks = list(sorted(set(picked_chans)))
     ch_names = [info["ch_names"][pick] for pick in picks]
     return picks, ch_names
-
-
-def _combine_grad_pairs(instance, picks, method='rms'):
-    """Combine grad pairs and return a new (Epochs or Evoked) instance."""
-    from .. import BaseEpochs, EpochsArray, EvokedArray
-    logger.info('Combining planar gradiometers with RMS.')
-    ch_info = [instance.info['chs'][n] for n in picks]
-    ch_names = np.array(instance.info['ch_names'])[picks].tolist()
-    _info = create_info(ch_names=ch_names, sfreq=instance.info['sfreq'],
-                        ch_types=['grad'] * len(picks))
-    grad_pair_picks = _pair_grad_sensors(_info, topomap_coords=False,
-                                         raise_error=False)
-    picks = picks[grad_pair_picks][::2]
-    ch_info = [instance.info['chs'][n] for n in picks]
-    ch_names = np.array(instance.info['ch_names'])[picks].tolist()
-    ch_names = [name[:-1] + 'X' for name in ch_names]
-    for ix, new_name in enumerate(ch_names):
-        ch_info[ix]['ch_name'] = new_name
-    this_info = create_info(sfreq=instance.info['sfreq'], ch_names=ch_names,
-                            ch_types=['grad'] * len(picks))
-    this_info['chs'] = ch_info
-    # create subsetted epochs object
-    if isinstance(instance, BaseEpochs):
-        data = np.array([_merge_grad_data(epo[grad_pair_picks], method=method)
-                         for epo in instance])
-        new_instance = EpochsArray(data, this_info, tmin=instance.times[0])
-    else:
-        data = _merge_grad_data(instance.data[grad_pair_picks], method=method)
-        new_instance = EvokedArray(data, this_info, tmin=instance.times[0],
-                                   nave=instance.nave)
-    return new_instance
 
 
 def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,

@@ -19,7 +19,6 @@ from scipy.ndimage import gaussian_filter1d
 
 from ..defaults import _handle_default
 from ..utils import verbose, get_config, set_config, logger, warn, fill_doc
-from ..channels.layout import _pair_grad_sensors, _merge_grad_data
 from ..io.meas_info import create_info
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
@@ -256,9 +255,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     data, overlay_times = _order_epochs(data, epochs.times, order,
                                         overlay_times)
 
-    # prepare images in advance to get consistent vmin/vmax. At the same time,
-    # create a subsetted epochs object for each group, & combine grad. pairs
-    vmin_vmax = {ch_type: dict(images=list(), rms=None)
+    # prepare images in advance to get consistent vmin/vmax.
+    # At the same time, create a subsetted epochs object for each group
+    vmin_vmax = {ch_type: dict(images=list(), norm=list())
                  for ch_type in ch_types}
     for this_group, this_group_dict in group_by.items():
         these_picks = this_group_dict['picks']
@@ -266,28 +265,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_ch_info = [epochs.info['chs'][n] for n in these_picks]
         these_ch_names = np.array(epochs.info['ch_names'])[these_picks]
         this_data = data[:, these_picks]
-        merge_grads = False
-        # combine gradiometer pairs
-        if this_ch_type == 'grad' and len(these_picks) > 1:
-            # TODO: replace this with the new refactored function
-            # mne.viz.utils._combine_grad_pairs, and also use it in
-            # plot_compare_evoked?
-            merge_grads = True
-            logger.info('Combining planar gradiometers with RMS.')
-            _info = create_info(ch_names=these_ch_names.tolist(),
-                                sfreq=epochs.info['sfreq'],
-                                ch_types=['grad'] * len(these_picks))
-            grad_pair_picks = _pair_grad_sensors(_info,
-                                                 topomap_coords=False,
-                                                 raise_error=False)
-            this_data = np.array([_merge_grad_data(epoch[grad_pair_picks])
-                                  for epoch in epochs])
-            these_picks = these_picks[grad_pair_picks][::2]
-            this_ch_info = [epochs.info['chs'][n] for n in these_picks]
-            these_ch_names = np.array(epochs.info['ch_names'])[these_picks]
-            these_ch_names = [name[:-1] + 'X' for name in these_ch_names]
-            for ix, new_name in enumerate(these_ch_names):
-                this_ch_info[ix]['ch_name'] = new_name
         # create subsetted epochs object
         this_info = create_info(
             sfreq=epochs.info['sfreq'],
@@ -300,19 +277,18 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if sigma > 0.:
             this_image = gaussian_filter1d(this_image, sigma=sigma, axis=0,
                                            mode='nearest')
+        this_norm = (combine == 'gfp') or np.all(this_data > 0)
         # update the group_by and vmin_vmax dicts
-        group_by[this_group].update(image=this_image,
-                                    epochs=this_epochs,
-                                    merge_grads=merge_grads)
+        group_by[this_group].update(image=this_image, epochs=this_epochs,
+                                    norm=this_norm)
         vmin_vmax[this_ch_type]['images'].append(this_image)
-        vmin_vmax[this_ch_type]['rms'] = merge_grads
+        vmin_vmax[this_ch_type]['norm'].append(this_norm)
 
     # compute overall vmin/vmax for images
     for ch_type, this_vmin_vmax_dict in vmin_vmax.items():
         image_list = this_vmin_vmax_dict['images']
-        this_rms = this_vmin_vmax_dict['rms']
         image_stack = np.stack(image_list)
-        norm = (combine == 'gfp' or this_rms)
+        norm = all(this_vmin_vmax_dict['norm'])
         vmin_vmax[ch_type] = _setup_vmin_vmax(image_stack, vmin, vmax, norm)
     del image_stack, vmin, vmax
 
@@ -321,26 +297,24 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # plot
     for this_group, this_group_dict in group_by.items():
+        this_norm = this_group_dict['norm']
         this_image = this_group_dict['image']
         this_epochs = this_group_dict['epochs']
         this_ch_type = this_group_dict['ch_type']
-        this_merge_grads = this_group_dict['merge_grads']
         this_axes_dict = this_group_dict['axes']
         # this_fig = this_group_dict['fig']
         vmin, vmax = vmin_vmax[this_ch_type]
-        norm = this_merge_grads or (combine == 'gfp')
 
         # plot title
         title = _handle_default('titles').get(this_group, this_group)
         if isinstance(combine, str):
             _comb = combine.upper() if combine == 'gfp' else combine
-            _comb = 'RMS' if this_merge_grads else _comb
             title += ' ({})'.format(_comb)
 
         # plot the image
         this_fig = _plot_epochs_image(
             this_image, style_axes=True, epochs=this_epochs,
-            colorbar=colorbar, vmin=vmin, vmax=vmax, norm=norm, cmap=cmap,
+            colorbar=colorbar, vmin=vmin, vmax=vmax, norm=this_norm, cmap=cmap,
             unit=units[this_ch_type], ax=this_axes_dict, show=False,
             title=title, gfp=(combine == 'gfp'), overlay_times=overlay_times,
             evoked=evoked, ts_args=ts_args)

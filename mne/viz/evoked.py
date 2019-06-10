@@ -2231,15 +2231,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     all_positive = gfp
     pos_picks = picks  # keep locations to pick for plotting
-    if ch_type == "grad" and len(picks) > 1:
-        logger.info('Combining all planar gradiometers with RMSE.')
-        pos_picks, _ = _grad_pair_pick_and_name(one_evoked.info, picks)
-        pos_picks = pos_picks[::2]
-        all_positive = True
-        for cond, this_evokeds in evokeds.items():
-            evokeds[cond] = [_combine_grad(e, picks) for e in this_evokeds]
-        ch_names = evokeds[cond][0].ch_names
-        picks = range(len(ch_names))
 
     info = pick_info(info, pos_picks, True)
     all_ch_names = ch_names if ch_type == 'grad' else info['ch_names']
