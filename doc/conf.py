@@ -336,6 +336,7 @@ else:
 def setup(app):
     if report_scraper is not None:
         report_scraper.app = app
+        app.connect('build-finished', report_scraper.copyfiles)
 
 
 class Resetter(object):

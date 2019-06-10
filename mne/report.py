@@ -2092,6 +2092,7 @@ class _ReportScraper(object):
 
     def __init__(self):
         self.app = None
+        self.files = dict()
 
     def __repr__(self):
         return '<ReportScraper>'
@@ -2113,9 +2114,12 @@ class _ReportScraper(object):
                     self.app.builder.outdir,
                     op.relpath(op.dirname(block_vars['target_file']),
                                self.app.builder.srcdir), html_fname)
-                os.makedirs(op.dirname(out_fname))
-                copyfile(report.fname, op.join(report.fname, out_fname))
+                self.files[report.fname] = out_fname
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)
                 return data
         return ''
+
+    def copyfiles(self, *args, **kwargs):
+        for key, value in self.files.items():
+            copyfile(key, value)

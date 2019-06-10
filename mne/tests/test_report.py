@@ -434,6 +434,11 @@ def test_scraper(tmpdir):
     fname = op.join(str(tmpdir), 'my_html.html')
     r.save(fname, open_browser=False)
     rst = scraper(block, block_vars, gallery_conf)
+    out_html = op.join(app.builder.outdir, 'auto_examples', 'my_html.html')
+    assert not op.isfile(out_html)
+    os.makedirs(op.join(app.builder.outdir, 'auto_examples'))
+    scraper.copyfiles()
+    assert op.isfile(out_html)
     assert rst.count('"') == 6
     assert "<iframe" in rst
     assert op.isfile(img_fname.replace('png', 'svg'))

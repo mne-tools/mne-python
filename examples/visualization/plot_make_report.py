@@ -38,7 +38,6 @@ evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                       baseline=(None, 0), verbose=False)
 evoked.crop(0, .2)
 times = evoked.times[::4]
-
 # Create a list of figs for the slider
 figs = list()
 for t in times:

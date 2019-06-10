@@ -67,11 +67,10 @@ jobs:
 
         - run:
             name: Get Python running
-            # pip install --user --upgrade --progress-bar off https://api.github.com/repos/larsoner/numpydoc/zipball/xref-param-type
             command: |
               pip install --user --upgrade --progress-bar off pip numpy vtk
               pip install --user --upgrade --progress-bar off -r requirements.txt
-              pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/larsoner/sphinx-gallery/zipball/example_globals" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+              pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
 
         - save_cache:
             key: pip-cache
