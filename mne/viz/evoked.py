@@ -24,7 +24,7 @@ from ..io.pick import (channel_type, _pick_data_channels,
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
-                    _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
+                    _setup_vmin_vmax, _check_cov,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, _get_color_list, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
@@ -1530,24 +1530,6 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
         axes.set_yticks(newticks)
         ymin_bound, ymax_bound = newticks[[0, -1]]
     return ymin_bound, ymax_bound
-
-
-def _combine_grad(evoked, picks):
-    """Create a new instance of Evoked with combined gradiometers (RMSE)."""
-    def pair_and_combine(data):
-        data = data ** 2
-        data = (data[::2, :] + data[1::2, :]) / 2
-        return np.sqrt(data)
-    picks, ch_names = _grad_pair_pick_and_name(evoked.info, picks)
-    this_data = pair_and_combine(evoked.data[picks, :])
-    ch_names = ch_names[::2]
-    evoked = evoked.copy().pick_channels(ch_names)
-    combined_ch_names = [ch_name[:-3] + "%03dX" % (k + 1)
-                         for k, ch_name in enumerate(ch_names)]
-    evoked.rename_channels({c_old: c_new for c_old, c_new
-                            in zip(evoked.ch_names, combined_ch_names)})
-    evoked.data = this_data
-    return evoked
 
 
 def _check_loc_legal(loc, what='your choice', default=1):
