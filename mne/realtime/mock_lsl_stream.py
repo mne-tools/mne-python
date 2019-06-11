@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 import time
-from multiprocessing import Process
 
 from ..utils import _check_pylsl_installed, deprecated
 from ..io import constants
@@ -30,6 +29,10 @@ class MockLSLStream(object):
     """
 
     def __init__(self, host, raw, ch_type, time_dilation=1):
+        try:
+            from multiprocessing import Process
+        except ImportError('This requires multiprocessing to work properly.')
+
         self._host = host
         self._ch_type = ch_type
         self._time_dilation = time_dilation
