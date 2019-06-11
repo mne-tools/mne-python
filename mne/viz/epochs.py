@@ -206,9 +206,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     manual_ylims = 'ylim' in ts_args
     if combine is not None:
         ts_args['show_sensors'] = False
-    if 'invert_y' in ts_args:
-        raise NotImplementedError("'invert_y' found in 'ts_args'. "
-                                  "This is currently not implemented.")
+    if 'invert_y' in ts_args and ts_args['invert_y']:
+        raise NotImplementedError('"invert_y" found in "ts_args". '
+                                  'This is currently not implemented.')
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
     ts_defaults = dict(colors={'cond': 'k'}, ylim=dict(), title='', show=False,
                        truncate_yaxis=False, truncate_xaxis=False,
@@ -400,9 +400,13 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
     # got a list of axes, make it a dict
     if isinstance(axes, list):
         if len(axes) != n_axes:
-            raise ValueError('{}"axes" must be of length {}, got {}.'
+            raise ValueError('{}"axes" must be length {}, got {}.'
                              ''.format(prefix, n_axes, len(axes)))
-        # should be only one group (gets tested below after conversion to dict)
+        # for list of axes to work, must be only one group
+        if len(list(group_by)) != 1:
+            raise ValueError('When axes is a list, can only plot one group '
+                             '(got {} groups: {}).'
+                             .format(len(group_by), ', '.join(group_by)))
         key = list(group_by)[0]
         axes = {key: axes}
 
@@ -413,8 +417,9 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
         # The next test could fail in that case because we've constructed a
         # group_by dict and the user won't have known what keys we chose.
         if set(axes) != set(group_by):
-            raise ValueError('If "axes" is a dict its keys must match the '
-                             'keys in "group_by".')
+            raise ValueError('If "axes" is a dict its keys ({}) must match '
+                             'the keys in "group_by" ({}).'
+                             .format(list(axes), list(group_by)))
         for this_group, this_axes_list in axes.items():
             if len(this_axes_list) != n_axes:
                 raise ValueError('{}each value in "axes" must be a list of {} '
@@ -467,9 +472,10 @@ def _order_epochs(data, times, order=None, overlay_times=None):
 
     if order is not None:
         if len(order) != n_epochs:
-            raise ValueError('order must be None, callable or an array of '
-                             'same length as the data (got {}).'
-                             .format(type(order)))
+            raise ValueError('If order is a {}, its length ({}) must match '
+                             'the length of the data ({}).'
+                             .format(type(order).__name__, len(order),
+                                     n_epochs))
         order = np.asarray(order)
         data = data[order]
         if overlay_times is not None:
