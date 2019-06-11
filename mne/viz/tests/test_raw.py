@@ -285,6 +285,10 @@ def test_plot_raw():
             break
     for key in ['down', 'up', 'escape']:
         fig.canvas.key_press_event(key)
+
+    # make sure fig._mne_params is present
+    assert isinstance(fig._mne_params, dict)
+
     plt.close('all')
 
 
