@@ -67,11 +67,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     colorbar : bool
         Display or not a colorbar.
     order : None | array of int | callable
-        If not None, order is used to reorder the epochs on the y-axis
-        of the image. If it's an array of int it should be of length
-        the number of good epochs. If it's a callable the arguments
-        passed are the times vector and the data as 2d array
-        (data.shape[1] == len(times).
+        If not ``None``, order is used to reorder the epochs along the y-axis
+        of the image. If it's an array of class:`int` its length should match
+        the number of good epochs. If it's a callable it should accept two
+        positional parameters (``times`` and ``data``, where
+        ``data.shape == (len(good_epochs), len(times))``) and return an
+        :class:`array <numpy.ndarray>` of indices that will sort ``data`` along
+        its first axis.
     show : bool
         Show figure if True.
     units : dict | None
