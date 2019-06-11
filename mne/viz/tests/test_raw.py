@@ -186,6 +186,10 @@ def test_plot_raw():
     assert len(plt.get_fignums()) == 0
     fig = raw.plot(events=events, order=[1, 7, 3], group_by='original')
     assert len(plt.get_fignums()) == 1
+
+    # make sure fig._mne_params is present
+    assert isinstance(fig._mne_params, dict)
+
     # test mouse clicks
     x = fig.get_axes()[0].lines[1].get_xdata().mean()
     y = fig.get_axes()[0].lines[1].get_ydata().mean()
@@ -285,6 +289,7 @@ def test_plot_raw():
             break
     for key in ['down', 'up', 'escape']:
         fig.canvas.key_press_event(key)
+
     plt.close('all')
 
 
