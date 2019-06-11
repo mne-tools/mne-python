@@ -1657,7 +1657,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         True, the mean will be computed and subtracted for short epochs in
         order to compensate not only for global mean offset, but also for slow
         drifts in the signals.
-    duration : int or float
+    duration : float
         If remove_dc is True, the mean will be computed and subtracted on
         segments of length ``duration`` seconds.
 
