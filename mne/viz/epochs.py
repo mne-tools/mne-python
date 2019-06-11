@@ -495,13 +495,7 @@ def _plot_epochs_image(data, style_axes=True, epochs=None, norm=False,
     tmin = epochs.times[0]
     tmax = epochs.times[-1]
 
-    # handle axes
-    # TODO bug here
-    if isinstance(ax, dict):
-        ax_im = ax['image']
-    else:
-        ax_im = ax
-        evoked, colorbar = False, False
+    ax_im = ax['image']
     fig = ax_im.get_figure()
 
     # draw the image
