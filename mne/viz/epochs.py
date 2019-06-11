@@ -311,11 +311,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         vmin, vmax = vmin_vmax[this_ch_type]
 
         # plot title
-        title = _handle_default('titles').get(this_group, this_group)
-        if isinstance(combine, str):
-            _comb = combine.upper() if combine == 'gfp' else combine
-            _comb = 'std. dev.' if _comb == 'std' else _comb
-            title += ' ({})'.format(_comb)
+        if title is None:
+            title = _handle_default('titles').get(this_group, this_group)
+            if isinstance(combine, str):
+                _comb = combine.upper() if combine == 'gfp' else combine
+                _comb = 'std. dev.' if _comb == 'std' else _comb
+                title += ' ({})'.format(_comb)
 
         # plot the image
         this_fig = _plot_epochs_image(
