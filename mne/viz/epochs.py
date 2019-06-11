@@ -356,6 +356,7 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
 
     n_axes = 1 + int(evoked) + int(colorbar)
     ax_names = ('image', 'evoked', 'colorbar')
+    ax_names = np.array(ax_names)[np.where([True, evoked, colorbar])]
     prefix = 'Since evoked={} and colorbar={}, '.format(evoked, colorbar)
 
     # got both fig and axes
@@ -429,7 +430,6 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
             group_by[this_group]['fig'] = this_axes_list[0].get_figure()
             group_by[this_group]['axes'] = {key: axis for key, axis in
                                             zip(ax_names, this_axes_list)}
-            # unequal lengths passed to zip is OK here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
     return group_by
 
 
