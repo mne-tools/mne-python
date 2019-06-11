@@ -254,8 +254,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # handle `order`
     data = epochs.get_data()
-    data, overlay_times = _order_epochs(data, epochs.times, order,
-                                        overlay_times)
 
     # prepare images in advance to get consistent vmin/vmax.
     # At the same time, create a subsetted epochs object for each group
@@ -274,8 +272,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ch_types=[this_ch_type] * len(these_picks))
         this_info['chs'] = this_ch_info
         this_epochs = EpochsArray(this_data, this_info, tmin=epochs.times[0])
-        # apply scalings (only to image!), combine channels, apply smoothing
+        # apply scalings (only to image, not epochs object), combine channels
         this_image = combine_func(this_data * scalings[this_ch_type])
+        # handle `order`
+        # NB: this can potentially yield different orderings in each figure!
+        this_image, overlay_times = _order_epochs(this_image, epochs.times,
+                                                  order, overlay_times)
+        # apply smoothing
         if sigma > 0.:
             this_image = gaussian_filter1d(this_image, sigma=sigma, axis=0,
                                            mode='nearest')
@@ -442,7 +445,7 @@ def _make_combine_callable(combine):
 
 
 def _order_epochs(data, times, order=None, overlay_times=None):
-    """Sort image - e.g., epochs data (2D/3D). Helper for plot_epochs_image."""
+    """Sort epochs image data (2D). Helper for plot_epochs_image."""
     n_epochs = len(data)
 
     if overlay_times is not None:
