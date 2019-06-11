@@ -29,10 +29,6 @@ class MockLSLStream(object):
     """
 
     def __init__(self, host, raw, ch_type, time_dilation=1):
-        try:
-            from multiprocessing import Process
-        except ImportError('This requires multiprocessing to work properly.')
-
         self._host = host
         self._ch_type = ch_type
         self._time_dilation = time_dilation
@@ -43,6 +39,11 @@ class MockLSLStream(object):
 
     def start(self):
         """Start a mock LSL stream."""
+        try:
+            from multiprocessing import Process
+        except ImportError:
+            raise ImportError('This requires multiprocessing '
+                              'to work properly.')
         print("now sending data...")
         self.process = Process(target=self._initiate_stream)
         self.process.daemon = True
