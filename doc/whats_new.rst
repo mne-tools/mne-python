@@ -24,6 +24,8 @@ Version 0.18.1
 API
 ~~~
 
+- Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
+
 - Deprecate ``mne.realtime`` module to make a standalone module :mod:`mne_realtime` that will lives outside of the MNE-Python package by `Teon Brooks`_
 
 .. _changes_0_18:

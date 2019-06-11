@@ -13,7 +13,9 @@ import collections
 import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
-                    _check_pandas_installed, _Counter, _mask_to_onsets_offsets)
+                    _check_pandas_installed, _mask_to_onsets_offsets)
+from .utils import _DefaultEventParser
+
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
 from .io.constants import FIFF
@@ -782,9 +784,6 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
     """Get a collection of descriptions and returns index of selected."""
     regexp_comp = re.compile('.*' if regexp is None else regexp)
 
-    if event_id is None:
-        event_id = _Counter()
-
     event_id_ = dict()
     dropped = []
     # Iterate over the sorted descriptions so that the Counter mapping
@@ -815,6 +814,29 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
         raise ValueError('Could not find any of the events you specified.')
 
     return event_sel, event_id_
+
+
+def _check_event_id(event_id, raw):
+    from .io.brainvision.brainvision import _BVEventParser
+    from .io.brainvision.brainvision import _check_bv_annot
+    from .io.brainvision.brainvision import RawBrainVision
+    from .io import RawFIF, RawArray
+
+    if event_id is None:
+        return _DefaultEventParser()
+    elif event_id == 'auto':
+        if isinstance(raw, RawBrainVision):
+            return _BVEventParser()
+        elif (isinstance(raw, (RawFIF, RawArray)) and
+              _check_bv_annot(raw.annotations.description)):
+            logger.info('Non-RawBrainVision raw using branvision markers')
+            return _BVEventParser()
+        else:
+            return _DefaultEventParser()
+    elif callable(event_id) or isinstance(event_id, dict):
+        return event_id
+    else:
+        raise ValueError('Invalid input event_id')
 
 
 @verbose
@@ -878,8 +900,7 @@ def events_from_annotations(raw, event_id="auto",
 
     annotations = raw.annotations
 
-    if event_id == 'auto':
-        event_id = getattr(raw, '_get_auto_event_id', lambda: None)()
+    event_id = _check_event_id(event_id, raw)
 
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp)

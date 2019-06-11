@@ -132,11 +132,6 @@ class RawBrainVision(BaseRaw):
                     block[:n_data_ch, ii] = [float(l) for l in line]
             _mult_cal_one(data, block, idx, cals, mult)
 
-    @classmethod
-    def _get_auto_event_id(cls):
-        """Return default ``event_id`` behavior for Brainvision."""
-        return _BVEventParser()
-
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     """Read chunk of vectorized raw data."""
@@ -869,3 +864,10 @@ class _BVEventParser(object):
                     _OTHER_OFFSET + len(self.other_event_ids)
             code = self.other_event_ids[description]
         return code
+
+
+def _check_bv_annot(descriptions):
+    markers_basename = set([dd.rstrip('0123456789 ') for dd in descriptions])
+    bv_markers = (set(_BV_EVENT_IO_OFFSETS.keys())
+                  .union(set(_OTHER_ACCEPTED_MARKERS.keys())))
+    return len(markers_basename - bv_markers) == 0
