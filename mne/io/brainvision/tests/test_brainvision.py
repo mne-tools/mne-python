@@ -519,4 +519,18 @@ def test_automatic_vmrk_sfreq_recovery():
                        read_annotations(vmrk_path, sfreq=1000.0))
 
 
+@testing.requires_testing_data
+def test_event_id_stability_when_save_and_fif_reload(tmpdir):
+    """Test load events from brainvision annotations when read_raw_fif."""
+    fname = op.join(str(tmpdir), 'bv-raw.fif')
+    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    original_events, original_event_id = events_from_annotations(raw)
+
+    raw.save(fname)
+    raw = read_raw_fif(fname)
+    events, event_id = events_from_annotations(raw)
+
+    assert event_id == original_event_id
+    assert_array_equal(events, original_events)
+
 run_tests_if_main()
