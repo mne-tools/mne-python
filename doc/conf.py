@@ -316,19 +316,27 @@ intersphinx_mapping = {
 
 examples_dirs = ['../examples', '../tutorials']
 gallery_dirs = ['auto_examples', 'auto_tutorials']
-
+os.environ['_MNE_BUILDING_DOC'] = 'true'
 try:
     mlab = mne.utils._import_mlab()
     # Do not pop up any mayavi windows while running the
     # examples. These are very annoying since they steal the focus.
     mlab.options.offscreen = True
-    scrapers = ('matplotlib', 'mayavi')
 except Exception:
     scrapers = ('matplotlib',)
+    report_scraper = None
 else:
     # Let's do the same thing we do in tests: reraise traits exceptions
     from traits.api import push_exception_handler
     push_exception_handler(reraise_exceptions=True)
+    report_scraper = mne.report._ReportScraper()
+    scrapers = ('matplotlib', 'mayavi', report_scraper)
+
+
+def setup(app):
+    if report_scraper is not None:
+        report_scraper.app = app
+        app.connect('build-finished', report_scraper.copyfiles)
 
 
 class Resetter(object):

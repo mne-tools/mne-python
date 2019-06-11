@@ -59,7 +59,7 @@ tags
 doc/coverages
 doc/samples
 cover
-examples/visualization/foobar.html
+*.html
 
 *.orig
 
