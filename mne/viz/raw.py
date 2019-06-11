@@ -491,7 +491,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         plt_show(show, block=block)
     except TypeError:  # not all versions have this
         plt_show(show)
+
+    # add MNE params dict to the resulting figure object so that parameters can
+    # be modified after the figure has been created; this is useful e.g. to
+    # remove the keyboard shortcut to close the figure with the 'Esc' key,
+    # which can be done with
+    #
+    # fig._mne_params['close_key'] = None
+    #
+    # (assuming that the figure object is fig)
     params['fig']._mne_params = params
+
     return params['fig']
 
 
