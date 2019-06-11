@@ -396,8 +396,7 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
         if len(axes) != n_axes:
             raise ValueError('{}"axes" must be of length {}, got {}.'
                              ''.format(prefix, n_axes, len(axes)))
-        fig = axes[0].get_figure()
-        # should be only one group; gets tested below after conversion to dict
+        # should be only one group (gets tested below after conversion to dict)
         key = list(group_by)[0]
         axes = {key: axes}
 
