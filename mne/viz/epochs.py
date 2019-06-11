@@ -15,7 +15,6 @@ from functools import partial
 import copy
 
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
 
 from ..defaults import _handle_default
 from ..utils import verbose, get_config, set_config, logger, warn, fill_doc
@@ -184,6 +183,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     |          | list of ch_names           | callable   |                   |
     +----------+----------------------------+------------+-------------------+
     """
+    from scipy.ndimage import gaussian_filter1d
     from .. import EpochsArray
 
     units = _handle_default('units', units)
