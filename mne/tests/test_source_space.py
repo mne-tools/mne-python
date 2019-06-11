@@ -11,7 +11,8 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, read_trans, compute_source_morph)
+                 head_to_mni, read_trans, compute_source_morph,
+                 read_bem_solution)
 from mne.utils import (requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess, modified_env,
                        requires_mne, run_tests_if_main)
@@ -23,7 +24,6 @@ from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
                               get_volume_labels_from_src,
                               _compare_source_spaces)
 from mne.io.constants import FIFF
-from mne.bem import ConductorModel
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -33,6 +33,12 @@ fname_vol = op.join(subjects_dir, 'sample', 'bem',
                     'sample-volume-7mm-src.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-1280-bem.fif')
+fname_bem_sol = op.join(data_path, 'subjects', 'sample', 'bem',
+                        'sample-1280-bem-sol.fif')
+fname_bem_3 = op.join(data_path, 'subjects', 'sample', 'bem',
+                      'sample-1280-1280-1280-bem.fif')
+fname_bem_3_sol = op.join(data_path, 'subjects', 'sample', 'bem',
+                          'sample-1280-1280-1280-bem-sol.fif')
 fname_fs = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif')
 fname_morph = op.join(subjects_dir, 'sample', 'bem',
                       'sample-fsaverage-ico-5-src.fif')
@@ -213,11 +219,12 @@ def test_volume_source_space(tmpdir):
     temp_name = op.join(tempdir, 'temp-src.fif')
     surf = read_bem_surfaces(fname_bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN)
     surf['rr'] *= 1e3  # convert to mm
-    bem_surfs = read_bem_surfaces(fname_bem)
-    bem = ConductorModel(is_sphere=False, surfs=bem_surfs)
+    bem_sol = read_bem_solution(fname_bem_3_sol)
+    bem = read_bem_solution(fname_bem_sol)
     # The one in the testing dataset (uses bem as bounds)
-    for this_bem, this_surf in zip((bem, fname_bem, None),
-                                   (None, None, surf)):
+    for this_bem, this_surf in zip(
+            (bem, fname_bem, fname_bem_3, bem_sol, fname_bem_3_sol, None),
+            (None, None, None, None, None, surf)):
         src_new = setup_volume_source_space(
             'sample', pos=7.0, bem=this_bem, surface=this_surf,
             subjects_dir=subjects_dir)
@@ -227,9 +234,18 @@ def test_volume_source_space(tmpdir):
         del src_new
         src_new = read_source_spaces(temp_name)
         _compare_source_spaces(src, src_new, mode='approx')
-    pytest.raises(IOError, setup_volume_source_space, 'sample',
-                  pos=7.0, bem=None, surface='foo',  # bad surf
-                  mri=fname_mri, subjects_dir=subjects_dir)
+    with pytest.raises(IOError, match='surface file.*not found'):
+        setup_volume_source_space(
+            'sample', surface='foo', mri=fname_mri, subjects_dir=subjects_dir)
+    bem['surfs'][-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    with pytest.raises(ValueError, match='BEM is not in MRI coord.* got head'):
+        setup_volume_source_space(
+            'sample', bem=bem, mri=fname_mri, subjects_dir=subjects_dir)
+    bem['surfs'] = bem['surfs'][:-1]  # no inner skull surf
+    with pytest.raises(ValueError, match='Could not get inner skul.*from BEM'):
+        setup_volume_source_space(
+            'sample', bem=bem, mri=fname_mri, subjects_dir=subjects_dir)
+    del bem
     assert repr(src) == repr(src_new)
     assert src.kind == 'volume'
     # Spheres
@@ -238,10 +254,12 @@ def test_volume_source_space(tmpdir):
     src = setup_volume_source_space(pos=10)
     src_new = setup_volume_source_space(pos=10, sphere=sphere)
     _compare_source_spaces(src, src_new, mode='exact')
-    pytest.raises(ValueError, setup_volume_source_space, sphere='foo')
+    with pytest.raises(ValueError, match='could not convert string to float'):
+        setup_volume_source_space(sphere='foo')
     # Need a radius
     sphere = make_sphere_model(head_radius=None)
-    pytest.raises(ValueError, setup_volume_source_space, sphere=sphere)
+    with pytest.raises(ValueError, match='be spherical with multiple layers'):
+        setup_volume_source_space(sphere=sphere)
 
 
 @testing.requires_testing_data

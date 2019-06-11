@@ -1691,8 +1691,15 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                         % (bem, surf['np']))
         elif bem is not None and bem.get('is_sphere') is False:
             # read bem surface in the MRI coordinate frame
-            surf = bem['surfs'][0]
+            which = np.where([surf['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
+                              for surf in bem['surfs']])[0]
+            if len(which) != 1:
+                raise ValueError('Could not get inner skull surface from BEM')
+            surf = bem['surfs'][which[0]]
             assert surf['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
+            if surf['coord_frame'] != FIFF.FIFFV_COORD_MRI:
+                raise ValueError('BEM is not in MRI coordinates, got %s'
+                                 % (_coord_frame_name(surf['coord_frame']),))
             logger.info('Taking inner skull from %s'
                         % bem)
         elif surface is not None:

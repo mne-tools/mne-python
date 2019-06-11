@@ -37,6 +37,8 @@ Bug
 
 - Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
 
+- Fix checks when constructing volumetric and surface source spaces with :func:`mne.setup_volume_source_space` and :func:`mne.setup_source_space`, respectively, by `Eric Larson`_
+
 - Fix bug in handling of :class:`mne.Evoked` types that were not produced by MNE-Python (e.g., alternating average) by `Eric Larson`_
 
 - Fix bug in :func:`mne.read_source_estimate` where vector volumetric source estimates could not be read by `Eric Larson`_
