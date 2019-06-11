@@ -534,11 +534,11 @@ def _plot_epochs_image(data, style_axes=True, epochs=None, norm=False,
 
     # draw the colorbar
     if colorbar:
-        from matplotlib.pyplot import colorbar
-        cbar = colorbar(im, cax=ax['colorbar'])
-        cbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
+        from matplotlib.pyplot import colorbar as cbar
+        this_colorbar = cbar(im, cax=ax['colorbar'])
+        this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
         if cmap[1]:
-            ax_im.CB = DraggableColorbar(cbar, im)
+            ax_im.CB = DraggableColorbar(this_colorbar, im)
         tight_layout(fig=fig)
 
     # finish
