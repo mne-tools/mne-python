@@ -12,7 +12,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, read_trans, compute_source_morph)
-from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
+from mne.utils import (requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess, modified_env,
                        requires_mne, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
@@ -85,9 +85,9 @@ def test_add_patch_info(monkeypatch):
 
 
 @testing.requires_testing_data
-def test_add_source_space_distances_limited():
+def test_add_source_space_distances_limited(tmpdir):
     """Test adding distances to source space with a dist_limit."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
@@ -120,9 +120,9 @@ def test_add_source_space_distances_limited():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_add_source_space_distances():
+def test_add_source_space_distances(tmpdir):
     """Test adding distances to source space."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
@@ -163,9 +163,9 @@ def test_add_source_space_distances():
 
 @testing.requires_testing_data
 @requires_mne
-def test_discrete_source_space():
+def test_discrete_source_space(tmpdir):
     """Test setting up (and reading/writing) discrete source spaces."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     src = read_source_spaces(fname)
     v = src[0]['vertno']
 
@@ -206,9 +206,9 @@ def test_discrete_source_space():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_volume_source_space():
+def test_volume_source_space(tmpdir):
     """Test setting up volume source spaces."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     src = read_source_spaces(fname_vol)
     temp_name = op.join(tempdir, 'temp-src.fif')
     surf = read_bem_surfaces(fname_bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN)
@@ -246,13 +246,13 @@ def test_volume_source_space():
 
 @testing.requires_testing_data
 @requires_mne
-def test_other_volume_source_spaces():
+def test_other_volume_source_spaces(tmpdir):
     """Test setting up other volume source spaces."""
     # these are split off because they require the MNE tools, and
     # Travis doesn't seem to like them
 
     # let's try the spherical one (no bem or surf supplied)
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     temp_name = op.join(tempdir, 'temp-src.fif')
     run_subprocess(['mne_volume_source_space',
                     '--grid', '7.0',
@@ -335,22 +335,29 @@ def test_accumulate_normals():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_setup_source_space():
+def test_setup_source_space(tmpdir):
     """Test setting up ico, oct, and all source spaces."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
     # first lets test some input params
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='oct',
-                  add_dist=False, subjects_dir=subjects_dir)
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='octo',
-                  add_dist=False, subjects_dir=subjects_dir)
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='oct6e',
-                  add_dist=False, subjects_dir=subjects_dir)
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='7emm',
-                  add_dist=False, subjects_dir=subjects_dir)
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='alls',
-                  add_dist=False, subjects_dir=subjects_dir)
+    for spacing in ('oct', 'oct6e'):
+        with pytest.raises(ValueError, match='subdivision must be an integer'):
+            setup_source_space('sample', spacing=spacing,
+                               add_dist=False, subjects_dir=subjects_dir)
+    for spacing in ('oct0', 'oct-4'):
+        with pytest.raises(ValueError, match='oct subdivision must be >= 1'):
+            setup_source_space('sample', spacing=spacing,
+                               add_dist=False, subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='ico subdivision must be >= 0'):
+        setup_source_space('sample', spacing='ico-4',
+                           add_dist=False, subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='must be a string with values'):
+        setup_source_space('sample', spacing='7emm',
+                           add_dist=False, subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='must be a string with values'):
+        setup_source_space('sample', spacing='alls',
+                           add_dist=False, subjects_dir=subjects_dir)
 
     # ico 5 (fsaverage) - write to temp file
     src = read_source_spaces(fname_ico)
@@ -434,9 +441,9 @@ def test_read_source_spaces():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_write_source_space():
+def test_write_source_space(tmpdir):
     """Test reading and writing of source spaces."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     src0 = read_source_spaces(fname, patch_stats=False)
     write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
     src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'),
@@ -523,9 +530,9 @@ def test_get_volume_label_names():
 @testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
-def test_source_space_from_label():
+def test_source_space_from_label(tmpdir):
     """Test generating a source space from volume label."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_label = label_names[int(np.random.rand() * len(label_names))]
@@ -591,9 +598,9 @@ def test_read_volume_from_src():
 @testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
-def test_combine_source_spaces():
+def test_combine_source_spaces(tmpdir):
     """Test combining source spaces."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_labels = [label_names[int(np.random.rand() * len(label_names))]

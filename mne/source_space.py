@@ -1336,7 +1336,8 @@ def _check_spacing(spacing, verbose=None):
     """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
     types = ('a string with values "ico#", "oct#", "all", or an int >= 2')
-    space_err = '"spacing" must be ' + types
+    space_err = ('"spacing" must be %s, got type %s (%r)'
+                 % (types, type(spacing), spacing))
     if isinstance(spacing, str):
         if spacing == 'all':
             stype = 'all'
@@ -1347,8 +1348,12 @@ def _check_spacing(spacing, verbose=None):
             try:
                 sval = int(sval)
             except Exception:
-                raise ValueError('ico and oct numbers must be integers, got %r'
-                                 % (sval,))
+                raise ValueError('%s subdivision must be an integer, got %r'
+                                 % (stype, sval))
+            lim = 0 if stype == 'ico' else 1
+            if sval < lim:
+                raise ValueError('%s subdivision must be >= %s, got %s'
+                                 % (stype, lim, sval))
         else:
             raise ValueError(space_err)
     else:
