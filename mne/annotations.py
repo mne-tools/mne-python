@@ -825,10 +825,11 @@ def _check_event_id(event_id, raw):
     if event_id is None:
         return _DefaultEventParser()
     elif event_id == 'auto':
-        if isinstance(raw, RawBrainVision) or (
-            isinstance(raw, (RawFIF, RawArray)) and
-            _check_bv_annot(raw.annotations.description)
-        ):
+        if isinstance(raw, RawBrainVision):
+            return _BVEventParser()
+        elif (isinstance(raw, (RawFIF, RawArray)) and
+              _check_bv_annot(raw.annotations.description)):
+            logger.info('Non-RawBrainVision raw using branvision markers')
             return _BVEventParser()
         else:
             return _DefaultEventParser()
