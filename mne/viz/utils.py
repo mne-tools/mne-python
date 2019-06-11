@@ -1638,7 +1638,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
     return fig
 
 
-def _compute_scalings(scalings, inst, remove_dc=False):
+def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     """Compute scalings for each channel type automatically.
 
     Parameters
@@ -1657,6 +1657,9 @@ def _compute_scalings(scalings, inst, remove_dc=False):
         True, the mean will be computed and subtracted for short epochs in
         order to compensate not only for global mean offset, but also for slow
         drifts in the signals.
+    duration : int or float
+        If remove_dc is True, the mean will be computed and subtracted on
+        segments of length ``duration`` seconds.
 
     Returns
     -------
@@ -1708,8 +1711,8 @@ def _compute_scalings(scalings, inst, remove_dc=False):
                                  % (key, value))
             continue
         this_data = data[ch_types[key]]
-        if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= 10):
-            length = int(10 * inst.info["sfreq"]) # length of segments (in s)
+        if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= duration):
+            length = int(duration * inst.info["sfreq"]) # segment length (in s)
             # truncate data so that we can divide into segments of equal length
             this_data = this_data[:, :this_data.shape[1] // length * length]
             shape = this_data.shape  # original shape
