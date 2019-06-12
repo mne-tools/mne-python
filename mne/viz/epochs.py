@@ -243,7 +243,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             raise ValueError('Cannot combine sensors of different types; "{}" '
                              'contains types {}.'.format(this_group, types))
         # now we know they're all the same type...
-        group_by[this_group] = dict(picks=these_picks, ch_type=this_ch_type[0])
+        group_by[this_group] = dict(picks=these_picks, ch_type=this_ch_type[0],
+                                    title=title)
 
         # are they trying to combine a single channel?
         if len(these_picks) < 2 and combine is not None:
@@ -308,11 +309,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_epochs = this_group_dict['epochs']
         this_ch_type = this_group_dict['ch_type']
         this_axes_dict = this_group_dict['axes']
-        # this_fig = this_group_dict['fig']
+        this_title = this_group_dict['title']
         vmin, vmax = vmin_vmax[this_ch_type]
 
         # plot title
-        if title is None:
+        if this_title is None:
             title = _handle_default('titles').get(this_group, this_group)
             if isinstance(combine, str):
                 _comb = combine.upper() if combine == 'gfp' else combine
