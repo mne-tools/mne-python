@@ -67,7 +67,6 @@ jobs:
 
         - run:
             name: Get Python running
-            # pip install --user --upgrade --progress-bar off https://api.github.com/repos/larsoner/numpydoc/zipball/xref-param-type
             command: |
               pip install --user --upgrade --progress-bar off pip numpy vtk
               pip install --user --upgrade --progress-bar off -r requirements.txt

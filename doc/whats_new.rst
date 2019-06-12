@@ -35,15 +35,24 @@ Changelog
 Bug
 ~~~
 
+- Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
+
 - Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
 
+- Fix checks when constructing volumetric and surface source spaces with :func:`mne.setup_volume_source_space` and :func:`mne.setup_source_space`, respectively, by `Eric Larson`_
+
 - Fix bug in handling of :class:`mne.Evoked` types that were not produced by MNE-Python (e.g., alternating average) by `Eric Larson`_
+
+- Fix bug in :func:`mne.read_source_estimate` where vector volumetric source estimates could not be read by `Eric Larson`_
 
 - Fix bug in :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.tf_mixed_norm` where ``weights`` was supplied but ``weights_min`` was not, by `Eric Larson`_
 
 - Fix bug in :func:`mne.io.Raw.plot` when using HiDPI displays and the MacOSX backend of matplotlib by `Eric Larson`_
 
 - Fix bug in :func:`mne.viz.plot_compare_evokeds` when using Neuromag 122 system by `Eric Larson`_
+
+- Fix bug in :func:`mne.Epochs.plot_psd` when some channels had zero/infinite ``psd`` values causing erroneous error messages by `Luke Bloy`_
+
 
 API
 ~~~

@@ -91,7 +91,7 @@ Generate the report::
     >>> path = sample.data_path(verbose=False)
     >>> fname_evoked = path + '/MEG/sample/sample_audvis-ave.fif'
     >>> report = Report(fname_evoked, verbose=True)
-    Embedding : jquery-1.10.2.min.js
+    Embedding : jquery.js
     Embedding : jquery-ui.min.js
     Embedding : bootstrap.min.js
     Embedding : jquery-ui.min.css

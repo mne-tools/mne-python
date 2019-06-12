@@ -224,10 +224,20 @@ def test_plot_butterfly():
 def test_plot_psd_epochs():
     """Test plotting epochs psd (+topomap)."""
     epochs = _get_epochs()
+    epochs.load_data()
     epochs.plot_psd()
+    epochs.plot_psd(average=False)
     pytest.raises(RuntimeError, epochs.plot_psd_topomap,
                   bands=[(0, 0.01, 'foo')])  # no freqs in range
     epochs.plot_psd_topomap()
+
+    # with a flat channel
+    err_str = r'channel\(s\) (%s){1}\.' % epochs.ch_names[2]
+    epochs.get_data()[0, 2, :] = 0
+    for dB in [True, False]:
+        with pytest.warns(UserWarning, match=err_str):
+            epochs.plot_psd(dB=dB)
+
     plt.close('all')
 
 
