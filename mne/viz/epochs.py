@@ -196,7 +196,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
     ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
 
-    # combine defaults to 'gfp' unless user gave specific picks and no group_by
+    # `combine` defaults to 'gfp' unless picks are specific channels and
+    # there was no group_by passed
     if combine is None and (group_by is not None or picked_types):
         combine = 'gfp'
     # convert `combine` into callable (if None or str)
@@ -274,8 +275,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_epochs = EpochsArray(this_data, this_info, tmin=epochs.times[0])
         # apply scalings (only to image, not epochs object), combine channels
         this_image = combine_func(this_data * scalings[this_ch_type])
-        # handle `order`
-        # NB: this can potentially yield different orderings in each figure!
+        # handle `order`. NB: this can potentially yield different orderings
+        # in each figure!
         this_image, overlay_times = _order_epochs(this_image, epochs.times,
                                                   order, overlay_times)
         this_norm = np.all(this_image > 0)
