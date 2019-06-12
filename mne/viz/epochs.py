@@ -37,7 +37,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None, fig=None,
                       axes=None, overlay_times=None, combine=None,
-                      group_by=None, evoked=True, ts_args=dict(), title=None):
+                      group_by=None, evoked=True, ts_args=None, title=None):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -141,7 +141,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         number of figures generated; see Notes. Defaults to ``None``.
     evoked : bool
         Draw the ER[P/F] below the image or not.
-    ts_args : dict
+    ts_args : None | dict
         Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
         the evoked plot below the image. Defaults to an empty dictionary,
         meaning `plot_compare_evokeds` will be called with default parameters
@@ -203,6 +203,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     combine_func = _make_combine_callable(combine)
 
     # handle ts_args (params for the evoked time series)
+    ts_args = dict() if ts_args is None else ts_args
     manual_ylims = 'ylim' in ts_args
     if combine is not None:
         ts_args['show_sensors'] = False
