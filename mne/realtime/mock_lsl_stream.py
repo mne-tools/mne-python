@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 import time
-from multiprocessing import Process
 
 from ..utils import _check_pylsl_installed, deprecated
 from ..io import constants
@@ -40,6 +39,11 @@ class MockLSLStream(object):
 
     def start(self):
         """Start a mock LSL stream."""
+        try:
+            from multiprocessing import Process
+        except ImportError:
+            raise ImportError('This requires multiprocessing '
+                              'to work properly.')
         print("now sending data...")
         self.process = Process(target=self._initiate_stream)
         self.process.daemon = True
