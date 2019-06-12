@@ -123,8 +123,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
     %(picks_good_data)s
-    n_jobs : int, default 1
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     cv : cross-validation object | str | None, default LeaveOneOut
         The cross-validation scheme.
     %(verbose)s

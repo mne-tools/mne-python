@@ -8,10 +8,6 @@ html {
   min-height: 100%;
 }
 
-body {
-    margin-bottom: 150px;
-}
-
 .navbar-version {
     display: none;
 }
@@ -207,9 +203,8 @@ div.sidebar {
     width: 100%;
 }
 .footer {
-    position: absolute;
-    bottom: 0;
     width: 100%;
+    margin-top: 20px;
 }
 .footer a {
     font-weight: 700;
@@ -359,3 +354,28 @@ dl.cmd-list dt::after {
 dd table.align-center {
     width: 100%;
 }
+/* institutions logos in footer */
+div.institutions {
+    text-align: center;
+    line-height: 52px;
+    margin-bottom: 6px;
+  }
+div.institutions a {
+    border: 0px;
+    margin-right: 6px;
+}
+.institution_xs .institution_sm .institution_md .institution_lg {
+    vertical-align: middle;
+  }
+  .institution_xs {
+    max-height: 24px;
+  }
+  .institution_sm {
+    max-height: 36px;
+  }
+  .institution_md {
+    max-height: 48px;
+  }
+  .institution_lg {
+    max-height: 60px;
+  }

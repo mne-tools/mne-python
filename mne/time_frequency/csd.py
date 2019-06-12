@@ -563,8 +563,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will by copied.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -622,8 +621,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means no projectors are stored.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -705,8 +703,7 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will by copied.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -774,8 +771,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means no projectors are stored.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -858,8 +854,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will be copied.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -926,8 +921,7 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will be copied.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -1066,8 +1060,7 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means the projectors defined in the Epochs object will be copied.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     %(verbose)s
 
     Returns

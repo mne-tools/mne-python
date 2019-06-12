@@ -10,7 +10,7 @@ from scipy import fftpack
 # XXX explore cuda optimization at some point.
 
 from ..io.pick import _pick_data_channels, pick_info
-from ..utils import verbose, warn
+from ..utils import verbose, warn, fill_doc
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
 
@@ -98,6 +98,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     return psd, itc
 
 
+@fill_doc
 def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
                         width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Compute power and intertrial coherence using Stockwell (S) transform.
@@ -127,8 +128,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
         The decimation factor on the time axis. To reduce memory usage.
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
-    n_jobs : int
-        Number of parallel jobs to use.
+    %(n_jobs)s
 
     Returns
     -------

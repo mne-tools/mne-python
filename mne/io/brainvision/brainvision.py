@@ -21,7 +21,7 @@ from io import StringIO
 
 import numpy as np
 
-from ...utils import verbose, logger, warn, fill_doc
+from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _check_update_montage
@@ -131,11 +131,6 @@ class RawBrainVision(BaseRaw):
                     line = line.strip().replace(',', '.').split()
                     block[:n_data_ch, ii] = [float(l) for l in line]
             _mult_cal_one(data, block, idx, cals, mult)
-
-    @classmethod
-    def _get_auto_event_id(cls):
-        """Return default ``event_id`` behavior for Brainvision."""
-        return _BVEventParser()
 
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
@@ -845,11 +840,8 @@ _OTHER_ACCEPTED_MARKERS = {
 _OTHER_OFFSET = 10001  # where to start "unknown" event_ids
 
 
-class _BVEventParser(object):
+class _BVEventParser(_DefaultEventParser):
     """Parse standard brainvision events, accounting for non-standard ones."""
-
-    def __init__(self):
-        self.other_event_ids = dict()
 
     def __call__(self, description):
         """Parse BrainVision event codes (like `Stimulus/S 11`) to ints."""
@@ -862,10 +854,13 @@ class _BVEventParser(object):
         elif description in _OTHER_ACCEPTED_MARKERS:
             code = _OTHER_ACCEPTED_MARKERS[description]
         else:
-            if description not in self.other_event_ids:
-                # Each time a new one is added, len(self.other_event_ids)
-                # will grow, so implicitly this is a counter for us
-                self.other_event_ids[description] = \
-                    _OTHER_OFFSET + len(self.other_event_ids)
-            code = self.other_event_ids[description]
+            code = (super(_BVEventParser, self)
+                    .__call__(description, offset=_OTHER_OFFSET))
         return code
+
+
+def _check_bv_annot(descriptions):
+    markers_basename = set([dd.rstrip('0123456789 ') for dd in descriptions])
+    bv_markers = (set(_BV_EVENT_IO_OFFSETS.keys())
+                  .union(set(_OTHER_ACCEPTED_MARKERS.keys())))
+    return len(markers_basename - bv_markers) == 0

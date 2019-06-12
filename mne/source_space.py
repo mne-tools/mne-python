@@ -1400,9 +1400,8 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     add_dist : bool
         Add distance and patch information to the source space. This takes some
         time so precomputing it is recommended.
-    n_jobs : int
-        Number of jobs to run in parallel. Will use at most 2 jobs
-        (one for each hemisphere).
+    %(n_jobs)s
+        Will use at most 2 jobs (one for each hemisphere).
     %(verbose)s
 
     Returns
@@ -2356,9 +2355,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         The upper limit of distances to include (in meters).
         Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
         10/2013) must be installed.
-    n_jobs : int
-        Number of jobs to run in parallel. Will only use (up to) as many
-        cores as there are source spaces.
+    %(n_jobs)s
+        Will only use (up to) as many cores as there are source spaces.
     %(verbose)s
 
     Returns

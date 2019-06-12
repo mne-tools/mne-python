@@ -2482,6 +2482,7 @@ class EpochsFIF(BaseEpochs):
         return data
 
 
+@fill_doc
 def bootstrap(epochs, random_state=None):
     """Compute epochs selected by bootstrapping.
 
@@ -2489,8 +2490,7 @@ def bootstrap(epochs, random_state=None):
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    random_state : None | int | np.random.RandomState
-        To specify the random generator state
+    %(random_state)s
 
     Returns
     -------
