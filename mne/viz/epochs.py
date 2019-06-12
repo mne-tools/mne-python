@@ -503,9 +503,9 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, norm=False,
 
     # draw the evoked
     if evoked:
-        from mne.viz import plot_compare_evokeds
-        plot_compare_evokeds({'cond': list(epochs.iter_evoked())},
-                             gfp=gfp, axes=ax['evoked'], **ts_args)
+        from . import plot_compare_evokeds
+        plot_compare_evokeds({'cond': list(epochs.iter_evoked())}, picks=[0],
+                             gfp=False, axes=ax['evoked'], **ts_args)
         ax['evoked'].set_xlim(tmin, tmax)  # don't multiply by 1e3 here
         ax_im.set_xticks([])
 
