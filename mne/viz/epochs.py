@@ -28,7 +28,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
-                    _set_title_multiple_electrodes)
+                    _set_title_multiple_electrodes, _make_combine_callable)
 from .misc import _handle_event_colors
 
 
@@ -431,23 +431,6 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
             group_by[this_group]['axes'] = {key: axis for key, axis in
                                             zip(ax_names, this_axes_list)}
     return group_by
-
-
-def _make_combine_callable(combine):
-    """convert None or string values of ``combine`` into callables."""
-    if combine is None:
-        combine = partial(np.squeeze, axis=1)
-    elif isinstance(combine, str):
-        combine_dict = {key: partial(getattr(np, key), axis=1)
-                        for key in ('mean', 'median', 'std')}
-        combine_dict.update(gfp=lambda data: np.sqrt((data ** 2).mean(axis=1)))
-        try:
-            combine = combine_dict[combine]
-        except KeyError:
-            raise ValueError('"combine" must be None, a callable, or one of '
-                             '"mean", "median", "std", or "gfp"; got {}'
-                             ''.format(combine))
-    return combine
 
 
 def _order_epochs(data, times, order=None, overlay_times=None):

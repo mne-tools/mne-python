@@ -37,7 +37,7 @@ from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, set_config, warn, _check_ch_locs, _check_option,
-                     logger)
+                     logger, fill_doc)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -2789,6 +2789,34 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         t_end = ")"
 
     return im, t_end
+
+
+@fill_doc
+def _make_combine_callable(combine):
+    """convert None or string values of ``combine`` into callables.
+
+    Params
+    ------
+    %(combine)s
+        If callable, the call signature and return type depend on the value of
+        ``kind``: for ``kind='epochs'``, input shape must be
+        ``(n_epochs, n_channels, n_times)`` and output shape
+        ``(n_epochs, n_times)``; for ``kind='evoked'`` input shape must be
+        ``(n_channels, n_times)``) and output shape ``(n_times,)``.
+    """
+    if combine is None:
+        combine = partial(np.squeeze, axis=1)
+    elif isinstance(combine, str):
+        combine_dict = {key: partial(getattr(np, key), axis=1)
+                        for key in ('mean', 'median', 'std')}
+        combine_dict['gfp'] = lambda data: np.sqrt((data ** 2).mean(axis=1))
+        try:
+            combine = combine_dict[combine]
+        except KeyError:
+            raise ValueError('"combine" must be None, a callable, or one of '
+                             '"mean", "median", "std", or "gfp"; got {}'
+                             ''.format(combine))
+    return combine
 
 
 def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
