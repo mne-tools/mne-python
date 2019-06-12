@@ -389,15 +389,19 @@ def _get_help_text(params):
             text2.insert(3, 'Navigate channels up\n')
             text.insert(6, u'a : \n')
             text2.insert(6, 'Toggle annotation mode\n')
-            text.insert(7, u'b : \n')
-            text2.insert(7, 'Toggle butterfly plot on/off\n')
-            text.insert(8, u'd : \n')
-            text2.insert(8, 'Toggle remove DC on/off\n')
-            text.insert(9, u's : \n')
-            text2.insert(9, 'Toggle scale bars\n')
+
+            text.insert(7, u'p : \n')
+            text2.insert(7, 'Toggle snap to annotations on/off\n')
+
+            text.insert(8, u'b : \n')
+            text2.insert(8, 'Toggle butterfly plot on/off\n')
+            text.insert(9, u'd : \n')
+            text2.insert(9, 'Toggle remove DC on/off\n')
+            text.insert(10, u's : \n')
+            text2.insert(10, 'Toggle scale bars\n')
             if 'fig_selection' not in params:
-                text2.insert(12, 'Reduce the number of channels per view\n')
-                text2.insert(13, 'Increase the number of channels per view\n')
+                text2.insert(13, 'Reduce the number of channels per view\n')
+                text2.insert(14, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -886,6 +890,8 @@ def _plot_raw_onkey(event, params):
     elif event.key == 's':
         params['use_scalebars'] = not params['use_scalebars']
         params['plot_fun']()
+    elif event.key == 'p':
+        params['snap_annotations'] = not params['snap_annotations']
 
 
 def _setup_annotation_fig(params):
@@ -2066,7 +2072,8 @@ def _annotations_closed(event, params):
 
 def _on_hover(event, params):
     """Handle hover event."""
-    if event.key != "v":
+    if not params["snap_annotations"]:  # don't snap to annotations
+        _remove_segment_line(params)
         return
     from matplotlib.patheffects import Stroke, Normal
     if (event.button is not None or

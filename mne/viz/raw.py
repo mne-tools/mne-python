@@ -406,7 +406,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
-                  filt_bounds=filt_bounds, units=units,
+                  filt_bounds=filt_bounds, units=units, snap_annotations=False,
                   unit_scalings=unit_scalings, use_scalebars=True)
 
     if group_by in ['selection', 'position']:
