@@ -267,10 +267,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         these_ch_names = np.array(epochs.info['ch_names'])[these_picks]
         this_data = data[:, these_picks]
         # create subsetted epochs object
-        this_info = create_info(
-            sfreq=epochs.info['sfreq'],
-            ch_names=list(these_ch_names),
-            ch_types=[this_ch_type] * len(these_picks))
+        this_info = create_info(sfreq=epochs.info['sfreq'],
+                                ch_names=list(these_ch_names),
+                                ch_types=[this_ch_type] * len(these_picks))
         this_info['chs'] = this_ch_info
         this_epochs = EpochsArray(this_data, this_info, tmin=epochs.times[0])
         # apply scalings (only to image, not epochs object), combine channels
