@@ -485,7 +485,7 @@ def _order_epochs(data, times, order=None, overlay_times=None):
     return data, overlay_times
 
 
-def _plot_epochs_image(data, style_axes=True, epochs=None, norm=False,
+def _plot_epochs_image(image, style_axes=True, epochs=None, norm=False,
                        vmin=None, vmax=None, colorbar=False, show=False,
                        unit=None, cmap=None, ax=None, overlay_times=None,
                        title=None, evoked=False, ts_args=None, gfp=None):
@@ -501,9 +501,9 @@ def _plot_epochs_image(data, style_axes=True, epochs=None, norm=False,
 
     # draw the image
     cmap = _setup_cmap(cmap, norm=norm)
-    n_epochs = len(data)
+    n_epochs = len(image)
     extent = [1e3 * tmin, 1e3 * tmax, 0, n_epochs]
-    im = ax_im.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
+    im = ax_im.imshow(image, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
                       origin='lower', interpolation='nearest', extent=extent)
 
     # optional things
