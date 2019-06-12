@@ -270,7 +270,7 @@ def test_ica_core(method):
         for line in fig.axes[0].lines:
             y = line.get_ydata()
             if len(y) > 2:  # actual data, not markers
-                assert np.ptp(y) < 10
+                assert np.ptp(y) < 15
         plt.close('all')
 
         sources = raw_sources[:, :][0]
