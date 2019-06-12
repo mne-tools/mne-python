@@ -892,6 +892,10 @@ def _plot_raw_onkey(event, params):
         params['plot_fun']()
     elif event.key == 'p':
         params['snap_annotations'] = not params['snap_annotations']
+        # remove the line if present
+        if not params['snap_annotations']:
+            _on_hover(None, params)
+        params['plot_fun']()
 
 
 def _setup_annotation_fig(params):
