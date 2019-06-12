@@ -251,6 +251,14 @@ seed : None | int | instance of ~numpy.random.mtrand.RandomState
     ``None``.
 """
 
+# Visualization
+docdict['combine'] = """
+combine : None | str | callable
+    How to combine information across channels. If a :class:`str`, must be
+    one of 'mean', 'median', 'std' (standard deviation) or 'gfp' (global
+    field power).
+"""
+
 # PSD plotting
 docdict["plot_psd_doc"] = """
 Plot the power spectral density across channels.

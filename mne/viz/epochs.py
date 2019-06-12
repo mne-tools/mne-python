@@ -111,11 +111,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ``overlay_times`` should be ordered to correspond with the
         :class:`~mne.Epochs` object (i.e., ``overlay_times[0]`` corresponds to
         ``epochs[0]``, etc).
-    combine : None | str | callable
-        How to combine information across channels. If a :class:`str`, must be
-        one of 'mean', 'median', 'std' (standard deviation) or 'gfp' (global
-        field power). If callable, the callable must accept one positional
-        input (data of shape ``(n_epochs, n_channels, n_times)``) and return an
+    %(combine)s
+        If callable, the callable must accept one positional input (data of
+        shape ``(n_epochs, n_channels, n_times)``) and return an
         :class:`array <numpy.ndarray>` of shape ``(n_epochs, n_times)``. For
         example::
 
