@@ -52,9 +52,16 @@ def test_datasets_basic(tmpdir):
         assert sd.endswith('MNE-fsaverage-data')
 
 
-@requires_good_network
-def test_megsim(tmpdir):
+def _fake_fetch_file(url, destination, print_destination=False):
+    with open(destination, 'w') as fid:
+        fid.write(url)
+
+
+def test_megsim(tmpdir, monkeypatch):
     """Test MEGSIM URL handling."""
+    # Save some time by just faking the download
+    monkeypatch.setattr(datasets.megsim.megsim, '_fetch_file',
+                        _fake_fetch_file)
     paths = datasets.megsim.load_data(
         'index', 'text', 'text', path=str(tmpdir), update_path=False)
     assert len(paths) == 1
