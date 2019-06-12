@@ -8,10 +8,8 @@ Frequency and time-frequency sensors analysis
 The objective is to show you how to explore the spectral content
 of your data (frequency and time-frequency). Here we'll work on Epochs.
 
-We will use the
-`somatosensory dataset <https://mne-tools.github.io/stable/manual/datasets_index.html?#somatosensory>`_
-that contains so-called event related synchronizations (ERS) /
-desynchronizations (ERD) in the beta band.
+We will use this dataset: :ref:`somato-dataset`. It contains so-called event
+related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 """  # noqa: E501
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>

@@ -27,8 +27,7 @@ output of a Morlet Wavelet in frequency bands is relative speed and, more
 importantly, the clear-cut comparability of the spectral decomposition (the
 same type of filter is used across all bands).
 
-We will use the
-`somatosensory dataset <https://mne-tools.github.io/stable/manual/datasets_index.html?#somatosensory>`_
+We will use this dataset: :ref:`somato-dataset`
 
 References
 ----------

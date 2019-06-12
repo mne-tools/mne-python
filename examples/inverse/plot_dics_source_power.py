@@ -8,9 +8,7 @@ Compute source power using DICS beamfomer
 Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
 single-trial activity to estimate source power across a frequency band. This
 example demonstrates how to source localize the event-related synchronization
-(ERS) of beta band activity in the
-`somatosensory dataset <https://mne-tools.github.io/stable/manual/datasets_index.html?#somatosensory>`_
-
+(ERS) of beta band activity in this dataset: :ref:`somato-dataset`
 
 References
 ----------

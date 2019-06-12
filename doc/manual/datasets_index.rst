@@ -104,6 +104,7 @@ The recordings were made using the BCI2000 system. To load a subject, do::
 
     * :ref:`ex-decoding-csp-eeg`
 
+.. _somato-dataset
 
 Somatosensory
 =============
