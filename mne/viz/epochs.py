@@ -278,11 +278,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         # NB: this can potentially yield different orderings in each figure!
         this_image, overlay_times = _order_epochs(this_image, epochs.times,
                                                   order, overlay_times)
+        this_norm = np.all(this_image > 0)
         # apply smoothing
         if sigma > 0.:
             this_image = gaussian_filter1d(this_image, sigma=sigma, axis=0,
                                            mode='nearest')
-        this_norm = (combine == 'gfp') or np.all(this_data > 0)
         # update the group_by and vmin_vmax dicts
         group_by[this_group].update(image=this_image, epochs=this_epochs,
                                     norm=this_norm)
