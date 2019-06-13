@@ -1638,7 +1638,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
     return fig
 
 
-def _compute_scalings(scalings, inst):
+def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     """Compute scalings for each channel type automatically.
 
     Parameters
@@ -1652,6 +1652,14 @@ def _compute_scalings(scalings, inst):
         The data for which you want to compute scalings. If data
         is not preloaded, this will read a subset of times / epochs
         up to 100mb in size in order to compute scalings.
+    remove_dc : bool
+        Whether to remove the mean (DC) before calculating the scalings. If
+        True, the mean will be computed and subtracted for short epochs in
+        order to compensate not only for global mean offset, but also for slow
+        drifts in the signals.
+    duration : float
+        If remove_dc is True, the mean will be computed and subtracted on
+        segments of length ``duration`` seconds.
 
     Returns
     -------
@@ -1703,9 +1711,17 @@ def _compute_scalings(scalings, inst):
                                  % (key, value))
             continue
         this_data = data[ch_types[key]]
-        scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
-        scale_factor = np.max(np.abs(scale_factor))
-        scalings[key] = scale_factor
+        if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= duration):
+            length = int(duration * inst.info["sfreq"])  # segment length
+            # truncate data so that we can divide into segments of equal length
+            this_data = this_data[:, :this_data.shape[1] // length * length]
+            shape = this_data.shape  # original shape
+            this_data = this_data.T.reshape(-1, length, shape[0])  # segment
+            this_data -= this_data.mean(0)  # subtract segment means
+            this_data = this_data.T.reshape(shape)  # reshape into original
+
+        iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
+        scalings[key] = iqr.item()
     return scalings
 
 
