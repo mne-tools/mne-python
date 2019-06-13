@@ -79,6 +79,7 @@ def _annotation_helper(raw, events=False):
     _annotation_radio_clicked('', ann_fig.radio, data_ax.selector)
 
     # draw annotation
+    fig.canvas.key_press_event('p')  # use snap mode
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
