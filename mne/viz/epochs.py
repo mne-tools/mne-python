@@ -21,7 +21,6 @@ from ..utils import (verbose, get_config, set_config, logger, warn, _pl,
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT)
-from ..io.meas_info import create_info
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -32,7 +31,6 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _simplify_float)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
-from .evoked import _plot_lines
 
 
 @fill_doc
@@ -869,8 +867,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,
                     normalization='length', picks=None, ax=None, color='black',
                     area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
-                    show=True, average=True, spatial_colors=False,
-                    line_alpha=None, verbose=None):
+                    show=True, average=True, spatial_colors=True,
+                    line_alpha=None, xscale='linear', verbose=None):
     """Plot the power spectral density across epochs.
 
     Parameters
@@ -927,6 +925,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     line_alpha : float | None
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
+    xscale : str
+        Can be 'linear' (default) or 'log'.
+
     %(verbose)s
 
     Returns
@@ -934,103 +935,26 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure distributing one image per channel across sensor topography.
     """
-    from .raw import _set_psd_plot_params, _convert_psds
 
-    if spatial_colors is None:
-        spatial_colors = False if average else True
-
+    from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label = _set_psd_plot_params(
-            epochs.info, proj, picks, ax, area_mode)
-
+        make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
+                                          area_mode)
+    del ax
     psd_list = list()
-    ylabels = list()
-    for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
-                                                ax_list)):
-        psds, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
-                                     fmax=fmax, tmin=tmin, tmax=tmax,
-                                     bandwidth=bandwidth, adaptive=adaptive,
-                                     low_bias=low_bias,
-                                     normalization=normalization, proj=proj,
-                                     n_jobs=n_jobs)
+    for picks in picks_list:
+        psd, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
+                                    fmax=fmax, tmin=tmin, tmax=tmax,
+                                    bandwidth=bandwidth, adaptive=adaptive,
+                                    low_bias=low_bias,
+                                    normalization=normalization, proj=proj,
+                                    n_jobs=n_jobs)
+        psd_list.append(np.mean(psd, axis=0))
 
-        # average across epochs before conversion
-        psds = np.mean(psds, axis=0)
-
-        ylabel = _convert_psds(psds, dB, 'auto', scalings_list[ii],
-                               units_list[ii],
-                               [epochs.ch_names[pi] for pi in picks])
-
-        if average:
-            # mean across channels
-            psd_mean = np.mean(psds, axis=0)
-            if area_mode == 'std':
-                # std across channels
-                psd_std = np.std(np.mean(psds, axis=0), axis=0)
-                hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
-            elif area_mode == 'range':
-                hyp_limits = (np.min(np.mean(psds, axis=0), axis=0),
-                              np.max(np.mean(psds, axis=0), axis=0))
-            else:  # area_mode is None
-                hyp_limits = None
-
-            ax.plot(freqs, psd_mean, color=color)
-            if hyp_limits is not None:
-                ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                                color=color, alpha=area_alpha)
-        else:
-            psd_list.append(psds)
-        if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Frequency (Hz)')
-            ax.set_ylabel(ylabel)
-            ax.set_title(titles_list[ii])
-            ax.set_xlim(freqs[0], freqs[-1])
-
-        ylabels.append(ylabel)
-
-    for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
-                       ['--', '--', '-.']):
-        if epochs.info[key] is not None:
-            for ax in ax_list:
-                ax.axvline(epochs.info[key], color='k', linestyle=ls,
-                           alpha=0.25, linewidth=2, zorder=2)
-
-    if not average:
-        picks = np.concatenate(picks_list)
-        psd_list = np.concatenate(psd_list)
-        types = np.array([channel_type(epochs.info, idx) for idx in picks])
-        # Needed because the data do not match the info anymore.
-        info = create_info([epochs.ch_names[p] for p in picks], epochs.info['sfreq'],
-                           types)
-        info['chs'] = [epochs.info['chs'][p] for p in picks]
-        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
-                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc']
-        ch_types_used = list()
-        for this_type in valid_channel_types:
-            if this_type in types:
-                ch_types_used.append(this_type)
-        assert len(ch_types_used) == len(ax_list)
-        unit = ''
-        units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
-        titles = {c: t for c, t in zip(ch_types_used, titles_list)}
-        picks = np.arange(len(psd_list))
-        if not spatial_colors:
-            spatial_colors = color
-        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
-                    unit, units=units, scalings=None, hline=None, gfp=False,
-                    types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
-                    ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
-                    ch_types_used=ch_types_used, selectable=True, psd=True,
-                    line_alpha=line_alpha, nave=None)
-    for ax in ax_list:
-        ax.grid(True, linestyle=':')
-
-    if make_label:
-        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    plt_show(show)
-    return fig
+    return _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
+                     units_list, scalings_list, ax_list, make_label, color,
+                     area_mode, area_alpha, dB, show, average, spatial_colors,
+                     xscale, line_alpha)
 
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,

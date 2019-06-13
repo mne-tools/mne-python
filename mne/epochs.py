@@ -937,8 +937,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  bandwidth=None, adaptive=False, low_bias=True,
                  normalization='length', picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
-                 show=True, average=True, spatial_colors=True,
-                 line_alpha=None, verbose=None):
+                 show=True, average=False, spatial_colors=True,
+                 line_alpha=None, xscale='linear', verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
                                tmax=tmax, proj=proj, bandwidth=bandwidth,
                                adaptive=adaptive, low_bias=low_bias,
@@ -946,8 +946,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                color=color, area_mode=area_mode,
                                area_alpha=area_alpha, dB=dB, n_jobs=n_jobs,
                                show=show, average=average,
+                               spatial_colors=spatial_colors,
                                line_alpha=line_alpha,
-                               spatial_colors=spatial_colors, verbose=verbose)
+                               xscale=xscale, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,

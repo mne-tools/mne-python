@@ -366,7 +366,6 @@ def test_plot_raw_psd():
     ax = plt.axes()
     # if ax is supplied:
     pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
-    pytest.raises(ValueError, raw.plot_psd, average=True, spatial_colors=True)
     raw.plot_psd(tmax=np.inf, picks=picks, ax=ax, average=True)
     plt.close('all')
     ax = plt.axes()

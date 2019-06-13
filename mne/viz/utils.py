@@ -30,8 +30,10 @@ from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
-                       pick_info, _picks_by_type, pick_channels_cov)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
+                       pick_info, _picks_by_type, pick_channels_cov,
+                       _picks_to_idx)
+from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, set_config, warn, _check_ch_locs, _check_option,
@@ -2818,3 +2820,209 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
         for color, name in zip(cmap(old), colors):
             cdict[name].append((new, color, color))
     return LinearSegmentedColormap(name, cdict)
+
+
+def _set_psd_plot_params(info, proj, picks, ax, area_mode):
+    """Set PSD plot params."""
+    import matplotlib.pyplot as plt
+    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
+    _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    picks = _picks_to_idx(info, picks)
+
+    # XXX this could be refactored more with e.g., plot_evoked
+    # XXX when it's refactored, Report._render_raw will need to be updated
+    megs = ['mag', 'grad', False, False, False]
+    eegs = [False, False, True, False, False]
+    seegs = [False, False, False, True, False]
+    ecogs = [False, False, False, False, True]
+    titles = _handle_default('titles', None)
+    units = _handle_default('units', None)
+    scalings = _handle_default('scalings', None)
+    picks_list = list()
+    titles_list = list()
+    units_list = list()
+    scalings_list = list()
+    for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
+                                          _data_types):
+        these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
+                                 ref_meg=False)
+        these_picks = np.intersect1d(these_picks, picks)
+        if len(these_picks) > 0:
+            picks_list.append(these_picks)
+            titles_list.append(titles[name])
+            units_list.append(units[name])
+            scalings_list.append(scalings[name])
+    if len(picks_list) == 0:
+        raise RuntimeError('No data channels found')
+    if ax is not None:
+        if isinstance(ax, plt.Axes):
+            ax = [ax]
+        if len(ax) != len(picks_list):
+            raise ValueError('For this dataset with picks=None %s axes '
+                             'must be supplied, got %s'
+                             % (len(picks_list), len(ax)))
+        ax_list = ax
+    del picks
+
+    fig = None
+    if ax is None:
+        fig = plt.figure()
+        ax_list = list()
+        for ii in range(len(picks_list)):
+            # Make x-axes change together
+            if ii > 0:
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
+                                           sharex=ax_list[0]))
+            else:
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
+        make_label = True
+    else:
+        fig = ax_list[0].get_figure()
+        make_label = len(ax_list) == len(fig.axes)
+
+    return (fig, picks_list, titles_list, units_list, scalings_list,
+            ax_list, make_label)
+
+
+def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
+    """Convert PSDs to dB (if necessary) and appropriate units.
+
+    The following table summarizes the relationship between the value of
+    parameters ``dB`` and ``estimate``, and the type of plot and corresponding
+    units.
+
+    | dB    | estimate    | plot | units             |
+    |-------+-------------+------+-------------------|
+    | True  | 'power'     | PSD  | amp**2/Hz (dB)    |
+    | True  | 'amplitude' | ASD  | amp/sqrt(Hz) (dB) |
+    | True  | 'auto'      | PSD  | amp**2/Hz (dB)    |
+    | False | 'power'     | PSD  | amp**2/Hz         |
+    | False | 'amplitude' | ASD  | amp/sqrt(Hz)      |
+    | False | 'auto'      | ASD  | amp/sqrt(Hz)      |
+
+    where amp are the units corresponding to the variable, as specified by
+    ``unit``.
+    """
+    where = np.where(psds.min(1) <= 0)[0]
+    dead_ch = ', '.join(ch_names[ii] for ii in where)
+    if len(where) > 0:
+        if dB:
+            msg = "Infinite value in PSD for channel(s) %s. " \
+                  "These channels might be dead." % dead_ch
+        else:
+            msg = "Zero value in PSD for channel(s) %s. " \
+                  "These channels might be dead." % dead_ch
+        warn(msg, UserWarning)
+
+    if estimate == 'auto':
+        estimate = 'power' if dB else 'amplitude'
+
+    if estimate == 'amplitude':
+        np.sqrt(psds, out=psds)
+        psds *= scaling
+        ylabel = r'$\mathrm{%s / \sqrt{Hz}}$' % unit
+    else:
+        psds *= scaling * scaling
+        ylabel = r'$\mathrm{%s^2/Hz}$' % unit
+
+    if dB:
+        np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
+        psds *= 10
+        ylabel += r'$\ \mathrm{(dB)}$'
+
+    return ylabel
+
+
+def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
+              units_list, scalings_list, ax_list, make_label, color, area_mode,
+              area_alpha, dB, show, average, spatial_colors, xscale,
+              line_alpha):
+    # helper function for plot_raw_psd and plot_epochs_psd
+    from matplotlib.ticker import ScalarFormatter
+    from .evoked import _plot_lines
+
+    for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
+                       ['--', '--', '-.']):
+        if inst.info[key] is not None:
+            for ax in ax_list:
+                ax.axvline(inst.info[key], color='k', linestyle=ls,
+                           alpha=0.25, linewidth=2, zorder=2)
+    if line_alpha is None:
+        line_alpha = 1.0 if average else 0.75
+    line_alpha = float(line_alpha)
+
+    ylabels = list()
+    for ii, (psd, picks, title, ax, scalings, units) in enumerate(zip(
+                                                                  psd_list,
+                                                                  picks_list,
+                                                                  titles_list,
+                                                                  ax_list,
+                                                                  scalings_list, # noqa
+                                                                  units_list)):
+        ylabel = _convert_psds(psd, dB, 'auto', scalings,
+                               units,
+                               [inst.ch_names[pi] for pi in picks])
+        if make_label:
+            if ii == len(picks_list) - 1:
+                ax.set_xlabel('Frequency (Hz)')
+            ax.set(ylabel=ylabel, title=title, xlim=(freqs[0], freqs[-1]))
+            ax.set_title(title)
+            ax.set_xlim(freqs[0], freqs[-1])
+        ylabels.append(ylabel)
+
+        if average:
+            # mean across channels
+            psd_mean = np.mean(psd, axis=0)
+            if area_mode == 'std':
+                # std across channels
+                psd_std = np.std(np.mean(psd, axis=0), axis=0)
+                hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+            elif area_mode == 'range':
+                hyp_limits = (np.min(np.mean(psd, axis=0), axis=0),
+                              np.max(np.mean(psd, axis=0), axis=0))
+            else:  # area_mode is None
+                hyp_limits = None
+
+            ax.plot(freqs, psd_mean, color=color)
+            if hyp_limits is not None:
+                ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                                color=color, alpha=area_alpha)
+
+    if not average:
+        picks = np.concatenate(picks_list)
+        psd_list = np.concatenate(psd_list)
+        types = np.array([channel_type(inst.info, idx) for idx in picks])
+        # Needed because the data do not match the info anymore.
+        info = create_info([inst.ch_names[p] for p in picks],
+                           inst.info['sfreq'], types)
+        info['chs'] = [inst.info['chs'][p] for p in picks]
+        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
+                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+                               'hbr', 'misc']
+        ch_types_used = list()
+        for this_type in valid_channel_types:
+            if this_type in types:
+                ch_types_used.append(this_type)
+        assert len(ch_types_used) == len(ax_list)
+        unit = ''
+        units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
+        titles = {c: t for c, t in zip(ch_types_used, titles_list)}
+        picks = np.arange(len(psd_list))
+        if not spatial_colors:
+            spatial_colors = color
+        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+                    unit, units=units, scalings=None, hline=None, gfp=False,
+                    types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
+                    ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
+                    ch_types_used=ch_types_used, selectable=True, psd=True,
+                    line_alpha=line_alpha, nave=None)
+    for ax in ax_list:
+        ax.grid(True, linestyle=':')
+        if xscale == 'log':
+            ax.set(xscale='log')
+            ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
+            ax.get_xaxis().set_major_formatter(ScalarFormatter())
+    if make_label:
+        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+    plt_show(show)
+    return fig

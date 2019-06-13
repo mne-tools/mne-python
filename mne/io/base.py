@@ -1658,8 +1658,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def plot_psd(self, tmin=0.0, tmax=np.inf, fmin=0, fmax=np.inf,
                  proj=False, n_fft=None, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, estimate='auto', average=None,
-                 show=True, n_jobs=1, line_alpha=None, spatial_colors=None,
+                 n_overlap=0, dB=True, estimate='auto', average=False,
+                 show=True, n_jobs=1, line_alpha=None, spatial_colors=True,
                  xscale='linear', reject_by_annotation=True, verbose=None):
         return plot_raw_psd(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,

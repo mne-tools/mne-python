@@ -13,25 +13,21 @@ import numpy as np
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels, channel_type,
-                       _picks_to_idx)
-from ..io.meas_info import create_info
+                       _PICK_TYPES_KEYS, pick_channels)
 from ..utils import (verbose, get_config, _ensure_int, _validate_type,
                      _check_option)
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
-from .utils import (_toggle_options, _toggle_proj, tight_layout,
-                    _layout_figure, _plot_raw_onkey, figure_nobar, plt_show,
+from .utils import (_toggle_options, _toggle_proj, _layout_figure,
+                    _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _draw_vert_line, warn,
-                    _simplify_float)
-from .evoked import _plot_lines
+                    _set_ax_label_style, _draw_vert_line, _simplify_float)
 
 
 def _plot_update_raw_proj(params, bools):
@@ -568,122 +564,12 @@ def _label_clicked(pos, params):
 _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
 
 
-def _set_psd_plot_params(info, proj, picks, ax, area_mode):
-    """Set PSD plot params."""
-    import matplotlib.pyplot as plt
-    _check_option('area_mode', area_mode, [None, 'std', 'range'])
-    picks = _picks_to_idx(info, picks)
-
-    # XXX this could be refactored more with e.g., plot_evoked
-    # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False]
-    eegs = [False, False, True, False, False]
-    seegs = [False, False, False, True, False]
-    ecogs = [False, False, False, False, True]
-    titles = _handle_default('titles', None)
-    units = _handle_default('units', None)
-    scalings = _handle_default('scalings', None)
-    picks_list = list()
-    titles_list = list()
-    units_list = list()
-    scalings_list = list()
-    for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
-                                          _data_types):
-        these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False)
-        these_picks = np.intersect1d(these_picks, picks)
-        if len(these_picks) > 0:
-            picks_list.append(these_picks)
-            titles_list.append(titles[name])
-            units_list.append(units[name])
-            scalings_list.append(scalings[name])
-    if len(picks_list) == 0:
-        raise RuntimeError('No data channels found')
-    if ax is not None:
-        if isinstance(ax, plt.Axes):
-            ax = [ax]
-        if len(ax) != len(picks_list):
-            raise ValueError('For this dataset with picks=None %s axes '
-                             'must be supplied, got %s'
-                             % (len(picks_list), len(ax)))
-        ax_list = ax
-    del picks
-
-    fig = None
-    if ax is None:
-        fig = plt.figure()
-        ax_list = list()
-        for ii in range(len(picks_list)):
-            # Make x-axes change together
-            if ii > 0:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
-                                           sharex=ax_list[0]))
-            else:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
-        make_label = True
-    else:
-        fig = ax_list[0].get_figure()
-        make_label = len(ax_list) == len(fig.axes)
-
-    return (fig, picks_list, titles_list, units_list, scalings_list,
-            ax_list, make_label)
-
-
-def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
-    """Convert PSDs to dB (if necessary) and appropriate units.
-
-    The following table summarizes the relationship between the value of
-    parameters ``dB`` and ``estimate``, and the type of plot and corresponding
-    units.
-
-    | dB    | estimate    | plot | units             |
-    |-------+-------------+------+-------------------|
-    | True  | 'power'     | PSD  | amp**2/Hz (dB)    |
-    | True  | 'amplitude' | ASD  | amp/sqrt(Hz) (dB) |
-    | True  | 'auto'      | PSD  | amp**2/Hz (dB)    |
-    | False | 'power'     | PSD  | amp**2/Hz         |
-    | False | 'amplitude' | ASD  | amp/sqrt(Hz)      |
-    | False | 'auto'      | ASD  | amp/sqrt(Hz)      |
-
-    where amp are the units corresponding to the variable, as specified by
-    ``unit``.
-    """
-    where = np.where(psds.min(1) <= 0)[0]
-    dead_ch = ', '.join(ch_names[ii] for ii in where)
-    if len(where) > 0:
-        if dB:
-            msg = "Infinite value in PSD for channel(s) %s. " \
-                  "These channels might be dead." % dead_ch
-        else:
-            msg = "Zero value in PSD for channel(s) %s. " \
-                  "These channels might be dead." % dead_ch
-        warn(msg, UserWarning)
-
-    if estimate == 'auto':
-        estimate = 'power' if dB else 'amplitude'
-
-    if estimate == 'amplitude':
-        np.sqrt(psds, out=psds)
-        psds *= scaling
-        ylabel = r'$\mathrm{%s / \sqrt{Hz}}$' % unit
-    else:
-        psds *= scaling * scaling
-        ylabel = r'$\mathrm{%s^2/Hz}$' % unit
-
-    if dB:
-        np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
-        psds *= 10
-        ylabel += r'$\ \mathrm{(dB)}$'
-
-    return ylabel
-
-
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=None, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, n_overlap=0,
                  dB=True, estimate='auto', average=False, show=True, n_jobs=1,
-                 line_alpha=None, spatial_colors=None, xscale='linear',
+                 line_alpha=None, spatial_colors=True, xscale='linear',
                  reject_by_annotation=True, verbose=None):
     """Plot the power spectral density across channels.
 
@@ -770,110 +656,26 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from matplotlib.ticker import ScalarFormatter
-
-    if average and spatial_colors:
-        raise ValueError('Average and spatial_colors cannot be enabled '
-                         'simultaneously.')
-    if spatial_colors is None:
-        spatial_colors = False if average else True
-
+    from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label = _set_psd_plot_params(raw.info, proj, picks, ax, area_mode)
+        make_label = _set_psd_plot_params(
+            raw.info, proj, picks, ax, area_mode)
     del ax
-    if line_alpha is None:
-        line_alpha = 1.0 if average else 0.75
-    line_alpha = float(line_alpha)
-
     psd_list = list()
-    ylabels = list()
     if n_fft is None:
         tmax = raw.times[-1] if not np.isfinite(tmax) else tmax
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
-    for ii, picks in enumerate(picks_list):
-        ax = ax_list[ii]
-        psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
-                                n_overlap=n_overlap, n_jobs=n_jobs,
-                                reject_by_annotation=reject_by_annotation)
-
-        ylabel = _convert_psds(psds, dB, estimate, scalings_list[ii],
-                               units_list[ii],
-                               [raw.ch_names[pi] for pi in picks])
-
-        if average:
-            psd_mean = np.mean(psds, axis=0)
-            if area_mode == 'std':
-                psd_std = np.std(psds, axis=0)
-                hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
-            elif area_mode == 'range':
-                hyp_limits = (np.min(psds, axis=0), np.max(psds, axis=0))
-            else:  # area_mode is None
-                hyp_limits = None
-
-            ax.plot(freqs, psd_mean, color=color, alpha=line_alpha,
-                    linewidth=0.5)
-            if hyp_limits is not None:
-                ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                                color=color, alpha=area_alpha)
-        else:
-            psd_list.append(psds)
-
-        if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Frequency (Hz)')
-            ax.set_ylabel(ylabel)
-            ax.set_title(titles_list[ii])
-            ax.set_xlim(freqs[0], freqs[-1])
-
-        ylabels.append(ylabel)
-
-    for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
-                       ['--', '--', '-.']):
-        if raw.info[key] is not None:
-            for ax in ax_list:
-                ax.axvline(raw.info[key], color='k', linestyle=ls, alpha=0.25,
-                           linewidth=2, zorder=2)
-
-    if not average:
-        picks = np.concatenate(picks_list)
-
-        psd_list = np.concatenate(psd_list)
-        types = np.array([channel_type(raw.info, idx) for idx in picks])
-        # Needed because the data does not match the info anymore.
-        info = create_info([raw.ch_names[p] for p in picks], raw.info['sfreq'],
-                           types)
-        info['chs'] = [raw.info['chs'][p] for p in picks]
-        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
-                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc']
-        ch_types_used = list()
-        for this_type in valid_channel_types:
-            if this_type in types:
-                ch_types_used.append(this_type)
-        assert len(ch_types_used) == len(ax_list)
-        unit = ''
-        units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
-        titles = {c: t for c, t in zip(ch_types_used, titles_list)}
-        picks = np.arange(len(psd_list))
-        if not spatial_colors:
-            spatial_colors = color
-        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
-                    unit, units=units, scalings=None, hline=None, gfp=False,
-                    types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
-                    ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
-                    ch_types_used=ch_types_used, selectable=True, psd=True,
-                    line_alpha=line_alpha, nave=None)
-    for ax in ax_list:
-        ax.grid(True, linestyle=':')
-        if xscale == 'log':
-            ax.set(xscale='log')
-            ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
-            ax.get_xaxis().set_major_formatter(ScalarFormatter())
-    if make_label:
-        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    plt_show(show)
-    return fig
+    for picks in picks_list:
+        psd, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
+                               fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
+                               n_overlap=n_overlap, n_jobs=n_jobs,
+                               reject_by_annotation=reject_by_annotation)
+        psd_list.append(psd)
+    print(spatial_colors)
+    return _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
+                     units_list, scalings_list, ax_list, make_label, color,
+                     area_mode, area_alpha, dB, show, average, spatial_colors,
+                     xscale, line_alpha)
 
 
 def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
