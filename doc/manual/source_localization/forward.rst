@@ -152,7 +152,7 @@ files. Generally,
 where :math:`x_k`, :math:`y_k`,and :math:`z_k` are the location
 coordinates in two coordinate systems, :math:`T_{12}` is
 the coordinate transformation from coordinate system "1" to "2",
-:math:`x_0`, :math:`y_0`,and :math:`z_0` is the location of the origin
+:math:`x_0`, :math:`y_0`, and :math:`z_0` is the location of the origin
 of coordinate system "1" in coordinate system "2",
 and :math:`R_{jk}` are the elements of the rotation
 matrix relating the two coordinate systems. The coordinate transformations
