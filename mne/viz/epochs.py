@@ -186,8 +186,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
-
-    if set(units.keys()) != set(scalings.keys()):
+    if set(units) != set(scalings):
         raise ValueError('Scalings and units must have the same keys.')
 
     # is picks a channel type (or None)?
@@ -229,8 +228,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         else:
             # one fig to rule them all
             ch_names = np.array(epochs.ch_names)[picks].tolist()
-            key = (title if title is not None else
-                   _set_title_multiple_electrodes(None, combine, ch_names))
+            key = _set_title_multiple_electrodes(None, combine, ch_names)
             group_by = {key: picks}
 
     # check for heterogeneous sensor type combinations / "combining" 1 channel
