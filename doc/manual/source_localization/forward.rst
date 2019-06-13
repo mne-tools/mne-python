@@ -30,7 +30,7 @@ Except for the *Sensor coordinates*, all of the
 coordinate systems are Cartesian and have the "RAS" (Right-Anterior-Superior)
 orientation, *i.e.*, the :math:`x` axis
 points to the right, the :math:`y` axis
-to the front, and the :math:`z` axis up.
+to the front, and the :math:`z` axis up. In some MNE-Python objects (e.g., :class:`~mne.Forward`, :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is encoded as a constant integer value. The meaning of those integers is determined `in the source code <https://github.com/mne-tools/mne-python/blob/master/mne/io/constants.py#L186-L197>`__.
 
 .. _CHDFFJIJ:
 
