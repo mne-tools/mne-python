@@ -604,7 +604,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     data = _get_data(inst, return_itc)
 
     if isinstance(inst, VectorSourceEstimate):
-        data = inst.data
+        data = np.expand_dims(np.mean(inst.data, axis=1), axis=0)
     else:
         info = inst.info
         info, data = _prepare_picks(info, data, picks, axis=1)
@@ -633,7 +633,12 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 
     # TODO integrate this correctly
     if isinstance(inst, VectorSourceEstimate):
-        return
+        from ..source_tfr import SourceTFR
+        print("OUT DIMENSIONS = ", out.shape)  # !!! remove
+        out = np.squeeze(out, axis=0)
+        print("out.shape = ", out.shape)  # !!! remove
+        return SourceTFR(out, inst.vertices, tmin=inst.tmin,
+                         tstep=inst.tstep, subject=inst.subject)
 
     if average:
         if return_itc:

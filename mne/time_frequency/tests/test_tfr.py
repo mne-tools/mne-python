@@ -785,7 +785,7 @@ def test_source_tfr():
                        n_jobs=1, picks=None, average=True, verbose=None)
 
     # try to feed a SurfaceVectorSourceEstimate into TFR
-    tfr_multitaper(v_stc, np.arange(8, 12, 2), 1, return_itc=False)
+    tfr_multitaper(v_stc, np.arange(8, 12, 2), 1, return_itc=False, average=False)
 
 
 run_tests_if_main()
