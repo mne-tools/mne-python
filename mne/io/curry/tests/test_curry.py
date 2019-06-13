@@ -7,7 +7,7 @@
 
 import os
 import os.path as op
-from numpy.testing import assert_allclose, assert_equal
+from numpy.testing import assert_allclose, assert_equal, assert_array_equal
 import mne
 from mne.datasets import testing
 from mne.io.curry import read_raw_curry
@@ -76,6 +76,14 @@ def test_io_curry():
     assert_allclose([curry7_bdf.info["sfreq"], curry7_bdf_ascii.info["sfreq"],
                      curry8_bdf.info["sfreq"], curry8_bdf_ascii.info["sfreq"]],
                     bdf.info["sfreq"])
+    assert_array_equal([ch["kind"] for ch in curry7_bdf.info["chs"]],
+                       [ch["kind"] for ch in bdf.info["chs"][0:3]])
+    assert_array_equal([ch["kind"] for ch in curry7_bdf_ascii.info["chs"]],
+                       [ch["kind"] for ch in bdf.info["chs"][0:3]])
+    assert_array_equal([ch["kind"] for ch in curry8_bdf.info["chs"]],
+                       [ch["kind"] for ch in bdf.info["chs"][0:3]])
+    assert_array_equal([ch["kind"] for ch in curry8_bdf_ascii.info["chs"]],
+                       [ch["kind"] for ch in bdf.info["chs"][0:3]])
 
     # we only use [0:3] here since the stim channel was already extracted for the curry files
     assert_allclose(curry7_bdf.get_data(), bdf.get_data()[0:3])

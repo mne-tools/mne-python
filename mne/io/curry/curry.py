@@ -13,13 +13,19 @@ import mne
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import create_info
 from ..utils import _read_segments_file, warn, _find_channels, _create_chs
+from ..constants import FIFF
 
+INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
+LABEL_FILE_EXTENSION = {7: '.rs3', 8: '.cdt.dpa'}
+EVENT_FILE_EXTENSION = {7: ['.cef', '.ceo'], 8: ['.cdt.cef', '.cdt.ceo']}
+DATA_FILE_EXTENSION = {7: '.dat', 8: '.cdt'}
+CHANTYPES = {"meg": "_MAG1", "eeg": "", "misc": "_OTHERS"}
+FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
+                   "misc": FIFF.FIFFV_MISC_CH}
 
 def _read_curry_annotations(fname_base, curry_vers):
     """read annotations from curry event files"""
 
-
-    EVENT_FILE_EXTENSION = {7: ['.cef', '.ceo'], 8: ['.cdt.cef', '.cdt.ceo']}
 
     event_file = None
     for ext in EVENT_FILE_EXTENSION[curry_vers]:
@@ -82,7 +88,7 @@ def _read_curry_lines(fname, regex_list):
     regex_list : list of str
         A list of strings or regular expressions to search within the file.
         Each element `regex` in `regex_list` must be formulated so that
-        `regex + "START_LIST"` initiates the start and `regex + "END_LIST"`
+        `regex + " START_LIST"` initiates the start and `regex + " END_LIST"`
         initiates the end of the elements that should be saved.
 
     Returns
@@ -104,7 +110,7 @@ def _read_curry_lines(fname, regex_list):
     with open(fname) as fid:
         for line in fid:
             for regex in regex_list:
-                if re.match(regex + "END_LIST", line):
+                if re.match(regex + " END_LIST", line):
                     save_lines[regex] = False
 
                 if save_lines[regex] and line != "\n":
@@ -113,7 +119,7 @@ def _read_curry_lines(fname, regex_list):
                         result = result.split("\t")
                     data_dict[regex].append(result)
 
-                if re.match(regex + "START_LIST", line):
+                if re.match(regex + " START_LIST", line):
                     save_lines[regex] = True
 
     return data_dict
@@ -121,9 +127,7 @@ def _read_curry_lines(fname, regex_list):
 
 def _read_curry_info(fname_base, curry_vers):
 
-    CAL = 1e-6
-    INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
-    LABEL_FILE_EXTENSION = {7: '.rs3', 8: '.cdt.dpa'}
+
 
 
     var_names = ['NumSamples', 'NumChannels', 'NumTrials', 'SampleFreqHz',
@@ -131,12 +135,18 @@ def _read_curry_info(fname_base, curry_vers):
                  'NUM_SAMPLES', 'NUM_CHANNELS', 'NUM_TRIALS', 'SAMPLE_FREQ_HZ',
                  'TRIGGER_OFFSET_USEC', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
 
+
     param_dict = dict()
+    unit_dict = dict()
     with open(fname_base + INFO_FILE_EXTENSION[curry_vers]) as fid:
-        for line in fid:
+        for line in iter(fid):
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
                 param_dict[key.lower().replace("_", "")] = val
+            for type in CHANTYPES:
+                if "DEVICE_PARAMETERS" + CHANTYPES[type] + " START" in line:
+                    data_unit = next(fid)
+                    unit_dict[type] = data_unit.replace(" ", "").replace("\n", "").split("=")[-1]
 
     for var in var_names[:7]:
         if var.lower() not in param_dict:
@@ -147,27 +157,49 @@ def _read_curry_info(fname_base, curry_vers):
     # n_ch = int(param_dict["numchannels"])
     n_trials = int(param_dict["numtrials"])
     sfreq = float(param_dict["samplefreqhz"])
-    offset = float(param_dict["triggeroffsetusec"]) * CAL
-    time_step = float(param_dict["sampletimeusec"]) * CAL
+    offset = float(param_dict["triggeroffsetusec"]) * 1e-6
+    time_step = float(param_dict["sampletimeusec"]) * 1e-6
     data_format = param_dict["dataformat"]
 
     if (sfreq == 0) and (time_step != 0):
         sfreq = 1. / time_step
 
     # read labels from label files
-    data_dict = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
-                                  ["LABELS.*?", "SENSORS.*?"])
+    labels = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
+                               ["LABELS" + CHANTYPES[key] for key in CHANTYPES])
 
-    ch_names = data_dict["LABELS.*?"]
+    sensors = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
+                                ["SENSORS" + CHANTYPES[key] for key in CHANTYPES])
 
-    ch_pos = np.array(data_dict["SENSORS.*?"], dtype=float)
-    # TODO: include this in ch_dict
+    all_chans = list()
+    for key in CHANTYPES:
+        for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
+            ch = {"ch_name": chan,
+                  "unit": unit_dict[key],
+                  "kind": FIFFV_CHANTYPES[key]}
+            if key in ("meg", "eeg"):
+                loc = sensors["SENSORS" + CHANTYPES[key]][ind]
+                ch["loc"] = np.array(loc, dtype=float)
 
+            all_chans.append(ch)
+
+    ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, sfreq)
 
-    # TODO; There's still a lot more information that can be brought into info["chs"]. However i'm not sure what to do with MEG chans here
-    for ch_dict in info["chs"]:
-        ch_dict["cal"] = CAL
+    # FIXME: Is it safer to use numpy.where(ch_dict["ch_name"] == all_chans["ch_name"]) or another method?
+    for ind, ch_dict in enumerate(info["chs"]):
+        ch_dict["unit"] = all_chans[ind]["unit"]
+        ch_dict["kind"] = all_chans[ind]["kind"]
+        if ch_dict["kind"] in (FIFF.FIFFV_MEG_CH,
+                               FIFF.FIFFV_EEG_CH):
+            ch_dict["loc"] = all_chans[ind]["loc"]
+
+        # TODO: This is extremely ugly. Is there a function to transform units automatically?
+        if ch_dict["unit"] == "uV":
+            ch_dict["cal"] = 1e-6
+        if ch_dict["unit"] == "fT":
+            ch_dict["cal"] = 1e-15
+
 
     return info, n_trials, n_samples, curry_vers, data_format
 
@@ -195,8 +227,6 @@ def read_raw_curry(input_fname, preload=False):
         A Raw object containing CURRY data.
 
     """
-
-    DATA_FILE_EXTENSION = {7: '.dat', 8: '.cdt'}
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
     fname_base, ext = input_fname.split(".", maxsplit=1)
