@@ -268,6 +268,7 @@ Visualization
    set_3d_backend
    get_3d_backend
    use_3d_backend
+   Brain
 
 
 Preprocessing
