@@ -571,12 +571,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
                  spatial_colors=True, verbose=None):
-    """Plot the power spectral density across channels.
-
-    Different channel types are drawn in sub-plots. When the data has been
-    processed with a bandpass, lowpass or highpass filter, dashed lines
-    indicate the boundaries of the filter (--). The line noise frequency is
-    also indicated with a dashed line (-.).
+    """%(plot_psd_doc)s.
 
     Parameters
     ----------
@@ -586,8 +581,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(plot_psd_fmax)s
     %(plot_psd_tmin)s
     %(plot_psd_tmax)s
-    proj : bool
-        Apply projection.
+    %(plot_psd_proj)s
     n_fft : int | None
         Number of points to use in Welch FFT calculations.
         Default is None, which uses the minimum of 2048 and the

@@ -70,6 +70,7 @@ h_freq : float | None
 docdict['filter_length'] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
+
     * **'auto' (default)**: The filter length is chosen based
       on the size of the transition regions (6.6 times the reciprocal
       of the shortest transition band for fir_window='hamming'
@@ -81,13 +82,16 @@ filter_length : str | int
       ``phase="zero-double"``.
     * **int**: Specified length in samples. For fir_design="firwin",
       this should not be used.
+
 """
 docdict['l_trans_bandwidth'] = """
 l_trans_bandwidth : float | str
     Width of the transition band at the low cut-off frequency in Hz
     (high pass or cutoff 1 in bandpass). Can be "auto"
     (default) to use a multiple of ``l_freq``::
+
         min(max(l_freq * 0.25, 2), l_freq)
+
     Only used for ``method='fir'``.
 """
 docdict['h_trans_bandwidth'] = """
@@ -95,7 +99,9 @@ h_trans_bandwidth : float | str
     Width of the transition band at the high cut-off frequency in Hz
     (low pass or cutoff 2 in bandpass). Can be "auto"
     (default in 0.14) to use a multiple of ``h_freq``::
+
         min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
     Only used for ``method='fir'``.
 """
 docdict['phase'] = """
@@ -108,6 +114,7 @@ phase : str
     (also making it non-causal). If 'minimum', then a minimum-phase filter will
     be constricted and applied, which is causal but has weaker stop-band
     suppression.
+
     .. versionadded:: 0.13
 """
 docdict['fir_design'] = """
@@ -116,12 +123,14 @@ fir_design : str
     or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
     a time-domain design technique that generally gives improved
     attenuation using fewer samples than "firwin2".
+
     .. versionadded:: 0.15
 """
 docdict['fir_window'] = """
 fir_window : str
     The window to use in FIR design, can be "hamming" (default),
     "hann" (default in 0.13), or "blackman".
+
     .. versionadded:: 0.15
 """
 docdict['pad-fir'] = """
@@ -234,6 +243,14 @@ seed : None | int | instance of ~numpy.random.mtrand.RandomState
 """
 
 # PSD plotting
+docdict["plot_psd_doc"] = """
+Plot the power spectral density across channels.
+
+Different channel types are drawn in sub-plots. When the data have been
+processed with a bandpass, lowpass or highpass filter, dashed lines
+indicate the boundaries of the filter (--). The line noise frequency is
+also indicated with a dashed line (-.)
+"""
 docdict["plot_psd_fmin"] = """
 fmin : float
     Start frequency to consider. Defaults to 0.
@@ -249,6 +266,10 @@ tmin : float
 docdict["plot_psd_tmax"] = """
 tmax : float
     End time for calculations. If None (default), then last time point.
+"""
+docdict["plot_psd_proj"] = """
+proj : bool
+    Apply projection.
 """
 docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
     Cannot be None if `ax` is supplied.If both `picks` and `ax` are None
@@ -673,6 +694,7 @@ class deprecated(object):
 
     def __call__(self, obj):  # noqa: D105
         """Call.
+
         Parameters
         ----------
         obj : object

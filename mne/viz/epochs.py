@@ -870,7 +870,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     dB=True, estimate='auto', show=True, n_jobs=1,
                     average=False, line_alpha=None, spatial_colors=True,
                     verbose=None):
-    """Plot the power spectral density across epochs.
+    """%(plot_psd_doc)s.
 
     Parameters
     ----------
@@ -880,8 +880,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(plot_psd_fmax)s
     %(plot_psd_tmin)s
     %(plot_psd_tmax)s
-    proj : bool
-        Apply projection.
+    %(plot_psd_proj)s
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
