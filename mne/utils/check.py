@@ -88,9 +88,9 @@ def _check_mayavi_version(min_version='4.3.0'):
 
 
 def check_random_state(seed):
-    """Turn seed into a np.random.RandomState instance.
+    """Turn seed into a numpy.random.mtrand.RandomState instance.
 
-    If seed is None, return the RandomState singleton used by np.random.
+    If seed is None, return the RandomState singleton used by np.random.mtrand.
     If seed is an int, return a new RandomState instance seeded with seed.
     If seed is already a RandomState instance, return it.
     Otherwise raise ValueError.
@@ -98,11 +98,11 @@ def check_random_state(seed):
     if seed is None or seed is np.random:
         return np.random.mtrand._rand
     if isinstance(seed, (int, np.integer)):
-        return np.random.RandomState(seed)
-    if isinstance(seed, np.random.RandomState):
+        return np.random.mtrand.RandomState(seed)
+    if isinstance(seed, np.random.mtrand.RandomState):
         return seed
-    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
-                     ' instance' % seed)
+    raise ValueError('%r cannot be used to seed a '
+                     'numpy.random.mtrand.RandomState instance' % seed)
 
 
 def _check_event_id(event_id, events):

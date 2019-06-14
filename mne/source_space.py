@@ -1336,7 +1336,8 @@ def _check_spacing(spacing, verbose=None):
     """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
     types = ('a string with values "ico#", "oct#", "all", or an int >= 2')
-    space_err = '"spacing" must be ' + types
+    space_err = ('"spacing" must be %s, got type %s (%r)'
+                 % (types, type(spacing), spacing))
     if isinstance(spacing, str):
         if spacing == 'all':
             stype = 'all'
@@ -1347,8 +1348,12 @@ def _check_spacing(spacing, verbose=None):
             try:
                 sval = int(sval)
             except Exception:
-                raise ValueError('ico and oct numbers must be integers, got %r'
-                                 % (sval,))
+                raise ValueError('%s subdivision must be an integer, got %r'
+                                 % (stype, sval))
+            lim = 0 if stype == 'ico' else 1
+            if sval < lim:
+                raise ValueError('%s subdivision must be >= %s, got %s'
+                                 % (stype, lim, sval))
         else:
             raise ValueError(space_err)
     else:
@@ -1400,9 +1405,8 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     add_dist : bool
         Add distance and patch information to the source space. This takes some
         time so precomputing it is recommended.
-    n_jobs : int
-        Number of jobs to run in parallel. Will use at most 2 jobs
-        (one for each hemisphere).
+    %(n_jobs)s
+        Will use at most 2 jobs (one for each hemisphere).
     %(verbose)s
 
     Returns
@@ -1687,8 +1691,15 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                         % (bem, surf['np']))
         elif bem is not None and bem.get('is_sphere') is False:
             # read bem surface in the MRI coordinate frame
-            surf = bem['surfs'][0]
+            which = np.where([surf['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
+                              for surf in bem['surfs']])[0]
+            if len(which) != 1:
+                raise ValueError('Could not get inner skull surface from BEM')
+            surf = bem['surfs'][which[0]]
             assert surf['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
+            if surf['coord_frame'] != FIFF.FIFFV_COORD_MRI:
+                raise ValueError('BEM is not in MRI coordinates, got %s'
+                                 % (_coord_frame_name(surf['coord_frame']),))
             logger.info('Taking inner skull from %s'
                         % bem)
         elif surface is not None:
@@ -2356,9 +2367,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         The upper limit of distances to include (in meters).
         Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
         10/2013) must be installed.
-    n_jobs : int
-        Number of jobs to run in parallel. Will only use (up to) as many
-        cores as there are source spaces.
+    %(n_jobs)s
+        Will only use (up to) as many cores as there are source spaces.
     %(verbose)s
 
     Returns

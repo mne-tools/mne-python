@@ -630,7 +630,7 @@ def _tessellate_sphere(mylevel):
 
     # A unit octahedron
     if mylevel < 1:
-        raise ValueError('# of levels must be >= 1')
+        raise ValueError('oct subdivision must be >= 1')
 
     # Reverse order of points in each triangle
     # for counter-clockwise ordering

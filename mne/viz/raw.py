@@ -29,7 +29,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _draw_vert_line, warn)
+                    _set_ax_label_style, _draw_vert_line, warn,
+                    _simplify_float)
 from .evoked import _plot_lines
 
 
@@ -86,11 +87,6 @@ def _update_raw_data(params):
         else:
             norm = params['scalings'][params['types'][di]]
         data[di] /= norm if norm != 0 else 1.
-    # clip
-    if params['clipping'] == 'transparent':
-        data[np.logical_or(data > 1, data < -1)] = np.nan
-    elif params['clipping'] == 'clamp':
-        data = np.clip(data, -1, 1, data)
     params['data'] = data
     params['times'] = times
 
@@ -274,7 +270,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     from scipy.signal import butter
     from ..io.base import BaseRaw
     color = _handle_default('color', color)
-    scalings = _compute_scalings(scalings, raw)
+    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
+                                 duration=duration)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     n_channels = min(len(raw.info['chs']), n_channels)
     _check_option('clipping', clipping, [None, 'clamp', 'transparent'])
@@ -397,6 +394,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
     event_id_rev = {val: key for key, val in (event_id or {}).items()}
+    units = _handle_default('units', None)
+    unit_scalings = _handle_default('scalings', None)
+
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
@@ -406,7 +406,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
-                  filt_bounds=filt_bounds)
+                  filt_bounds=filt_bounds, units=units, snap_annotations=False,
+                  unit_scalings=unit_scalings, use_scalebars=True)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -491,6 +492,16 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         plt_show(show, block=block)
     except TypeError:  # not all versions have this
         plt_show(show)
+
+    # add MNE params dict to the resulting figure object so that parameters can
+    # be modified after the figure has been created; this is useful e.g. to
+    # remove the keyboard shortcut to close the figure with the 'Esc' key,
+    # which can be done with
+    #
+    # fig._mne_params['close_key'] = None
+    #
+    # (assuming that the figure object is fig)
+    params['fig']._mne_params = params
 
     return params['fig']
 
@@ -738,8 +749,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         drag) to plot a topomap.
     show : bool
         Show figure if True.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     line_alpha : float | None
         Alpha for the PSD line. Can be None (default) to use 1.0 when
         ``average=True`` and 0.1 when ``average=False``.
@@ -985,7 +995,14 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         ch_start = params['ch_start']
         offsets = params['offsets']
     params['bad_color'] = bad_color
-    labels = params['ax'].yaxis.get_ticklabels()
+    ax = params['ax']
+    labels = ax.yaxis.get_ticklabels()
+    # Scalebars
+    for bar in params.get('scalebars', {}).values():
+        ax.lines.remove(bar)
+    params['scalebars'] = dict()
+    # delete event and annotation texts as well as scale bar texts
+    params['ax'].texts = []
     # do the plotting
     tick_list = list()
     for ii in range(n_channels):
@@ -999,24 +1016,35 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             ch_name = info['ch_names'][inds[ch_ind]]
             tick_list += [ch_name]
             offset = offsets[ii]
+            this_type = params['types'][inds[ch_ind]]
             # do NOT operate in-place lest this get screwed up
-            this_data = params['data'][inds[ch_ind]] * params['scale_factor']
-            this_color = bad_color if ch_name in info['bads'] else color
 
+            # apply user-supplied scale factor
+            this_data = params['data'][inds[ch_ind]] * params['scale_factor']
+
+            # clip to range (if relevant)
+            if params['clipping'] == 'transparent':
+                this_data[np.abs(this_data) > 1] = np.nan
+            elif params['clipping'] == 'clamp':
+                np.clip(this_data, -1, 1, out=this_data)
+
+            # set color
+            this_color = bad_color if ch_name in info['bads'] else color
             if isinstance(this_color, dict):
-                this_color = this_color[params['types'][inds[ch_ind]]]
+                this_color = this_color[this_type]
 
             if inds[ch_ind] in params['data_picks']:
                 this_decim = params['decim']
             else:
                 this_decim = 1
             this_t = params['times'][::this_decim] + params['first_time']
+
             # subtraction here gets correct orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data[..., ::this_decim])
             lines[ii].set_xdata(this_t)
             lines[ii].set_color(this_color)
             vars(lines[ii])['ch_name'] = ch_name
-            vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
+            vars(lines[ii])['def_color'] = color[this_type]
             this_z = 0 if ch_name in info['bads'] else 1
             if butterfly:
                 if ch_name not in info['bads']:
@@ -1032,12 +1060,36 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                               this_color)
                 labels[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
+            # add a scale bar
+            if (params['use_scalebars'] and
+                    this_type != 'stim' and
+                    ch_name not in params['whitened_ch_names'] and
+                    ch_name not in params['info']['bads'] and
+                    this_type not in params['scalebars'] and
+                    this_type in params['scalings'] and
+                    this_type in params.get('unit_scalings', {}) and
+                    this_type in params.get('units', {})):
+                scale_color = '#AA3377'  # purple
+                x = this_t[0]
+                # This is what our data get multiplied by
+                inv_norm = (
+                    params['scalings'][this_type] *
+                    params['unit_scalings'][this_type] *
+                    2. /
+                    params['scale_factor'])
+                units = params['units'][this_type]
+                bar = ax.plot([x, x], [offset - 1., offset + 1.],
+                              color=scale_color, zorder=5, lw=4)[0]
+                text = ax.text(x, offset + 1.,
+                               '%s %s ' % (_simplify_float(inv_norm), units),
+                               va='baseline', ha='right',
+                               color=scale_color, zorder=5, size='xx-small')
+                params['scalebars'][this_type] = bar
+
         else:
             # "remove" lines
             lines[ii].set_xdata([])
             lines[ii].set_ydata([])
-
-    params['ax'].texts = []   # delete event and annotation texts
 
     # deal with event lines
     if params['event_times'] is not None:
@@ -1161,8 +1213,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     block : bool
         Whether to halt program execution until the figure is closed.
         May not work on all systems / platforms. Defaults to False.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
+    %(n_jobs)s
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     %(verbose)s

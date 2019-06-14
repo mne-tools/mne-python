@@ -1,6 +1,6 @@
 numpy
 scipy
-matplotlib<3.1
+matplotlib
 https://api.github.com/repos/enthought/mayavi/zipball/e2569be1096be3deecb15f8fa8581a3ae3fb77d3
 pyqt5
 pyqt5-sip
@@ -12,7 +12,7 @@ pandas
 numexpr
 python-picard
 statsmodels
-pytest
+pytest!=4.6.0
 pytest-cov
 pytest-faulthandler
 pytest-mock
@@ -29,5 +29,6 @@ xlrd
 pydocstyle
 flake8
 https://api.github.com/repos/vispy/vispy/zipball/47f3cd0cf179286774b8ec5d1fbe063a28b8e56b
-pyvista
+pyvista>=0.20.3
 pylsl>=1.12
+panel

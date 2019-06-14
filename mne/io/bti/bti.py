@@ -15,8 +15,8 @@ from itertools import count
 import numpy as np
 
 from ...utils import logger, verbose
-from ...transforms import (combine_transforms, invert_transform, apply_trans,
-                           Transform, get_ras_to_neuromag_trans)
+from ...transforms import (combine_transforms, invert_transform,
+                           Transform)
 from ..constants import FIFF
 from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
 from ..utils import _mult_cal_one, read_str
@@ -25,8 +25,6 @@ from .read import (read_int32, read_int16, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix, read_dev_header)
-
-from ...io.meas_info import _make_dig_points
 
 FIFF_INFO_CHS_FIELDS = ('loc',
                         'ch_name', 'unit_mul', 'coord_frame', 'coil_type',
@@ -59,51 +57,6 @@ class _bytes_io_mock_context():
 
     def __exit__(self, type, value, tb):  # noqa: D105
         pass
-
-
-def _make_bti_dig_points(idx_points, dig_points,
-                         convert=False, use_hpi=False,
-                         bti_dev_t=False, dev_ctf_t=False):
-
-    if convert:
-        logger.info('... putting digitization points in Neuromag c'
-                    'oordinates')
-        trans = get_ras_to_neuromag_trans(nasion=idx_points[2, :],
-                                          lpa=idx_points[0, :],
-                                          rpa=idx_points[1, :])
-    else:
-        trans = None
-
-    ctf_head_t = Transform(fro='ctf_head', to='head', trans=trans)
-
-    if dig_points is not None:
-        # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
-        all_points = np.r_[idx_points, dig_points]
-    else:
-        all_points = idx_points
-
-    if convert:
-        all_points = apply_trans(ctf_head_t['trans'],
-                                 all_points).astype(np.float32)
-
-    my_hpi = None if not use_hpi else all_points[3:len(idx_points), :]
-    info_dig = _make_dig_points(nasion=all_points[2, :],
-                                lpa=all_points[0, :],
-                                rpa=all_points[1, :],
-                                hpi=my_hpi,
-                                extra_points=all_points[len(idx_points):, :],)
-
-    logger.info('... Computing new device to head transform.')
-    # DEV->CTF_DEV->CTF_HEAD->HEAD
-    if convert:
-        t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
-                               'meg', 'ctf_head')
-        dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
-    else:
-        dev_head_t = Transform('meg', 'head', trans=None)
-    logger.info('Done.')
-
-    return info_dig, dev_head_t, ctf_head_t  # ctf_head_t should not be needed
 
 
 def _bti_open(fname, *args, **kwargs):
@@ -197,7 +150,11 @@ def _read_head_shape(fname):
         idx_points = read_double_matrix(fid, BTI.DATA_N_IDX_POINTS, 3)
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
-    return idx_points, dig_points
+    # XXX : reorder to lpa, rpa, nasion so = is direct.
+    nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
+    hpi = idx_points[3:len(idx_points), :]
+
+    return nasion, lpa, rpa, hpi, dig_points
 
 
 def _check_nan_dev_head_t(dev_ctf_t):
@@ -1037,13 +994,16 @@ class RawBTi(BaseRaw):
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
 
+    from ...digitization._utils import _make_bti_dig_points
+
     if head_shape_fname:
         logger.info('... Reading digitization points from %s' %
                     head_shape_fname)
 
-        idx_points, dig_points = _read_head_shape(head_shape_fname)
+        nasion, lpa, rpa, hpi, dig_points = _read_head_shape(head_shape_fname)
         info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
-            idx_points, dig_points, convert, use_hpi, bti_dev_t, dev_ctf_t)
+            nasion, lpa, rpa, hpi, dig_points,
+            convert, use_hpi, bti_dev_t, dev_ctf_t)
     else:
         logger.info('... no headshape file supplied, doing nothing.')
         info['dig'] = None

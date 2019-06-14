@@ -290,3 +290,8 @@ def _get_view_to_display_matrix(scene):
                                  [0.,            0.,   1.,        0.],
                                  [0.,            0.,   0.,        1.]])
     return view_to_disp_mat
+
+
+def _close_all():
+    from mayavi import mlab
+    mlab.close(all=True)

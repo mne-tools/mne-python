@@ -12,10 +12,11 @@ import numpy as np
 
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
-from ..utils import check_random_state, warn, _check_option
+from ..utils import check_random_state, warn, _check_option, fill_doc
 from ..label import Label
 
 
+@fill_doc
 def select_source_in_label(src, label, random_state=None, location='random',
                            subject=None, subjects_dir=None, surf='sphere'):
     """Select source positions using a label.
@@ -26,8 +27,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
         The source space
     label : Label
         the label (read with mne.read_label)
-    random_state : None | int | ~numpy.random.RandomState
-        To specify the random generator state.
+    %(random_state)s
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
         to use :func:`mne.Label.center_of_mass` (restricting to vertices
@@ -86,6 +86,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
     return lh_vertno, rh_vertno
 
 
+@fill_doc
 def simulate_sparse_stc(src, n_dipoles, times,
                         data_fun=lambda t: 1e-7 * np.sin(20 * np.pi * t),
                         labels=None, random_state=None, location='random',
@@ -112,8 +113,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
         the same length containing the time courses.
     labels : None | list of Label
         The labels. The default is None, otherwise its size must be n_dipoles.
-    random_state : None | int | ~numpy.random.RandomState
-        To specify the random generator state.
+    %(random_state)s
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
         to use :func:`mne.Label.center_of_mass`. Note that for 'center'

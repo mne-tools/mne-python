@@ -21,6 +21,7 @@ from . import testing
 from . import _fake
 from . import phantom_4dbti
 from . import sleep_physionet
+from . import limo
 from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
                     fetch_aparc_sub_parcellation)
 from ._fsaverage.base import fetch_fsaverage

@@ -25,6 +25,7 @@ from mne.viz.evoked import plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.stats import _parametric_ci
 from mne.datasets import testing
+from mne.io.constants import FIFF
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -349,6 +350,20 @@ def test_plot_compare_evokeds():
     assert len(red.times) == 1
     plot_compare_evokeds(red)
     plt.close('all')
+
+
+def test_plot_compare_evokeds_neuromag122():
+    """Test topomap plotting."""
+    evoked = mne.read_evokeds(evoked_fname, 'Left Auditory',
+                              baseline=(None, 0))
+    evoked.pick_types(meg='grad')
+    evoked.pick_channels(evoked.ch_names[:122])
+    ch_names = ['MEG %03d' % k for k in range(1, 123)]
+    for c in evoked.info['chs']:
+        c['coil_type'] = FIFF.FIFFV_COIL_NM_122
+    evoked.rename_channels({c_old: c_new for (c_old, c_new) in
+                            zip(evoked.ch_names, ch_names)})
+    mne.viz.plot_compare_evokeds([evoked, evoked])
 
 
 @testing.requires_testing_data

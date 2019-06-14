@@ -24,10 +24,39 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Accept filenames of raw .fif files to end on `_meg.fif` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
+
+- Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
+
+- Add scale bars for data channels in :func:`mne.io.Raw.plot` by `Eric Larson`_
+
+- Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
+- Change the behavior of :meth:`mne.io.Raw.plot` for ``scalings='auto'`` and ``remove_dc=True`` to compute the scalings on the data with DC removed by `Clemens Brunner`_
+
+- Allow creating annotations within existing annotations in :func:`mne.io.Raw.plot` by default (the old snapping behavior can be toggled by pressing 'p') by `Clemens Brunner`_
+
 Bug
 ~~~
 
+- Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
+
+- Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
+
+- Fix checks when constructing volumetric and surface source spaces with :func:`mne.setup_volume_source_space` and :func:`mne.setup_source_space`, respectively, by `Eric Larson`_
+
 - Fix bug in handling of :class:`mne.Evoked` types that were not produced by MNE-Python (e.g., alternating average) by `Eric Larson`_
+
+- Fix bug in :func:`mne.read_source_estimate` where vector volumetric source estimates could not be read by `Eric Larson`_
+
+- Fix bug in :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.tf_mixed_norm` where ``weights`` was supplied but ``weights_min`` was not, by `Eric Larson`_
+
+- Fix bug in :func:`mne.io.Raw.plot` when using HiDPI displays and the MacOSX backend of matplotlib by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_compare_evokeds` when using Neuromag 122 system by `Eric Larson`_
+
+- Fix bug in :func:`mne.Epochs.plot_psd` when some channels had zero/infinite ``psd`` values causing erroneous error messages by `Luke Bloy`_
+
 
 API
 ~~~
@@ -148,7 +177,7 @@ Changelog
 
 - The ``mri`` parameter in :func:`mne.setup_volume_source_space` is now automatically set to ``T1.mgz`` if ``subject`` is provided. This allows to get a :class:`mne.SourceSpaces` of kind ``volume`` more automatically. By `Alex Gramfort`_
 
-- Add better ``__repr__`` for constants, and :class:`info['dig'] <mne.Info>` entries via :class:`mne.io.DigPoint` by `Eric Larson`_
+- Add better ``__repr__`` for constants, and :class:`info['dig'] <mne.Info>` entries via :class:`mne.digitization.DigPoint` by `Eric Larson`_
 
 - Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
 
@@ -345,7 +374,7 @@ Changelog
 
 - Add ability to read and write beamformers with :func:`mne.beamformer.read_beamformer` and :class:`mne.beamformer.Beamformer.save` by `Eric Larson`_
 
-- Add resting-state source power spectral estimation example :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py` by `Eric Larson`_, `Denis Engemann`_, and `Luke Bloy`_
+- Add resting-state source power spectral estimation example ``sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`` by `Eric Larson`_, `Denis Engemann`_, and `Luke Bloy`_
 
 - Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
 
@@ -958,7 +987,7 @@ Changelog
 
 - Add option ``pick_ori='vector'`` to :func:`mne.minimum_norm.apply_inverse` to produce :class:`mne.VectorSourceEstimate` by `Marijn van Vliet`_
 
-- Add support for :class:`numpy.random.RandomState` argument to ``seed`` in :mod:`statistical clustering functions <mne.stats>` and better documentation of exact 1-sample tests by `Eric Larson`_
+- Add support for :class:`numpy.random.mtrand.RandomState` argument to ``seed`` in :mod:`statistical clustering functions <mne.stats>` and better documentation of exact 1-sample tests by `Eric Larson`_
 
 - Extend :func:`mne.viz.plot_epochs_image`/:meth:`mne.Epochs.plot_image` with regards to grouping by or aggregating over channels. See the new example at `examples/visualization/plot_roi_erpimage_by_rt.py` by `Jona Sassenhagen`_
 
@@ -3399,3 +3428,5 @@ of commits):
 .. _Alexander Kovrig: https://github.com/OpenSatori
 
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
+
+.. _Thomas Radman: https://github.com/tradman

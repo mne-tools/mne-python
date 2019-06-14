@@ -34,7 +34,7 @@ dependencies:
 - pip:
   - mne
   - vtk
-  - pyvista
+  - pyvista>=0.20.3
   - https://api.github.com/repos/enthought/mayavi/zipball/e2569be1096be3deecb15f8fa8581a3ae3fb77d3
   - PySurfer[save_movie]
   - dipy --only-binary dipy
@@ -48,3 +48,4 @@ dependencies:
   - python-picard
   - https://api.github.com/repos/vispy/vispy/zipball/47f3cd0cf179286774b8ec5d1fbe063a28b8e56b
   - pylsl>=1.12
+  - panel

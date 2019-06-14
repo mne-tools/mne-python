@@ -574,8 +574,9 @@ def test_add_channels():
                for ch in tfr_stim.ch_names + tfr_meg.ch_names)
     tfr_new = tfr_meg.copy().add_channels([tfr_eeg])
 
-    assert all(ch in tfr_new.ch_names
-               for ch in tfr.ch_names if ch != 'STIM 001')
+    have_all = all(ch in tfr_new.ch_names
+                   for ch in tfr.ch_names if ch != 'STIM 001')
+    assert have_all
     assert_array_equal(tfr_new.data, tfr_eeg_meg.data)
     assert all(ch not in tfr_new.ch_names for ch in tfr_stim.ch_names)
 

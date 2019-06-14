@@ -11,7 +11,7 @@ import time
 import numbers
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator, is_classifier
-from ..utils import check_version, logger, warn
+from ..utils import check_version, logger, warn, fill_doc
 
 
 class LinearModel(BaseEstimator):
@@ -366,6 +366,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     return coef
 
 
+@fill_doc
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
                          cv=None, n_jobs=1, verbose=0, fit_params=None,
                          pre_dispatch='2*n_jobs'):
@@ -405,9 +406,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         either binary or multiclass,
         :class:`sklearn.model_selection.StratifiedKFold` is used. In all
         other cases, :class:`sklearn.model_selection.KFold` is used.
-    n_jobs : int, optional
-        The number of CPUs to use to do the computation. -1 means
-        'all CPUs'.
+    %(n_jobs)s
     verbose : int, optional
         The verbosity level.
     fit_params : dict, optional

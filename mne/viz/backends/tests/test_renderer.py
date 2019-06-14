@@ -16,8 +16,6 @@ from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
 
 DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
 
-print(DEFAULT_3D_BACKEND)
-
 
 @pytest.fixture
 def backend_mocker():
@@ -48,10 +46,8 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
     assert get_3d_backend() == backend
 
 
-def test_3d_backend(backends_3d):
+def test_3d_backend(renderer):
     """Test default plot."""
-    from mne.viz.backends.renderer import _Renderer
-
     # set data
     win_size = (600, 600)
     win_color = (0, 0, 0)
@@ -97,38 +93,38 @@ def test_3d_backend(backends_3d):
     cam_distance = 5 * tet_size
 
     # init scene
-    renderer = _Renderer(size=win_size, bgcolor=win_color)
-    renderer.set_interactive()
+    rend = renderer._Renderer(size=win_size, bgcolor=win_color)
+    rend.set_interactive()
 
     # use mesh
-    renderer.mesh(x=tet_x, y=tet_y, z=tet_z,
-                  triangles=tet_indices,
-                  color=tet_color)
+    rend.mesh(x=tet_x, y=tet_y, z=tet_z,
+              triangles=tet_indices,
+              color=tet_color)
 
     # use contour
-    renderer.contour(surface=ct_surface, scalars=ct_scalars,
-                     contours=ct_levels)
+    rend.contour(surface=ct_surface, scalars=ct_scalars,
+                 contours=ct_levels)
 
     # use sphere
-    renderer.sphere(center=sph_center, color=sph_color,
-                    scale=sph_scale)
+    rend.sphere(center=sph_center, color=sph_color,
+                scale=sph_scale)
 
     # use quiver3d
-    renderer.quiver3d(x=qv_center[:, 0],
-                      y=qv_center[:, 1],
-                      z=qv_center[:, 2],
-                      u=qv_dir[:, 0],
-                      v=qv_dir[:, 1],
-                      w=qv_dir[:, 2],
-                      color=qv_color,
-                      scale=qv_scale,
-                      scale_mode=qv_scale_mode,
-                      scalars=qv_scalars,
-                      mode=qv_mode)
+    rend.quiver3d(x=qv_center[:, 0],
+                  y=qv_center[:, 1],
+                  z=qv_center[:, 2],
+                  u=qv_dir[:, 0],
+                  v=qv_dir[:, 1],
+                  w=qv_dir[:, 2],
+                  color=qv_color,
+                  scale=qv_scale,
+                  scale_mode=qv_scale_mode,
+                  scalars=qv_scalars,
+                  mode=qv_mode)
 
     # use text
-    renderer.text(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
-    renderer.set_camera(azimuth=180.0, elevation=90.0,
-                        distance=cam_distance,
-                        focalpoint=center)
-    renderer.show()
+    rend.text(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
+    rend.set_camera(azimuth=180.0, elevation=90.0,
+                    distance=cam_distance,
+                    focalpoint=center)
+    rend.show()

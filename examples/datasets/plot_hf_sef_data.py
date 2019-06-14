@@ -1,4 +1,6 @@
 """
+.. _ex-hf-sef-data:
+
 ==============
 HF-SEF dataset
 ==============
@@ -26,7 +28,7 @@ evoked = mne.Evoked(fname_evoked)
 ###############################################################################
 # Create a highpass filtered version
 evoked_hp = evoked.copy()
-evoked_hp.filter(l_freq=300, h_freq=None, fir_design='firwin')
+evoked_hp.filter(l_freq=300, h_freq=None)
 
 ###############################################################################
 # Compare high-pass filtered and unfiltered data on a single channel

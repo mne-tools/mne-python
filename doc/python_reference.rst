@@ -141,7 +141,8 @@ File I/O
    write_trans
    io.read_info
    io.show_fiff
-   io.DigPoint
+   digitization.DigPoint
+   digitization.Digitization
 
 Base class:
 
@@ -994,6 +995,7 @@ Logging and Configuration
    :toctree: generated/
 
    deprecated
+   warn
 
 :py:mod:`mne.cuda`:
 

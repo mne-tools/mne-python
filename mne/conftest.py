@@ -22,7 +22,6 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
-from mne.fixes import _get_args
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -81,9 +80,8 @@ def matplotlib_config():
     import matplotlib
     # "force" should not really be necessary but should not hurt
     kwargs = dict()
-    if 'warn' in _get_args(matplotlib.use):
-        kwargs['warn'] = False
-    matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
+    with warnings.catch_warnings(record=True):  # ignore warning
+        matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
     import matplotlib.pyplot as plt
     assert plt.get_backend() == 'agg'
     # overwrite some params that can horribly slow down tests that
@@ -166,7 +164,7 @@ def backend_name(request):
 
 
 @pytest.yield_fixture
-def backends_3d(backend_name):
+def renderer(backend_name):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
     from mne.viz.backends.tests._utils import (has_mayavi,
@@ -182,4 +180,6 @@ def backends_3d(backend_name):
         if not has_vispy():
             pytest.skip("Test skipped, requires vispy.")
     with _use_test_3d_backend(backend_name):
-        yield
+        from mne.viz.backends import renderer
+        yield renderer
+        renderer._close_all()

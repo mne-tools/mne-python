@@ -347,6 +347,9 @@ class Annotations(object):
         self : instance of Annotations
             The cropped Annotations object.
         """
+        if len(self) == 0:
+            return  # no annotations, nothing to do
+
         offset = 0 if self.orig_time is None else self.orig_time
         absolute_onset = self.onset + offset
         absolute_offset = absolute_onset + self.duration
@@ -814,10 +817,22 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 
 
 def _check_event_id(event_id, raw):
+    from .io.brainvision.brainvision import _BVEventParser
+    from .io.brainvision.brainvision import _check_bv_annot
+    from .io.brainvision.brainvision import RawBrainVision
+    from .io import RawFIF, RawArray
+
     if event_id is None:
         return _DefaultEventParser()
     elif event_id == 'auto':
-        return getattr(raw, '_get_auto_event_id', _DefaultEventParser)()
+        if isinstance(raw, RawBrainVision):
+            return _BVEventParser()
+        elif (isinstance(raw, (RawFIF, RawArray)) and
+              _check_bv_annot(raw.annotations.description)):
+            logger.info('Non-RawBrainVision raw using branvision markers')
+            return _BVEventParser()
+        else:
+            return _DefaultEventParser()
     elif callable(event_id) or isinstance(event_id, dict):
         return event_id
     else:

@@ -19,7 +19,8 @@ from mne.beamformer._lcmv import _lcmv_source_power
 from mne.io.compensator import set_current_comp
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.simulation import simulate_evoked
-from mne.utils import run_tests_if_main, object_diff, requires_h5py
+from mne.utils import (run_tests_if_main, object_diff, requires_h5py,
+                       catch_logging)
 
 
 data_path = testing.data_path(download=False)
@@ -168,9 +169,17 @@ def test_lcmv_vector():
         vals = linalg.svdvals(data_cov['data'])
         assert vals[0] / vals[-1] < 1e5  # not rank deficient
 
-        filters = make_lcmv(info, forward, data_cov, 0.05, noise_cov)
-        filters_vector = make_lcmv(info, forward, data_cov, 0.05, noise_cov,
-                                   pick_ori='vector')
+        with catch_logging() as log:
+            filters = make_lcmv(info, forward, data_cov, 0.05, noise_cov,
+                                verbose=True)
+        log = log.getvalue()
+        assert '498 sources' in log
+        with catch_logging() as log:
+            filters_vector = make_lcmv(info, forward, data_cov, 0.05,
+                                       noise_cov, pick_ori='vector',
+                                       verbose=True)
+        log = log.getvalue()
+        assert '498 sources' in log
         stc = apply_lcmv(this_evoked, filters)
         stc_vector = apply_lcmv(this_evoked, filters_vector)
         assert isinstance(stc, mne.SourceEstimate)

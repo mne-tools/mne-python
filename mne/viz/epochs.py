@@ -27,7 +27,8 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _grad_pair_pick_and_name, _handle_decim,
-                    _setup_plot_projector, _set_ax_label_style)
+                    _setup_plot_projector, _set_ax_label_style,
+                    _simplify_float)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
 
@@ -910,8 +911,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Alpha for the area.
     dB : bool
         If True, transform data to decibels.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     show : bool
         Show figure if True.
     %(verbose)s
@@ -935,19 +935,22 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                                      normalization=normalization, proj=proj,
                                      n_jobs=n_jobs)
 
+        # average across epochs before conversion
+        psds = np.mean(psds, axis=0)
+
         ylabel = _convert_psds(psds, dB, 'auto', scalings_list[ii],
                                units_list[ii],
                                [epochs.ch_names[pi] for pi in picks])
 
-        # mean across epochs and channels
-        psd_mean = np.mean(psds, axis=0).mean(axis=0)
+        # mean across channels
+        psd_mean = np.mean(psds, axis=0)
         if area_mode == 'std':
             # std across channels
-            psd_std = np.std(np.mean(psds, axis=0), axis=0)
+            psd_std = np.std(psds, axis=0)
             hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
         elif area_mode == 'range':
-            hyp_limits = (np.min(np.mean(psds, axis=0), axis=0),
-                          np.max(np.mean(psds, axis=0), axis=0))
+            hyp_limits = (np.min(psds, axis=0),
+                          np.max(psds, axis=0))
         else:  # area_mode is None
             hyp_limits = None
 
@@ -1328,10 +1331,7 @@ def _plot_traces(params):
                 labels[tick_pos] = (tickoffset_diff *
                                     params['scalings'][chan_type] *
                                     factor * scalings_default[chan_type])
-        # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
-        for li, label in enumerate(labels):
-            if isinstance(label, float) and float(str(label)) != round(label):
-                labels[li] = round(label, 2)
+        labels = [_simplify_float(label) for label in labels]
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         ax.set_yticklabels(tick_list, fontsize=12)

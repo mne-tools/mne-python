@@ -16,7 +16,8 @@ from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
 from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
-from ..utils import verbose, check_fname, _reg_pinv, _check_option
+from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
+                     _pl)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -227,6 +228,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     n_sources = G.shape[1] // n_orient
     assert nn.shape == (n_sources, 3)
 
+    logger.info('Computing beamformer filters for %d source%s'
+                % (n_sources, _pl(n_sources)))
     for k in range(n_sources):
         this_sl = slice(n_orient * k, n_orient * k + n_orient)
         Wk, Gk, sk = W[this_sl], G[:, this_sl], orient_std[this_sl]
@@ -328,6 +331,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         W *= noise_norm_inv
         W = W.reshape(-1, W.shape[-1])
 
+    logger.info('Filter computation complete')
     return W
 
 

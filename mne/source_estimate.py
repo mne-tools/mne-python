@@ -340,18 +340,19 @@ def read_source_estimate(fname, subject=None):
                            'subject name from the file "%s'
                            % (subject, kwargs['subject']))
 
+    vector = kwargs['data'].ndim == 3
     if ftype in ('volume', 'discrete'):
-        stc = VolSourceEstimate(**kwargs)
+        klass = VolVectorSourceEstimate if vector else VolSourceEstimate
     elif ftype == 'mixed':
-        stc = MixedSourceEstimate(**kwargs)
+        if vector:
+            # XXX we should really support this at some point
+            raise NotImplementedError('Vector mixed source estimates not yet '
+                                      'supported')
+        klass = MixedSourceEstimate
     else:
         assert ftype == 'surface'
-        if kwargs['data'].ndim == 3:
-            stc = VectorSourceEstimate(**kwargs)
-        else:
-            stc = SourceEstimate(**kwargs)
-
-    return stc
+        klass = VectorSourceEstimate if vector else SourceEstimate
+    return klass(**kwargs)
 
 
 def _get_src_type(src, vertices, warn_text=None):
@@ -415,7 +416,7 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
                     subject=subject)
     elif src_type == 'mixed':
         # make a mixed source estimate
-        if vector:
+        if vector:  # XXX this should be supported someday
             raise RuntimeError('Vector source estimates for mixed source '
                                'spaces are not supported yet')
         stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
@@ -621,8 +622,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             a power-of-two size (can be much faster).
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
-        n_jobs : int
-            Number of jobs to run in parallel.
+        %(n_jobs)s
         %(verbose_meth)s
 
         Notes
@@ -2687,6 +2687,10 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     ``'max'``
         Max value within each label.
 
+    If encountering a ``ValueError`` due to mismatch between number of
+    source points in the subject source space and computed ``stc`` object set
+    ``src`` argument to ``fwd['src']`` to ensure the source space is
+    compatible between forward and inverse routines.
     """
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
