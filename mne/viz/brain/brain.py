@@ -362,7 +362,7 @@ class Brain(object):
     def show(self):
         u"""Display widget."""
         try:
-            self._renderers[0][0].show()
+            return self._renderers[0][0].show()
         except RuntimeError:
             logger.info("No active/running renderer available.")
 
