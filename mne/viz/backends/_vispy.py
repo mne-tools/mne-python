@@ -433,3 +433,7 @@ def _create_quiver(mode, source, destination, scale, scale_mode='none',
         mat.rotate(np.degrees(np.arccos(cosangle)), axis)
     mat.translate(source)
     return meshdata, mat.matrix
+
+
+def _close_all():
+    pass
