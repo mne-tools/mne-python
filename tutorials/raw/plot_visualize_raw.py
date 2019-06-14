@@ -131,13 +131,10 @@ raw.plot_psd(average=True)
 # its own subplot; here we've passed the ``average=True`` parameter to get a
 # summary for each channel type, but it is also possible to plot each channel
 # individually, with options for how the spectrum should be computed,
-# color-coding the channels by location, and more. See the documentation of
-# :meth:`~mne.io.Raw.plot_psd` for full details.
-#
-# You can also plot the spectral density of continuous data on a
-# sensor-by-sensor basis. :meth:`~mne.io.Raw.plot_psd` has a ``picks``
-# parameter that accepts strings or lists of strings indicating channel name or
-# type.
+# color-coding the channels by location, and more. For example, here is a plot
+# of just a few sensors (specified with the ``picks`` parameter), color-coded
+# by spatial location (via the ``spatial_colors`` parameter, see the
+# documentation of :meth:`~mne.io.Raw.plot_psd` for full details):
 
 midline = ['EEG 002', 'EEG 012', 'EEG 030', 'EEG 048', 'EEG 058', 'EEG 060']
 raw.plot_psd(picks=midline)
