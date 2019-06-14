@@ -1655,19 +1655,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, tmin=0.0, tmax=np.inf, fmin=0, fmax=np.inf,
-                 proj=False, n_fft=None, picks=None, ax=None,
-                 color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, estimate='auto', average=False,
-                 show=True, n_jobs=1, line_alpha=None, spatial_colors=True,
-                 xscale='linear', reject_by_annotation=True, verbose=None):
-        return plot_raw_psd(
-            self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
-            n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
-            area_alpha=area_alpha, n_overlap=n_overlap, dB=dB,
-            estimate=estimate, average=average, show=show, n_jobs=n_jobs,
-            line_alpha=line_alpha, spatial_colors=spatial_colors,
-            xscale=xscale, reject_by_annotation=reject_by_annotation)
+    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
+                 n_fft=None, n_overlap=0, reject_by_annotation=True,
+                 picks=None, ax=None, color='black', xscale='linear',
+                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
+                 show=True, n_jobs=1, average=False, line_alpha=None,
+                 spatial_colors=True, verbose=None):
+        return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+                            proj=proj, n_fft=n_fft, n_overlap=n_overlap,
+                            reject_by_annotation=reject_by_annotation,
+                            picks=picks, ax=ax, color=color, xscale=xscale,
+                            area_mode=area_mode, area_alpha=area_alpha,
+                            dB=dB, estimate=estimate, show=show, n_jobs=n_jobs,
+                            average=average, line_alpha=line_alpha,
+                            spatial_colors=spatial_colors, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,

@@ -565,12 +565,12 @@ _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
 
 
 @verbose
-def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
-                 n_fft=None, picks=None, ax=None, color='black',
-                 area_mode='std', area_alpha=0.33, n_overlap=0,
-                 dB=True, estimate='auto', average=False, show=True, n_jobs=1,
-                 line_alpha=None, spatial_colors=True, xscale='linear',
-                 reject_by_annotation=True, verbose=None):
+def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
+                 n_fft=None, n_overlap=0, reject_by_annotation=True,
+                 picks=None, ax=None, color='black', xscale='linear',
+                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
+                 show=True, n_jobs=1, average=False, line_alpha=None,
+                 spatial_colors=True, verbose=None):
     """Plot the power spectral density across channels.
 
     Different channel types are drawn in sub-plots. When the data has been
@@ -581,74 +581,38 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     Parameters
     ----------
     raw : instance of Raw
-        The raw instance to use.
-    tmin : float
-        Start time for calculations.
-    tmax : float
-        End time for calculations.
-    fmin : float
-        Start frequency to consider.
-    fmax : float
-        End frequency to consider.
+        The raw object.
+    %(plot_psd_fmin)s
+    %(plot_psd_fmax)s
+    %(plot_psd_tmin)s
+    %(plot_psd_tmax)s
     proj : bool
         Apply projection.
     n_fft : int | None
         Number of points to use in Welch FFT calculations.
         Default is None, which uses the minimum of 2048 and the
         number of time points.
-    %(picks_good_data)s
-        Cannot be None if `ax` is supplied. If both
-        `picks` and `ax` are None, separate subplots will be created for
-        each standard channel type (`mag`, `grad`, and `eeg`).
-    ax : instance of matplotlib Axes | None
-        Axes to plot into. If None, axes will be created.
-    color : str | tuple
-        A matplotlib-compatible color to use. Has no effect when
-        spatial_colors=True.
-    area_mode : str | None
-        Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
-        will be plotted. If 'range', the min and max (across channels) will be
-        plotted. Bad channels will be excluded from these calculations.
-        If None, no area will be plotted. If average=False, no area is plotted.
-    area_alpha : float
-        Alpha for the area.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
-    dB : bool
-        Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
-        ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
-        in units (amplitude**2/Hz) if ``dB=False`` and,
-        ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
-        (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
-        ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (db)), if
-        ``dB=True`` and ``estimate='amplitude'``.
-    estimate : str, {'auto', 'power', 'amplitude'}
-        Can be "power" for power spectral density (PSD), "amplitude" for
-        amplitude spectrum density (ASD), or "auto" (default), which uses
-        "power" when dB is True and "amplitude" otherwise.
-    average : bool
-        If False (default), the PSDs of all channels is displayed. No averaging
-        is done and parameters area_mode and area_alpha are ignored. When
-        False, it is possible to paint an area (hold left mouse button and
-        drag) to plot a topomap.
-    show : bool
-        Show figure if True.
-    %(n_jobs)s
-    line_alpha : float | None
-        Alpha for the PSD line. Can be None (default) to use 1.0 when
-        ``average=True`` and 0.1 when ``average=False``.
-    spatial_colors : bool
-        Whether to use spatial colors. Only used when ``average=False``.
-    xscale : str
-        Can be 'linear' (default) or 'log'.
     reject_by_annotation : bool
         Whether to omit bad segments from the data while computing the
         PSD. If True, annotated segments with a description that starts
         with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
         Evoked object. Defaults to True.
-
-        .. versionadded:: 0.15.0
+    %(plot_psd_picks_good_data)s
+    %(plot_psd_ax)s
+    %(plot_psd_color)s
+    %(plot_psd_xscale)s
+    %(plot_psd_area_mode)s
+    %(plot_psd_area_alpha)s
+    %(plot_psd_dB)s
+    %(plot_psd_estimate)s
+    %(show)s
+    %(n_jobs)s
+    %(plot_psd_average)s
+    %(plot_psd_line_alpha)sxscale=xscale,
+    %(plot_psd_spatial_colors)s
     %(verbose)s
 
     Returns
@@ -663,7 +627,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     del ax
     psd_list = list()
     if n_fft is None:
-        tmax = raw.times[-1] if not np.isfinite(tmax) else tmax
+        tmax = raw.times[-1] if tmax is None else tmax
+        tmin = 0. if tmin is None else tmin
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
     for picks in picks_list:
         psd, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
@@ -671,11 +636,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                                n_overlap=n_overlap, n_jobs=n_jobs,
                                reject_by_annotation=reject_by_annotation)
         psd_list.append(psd)
-    print(spatial_colors)
     return _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
                      units_list, scalings_list, ax_list, make_label, color,
-                     area_mode, area_alpha, dB, show, average, spatial_colors,
-                     xscale, line_alpha)
+                     area_mode, area_alpha, dB, estimate, show, average,
+                     spatial_colors, xscale, line_alpha)
 
 
 def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,

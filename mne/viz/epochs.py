@@ -866,23 +866,20 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,
                     normalization='length', picks=None, ax=None, color='black',
-                    area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
-                    show=True, average=True, spatial_colors=True,
-                    line_alpha=None, xscale='linear', verbose=None):
+                    xscale='linear', area_mode='std', area_alpha=0.33,
+                    dB=True, estimate='auto', show=True, n_jobs=1,
+                    average=False, line_alpha=None, spatial_colors=True,
+                    verbose=None):
     """Plot the power spectral density across epochs.
 
     Parameters
     ----------
     epochs : instance of Epochs
         The epochs object
-    fmin : float
-        Start frequency to consider.
-    fmax : float
-        End frequency to consider.
-    tmin : float | None
-        Start time to consider.
-    tmax : float | None
-        End time to consider.
+    %(plot_psd_fmin)s
+    %(plot_psd_fmax)s
+    %(plot_psd_tmin)s
+    %(plot_psd_tmax)s
     proj : bool
         Apply projection.
     bandwidth : float
@@ -898,44 +895,26 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    %(picks_good_data)s
-    ax : instance of Axes | None
-        Axes to plot into. If None, axes will be created.
-    color : str | tuple
-        A matplotlib-compatible color to use.
-    area_mode : str | None
-        Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
-        will be plotted. If 'range', the min and max (across channels) will be
-        plotted. Bad channels will be excluded from these calculations.
-        If None, no area will be plotted.
-    area_alpha : float
-        Alpha for the area.
-    dB : bool
-        If True, transform data to decibels.
+    %(plot_psd_picks_good_data)s
+    %(plot_psd_ax)s
+    %(plot_psd_color)s
+    %(plot_psd_xscale)s
+    %(plot_psd_area_mode)s
+    %(plot_psd_area_alpha)s
+    %(plot_psd_dB)s
+    %(plot_psd_estimate)s
+    %(show)s
     %(n_jobs)s
-    show : bool
-        Show figure if True.
-    average : bool
-        If False, the PSDs of all channels is displayed. No averaging
-        is done and parameters area_mode and area_alpha are ignored. When
-        False, it is possible to paint an area (hold left mouse button and
-        drag) to plot a topomap.
-    spatial_colors : bool
-        Whether to use spatial colors. Only used when ``average=False``.
-    line_alpha : float | None
-        Alpha for the PSD line. Can be None (default) to use 1.0 when
-        ``average=True`` and 0.1 when ``average=False``.
-    xscale : str
-        Can be 'linear' (default) or 'log'.
-
+    %(plot_psd_average)s
+    %(plot_psd_line_alpha)s
+    %(plot_psd_spatial_colors)s
     %(verbose)s
 
     Returns
     -------
     fig : instance of Figure
-        Figure distributing one image per channel across sensor topography.
+        Figure with frequency spectra of the data channels.
     """
-
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
@@ -943,6 +922,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     del ax
     psd_list = list()
     for picks in picks_list:
+        # Multitaper used for epochs instead of Welch, because Welch chunks
+        # the data; epoched data are by nature already chunked, however.
         psd, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
                                     fmax=fmax, tmin=tmin, tmax=tmax,
                                     bandwidth=bandwidth, adaptive=adaptive,
@@ -953,8 +934,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     return _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
                      units_list, scalings_list, ax_list, make_label, color,
-                     area_mode, area_alpha, dB, show, average, spatial_colors,
-                     xscale, line_alpha)
+                     area_mode, area_alpha, dB, estimate, show, average,
+                     spatial_colors, xscale, line_alpha)
 
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,

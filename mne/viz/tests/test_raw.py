@@ -358,7 +358,7 @@ def test_plot_raw_psd():
     raw.plot_psd(average=False)
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,
+    raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
                  spatial_colors=True)
     raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
                  n_overlap=0.1, average=False)
@@ -366,13 +366,13 @@ def test_plot_raw_psd():
     ax = plt.axes()
     # if ax is supplied:
     pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
-    raw.plot_psd(tmax=np.inf, picks=picks, ax=ax, average=True)
+    raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
     plt.close('all')
     ax = plt.axes()
     pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
     plt.close('all')
     ax = plt.subplots(2)[1]
-    raw.plot_psd(tmax=np.inf, ax=ax, average=True)
+    raw.plot_psd(tmax=None, ax=ax, average=True)
     plt.close('all')
     # topo psd
     ax = plt.subplot()

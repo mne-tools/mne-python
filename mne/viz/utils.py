@@ -2935,7 +2935,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
 
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
-              area_alpha, dB, show, average, spatial_colors, xscale,
+              area_alpha, dB, estimate, show, average, spatial_colors, xscale,
               line_alpha):
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
@@ -2959,8 +2959,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                                                                   ax_list,
                                                                   scalings_list, # noqa
                                                                   units_list)):
-        ylabel = _convert_psds(psd, dB, 'auto', scalings,
-                               units,
+        ylabel = _convert_psds(psd, dB, estimate, scalings, units,
                                [inst.ch_names[pi] for pi in picks])
         if make_label:
             if ii == len(picks_list) - 1:

@@ -28,6 +28,11 @@ verbose : bool, str, int, or None
     and :ref:`Logging documentation <tut_logging>` for more)."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
+# General plotting
+docdict["show"] = """
+show : bool
+    Show figure if True."""
+
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
 docdict['picks_base'] = docdict['picks_header'] + """
@@ -65,7 +70,6 @@ h_freq : float | None
 docdict['filter_length'] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
-
     * **'auto' (default)**: The filter length is chosen based
       on the size of the transition regions (6.6 times the reciprocal
       of the shortest transition band for fir_window='hamming'
@@ -77,16 +81,13 @@ filter_length : str | int
       ``phase="zero-double"``.
     * **int**: Specified length in samples. For fir_design="firwin",
       this should not be used.
-
 """
 docdict['l_trans_bandwidth'] = """
 l_trans_bandwidth : float | str
     Width of the transition band at the low cut-off frequency in Hz
     (high pass or cutoff 1 in bandpass). Can be "auto"
     (default) to use a multiple of ``l_freq``::
-
         min(max(l_freq * 0.25, 2), l_freq)
-
     Only used for ``method='fir'``.
 """
 docdict['h_trans_bandwidth'] = """
@@ -94,9 +95,7 @@ h_trans_bandwidth : float | str
     Width of the transition band at the high cut-off frequency in Hz
     (low pass or cutoff 2 in bandpass). Can be "auto"
     (default in 0.14) to use a multiple of ``h_freq``::
-
         min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
-
     Only used for ``method='fir'``.
 """
 docdict['phase'] = """
@@ -109,7 +108,6 @@ phase : str
     (also making it non-causal). If 'minimum', then a minimum-phase filter will
     be constricted and applied, which is causal but has weaker stop-band
     suppression.
-
     .. versionadded:: 0.13
 """
 docdict['fir_design'] = """
@@ -118,14 +116,12 @@ fir_design : str
     or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
     a time-domain design technique that generally gives improved
     attenuation using fewer samples than "firwin2".
-
     .. versionadded:: 0.15
 """
 docdict['fir_window'] = """
 fir_window : str
     The window to use in FIR design, can be "hamming" (default),
     "hann" (default in 0.13), or "blackman".
-
     .. versionadded:: 0.15
 """
 docdict['pad-fir'] = """
@@ -235,6 +231,84 @@ seed : None | int | instance of ~numpy.random.mtrand.RandomState
     obtained from the operating system (see
     :class:`~numpy.random.mtrand.RandomState` for details). Default is
     ``None``.
+"""
+
+# PSD plotting
+docdict["plot_psd_fmin"] = """
+fmin : float
+    Start frequency to consider. Defaults to 0.
+"""
+docdict["plot_psd_fmax"] = """
+fmax : float
+    End frequency to consider. Defaults to Inf.
+"""
+docdict["plot_psd_tmin"] = """
+tmin : float
+    Start time for calculations. If None (default), then 0.
+"""
+docdict["plot_psd_tmax"] = """
+tmax : float
+    End time for calculations. If None (default), then last time point.
+"""
+docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
+    Cannot be None if `ax` is supplied.If both `picks` and `ax` are None
+    separate subplots will be created for each standard channel type
+    (`mag`, `grad`, and `eeg`).\n"""
+docdict["plot_psd_ax"] = """
+ax : instance of matplotlib Axes | None
+    Axes to plot into. If None, axes will be created.
+"""
+docdict["plot_psd_color"] = """
+color : str | tuple
+    A matplotlib-compatible color to use. Has no effect when
+    spatial_colors=True.
+"""
+docdict["plot_psd_xscale"] = """
+xscale : str
+    Can be 'linear' (default) or 'log'.
+"""
+docdict["plot_psd_area_mode"] = """
+area_mode : str | None
+    Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
+    will be plotted. If 'range', the min and max (across channels) will be
+    plotted. Bad channels will be excluded from these calculations.
+    If None, no area will be plotted. If average=False, no area is plotted.
+"""
+docdict["plot_psd_area_alpha"] = """
+area_alpha : float
+    Alpha for the area.
+"""
+docdict["plot_psd_dB"] = """
+dB : bool
+    Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
+    ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
+    in units (amplitude**2/Hz) if ``dB=False`` and,
+    ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
+    (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
+    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (db)), if
+    ``dB=True`` and ``estimate='amplitude'``.
+"""
+docdict["plot_psd_estimate"] = """
+estimate : str, {'auto', 'power', 'amplitude'}
+    Can be "power" for power spectral density (PSD), "amplitude" for
+    amplitude spectrum density (ASD), or "auto" (default), which uses
+    "power" when dB is True and "amplitude" otherwise.
+"""
+docdict["plot_psd_average"] = """
+average : bool
+    If False (default), the PSDs of all channels is displayed. No averaging
+    is done and parameters area_mode and area_alpha are ignored. When
+    False, it is possible to paint an area (hold left mouse button and
+    drag) to plot a topomap.
+"""
+docdict["plot_psd_line_alpha"] = """
+line_alpha : float | None
+    Alpha for the PSD line. Can be None (default) to use 1.0 when
+    ``average=True`` and 0.1 when ``average=False``.
+"""
+docdict["plot_psd_spatial_colors"] = """
+spatial_colors : bool
+    Whether to use spatial colors. Only used when ``average=False``.
 """
 
 # Finalize
@@ -599,7 +673,6 @@ class deprecated(object):
 
     def __call__(self, obj):  # noqa: D105
         """Call.
-
         Parameters
         ----------
         obj : object
@@ -657,4 +730,5 @@ class deprecated(object):
                     n_space = len(line) - len(line.lstrip())
                     break
             newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
+
         return newdoc
