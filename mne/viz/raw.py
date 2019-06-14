@@ -266,7 +266,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     from scipy.signal import butter
     from ..io.base import BaseRaw
     color = _handle_default('color', color)
-    scalings = _compute_scalings(scalings, raw)
+    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
+                                 duration=duration)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     n_channels = min(len(raw.info['chs']), n_channels)
     _check_option('clipping', clipping, [None, 'clamp', 'transparent'])
@@ -401,7 +402,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
-                  filt_bounds=filt_bounds, units=units,
+                  filt_bounds=filt_bounds, units=units, snap_annotations=False,
                   unit_scalings=unit_scalings, use_scalebars=True)
 
     if group_by in ['selection', 'position']:
