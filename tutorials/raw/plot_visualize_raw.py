@@ -3,8 +3,9 @@
 Built-in plotting methods for Raw objects
 =========================================
 
-This tutorial shows how to plot continuous data as a time series, and how to
-plot the spectral density of continuous data.
+This tutorial shows how to plot continuous data as a time series, how to plot
+the spectral density of continuous data, and how to plot the sensor locations
+and projectors stored in Raw objects.
 
 .. contents:: Page contents
    :local:
@@ -20,7 +21,7 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
+raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 
 ###############################################################################
 # We've seen in :ref:`a previous tutorial <tut-raw-class>` how to plot data
@@ -31,16 +32,11 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # - :meth:`~mne.io.Raw.plot`
 # - :meth:`~mne.io.Raw.plot_psd`
 # - :meth:`~mne.io.Raw.plot_psd_topo`
-# - :meth:`~mne.io.Raw.plot_projs_topomap`
 # - :meth:`~mne.io.Raw.plot_sensors`
+# - :meth:`~mne.io.Raw.plot_projs_topomap`
 #
-# We'll discuss the first three here; :meth:`~mne.io.Raw.plot_projs_topomap` is
-# discussed in a later tutorial; :meth:`~mne.io.Raw.plot_sensors` is discussed
-# in :doc:`../misc/plot_sensor_locations`.
-#
-# .. TODO: change "in a later tutorial" to ref. the "plotting projectors" tut
-#    when it is merged in (probably :doc:`../preprocessing/plot_projectors` or
-#    similar).
+# The first three are discussed here in detail; the last two are shown briefly
+# and covered in-depth in other tutorials.
 #
 #
 # Interactive data browsing with ``Raw.plot()``
@@ -158,6 +154,37 @@ raw.plot_psd_topo()
 # will be plotted instead:
 
 raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
+
+###############################################################################
+# Plotting sensor locations from ``Raw`` objects
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# The channel locations in a :class:`~mne.io.Raw` object can be easily plotted
+# with the :meth:`~mne.io.Raw.plot_sensors` method. A brief example is shown
+# here; notice that channels in ``raw.info['bads']`` are plotted in red. More
+# details and additional examples are given in the tutorial
+# :doc:`../misc/plot_sensor_locations`.
+
+raw.plot_sensors(ch_type='eeg')
+
+###############################################################################
+# Plotting projectors from ``Raw`` objects
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# As seen in the output of :meth:`mne.io.read_raw_fif` above, there are
+# :term:`projectors <projector>` included in the example :class:`~mne.io.Raw`
+# file (representing environmental noise in the signal, so it can later be
+# "projected out" during preprocessing). You can visualize these projectors
+# using the :meth:`~mne.io.Raw.plot_projs_topomap` method. By default it will
+# show one figure per channel type for which projectors are present, and each
+# figure will have one subplot per projector. The three projectors in this file
+# were only computed for magnetometers, so one figure with three subplots is
+# generated.
+#
+# .. TODO: More details on working with and plotting projectors are given in
+#    <add crossref here>
+
+raw.plot_projs_topomap()
 
 ###############################################################################
 # .. LINKS
