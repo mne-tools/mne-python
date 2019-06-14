@@ -24,8 +24,8 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 
 ###############################################################################
 # We've seen in :ref:`a previous tutorial <tut-raw-class>` how to plot data
-# from a :class:`~mne.io.Raw` object using :mod:`matplotlib
-# <matplotlib.pyplot>`, but :class:`~mne.io.Raw` objects also have several
+# from a :class:`~mne.io.Raw` object using :doc:`matplotlib
+# <matplotlib:index>`, but :class:`~mne.io.Raw` objects also have several
 # built-in plotting methods:
 #
 # - :meth:`~mne.io.Raw.plot`
