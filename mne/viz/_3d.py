@@ -765,22 +765,27 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             # Try the BEM if applicable
             if s in ('head', 'outer_skin'):
                 if bem is not None:
+                    head_missing = (
+                        'Could not find the surface for '
+                        'head in the provided BEM model, '
+                        'looking in the subject directory.')
                     if isinstance(bem, ConductorModel):
                         if is_sphere:
                             head_surf = _complete_sphere_surf(
                                 bem, 3, sphere_level, complete=False)
                         else:  # BEM solution
-                            head_surf = _bem_find_surface(
-                                bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                            try:
+                                head_surf = _bem_find_surface(
+                                    bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                            except RuntimeError:
+                                logger.info(head_missing)
                     elif bem is not None:  # list of dict
                         for this_surf in bem:
                             if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
                                 head_surf = this_surf
                                 break
                         else:
-                            logger.info('Could not find the surface for '
-                                        'head in the provided BEM model, '
-                                        'looking in the subject directory.')
+                            logger.info(head_missing)
             if head_surf is None:
                 if subject is None:
                     raise ValueError('To plot the head surface, the BEM/sphere'
