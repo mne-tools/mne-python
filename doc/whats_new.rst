@@ -32,7 +32,9 @@ Changelog
 
 - Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
-- plot_psd for Raw and Epochs are refactored into _plot_psd, documentation unified where possible. Both now default to average=False, i.e. coloured channel butterfly plots by `Jeff Hanna`
+- Change the behavior of :meth:`mne.io.Raw.plot` for ``scalings='auto'`` and ``remove_dc=True`` to compute the scalings on the data with DC removed by `Clemens Brunner`_
+
+- Allow creating annotations within existing annotations in :func:`mne.io.Raw.plot` by default (the old snapping behavior can be toggled by pressing 'p') by `Clemens Brunner`_
 
 Bug
 ~~~
