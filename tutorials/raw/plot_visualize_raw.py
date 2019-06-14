@@ -56,7 +56,7 @@ raw.plot()
 # - It spaces the channels equally along the y-axis.
 #
 #   - 20 channels are shown by default; you can scroll through the channels
-#     using the :kbd:`up` and :kbd:`down` arrow keys, or by clicking on the
+#     using the :kbd:`↑` and :kbd:`↓` arrow keys, or by clicking on the
 #     colored scroll bar on the right edge of the plot.
 #
 #   - The number of visible channels can be adjusted by the ``n_channels``
@@ -73,10 +73,10 @@ raw.plot()
 #     :kbd:`end` keys, or start with a specific window duration by passing the
 #     ``duration`` parameter.
 #
-#   - You can scroll in the time domain using the :kbd:`left` and
-#     :kbd:`right` arrow keys, or start at a specific point by passing the
-#     ``start`` parameter. Scrolling using :kbd:`shift`:kbd:`right` or
-#     :kbd:`shift`:kbd:`left` scrolls a full window width at a time.
+#   - You can scroll in the time domain using the :kbd:`←` and
+#     :kbd:`→` arrow keys, or start at a specific point by passing the
+#     ``start`` parameter. Scrolling using :kbd:`shift`:kbd:`→` or
+#     :kbd:`shift`:kbd:`←` scrolls a full window width at a time.
 #
 # - It allows clicking on channels to mark/unmark as "bad".
 #
