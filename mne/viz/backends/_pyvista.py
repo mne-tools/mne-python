@@ -113,7 +113,6 @@ class _Renderer(_BaseRenderer):
                 # is a temporary workaround of:
                 # https://github.com/pyvista/pyvista-support/issues/15
                 smooth_shading = False
-                pd.clear_arrays()
                 rgba = True
             else:
                 scalars = None
