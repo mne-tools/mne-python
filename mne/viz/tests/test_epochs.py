@@ -303,6 +303,7 @@ def test_plot_psd_epochs():
     plt.close('all')
 
 
+@testing.requires_testing_data
 def test_plot_epochs_ctf():
     """Test of basic CTF plotting."""
     raw = read_raw_ctf(ctf_fname, preload=True)
@@ -328,6 +329,7 @@ def test_plot_epochs_ctf():
     plt.close('all')
 
 
+@testing.requires_testing_data
 def test_plot_psd_epochs_ctf():
     """Test plotting CTF epochs psd (+topomap)."""
     raw = read_raw_ctf(ctf_fname, preload=True)
