@@ -59,27 +59,12 @@ print(raw.info['chs'][0]['loc'])
 ###############################################################################
 # And it's actually possible to plot the channel locations using
 # :func:`mne.io.Raw.plot_sensors`.
+# In the case where your data don't have locations you can use one of the
+# standard :class:`mne.channels.Montage` shipped with MNE.
+# See :ref:`plot_montage` and :ref:`plot_eeg_no_mri`.
 
 raw.plot_sensors()
 raw.plot_sensors('3d')  # in 3D
-
-###############################################################################
-# Setting EEG Montage (using standard montages)
-# ---------------------------------------------
-#
-# In the case where your data don't have locations you can set them
-# using a :class:`mne.channels.Montage`. MNE comes with a set of default
-# montages. To read one of them do:
-
-montage = mne.channels.read_montage('standard_1020')
-print(montage)
-
-###############################################################################
-# To apply a montage on your data use the ``set_montage`` method.
-# function. Here don't actually call this function as our demo dataset
-# already contains good EEG channel locations.
-#
-# Next we'll explore the definition of the reference.
 
 ###############################################################################
 # Setting EEG reference
