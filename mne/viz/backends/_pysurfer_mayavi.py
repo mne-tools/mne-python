@@ -163,6 +163,9 @@ class _Renderer(_BaseRenderer):
     def close(self):
         self.mlab.close(self.fig)
 
+    def title(self, text):
+        self.mlab.title(text=text, figure=self.fig)
+
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
         with warnings.catch_warnings(record=True):  # traits

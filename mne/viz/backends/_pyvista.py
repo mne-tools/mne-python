@@ -253,6 +253,10 @@ class _Renderer(_BaseRenderer):
     def close(self):
         self.plotter.close()
 
+    def title(self, text):
+        # XXX This is not implemented yet
+        pass
+
     def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
                    focalpoint=(0, 0, 0)):
         phi = _deg2rad(azimuth)
@@ -332,6 +336,7 @@ def _get_view_to_display_matrix(size):
 
 
 def _close_all():
+    # XXX This is not implemented yet
     pass
 
 

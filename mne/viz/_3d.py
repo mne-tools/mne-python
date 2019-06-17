@@ -534,7 +534,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
-                   interaction='trackball', verbose=None, view=None):
+                   interaction='trackball', verbose=None, view=None,
+                   title=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -617,7 +618,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         .. versionadded:: 0.16
     %(verbose)s
     view: dict | None
-        The camera settings of the scene.
+        The camera settings of the scene. If ``None``, the default settings
+        are used.
+    title: str | None
+        The title of the scene. If ``None``, no title will be displayed.
 
     Returns
     -------
@@ -1134,8 +1138,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                                 (0., 0., 0.)),
                             distance=view.get('distance', 0.6))
     else:
-        raise TypeError('view must be an instance of `dict` or None: '
+        raise TypeError('view must be an instance of `dict` or `None`: '
                         '{} was given'.format(type(view)))
+    if isinstance(title, str):
+        renderer.title(title)
+    elif title is not None:
+        raise TypeError('title must be an instance of `str` or `None`: '
+                        '{} was given'.format(type(title)))
     renderer.show()
     return renderer.scene()
 

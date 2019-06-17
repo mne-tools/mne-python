@@ -13,7 +13,6 @@ shipped in MNE-python, and display it on fsaverage template.
 #
 # License: BSD Style.
 
-from mayavi import mlab
 import os.path as op
 
 import mne
@@ -38,10 +37,11 @@ for current_montage in get_builtin_montages():
                            ch_types='eeg',
                            montage=montage)
 
+    view = {'azimuth': 135,
+            'elevation': 80}
     fig = plot_alignment(info, trans=None,
                          subject='fsaverage',
                          subjects_dir=subjects_dir,
                          eeg=['projected'],
-                         )
-    mlab.view(135, 80)
-    mlab.title(montage.kind, figure=fig)
+                         view=view,
+                         title=montage.kind)
