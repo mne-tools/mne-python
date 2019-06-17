@@ -95,11 +95,13 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
+        smooth_shading = self.smooth_shading
         vertices = np.c_[x, y, z]
         n_vertices = len(vertices)
         triangles = np.c_[np.full(len(triangles), 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
+            pd = pyvista.PolyData(vertices, triangles)
             if len(color) == n_vertices:
                 if color.shape[1] == 3:
                     scalars = np.c_[color, np.ones(n_vertices)]
@@ -107,16 +109,20 @@ class _Renderer(_BaseRenderer):
                     scalars = color
                 scalars = (scalars * 255).astype('ubyte')
                 color = None
+                # Disabling normal computation for smooth shading
+                # is a temporary workaround of:
+                # https://github.com/pyvista/pyvista-support/issues/15
+                smooth_shading = False
+                pd.clear_arrays()
                 rgba = True
             else:
                 scalars = None
                 rgba = False
 
-            pd = pyvista.PolyData(vertices, triangles)
             self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
                                   rgba=rgba, opacity=opacity,
                                   backface_culling=backface_culling,
-                                  smooth_shading=self.smooth_shading)
+                                  smooth_shading=smooth_shading)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
