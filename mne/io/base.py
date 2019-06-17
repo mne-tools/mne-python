@@ -307,6 +307,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         the header file. Example: {'FC1': 'nV'}
 
         .. versionadded:: 0.17
+    montage : XXX
+        XXX
     %(verbose)s
 
     Notes
@@ -332,7 +334,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  filenames=(None,), raw_extras=(None,),
                  orig_format='double', dtype=np.float64,
                  buffer_size_sec=1., orig_units=None,
-                 verbose=None):  # noqa: D102
+                 montage=None, verbose=None):  # noqa: D102
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -419,6 +421,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if load_from_disk:
             self._preload_data(preload)
         self._init_kwargs = _get_argvalues()
+
+        if montage is not None:
+            self.set_montage(montage)
 
     @verbose
     def apply_gradient_compensation(self, grade, verbose=None):
@@ -1939,7 +1944,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Does nothing for objects that close their file descriptors.
         Things like RawFIF will override this method.
         """
-        pass
+        pass  # noqa
 
     def copy(self):
         """Return copy of Raw instance."""

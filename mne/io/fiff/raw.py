@@ -100,6 +100,7 @@ class Raw(BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
             raws[0].orig_format, None, buffer_size_sec=buffer_size_sec,
+            montage=raws[0].info['dig'],
             verbose=verbose)
 
         # combine annotations
@@ -122,6 +123,7 @@ class Raw(BaseRaw):
             self._preload_data(preload)
         else:
             self.preload = False
+
         # If using a file-like object, fix the filenames to be representative
         # strings now instead of the file-like objects
         self._filenames = [_get_fname_rep(fname) for fname in self._filenames]
