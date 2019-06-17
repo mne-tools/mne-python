@@ -1128,18 +1128,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             opacity=0.75, glyph_height=0.25,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
-    if view is None:
-        renderer.set_camera(azimuth=90, elevation=90,
-                            focalpoint=(0., 0., 0.), distance=0.6)
-    elif isinstance(view, dict):
-        renderer.set_camera(azimuth=view.get('azimuth', 90),
-                            elevation=view.get('elevation', 90),
-                            focalpoint=view.get('focalpoint',
-                                                (0., 0., 0.)),
-                            distance=view.get('distance', 0.6))
-    else:
-        raise TypeError('view must be an instance of `dict` or `None`: '
-                        '{} was given'.format(type(view)))
+
+    _check_option('view', type(view), (dict, type(None)))
+    view = dict() if view is None else view
+    renderer.set_camera(**view)
+
     if isinstance(title, str):
         renderer.title(title)
     elif title is not None:
@@ -2568,18 +2561,13 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True, view=None):
     else:
         raise TypeError('montage must be an instance of `DigMontage`, `Info`,'
                         ' or `dict`')
-    if view is None:
-        view = dict()
-    if not isinstance(view, dict):
-        raise TypeError('view must be an instance of `dict` or None: '
-                        '{} was given'.format(type(view)))
 
     # initialize figure
     renderer = _Renderer(fig, show=True)
-    renderer.set_camera(azimuth=view.get('azimuth'),
-                        elevation=view.get('elevation'),
-                        focalpoint=view.get('focalpoint'),
-                        distance=view.get('distance'))
+
+    _check_option('view', type(view), (dict, type(None)))
+    view = dict() if view is None else view
+    renderer.set_camera(**view)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
