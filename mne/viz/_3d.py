@@ -2507,7 +2507,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     return fig
 
 
-def snapshot_brain_montage(fig, montage, hide_sensors=True):
+def snapshot_brain_montage(fig, montage, hide_sensors=True, view=None):
     """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
 
     Note that this will take the raw values for 3d coordinates of each channel,
@@ -2525,6 +2525,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         dict should have ch:xyz mappings.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
+    view: dict | None
+        The camera settings of the scene.
 
     Returns
     -------
@@ -2557,9 +2559,18 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     else:
         raise TypeError('montage must be an instance of `DigMontage`, `Info`,'
                         ' or `dict`')
+    if view is None:
+        view = dict()
+    if not isinstance(view, dict):
+        raise TypeError('view must be an instance of `dict` or None: '
+                        '{} was given'.format(type(view)))
 
     # initialize figure
     renderer = _Renderer(fig, show=True)
+    renderer.set_camera(azimuth=view.get('azimuth'),
+                        elevation=view.get('elevation'),
+                        focalpoint=view.get('focalpoint'),
+                        distance=view.get('distance'))
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
