@@ -16,7 +16,6 @@ import os.path as op
 
 import numpy as np
 import mne
-from mayavi import mlab
 
 data_path = mne.datasets.opm.data_path()
 subject = 'OPM_sample'
@@ -74,11 +73,14 @@ trans = None
 
 fwd = mne.read_forward_solution(fwd_fname)
 
+view = {'azimuth': 45,
+        'elevation': 60,
+        'distance': 0.4,
+        'focalpoint': (0.02, 0, 0.04)}
 with mne.use_coil_def(coil_def_fname):
-    mne.viz.plot_alignment(
-        raw.info, trans, subject, subjects_dir, ('head', 'pial'), bem=bem)
+    mne.viz.plot_alignment(raw.info, trans, subject, subjects_dir,
+                           ('head', 'pial'), bem=bem, view=view)
 
-mlab.view(45, 60, distance=0.4, focalpoint=(0.02, 0, 0.04))
 
 ###############################################################################
 # Perform dipole fitting

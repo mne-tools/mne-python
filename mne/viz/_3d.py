@@ -534,7 +534,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
-                   interaction='trackball', verbose=None):
+                   interaction='trackball', verbose=None, view=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -616,6 +616,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.16
     %(verbose)s
+    view: dict | None
+        The camera settings of the scene.
 
     Returns
     -------
@@ -1122,8 +1124,18 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             opacity=0.75, glyph_height=0.25,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
-    renderer.set_camera(azimuth=90, elevation=90,
-                        focalpoint=(0., 0., 0.), distance=0.6)
+    if view is None:
+        renderer.set_camera(azimuth=90, elevation=90,
+                            focalpoint=(0., 0., 0.), distance=0.6)
+    elif isinstance(view, dict):
+        renderer.set_camera(azimuth=view.get('azimuth', 90),
+                            elevation=view.get('elevation', 90),
+                            focalpoint=view.get('focalpoint',
+                                                (0., 0., 0.)),
+                            distance=view.get('distance', 0.6))
+    else:
+        raise TypeError('view must be an instance of `dict` or None: '
+                        '{} was given'.format(type(view)))
     renderer.show()
     return renderer.scene()
 
