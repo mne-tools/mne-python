@@ -255,7 +255,8 @@ class _Renderer(_BaseRenderer):
 
     def title(self, text):
         # XXX This is not implemented yet
-        pass
+        raise NotImplementedError('The `title()` feature is not available '
+                                  'yet for this backend')
 
     def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
                    focalpoint=(0, 0, 0)):
@@ -336,8 +337,7 @@ def _get_view_to_display_matrix(size):
 
 
 def _close_all():
-    # XXX This is not implemented yet
-    pass
+    pyvista.close_all()
 
 
 def _check_notebook():
