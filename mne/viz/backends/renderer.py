@@ -140,3 +140,37 @@ def _use_test_3d_backend(backend_name):
         if backend_name == 'pyvista':
             MNE_3D_BACKEND_TEST_DATA = True
         yield
+
+
+def set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+    """Configure the view of the given scene.
+
+    Parameters
+    ----------
+    figure:
+        The scene which is modified.
+    azimuth: float
+        The azimuthal angle of the view.
+    elevation: float
+        The zenith angle of the view.
+    distance: float
+        The distance to the focal point.
+    focalpoint: tuple
+        The focal point of the view: (x, y, z).
+    """
+    _mod._set_3d_view(figure=figure, azimuth=azimuth,
+                      elevation=elevation, focalpoint=focalpoint,
+                      distance=distance)
+
+
+def set_3d_title(figure, title):
+    """Configure the title of the given scene.
+
+    Parameters
+    ----------
+    figure:
+        The scene which is modified.
+    title:
+        The title of the scene.
+    """
+    _mod._set_3d_title(figure=figure, title=title)

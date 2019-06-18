@@ -349,3 +349,13 @@ def _run_from_ipython():
         return True
     except NameError:
         return False
+
+
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+    raise NotImplementedError('_set_3d_view() feature '
+                              'is not supported yet for this backend.')
+
+
+def _set_3d_title(figure, title):
+    raise NotImplementedError('_set_3d_title() feature '
+                              'is not supported yet for this backend.')

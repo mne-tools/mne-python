@@ -165,10 +165,9 @@ class _Renderer(_BaseRenderer):
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
-        with warnings.catch_warnings(record=True):  # traits
-            with SilenceStdout():  # setting roll
-                self.mlab.view(azimuth, elevation, distance,
-                               focalpoint=focalpoint, figure=self.fig)
+        _set_3d_view(figure=self.fig, azimuth=azimuth,
+                     elevation=elevation, distance=distance,
+                     focalpoint=focalpoint)
 
     def screenshot(self):
         with warnings.catch_warnings(record=True):  # traits
@@ -294,3 +293,16 @@ def _get_view_to_display_matrix(scene):
 def _close_all():
     from mayavi import mlab
     mlab.close(all=True)
+
+
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+    from mayavi import mlab
+    with warnings.catch_warnings(record=True):  # traits
+        with SilenceStdout():
+            mlab.view(azimuth, elevation, distance,
+                      focalpoint=focalpoint, figure=figure)
+
+
+def _set_3d_title(figure, title):
+    from mayavi import mlab
+    mlab.title(text=title, figure=figure)
