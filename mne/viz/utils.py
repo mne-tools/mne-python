@@ -2630,7 +2630,7 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
         if len(ch_names) > 1:
             ch_type += "s"
         if all is True and isinstance(combine, str):
-            combine = combine[0].upper() + combine[1:]
+            combine = combine.capitalize()
             title = "{} of {} {}".format(
                 combine, len(ch_names), ch_type)
         elif len(ch_names) > max_chans and combine != "gfp":

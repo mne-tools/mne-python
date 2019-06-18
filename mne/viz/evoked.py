@@ -13,25 +13,24 @@
 from copy import deepcopy
 from functools import partial
 from numbers import Integral
-from typing import Iterable
 
 import numpy as np
 
-from ..io.pick import (channel_type, _pick_data_channels,
+from ..io.pick import (channel_type,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
                        _PICK_TYPES_DATA_DICT, _picks_to_idx, pick_info)
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
-                    _setup_vmin_vmax, _check_cov,
+                    _setup_vmin_vmax, _check_cov, _make_combine_callable,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, _get_color_list, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
-                     _check_if_nan, _check_ch_locs, fill_doc)
+                     _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -1459,38 +1458,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 # The following functions are all helpers for plot_compare_evokeds.           #
 ###############################################################################
 
-def _aux_setup_styles(conditions, style_dict, style, default):
-    """Set linestyles and colors for plot_compare_evokeds."""
-    # check user-supplied style to condition matching
-    tags = {tag for cond in conditions for tag in cond.split("/")}
-    msg = ("Can't map between conditions and the provided {0}. Make sure "
-           "you have provided keys in the format of '/'-separated tags, "
-           "and that these correspond to '/'-separated tags for the condition "
-           "names (e.g., conditions like 'Visual/Right', and styles like "
-           "'colors=dict(Visual='red'))'. The offending tag was '{1}'.")
-    for key in style_dict:
-        for tag in key.split("/"):
-            if tag not in tags:
-                raise ValueError(msg.format(style, tag))
-
-    style_dict = deepcopy(style_dict)
-
-    # check condition to style matching, and fill in defaults
-    condition_warning = "Condition {0} could not be mapped to a " + style
-    style_warning = ". Using the default of {}.".format(default)
-    for condition in conditions:
-        if condition not in style_dict:
-            if "/" not in condition:
-                warn(condition_warning.format(condition) + style_warning)
-                style_dict[condition] = default
-            for style_ in style_dict:
-                if style_ in condition.split("/"):
-                    style_dict[condition] = style_dict[style_]
-                    break
-
-    return style_dict
-
-
 def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
                     any_positive, any_negative, truncation_style):
     """Truncate the y axis in plot_compare_evokeds."""
@@ -1548,120 +1515,135 @@ def _check_loc_legal(loc, what='your choice', default=1):
     return loc_
 
 
-def _format_evokeds_colors(evokeds, cmap, colors):
-    """Set up to have evokeds as a dict as well as colors."""
-    from ..evoked import Evoked, _check_evokeds_ch_names_times
-
-    if isinstance(evokeds, Evoked):
-        evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
-    elif not isinstance(evokeds, dict):  # it's assumed to be a list
-        if (cmap is not None) and (colors is None):
-            colors = {str(ii + 1): ii for ii, _ in enumerate(evokeds)}
-        evokeds = {str(ii + 1): evoked for ii, evoked in enumerate(evokeds)}
+def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
+    """style checking and assignment for plot_compare_evokeds."""
+    from matplotlib.cm import get_cmap
+    from matplotlib.colors import Colormap
+    # check if style dict is valid
+    if styles is None:
+        styles = {cond: dict() for cond in conditions}
     else:
-        assert isinstance(evokeds, dict)
-        if (colors is None) and cmap is not None:
-            raise ValueError('If evokeds is a dict and a cmap is passed, '
-                             'you must specify the colors.')
-    for cond in evokeds.keys():
-        _validate_type(cond, 'str', "Conditions")
-    # Now make sure all values are list of Evoked objects
-    evokeds = {condition: [v] if isinstance(v, Evoked) else v
-               for condition, v in evokeds.items()}
-
-    # Check that all elements are of type evoked
-    for this_evoked in evokeds.values():
-        for ev in this_evoked:
-            _validate_type(ev, Evoked, "All evokeds entries ", "Evoked")
-
-    # Check that all evoked objects have the same time axis and channels
-    all_evoked = sum(evokeds.values(), [])
-    _check_evokeds_ch_names_times(all_evoked)
-
-    return evokeds, colors
-
-
-def _setup_styles(conditions, styles, cmap, colors, linestyles):
-    """Set up plotting styles for each condition."""
-    import matplotlib.pyplot as plt
-    # continuous colors
-    the_colors, color_conds, color_order = None, None, None
-    colors_are_float = False
-    if cmap is not None:
-        for color_value in colors.values():
-            try:
-                float(color_value)
-            except ValueError:
-                raise TypeError("If ``cmap`` is not None, the values of "
-                                "``colors`` must be numeric. Got %s" %
-                                type(color_value))
-        cmapper = getattr(plt.cm, cmap, cmap)
-        color_conds = list(colors.keys())
-        all_colors = [colors[cond] for cond in color_conds]
-        color_order = np.array(all_colors).argsort()
-        color_indices = color_order.argsort()
-
-        if all([isinstance(color, Integral) for color in all_colors]):
-            msg = "Integer colors detected, mapping to rank positions ..."
-            n_colors = len(all_colors)
-            colors_ = {cond: ind for cond, ind in
-                       zip(color_conds, color_indices)}
-
-            def convert_colors(color):
-                return colors_[color]
-        else:
-            for color in all_colors:
-                if not 0 <= color <= 1:
-                    raise ValueError("Values of colors must be all-integer or "
-                                     "floats between 0 and 1, got %s." % color)
-            msg = "Float colors detected, mapping to percentiles ..."
-            n_colors = 101  # percentiles plus 1 if we have 1.0s
-            colors_old = colors.copy()
-
-            def convert_colors(color):
-                return int(colors_old[color] * 100)
-            colors_are_float = True
-        logger.info(msg)
-        the_colors = cmapper(np.linspace(0, 1, n_colors))
-
-        colors = dict()
+        if not set(styles).issubset(set(conditions)):
+            raise ValueError('The keys in "styles" ({}) must '
+                             'match the keys in "evokeds" ({}).'
+                             .format(list(styles), conditions))
+        # make sure all the keys are in there
         for cond in conditions:
-            cond_ = cond.split("/")
-            for color in color_conds:
-                if color in cond_:
-                    colors[cond] = the_colors[convert_colors(color)]
-                    continue
-
-    # categorical colors
+            if cond not in styles:
+                styles[cond] = dict()
+            # deal with matplotlib's synonymous handling of "c" and "color"
+            elif 'c' in styles[cond]:
+                styles[cond]['color'] = styles[cond].pop('c')
+    # COLORS
+    # make colors a list if it's not defined
+    suffix = ''
+    if colors is None:
+        if cmap is None:
+            colors = _get_color_list()
+            suffix = ' in the default color cycle'
+        else:
+            colors = list(range(len(conditions)))
+    # convert color list to dict
+    if isinstance(colors, (list, tuple, np.ndarray)):
+        if len(conditions) > len(colors):
+            raise ValueError('Trying to plot {} conditions, but there are '
+                             'only {} colors{}. Please specify colors '
+                             'manually.'
+                             .format(len(conditions), len(colors), suffix))
+        colors = dict(zip(conditions, colors))
+    # should be a dict by now...
     if not isinstance(colors, dict):
-        colors_ = _get_color_list()
-        if len(conditions) > len(colors_):
-            msg = ("Trying to plot more than {0} conditions. We provide"
-                   "only {0} default colors. Please supply colors manually.")
-            raise ValueError(msg.format(len(colors_)))
-        colors = {condition: color for condition, color
-                  in zip(conditions, colors_)}
-    else:
-        colors = _aux_setup_styles(conditions, colors, "color", "grey")
-
-    # linestyles
+        raise ValueError('"colors" must be a dict, list, or None; got {}.'
+                         .format(type(colors).__name__))
+    # validate color dict keys
+    tags = set(tag for cond in conditions for tag in cond.split('/'))
+    # TODO: here could we allow a mix of full cond keys and tags?
+    if set(colors) != set(conditions) and not set(colors).issubset(tags):
+        raise ValueError('If "colors" is a dict its keys ({}) must '
+                         'match the keys/conditions in "evokeds" ({}).'
+                         .format(list(colors), conditions))
+    # validate color dict values
+    color_vals = list(colors.values())
+    if cmap is not None and not all(_is_numeric(n) for n in color_vals):
+        raise TypeError('if "cmap" is specified, then "colors" must be '
+                        'None or a (list or dict) of (ints or floats); got {}.'
+                        .format(', '.join(color_vals)))
+    all_int = all([isinstance(_color, Integral) for _color in color_vals])
+    # compute cmap lut
+    lut = len(set(color_vals)) if all_int else None
+    # convert provided ints to sequential, rank-ordered ints
+    if all_int:
+        ranks = {val: ix for ix, val in enumerate(sorted(set(color_vals)))}
+        for key, orig_int in colors.items():
+            colors[key] = ranks[orig_int]
+        # if no cmap, convert color ints to real colors
+        if cmap is None:
+            color_list = _get_color_list()
+            for cond, color_int in colors.items():
+                colors[cond] = color_list[color_int]
+    # instantiate cmap
+    cmap_label = ''
+    if isinstance(cmap, (list, tuple, np.ndarray)) and len(cmap) == 2:
+        cmap_label, cmap = cmap
+    if isinstance(cmap, str):
+        cmap = get_cmap(cmap, lut=lut)
+    elif isinstance(cmap, Colormap) and all_int:
+        cmap = cmap._resample(lut)
+    # LINESTYLES
+    # make linestyles a list if it's not defined
+    if linestyles is None:
+        linestyles = [None] * len(conditions)  # will get assigned default
+    # convert linestyle list to dict
+    if isinstance(linestyles, (list, tuple, np.ndarray)):
+        if len(conditions) > len(linestyles):
+            raise ValueError('Trying to plot {} conditions, but there are '
+                             'only {} linestyles. Please specify linestyles '
+                             'manually.'
+                             .format(len(conditions), len(linestyles)))
+        linestyles = dict(zip(conditions, linestyles))
+    # should be a dict by now...
     if not isinstance(linestyles, dict):
-        linestyles = {condition: linestyle for condition, linestyle in
-                      zip(conditions, ['-'] * len(conditions))}
-    else:
-        linestyles = _aux_setup_styles(conditions, linestyles,
-                                       "linestyle", "-")
-
-    # finally, put it all together
-    styles = dict() if styles is None else deepcopy(styles)
-
-    for condition, color, linestyle in zip(conditions, colors, linestyles):
-        styles[condition] = styles.get(condition, dict())
-        styles[condition]['c'] = styles[condition].get('c', colors[condition])
-        styles[condition]['linestyle'] = styles[condition].get(
-            'linestyle', linestyles[condition])
-
-    return styles, the_colors, color_conds, color_order, colors_are_float
+        raise ValueError('"linestyles" must be a dict, list, or None; got {}.'
+                         .format(type(linestyles).__name__))
+    # validate linestyle dict keys
+    # (skip validating linestyle dict values... too hard to test)
+    tags = set(tag for cond in conditions for tag in cond.split('/'))
+    if (set(linestyles) != set(conditions) and
+            not set(linestyles).issubset(tags)):
+        raise ValueError('If "linestyles" is a dict its keys ({}) must '
+                         'match the keys/conditions in "evokeds" ({}).'
+                         .format(list(linestyles), conditions))
+    # transfer colors/linestyles dicts into styles dict; fall back on defaults
+    defaults = dict(color='gray', linestyle='solid')
+    current_styles = dict(color=colors, linestyle=linestyles)
+    for cond, inner_dict in styles.items():               # for each condition
+        for style_name, curr in current_styles.items():   # for each style type
+            if inner_dict.get(style_name, None) is None:  # if not defined yet
+                try:                                      # try full cond name
+                    inner_dict[style_name] = curr[cond]
+                except KeyError:                          # if it's not there,
+                    for this_tag in cond.split('/'):      # try the cond tags
+                        try:
+                            inner_dict[style_name] = curr[this_tag]
+                            break
+                        except KeyError:                  # else, use defaults
+                            inner_dict[style_name] = defaults[style_name]
+    # prep for legend handling and converting numbers to cycler / cmap colors
+    legend_tick_locs = None if cmap is None else dict()
+    if cmap is not None:
+        these_colors = sorted(set(colors.values()))
+        n_colors = len(these_colors)
+        if all_int:
+            # map color rank integers to tick locations between 0 and 1
+            tick_dict = {ix: val for ix, val in
+                         enumerate(np.linspace(0, 1, 2 * n_colors + 1)[1::2])}
+        # convert numeric colors into cmap color values; store legend tick locs
+        for cond, inner_dict in styles.items():
+            number = inner_dict['color']
+            inner_dict['color'] = cmap(number)
+            tick_loc = tick_dict[number] if all_int else number
+            legend_tick_locs[cond] = tick_loc
+    return styles, cmap, cmap_label, colors, linestyles, legend_tick_locs
 
 
 def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
@@ -1680,76 +1662,79 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
                  show_sensors, size=25)
 
 
-def _evoked_condition_legend(conditions, show_legend, split_legend, cmap,
-                             colors_are_float, the_colors, colors, color_conds,
-                             color_order, cmap_label, linestyles, ax, do_topo):
-    """Show condition legend for line plot. Helper for plot_compare_evokeds."""
+def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
+                     cmap_label, linestyles, legend_tick_locs, do_topo, ax):
+    """Draw legend for plot_compare_evokeds."""
     import matplotlib.lines as mlines
-
+    # triage defaults
     if split_legend is None:
-        split_legend = cmap is not None  # default to True iff cmap is given
-    if split_legend is True:
+        split_legend = (cmap is not None)
+    loc = _check_loc_legal(show_legend, 'show_legend')
+    # some vars / containers
+    n_linestyles = len(set(linestyles.values()))
+    lines = list()
+    draw_legend = True  # we suppress it later in some cases
+    # easiest case first: non-split legend
+    if not split_legend:
+        for cond, inner_dict in styles.items():
+            line = mlines.Line2D([], [], label=cond, **inner_dict)
+            lines.append(line)
+    # split legend with no colorbar
+    elif cmap is None:
+        for cond, color in colors.items():
+            line = mlines.Line2D([], [], label=cond, linestyle='solid',
+                                 color=color)
+            lines.append(line)
+        for cond, linestyle in linestyles.items():
+            line = mlines.Line2D([], [], label=cond, linestyle=linestyle,
+                                 color='black')
+            lines.append(line)
+    # split legend with colorbar
+    else:
         if colors is None:
-            raise ValueError(
-                "If `split_legend` is True, `colors` must not be None.")
-        # mpl 1.3 requires us to split it like this. with recent mpl,
-        # we could use the label parameter of the Line2D
-        legend_lines, legend_labels = list(), list()
-        if cmap is None:  # ... one set of lines for the colors
-            for color in sorted(colors.keys()):
-                line = mlines.Line2D([], [], linestyle="-",
-                                     color=colors[color])
-                legend_lines.append(line)
-                legend_labels.append(color)
-        if len(list(linestyles)) > 1:  # ... one set for the linestyle
-            for style, s in linestyles.items():
-                line = mlines.Line2D([], [], color='k', linestyle=s)
-                legend_lines.append(line)
-                legend_labels.append(style)
-
-    # the condition legend
-    if len(conditions) > 1 and not (
-            isinstance(show_legend, (bool, np.bool_)) and not show_legend):
-        show_legend_orig = show_legend
-        show_legend = _check_loc_legal(show_legend, "show_legend")
-        legend_params = dict(loc=show_legend, frameon=True)
-
-        # override if topoplot and default loc
-        if do_topo and (
-                isinstance(show_legend_orig, bool) and show_legend_orig):
-            legend_params["loc"] = "lower right"
-            legend_params["bbox_to_anchor"] = (1, 1)
-        if split_legend:
-            if len(legend_lines) > 1:
-                ax.legend(
-                    legend_lines, legend_labels,  # see above: mpl 1.3
-                    ncol=1 + (len(legend_lines) // 4), **legend_params)
+            raise ValueError('If "split_legend" is True you must specify '
+                             '"colors".')
+        # linestyles
+        if n_linestyles > 1:
+            for cond, linestyle in linestyles.items():
+                line = mlines.Line2D([], [], label=cond, linestyle=linestyle,
+                                     color='black')
+                lines.append(line)
         else:
-            ax.legend(ncol=1 + (len(conditions) // 5), **legend_params)
-
-    # the colormap, if `cmap` is provided
-    if split_legend and cmap is not None:
-        # plot the colorbar ... complicated cause we don't have a heatmap
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        divider = make_axes_locatable(ax)
-        ax_cb = divider.append_axes("right", size="5%", pad=0.05)
-        if colors_are_float:
-            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none',
-                         aspect=.05)
-            color_ticks = np.array(list(set(colors.values()))) * 100
-            ax_cb.set_yticks(color_ticks)
-            ax_cb.set_yticklabels(color_ticks)
-        else:
-            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
-            ax_cb.set_yticks(np.arange(len(the_colors)))
-            ax_cb.set_yticklabels(np.array(color_conds)[color_order])
-        ax_cb.yaxis.tick_right()
-        ax_cb.set(xticks=(), ylabel=cmap_label)
-
+            draw_legend = False
+        # plot the colorbar
+        if cmap is not None:
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            from matplotlib.colorbar import ColorbarBase
+            divider = make_axes_locatable(ax)
+            ax_cb = divider.append_axes('right', size='5%', pad=0.1)
+            cb = ColorbarBase(ax_cb, cmap=cmap, norm=None,
+                              orientation='vertical')
+            cb.set_label(cmap_label)
+            ticks = list()
+            ticklabels = list()
+            for cond, loc in legend_tick_locs:
+                # handle conditions with same color/location
+                if loc in ticks:
+                    ticklabels[-1] = '\n'.join([ticklabels[-1], cond])
+                else:
+                    ticks.append(loc)
+                    ticklabels.append(cond)
+            order = np.argsort(ticks)
+            cb.set_ticks(np.array(ticks)[order])
+            cb.set_ticklabels(np.array(ticklabels)[order])
+            ax_cb.yaxis.tick_right()
+    # legend params
+    ncol = 1 + (len(lines) // (4 if split_legend else 5))
+    legend_params = dict(loc=loc, frameon=True, ncol=ncol)
+    if do_topo and isinstance(show_legend, bool):
+        legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))
+    if draw_legend:
+        ax.legend(**legend_params)
+    # we needed the lines for the legends, but now we can kill them
     if do_topo:
-        # we need the lines for the legends, but then we can kill them
         ax.lines.clear()
-        ax.set_title("")
+        ax.set_title('')
         del ax.texts[-1]
 
 
@@ -1796,49 +1781,25 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
                      truncate_xaxis, skip_axlabel=skip_axlabel)
 
 
-def _get_data_and_ci(evoked, scaling=1, picks=None, ci_fun=None, gfp=False):
+def _get_data_and_ci(evoked, combine, combine_func, scaling=1, picks=None,
+                     ci_fun=None):
     """Compute (sensor-aggregated, scaled) time series and possibly CI."""
-    from .. import Evoked
     if picks is None:
         picks = Ellipsis
     picks = np.array(picks).flatten()
-    if not isinstance(evoked, Evoked):  # ... it is a list of evokeds
-        data = np.array([e.data[picks, :] * scaling for e in evoked])
-    else:
-        data = evoked.data[np.newaxis, picks] * scaling
-
-    if gfp:
-        data = np.sqrt(np.mean(data * data, axis=1))
-    else:
-        data = np.mean(data, axis=1)  # average across channels
-
-    if ci_fun is not None:  # compute CI if requested:
+    # apply scalings
+    data = np.array([evk.data[picks] * scaling for evk in evoked])
+    # combine across sensors
+    if combine_func is not None:
+        logger.info('combining channels using "{}"'.format(combine))
+        data = combine_func(data)
+    # get confidence band
+    if ci_fun is not None:
         ci = ci_fun(data)
-
-    # average across trials:
+    # get grand mean across evokeds
     data = np.mean(data, axis=0)
     _check_if_nan(data)
-
-    if ci_fun is not None:
-        return data, ci
-    else:
-        return data,
-
-
-def _calculate_ci_and_mean(evokeds, conditions, scaling, picks, ci_fun, gfp):
-    """Calculate time series and CI, potentially aggregating over sensors."""
-    ci_dict, data_dict = dict(), dict()
-
-    for cond in conditions:
-        this_evokeds = evokeds[cond]
-        # this will fail if evokeds do not have the same structure
-        # (e.g. channel count)
-        res = _get_data_and_ci(this_evokeds, scaling=scaling, picks=picks,
-                               ci_fun=ci_fun, gfp=gfp)
-        data_dict[cond] = res[0]
-        if ci_fun is not None:
-            ci_dict[cond] = res[1]
-    return data_dict, ci_dict
+    return (data,) if ci_fun is None else (data, ci)
 
 
 def _get_ci_function_for_evokeds(ci):
@@ -1863,40 +1824,6 @@ def _get_ci_function_for_evokeds(ci):
     return _ci_fun
 
 
-def _finish_styles_plot_comp_evoked(styles, colors, linestyles, conditions,
-                                    cmap):
-    """Finalize styles for plot_compare_evokeds."""
-    # Styles (especially color and linestyle) are pulled from a dict 'styles'.
-    # This dict has one entry per condition. Its color and linestyle entries
-    # are pulled from the 'colors' and 'linestyles' dicts via '/'-tag matching
-    # unless they are overwritten by entries from a user-provided 'styles'.
-
-    # check if input is valid
-    if isinstance(styles, dict):
-        for style_ in styles:
-            if style_ not in conditions:
-                raise ValueError("Could not map between 'styles' and "
-                                 "conditions. Condition " + style_ +
-                                 " was not found in the supplied data.")
-
-    # color
-    if (colors is not None and not isinstance(colors, str) and
-            not isinstance(colors, dict) and len(colors) > 1):
-        colors = {condition: color for condition, color
-                  in zip(conditions, colors)}
-
-    cmap_label = ""
-    if cmap is not None:
-        if not isinstance(cmap, str) and len(cmap) == 2:
-            cmap_label, cmap = cmap
-
-    styles, the_colors, color_conds, color_order, colors_are_float =\
-        _setup_styles(conditions, styles, cmap, colors, linestyles)
-
-    return (styles, colors, the_colors, color_conds, color_order,
-            colors_are_float, cmap_label, cmap)
-
-
 def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
                           styles, title, all_positive, topo):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
@@ -1915,8 +1842,8 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
         if do_ci:
             ci_ = ci_dict[condition]
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
-                            zorder=9, color=styles[condition]['c'], alpha=.3,
-                            clip_on=False)
+                            zorder=9, color=styles[condition]['color'],
+                            alpha=0.3, clip_on=False)
     if topo:
         ax.text(-.1, 1, title, transform=ax.transAxes)
     else:
@@ -1925,13 +1852,29 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
     return any_positive, any_negative
 
 
+def _title_helper_pce(title, picked_types, picks, ch_names, combine):
+    """title formatter for plot_compare_evokeds."""
+    if title is None:
+        title = (_handle_default('titles').get(picks, None) if picked_types
+                 else _set_title_multiple_electrodes(title, combine, ch_names))
+    # add the `combine` modifier
+    do_combine = picked_types or len(ch_names) > 1
+    if (title is not None and len(title) and isinstance(combine, str) and
+            do_combine):
+        _comb = combine.upper() if combine == 'gfp' else combine
+        _comb = 'std. dev.' if _comb == 'std' else _comb
+        title += ' ({})'.format(_comb)
+    return title
+
+
 @fill_doc
-def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
-                         linestyles=['-'], styles=None, cmap=None,
-                         vlines="auto", ci=0.95, truncate_yaxis="max_ticks",
+def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
+                         linestyles=None, styles=None, cmap=None,
+                         vlines='auto', ci=True, truncate_yaxis='max_ticks',
                          truncate_xaxis=True, ylim=None, invert_y=False,
                          show_sensors=None, show_legend=True,
-                         split_legend=False, axes=None, title=None, show=True):
+                         split_legend=None, axes=None, title=None, show=True,
+                         combine=None):
     """Plot evoked time courses for one or more conditions and/or channels.
 
     Parameters
@@ -1956,80 +1899,56 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         * If the selected channels are gradiometers, the signal from
           corresponding (gradiometer) pairs will be combined.
 
-    gfp : bool | None
-        If True, the channel type wise GFP is plotted.
-        If None and `picks` is None or a (list of) channel type(s), this is set
-        to True.
     colors : list | dict | None
-        If a list, will be sequentially used for line colors.
-        If a dict, can map evoked keys or '/'-separated (HED) tags to
-        conditions.
-        For example, if `evokeds` is a dict with the keys "Aud/L", "Aud/R",
-        "Vis/L", "Vis/R", `colors` can be `dict(Aud='r', Vis='b')` to map both
-        Aud/L and Aud/R to the color red and both Visual conditions to blue.
-        If None (default), a sequence of desaturated colors is used.
-        If `cmap` is None, `colors` will indicate how each condition is
-        colored with reference to its position on the colormap - see `cmap`
-        below. In that case, the values of colors must be either integers,
-        in which case they will be mapped to colors in rank order; or floats
-        between 0 and 1, in which case they will be mapped to percentiles of
-        the colormap.
-    linestyles : list | dict
-        If a list, will be sequentially and repeatedly used for evoked plot
-        linestyles.
-        If a dict, can map the ``evokeds`` keys or '/'-separated (HED) tags to
-        conditions.
-        For example, if evokeds is a dict with the keys "Aud/L", "Aud/R",
-        "Vis/L", "Vis/R", `linestyles` can be `dict(L='--', R='-')` to map both
-        Aud/L and Vis/L to dashed lines and both Right-side conditions to
-        straight lines.
+        Colors to use when plotting the ERP/F lines and confidence bands. If
+        ``cmap`` is not ``None``, ``colors`` must be a :class:`list` or
+        :class:`dict` of :class:`ints <int>` or :class:`floats <float>`
+        indicating steps or percentiles (respectively) along the colormap. If
+        ``cmap`` is ``None``, list elements or dict values of ``colors`` must
+        be valid :doc:`matplotlib colors <tutorials/colors/colors>`; lists are
+        cycled through sequentially, while dicts must have keys matching the
+        keys or conditions of an ``evokeds`` dict (see Notes for details). If
+        ``None``, the current :doc:`matplotlib color cycle
+        <gallery/color/color_cycle_default>` is used. Defaults to ``None``.
+    linestyles : list | dict | None
+        Styles to use when plotting the ERP/F lines. If a :class:`list` or
+        :class:`dict`, elements must be valid :doc:`matplotlib linestyles
+        <matplotlib:gallery/lines_bars_and_markers/linestyles>`. Lists are
+        cycled through sequentially; dictionaries must have keys matching the
+        keys or conditions of an ``evokeds`` dict (see Notes for details). If
+        ``None``, all lines will be solid. Defaults to ``None``.
     styles : dict | None
-        If a dict, keys must map to evoked keys or conditions, and values must
-        be a dict of legal inputs to `matplotlib.pyplot.plot`. These
-        parameters will be passed to the line plot call of the corresponding
-        condition, overriding defaults.
-        E.g., if evokeds is a dict with the keys "Aud/L", "Aud/R",
-        "Vis/L", "Vis/R", `styles` can be `{"Aud/L": {"linewidth": 1}}` to set
-        the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
-        not supported.
-    cmap : None | str | tuple
-        If not None, plot evoked activity with colors from a color gradient
-        (indicated by a str referencing a matplotlib colormap - e.g., "viridis"
-        or "Reds").
-        If ``evokeds`` is a list and ``colors`` is `None`, the color will
-        depend on the list position. If ``colors`` is a list, it must contain
-        integers where the list positions correspond to ``evokeds``, and the
-        value corresponds to the position on the colorbar.
-        If ``evokeds`` is a dict, ``colors`` should be a dict mapping from
-        (potentially HED-style) condition tags to numbers corresponding to
-        positions on the colorbar - rank order for integers, or floats for
-        percentiles. E.g., ::
-
-            evokeds={"cond1/A": ev1, "cond2/A": ev2, "cond3/A": ev3, "B": ev4},
-            cmap='viridis', colors=dict(cond1=1 cond2=2, cond3=3),
-            linestyles={"A": "-", "B": ":"}
-
-        If ``cmap`` is a tuple of length 2, the first item must be
-        a string which will become the colorbar label, and the second one
-        must indicate a colormap, e.g. ::
-
-            cmap=('conds', 'viridis'), colors=dict(cond1=1 cond2=2, cond3=3),
-
+        Dictionary of styles to use when plotting ERP/F lines. Keys must match
+        keys of ``evokeds``, and values must be a :class:`dict` of legal inputs
+        to :func:`matplotlib.pyplot.plot`. Those values will be passed as
+        parameters to the line plot call of the corresponding condition,
+        overriding defaults (e.g., ``styles=``{"Aud/L": {"linewidth": 1}}``
+        will set the linewidth for "Aud/L" to 1). Note that, unlike ``colors``
+        and ``linestyles``, keys matching conditions in ``/``-separated
+        ``evokeds`` keys are not supported here (see Notes).
+    cmap : None | str | tuple | instance of matplotlib.colors.Colormap
+        Colormap from which to draw color values when plotting the ERP/F lines
+        and confidence bands. If not ``None``, ints or floats in the ``colors``
+        parameter are mapped to steps or percentiles (respectively) along the
+        colormap. If ``cmap`` is a :class:`str`, it will be passed to
+        :func:`matplotlib.cm.get_cmap`; if ``cmap`` is a tuple, its first
+        element will be used as a string to label the colorbar, and its
+        second element will be passed to :func:`matplotlib.cm.get_cmap` (unless
+        it is already an instance of :class:`~matplotlib.colors.Colormap`).
     vlines : "auto" | list of float
         A list in seconds at which to plot dashed vertical lines.
         If "auto" and the supplied data includes 0, it is set to [0.]
         and a vertical bar is plotted at time 0. If an empty list is passed,
         no vertical lines are plotted.
-    ci : float | callable | None | bool
-        If not None and ``evokeds`` is a [list/dict] of lists, a shaded
-        confidence interval is drawn around the individual time series. If
-        float, a percentile bootstrap method is used to estimate the confidence
-        interval and this value determines the CI width. E.g., if this value is
-        .95 (the default), the 95%% confidence interval is drawn. If a
-        callable, it must take as its single argument an array
-        (observations x times) and return the upper and lower confidence bands.
-        If None or False, no confidence band is plotted.
-        If True, a 95%% bootstrapped confidence interval is drawn.
+    ci : float | bool | callable | None
+        Confidence band around each ERP/F time series. If ``False`` or ``None``
+        no confidence band is drawn. If :class:`float`, ``ci`` must be between
+        0 and 1, and will set the threshold for a bootstrap estimation of the
+        confidence band; ``True`` is equivalent to setting a threshold of 0.95
+        (i.e., the 95%% confidence band is drawn). If a callable, it must take
+        a single array (n_observations, n_times) as input and return upper and
+        lower confidence margins (TODO what shape exactly? (2 x n_times)?).
+        Defaults to ``True``.
     truncate_yaxis : bool | str
         If not False, the left y axis spine is truncated to reduce visual
         clutter. If 'max_ticks', the spine is truncated at the minimum and
@@ -2050,15 +1969,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         If not False, channel locations are plotted on a small head circle.
         If int or str, the position of the axes (forwarded to
         ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
-        If None, defaults to True if ``gfp`` is False, else to False.
+        If ``None``, defaults to ``True`` if there is only one channel in
+        ``picks``.
     show_legend : bool | str | int
         If not False, show a legend. If int or str, it is the position of the
         legend axes (forwarded to
-        ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
-    split_legend : bool
-        If True, the legend shows color and linestyle separately; `colors` must
-        not be None. Defaults to True if ``cmap`` is not None, else defaults to
-        False.
+        :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`).
+    split_legend : None | bool
+        Whether to show separate color and linestyle legends. If ``None``,
+        separate legends will be shown only if ``cmap`` is specified. If
+        ``True``, ``colors`` must not be ``None``. Defaults to ``None``.
     axes : None | `matplotlib.axes.Axes` instance | list of `axes` | "topo"
         What axes to plot to. If None, a new axes is created.
         If "topo", separately for each channel type, a new figure is created
@@ -2071,114 +1991,112 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         will be shown.
     show : bool
         If True, show the figure.
+    %(combine)s
+        If callable, the callable must accept one positional input (data of
+        shape ``(n_channels, n_times)``) and return an
+        :class:`array <numpy.ndarray>` of shape ``(n_times,)``. For example::
+
+            combine = lambda data: np.median(data, axis=0)
+
+        If ``combine`` is ``None``, channels are combined by computing GFP,
+        unless ``picks`` is a single channel (not channel type) or
+        ``axes='topo'``, in which cases no combining is performed. Defaults to
+        ``None``.
 
     Returns
     -------
-    fig : Figure | list of Figure
-        The figure(s) in which the plot is drawn. When plotting multiple
-        channel types, a list of figures, one for each channel type is
-        returned.
+    fig : list of Figure
+        A list of the figure(s) generated.
 
     Notes
     -----
-    When multiple channels are passed, this function combines them all, to
-    get one time course for each condition. If gfp is True it combines
-    channels using global field power (GFP) computation, else it is taking
-    a plain mean.
-
-    This function is useful for comparing multiple ER[P/F]s - e.g., for
-    multiple conditions - at a specific location.
-
-    It can plot:
-
-    - a simple :class:`mne.Evoked` object,
-    - a list or dict of :class:`mne.Evoked` objects (e.g., for multiple
-      conditions),
-    - a list or dict of lists of :class:`mne.Evoked` (e.g., for multiple
-      subjects in multiple conditions).
-
-    In the last case, it can show a confidence interval (across e.g. subjects)
-    using parametric or bootstrap estimation.
-
-    When ``picks`` includes more than one planar gradiometer, the planar
-    gradiometers are combined with RMSE. For example data from a
-    VectorView system with 204 gradiometers will be transformed to
-    102 channels.
+    If the parameters ``colors`` or ``linestyles`` are passed as
+    :class:`dicts <dict>`, then ``evokeds`` must also be a :class:`dict`, and
+    the keys of the plot-style parameters must either match the keys of
+    ``evokeds``, or match a ``/``-separated partial key ("condition") of
+    ``evokeds``. For example, if evokeds has keys "Aud/L", "Aud/R", "Vis/L",
+    and "Vis/R", then ``linestyles=dict(L='--', R='-')`` will plot both Aud/L
+    and Vis/L conditions with dashed lines and both Aud/R and Vis/R conditions
+    with solid lines. Similarly, ``colors=dict(Aud='r', Vis='b')`` will plot
+    Aud/L and Aud/R conditions red and Vis/L and Vis/R conditions blue. Note
+    that the ``styles`` parameter does not support this partial matching of
+    ``evokeds`` keys.
     """
     import matplotlib.pyplot as plt
+    from ..evoked import Evoked, _check_evokeds_ch_names_times
 
-    evokeds, colors = _format_evokeds_colors(evokeds, cmap, colors)
-    conditions = sorted(list(evokeds.keys()))
+    # deprecation
+    # TODO: purge gfp from docstring
+    if gfp is not None:
+        warn('"gfp" is deprecated and will be removed in version 0.20; please '
+             'use `combine="gfp"` instead.', DeprecationWarning)
 
-    # get and set a few limits and variables (times, channels, units)
+    # build up evokeds into a dict, if it's not already
+    if isinstance(evokeds, Evoked):
+        evokeds = [evokeds]
+    if isinstance(evokeds, (list, tuple)):
+        evokeds = {str(idx + 1): evk for idx, evk in enumerate(evokeds)}
+    if not isinstance(evokeds, dict):
+        raise ValueError('"evokeds" must be a dict, list, or instance of '
+                         'mne.Evoked; got {}'.format(type(evokeds).__name__))
+    for cond, evoked in evokeds.items():
+        _validate_type(cond, 'str', 'Conditions')
+        if isinstance(evoked, Evoked):
+            evokeds[cond] = [evoked]  # wrap singleton evokeds in a list
+        for evk in evokeds[cond]:
+            _validate_type(evk, Evoked, 'All evokeds entries ', 'Evoked')
+    # ensure same channels and times across all evokeds
+    all_evoked = sum(evokeds.values(), [])
+    _check_evokeds_ch_names_times(all_evoked)
+    conditions = list(evokeds)
+    # get representative info
     one_evoked = evokeds[conditions[0]][0]
     times = one_evoked.times
     info = one_evoked.info
     tmin, tmax = times[0], times[-1]
 
-    if vlines == "auto":
+    # vlines
+    if vlines == 'auto':
         vlines = [0.] if (tmin < 0 < tmax) else []
-    _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
+    _validate_type(vlines, (list, tuple), 'vlines', 'list or tuple')
 
     # is picks a channel type (or None)?
-    orig_picks = picks
-    picks, picked_types = _picks_to_idx(info, picks, allow_empty=True,
-                                        return_kind=True)
-    if len(picks) == 0:
-        picks = _pick_data_channels(info, with_ref_meg=False)
+    orig_picks = deepcopy(picks)
+    picks, picked_types = _picks_to_idx(info, picks, return_kind=True)
+    # some things that depend on picks:
+    ch_names = np.array(one_evoked.ch_names)[picks].tolist()
+    if show_sensors is None:
+        show_sensors = (len(picks) == 1)
 
-    # gfp defaults to True if picks is a channel type (and not doing topoplot)
-    if gfp is None and picked_types and axes != 'topo':
-        logger.info('No picks, plotting the GFP...')
-        gfp = True
-
-    if title is None and picked_types:
-        title = _handle_default('titles')[orig_picks]
-        if gfp:
-            title += ' (GFP)'
-
-    _validate_type(picks, (list, np.ndarray), "picks",
-                   "list or np.array of integers")
-    for entry in picks:
-        _validate_type(entry, 'int', "entries of picks", "integers")
-
-    if len(picks) == 0:
-        raise ValueError("No valid channels were found to plot the GFP. "
-                         "Use 'picks' instead to select them manually.")
+    # cannot combine a single channel
+    if (len(picks) < 2) and combine is not None:
+        warn('Only {} channel in "picks"; cannot combine by method "{}".'
+             .format(len(picks), combine))
+    # `combine` defaults to 'gfp' unless `picks` is a single channel or
+    # `axes='topo'`
+    if combine is None and len(picks) > 1 and axes != 'topo':
+        combine = 'gfp'
+    # convert `combine` into callable (if None or str)
+    combine_func = _make_combine_callable(combine)
+    # title
+    title = _title_helper_pce(title, picked_types, picks=orig_picks,
+                              ch_names=ch_names, combine=combine)
 
     if ylim is None:
         ylim = dict()
 
-    do_topo = False
-    if axes == "topo":
-        gfp = False
-        do_topo = True
+    do_topo = (axes == 'topo')
+    if do_topo:
         show_sensors = False
         if show_legend is None:
-            show_legend = "lower right"
+            show_legend = 'lower right'
         if len(picks) > 70:
-            logger.info("Warning: plotting to a topographical layout with "
-                        "> 70 sensors. This can be extremely slow. For a "
-                        "Faster alternative, consider using "
-                        ":func:`mne.viz.plot_topo`, which is optimized for "
-                        "speed.")
+            logger.info('You are plotting to a topographical layout with >70 '
+                        'sensors. This can be extremely slow. Consider using '
+                        'mne.viz.plot_topo, which is optimized for speed.')
 
-    # deal with picks: infer indices and names
-    if gfp:
-        if show_sensors is None:
-            show_sensors = False  # don't show sensors for GFP
-        ch_names = ['Global Field Power']
-        if len(picks) < 2:
-            raise ValueError("Cannot compute GFP for fewer than 2 channels, "
-                             "please pick more than %d channels." % len(picks))
-    else:
-        if show_sensors is None:
-            show_sensors = True  # show sensors when not doing GFP
-        ch_names = [one_evoked.ch_names[pick] for pick in picks]
-
-    picks_by_types = channel_indices_by_type(info, picks)
-    # keep only channel types for which there is a channel:
-    ch_types = [t for t in picks_by_types if len(picks_by_types[t]) > 0]
+    picks_by_type = channel_indices_by_type(info, picks)
+    ch_types = list(_get_channel_types(info, picks=picks, unique=True))
 
     # let's take care of axis and figs
     if not do_topo:
@@ -2190,32 +2108,46 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             axes = (plt.subplots(figsize=(8, 6))[1]
                     for _ in range(len(ch_types)))
     else:
-        axes = ["topo"] * len(ch_types)
+        axes = ['topo'] * len(ch_types)
 
     if len(ch_types) > 1:
-        logger.info("Multiple channel types selected, returning one figure "
-                    "per type.")
+        logger.info('Multiple channel types selected, returning one figure '
+                    'per type.')
         figs = list()
-        for t, ax in zip(ch_types, axes):
-            picks_ = picks_by_types[t]
-            title_ = "GFP, " + t if (title is None and gfp) else title
+        for ch_type, ax in zip(ch_types, axes):
+            _picks = picks_by_type[ch_type]
+            _ch_names = np.array(one_evoked.ch_names)[_picks].tolist()
+            _picks = ch_type if picked_types else _picks
+            # don't pass combine here; title will run through this helper
+            # function a second time & it will get added then
+            _title = _title_helper_pce(title, picked_types, picks=_picks,
+                                       ch_names=_ch_names, combine=None)
             figs.append(plot_compare_evokeds(
-                evokeds, picks=picks_, gfp=gfp, colors=colors,
+                evokeds, picks=_picks, gfp=gfp, colors=colors, cmap=cmap,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
                 show_legend=show_legend, show_sensors=show_sensors,
-                axes=ax, title=title_, split_legend=split_legend, show=show))
+                axes=ax, title=_title, split_legend=split_legend, show=show))
         return figs
+
+    # colors and colormap. This yields a `styles` dict with one entry per
+    # condition, specifying at least color and linestyle. THIS MUST BE DONE
+    # AFTER THE "MULTIPLE CHANNEL TYPES" LOOP
+    (styles, cmap, cmap_label, colors, linestyles,
+     legend_tick_locs) = _handle_styles_pce(styles, colors, cmap, linestyles,
+                                            conditions)
 
     # From now on there is only 1 channel type
     assert len(ch_types) == 1
     ch_type = ch_types[0]
+    # some things that depend on ch_type:
+    units = _handle_default('units')[ch_type]
+    scalings = _handle_default('scalings')[ch_type]
 
-    all_positive = gfp
     pos_picks = picks  # keep locations to pick for plotting
 
-    info = pick_info(info, pos_picks, True)
-    all_ch_names = ch_names if ch_type == 'grad' else info['ch_names']
+    info = pick_info(info, sel=pos_picks, copy=True)
+    all_ch_names = info['ch_names']
     if do_topo:
         from .topo import iter_topography
         fig = plt.figure(figsize=(18, 14))
@@ -2226,14 +2158,14 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 ci=ci, truncate_yaxis=truncate_yaxis,
                 truncate_xaxis=truncate_xaxis, ylim=ylim, invert_y=invert_y,
                 show_sensors=show_sensors, show_legend=show_legend,
-                split_legend=split_legend, picks=picks):
+                split_legend=split_legend, picks=picks, combine=combine):
             plot_compare_evokeds(
                 evokeds=evokeds, gfp=gfp, colors=colors, linestyles=linestyles,
                 styles=styles, cmap=cmap, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, truncate_xaxis=truncate_xaxis,
                 ylim=ylim, invert_y=invert_y, show_sensors=show_sensors,
                 show_legend=show_legend, split_legend=split_legend,
-                show=True, picks=picks[pick_], axes=ax_)
+                picks=picks[pick_], combine=combine, axes=ax_, show=True)
 
         layout = find_layout(info)
         # shift everything to the right by 15% of one axes width
@@ -2244,85 +2176,69 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             info, layout=layout, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
             axis_spinecolor='k', layout_scale=.925, legend=True))
+        picks = list(picks)
+    else:
+        axes = [(ax, 0) for ax in axes]
+        if np.array(picks).ndim < 2:
+            picks = [picks]  # enables zipping w/ axes
     del info
 
-    ymin, ymax = ylim.get(ch_type, [None, None])
-
-    scaling = _handle_default("scalings")[ch_type]
-    unit = _handle_default("units")[ch_type]
-
-    if (ymin is None) and all_positive:
-        ymin = 0.  # 'grad' and GFP are plotted as all-positive
-
-    # title
-    title = _set_title_multiple_electrodes(
-        title, ('gfp' if gfp else 'average'), ch_names, ch_type=ch_type)
-
-    colors_for_split_legend, styles_for_split_legend = (
-        deepcopy(colors), deepcopy(linestyles))
-    (styles, colors, the_colors, color_conds, color_order, colors_are_float,
-     cmap_label, cmap) = _finish_styles_plot_comp_evoked(
-         styles, colors, linestyles, conditions, cmap)
-    # We now have a 'styles' dict with one entry per condition, specifying at
-    # least color and linestyles.
-
-    ci_fun = _get_ci_function_for_evokeds(ci)
-
-    # if we have a dict/list of lists, we compute the grand average and the CI
+    # for each axis, compute the grand average and the CI
     # (per sensor if topo, otherwise aggregating over sensors)
-    if not do_topo:
-        axes = [(ax, 0) for ax in axes]
-        if not (isinstance(picks, Iterable) and
-                isinstance(picks[0], Iterable)):
-            picks = [picks]  # because we iterate over it
-    else:
-        picks = list(picks)
-
-    all_data, all_cis = [], []
+    ci_fun = _get_ci_function_for_evokeds(ci)
+    do_ci = ci_fun is not None
+    c_func = None if do_topo else combine_func
+    all_data = list()
+    all_cis = list()
     any_positive, any_negative = False, False
-    for picks_, (ax, idx) in zip(picks, axes):
-        data_dict, ci_dict = _calculate_ci_and_mean(
-            evokeds, conditions, scaling, picks_, ci_fun, gfp)
-        # we now have dicts for data ('evokeds' - grand averaged Evoked's)
-        # and the CI ('ci_array') with cond name labels
-        all_data.append(data_dict)
+    for _picks, (ax, idx) in zip(picks, axes):
+        data_dict = dict()
+        ci_dict = dict()
+        for cond in conditions:
+            this_evokeds = evokeds[cond]
+            res = _get_data_and_ci(this_evokeds, combine, c_func,
+                                   scaling=scalings, picks=_picks,
+                                   ci_fun=ci_fun)
+            data_dict[cond] = res[0]
+            if do_ci:
+                ci_dict[cond] = res[1]
+        all_data.append(data_dict)  # grand means, or indiv. sensors if do_topo
         all_cis.append(ci_dict)
     del evokeds
 
-    if do_topo:
-        picks.append(-1)  # so the loops don't terminate prematurely
+    # compute ylims
+    allvalues = np.stack([list(_dict.values()) for _dict in
+                          (all_cis if do_ci else all_data)])
+    norm = np.all(allvalues > 0)
+    ymin, ymax = ylim.get(ch_type, [None, None])
+    ymin, ymax = _setup_vmin_vmax(allvalues, ymin, ymax, norm)
 
     # add empty data (all zeros) for the legend axis
-    all_data.append({cond: np.zeros(d.shape) for cond, d in data_dict.items()})
-    all_cis.append({cond: np.zeros(np.array(d).shape)
-                    for cond, d in ci_dict.items()})
+    all_data.append({cond: np.zeros(dat.shape)
+                     for cond, dat in data_dict.items()})
+    all_cis.append({cond: np.zeros(np.array(dat).shape)
+                    for cond, dat in ci_dict.items()})
+    if do_topo:
+        picks.append(-1)  # so we don't terminate loop before legend axis drawn
 
-    for picks_, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
+    for _picks, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
-        do_ci = ci_fun is not None
-        if idx == -1:
-            do_ci = False
-        any_positive_, any_negative_ = _plot_compare_evokeds(
-            ax, data, conditions, times, do_ci, cis, styles,
-            title, all_positive, do_topo)
-        if any_positive_:
+        do_ci_ = (idx != -1)
+        any_pos, any_neg = _plot_compare_evokeds(ax, data, conditions, times,
+                                                 do_ci_, cis, styles, title,
+                                                 norm, do_topo)
+        if any_pos:
             any_positive = True
-        if any_negative_:
+        if any_neg:
             any_negative = True
 
-    if do_topo:
-        if ci_fun is not None:
-            all_data = all_cis
-        data = np.array([list(d.values()) for d in all_data])
-        ymin, ymax = _setup_vmin_vmax(data, ymin, ymax)
-
-    # ylims
+    # set ylims
     for ax_, idx in axes:
         skip_axlabel = do_topo and (idx != -1)
         _set_ylims_plot_compare_evokeds(
-            ax_, any_positive, any_negative, ymin, ymax,
-            truncate_yaxis, truncate_xaxis, invert_y, vlines, tmin, tmax, unit,
+            ax_, any_positive, any_negative, ymin, ymax, truncate_yaxis,
+            truncate_xaxis, invert_y, vlines, tmin, tmax, units,
             skip_axlabel=skip_axlabel)
         ax_.patch.set_alpha(0)
         if do_topo and idx != -1:
@@ -2333,21 +2249,19 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # a head plot showing the sensors that are being plotted
     if show_sensors:
         _validate_type(show_sensors, (np.int, bool, str, type(None)),
-                       "show_sensors", "numeric, str, None or bool")
+                       'show_sensors', 'numeric, str, None or bool')
         if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
-            warn("Cannot find channel coordinates in the supplied Evokeds. "
-                 "Not showing channel locations.")
+            warn('Cannot find channel coordinates in the supplied Evokeds. '
+                 'Not showing channel locations.')
         else:
             _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
                                   show_sensors, ax_)
 
     # condition legend
-    _evoked_condition_legend(
-        conditions, show_legend, split_legend, cmap, colors_are_float,
-        the_colors, colors if not split_legend else colors_for_split_legend,
-        color_conds, color_order, cmap_label,
-        linestyles if not split_legend else styles_for_split_legend, ax_,
-        do_topo)
+    if show_legend:
+        _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
+                         cmap_label, linestyles, legend_tick_locs, do_topo,
+                         ax)
 
     plt_show(show)
-    return ax.figure
+    return [ax.figure]

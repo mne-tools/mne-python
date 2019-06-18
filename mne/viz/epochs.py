@@ -195,6 +195,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # `combine` defaults to 'gfp' unless picks are specific channels and
     # there was no group_by passed
+    combine_given = (combine is not None)
     if combine is None and (group_by is not None or picked_types):
         combine = 'gfp'
     # convert `combine` into callable (if None or str)
@@ -211,7 +212,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
     ts_defaults = dict(colors={'cond': 'k'}, ylim=dict(), title='', show=False,
                        truncate_yaxis=False, truncate_xaxis=False,
-                       vlines=vlines)
+                       vlines=vlines, show_legend=False)
     ts_defaults.update(**ts_args)
     ts_args = ts_defaults
 
@@ -243,7 +244,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                                     title=title)
 
         # are they trying to combine a single channel?
-        if len(these_picks) < 2 and combine is not None:
+        if len(these_picks) < 2 and combine_given:
             warn('Only one channel in group "{}"; cannot combine by method '
                  '"{}".'.format(this_group, combine))
 
@@ -303,6 +304,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_norm = this_group_dict['norm']
         this_image = this_group_dict['image']
         this_epochs = this_group_dict['epochs']
+        this_picks = this_group_dict['picks']
         this_ch_type = this_group_dict['ch_type']
         this_axes_dict = this_group_dict['axes']
         this_title = this_group_dict['title']
@@ -311,18 +313,18 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         # plot title
         if this_title is None:
             title = _handle_default('titles').get(this_group, this_group)
-            if isinstance(combine, str):
+            if isinstance(combine, str) and len(title):
                 _comb = combine.upper() if combine == 'gfp' else combine
                 _comb = 'std. dev.' if _comb == 'std' else _comb
                 title += ' ({})'.format(_comb)
 
         # plot the image
         this_fig = _plot_epochs_image(
-            this_image, style_axes=True, epochs=this_epochs,
+            this_image, style_axes=True, epochs=this_epochs, picks=picks,
             colorbar=colorbar, vmin=vmin, vmax=vmax, norm=this_norm, cmap=cmap,
             unit=units[this_ch_type], ax=this_axes_dict, show=False,
-            title=title, gfp=(combine == 'gfp'), overlay_times=overlay_times,
-            evoked=evoked, ts_args=ts_args)
+            title=title, combine=combine, combine_given=combine_given,
+            overlay_times=overlay_times, evoked=evoked, ts_args=ts_args)
         group_by[this_group].update(fig=this_fig)
 
         # detect ylims across figures
@@ -465,10 +467,11 @@ def _order_epochs(data, times, order=None, overlay_times=None):
     return data, overlay_times
 
 
-def _plot_epochs_image(image, style_axes=True, epochs=None, norm=False,
+def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
                        vmin=None, vmax=None, colorbar=False, show=False,
                        unit=None, cmap=None, ax=None, overlay_times=None,
-                       title=None, evoked=False, ts_args=None, gfp=None):
+                       title=None, evoked=False, ts_args=None, combine=None,
+                       combine_given=False, norm=False):
     """Plot epochs image. Helper function for plot_epochs_image."""
     if cmap is None:
         cmap = 'Reds' if norm else 'RdBu_r'
@@ -502,8 +505,11 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, norm=False,
     # draw the evoked
     if evoked:
         from . import plot_compare_evokeds
-        plot_compare_evokeds({'cond': list(epochs.iter_evoked())}, picks=[0],
-                             gfp=False, axes=ax['evoked'], **ts_args)
+        pass_combine = (combine if combine_given else None)
+        _picks = [0] if len(picks) == 1 else None  # prevent applying GFP
+        plot_compare_evokeds({'cond': list(epochs.iter_evoked())},
+                             picks=_picks, axes=ax['evoked'],
+                             combine=pass_combine, **ts_args)
         ax['evoked'].set_xlim(tmin, tmax)  # don't multiply by 1e3 here
         ax_im.set_xticks([])
 
