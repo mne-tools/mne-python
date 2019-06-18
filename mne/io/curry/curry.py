@@ -166,13 +166,13 @@ def _read_curry_info(fname_base, curry_vers):
 
     # read labels from label files
     labels = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
-                               ["LABELS" + CHANTYPES[key] for key in CHANTYPES])
+                               ["LABELS" + CHANTYPES[key] for key in ["meg", "eeg", "misc"]])
 
     sensors = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
-                                ["SENSORS" + CHANTYPES[key] for key in CHANTYPES])
+                                ["SENSORS" + CHANTYPES[key] for key in ["meg", "eeg", "misc"]])
 
     all_chans = list()
-    for key in CHANTYPES:
+    for key in ["meg", "eeg", "misc"]:
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
             ch = {"ch_name": chan,
                   "unit": unit_dict[key],
