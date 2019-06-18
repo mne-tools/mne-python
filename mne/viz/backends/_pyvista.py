@@ -332,8 +332,7 @@ def _get_view_to_display_matrix(size):
 
 
 def _close_all():
-    pass
-
+    pyvista.close_all()
 
 def _check_notebook():
     if _run_from_ipython():
