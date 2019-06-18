@@ -45,7 +45,7 @@ def test_io_curry():
     for filename in os.listdir(curry_dir):
         read_raw_curry(op.join(curry_dir, filename))
 
-    ctf_alp = read_raw_ctf(ctf_alp_file)
+    ctf_alp = read_raw_ctf(ctf_alp_file, clean_names=True)
     curry7_alp = read_raw_curry(curry7_alp_file)
     curry8_alp = read_raw_curry(curry8_alp_file)
 

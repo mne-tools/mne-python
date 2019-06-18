@@ -188,16 +188,17 @@ def _read_curry_info(fname_base, curry_vers):
 
     # FIXME: Is it safer to use numpy.where(ch_dict["ch_name"] == all_chans["ch_name"]) or another method?
     for ind, ch_dict in enumerate(info["chs"]):
-        ch_dict["unit"] = all_chans[ind]["unit"]
         ch_dict["kind"] = all_chans[ind]["kind"]
         if ch_dict["kind"] in (FIFF.FIFFV_MEG_CH,
                                FIFF.FIFFV_EEG_CH):
             ch_dict["loc"] = all_chans[ind]["loc"]
 
         # TODO: This is extremely ugly. Is there a function to transform units automatically?
-        if ch_dict["unit"] == "uV":
+        if all_chans[ind]["unit"] == "uV":
+            ch_dict["unit"] = FIFF.FIFF_UNIT_V
             ch_dict["cal"] = 1e-6
-        if ch_dict["unit"] == "fT":
+        if all_chans[ind]["unit"] == "fT":
+            ch_dict["unit"] = FIFF.FIFF_UNIT_T
             ch_dict["cal"] = 1e-15
 
 
