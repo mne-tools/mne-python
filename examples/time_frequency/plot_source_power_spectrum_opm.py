@@ -37,6 +37,7 @@ Preprocessing
 import os.path as op
 
 from mne.filter import next_fast_len
+from mayavi import mlab
 
 import mne
 
@@ -122,14 +123,11 @@ trans = dict(vv=vv_trans_fname, opm=opm_trans_fname)
 with mne.use_coil_def(opm_coil_def_fname):
     for kind in kinds:
         dig = True if kind == 'vv' else False
-        view = {'azimuth': 0,
-                'elevation': 90,
-                'focalpoint': (0., 0., 0.),
-                'distance': 0.6}
         fig = mne.viz.plot_alignment(
             raws[kind].info, trans=trans[kind], subject=subject,
             subjects_dir=subjects_dir, dig=dig, coord_frame='mri',
-            surfaces=('head', 'white'), view=view)
+            surfaces=('head', 'white'))
+        mlab.view(0, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
         fwd[kind] = mne.make_forward_solution(
             raws[kind].info, trans[kind], src, bem, eeg=False, verbose=True)
 

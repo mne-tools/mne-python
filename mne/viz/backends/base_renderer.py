@@ -210,11 +210,6 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def title(self, text):
-        """Display the title of the scene."""
-        pass
-
-    @abstractclassmethod
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
         """Configure the camera of the scene.

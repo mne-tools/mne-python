@@ -534,8 +534,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
-                   interaction='trackball', verbose=None, view=None,
-                   title=None):
+                   interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -617,11 +616,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.16
     %(verbose)s
-    view: dict | None
-        The camera settings of the scene. If ``None``, the default settings
-        are used.
-    title: str | None
-        The title of the scene. If ``None``, no title will be displayed.
 
     Returns
     -------
@@ -1128,16 +1122,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             opacity=0.75, glyph_height=0.25,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
-
-    _check_option('view', type(view), (dict, type(None)))
-    view = dict() if view is None else view
-    renderer.set_camera(**view)
-
-    if isinstance(title, str):
-        renderer.title(title)
-    elif title is not None:
-        raise TypeError('title must be an instance of `str` or `None`: '
-                        '{} was given'.format(type(title)))
+    renderer.set_camera(azimuth=90, elevation=90,
+                        focalpoint=(0., 0., 0.), distance=0.6)
     renderer.show()
     return renderer.scene()
 
@@ -2509,7 +2495,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     return fig
 
 
-def snapshot_brain_montage(fig, montage, hide_sensors=True, view=None):
+def snapshot_brain_montage(fig, montage, hide_sensors=True):
     """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
 
     Note that this will take the raw values for 3d coordinates of each channel,
@@ -2527,8 +2513,6 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True, view=None):
         dict should have ch:xyz mappings.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
-    view: dict | None
-        The camera settings of the scene.
 
     Returns
     -------
@@ -2564,10 +2548,6 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True, view=None):
 
     # initialize figure
     renderer = _Renderer(fig, show=True)
-
-    _check_option('view', type(view), (dict, type(None)))
-    view = dict() if view is None else view
-    renderer.set_camera(**view)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
