@@ -304,7 +304,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_norm = this_group_dict['norm']
         this_image = this_group_dict['image']
         this_epochs = this_group_dict['epochs']
-        this_picks = this_group_dict['picks']
         this_ch_type = this_group_dict['ch_type']
         this_axes_dict = this_group_dict['axes']
         this_title = this_group_dict['title']
