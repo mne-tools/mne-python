@@ -9,6 +9,6 @@
 #
 # License: Simplified BSD
 
-from .brain import Brain
+from ._brain import _Brain
 
-__all__ = ['Brain']
+__all__ = ['_Brain']

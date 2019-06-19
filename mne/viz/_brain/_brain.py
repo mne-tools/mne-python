@@ -15,7 +15,7 @@ from .surface import Surface
 from ..utils import _check_option, logger
 
 
-class Brain(object):
+class _Brain(object):
     u"""Class for visualizing a brain.
 
     It is used for creating meshes of the given subject's

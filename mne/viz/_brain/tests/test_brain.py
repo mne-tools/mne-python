@@ -13,8 +13,8 @@ import numpy as np
 import os.path as path
 from mne import read_source_estimate
 from mne.datasets import sample
-from mne.viz import Brain
-from mne.viz.brain.colormap import _calculate_lut
+from mne.viz._brain import _Brain
+from mne.viz._brain.colormap import _calculate_lut
 
 data_path = sample.data_path()
 subject_id = 'sample'
@@ -23,26 +23,26 @@ surf = 'inflated'
 
 
 def test_brain_init(renderer):
-    """Test initialization of the Brain instance."""
+    """Test initialization of the _Brain instance."""
     backend_name = renderer.get_3d_backend()
     hemi = 'both'
 
     with pytest.raises(ValueError, match='hemi'):
-        Brain(subject_id=subject_id, hemi="split", surf=surf)
+        _Brain(subject_id=subject_id, hemi="split", surf=surf)
     with pytest.raises(ValueError, match='figure'):
-        Brain(subject_id=subject_id, hemi=hemi, surf=surf, figure=0)
+        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, figure=0)
     with pytest.raises(ValueError, match='interaction'):
-        Brain(subject_id=subject_id, hemi=hemi, surf=surf, interaction=0)
+        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, interaction=0)
     with pytest.raises(KeyError):
-        Brain(subject_id=subject_id, hemi="foo", surf=surf)
+        _Brain(subject_id=subject_id, hemi="foo", surf=surf)
 
-    brain = Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
+    brain = _Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
     if backend_name != 'mayavi':
         brain.show()
 
 
 def test_brain_add_data(renderer):
-    """Test adding data in Brain instance."""
+    """Test adding data in _Brain instance."""
     backend_name = renderer.get_3d_backend()
     act_data = path.join(data_path, 'MEG/sample/sample_audvis-meg-eeg')
 
@@ -54,8 +54,8 @@ def test_brain_add_data(renderer):
     fmin = stc.data.min()
     fmax = stc.data.max()
 
-    brain_data = Brain(subject_id, hemi, surf, size=300,
-                       subjects_dir=subjects_dir)
+    brain_data = _Brain(subject_id, hemi, surf, size=300,
+                        subjects_dir=subjects_dir)
 
     with pytest.raises(ValueError):
         brain_data.add_data(array=np.array([0, 1, 2]))
