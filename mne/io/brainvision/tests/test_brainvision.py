@@ -15,6 +15,7 @@ import pytest
 from tempfile import NamedTemporaryFile
 
 from mne.utils import _TempDir, run_tests_if_main
+from mne.utils.numerics import object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -60,6 +61,16 @@ vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
+
+
+def test_same_behaviour_in_init_and_set_montage():
+    """Test that __init__ and set_montage lead to equal results."""
+    raw_montage = read_raw_brainvision(vhdr_path, montage=montage)
+    raw_none = read_raw_brainvision(vhdr_path, montage=None)
+    assert raw_none.info['dig'] is None
+    raw_none.set_montage(montage)
+    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
+    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
 
 
 def test_orig_units(recwarn):
