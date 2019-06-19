@@ -7,6 +7,7 @@
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Stefan Repplinger <stefan.repplinger@ovgu.de>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
