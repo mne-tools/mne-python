@@ -99,10 +99,8 @@ raw.plot()
 #
 #   - These can be enabled/disabled interactively by clicking the ``Proj``
 #     button at the lower right corner of the plot window, or disabled by
-#     default by passing the ``proj=False`` parameter.
-#
-# .. TODO: When projectors tutorials are done, add this:
-#    See :ref:`projectors-basics-tutorial` for more info on projectors.
+#     default by passing the ``proj=False`` parameter. See
+#     :doc:`../intro/plot_projectors_intro` for more info on projectors.
 #
 # These and other keyboard shortcuts are listed in the Help window, accessed
 # through the ``Help`` button at the lower left corner of the plot window.

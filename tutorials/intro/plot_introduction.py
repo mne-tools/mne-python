@@ -57,8 +57,8 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # "projection items" in the file along with the recorded data; those are
 # :term:`SSP projectors <projector>` calculated to remove environmental noise
 # from the MEG signals, plus a projector to mean-reference the EEG channels;
-# these are discussed
-# in a later tutorial. In addition to the information displayed during loading,
+# these are discussed in the tutorial :doc:`../intro/plot_projectors_intro`.
+# In addition to the information displayed during loading,
 # you can get a glimpse of the basic details of a :class:`~mne.io.Raw` object
 # by printing it; even more is available by printing its ``info`` attribute
 # (a :class:`dictionary-like object <mne.Info>` that is preserved across
@@ -67,9 +67,6 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # applied filters, projectors, etc. Notice especially the ``chs`` entry,
 # showing that MNE-Python detects different sensor types and handles each
 # appropriately. See :doc:`plot_info` for more on the :class:`~mne.Info` class.
-#
-# .. TODO edit prev. paragraph when projectors tutorial is added: ...those are
-#     discussed in the tutorial :ref:`projectors-tutorial`. (or whatever link)
 
 print(raw)
 print(raw.info)

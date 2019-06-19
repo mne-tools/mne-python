@@ -70,10 +70,8 @@ print(meas_date == orig_time)
 # sample numbers before the recording begins, adding ``my_annot`` to the
 # :class:`~mne.io.Raw` object also involved another automatic change: an offset
 # equalling the time of the first recorded sample (``raw.first_samp /
-# raw.info['sfreq']``) was added to the ``onset`` values of each annotation:
-#
-# .. TODO when raw tutorial updated, add this to end of paragraph:
-#    (see :ref:`time-as-index` for more info on ``raw.first_samp``)
+# raw.info['sfreq']``) was added to the ``onset`` values of each annotation
+# (see :ref:`time-as-index` for more info on ``raw.first_samp``):
 
 time_of_first_sample = raw.first_samp / raw.info['sfreq']
 print(my_annot.onset + time_of_first_sample)
@@ -163,7 +161,8 @@ raw.plot(start=2, duration=6)
 # controls window defaults to ``BAD_``. The reason for this is that annotation
 # is often used to mark bad temporal spans of data (such as movement artifacts
 # or environmental interference that cannot be removed in other ways such as
-# projection or filtering). Several MNE-Python operations
+# :doc:`projection <../intro/plot_projectors_intro>` or filtering). Several
+# MNE-Python operations
 # are "annotation aware" and will avoid using data that is annotated with a
 # description that begins with "bad" or "BAD"; such operations typically have a
 # boolean ``reject_by_annotation`` parameter. Examples of such operations are
@@ -172,9 +171,6 @@ raw.plot(start=2, duration=6)
 # (:func:`~mne.preprocessing.find_ecg_events`,
 # :func:`~mne.preprocessing.find_eog_events`), and creation of epoched data
 # from continuous data (:class:`mne.Epochs`).
-#
-# .. TODO: change "projection" in prev. para to this when tut is ready:
-#    :ref:`projection <ssp-tutorial>`
 #
 #
 # Operations on Annotations objects
