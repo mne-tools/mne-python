@@ -13,13 +13,12 @@ shipped in MNE-python, and display it on fsaverage template.
 #
 # License: BSD Style.
 
-from mayavi import mlab
 import os.path as op
 
 import mne
 from mne.channels.montage import get_builtin_montages
 from mne.datasets import fetch_fsaverage
-from mne.viz import plot_alignment
+from mne.viz import plot_alignment, set_3d_view, set_3d_title
 
 subjects_dir = op.dirname(fetch_fsaverage())
 
@@ -43,5 +42,5 @@ for current_montage in get_builtin_montages():
                          subjects_dir=subjects_dir,
                          eeg=['projected'],
                          )
-    mlab.view(135, 80)
-    mlab.title(montage.kind, figure=fig)
+    set_3d_view(figure=fig, azimuth=135, elevation=80)
+    set_3d_title(figure=fig, title=montage.kind)

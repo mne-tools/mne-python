@@ -22,13 +22,13 @@ on the image.
 # License: BSD (3-clause)
 from scipy.io import loadmat
 import numpy as np
-from mayavi import mlab
 from matplotlib import pyplot as plt
 from os import path as op
 
 import mne
 from mne.viz import ClickableImage  # noqa
-from mne.viz import plot_alignment, snapshot_brain_montage
+from mne.viz import (plot_alignment, snapshot_brain_montage,
+                     set_3d_view)
 
 
 print(__doc__)
@@ -66,7 +66,7 @@ print('Created %s channel positions' % len(ch_names))
 
 fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                      surfaces=['pial'], meg=False)
-mlab.view(200, 70)
+set_3d_view(figure=fig, azimuth=200, elevation=70)
 xy, im = snapshot_brain_montage(fig, mon)
 
 # Convert from a dictionary to array to plot

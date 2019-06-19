@@ -37,7 +37,6 @@ Preprocessing
 import os.path as op
 
 from mne.filter import next_fast_len
-from mayavi import mlab
 
 import mne
 
@@ -127,7 +126,8 @@ with mne.use_coil_def(opm_coil_def_fname):
             raws[kind].info, trans=trans[kind], subject=subject,
             subjects_dir=subjects_dir, dig=dig, coord_frame='mri',
             surfaces=('head', 'white'))
-        mlab.view(0, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
+        mne.viz.set_3d_view(figure=fig, azimuth=0, elevation=90,
+                            focalpoint=(0., 0., 0.), distance=0.6)
         fwd[kind] = mne.make_forward_solution(
             raws[kind].info, trans[kind], src, bem, eeg=False, verbose=True)
 
