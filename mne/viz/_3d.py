@@ -2559,6 +2559,88 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     return proj.xy, im
 
 
+def plot_sensors_connectivity(raw, picks, ch_names, con):
+    """Visualize the sensor connectivity in 3D.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        A Raw object containing FIF data.
+    picks: array of int
+        Indices of selected channels.
+    ch_names: list of str
+        The names of the channels.
+    con: array | list of array
+        The computed connectivity measure(s).
+
+    Returns
+    -------
+    fig : instance of mayavi.mlab.Figure
+        The mayavi figure.
+    """
+    from .backends.renderer import _Renderer
+    print(type(ch_names))
+
+    renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
+
+    idx = [ch_names.index(name) for name in ch_names if name.startswith('MEG')]
+    # con is a 3D array where the last dimension is size one since we averaged
+    # over frequencies in a single band. Here we make it 2D
+    con = con[idx][:, idx]
+    con = con[:, :, 0]
+
+    # Plot the sensor locations
+    sens_loc = [raw.info['chs'][picks[i]]['loc'][:3] for i in idx]
+    sens_loc = np.array(sens_loc)
+
+    renderer.sphere(np.c_[sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2]],
+                    color=(1, 1, 1), opacity=1, scale=0.005)
+
+    # Get the strongest connections
+    n_con = 20  # show up to 20 connections
+    min_dist = 0.05  # exclude sensors that are less than 5cm apart
+    threshold = np.sort(con, axis=None)[-n_con]
+    ii, jj = np.where(con >= threshold)
+
+    # Remove close connections
+    con_nodes = list()
+    con_val = list()
+    for i, j in zip(ii, jj):
+        if linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
+            con_nodes.append((i, j))
+            con_val.append(con[i, j])
+
+    con_val = np.array(con_val)
+
+    # Show the connections as tubes between sensors
+    # vmax = np.max(con_val)
+    # vmin = np.min(con_val)
+    for val, nodes in zip(con_val, con_nodes):
+        x1, y1, z1 = sens_loc[nodes[0]]
+        x2, y2, z2 = sens_loc[nodes[1]]
+        # renderer.tubes([x1, x2], [y1, y2], [z1, z2], [val, val],
+        #                vmin=vmin, vmax=vmax, tube_radius=0.001,
+        #                colormap='RdBu')
+        # points.module_manager.scalar_lut_manager.reverse_lut = True
+
+    # renderer.scalarbar(points, title='Phase Lag Index (PLI)', nb_labels=4)
+
+    # Add the sensor names for the connections shown
+    nodes_shown = list(set([n[0] for n in con_nodes] +
+                           [n[1] for n in con_nodes]))
+
+    for node in nodes_shown:
+        x, y, z = sens_loc[node]
+        # renderer.text3d(x, y, z, raw.ch_names[picks[node]], scale=0.005,
+        #                 color=(0, 0, 0))
+
+    renderer.set_camera(azimuth=-88.7, elevation=40.8,
+                        distance=0.76,
+                        focalpoint=np.array([-3.9e-4, -8.5e-3, -1e-2]))
+    renderer.show()
+    return renderer.scene()
+
+
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
                                ax=None, block=False, show=True):
