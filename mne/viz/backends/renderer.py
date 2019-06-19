@@ -142,7 +142,8 @@ def _use_test_3d_backend(backend_name):
         yield
 
 
-def set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+def set_3d_view(figure, azimuth=None, elevation=None,
+                focalpoint=None, distance=None):
     """Configure the view of the given scene.
 
     Parameters
