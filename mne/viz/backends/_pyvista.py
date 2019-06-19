@@ -7,6 +7,7 @@ Actual implementation of _Renderer and _Projection classes.
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: Simplified BSD
 
@@ -15,6 +16,7 @@ import pyvista
 import warnings
 import numpy as np
 from .base_renderer import _BaseRenderer
+from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
 
 
@@ -93,24 +95,38 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
+        smooth_shading = self.smooth_shading
         vertices = np.c_[x, y, z]
-        n_triangles = len(triangles)
-        triangles = np.c_[np.full(n_triangles, 3), triangles]
+        n_vertices = len(vertices)
+        triangles = np.c_[np.full(len(triangles), 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             pd = pyvista.PolyData(vertices, triangles)
-            self.plotter.add_mesh(mesh=pd, color=color, opacity=opacity,
+            if len(color) == n_vertices:
+                if color.shape[1] == 3:
+                    scalars = np.c_[color, np.ones(n_vertices)]
+                else:
+                    scalars = color
+                scalars = (scalars * 255).astype('ubyte')
+                color = None
+                # Disabling normal computation for smooth shading
+                # is a temporary workaround of:
+                # https://github.com/pyvista/pyvista-support/issues/15
+                smooth_shading = False
+                rgba = True
+            else:
+                scalars = None
+                rgba = False
+
+            self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
+                                  rgba=rgba, opacity=opacity,
                                   backface_culling=backface_culling,
-                                  smooth_shading=self.smooth_shading)
+                                  smooth_shading=smooth_shading)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
-        from matplotlib import cm
-        from matplotlib.colors import ListedColormap
-        if colormap is None:
-            cmap = cm.get_cmap('coolwarm')
-        else:
-            cmap = ListedColormap(colormap / 255.0)
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False):
+        cmap = _get_colormap_from_array(colormap, normalized_colormap)
         vertices = np.array(surface['rr'])
         triangles = np.array(surface['tris'])
         n_triangles = len(triangles)
@@ -128,14 +144,10 @@ class _Renderer(_BaseRenderer):
                                   smooth_shading=self.smooth_shading)
 
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
                 backface_culling=False):
-        from matplotlib import cm
-        from matplotlib.colors import ListedColormap
-        if colormap is None:
-            cmap = cm.get_cmap('coolwarm')
-        else:
-            cmap = ListedColormap(colormap / 255.0)
+        cmap = _get_colormap_from_array(colormap, normalized_colormap)
         vertices = np.array(surface['rr'])
         triangles = np.array(surface['tris'])
         n_triangles = len(triangles)
@@ -249,6 +261,7 @@ class _Renderer(_BaseRenderer):
 
     def show(self):
         self.display = self.plotter.show(title=self.name)
+        return self.display
 
     def close(self):
         self.plotter.close()
@@ -332,6 +345,7 @@ def _get_view_to_display_matrix(size):
 
 
 def _close_all():
+    # XXX This is not implemented yet
     pass
 
 
