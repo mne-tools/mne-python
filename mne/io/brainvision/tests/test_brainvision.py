@@ -90,7 +90,7 @@ def test_same_behaviour_in_init_and_set_montage_biosemi():
 
     # Assert equal warnings
     assert len(init_warns) == len(set_montage_warns)
-    for ii in len(init_warns):
+    for ii in range(len(init_warns)):
         msg_a = init_warns[ii].message.args[0]
         msg_b = set_montage_warns[ii].message.args[0]
         assert msg_a == msg_b
