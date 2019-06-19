@@ -45,7 +45,7 @@ ICA finds directions in the feature space corresponding to projections with high
 **Example**: Imagine 3 instruments playing simultaneously and 3 microphones
 recording mixed signals. ICA can be used to recover the sources ie. what is played by each instrument.
 
-ICA employs a very simple model: $X = AS$ where $X$ is our observations, $A$ is the mixing matrix and $S$ is the vector of independent (latent) sources.
+ICA employs a very simple model: :math:`X = AS` where :math:`X` is our observations, :math:`A` is the mixing matrix and :math:`S` is the vector of independent (latent) sources.
 
 The challenge is to recover A and S from X.
 
