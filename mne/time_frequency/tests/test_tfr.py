@@ -754,38 +754,97 @@ def test_getitem_epochsTFR():
     assert_array_equal(power.next(), power.data[ind + 1])
 
 
-def test_source_tfr():
-    import numpy as np  # !!! remove this later
-    import pytest  # !!! remove this too
-    from mne.source_estimate import VectorSourceEstimate
-    from mne.time_frequency import tfr_multitaper
-    import mne
+def test_source_tfr_morlet():
+    import os.path as op
+    import pytest
+    import numpy as np
+    from mne.datasets import testing
+    from mne import find_events, Epochs, pick_types
+    from mne.io import read_raw_fif
+    from mne.label import read_label
+    from mne.time_frequency import tfr_morlet, tfr_multitaper
+    from mne.minimum_norm.inverse import (read_inverse_operator,
+                                          apply_inverse_epochs,
+                                          apply_inverse,
+                                          prepare_inverse_operator)
+    from mne.minimum_norm.time_frequency import (source_band_induced_power,
+                                                 source_induced_power,
+                                                 compute_source_psd,
+                                                 compute_source_psd_epochs)
 
-    # send in a normal TFR to see how the prints within should look like !!! remove NEXT PARAGRAPH
-    from mne.datasets import sample
-    import mne.io as io
-    data_path = sample.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-    event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-    raw = io.read_raw_fif(raw_fname)
-    events = mne.read_events(event_fname)
-    epochs = mne.Epochs(raw, events, 1, -0.2, 0.5, picks="eeg")
-    print("epochs.shape = ", epochs.get_data().shape)
-    tfr_multitaper(epochs, [10], 1)
+    from mne.time_frequency.multitaper import psd_array_multitaper
 
-    v_stc = VectorSourceEstimate(epochs.get_data()[:, 0:3, :],
-                                 vertices=[np.arange(1, 71, 1),
-                                           np.arange(1, 3, 1)],
-                                 tmin=0, tstep=0.01)
+    data_path = testing.data_path(download=False)
+    fname_inv = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+    fname_data = op.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc_raw.fif')
+    fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+    tmin, tmax, event_id = -0.2, 0.5, 1
+
+    # Setup for reading the raw data
+    raw = read_raw_fif(fname_data)
+    events = find_events(raw, stim_channel='STI 014')
+    inverse_operator = read_inverse_operator(fname_inv)
+    inv = prepare_inverse_operator(inverse_operator, nave=1,
+                                   lambda2=1. / 9., method="dSPM")
+
+    raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
+
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg=True, eeg=False, eog=True,
+                       stim=False, exclude='bads')
+
+    # Load condition 1
+    event_id = 1
+    events3 = events[:3]  # take 3 events to keep the computation time low
+    epochs = Epochs(raw, events3, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
+                    preload=True)
+
+    # Compute a source estimate per frequency band
+    bands = dict(alpha=[10, 10])
+    label = read_label(fname_label)
+
+    stc = apply_inverse_epochs(epochs, inv, lambda2=0.1111111111111111, label=label)[0]
+
 
     # assert return_itc error
     with pytest.raises(ValueError, match="return_itc must be False"):
-        tfr_multitaper(v_stc, np.arange(1, 30, 3), 5, time_bandwidth=4.0,
+        tfr_morlet(stc, np.arange(1, 30, 3), 5,
+                   use_fft=True, return_itc=True, decim=1,
+                   n_jobs=1, picks=None, average=True, verbose=None)
+        tfr_multitaper(stc, np.arange(1, 30, 3), 5,
                        use_fft=True, return_itc=True, decim=1,
                        n_jobs=1, picks=None, average=True, verbose=None)
 
-    # try to feed a SurfaceVectorSourceEstimate into TFR
-    tfr_multitaper(v_stc, np.arange(8, 12, 2), 1, return_itc=False, average=False)
+    freqs = np.array([10, 12, 14])
+
+    # TODO:
+
+    # try to feed a SourceEstimate into TFR morlet
+    data1 = tfr_morlet(stc, freqs, 1, return_itc=False)
+
+    # try to feed SourceEstimate into TFR multitaper
+    data2 = tfr_multitaper(stc, freqs, 1, return_itc=False)
+
+    # assert equal data
+    src_tfr = tfr_morlet(stc, freqs=[10], n_cycles=2, use_fft=False, return_itc=False)
+
+    src_tfr_ref, _ = source_induced_power(epochs, inv, freqs=[10],
+                                          n_cycles=2, use_fft=False, pca=False,
+                                          label=label, prepared=True)
+
+
+def plot_func(src_tfr, src_tfr_ref):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    fig = plt.figure(figsize=(2, 1))
+    fig.add_subplot(2, 1, 1)
+    plt.imshow(np.squeeze(src_tfr_ref), cmap='hot', interpolation='nearest')
+    fig.add_subplot(2, 1, 2)
+    plt.imshow(np.squeeze(src_tfr.data), cmap='hot', interpolation='nearest')
+    plt.show()
 
 
 run_tests_if_main()

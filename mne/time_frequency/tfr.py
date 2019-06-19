@@ -597,15 +597,16 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
     from ..epochs import BaseEpochs
-    from ..source_estimate import VectorSourceEstimate
+    from ..source_estimate import VectorSourceEstimate, _BaseSourceEstimate
 
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
 
     if isinstance(inst, VectorSourceEstimate):
-        data = np.expand_dims(np.mean(inst.data, axis=1), axis=0)
-    else:
+        data = np.expand_dims(np.linalg.norm(inst.data, axis=1), axis=0)
+        print("THIS IS THE SHAPE AFTER NORMING: ", data.shape)  # !!! remove this
+    elif not (isinstance(inst, _BaseSourceEstimate)):
         info = inst.info
         info, data = _prepare_picks(info, data, picks, axis=1)
         del picks
@@ -623,7 +624,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    if isinstance(inst, VectorSourceEstimate):
+    if isinstance(inst, _BaseSourceEstimate):
         out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
                            output=output, decim=decim, **tfr_params)
     else:
@@ -632,11 +633,11 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     times = inst.times[decim].copy()
 
     # TODO integrate this correctly
-    if isinstance(inst, VectorSourceEstimate):
+    if isinstance(inst, _BaseSourceEstimate):
         from ..source_tfr import SourceTFR
         print("OUT DIMENSIONS = ", out.shape)  # !!! remove
-        out = np.squeeze(out, axis=0)
-        print("out.shape = ", out.shape)  # !!! remove
+        print("out.shape = ", out.shape)  # !!! remove#
+        # out = np.squeeze(out, axis = 0)
         return SourceTFR(out, inst.vertices, tmin=inst.tmin,
                          tstep=inst.tstep, subject=inst.subject)
 
@@ -2165,9 +2166,10 @@ def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..source_estimate import VectorSourceEstimate
-    if not isinstance(inst, (BaseEpochs, Evoked, VectorSourceEstimate)):
-        raise TypeError('inst must be Epochs Evoked, or VectorSourceEstiamte')
+    from ..source_estimate import _BaseSourceEstimate
+    print("TYPE OF THE THING", type(inst))  # !!! remove
+    if not isinstance(inst, (BaseEpochs, Evoked, _BaseSourceEstimate)):
+        raise TypeError('inst must be Epochs, Evoked, or any SourceEstimate')
     if isinstance(inst, BaseEpochs):
         data = inst.get_data()
     else:

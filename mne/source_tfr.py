@@ -310,6 +310,20 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
 
 
 class SourceTFR(_BaseSourceTFR):
+    """
+    Parameters
+    ----------
+    data :
+    %(verbose)s
+
+    Attributes
+    ----------
+    subject :
+
+
+
+    """
+
     _data_ndim = 3
     _src_type = 'SourceTFR'
 
