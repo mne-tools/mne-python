@@ -47,7 +47,7 @@ recording mixed signals. ICA can be used to recover the sources ie. what is play
 
 ICA employs a very simple model: :math:`X = AS` where :math:`X` is our observations, :math:`A` is the mixing matrix and :math:`S` is the vector of independent (latent) sources.
 
-The challenge is to recover A and S from X.
+The challenge is to recover :math:`A` and :math:`S` from :math:`X`.
 
 
 First generate simulated data
