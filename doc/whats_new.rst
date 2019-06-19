@@ -1015,7 +1015,6 @@ Changelog
 
 BUG
 ~~~
-
 - Fixed a bug when creating spherical volumetric grid source spaces in :func:`setup_volume_source_space` by improving the minimum-distance computations, which in general will decrease the number of used source space points by `Eric Larson`_
 
 - Fix bug in :meth:`mne.io.read_raw_brainvision` read .vhdr files with ANSI codepage by `Okba Bekhelifi`_ and `Alex Gramfort`_
@@ -1114,6 +1113,8 @@ BUG
 
 API
 ~~~
+- Removed the ``mne.datasets.megsim`` dataset because it was taken down by its host (MRN). Use the :mod:`mne.simulation` functions instead, by `Eric Larson`_
+
 - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
 
 - ICA channel names have now been reformatted to start from zero, e.g. ``"ICA000"``, to match indexing schemes in :class:`mne.preprocessing.ICA` and related functions, by `Stefan Repplinger`_ and `Eric Larson`_
