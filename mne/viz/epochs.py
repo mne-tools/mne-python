@@ -931,10 +931,12 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                                     n_jobs=n_jobs)
         psd_list.append(np.mean(psd, axis=0))
 
-    return _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
-                     units_list, scalings_list, ax_list, make_label, color,
-                     area_mode, area_alpha, dB, estimate, show, average,
-                     spatial_colors, xscale, line_alpha)
+    fig = _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
+                    units_list, scalings_list, ax_list, make_label, color,
+                    area_mode, area_alpha, dB, estimate, average,
+                    spatial_colors, xscale, line_alpha)
+    plt_show(show)
+    return fig
 
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,

@@ -182,7 +182,7 @@ for ax, title, epochs in zip([ax1, ax2],
     for stage, color in zip(stages, stage_colors):
         epochs[stage].plot_psd(area_mode=None, color=color, ax=ax,
                                fmin=0.1, fmax=20., show=False,
-                               spatial_colors=False)
+                               average=True)
     ax.set(title=title, xlabel='Frequency (Hz)')
 ax2.set(ylabel='uV^2/hz (dB)')
 ax2.legend(stages)

@@ -2964,7 +2964,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
 
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
-              area_alpha, dB, estimate, show, average, spatial_colors, xscale,
+              area_alpha, dB, estimate, average, spatial_colors, xscale,
               line_alpha):
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
@@ -2990,12 +2990,6 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                                                                   units_list)):
         ylabel = _convert_psds(psd, dB, estimate, scalings, units,
                                [inst.ch_names[pi] for pi in picks])
-        if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Frequency (Hz)')
-            ax.set(ylabel=ylabel, title=title, xlim=(freqs[0], freqs[-1]))
-            ax.set_title(title)
-            ax.set_xlim(freqs[0], freqs[-1])
         ylabels.append(ylabel)
 
         if average:
@@ -3003,7 +2997,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
             psd_mean = np.mean(psd, axis=0)
             if area_mode == 'std':
                 # std across channels
-                psd_std = np.std(np.mean(psd, axis=0), axis=0)
+                psd_std = np.std(psd, axis=0)
                 hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
             elif area_mode == 'range':
                 hyp_limits = (np.min(np.mean(psd, axis=0), axis=0),
@@ -3046,11 +3040,16 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     line_alpha=line_alpha, nave=None)
     for ax in ax_list:
         ax.grid(True, linestyle=':')
+        ax.set(xlim=(freqs[0], freqs[-1]))
         if xscale == 'log':
             ax.set(xscale='log')
             ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
             ax.get_xaxis().set_major_formatter(ScalarFormatter())
+        if make_label:
+            if ii == len(picks_list) - 1:
+                ax.set_xlabel('Frequency (Hz)')
+            ax.set(ylabel=ylabel, title=title)
+            ax.set_title(title)
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    plt_show(show)
     return fig

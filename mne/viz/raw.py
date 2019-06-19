@@ -631,10 +631,12 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                                n_overlap=n_overlap, n_jobs=n_jobs,
                                reject_by_annotation=reject_by_annotation)
         psd_list.append(psd)
-    return _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
-                     units_list, scalings_list, ax_list, make_label, color,
-                     area_mode, area_alpha, dB, estimate, show, average,
-                     spatial_colors, xscale, line_alpha)
+    fig = _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
+                    units_list, scalings_list, ax_list, make_label, color,
+                    area_mode, area_alpha, dB, estimate, average,
+                    spatial_colors, xscale, line_alpha)
+    plt_show(show)
+    return fig
 
 
 def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
