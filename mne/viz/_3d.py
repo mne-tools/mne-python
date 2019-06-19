@@ -2559,19 +2559,19 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     return proj.xy, im
 
 
-def plot_sensors_connectivity(raw, picks, ch_names, con):
+def plot_sensors_connectivity(info, epochs, con, picks=None):
     """Visualize the sensor connectivity in 3D.
 
     Parameters
     ----------
-    raw : instance of Raw
-        A Raw object containing FIF data.
-    picks: array of int
-        Indices of selected channels.
-    ch_names: list of str
-        The names of the channels.
+    info : dict | None
+        The measurement info.
+    epochs: Epochs
+        The data used to get the channel names.
     con: array | list of array
         The computed connectivity measure(s).
+    %(picks_good_data)s
+        Indices of selected channels.
 
     Returns
     -------
@@ -2579,9 +2579,11 @@ def plot_sensors_connectivity(raw, picks, ch_names, con):
         The mayavi figure.
     """
     from .backends.renderer import _Renderer
-    print(type(ch_names))
 
     renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
+
+    # the epochs contain an EOG channel, which we remove now
+    ch_names = epochs.ch_names
 
     idx = [ch_names.index(name) for name in ch_names if name.startswith('MEG')]
     # con is a 3D array where the last dimension is size one since we averaged
@@ -2590,7 +2592,7 @@ def plot_sensors_connectivity(raw, picks, ch_names, con):
     con = con[:, :, 0]
 
     # Plot the sensor locations
-    sens_loc = [raw.info['chs'][picks[i]]['loc'][:3] for i in idx]
+    sens_loc = [info['chs'][picks[i]]['loc'][:3] for i in idx]
     sens_loc = np.array(sens_loc)
 
     renderer.sphere(np.c_[sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2]],
@@ -2618,9 +2620,9 @@ def plot_sensors_connectivity(raw, picks, ch_names, con):
     for val, nodes in zip(con_val, con_nodes):
         x1, y1, z1 = sens_loc[nodes[0]]
         x2, y2, z2 = sens_loc[nodes[1]]
-        # renderer.tubes([x1, x2], [y1, y2], [z1, z2], [val, val],
-        #                vmin=vmin, vmax=vmax, tube_radius=0.001,
-        #                colormap='RdBu')
+        # renderer.tube([x1, x2], [y1, y2], [z1, z2], [val, val],
+        #               vmin=vmin, vmax=vmax, tube_radius=0.001,
+        #               colormap='RdBu')
         # points.module_manager.scalar_lut_manager.reverse_lut = True
 
     # renderer.scalarbar(points, title='Phase Lag Index (PLI)', nb_labels=4)
@@ -2631,7 +2633,7 @@ def plot_sensors_connectivity(raw, picks, ch_names, con):
 
     for node in nodes_shown:
         x, y, z = sens_loc[node]
-        # renderer.text3d(x, y, z, raw.ch_names[picks[node]], scale=0.005,
+        # renderer.text3d(x, y, z, ch_names[picks[node]], scale=0.005,
         #                 color=(0, 0, 0))
 
     renderer.set_camera(azimuth=-88.7, elevation=40.8,

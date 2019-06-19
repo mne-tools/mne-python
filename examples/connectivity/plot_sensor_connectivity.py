@@ -51,8 +51,5 @@ con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     epochs, method='pli', mode='multitaper', sfreq=sfreq, fmin=fmin, fmax=fmax,
     faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=1)
 
-# the epochs contain an EOG channel, which we remove now
-ch_names = epochs.ch_names
-
 # Now, visualize the connectivity in 3D
-plot_sensors_connectivity(raw, picks, ch_names, con)
+plot_sensors_connectivity(raw.info, epochs, con, picks)
