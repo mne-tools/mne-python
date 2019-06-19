@@ -6,6 +6,7 @@
 
 import os.path as op
 from os import unlink
+import warnings
 import shutil
 
 import numpy as np
@@ -63,26 +64,19 @@ eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
 
 
-def test_same_behaviour_in_init_and_set_montage():
-    """Test that __init__ and set_montage lead to equal results."""
-    raw_montage = read_raw_brainvision(vhdr_path, montage=montage)
-    raw_none = read_raw_brainvision(vhdr_path, montage=None)
-    assert raw_none.info['dig'] is None
-    raw_none.set_montage(montage)
-    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
-    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
-
-
-def test_same_behaviour_in_init_and_set_montage_biosemi():
+@pytest.mark.parametrize('montage', [montage, 'biosemi32'])
+def test_same_behaviour_in_init_and_set_montage(montage):
     """Test that __init__ and set_montage lead to equal results."""
     with pytest.warns(RuntimeWarning) as init_warns:
-        raw_montage = read_raw_brainvision(vhdr_path, montage='biosemi32')
+        warnings.warn('dummy', RuntimeWarning)
+        raw_montage = read_raw_brainvision(vhdr_path, montage=montage)
 
     raw_none = read_raw_brainvision(vhdr_path, montage=None)
     assert raw_none.info['dig'] is None
 
     with pytest.warns(RuntimeWarning) as set_montage_warns:
-        raw_none.set_montage('biosemi32')
+        warnings.warn('dummy', RuntimeWarning)
+        raw_none.set_montage(montage)
 
     # Assert equal objects
     assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
