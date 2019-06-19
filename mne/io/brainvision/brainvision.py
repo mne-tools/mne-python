@@ -24,7 +24,7 @@ import numpy as np
 from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 
@@ -102,7 +102,7 @@ class RawBrainVision(BaseRaw):
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
-        _check_update_montage(self.info, montage, raise_missing=False)
+        self.set_montage(montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
