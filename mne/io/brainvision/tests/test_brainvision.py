@@ -84,11 +84,16 @@ def test_same_behaviour_in_init_and_set_montage_biosemi():
     with pytest.warns(RuntimeWarning) as set_montage_warns:
         raw_none.set_montage('biosemi32')
 
-    len(init_warns)
-    len(set_montage_warns)
-    # assert init_warns == set_montage_warns
+    # Assert equal objects
     assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
     assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
+
+    # Assert equal warnings
+    assert len(init_warns) == len(set_montage_warns)
+    for ii in len(init_warns):
+        msg_a = init_warns[ii].message.args[0]
+        msg_b = set_montage_warns[ii].message.args[0]
+        assert msg_a == msg_b
 
 
 def test_orig_units(recwarn):
