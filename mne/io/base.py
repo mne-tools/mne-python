@@ -1939,7 +1939,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Does nothing for objects that close their file descriptors.
         Things like RawFIF will override this method.
         """
-        pass
+        pass  # noqa
 
     def copy(self):
         """Return copy of Raw instance."""
@@ -2398,7 +2398,28 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
 
 def _check_update_montage(info, montage, path=None, update_ch_names=False,
                           raise_missing=True):
-    """Help eeg readers to add montage."""
+    """Help eeg readers to add montage.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info to update.
+    montage : instance of Montage | instance of DigMontage | str | None
+        The montage to apply (None removes any location information). If
+        montage is a string, a builtin montage with that name will be used.
+    path : 'str' | None
+        Where to search for standard montages in case montage is a str
+    update_ch_names : bool
+        If True, overwrite the info channel names with the ones from montage.
+        Defaults to False.
+    montage : instance of Montage | instance of DigMontage | str | None
+        The montage to apply (None removes any location information). If
+        montage is a string, a builtin montage with that name will be used.
+    raise_missing : 'warn' | 'err' | True | False
+        What to do when missing positions are detected. 'warn' to emit a
+        warning, 'err' or True to raise an error, False to do nothing.
+        defaults to True.
+    """
     if montage is not None:
         if not isinstance(montage, (str, Montage)):
             err = ("Montage must be str, None, or instance of Montage. "
@@ -2418,8 +2439,15 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False,
                         missing_positions.append(ch['ch_name'])
 
             # raise error if positions are missing
-            if missing_positions and raise_missing:
+            raise_missing = 'err' if raise_missing is True else raise_missing
+            if missing_positions and raise_missing == 'err':
                 raise KeyError(
+                    "The following positions are missing from the montage "
+                    "definitions: %s. If those channels lack positions "
+                    "because they are EOG channels use the eog parameter."
+                    % str(missing_positions))
+            if missing_positions and raise_missing == 'warn':
+                warn(
                     "The following positions are missing from the montage "
                     "definitions: %s. If those channels lack positions "
                     "because they are EOG channels use the eog parameter."

@@ -76,7 +76,6 @@ class RawBrainVision(BaseRaw):
         self._order = order
         self._n_samples = n_samples
 
-        _check_update_montage(info, montage)
         with open(data_fname, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
                 if self._order == 'F':  # multiplexed, channels in columns
@@ -103,6 +102,7 @@ class RawBrainVision(BaseRaw):
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
+        _check_update_montage(self.info, montage, raise_missing='warn')
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
