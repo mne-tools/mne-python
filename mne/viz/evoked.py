@@ -2123,7 +2123,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             # function a second time & it will get added then
             _title = _title_helper_pce(title, picked_types, picks=_picks,
                                        ch_names=_ch_names, combine=None)
-            figs.append(plot_compare_evokeds(
+            figs.extend(plot_compare_evokeds(
                 evokeds, picks=_picks, gfp=gfp, colors=colors, cmap=cmap,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
