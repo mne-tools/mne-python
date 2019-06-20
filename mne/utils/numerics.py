@@ -703,7 +703,7 @@ def _sort_keys(x):
     return keys
 
 
-def object_diff(a, b, pre=''):
+def object_diff(a, b, pre='', ignore_nan=False):
     """Compute all differences between two python variables.
 
     Parameters
@@ -715,6 +715,8 @@ def object_diff(a, b, pre=''):
         Must be same type as ``a``.
     pre : str
         String to prepend to each line.
+    ignore_nan : bool
+        If True, NaN values are ignored when comparing arrays.
 
     Returns
     -------
@@ -748,8 +750,12 @@ def object_diff(a, b, pre=''):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if not np.array_equal(a[~np.isnan(a)], b[~np.isnan(b)]):
-            out += pre + ' array mismatch\n'
+        if ignore_nan:
+            if not np.array_equal(a[~np.isnan(a)], b[~np.isnan(b)]):
+                out += pre + ' array mismatch\n'
+        else:
+            if not np.array_equal(a, b):
+                out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
             out += pre + ' StringIO mismatch\n'
