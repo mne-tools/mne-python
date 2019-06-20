@@ -190,7 +190,9 @@ class RawEDF(BaseRaw):
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
-        self.set_montage(montage)
+        if montage is not None:
+            # XXX: set_montage(montage=None) will change all locations to NaN
+            self.set_montage(montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
