@@ -2570,7 +2570,7 @@ def plot_sensors_connectivity(info, epochs, con, picks=None):
         The data used to get the channel names.
     con: array | list of array
         The computed connectivity measure(s).
-    %(picks_good_data)s
+    picks:
         Indices of selected channels.
 
     Returns

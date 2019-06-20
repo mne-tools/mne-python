@@ -120,8 +120,22 @@ def test_3d_backend(renderer):
                   scalars=qv_scalars,
                   mode=qv_mode)
 
+    # use tube
+    if renderer.get_3d_backend() == "pyvista":
+        with pytest.raises(NotImplementedError):
+            rend.tube(origin=np.array([[0, 0, 0]]),
+                      destination=np.array([[0, 1, 0]]))
+    else:
+        rend.tube(origin=np.array([[0, 0, 0]]),
+                  destination=np.array([[0, 1, 0]]))
+
     # use text
-    rend.text(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
+    rend.text2d(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
+    if renderer.get_3d_backend() == "pyvista":
+        with pytest.raises(NotImplementedError):
+            rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
+    else:
+        rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(azimuth=180.0, elevation=90.0,
                     distance=cam_distance,
                     focalpoint=center)
