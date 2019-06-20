@@ -190,7 +190,7 @@ class RawEDF(BaseRaw):
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
-        _check_update_montage(self.info, montage)
+        self.set_montage(montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
