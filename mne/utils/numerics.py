@@ -736,13 +736,15 @@ def object_diff(a, b, pre='', ignore_nan=False):
             if key not in k2s:
                 out += pre + ' right missing key %s\n' % key
             else:
-                out += object_diff(a[key], b[key], pre + '[%s]' % repr(key))
+                out += object_diff(a[key], b[key],
+                                   pre=(pre + '[%s]' % repr(key)),
+                                   ignore_nan=ignore_nan)
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
+                out += object_diff(xx1, xx2, pre + '[%s]' % ii, ignore_nan)
     elif isinstance(a, (str, int, float, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
@@ -771,7 +773,7 @@ def object_diff(a, b, pre='', ignore_nan=False):
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
     elif hasattr(a, '__getstate__'):
-        out += object_diff(a.__getstate__(), b.__getstate__(), pre)
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre, ignore_nan)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
