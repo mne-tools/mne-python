@@ -1717,7 +1717,7 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
             cb.set_label(cmap_label)
             ticks = list()
             ticklabels = list()
-            for cond, loc in legend_tick_locs:
+            for cond, loc in legend_tick_locs.items():
                 # handle conditions with same color/location
                 if loc in ticks:
                     ticklabels[-1] = '\n'.join([ticklabels[-1], cond])
@@ -1759,14 +1759,14 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
 
     fraction = 2 if ax.get_ylim()[0] >= 0 else 3
 
+    ymax_bound = ax.get_ylim()[-1]
     if truncate_yaxis:
-        _, ymax_bound = _truncate_yaxis(
-            ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
-            any_positive, any_negative, truncate_yaxis)
-    else:
         if ymin is not None and ymin > 0:
             warn("ymin is all-positive, not truncating yaxis")
-        ymax_bound = ax.get_ylim()[-1]
+        else:
+            _, ymax_bound = _truncate_yaxis(
+                ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
+                any_positive, any_negative, truncate_yaxis)
 
     current_ymin = ax.get_ylim()[0]
 
@@ -2227,9 +2227,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     for _picks, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
-        do_ci_ = (idx != -1)
+        _do_ci = do_ci and (idx != -1)
         any_pos, any_neg = _plot_compare_evokeds(ax, data, conditions, times,
-                                                 do_ci_, cis, styles, title,
+                                                 _do_ci, cis, styles, title,
                                                  norm, do_topo)
         if any_pos:
             any_positive = True
