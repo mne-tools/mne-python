@@ -134,21 +134,24 @@ trigger_effect = np.array([[3, -1, 1]]).T
 
 ###############################################################################
 # Knowing that, we can compute a plane that is orthogonal to the effect of the
-# trigger, and project our real measurements onto that plane:
+# trigger (using the fact that a plane through the origin has equation
+# :math:`Ax + By + Cz = 0` given a normal vector :math:`(A, B, C)`), and
+# project our real measurements onto that plane.
 
 # sphinx_gallery_thumbnail_number = 2
 # compute the plane orthogonal to trigger_effect
-xx, yy = np.meshgrid(np.linspace(-1, 5, 61), np.linspace(-1, 5, 61))
-zz = (-trigger_effect[0] * xx - trigger_effect[1] * yy) / trigger_effect[2]
+x, y = np.meshgrid(np.linspace(-1, 5, 61), np.linspace(-1, 5, 61))
+A, B, C = trigger_effect
+z = (-A * x - B * y) / C
 # cut off the plane below z=0 (just to make the plot nicer)
-mask = np.where(zz >= 0)
-xx = xx[mask]
-yy = yy[mask]
-zz = zz[mask]
+mask = np.where(z >= 0)
+x = x[mask]
+y = y[mask]
+z = z[mask]
 
 # plot the trigger effect and its orthogonal plane
 ax = setup_3d_axes()
-ax.plot_trisurf(xx, yy, zz, color='C2', shade=False, alpha=0.25)
+ax.plot_trisurf(x, y, z, color='C2', shade=False, alpha=0.25)
 ax.quiver3D(*np.concatenate([origin, trigger_effect]).flatten(),
             arrow_length_ratio=0.1, color='C2', alpha=0.5)
 
