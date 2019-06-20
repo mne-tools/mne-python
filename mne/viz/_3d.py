@@ -2559,6 +2559,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     return proj.xy, im
 
 
+@fill_doc
 def plot_sensors_connectivity(info, epochs, con, picks=None):
     """Visualize the sensor connectivity in 3D.
 
@@ -2570,7 +2571,7 @@ def plot_sensors_connectivity(info, epochs, con, picks=None):
         The data used to get the channel names.
     con: array | list of array
         The computed connectivity measure(s).
-    picks:
+    %(picks_good_data)s
         Indices of selected channels.
 
     Returns
