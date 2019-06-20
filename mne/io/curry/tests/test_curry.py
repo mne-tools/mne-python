@@ -7,11 +7,10 @@
 
 import os
 import os.path as op
-from numpy.testing import assert_allclose, assert_equal, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 import mne
 from mne.datasets import testing
 from mne.io.curry import read_raw_curry
-from mne.io.ctf import read_raw_ctf
 from mne.io.bti import read_raw_bti
 from mne.io.constants import FIFF
 
@@ -68,17 +67,10 @@ def test_io_curry():
                      curry8_bdf.info["sfreq"], curry8_bdf_ascii.info["sfreq"]],
                     bdf.info["sfreq"])
 
-    # we only use [0:3] here since the stim channel was already extracted for the curry files
-    assert_array_equal([ch["kind"] for ch in curry7_bdf.info["chs"]],
-                       [ch["kind"] for ch in bdf.info["chs"][0:3]])
-    assert_array_equal([ch["kind"] for ch in curry7_bdf_ascii.info["chs"]],
-                       [ch["kind"] for ch in bdf.info["chs"][0:3]])
-    assert_array_equal([ch["kind"] for ch in curry8_bdf.info["chs"]],
-                       [ch["kind"] for ch in bdf.info["chs"][0:3]])
-    assert_array_equal([ch["kind"] for ch in curry8_bdf_ascii.info["chs"]],
-                       [ch["kind"] for ch in bdf.info["chs"][0:3]])
-
-    assert_allclose(curry7_bdf.get_data(), bdf.get_data()[0:3])
-    assert_allclose(curry7_bdf_ascii.get_data(), bdf.get_data()[0:3], atol=1e-6)
-    assert_allclose(curry8_bdf.get_data(), bdf.get_data()[0:3])
-    assert_allclose(curry8_bdf_ascii.get_data(), bdf.get_data()[0:3], atol=1e-6)
+    # we only use chans [0:3] here since the stim channel was already extracted
+    for curry_file in [curry7_bdf, curry7_bdf_ascii, curry8_bdf, curry8_bdf_ascii]:
+        assert_allclose([ch["kind"] for ch in curry_file.info["chs"]],
+                        [ch["kind"] for ch in bdf.info["chs"][0:3]])
+        assert_array_equal([ch["ch_name"] for ch in curry_file.info["chs"]],
+                           [ch["ch_name"] for ch in bdf.info["chs"][0:3]])
+        assert_allclose(curry_file.get_data(), bdf.get_data()[0:3], atol=1e-6)
