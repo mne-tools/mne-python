@@ -51,6 +51,8 @@ Bug
 
 - Fix bug in :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.tf_mixed_norm` where ``weights`` was supplied but ``weights_min`` was not, by `Eric Larson`_
 
+- Fix bug in :func:`mne.set_eeg_reference` where non-EEG channels could be re-referenced by default if there were no EEG channels present, by `Eric Larson`_
+
 - Fix bug in :func:`mne.io.Raw.plot` when using HiDPI displays and the MacOSX backend of matplotlib by `Eric Larson`_
 
 - Fix bug in :func:`mne.viz.plot_compare_evokeds` when using Neuromag 122 system by `Eric Larson`_
