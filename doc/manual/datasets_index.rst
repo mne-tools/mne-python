@@ -241,7 +241,7 @@ Triggers include:
 * Magnetic trigger (in OPM measurement only): trigger value 260.
   1 second before the median nerve stimulation, a magnetic trigger is piped into the MSR.
   This was to be able to check the synchronization between OPMs retrospectively, as each
-  sensor runs on an indepent clock. Synchronization turned out to be satisfactory
+  sensor runs on an independent clock. Synchronization turned out to be satisfactory.
 
 .. topic:: Examples
 

@@ -10,7 +10,7 @@ out = []
 
 # check scipy
 ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
-                           'fftpack', 'lib', 'linalg',
+                           'fftpack', 'lib', 'linalg', 'fft',
                            'misc', 'sparse', 'version'])
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        if x.startswith('scipy.') and '__' not in x and
