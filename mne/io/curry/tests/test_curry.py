@@ -13,6 +13,7 @@ from mne.datasets import testing
 from mne.io.curry import read_raw_curry
 from mne.io.ctf import read_raw_ctf
 from mne.io.bti import read_raw_bti
+from mne.io.constants import FIFF
 
 data_dir = testing.data_path(download=False)
 curry_dir = op.join(data_dir, "curry")
@@ -45,8 +46,14 @@ def test_io_curry():
     curry7_rfDC = read_raw_curry(curry7_rfDC_file)
     curry8_rfDC = read_raw_curry(curry8_rfDC_file)
 
-    assert_allclose(curry7_rfDC.get_data(), bti_rfDC.get_data())
-    assert_allclose(curry8_rfDC.get_data(), bti_rfDC.get_data())
+    # test on the eeg chans, since these were not renamed by curry
+    eeg_names = [ch["ch_name"] for ch in curry7_rfDC.info["chs"] \
+                 if ch["kind"] == FIFF.FIFFV_EEG_CH]
+
+    assert_allclose(curry7_rfDC.get_data(eeg_names),
+                    bti_rfDC.get_data(eeg_names), rtol=1e-6)
+    assert_allclose(curry8_rfDC.get_data(eeg_names),
+                    bti_rfDC.get_data(eeg_names), rtol=1e-3)
 
     bdf = mne.io.read_raw_bdf(bdf_file)
     curry7_bdf = read_raw_curry(curry7_bdf_file)
