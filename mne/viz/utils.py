@@ -2430,9 +2430,9 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         ticks_in_range = sorted(ticks_in_range + [tts[0]] + [tts[-1]])
 
     if truncate_xaxis:
-        axes.spines['bottom'].set_bounds(ticks_in_range[0], ticks_in_range[-1])
+        axes.spines['top'].set_bounds(ticks_in_range[0], ticks_in_range[-1])
     else:
-        axes.spines['bottom'].set_bounds(tmin, tmax)
+        axes.spines['top'].set_bounds(tmin, tmax)
     if ymin >= 0:
         axes.spines["top"].set_color('none')
     axes.spines["left"].set_zorder(0)
