@@ -126,6 +126,29 @@ class _Renderer(_BaseRenderer):
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
 
+    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+             scalars=None, vmin=None, vmax=None, colormap=None,
+             opacity=1.0, backface_culling=False):
+        if scalars is None:
+            surface = self.mlab.plot3d([origin[:, 0], destination[:, 0]],
+                                       [origin[:, 1], destination[:, 1]],
+                                       [origin[:, 2], destination[:, 2]],
+                                       tube_radius=radius,
+                                       color=color,
+                                       figure=self.fig)
+        else:
+            surface = self.mlab.plot3d([origin[:, 0], destination[:, 0]],
+                                       [origin[:, 1], destination[:, 1]],
+                                       [origin[:, 2], destination[:, 2]],
+                                       [scalars[:, 0], scalars[:, 1]],
+                                       tube_radius=radius,
+                                       vmin=vmin,
+                                       vmax=vmax,
+                                       colormap=colormap,
+                                       figure=self.fig)
+        surface.actor.property.backface_culling = backface_culling
+        # surface.module_manager.scalar_lut_manager.reverse_lut = True
+
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
@@ -151,10 +174,15 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text(x, y, text, width=width, color=color,
                            figure=self.fig)
+
+    def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
+        with warnings.catch_warnings(record=True):  # traits
+            self.mlab.text3d(x, y, z, text, scale=scale, color=color,
+                             figure=self.fig)
 
     def show(self):
         if self.fig is not None:

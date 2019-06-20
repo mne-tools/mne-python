@@ -406,7 +406,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
-    renderer.text(x=0.01, y=0.01, text=time_label, width=0.4)
+    renderer.text2d(x=0.01, y=0.01, text=time_label, width=0.4)
     renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
@@ -2615,15 +2615,16 @@ def plot_sensors_connectivity(info, epochs, con, picks=None):
     con_val = np.array(con_val)
 
     # Show the connections as tubes between sensors
-    # vmax = np.max(con_val)
-    # vmin = np.min(con_val)
+    vmax = np.max(con_val)
+    vmin = np.min(con_val)
     for val, nodes in zip(con_val, con_nodes):
         x1, y1, z1 = sens_loc[nodes[0]]
         x2, y2, z2 = sens_loc[nodes[1]]
-        # renderer.tube([x1, x2], [y1, y2], [z1, z2], [val, val],
-        #               vmin=vmin, vmax=vmax, tube_radius=0.001,
-        #               colormap='RdBu')
-        # points.module_manager.scalar_lut_manager.reverse_lut = True
+        renderer.tube(origin=np.c_[x1, y1, z1],
+                      destination=np.c_[x2, y2, z2],
+                      scalars=np.c_[val, val],
+                      vmin=vmin, vmax=vmax, radius=0.001,
+                      colormap='RdBu')
 
     # renderer.scalarbar(points, title='Phase Lag Index (PLI)', nb_labels=4)
 
@@ -2633,8 +2634,9 @@ def plot_sensors_connectivity(info, epochs, con, picks=None):
 
     for node in nodes_shown:
         x, y, z = sens_loc[node]
-        # renderer.text3d(x, y, z, ch_names[picks[node]], scale=0.005,
-        #                 color=(0, 0, 0))
+        renderer.text3d(x, y, z, text=info['ch_names'][picks[node]],
+                        scale=0.005,
+                        color=(0, 0, 0))
 
     renderer.set_camera(azimuth=-88.7, elevation=40.8,
                         distance=0.76,
