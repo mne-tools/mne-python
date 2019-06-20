@@ -85,8 +85,8 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1, color='C1',
 #     \left[
 #       \begin{matrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0 \end{matrix}
 #     \right]
-#     \left[ \begin{matrix} 3 \\ 5 \\ 7 \end{matrix} \right] =
-#     \left[ \begin{matrix} 3 \\ 5 \\ 0 \end{matrix} \right]
+#     \left[ \begin{matrix} 3 \\ 2 \\ 5 \end{matrix} \right] =
+#     \left[ \begin{matrix} 3 \\ 2 \\ 0 \end{matrix} \right]
 #
 # ...and that applying the projection again to the result just gives back the
 # result again:
@@ -96,8 +96,8 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1, color='C1',
 #     \left[
 #       \begin{matrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0 \end{matrix}
 #     \right]
-#     \left[ \begin{matrix} 3 \\ 5 \\ 0 \end{matrix} \right] =
-#     \left[ \begin{matrix} 3 \\ 5 \\ 0 \end{matrix} \right]
+#     \left[ \begin{matrix} 3 \\ 2 \\ 0 \end{matrix} \right] =
+#     \left[ \begin{matrix} 3 \\ 2 \\ 0 \end{matrix} \right]
 #
 # From an information perspective, this projection has taken the point
 # :math:`x, y, z` and removed the information about how far in the :math:`z`
