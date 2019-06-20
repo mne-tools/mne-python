@@ -102,7 +102,9 @@ class RawBrainVision(BaseRaw):
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
-        self.set_montage(montage)
+
+        if montage is not None:
+            self.set_montage(montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
