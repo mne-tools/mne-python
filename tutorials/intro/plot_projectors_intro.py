@@ -110,6 +110,10 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1, color='C1',
 # of, say, the :math:`y,z` plane) is a direct result of the particular values
 # in our projection matrix.
 #
+#
+# Example: projection as noise reduction
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
 # Another way to describe this "loss of information" or "projection into a
 # subspace" is to say that projection reduces the rank (or "degrees of
 # freedom") of the measurement — here, from 3 dimensions down to 2. On the
@@ -138,7 +142,6 @@ trigger_effect = np.array([[3, -1, 1]]).T
 # :math:`Ax + By + Cz = 0` given a normal vector :math:`(A, B, C)`), and
 # project our real measurements onto that plane.
 
-# sphinx_gallery_thumbnail_number = 2
 # compute the plane orthogonal to trigger_effect
 x, y = np.meshgrid(np.linspace(-1, 5, 61), np.linspace(-1, 5, 61))
 A, B, C = trigger_effect
@@ -149,6 +152,22 @@ x = x[mask]
 y = y[mask]
 z = z[mask]
 
+###############################################################################
+# Computing the projection matrix from the ``trigger_effect`` vector is done
+# using `singular value decomposition <svd>`_ (SVD); interested readers may
+# consult the internet or a linear algebra textbook for details on this method.
+# With the projection matrix in place, we can project our original vector
+# :math:`(3, 2, 5)` to remove the effect of the trigger, and then plot it:
+
+# sphinx_gallery_thumbnail_number = 2
+# compute the projection matrix
+U, S, V = svd(trigger_effect, full_matrices=False)
+trigger_projection_matrix = np.eye(3) - U @ U.T
+
+# project the vector onto the orthogonal plane
+projected_point = trigger_projection_matrix @ point
+projected_vector = trigger_projection_matrix @ vector
+
 # plot the trigger effect and its orthogonal plane
 ax = setup_3d_axes()
 ax.plot_trisurf(x, y, z, color='C2', shade=False, alpha=0.25)
@@ -158,16 +177,16 @@ ax.quiver3D(*np.concatenate([origin, trigger_effect]).flatten(),
 # plot the original vector
 ax.plot(*vector, color='k')
 ax.plot(*point, color='k', marker='o')
+offset = np.full((3, 1), 0.1)
+ax.text(*(point + offset).flat, '({}, {}, {})'.format(*point.flat), color='k')
 
-# compute the projection matrix
-U, S, V = svd(trigger_effect, full_matrices=False)
-trigger_projection_matrix = np.eye(3, 3) - U @ U.T
-
-# project the vector onto the orthogonal plane and plot it
-projected_point = trigger_projection_matrix @ point
-projected_vector = trigger_projection_matrix @ vector
+# plot the projected vector
 ax.plot(*projected_vector, color='C0')
 ax.plot(*projected_point, color='C0', marker='o')
+offset = np.full((3, 1), -0.2)
+ax.text(*(projected_point + offset).flat,
+        '({}, {}, {})'.format(*np.round(projected_point.flat, 2)),
+        color='C0', horizontalalignment='right')
 
 # add dashed arrow showing projection
 arrow_coords = np.concatenate([point, projected_point - point]).flatten()
@@ -215,9 +234,17 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # activity across MEG sensors in an empty room measurement, you can create one
 # or more :math:`N`-dimensional vector(s) giving the "direction(s)" of
 # environmental noise in sensor space (analogous to the vector for "effect of
-# the trigger" in our example above).
+# the trigger" in our example above). SSP is also often used for removing
+# heartbeat and eye movement artifacts — in those cases, instead of empty room
+# recordings the direction of the noise is estimated by detecting the
+# artifacts, extracting epochs around them, and averaging.
 #
-# Once you know those vectors, you can create a hyperplane that is orthogonal
+# .. TODO: add EOG/ECG examples to
+#    :doc:`../preprocessing/plot_artifacts_correction_ssp` and then add
+#    crossref here.
+#
+# Once you know the noise vectors, you can create a hyperplane that is
+# orthogonal
 # to them, and construct a projection matrix to project your experimental
 # recordings onto that hyperplane. In that way, the component of your
 # measurements associated with environmental noise can be removed. Again, it
@@ -246,9 +273,12 @@ raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # In MNE-Python, the environmental noise vectors are computed using `principal
-# component analysis`_, usually abbreviated "PCA", which is why the SSP
-# projectors usually have names like "PCA-v1". The projectors are stored in the
-# ``projs`` field of ``raw.info``:
+# component analysis <pca>`_, usually abbreviated "PCA", which is why the SSP
+# projectors usually have names like "PCA-v1". (Incidentally, since the process
+# of performing PCA uses `singular value decomposition <svd>`_ under the hood,
+# it is also common to see phrases like "projectors were computed using SVD" in
+# published papers.) The projectors are stored in the ``projs`` field of
+# ``raw.info``:
 
 print(raw.info['projs'])
 
@@ -337,18 +367,17 @@ print(ecg_projs)
 # (the last two, marked "eeg"). We can add them to the :class:`~mne.io.Raw`
 # object using the :meth:`~mne.io.Raw.add_proj` method (note that there is a
 # corresponding method :meth:`~mne.io.Raw.del_proj` that will remove projectors
-# based on their index within the ``projs`` field of ``raw.info``):
+# based on their index within ``raw.info['projs']``:
 
 raw.add_proj(ecg_projs)
 
 ###############################################################################
-# The output says the added projections are "deactivated" because they have
 # To see how the ECG projectors affect the measured signal, we can once again
 # plot the data with and without the projectors applied (though remember that
 # the :meth:`~mne.io.Raw.plot` method only *temporarily* applies the projectors
 # for visualization, and does not permanently change the underlying data).
-# We'll compare the data with both empty room and ECG projectors to the
-# ``mags`` variable we created above, which had only the empty room SSP
+# We'll compare the ``mags`` variable we created above, which had only the
+# empty room SSP projectors, to the data with both empty room and ECG
 # projectors:
 
 mags_ecg = raw.copy().crop(tmax=2).pick_types(meg='mag')
@@ -370,7 +399,11 @@ mags_ecg.plot(butterfly=True, proj=True)
 # automatically applied. It is also possible to apply projectors manually when
 # working with :class:`~mne.io.Raw`, :class:`~mne.Epochs` or
 # :class:`~mne.Evoked` objects via the object's :meth:`~mne.io.Raw.apply_proj`
-# method.
+# method. For all instance types, you can always copy the contents of
+# :samp:`{<instance>}.info['projs']` into a separate :class:`list` variable,
+# use :samp:`{<instance>}.del_proj({<index of proj(s) to remove>})` to remove
+# one or more projectors, and then add them back later with
+# :samp:`{<instance>}.add_proj({<list containing projs>})` if desired.
 #
 # .. warning::
 #
@@ -391,5 +424,5 @@ mags_ecg.plot(butterfly=True, proj=True)
 #
 # .. _`argument expansion`:
 #    https://docs.python.org/3/tutorial/controlflow.html#tut-unpacking-arguments
-# .. _`principal component analysis`:
-#    https://en.wikipedia.org/wiki/Principal_component_analysis
+# .. _`pca`: https://en.wikipedia.org/wiki/Principal_component_analysis
+# .. _`svd`: https://en.wikipedia.org/wiki/Singular_value_decomposition
