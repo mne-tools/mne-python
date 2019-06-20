@@ -19,15 +19,10 @@ curry_dir = op.join(data_dir, "curry")
 
 bdf_file = op.join(data_dir, 'BDF/test_bdf_stim_channel.bdf')
 
-ctf_alp_file = op.join(data_dir, 'CTF/catch-alp-good-f.ds')
-
 bti_rfDC_file = op.join(data_dir, 'BTi/erm_HFH/c,rfDC')
 
 curry7_rfDC_file = op.join(curry_dir, "c,rfDC Curry 7.dat")
 curry8_rfDC_file = op.join(curry_dir, "c,rfDC Curry 8.cdt")
-
-curry7_alp_file = op.join(curry_dir, "catch-alp-good-f Curry 7.dat")
-curry8_alp_file = op.join(curry_dir, "catch-alp-good-f Curry 8.cdt")
 
 curry7_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.dat")
 curry7_bdf_ascii_file = op.join(curry_dir,
@@ -45,17 +40,6 @@ def test_io_curry():
     for filename in os.listdir(curry_dir):
         read_raw_curry(op.join(curry_dir, filename))
 
-    ctf_alp = read_raw_ctf(ctf_alp_file, clean_names=True)
-    curry7_alp = read_raw_curry(curry7_alp_file)
-    curry8_alp = read_raw_curry(curry8_alp_file)
-
-    assert_equal(curry7_alp.n_times, ctf_alp.n_times)
-    assert_equal(curry8_alp.n_times, ctf_alp.n_times)
-    assert_equal(curry7_alp.info["sfreq"], ctf_alp.info["sfreq"])
-    assert_equal(curry8_alp.info["sfreq"], ctf_alp.info["sfreq"])
-
-    assert_allclose(curry7_alp.get_data(), ctf_alp.get_data())
-    assert_allclose(curry8_alp.get_data(), ctf_alp.get_data())
 
     bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)
     curry7_rfDC = read_raw_curry(curry7_rfDC_file)
@@ -76,6 +60,8 @@ def test_io_curry():
     assert_allclose([curry7_bdf.info["sfreq"], curry7_bdf_ascii.info["sfreq"],
                      curry8_bdf.info["sfreq"], curry8_bdf_ascii.info["sfreq"]],
                     bdf.info["sfreq"])
+
+    # we only use [0:3] here since the stim channel was already extracted for the curry files
     assert_array_equal([ch["kind"] for ch in curry7_bdf.info["chs"]],
                        [ch["kind"] for ch in bdf.info["chs"][0:3]])
     assert_array_equal([ch["kind"] for ch in curry7_bdf_ascii.info["chs"]],
@@ -85,7 +71,6 @@ def test_io_curry():
     assert_array_equal([ch["kind"] for ch in curry8_bdf_ascii.info["chs"]],
                        [ch["kind"] for ch in bdf.info["chs"][0:3]])
 
-    # we only use [0:3] here since the stim channel was already extracted for the curry files
     assert_allclose(curry7_bdf.get_data(), bdf.get_data()[0:3])
     assert_allclose(curry7_bdf_ascii.get_data(), bdf.get_data()[0:3], atol=1e-6)
     assert_allclose(curry8_bdf.get_data(), bdf.get_data()[0:3])
