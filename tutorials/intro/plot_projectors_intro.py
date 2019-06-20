@@ -234,7 +234,7 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # In our example data, :ref:`SSP <ssp-tutorial>` has already been performed
 # using empty room recordings, but the :term:`projectors <projector>` are
 # stored alongside the raw data and have not been *applied* yet (or,
-# synonymously, whether the projectors are *active* or not). Here we'll load
+# synonymously, the projectors are not *active* yet). Here we'll load
 # the :ref:`sample data <sample-dataset>` and crop it to 60 seconds; you can
 # see the projectors in the output of :func:`~mne.io.read_raw_fif` below:
 
