@@ -1483,7 +1483,7 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
         precision = 0.25  # round to .25
         if ymin is None:
             ymin_bound = round(ymin_bound / precision) * precision
-        if ymin is None:
+        if ymax is None:
             ymax_bound = round(ymax_bound / precision) * precision
         axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
     else:  # code stolen from seaborn
@@ -1564,8 +1564,8 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
         colors = dict(zip(conditions, colors))
     # should be a dict by now...
     if not isinstance(colors, dict):
-        raise ValueError('"colors" must be a dict, list, or None; got {}.'
-                         .format(type(colors).__name__))
+        raise TypeError('"colors" must be a dict, list, or None; got {}.'
+                        .format(type(colors).__name__))
     # validate color dict keys
     if not set(colors).issubset(tags.union(conditions)):
         raise ValueError('If "colors" is a dict its keys ({}) must '
@@ -1612,8 +1612,8 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
         linestyles = dict(zip(conditions, linestyles))
     # should be a dict by now...
     if not isinstance(linestyles, dict):
-        raise ValueError('"linestyles" must be a dict, list, or None; got {}.'
-                         .format(type(linestyles).__name__))
+        raise TypeError('"linestyles" must be a dict, list, or None; got {}.'
+                        .format(type(linestyles).__name__))
     # validate linestyle dict keys
     # (skip validating linestyle dict values... too hard to test)
     if not set(linestyles).issubset(tags.union(conditions)):
@@ -2039,8 +2039,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds = {str(idx + 1): evk for idx, evk in enumerate(evokeds)}
     if not isinstance(evokeds, dict):
-        raise ValueError('"evokeds" must be a dict, list, or instance of '
-                         'mne.Evoked; got {}'.format(type(evokeds).__name__))
+        raise TypeError('"evokeds" must be a dict, list, or instance of '
+                        'mne.Evoked; got {}'.format(type(evokeds).__name__))
     for cond, evoked in evokeds.items():
         _validate_type(cond, 'str', 'Conditions')
         if isinstance(evoked, Evoked):
