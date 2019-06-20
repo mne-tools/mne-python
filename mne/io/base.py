@@ -1197,7 +1197,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, pad='reflect_limited', verbose=None):
+                 n_jobs=1, events=None, pad='reflect_limited',
+                 verbose=None):  # lgtm
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
@@ -1311,7 +1312,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.info['sfreq'] = sfreq
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
-        self.info['lowpass'] = min(self.info['lowpass'], sfreq / 2.)
+        self.info['lowpass'] = min(lowpass, sfreq / 2.)
         self._update_times()
 
         # See the comment above why we ignore all errors here.
