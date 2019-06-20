@@ -1949,7 +1949,7 @@ class FilterMixin(object):
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
-                 pad='edge', verbose=None):
+                 pad='edge', verbose=None):  # lgtm
         """Resample data.
 
         .. note:: Data must be loaded.
