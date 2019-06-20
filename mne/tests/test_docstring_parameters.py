@@ -24,7 +24,6 @@ public_modules = [
     'mne.datasets',
     'mne.datasets.brainstorm',
     'mne.datasets.hf_sef',
-    'mne.datasets.megsim',
     'mne.datasets.sample',
     'mne.decoding',
     'mne.dipole',

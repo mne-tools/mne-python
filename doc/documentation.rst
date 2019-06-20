@@ -108,8 +108,6 @@ this package. You can also find a gallery of these examples in the
         auto_tutorials/sample-datasets/plot_sleep.rst
         auto_examples/datasets/plot_brainstorm_data.rst
         auto_examples/datasets/plot_opm_data.rst
-        auto_examples/datasets/plot_megsim_data.rst
-        auto_examples/datasets/plot_megsim_data_single_trial.rst
         auto_examples/datasets/spm_faces_dataset.rst
 
 .. collapse:: Preprocessing (filtering, SSP, ICA, Maxwell filtering, ...)
