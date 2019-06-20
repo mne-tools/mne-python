@@ -886,7 +886,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                      % (len(did_not_set), ', '.join(did_not_set)))
     elif montage is None:
         for ch in info['chs']:
-            ch['loc'] = np.full(12, np.nan)
+            ch['loc'] = np.full(12, np.nan)  # XXX: changes allzeros for NaNs
         if set_dig:
             info['dig'] = None
     else:
