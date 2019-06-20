@@ -1521,10 +1521,11 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
     from matplotlib.cm import get_cmap
     from matplotlib.colors import Colormap
     # check if style dict is valid
+    tags = set(tag for cond in conditions for tag in cond.split('/'))
     if styles is None:
         styles = {cond: dict() for cond in conditions}
     else:
-        if not set(styles).issubset(set(conditions)):
+        if not set(styles).issubset(tags.union(conditions)):
             raise ValueError('The keys in "styles" ({}) must '
                              'match the keys in "evokeds" ({}).'
                              .format(list(styles), conditions))
@@ -1535,6 +1536,15 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
             # deal with matplotlib's synonymous handling of "c" and "color"
             elif 'c' in styles[cond]:
                 styles[cond]['color'] = styles[cond].pop('c')
+            # transfer styles from partial-matched entries
+            for tag in cond.split('/'):
+                if tag in styles:
+                    styles[cond].update(styles[tag])
+        # remove the (now transferred) partial-matching style entries
+        for key in list(styles):
+            if key not in conditions:
+                del styles[key]
+
     # COLORS
     # make colors a list if it's not defined
     suffix = ''
@@ -1557,9 +1567,7 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
         raise ValueError('"colors" must be a dict, list, or None; got {}.'
                          .format(type(colors).__name__))
     # validate color dict keys
-    tags = set(tag for cond in conditions for tag in cond.split('/'))
-    # TODO: here could we allow a mix of full cond keys and tags?
-    if set(colors) != set(conditions) and not set(colors).issubset(tags):
+    if not set(colors).issubset(tags.union(conditions)):
         raise ValueError('If "colors" is a dict its keys ({}) must '
                          'match the keys/conditions in "evokeds" ({}).'
                          .format(list(colors), conditions))
@@ -1608,9 +1616,7 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
                          .format(type(linestyles).__name__))
     # validate linestyle dict keys
     # (skip validating linestyle dict values... too hard to test)
-    tags = set(tag for cond in conditions for tag in cond.split('/'))
-    if (set(linestyles) != set(conditions) and
-            not set(linestyles).issubset(tags)):
+    if not set(linestyles).issubset(tags.union(conditions)):
         raise ValueError('If "linestyles" is a dict its keys ({}) must '
                          'match the keys/conditions in "evokeds" ({}).'
                          .format(list(linestyles), conditions))
@@ -1680,7 +1686,7 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
         for cond, inner_dict in styles.items():
             line = mlines.Line2D([], [], label=cond, **inner_dict)
             lines.append(line)
-    # split legend with no colorbar
+    # next case: split legend with no colorbar
     elif cmap is None:
         for cond, color in colors.items():
             line = mlines.Line2D([], [], label=cond, linestyle='solid',
@@ -1690,11 +1696,8 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
             line = mlines.Line2D([], [], label=cond, linestyle=linestyle,
                                  color='black')
             lines.append(line)
-    # split legend with colorbar
+    # last case: split legend with colorbar
     else:
-        if colors is None:
-            raise ValueError('If "split_legend" is True you must specify '
-                             '"colors".')
         # linestyles
         if n_linestyles > 1:
             for cond, linestyle in linestyles.items():
@@ -1920,13 +1923,14 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         ``None``, all lines will be solid. Defaults to ``None``.
     styles : dict | None
         Dictionary of styles to use when plotting ERP/F lines. Keys must match
-        keys of ``evokeds``, and values must be a :class:`dict` of legal inputs
-        to :func:`matplotlib.pyplot.plot`. Those values will be passed as
-        parameters to the line plot call of the corresponding condition,
-        overriding defaults (e.g., ``styles=``{"Aud/L": {"linewidth": 1}}``
-        will set the linewidth for "Aud/L" to 1). Note that, unlike ``colors``
-        and ``linestyles``, keys matching conditions in ``/``-separated
-        ``evokeds`` keys are not supported here (see Notes).
+        keys or conditions of ``evokeds``, and values must be a :class:`dict`
+        of legal inputs to :func:`matplotlib.pyplot.plot`. Those values will be
+        passed as parameters to the line plot call of the corresponding
+        condition, overriding defaults (e.g.,
+        ``styles=``{"Aud/L": {"linewidth": 3}}`` will set the linewidth for
+        "Aud/L" to 3). As with ``colors`` and ``linestyles``, keys matching
+        conditions in ``/``-separated ``evokeds`` keys are supported (see Notes
+        for details).
     cmap : None | str | tuple | instance of matplotlib.colors.Colormap
         Colormap from which to draw color values when plotting the ERP/F lines
         and confidence bands. If not ``None``, ints or floats in the ``colors``
@@ -2011,7 +2015,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
 
     Notes
     -----
-    If the parameters ``colors`` or ``linestyles`` are passed as
+    If the parameters ``styles``, ``colors``, or ``linestyles`` are passed as
     :class:`dicts <dict>`, then ``evokeds`` must also be a :class:`dict`, and
     the keys of the plot-style parameters must either match the keys of
     ``evokeds``, or match a ``/``-separated partial key ("condition") of
@@ -2019,9 +2023,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     and "Vis/R", then ``linestyles=dict(L='--', R='-')`` will plot both Aud/L
     and Vis/L conditions with dashed lines and both Aud/R and Vis/R conditions
     with solid lines. Similarly, ``colors=dict(Aud='r', Vis='b')`` will plot
-    Aud/L and Aud/R conditions red and Vis/L and Vis/R conditions blue. Note
-    that the ``styles`` parameter does not support this partial matching of
-    ``evokeds`` keys.
+    Aud/L and Aud/R conditions red and Vis/L and Vis/R conditions blue.
     """
     import matplotlib.pyplot as plt
     from ..evoked import Evoked, _check_evokeds_ch_names_times
