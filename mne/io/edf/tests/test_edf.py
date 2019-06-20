@@ -10,6 +10,7 @@
 
 import os.path as op
 import inspect
+from copy import deepcopy
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -122,6 +123,22 @@ def test_same_behaviour_in_init_and_set_montage():
         msg_a = init_warns[ii].message.args[0]
         msg_b = set_montage_warns[ii].message.args[0]
         assert msg_a == msg_b
+
+
+def test_edf_set_montage_none():
+    """Test that using montage=None in init and set_montage differs."""
+    raw = read_raw_edf(edf_path, montage=None)
+    original_chs = deepcopy(raw.info['chs'])
+    assert raw.info['dig'] is None
+
+    raw.set_montage(None)
+    assert object_diff(raw.info['chs'], original_chs)  # They differ
+
+    # read_raw_edf initializes 0s and set_montage NaNs
+    all_loc = np.array([ch['loc'] for ch in original_chs])
+    assert_array_equal(all_loc, np.zeros_like(all_loc))
+    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
+                       np.full_like(all_loc, np.NaN))
 
 
 @testing.requires_testing_data
