@@ -143,7 +143,8 @@ class _Brain(object):
             renderer = _Renderer(size=fig_size, bgcolor=background)
             self._renderers[ri].append(renderer)
             renderer.set_camera(azimuth=views_dict[v].azim,
-                                elevation=views_dict[v].elev)
+                                elevation=views_dict[v].elev,
+                                distance=490.0)
 
             for ci, h in enumerate(self._hemis):
                 if ci == 1 and hemi == 'split':
@@ -151,7 +152,8 @@ class _Brain(object):
                     renderer = _Renderer(size=fig_size, bgcolor=background)
                     self._renderers[ri].append(renderer)
                     renderer.set_camera(azimuth=views_dict[v].azim,
-                                        elevation=views_dict[v].elev)
+                                        elevation=views_dict[v].elev,
+                                        distance=490.0)
 
                 mesh = renderer.mesh(x=self.geo[h].coords[:, 0],
                                      y=self.geo[h].coords[:, 1],
