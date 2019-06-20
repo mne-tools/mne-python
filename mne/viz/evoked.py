@@ -1815,7 +1815,7 @@ def _get_ci_function_for_evokeds(ci):
     if ci is True:
         ci = .95
     elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
-        raise TypeError('ci must be None, bool, float or callable, got %s' %
+        raise TypeError('"ci" must be None, bool, float or callable, got %s' %
                         type(ci))
 
     _ci_fun = None
@@ -1951,9 +1951,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         0 and 1, and will set the threshold for a bootstrap estimation of the
         confidence band; ``True`` is equivalent to setting a threshold of 0.95
         (i.e., the 95%% confidence band is drawn). If a callable, it must take
-        a single array (n_observations, n_times) as input and return upper and
-        lower confidence margins (TODO what shape exactly? (2 x n_times)?).
-        Defaults to ``True``.
+        a single array (n_observations × n_times) as input and return upper and
+        lower confidence margins (2 × n_times). Defaults to ``True``.
     truncate_yaxis : bool | str
         If not False, the left y axis spine is truncated to reduce visual
         clutter. If 'max_ticks', the spine is truncated at the minimum and
@@ -2248,8 +2247,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             ax_.set_yticklabels([])
             ax_.set_xticklabels([])
 
-    # 2 legends.
-    # a head plot showing the sensors that are being plotted
+    # add inset scalp plot showing location of sensors picked
     if show_sensors:
         _validate_type(show_sensors, (np.int, bool, str, type(None)),
                        'show_sensors', 'numeric, str, None or bool')
@@ -2260,7 +2258,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
                                   show_sensors, ax_)
 
-    # condition legend
+    # add color/linestyle/colormap legend(s)
     if show_legend:
         _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
                          cmap_label, linestyles, legend_tick_locs, do_topo,
