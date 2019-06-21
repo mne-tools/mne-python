@@ -7,10 +7,13 @@
 
 import os
 import os.path as op
+import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 import mne
 from mne.datasets import testing
-from mne.io.curry import read_raw_curry
+from mne.event import find_events
+from mne.io.curry import read_raw_curry, read_events_curry
+from mne.io import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.constants import FIFF
 
@@ -32,8 +35,11 @@ curry8_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 8.cdt")
 curry8_bdf_ascii_file = op.join(curry_dir,
                                 "test_bdf_stim_channel Curry 8 ASCII.cdt")
 
+event_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.cef")
 
-def test_io_curry():
+
+@pytest.mark.filterwarnings("ignore:Got ASCII")
+def test_read_raw_curry():
     """Test reading CURRY files."""
 
     # make sure all test files can be passed to read_raw_curry
@@ -54,7 +60,7 @@ def test_io_curry():
     assert_allclose(curry8_rfDC.get_data(eeg_names),
                     bti_rfDC.get_data(eeg_names), rtol=1e-3)
 
-    bdf = mne.io.read_raw_bdf(bdf_file)
+    bdf = read_raw_bdf(bdf_file)
     curry7_bdf = read_raw_curry(curry7_bdf_file)
     curry7_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file)
     curry8_bdf = read_raw_curry(curry8_bdf_file)
@@ -74,3 +80,14 @@ def test_io_curry():
         assert_array_equal([ch["ch_name"] for ch in curry_file.info["chs"]],
                            [ch["ch_name"] for ch in bdf.info["chs"][0:3]])
         assert_allclose(curry_file.get_data(), bdf.get_data()[0:3], atol=1e-6)
+
+
+def test_read_events_curry():
+    with pytest.raises(IOError, match="file type .*? must end with"):
+        read_events_curry(curry7_bdf_file)
+
+    events = read_events_curry(event_file, event_ids=[1, 2, 4])
+    bdf = read_raw_bdf(bdf_file, preload=True)
+    ref_events = find_events(bdf, stim_channel="Status")
+
+    assert_allclose(events, ref_events)

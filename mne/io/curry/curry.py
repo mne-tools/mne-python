@@ -13,34 +13,15 @@ import mne
 from ..base import BaseRaw, _check_update_montage
 from ..meas_info import create_info
 from ..utils import _read_segments_file, warn, _find_channels, _create_chs
+from ...utils import check_fname
 from ..constants import FIFF
 
 INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
 LABEL_FILE_EXTENSION = {7: '.rs3', 8: '.cdt.dpa'}
-EVENT_FILE_EXTENSION = {7: ['.cef', '.ceo'], 8: ['.cdt.cef', '.cdt.ceo']}
 DATA_FILE_EXTENSION = {7: '.dat', 8: '.cdt'}
 CHANTYPES = {"meg": "_MAG1", "eeg": "", "misc": "_OTHERS"}
 FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
                    "misc": FIFF.FIFFV_MISC_CH}
-
-def _read_curry_annotations(fname_base, curry_vers):
-    """read annotations from curry event files"""
-
-
-    event_file = None
-    for ext in EVENT_FILE_EXTENSION[curry_vers]:
-        if os.path.isfile(fname_base + ext):
-            event_file = fname_base + ext
-
-    if event_file is not None:
-        annotations_dict = _read_curry_lines(event_file, ["NUMBER_LIST "])
-        curry_annotations = np.array(annotations_dict["NUMBER_LIST "], dtype=int)
-
-    else:
-        curry_annotations = None
-
-    # TODO: This returns annotations in a curry specific format. This might be reformatted to fit mne
-    return curry_annotations
 
 
 def _get_curry_version(file_extension):
@@ -48,7 +29,6 @@ def _get_curry_version(file_extension):
 
     if 'cdt' in file_extension:
         curry_vers = 8
-
     else:
         curry_vers = 7
 
@@ -205,6 +185,28 @@ def _read_curry_info(fname_base, curry_vers):
     return info, n_trials, n_samples, curry_vers, data_format
 
 
+def read_events_curry(fname, event_ids=None):
+    """
+    read events from curry event files
+
+
+
+    """
+
+    check_fname(fname, 'curry event', ('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'),
+                endings_err=('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'))
+
+    events_dict = _read_curry_lines(fname, ["NUMBER_LIST"])
+    # The first 3 column seem to contain the event information
+    curry_events = np.array(events_dict["NUMBER_LIST"], dtype=int)[:, 0:3]
+
+    if event_ids is not None:
+        idx = [i in event_ids for i in curry_events[:, -1]]
+        curry_events = curry_events[idx]
+
+    return curry_events
+
+
 def read_raw_curry(input_fname, preload=False):
     """
     Read raw data from Curry files.
@@ -236,8 +238,6 @@ def read_raw_curry(input_fname, preload=False):
     _check_missing_files(input_fname, fname_base, curry_vers)
 
     info, n_trials, n_samples, curry_vers, data_format = _read_curry_info(fname_base, curry_vers)
-    annotations = _read_curry_annotations(fname_base, curry_vers)
-    info["events"] = annotations
 
     raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info, n_samples, data_format)
 
@@ -247,8 +247,8 @@ def read_raw_curry(input_fname, preload=False):
 class RawCurry(BaseRaw):
     """"""
 
-    def __init__(self, data_fname, info, n_samples, data_format, montage=None, eog=(), ecg=(),
-                 emg=(), misc=(), preload=False, verbose=None):
+    def __init__(self, data_fname, info, n_samples, data_format,
+                 preload=False, verbose=None):
 
         data_fname = os.path.abspath(data_fname)
 

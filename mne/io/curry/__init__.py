@@ -4,4 +4,4 @@
 #
 # License: BSD (3-clause)
 
-from .curry import read_raw_curry
+from .curry import read_raw_curry, read_events_curry
