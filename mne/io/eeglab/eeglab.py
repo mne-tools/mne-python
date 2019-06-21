@@ -118,9 +118,12 @@ def _get_info(eeg, montage, eog=()):
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
-        _check_update_montage(
-            info, montage, path=path, update_ch_names=update_ch_names,
-            raise_missing=False)
+        from mne.channels.montage import _set_montage
+        _set_montage(info, montage, update_ch_names=update_ch_names,
+                     set_dig=True)
+        # _check_update_montage(
+        #     info, montage, path=path, update_ch_names=update_ch_names,
+        #     raise_missing=False)
 
     if eog == 'auto':
         eog = _find_channels(ch_names)
