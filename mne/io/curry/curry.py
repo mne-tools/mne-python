@@ -26,12 +26,7 @@ FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
 def _get_curry_version(file_extension):
     """check out the curry file version"""
 
-    if 'cdt' in file_extension:
-        curry_vers = 8
-    else:
-        curry_vers = 7
-
-    return curry_vers
+    return 8 if 'cdt' in file_extension else 7
 
 
 def _check_missing_files(full_fname, fname_base, curry_vers):
