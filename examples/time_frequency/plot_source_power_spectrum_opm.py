@@ -127,7 +127,7 @@ with mne.use_coil_def(opm_coil_def_fname):
             subjects_dir=subjects_dir, dig=dig, coord_frame='mri',
             surfaces=('head', 'white'))
         mne.viz.set_3d_view(figure=fig, azimuth=0, elevation=90,
-                            focalpoint=(0., 0., 0.), distance=0.6)
+                            distance=0.6, focalpoint=(0., 0., 0.))
         fwd[kind] = mne.make_forward_solution(
             raws[kind].info, trans[kind], src, bem, eeg=False, verbose=True)
 
