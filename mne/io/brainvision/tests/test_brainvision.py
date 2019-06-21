@@ -80,8 +80,7 @@ def test_same_behaviour_in_init_and_set_montage(montage):
 
     # Assert equal objects
     for key in ['chs', 'dig']:
-        diff = object_diff(raw_none.info[key], raw_montage.info[key],
-                           ignore_nan=True)
+        diff = object_diff(raw_none.info[key], raw_montage.info[key])
         assert diff == ''
 
     # Assert equal warnings
