@@ -2579,6 +2579,10 @@ def plot_sensors_connectivity(info, epochs, con, picks=None):
     fig : instance of mayavi.mlab.Figure
         The mayavi figure.
     """
+    from mne import Epochs
+    _validate_type(info, "info")
+    _validate_type(epochs, Epochs)
+
     from .backends.renderer import _Renderer
 
     renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
