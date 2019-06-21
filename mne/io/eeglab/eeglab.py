@@ -80,12 +80,10 @@ def _to_loc(ll):
     else:
         return np.nan
 
+def _get_info_no_montage(eeg, montage, eog=()):
 
-def _get_info(eeg, montage, eog=()):
-    """Get measurement info."""
-    # import pdb; pdb.set_trace()
-    xx_montage = deepcopy(montage)
     new_montage = None
+    ch_names = None   # XXXX: This adds logic to the value which is nasty but it will change at the end of the refactor # noqa
     from scipy import io
     info = _empty_info(sfreq=eeg.srate)
     update_ch_names = True
@@ -142,8 +140,6 @@ def _get_info(eeg, montage, eog=()):
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
 
-    montage = new_montage if new_montage is not None else montage  # XXXX This
-
     if eog == 'auto':
         eog = _find_channels(ch_names)
 
@@ -153,7 +149,19 @@ def _get_info(eeg, montage, eog=()):
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
 
+    return info, new_montage, update_ch_names, ch_names
+
+
+def _get_info(eeg, montage, eog=()):
+    """Get measurement info."""
+    # import pdb; pdb.set_trace()
+    xx_montage = deepcopy(montage)
+
+    info, new_montage, update_ch_names, ch_names = _get_info_no_montage(
+        eeg, montage, eog)
+
     if montage is None and new_montage is None:
+        assert ch_names is not None, 'something went wrong'
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         from mne.channels.montage import _set_montage
