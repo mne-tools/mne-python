@@ -704,9 +704,17 @@ def _sort_keys(x):
 
 
 def _array_equal_nan(a, b, ignore_nan):
-    a_idx = ~np.isnan(a) if ignore_nan else slice(None)
-    b_idx = ~np.isnan(b) if ignore_nan else slice(None)
-    return np.array_equal(a[a_idx], b[b_idx]) and np.array_equal(a_idx, b_idx)
+    a = np.asarray(a)
+    b = np.asarray(b)
+    a_idx = b_idx = slice(None)
+    same_nans = True
+    if ignore_nan:
+        a_idx = ~np.isnan(a)
+        b_idx = ~np.isnan(b)
+        same_nans = np.array_equal(a_idx, b_idx)
+        if np.all(a_idx):
+            return same_nans
+    return np.array_equal(a[a_idx], b[b_idx]) and same_nans
 
 
 def object_diff(a, b, pre='', ignore_nan=False):
