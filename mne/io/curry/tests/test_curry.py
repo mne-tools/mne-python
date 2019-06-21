@@ -9,13 +9,13 @@ import os
 import os.path as op
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
-import mne
 from mne.datasets import testing
 from mne.event import find_events
-from mne.io.curry import read_raw_curry, read_events_curry
-from mne.io import read_raw_bdf
-from mne.io.bti import read_raw_bti
 from mne.io.constants import FIFF
+from mne.io.edf import read_raw_bdf
+from mne.io.bti import read_raw_bti
+from mne.io.curry import read_raw_curry, read_events_curry
+
 
 data_dir = testing.data_path(download=False)
 curry_dir = op.join(data_dir, "curry")
@@ -38,15 +38,25 @@ curry8_bdf_ascii_file = op.join(curry_dir,
 event_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.cef")
 
 
-@pytest.mark.filterwarnings("ignore:Got ASCII")
+@requires_testing_data
 def test_read_raw_curry():
     """Test reading CURRY files."""
 
-    # make sure all test files can be passed to read_raw_curry
+    # make sure all types of files can be passed to read_raw_curry
     for filename in os.listdir(curry_dir):
-        read_raw_curry(op.join(curry_dir, filename))
+        if "c,rfDC" in filename:
+            read_raw_curry(op.join(curry_dir, filename))
 
+    # check ASCII warning
+    with pytest.warns(RuntimeWarning, match="Got ASCII"):
+        curry7_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file,
+                                          preload=False)
 
+    # check no preloading for preload=False
+    with pytest.raises(AttributeError, match="no attribute '_data'"):
+        read_raw_curry(curry7_bdf_file, preload=False)._data
+
+    # check data
     bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)
     curry7_rfDC = read_raw_curry(curry7_rfDC_file)
     curry8_rfDC = read_raw_curry(curry8_rfDC_file)
@@ -62,9 +72,11 @@ def test_read_raw_curry():
 
     bdf = read_raw_bdf(bdf_file)
     curry7_bdf = read_raw_curry(curry7_bdf_file)
-    curry7_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file)
     curry8_bdf = read_raw_curry(curry8_bdf_file)
-    curry8_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file)
+    curry7_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file,
+                                      preload=True)
+    curry8_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file,
+                                      preload=True)
 
     assert_allclose([curry7_bdf.n_times, curry7_bdf_ascii.n_times,
                      curry8_bdf.n_times, curry8_bdf_ascii.n_times],
@@ -82,7 +94,9 @@ def test_read_raw_curry():
         assert_allclose(curry_file.get_data(), bdf.get_data()[0:3], atol=1e-6)
 
 
+@requires_testing_data
 def test_read_events_curry():
+    """test reading curry event files"""
     with pytest.raises(IOError, match="file type .*? must end with"):
         read_events_curry(curry7_bdf_file)
 

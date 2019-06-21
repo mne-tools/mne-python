@@ -8,11 +8,10 @@
 import os
 import re
 import numpy as np
-import mne
 
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..meas_info import create_info
-from ..utils import _read_segments_file, warn, _find_channels, _create_chs
+from ..utils import _read_segments_file, warn
 from ...utils import check_fname
 from ..constants import FIFF
 
@@ -239,7 +238,7 @@ def read_raw_curry(input_fname, preload=False):
 
     info, n_trials, n_samples, curry_vers, data_format = _read_curry_info(fname_base, curry_vers)
 
-    raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info, n_samples, data_format)
+    raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info, n_samples, data_format, preload)
 
     return raw
 
@@ -254,8 +253,9 @@ class RawCurry(BaseRaw):
 
         last_samps = [n_samples - 1]
 
-        if preload == False and data_format == "ASCII":
-            warn('Got ASCII format data as input. Data will be preloaded.')
+        if data_format == "ASCII":
+            if preload == False:
+                warn('Got ASCII format data as input. Data will be preloaded.')
 
             cals = [[ch_dict["cal"]] for ch_dict in info["chs"]]
             preload = np.loadtxt(data_fname).T * cals
