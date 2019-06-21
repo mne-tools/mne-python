@@ -27,14 +27,12 @@ SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, μ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
 
 def _get_curry_version(file_extension):
-    """check out the curry file version"""
-
+    """Check out the curry file version."""
     return 8 if 'cdt' in file_extension else 7
 
 
 def _check_missing_files(fname_base, curry_vers):
-    """Check if all neccessary files exist."""
-
+    """Check if all necessary files exist."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory."
 
@@ -70,7 +68,6 @@ def _read_curry_lines(fname, regex_list):
         contains a list of the according data.
 
     """
-
     save_lines = {}
     data_dict = {}
 
@@ -97,8 +94,7 @@ def _read_curry_lines(fname, regex_list):
 
 
 def _read_curry_info(fname_base, curry_vers):
-    """extract info from curry parameter files"""
-
+    """Extract info from curry parameter files."""
     var_names = ['NumSamples', 'NumTrials', 'SampleFreqHz', 'DataFormat',
                  'SampleTimeUsec', 'NUM_SAMPLES', 'NUM_TRIALS',
                  'SAMPLE_FREQ_HZ', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
@@ -178,7 +174,6 @@ def read_events_curry(fname, event_ids=None):
     events : ndarray
         An array of shape (n_events,3) containing MNE events.
     """
-
     check_fname(fname, 'curry event', ('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'),
                 endings_err=('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'))
 
@@ -217,7 +212,6 @@ def read_raw_curry(input_fname, preload=False):
         A Raw object containing Curry data.
 
     """
-
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
     fname_base, ext = input_fname.split(".", maxsplit=1)
 
@@ -283,6 +277,5 @@ class RawCurry(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype="<f4")

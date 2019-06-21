@@ -42,7 +42,6 @@ event_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.cef")
 @testing.requires_testing_data
 def test_read_raw_curry():
     """Test reading CURRY files."""
-
     # make sure all types of files can be passed to read_raw_curry
     for filename in os.listdir(curry_dir):
         if "c,rfDC" in filename:
@@ -98,8 +97,7 @@ def test_read_raw_curry():
 
 @testing.requires_testing_data
 def test_read_events_curry():
-    """test reading curry event files"""
-
+    """Test reading curry event files."""
     with pytest.raises(IOError, match="file type .*? must end with"):
         read_events_curry(curry7_bdf_file)
 
@@ -111,8 +109,7 @@ def test_read_events_curry():
 
 
 def test_check_missing_files():
-    """"test checking for missing curry files"""
-
+    """Test checking for missing curry files."""
     invalid_fname = "/invalid/path"
 
     with pytest.raises(FileNotFoundError, match="files cannot be found"):
