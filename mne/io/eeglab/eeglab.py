@@ -138,7 +138,8 @@ def _get_info_no_montage(eeg, montage, eog=()):
     elif isinstance(montage, str):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
-        ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        info = create_info(ch_names, eeg.srate, ch_types='eeg')
+        # ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
 
     if eog == 'auto':
         eog = _find_channels(ch_names)
@@ -161,8 +162,10 @@ def _get_info(eeg, montage, eog=()):
         eeg, montage, eog)
 
     if montage is None and new_montage is None:
-        assert ch_names is not None, 'something went wrong'
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
+        if ch_names is None:
+            pass
+        else:
+            info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         from mne.channels.montage import _set_montage
 
