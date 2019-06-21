@@ -703,6 +703,20 @@ def _sort_keys(x):
     return keys
 
 
+def _array_equal_nan(a, b, ignore_nan):
+    a = np.asarray(a)
+    b = np.asarray(b)
+    a_idx = b_idx = slice(None)
+    same_nans = True
+    if ignore_nan:
+        a_idx = ~np.isnan(a)
+        b_idx = ~np.isnan(b)
+        same_nans = np.array_equal(a_idx, b_idx)
+        if np.all(a_idx):
+            return same_nans
+    return np.array_equal(a[a_idx], b[b_idx]) and same_nans
+
+
 def object_diff(a, b, pre='', ignore_nan=False):
     """Compute all differences between two python variables.
 
@@ -752,12 +766,8 @@ def object_diff(a, b, pre='', ignore_nan=False):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if ignore_nan:
-            if not np.array_equal(a[~np.isnan(a)], b[~np.isnan(b)]):
-                out += pre + ' array mismatch\n'
-        else:
-            if not np.array_equal(a, b):
-                out += pre + ' array mismatch\n'
+        if not _array_equal_nan(a, b, ignore_nan):
+            out += + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
             out += pre + ' StringIO mismatch\n'
