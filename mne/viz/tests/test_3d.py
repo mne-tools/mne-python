@@ -519,8 +519,10 @@ def test_plot_sensors_connectivity():
     from mne.connectivity import spectral_connectivity
 
     data_path = data_dir
-    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
-    event_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw-eve.fif'
+    raw_fname = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc_raw.fif')
+    event_fname = op.join(data_path, 'MEG', 'sample',
+                          'sample_audvis_trunc_raw-eve.fif')
 
     raw = io.read_raw_fif(raw_fname)
     picks = pick_types(raw.info, meg='grad', eeg=False, stim=False,
