@@ -20,7 +20,7 @@ from mne import write_events, read_epochs_eeglab
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_h5py
+from mne.utils import run_tests_if_main, requires_h5py, object_diff
 from mne.annotations import events_from_annotations, read_annotations
 
 
@@ -306,6 +306,23 @@ def test_eeglab_event_from_annot():
     raw1.set_annotations(annotations)
     events_b, _ = events_from_annotations(raw1, event_id=event_id)
     assert len(events_b) == 154
+
+
+@testing.requires_testing_data
+def test_montage():
+    """Test montage."""
+    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
+    fname = op.join(base_dir, 'test_raw.set')
+    montage = op.join(base_dir, 'test_chans.locs')
+
+    raw_montage = read_raw_eeglab(input_fname=fname, montage=montage,
+                                  preload=False)
+
+    raw_none = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
+    raw_none.set_montage(montage)
+
+    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
+    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
 
 
 run_tests_if_main()
