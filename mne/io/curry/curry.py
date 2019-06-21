@@ -7,6 +7,7 @@
 
 import os
 import re
+from pathlib import Path
 import numpy as np
 
 from ..base import BaseRaw
@@ -29,24 +30,20 @@ def _get_curry_version(file_extension):
     return 8 if 'cdt' in file_extension else 7
 
 
-def _check_missing_files(full_fname, fname_base, curry_vers):
+def _check_missing_files(fname_base, curry_vers):
     """Check if all neccessary files exist."""
 
-    if curry_vers == 8:
-        for check_ext in [".cdt", ".cdt.dpa"]:
-            if not os.path.isfile(fname_base + check_ext):
-                raise FileNotFoundError("The following required file cannot be"
-                                        " found: %s. Please make sure it is "
-                                        "located in the same directory as %s."
-                                        % (fname_base + check_ext, full_fname))
+    _msg = "The following required files cannot be found: {0}.\nPlease make " \
+           "sure all required files are located in the same directory."
 
-    if curry_vers == 7:
-        for check_ext in [".dap", ".dat", ".rs3"]:
-            if not os.path.isfile(fname_base + check_ext):
-                raise FileNotFoundError("The following required file cannot be"
-                                        " found: %s. Please make sure it is "
-                                        "located in the same directory as %s."
-                                        % (fname_base + check_ext, full_fname))
+    missing = [str(Path(fname_base).with_suffix(ext))
+               for ext in [DATA_FILE_EXTENSION[curry_vers],
+                           INFO_FILE_EXTENSION[curry_vers],
+                           LABEL_FILE_EXTENSION[curry_vers]]
+               if not Path(fname_base).with_suffix(ext).is_file()]
+
+    if missing:
+        raise FileNotFoundError(_msg.format(missing))
 
 
 def _read_curry_lines(fname, regex_list):
@@ -236,7 +233,7 @@ def read_raw_curry(input_fname, preload=False):
     fname_base, ext = input_fname.split(".", maxsplit=1)
 
     curry_vers = _get_curry_version(ext)
-    _check_missing_files(input_fname, fname_base, curry_vers)
+    _check_missing_files(fname_base, curry_vers)
 
     info, n_trials, n_samples, curry_vers, ascii = _read_curry_info(fname_base, curry_vers)
 

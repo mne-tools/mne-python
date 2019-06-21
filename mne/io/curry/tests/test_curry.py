@@ -15,6 +15,7 @@ from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry, read_events_curry
+from mne.io.curry.curry import _check_missing_files
 
 
 data_dir = testing.data_path(download=False)
@@ -106,3 +107,13 @@ def test_read_events_curry():
     ref_events = find_events(bdf, stim_channel="Status")
 
     assert_allclose(events, ref_events)
+
+
+def test_check_missing_files():
+    """"test checking for missing curry files"""
+
+    invalid_fname = "/invalid/path"
+
+    with pytest.raises(FileNotFoundError, match="files cannot be found"):
+        _check_missing_files(invalid_fname, 7)
+        _check_missing_files(invalid_fname, 8)
