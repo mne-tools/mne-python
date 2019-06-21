@@ -38,7 +38,7 @@ curry8_bdf_ascii_file = op.join(curry_dir,
 event_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.cef")
 
 
-@requires_testing_data
+@testing.requires_testing_data
 def test_read_raw_curry():
     """Test reading CURRY files."""
 
@@ -94,9 +94,10 @@ def test_read_raw_curry():
         assert_allclose(curry_file.get_data(), bdf.get_data()[0:3], atol=1e-6)
 
 
-@requires_testing_data
+@testing.requires_testing_data
 def test_read_events_curry():
     """test reading curry event files"""
+
     with pytest.raises(IOError, match="file type .*? must end with"):
         read_events_curry(curry7_bdf_file)
 

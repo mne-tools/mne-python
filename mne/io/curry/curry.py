@@ -30,9 +30,7 @@ def _get_curry_version(file_extension):
 
 
 def _check_missing_files(full_fname, fname_base, curry_vers):
-    """
-    Check if all neccessary files exist.
-     """
+    """Check if all neccessary files exist."""
 
     if curry_vers == 8:
         for check_ext in [".cdt", ".cdt.dpa"]:
@@ -100,9 +98,7 @@ def _read_curry_lines(fname, regex_list):
 
 
 def _read_curry_info(fname_base, curry_vers):
-
-
-
+    """extract info from curry parameter files"""
 
     var_names = ['NumSamples', 'NumChannels', 'NumTrials', 'SampleFreqHz',
                  'TriggerOffsetUsec', 'DataFormat', 'SampleTimeUsec',
@@ -133,7 +129,7 @@ def _read_curry_info(fname_base, curry_vers):
     sfreq = float(param_dict["samplefreqhz"])
     offset = float(param_dict["triggeroffsetusec"]) * 1e-6
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
-    data_format = param_dict["dataformat"]
+    ascii = param_dict["dataformat"] == "ASCII"
 
     if (sfreq == 0) and (time_step != 0):
         sfreq = 1. / time_step
@@ -175,16 +171,26 @@ def _read_curry_info(fname_base, curry_vers):
             ch_dict["unit"] = FIFF.FIFF_UNIT_T
             ch_dict["cal"] = 1e-15
 
-
-    return info, n_trials, n_samples, curry_vers, data_format
+    return info, n_trials, n_samples, curry_vers, ascii
 
 
 def read_events_curry(fname, event_ids=None):
     """
-    read events from curry event files
+    Read events from Curry event files.
 
+    Parameters
+    ----------
+    input_fname : str
+        Path to a curry event file with extensions .cef, .ceo,
+        .cdt.cef, or .cdt.ceo
+    event_ids : tuple, list or None (default None)
+        If tuple or list, only the event IDs in event_ids
+        will be read. If None, all event IDs will be read.
 
-
+    Returns
+    -------
+    events : ndarray
+        An array of shape (n_events,3) containing MNE events.
     """
 
     check_fname(fname, 'curry event', ('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'),
@@ -216,12 +222,13 @@ def read_raw_curry(input_fname, preload=False):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory). If the curry file
-        is stored in ASCII data format, then preload must be `True`.
+        is stored in ASCII data format, then preload will automatically be
+        set to True.
 
     Returns
     -------
     raw : instance of RawCurry
-        A Raw object containing CURRY data.
+        A Raw object containing Curry data.
 
     """
 
@@ -231,24 +238,51 @@ def read_raw_curry(input_fname, preload=False):
     curry_vers = _get_curry_version(ext)
     _check_missing_files(input_fname, fname_base, curry_vers)
 
-    info, n_trials, n_samples, curry_vers, data_format = _read_curry_info(fname_base, curry_vers)
+    info, n_trials, n_samples, curry_vers, ascii = _read_curry_info(fname_base, curry_vers)
 
-    raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info, n_samples, data_format, preload)
+    raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info, n_samples, ascii, preload)
 
     return raw
 
 
 class RawCurry(BaseRaw):
-    """"""
+    """
+    Raw object from Curry file.
 
-    def __init__(self, data_fname, info, n_samples, data_format,
+    Parameters
+    ----------
+    data_fname : str
+        Path to the Curry data file (.dat or .cdt).
+    info : instance of mne.Info
+        An instance of mne.Info as returned by mne.io.curry._read_curry_info.
+    n_samples : int
+        The number of samples of the curry data file.
+    ascii : bool (default False)
+        If the loaded data file is coded in ASCII, ascii must be set to True.
+        Else must be False.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory) If ascii is True,
+        preload will automatically be set to True.
+    %(verbose)s
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+
+    """
+
+    def __init__(self, data_fname, info, n_samples, ascii,
                  preload=False, verbose=None):
 
         data_fname = os.path.abspath(data_fname)
 
         last_samps = [n_samples - 1]
 
-        if data_format == "ASCII":
+        if ascii:
             if preload == False:
                 warn('Got ASCII format data as input. Data will be preloaded.')
 
