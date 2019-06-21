@@ -63,6 +63,8 @@ Bug
 API
 ~~~
 
+- :func:`mne.io.read_raw_brainvision` no longer raises an error when there are inconsistencies between ``info['chs']`` and ``montage`` but warns instead by `Joan Massich`_
+
 .. _changes_0_18:
 
 Version 0.18

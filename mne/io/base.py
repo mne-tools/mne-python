@@ -1847,7 +1847,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Does nothing for objects that close their file descriptors.
         Things like RawFIF will override this method.
         """
-        pass
+        pass  # noqa
 
     def copy(self):
         """Return copy of Raw instance."""
