@@ -175,3 +175,19 @@ def set_3d_title(figure, title):
         The title of the scene.
     """
     _mod._set_3d_title(figure=figure, title=title)
+
+
+def create_3d_figure(size):
+    """Return an empty figure based on the current 3d backend.
+
+    Parameters
+    ----------
+    size: tuple
+        The dimensions of the 3d figure (width, height).
+
+    Returns
+    -------
+    figure:
+        The requested empty scene.
+    """
+    return _mod._Renderer(size=size).scene()
