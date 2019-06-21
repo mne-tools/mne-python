@@ -22,6 +22,8 @@ DATA_FILE_EXTENSION = {7: '.dat', 8: '.cdt'}
 CHANTYPES = {"meg": "_MAG1", "eeg": "", "misc": "_OTHERS"}
 FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
                    "misc": FIFF.FIFFV_MISC_CH}
+SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
+SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, μ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
 
 def _get_curry_version(file_extension):
@@ -153,20 +155,13 @@ def _read_curry_info(fname_base, curry_vers):
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, sfreq)
 
-    # FIXME: Is it safer to use numpy.where(ch_dict["ch_name"] == all_chans["ch_name"]) or another method?
     for ind, ch_dict in enumerate(info["chs"]):
         ch_dict["kind"] = all_chans[ind]["kind"]
+        ch_dict['unit'] = SI_UNITS[all_chans[ind]['unit'][1]]
+        ch_dict['cal'] = SI_UNIT_SCALE[all_chans[ind]['unit'][0]]
         if ch_dict["kind"] in (FIFF.FIFFV_MEG_CH,
                                FIFF.FIFFV_EEG_CH):
             ch_dict["loc"] = all_chans[ind]["loc"]
-
-        # TODO: This is extremely ugly. Is there a function to transform units automatically?
-        if all_chans[ind]["unit"] == "uV":
-            ch_dict["unit"] = FIFF.FIFF_UNIT_V
-            ch_dict["cal"] = 1e-6
-        if all_chans[ind]["unit"] == "fT":
-            ch_dict["unit"] = FIFF.FIFF_UNIT_T
-            ch_dict["cal"] = 1e-15
 
     return info, n_trials, n_samples, curry_vers, ascii
 
