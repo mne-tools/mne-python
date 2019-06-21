@@ -22,7 +22,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_h5py, object_diff
 from mne.annotations import events_from_annotations, read_annotations
-
+from mne.channels import Montage
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -308,17 +308,27 @@ def test_eeglab_event_from_annot():
     assert len(events_b) == 154
 
 
+def _fake_montage(ch_names):
+    return Montage(
+        pos=np.random.RandomState(42).randn(len(ch_names), 3),
+        ch_names=ch_names,
+        kind='foo',
+        selection=np.arange(len(ch_names))
+    )
+
+
 @testing.requires_testing_data
 def test_montage():
     """Test montage."""
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     fname = op.join(base_dir, 'test_raw.set')
-    montage = op.join(base_dir, 'test_chans.locs')
+    # montage = op.join(base_dir, 'test_chans.locs')
+
+    raw_none = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
+    montage = _fake_montage(raw_none.info['ch_names'])
 
     raw_montage = read_raw_eeglab(input_fname=fname, montage=montage,
                                   preload=False)
-
-    raw_none = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
     raw_none.set_montage(montage)
 
     assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
