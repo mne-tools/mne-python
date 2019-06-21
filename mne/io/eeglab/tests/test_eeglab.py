@@ -164,6 +164,7 @@ def test_io_set_raw(fnames, tmpdir):
     # load it
     with pytest.warns(RuntimeWarning, match='did not have a position'):
         raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+
     # position should be present for first two channels
     for i in range(2):
         assert_array_equal(raw.info['chs'][i]['loc'][:3],

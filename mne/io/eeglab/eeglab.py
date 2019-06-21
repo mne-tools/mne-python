@@ -83,6 +83,7 @@ def _to_loc(ll):
 
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
+    # import pdb; pdb.set_trace()
     xx_montage = deepcopy(montage)
     new_montage = None
     from scipy import io
@@ -135,12 +136,13 @@ def _get_info(eeg, montage, eog=()):
         if n_channels_with_pos > 0:
             selection = np.arange(n_channels_with_pos)
             new_montage = Montage(np.array(pos), pos_ch_names, kind, selection)
-            # montage = deepcopy(new_montage)    # XXXX: this breaks the test
 
     elif isinstance(montage, str):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+
+    montage = new_montage if new_montage is not None else montage  # XXXX This
 
     if eog == 'auto':
         eog = _find_channels(ch_names)
@@ -151,7 +153,7 @@ def _get_info(eeg, montage, eog=()):
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
 
-    if montage is None:
+    if montage is None and new_montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         from mne.channels.montage import _set_montage
@@ -163,7 +165,7 @@ def _get_info(eeg, montage, eog=()):
             _set_montage(info, montage=montage,
                          update_ch_names=update_ch_names, set_dig=True)
 
-    montage = new_montage if new_montage is not None else montage
+    assert_equal_montage(xx_montage, montage)
 
     return info
 
@@ -333,7 +335,10 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
+        aa = deepcopy(montage)
         info = _get_info(eeg, montage, eog=eog)
+        bb = deepcopy(montage)
+        assert_equal_montage(aa, bb)
 
         # read the data
         if isinstance(eeg.data, str):
