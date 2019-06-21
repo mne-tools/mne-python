@@ -174,8 +174,8 @@ def read_events_curry(fname, event_ids=None):
     events : ndarray
         An array of shape (n_events,3) containing MNE events.
     """
-    check_fname(fname, 'curry event', ('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'),
-                endings_err=('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'))
+    check_fname(fname, 'curry event', ('.cef', '.cdt.cef'),
+                endings_err=('.cef', '.cdt.cef'))
 
     events_dict = _read_curry_lines(fname, ["NUMBER_LIST"])
     # The first 3 column seem to contain the event information
