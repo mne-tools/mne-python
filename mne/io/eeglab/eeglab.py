@@ -84,6 +84,7 @@ def _to_loc(ll):
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
     xx_montage = deepcopy(montage)
+    new_montage = None
     from scipy import io
     info = _empty_info(sfreq=eeg.srate)
     update_ch_names = True
@@ -134,8 +135,7 @@ def _get_info(eeg, montage, eog=()):
         if n_channels_with_pos > 0:
             selection = np.arange(n_channels_with_pos)
             new_montage = Montage(np.array(pos), pos_ch_names, kind, selection)
-            montage = new_montage
-            # new_montage = montage
+            # montage = deepcopy(new_montage)    # XXXX: this breaks the test
 
     elif isinstance(montage, str):
         path = op.dirname(montage)
@@ -151,25 +151,19 @@ def _get_info(eeg, montage, eog=()):
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
 
-    # assert_equal_montage(xx_montage, montage)
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         from mne.channels.montage import _set_montage
 
-        if 'new_montage' in locals():
+        if new_montage is not None:
             _set_montage(info, montage=new_montage,
                          update_ch_names=update_ch_names, set_dig=True)
         else:
             _set_montage(info, montage=montage,
                          update_ch_names=update_ch_names, set_dig=True)
-        # _check_update_montage(
-        #     info, montage, path=path, update_ch_names=update_ch_names,
-        #     raise_missing=False)
 
-    assert_equal_montage(xx_montage, montage)
-
-    montage = new_montage if 'new_montage' in locals() else montage
+    montage = new_montage if new_montage is not None else montage
 
     return info
 
