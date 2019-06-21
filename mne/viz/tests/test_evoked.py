@@ -12,7 +12,6 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -225,7 +224,7 @@ def test_plot_compare_evokeds():
     # test picks, combine, and vlines (1-channel pick also shows sensor inset)
     fig0 = plot_compare_evokeds(evoked, picks='MEG 0113', vlines=[0.1, 0.2])
     fig1 = plot_compare_evokeds(evoked, picks='mag', combine='mean', vlines=[])
-    fig2 = plot_compare_evokeds(evoked, picks=['MEG 0113', 'MEG 0331'],
+    fig2 = plot_compare_evokeds(evoked, picks=['MEG 0113', 'MEG 0223'],
                                 combine='std')
     plot_compare_evokeds(evoked, picks=[0, 1],
                          combine=lambda x: np.min(x, axis=1))

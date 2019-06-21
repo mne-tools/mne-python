@@ -1903,6 +1903,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         * If the selected channels are gradiometers, the signal from
           corresponding (gradiometer) pairs will be combined.
 
+    gfp : bool | None
+        .. versionchanged:: 0.19
+            The ``gfp`` parameter is deprecated and will be removed in 0.20.
+            Use ``combine='gfp'`` instead.
     colors : list | dict | None
         Colors to use when plotting the ERP/F lines and confidence bands. If
         ``cmap`` is not ``None``, ``colors`` must be a :class:`list` or
@@ -1940,6 +1944,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         element will be used as a string to label the colorbar, and its
         second element will be passed to :func:`matplotlib.cm.get_cmap` (unless
         it is already an instance of :class:`~matplotlib.colors.Colormap`).
+
+        .. versionchanged:: 0.19
+            Support for passing :class:`~matplotlib.colors.Colormap` instances.
+
     vlines : "auto" | list of float
         A list in seconds at which to plot dashed vertical lines.
         If "auto" and the supplied data includes 0, it is set to [0.]
@@ -1957,9 +1965,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         If not False, the left y axis spine is truncated to reduce visual
         clutter. If 'max_ticks', the spine is truncated at the minimum and
         maximum ticks. Else, it is truncated to half the max absolute value,
-        rounded to .25. Defaults to "max_ticks".
+        rounded to .25. Defaults to 'max_ticks'.
     truncate_xaxis : bool
-        If True, the x axis is truncated to span from the first to the last.
+        If True, the x axis is truncated to span from the first to the last
         xtick. Defaults to True.
     ylim : dict | None
         ylim for plots (after scaling has been applied). e.g.
@@ -1969,38 +1977,43 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
-    show_sensors: bool | int | str | None
-        If not False, channel locations are plotted on a small head circle.
-        If int or str, the position of the axes (forwarded to
-        ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
-        If ``None``, defaults to ``True`` if there is only one channel in
-        ``picks``.
-    show_legend : bool | str | int
-        If not False, show a legend. If int or str, it is the position of the
-        legend axes (forwarded to
-        :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`).
-    split_legend : None | bool
+    show_sensors : bool | int | str | None
+        If not False, an inset displays channel locations on a head outline.
+        If :class:`int` or :class:`str`, indicates the position of the inset
+        (see :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`). If
+        ``None``, treat as ``True`` if there is only one channel in ``picks``.
+        If ``True``, attempts to pick the best position. Defaults to ``None``.
+    show_legend : bool | int | str
+        If not False, show a legend. If :class:`int` or :class:`str`, indicates
+        the position of the legend (see
+        :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`). If ``True``,
+        equivalent to ``'upper left'``. Defaults to ``True``.
+    split_legend : bool | None
         Whether to show separate color and linestyle legends. If ``None``,
-        separate legends will be shown only if ``cmap`` is specified. If
-        ``True``, ``colors`` must not be ``None``. Defaults to ``None``.
-    axes : None | `matplotlib.axes.Axes` instance | list of `axes` | "topo"
-        What axes to plot to. If None, a new axes is created.
-        If "topo", separately for each channel type, a new figure is created
-        with one axis for each channel in a topographical layout. In this
-        case, `gfp` is ignored.
-        When plotting multiple channel types, can also be a list of axes, one
-        per channel type.
-    title : None | str
-        If str, will be plotted as figure title. If None, the channel names
-        will be shown.
+        separate legends will be shown only if ``cmap`` is specified.
+        Defaults to ``None``.
+    axes : None | Axes instance | list of Axes | 'topo'
+        :class:`~matplotlib.axes.Axes` object to plot into. If plotting
+        multiple channel types (or multiple channels when ``combine=None``),
+        ``axes`` should be a list of appropriate length containing
+        :class:`~matplotlib.axes.Axes` objects. If ``'topo'``, a new
+        :class:`~matplotlib.figure.Figure` is created with one axis for each
+        channel, in a topographical layout. If ``None``, a new
+        :class:`~matplotlib.figure.Figure` is created for each channel type.
+        Defaults to ``None``.
+    title : str | None
+        Title printed above the plot. If ``None``, a title will be
+        automatically generated based on channel name(s) or type(s) and the
+        value of the ``combine`` parameter. Defaults to ``None``.
     show : bool
-        If True, show the figure.
+        Whether to show the figure. Defaults to ``True``.
     %(combine)s
         If callable, the callable must accept one positional input (data of
-        shape ``(n_channels, n_times)``) and return an
-        :class:`array <numpy.ndarray>` of shape ``(n_times,)``. For example::
+        shape ``(n_evokeds, n_channels, n_times)``) and return an
+        :class:`array <numpy.ndarray>` of shape ``(n_epochs, n_times)``. For
+        example::
 
-            combine = lambda data: np.median(data, axis=0)
+            combine = lambda data: np.median(data, axis=1)
 
         If ``combine`` is ``None``, channels are combined by computing GFP,
         unless ``picks`` is a single channel (not channel type) or
@@ -2009,7 +2022,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
 
     Returns
     -------
-    fig : list of Figure
+    fig : list of Figure instances
         A list of the figure(s) generated.
 
     Notes
@@ -2028,7 +2041,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     from ..evoked import Evoked, _check_evokeds_ch_names_times
 
     # deprecation
-    # TODO: purge gfp from docstring
     if gfp is not None:
         warn('"gfp" is deprecated and will be removed in version 0.20; please '
              'use `combine="gfp"` instead.', DeprecationWarning)
