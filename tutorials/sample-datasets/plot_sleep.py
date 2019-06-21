@@ -162,7 +162,7 @@ print(epochs_test)
 # Feature Engineering
 # -------------------
 #
-# Observing the power spectrum density (PSD) plot of the :term:`epochs` grouped
+# Observing the power spectral density (PSD) plot of the :term:`epochs` grouped
 # by sleeping stage we can see that different sleep stages have different
 # signatures. These signatures remain similar between Alice and Bob's data.
 #

@@ -389,13 +389,19 @@ def _get_help_text(params):
             text2.insert(3, 'Navigate channels up\n')
             text.insert(6, u'a : \n')
             text2.insert(6, 'Toggle annotation mode\n')
-            text.insert(7, u'b : \n')
-            text2.insert(7, 'Toggle butterfly plot on/off\n')
-            text.insert(8, u'd : \n')
-            text2.insert(8, 'Toggle remove DC on/off\n')
+
+            text.insert(7, u'p : \n')
+            text2.insert(7, 'Toggle snap to annotations on/off\n')
+
+            text.insert(8, u'b : \n')
+            text2.insert(8, 'Toggle butterfly plot on/off\n')
+            text.insert(9, u'd : \n')
+            text2.insert(9, 'Toggle remove DC on/off\n')
+            text.insert(10, u's : \n')
+            text2.insert(10, 'Toggle scale bars\n')
             if 'fig_selection' not in params:
-                text2.insert(11, 'Reduce the number of channels per view\n')
-                text2.insert(12, 'Increase the number of channels per view\n')
+                text2.insert(13, 'Reduce the number of channels per view\n')
+                text2.insert(14, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -507,10 +513,19 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
         pass
 
 
+def _simplify_float(label):
+    # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
+    if isinstance(label, float) and float(str(label)) != round(label):
+        label = round(label, 2)
+    return label
+
+
 def _layout_figure(params):
     """Set figure layout. Shared with raw and epoch plots."""
     size = params['fig'].get_size_inches() * params['fig'].dpi
-    dpi_ratio = getattr(params["fig"].canvas, '_dpi_ratio', 1)
+    dpi_ratio = 1.
+    for key in ('_dpi_ratio', '_device_scale'):
+        dpi_ratio = getattr(params["fig"].canvas, key, dpi_ratio)
     size /= dpi_ratio  # account for HiDPI resolutions
 
     scroll_width = 25
@@ -871,6 +886,15 @@ def _plot_raw_onkey(event, params):
     elif event.key == 'd':
         params['remove_dc'] = not params['remove_dc']
         params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 's':
+        params['use_scalebars'] = not params['use_scalebars']
+        params['plot_fun']()
+    elif event.key == 'p':
+        params['snap_annotations'] = not params['snap_annotations']
+        # remove the line if present
+        if not params['snap_annotations']:
+            _on_hover(None, params)
         params['plot_fun']()
 
 
@@ -1624,7 +1648,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
     return fig
 
 
-def _compute_scalings(scalings, inst):
+def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     """Compute scalings for each channel type automatically.
 
     Parameters
@@ -1638,6 +1662,14 @@ def _compute_scalings(scalings, inst):
         The data for which you want to compute scalings. If data
         is not preloaded, this will read a subset of times / epochs
         up to 100mb in size in order to compute scalings.
+    remove_dc : bool
+        Whether to remove the mean (DC) before calculating the scalings. If
+        True, the mean will be computed and subtracted for short epochs in
+        order to compensate not only for global mean offset, but also for slow
+        drifts in the signals.
+    duration : float
+        If remove_dc is True, the mean will be computed and subtracted on
+        segments of length ``duration`` seconds.
 
     Returns
     -------
@@ -1689,9 +1721,17 @@ def _compute_scalings(scalings, inst):
                                  % (key, value))
             continue
         this_data = data[ch_types[key]]
-        scale_factor = np.percentile(this_data.ravel(), [0.5, 99.5])
-        scale_factor = np.max(np.abs(scale_factor))
-        scalings[key] = scale_factor
+        if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= duration):
+            length = int(duration * inst.info["sfreq"])  # segment length
+            # truncate data so that we can divide into segments of equal length
+            this_data = this_data[:, :this_data.shape[1] // length * length]
+            shape = this_data.shape  # original shape
+            this_data = this_data.T.reshape(-1, length, shape[0])  # segment
+            this_data -= this_data.mean(0)  # subtract segment means
+            this_data = this_data.T.reshape(shape)  # reshape into original
+
+        iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
+        scalings[key] = iqr.item()
     return scalings
 
 
@@ -2036,6 +2076,9 @@ def _annotations_closed(event, params):
 
 def _on_hover(event, params):
     """Handle hover event."""
+    if not params["snap_annotations"]:  # don't snap to annotations
+        _remove_segment_line(params)
+        return
     from matplotlib.patheffects import Stroke, Normal
     if (event.button is not None or
             event.inaxes != params['ax'] or event.xdata is None):

@@ -539,7 +539,7 @@ def make_projector(projs, ch_names, bads=(), include_active=True):
     nproj : int
         How many items in the projector.
     U : array
-        The orthogonal basis of the projection vectors (optional).
+        The orthogonal basis of the projection vectors.
     """
     return _make_projector(projs, ch_names, bads, include_active)
 
@@ -556,7 +556,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
     if nchan == 0:
         raise ValueError('No channel names specified')
 
-    default_return = (np.eye(nchan, nchan), 0, [])
+    default_return = (np.eye(nchan, nchan), 0, np.empty((nchan, 0)))
 
     #   Check trivial cases first
     if projs is None:

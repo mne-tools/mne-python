@@ -7,6 +7,7 @@ Actual implementation of _Renderer and _Projection classes.
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: Simplified BSD
 
@@ -15,6 +16,7 @@ import pyvista
 import warnings
 import numpy as np
 from .base_renderer import _BaseRenderer
+from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
 
 
@@ -58,6 +60,9 @@ class _Renderer(_BaseRenderer):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
         self.name = name
+        self.display = None
+        self.inside_notebook = _check_notebook()
+        self.smooth_shading = True
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
@@ -80,30 +85,48 @@ class _Renderer(_BaseRenderer):
             self.plotter.reset_camera()
 
     def scene(self):
-        return self.plotter
+        if self.inside_notebook:
+            return self.display
+        else:
+            return self.plotter
 
     def set_interactive(self):
         self.plotter.enable_terrain_style()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
+        smooth_shading = self.smooth_shading
         vertices = np.c_[x, y, z]
-        n_triangles = len(triangles)
-        triangles = np.c_[np.full(n_triangles, 3), triangles]
+        n_vertices = len(vertices)
+        triangles = np.c_[np.full(len(triangles), 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             pd = pyvista.PolyData(vertices, triangles)
-            self.plotter.add_mesh(mesh=pd, color=color, opacity=opacity,
-                                  backface_culling=backface_culling)
+            if len(color) == n_vertices:
+                if color.shape[1] == 3:
+                    scalars = np.c_[color, np.ones(n_vertices)]
+                else:
+                    scalars = color
+                scalars = (scalars * 255).astype('ubyte')
+                color = None
+                # Disabling normal computation for smooth shading
+                # is a temporary workaround of:
+                # https://github.com/pyvista/pyvista-support/issues/15
+                smooth_shading = False
+                rgba = True
+            else:
+                scalars = None
+                rgba = False
+
+            self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
+                                  rgba=rgba, opacity=opacity,
+                                  backface_culling=backface_culling,
+                                  smooth_shading=smooth_shading)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
-        from matplotlib import cm
-        from matplotlib.colors import ListedColormap
-        if colormap is None:
-            cmap = cm.get_cmap('coolwarm')
-        else:
-            cmap = ListedColormap(colormap / 255.0)
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False):
+        cmap = _get_colormap_from_array(colormap, normalized_colormap)
         vertices = np.array(surface['rr'])
         triangles = np.array(surface['tris'])
         n_triangles = len(triangles)
@@ -117,17 +140,14 @@ class _Renderer(_BaseRenderer):
                                   show_scalar_bar=False,
                                   line_width=line_width,
                                   cmap=cmap,
-                                  opacity=opacity)
+                                  opacity=opacity,
+                                  smooth_shading=self.smooth_shading)
 
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
                 backface_culling=False):
-        from matplotlib import cm
-        from matplotlib.colors import ListedColormap
-        if colormap is None:
-            cmap = cm.get_cmap('coolwarm')
-        else:
-            cmap = ListedColormap(colormap / 255.0)
+        cmap = _get_colormap_from_array(colormap, normalized_colormap)
         vertices = np.array(surface['rr'])
         triangles = np.array(surface['tris'])
         n_triangles = len(triangles)
@@ -142,7 +162,8 @@ class _Renderer(_BaseRenderer):
                                   show_scalar_bar=False,
                                   opacity=opacity,
                                   cmap=cmap,
-                                  backface_culling=backface_culling)
+                                  backface_culling=backface_culling,
+                                  smooth_shading=self.smooth_shading)
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
@@ -157,7 +178,8 @@ class _Renderer(_BaseRenderer):
             self.plotter.add_mesh(pd.glyph(orient=False, scale=False,
                                            factor=scale, geom=geom),
                                   color=color, opacity=opacity,
-                                  backface_culling=backface_culling)
+                                  backface_culling=backface_culling,
+                                  smooth_shading=self.smooth_shading)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -185,7 +207,8 @@ class _Renderer(_BaseRenderer):
                                                  factor=factor),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling)
+                                      backface_culling=backface_culling,
+                                      smooth_shading=self.smooth_shading)
             elif mode == "cone":
                 cone = vtk.vtkConeSource()
                 if glyph_height is not None:
@@ -203,7 +226,8 @@ class _Renderer(_BaseRenderer):
                                                  geom=geom),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling)
+                                      backface_culling=backface_culling,
+                                      smooth_shading=self.smooth_shading)
 
             elif mode == "cylinder":
                 cylinder = vtk.vtkCylinderSource()
@@ -227,7 +251,8 @@ class _Renderer(_BaseRenderer):
                                                  geom=geom),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling)
+                                      backface_culling=backface_culling,
+                                      smooth_shading=self.smooth_shading)
 
     def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         self.plotter.add_text(text, position=(x, y),
@@ -235,7 +260,8 @@ class _Renderer(_BaseRenderer):
                               color=color)
 
     def show(self):
-        self.plotter.show(title=self.name)
+        self.display = self.plotter.show(title=self.name)
+        return self.display
 
     def close(self):
         self.plotter.close()
@@ -316,3 +342,24 @@ def _get_view_to_display_matrix(size):
                                  [0.,            0.,   1.,        0.],
                                  [0.,            0.,   0.,        1.]])
     return view_to_disp_mat
+
+
+def _close_all():
+    # XXX This is not implemented yet
+    pass
+
+
+def _check_notebook():
+    if _run_from_ipython():
+        try:
+            return type(get_ipython()).__module__.startswith('ipykernel.')
+        except NameError:
+            return False
+
+
+def _run_from_ipython():
+    try:
+        __IPYTHON__
+        return True
+    except NameError:
+        return False

@@ -554,9 +554,9 @@ def _download_all_example_data(verbose=True):
     # This function is designed primarily to be used by CircleCI. It has
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
-    from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
+    from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword, phantom_4dbti, sleep_physionet)
+                   kiloword, phantom_4dbti, sleep_physionet, limo)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -578,12 +578,6 @@ def _download_all_example_data(verbose=True):
         brainstorm.bst_phantom_ctf.data_path()
     finally:
         sys.argv.pop(-1)
-    megsim.load_data(condition='visual', data_format='single-trial',
-                     data_type='simulation', update_path=True)
-    megsim.load_data(condition='visual', data_format='raw',
-                     data_type='experimental', update_path=True)
-    megsim.load_data(condition='visual', data_format='evoked',
-                     data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1],
                                    update_path=True)
@@ -595,6 +589,7 @@ def _download_all_example_data(verbose=True):
         fetch_hcp_mmp_parcellation()
     finally:
         sys.argv.pop(-1)
+    limo.load_data(subject=2, update_path=True)
 
 
 @verbose

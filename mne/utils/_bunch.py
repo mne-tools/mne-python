@@ -2,6 +2,7 @@
 """Bunch-related classes."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -94,10 +95,10 @@ def _named_subclass(klass):
 class NamedInt(_Named, int):
     """Int with a name in __repr__."""
 
-    pass
+    pass  # noqa
 
 
 class NamedFloat(_Named, float):
     """Float with a name in __repr__."""
 
-    pass
+    pass  # noqa

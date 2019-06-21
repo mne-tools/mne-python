@@ -14,7 +14,7 @@ from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
                      _deprecate_stim_channel, _synthesize_stim_channel)
 from ..meas_info import _empty_info
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ...annotations import Annotations
 
 
@@ -432,7 +432,6 @@ class RawCNT(BaseRaw):
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
                                        data_format, _date_format, stim_channel)
         last_samps = [cnt_info['n_samples'] - 1]
-        _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
@@ -440,6 +439,8 @@ class RawCNT(BaseRaw):
         data_format = 'int32' if cnt_info['n_bytes'] == 4 else 'int16'
         self.set_annotations(
             _read_annotations_cnt(input_fname, data_format=data_format))
+        if montage is not None:
+            self.set_montage(montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

@@ -142,6 +142,7 @@ File I/O
    io.read_info
    io.show_fiff
    digitization.DigPoint
+   digitization.Digitization
 
 Base class:
 
@@ -187,8 +188,6 @@ Datasets
    fetch_hcp_mmp_parcellation
    hf_sef.data_path
    kiloword.data_path
-   megsim.data_path
-   megsim.load_data
    misc.data_path
    mtrf.data_path
    multimodal.data_path
@@ -994,6 +993,7 @@ Logging and Configuration
    :toctree: generated/
 
    deprecated
+   warn
 
 :py:mod:`mne.cuda`:
 

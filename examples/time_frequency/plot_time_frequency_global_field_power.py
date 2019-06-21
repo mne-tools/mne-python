@@ -1,4 +1,6 @@
 """
+.. _ex-time-freq-global-field-power:
+
 ===========================================================
 Explore event-related dynamics for specific frequency bands
 ===========================================================

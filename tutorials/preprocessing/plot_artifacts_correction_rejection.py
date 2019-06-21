@@ -136,7 +136,7 @@ raw.plot(events=eog_events)  # To see the annotated segments.
 
 ###############################################################################
 # It is also possible to draw bad segments interactively using
-# :meth:`raw.plot <mne.io.Raw.plot>` (see :ref:`tut-viz-raw`).
+# :meth:`raw.plot <mne.io.Raw.plot>` (see :doc:`../raw/plot_visualize_raw`).
 #
 # As the data is epoched, all the epochs overlapping with segments whose
 # description starts with 'bad' are rejected by default. To turn rejection off,

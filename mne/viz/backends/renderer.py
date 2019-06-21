@@ -7,8 +7,8 @@
 #
 # License: Simplified BSD
 
-import importlib
 from contextlib import contextmanager
+import importlib
 import sys
 
 from ._utils import _get_backend_based_on_env_and_defaults, VALID_3D_BACKENDS
@@ -24,10 +24,16 @@ except NameError:
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
-if MNE_3D_BACKEND == 'mayavi':
-    from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == 'pyvista':
-    from ._pyvista import _Renderer, _Projection  # lgtm # noqa: F401
+_fromlist = ('_Renderer', '_Projection', '_close_all')
+_name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
+if MNE_3D_BACKEND in VALID_3D_BACKENDS:
+    # This is (hopefully) the equivalent to:
+    #    from ._whatever_name import ...
+    _mod = importlib.__import__(
+        _name_map[MNE_3D_BACKEND], {'__name__': __name__},
+        level=1, fromlist=_fromlist)
+    for key in _fromlist:
+        locals()[key] = getattr(_mod, key)
 
 
 def set_3d_backend(backend_name):
@@ -61,12 +67,10 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+
        | :func:`plot_evoked_field`            | ✓      | ✓       |
        +--------------------------------------+--------+---------+
-       | :func:`snapshot_brain_montage`       | ✓      | ✓       |
-       +--------------------------------------+--------+---------+
-       | :func:`plot_evoked_field`            | ✓      |         |
+       | :func:`snapshot_brain_montage`       | ✓      | -       |
        +--------------------------------------+--------+---------+
        +--------------------------------------+--------+---------+
-       | **3D feature:**                                         +
+       | **3D feature:**                                         |
        +--------------------------------------+--------+---------+
        | Large data                           | ✓      | ✓       |
        +--------------------------------------+--------+---------+
@@ -76,9 +80,9 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+
        | Jupyter notebook                     | ✓      | ✓       |
        +--------------------------------------+--------+---------+
-       | Interactivity in Jupyter notebook    | ✓      |         |
+       | Interactivity in Jupyter notebook    | ✓      | ✓       |
        +--------------------------------------+--------+---------+
-       | Smooth shading                       | ✓      |         |
+       | Smooth shading                       | ✓      | ✓       |
        +--------------------------------------+--------+---------+
        | Subplotting                          | ✓      |         |
        +--------------------------------------+--------+---------+
@@ -102,7 +106,6 @@ def get_3d_backend():
     backend_used : str
         The 3d backend currently in use.
     """
-    global MNE_3D_BACKEND
     return MNE_3D_BACKEND
 
 

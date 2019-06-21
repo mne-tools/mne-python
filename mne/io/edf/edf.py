@@ -172,7 +172,6 @@ class RawEDF(BaseRaw):
                                                stim_channel, eog, misc,
                                                exclude, preload)
         logger.info('Creating raw.info structure...')
-        _check_update_montage(info, montage)
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
@@ -191,6 +190,9 @@ class RawEDF(BaseRaw):
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
+        if montage is not None:
+            # XXX: set_montage(montage=None) will change all locations to NaN
+            self.set_montage(montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

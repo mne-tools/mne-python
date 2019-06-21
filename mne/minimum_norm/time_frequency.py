@@ -397,7 +397,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        inv_split=None, bandwidth='hann', adaptive=False,
                        low_bias=False, n_jobs=1, return_sensor=False, dB=False,
                        verbose=None):
-    """Compute source power spectrum density (PSD).
+    """Compute source power spectral density (PSD).
 
     Parameters
     ----------
@@ -681,7 +681,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               return_generator=False, n_jobs=1,
                               prepared=False, method_params=None,
                               return_sensor=False, verbose=None):
-    """Compute source power spectrum density (PSD) from Epochs.
+    """Compute source power spectral density (PSD) from Epochs.
 
     This uses the multi-taper method to compute the PSD for each epoch.
 

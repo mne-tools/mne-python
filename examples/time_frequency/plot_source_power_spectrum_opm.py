@@ -1,9 +1,9 @@
 """
 .. _ex-opm-resting-state:
 
-=========================================
-VectorView and OPM resting state datasets
-=========================================
+======================================================================
+Compute source power spectral density (PSD) of VectorView and OPM data
+======================================================================
 
 Here we compute the resting state from raw for data recorded using
 a Neuromag VectorView system and a custom OPM system.
@@ -14,7 +14,7 @@ The steps we use are:
 1. Filtering: downsample heavily.
 2. Artifact detection: use SSP for EOG and ECG.
 3. Source localization: dSPM, depth weighting, cortically constrained.
-4. Frequency: power spectrum density (Welch), 4 sec window, 50% overlap.
+4. Frequency: power spectral density (Welch), 4 sec window, 50% overlap.
 5. Standardize: normalize by relative power for each source.
 
 .. contents::
