@@ -316,14 +316,14 @@ def test_object_size():
             '%s < %s < %s:\n%s' % (lower, size, upper, obj)
 
 
-def test_object_diff_with_nans():
+def test_object_diff_with_nan():
     """Test object diff can handle NaNs."""
-    d0 = dict(nan=np.array([1, np.nan, 0]))
-    d1 = dict(nan=np.array([1, np.nan, 0]))
-    d2 = dict(nan=np.array([np.nan, 1, 0]))
+    d0 = np.array([1, np.nan, 0])
+    d1 = np.array([1, np.nan, 0])
+    d2 = np.array([np.nan, 1, 0])
 
-    assert len(object_diff(d0, d1, ignore_nan=True)) == 0
-    assert (len(object_diff(d0, d2, ignore_nan=True)) > 0)
+    assert object_diff(d0, d1) == ''
+    assert object_diff(d0, d2) != ''
 
 
 def test_hash():
@@ -452,7 +452,10 @@ def test_pca(n_components, whiten):
 
 def test_array_equal_nan():
     """Test comparing arrays with NaNs."""
-    assert not _array_equal_nan([1, np.nan, 0], [1, np.nan, 0], False)
-    assert _array_equal_nan([1, np.nan, 0], [1, np.nan, 0], True)
-    assert not _array_equal_nan([1, 0, np.nan], [1, np.nan, 0], True)
-    assert _array_equal_nan([np.nan, np.nan], [np.nan, np.nan], True)
+    a = b = [1, np.nan, 0]
+    assert not np.array_equal(a, b)  # this is the annoying behavior we avoid
+    assert _array_equal_nan(a, b)
+    b = [np.nan, 1, 0]
+    assert not _array_equal_nan(a, b)
+    a = b = [np.nan] * 2
+    assert _array_equal_nan(a, b)

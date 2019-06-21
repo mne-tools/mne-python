@@ -703,15 +703,15 @@ def _sort_keys(x):
     return keys
 
 
-def _array_equal_nan(a, b, ignore_nan):
-    a = np.asarray(a)
-    b = np.asarray(b)
-    a_idx = ~np.isnan(a) if ignore_nan else slice(None)
-    b_idx = ~np.isnan(b) if ignore_nan else slice(None)
-    return np.array_equal(a[a_idx], b[b_idx]) and np.array_equal(a_idx, b_idx)
+def _array_equal_nan(a, b):
+    try:
+        np.testing.assert_array_equal(a, b)
+    except AssertionError:
+        return False
+    return True
 
 
-def object_diff(a, b, pre='', ignore_nan=False):
+def object_diff(a, b, pre=''):
     """Compute all differences between two python variables.
 
     Parameters
@@ -723,8 +723,6 @@ def object_diff(a, b, pre='', ignore_nan=False):
         Must be same type as ``a``.
     pre : str
         String to prepend to each line.
-    ignore_nan : bool
-        If True, NaN values are ignored when comparing arrays.
 
     Returns
     -------
@@ -745,14 +743,13 @@ def object_diff(a, b, pre='', ignore_nan=False):
                 out += pre + ' right missing key %s\n' % key
             else:
                 out += object_diff(a[key], b[key],
-                                   pre=(pre + '[%s]' % repr(key)),
-                                   ignore_nan=ignore_nan)
+                                   pre=(pre + '[%s]' % repr(key)))
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(xx1, xx2, pre + '[%s]' % ii, ignore_nan)
+                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
     elif isinstance(a, (str, int, float, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
@@ -760,7 +757,7 @@ def object_diff(a, b, pre='', ignore_nan=False):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if not _array_equal_nan(a, b, ignore_nan):
+        if not _array_equal_nan(a, b):
             out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
@@ -777,7 +774,7 @@ def object_diff(a, b, pre='', ignore_nan=False):
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
     elif hasattr(a, '__getstate__'):
-        out += object_diff(a.__getstate__(), b.__getstate__(), pre, ignore_nan)
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
