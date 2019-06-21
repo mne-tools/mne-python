@@ -32,12 +32,11 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
-from ..filter import (filter_data, notch_filter, resample,
-                      _resample_stim_channels, _filt_check_picks,
-                      _filt_update_info, _check_fun, HilbertMixin)
+from ..filter import (FilterMixin, notch_filter, resample,
+                      _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
-                     _check_pandas_index_arguments, _pl, fill_doc,
+                     _check_pandas_index_arguments, fill_doc, copy_doc,
                      check_fname, _get_stim_channel, deprecated,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
@@ -266,7 +265,7 @@ class TimeMixin(object):
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
               InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin,
-              HilbertMixin):
+              FilterMixin):
     """Base class for Raw data.
 
     Parameters
@@ -1104,111 +1103,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         return self
 
-    @verbose
+    # Need a separate method because the default pad is different for raw
+    @copy_doc(FilterMixin.filter)
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
                skip_by_annotation=('edge', 'bad_acq_skip'),
-               pad='reflect_limited', verbose=None):
-        """Filter a subset of channels.
-
-        Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
-        filter to the channels selected by ``picks``. By default the data
-        of the Raw object is modified inplace.
-
-        Parameters
-        ----------
-        %(l_freq)s
-        %(h_freq)s
-        %(picks_all_data)s
-        %(filter_length)s
-        %(l_trans_bandwidth)s
-        %(h_trans_bandwidth)s
-        %(n_jobs-fir)s
-        %(method-fir)s
-        %(iir_params)s
-        %(phase)s
-        %(fir_window)s
-        %(fir_design)s
-        skip_by_annotation : str | list of str
-            If a string (or list of str), any annotation segment that begins
-            with the given string will not be included in filtering, and
-            segments on either side of the given excluded annotated segment
-            will be filtered separately (i.e., as independent signals).
-            The default (``('edge', 'bad_acq_skip')`` will separately filter
-            any segments that were concatenated by :func:`mne.concatenate_raws`
-            or :meth:`mne.io.Raw.append`, or separated during acquisition.
-            To disable, provide an empty list.
-
-            .. versionadded:: 0.16.
-        %(pad-fir)s
-            The default is ``'reflect-limited'``.
-
-            .. versionadded:: 0.15
-        %(verbose_meth)s
-
-        Returns
-        -------
-        raw : instance of Raw
-            The raw instance with filtered data.
-
-        See Also
-        --------
-        mne.Epochs.savgol_filter
-        mne.io.Raw.notch_filter
-        mne.io.Raw.resample
-        mne.filter.create_filter
-        mne.filter.filter_data
-        mne.filter.construct_iir_filter
-
-        Notes
-        -----
-        The Raw object has to have the data loaded e.g. with ``preload=True``
-        or ``self.load_data()``.
-
-        ``l_freq`` and ``h_freq`` are the frequencies below which and above
-        which, respectively, to filter out of the data. Thus the uses are:
-
-            * ``l_freq < h_freq``: band-pass filter
-            * ``l_freq > h_freq``: band-stop filter
-            * ``l_freq is not None and h_freq is None``: high-pass filter
-            * ``l_freq is None and h_freq is not None``: low-pass filter
-
-        ``self.info['lowpass']`` and ``self.info['highpass']`` are only
-        updated with picks=None.
-
-        .. note:: If n_jobs > 1, more memory is required as
-                  ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
-
-        For more information, see the tutorials
-        :ref:`disc-filtering` and :ref:`tut-filter-resample` and
-        :func:`mne.filter.create_filter`.
-        """
-        _check_preload(self, 'raw.filter')
-        update_info, picks = _filt_check_picks(self.info, picks,
-                                               l_freq, h_freq)
-        # Deal with annotations
-        onsets, ends = _annotations_starts_stops(
-            self, skip_by_annotation, 'skip_by_annotation', invert=True)
-        logger.info('Filtering raw data in %d contiguous segment%s'
-                    % (len(onsets), _pl(onsets)))
-        max_idx = (ends - onsets).argmax()
-        for si, (start, stop) in enumerate(zip(onsets, ends)):
-            # Only output filter params once (for info level), and only warn
-            # once about the length criterion (longest segment is too short)
-            use_verbose = verbose if si == max_idx else 'error'
-            filter_data(
-                self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
-                picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
-                n_jobs, method, iir_params, copy=False, phase=phase,
-                fir_window=fir_window, fir_design=fir_design, pad=pad,
-                verbose=use_verbose)
-        # update info if filter is applied to all data channels,
-        # and it's not a band-stop filter
-        _filt_update_info(self.info, update_info, l_freq, h_freq)
-        return self
+               pad='reflect_limited', verbose=None):  # noqa: D102
+        return super().filter(
+            l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
+            h_trans_bandwidth, n_jobs, method, iir_params, phase,
+            fir_window, fir_design, skip_by_annotation, pad, verbose)
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='auto',
@@ -1291,7 +1197,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, pad='reflect_limited', verbose=None):
+                 n_jobs=1, events=None, pad='reflect_limited',
+                 verbose=None):  # lgtm
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
@@ -1403,8 +1310,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         self._data = np.concatenate(new_data, axis=1)
         self.info['sfreq'] = sfreq
-        if self.info.get('lowpass') is not None:
-            self.info['lowpass'] = min(self.info['lowpass'], sfreq / 2.)
+        lowpass = self.info.get('lowpass')
+        lowpass = np.inf if lowpass is None else lowpass
+        self.info['lowpass'] = min(lowpass, sfreq / 2.)
         self._update_times()
 
         # See the comment above why we ignore all errors here.

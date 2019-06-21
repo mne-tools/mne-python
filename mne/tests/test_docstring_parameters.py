@@ -215,7 +215,6 @@ BaseEstimator
 ContainsMixin
 CrossSpectralDensity
 FilterMixin
-HilbertMixin
 GeneralizationAcrossTime
 RawFIF
 TimeMixin
