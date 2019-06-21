@@ -99,11 +99,9 @@ def _read_curry_lines(fname, regex_list):
 def _read_curry_info(fname_base, curry_vers):
     """extract info from curry parameter files"""
 
-    var_names = ['NumSamples', 'NumChannels', 'NumTrials', 'SampleFreqHz',
-                 'TriggerOffsetUsec', 'DataFormat', 'SampleTimeUsec',
-                 'NUM_SAMPLES', 'NUM_CHANNELS', 'NUM_TRIALS', 'SAMPLE_FREQ_HZ',
-                 'TRIGGER_OFFSET_USEC', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
-
+    var_names = ['NumSamples', 'NumTrials', 'SampleFreqHz', 'DataFormat',
+                 'SampleTimeUsec', 'NUM_SAMPLES', 'NUM_TRIALS',
+                 'SAMPLE_FREQ_HZ', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
 
     param_dict = dict()
     unit_dict = dict()
@@ -115,18 +113,12 @@ def _read_curry_info(fname_base, curry_vers):
             for type in CHANTYPES:
                 if "DEVICE_PARAMETERS" + CHANTYPES[type] + " START" in line:
                     data_unit = next(fid)
-                    unit_dict[type] = data_unit.replace(" ", "").replace("\n", "").split("=")[-1]
-
-    for var in var_names[:7]:
-        if var.lower() not in param_dict:
-            raise KeyError("Variable %s cannot be found in the parameter file."
-                           % var)
+                    unit_dict[type] = data_unit.replace(" ", "") \
+                        .replace("\n", "").split("=")[-1]
 
     n_samples = int(param_dict["numsamples"])
-    # n_ch = int(param_dict["numchannels"])
     n_trials = int(param_dict["numtrials"])
     sfreq = float(param_dict["samplefreqhz"])
-    offset = float(param_dict["triggeroffsetusec"]) * 1e-6
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     ascii = param_dict["dataformat"] == "ASCII"
 
@@ -135,10 +127,12 @@ def _read_curry_info(fname_base, curry_vers):
 
     # read labels from label files
     labels = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
-                               ["LABELS" + CHANTYPES[key] for key in ["meg", "eeg", "misc"]])
+                               ["LABELS" + CHANTYPES[key] for key in
+                                ["meg", "eeg", "misc"]])
 
     sensors = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
-                                ["SENSORS" + CHANTYPES[key] for key in ["meg", "eeg", "misc"]])
+                                ["SENSORS" + CHANTYPES[key] for key in
+                                 ["meg", "eeg", "misc"]])
 
     all_chans = list()
     for key in ["meg", "eeg", "misc"]:
@@ -230,9 +224,11 @@ def read_raw_curry(input_fname, preload=False):
     curry_vers = _get_curry_version(ext)
     _check_missing_files(fname_base, curry_vers)
 
-    info, n_trials, n_samples, curry_vers, ascii = _read_curry_info(fname_base, curry_vers)
+    info, n_trials, n_samples, curry_vers, ascii = _read_curry_info(fname_base,
+                                                                    curry_vers)
 
-    raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info, n_samples, ascii, preload)
+    raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info,
+                   n_samples, ascii, preload)
 
     return raw
 
@@ -275,18 +271,18 @@ class RawCurry(BaseRaw):
         last_samps = [n_samples - 1]
 
         if ascii:
-            if preload == False:
+            if not preload:
                 warn('Got ASCII format data as input. Data will be preloaded.')
 
             cals = [[ch_dict["cal"]] for ch_dict in info["chs"]]
             preload = np.loadtxt(data_fname).T * cals
 
-
         super(RawCurry, self).__init__(
-            info, preload, filenames=[data_fname], last_samps=last_samps, orig_format='int',
-            verbose=verbose)
+            info, preload, filenames=[data_fname], last_samps=last_samps,
+            orig_format='int', verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
 
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult, dtype="<f4")
+        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                            dtype="<f4")

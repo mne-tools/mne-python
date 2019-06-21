@@ -63,7 +63,7 @@ def test_read_raw_curry():
     curry8_rfDC = read_raw_curry(curry8_rfDC_file)
 
     # test on the eeg chans, since these were not renamed by curry
-    eeg_names = [ch["ch_name"] for ch in curry7_rfDC.info["chs"] \
+    eeg_names = [ch["ch_name"] for ch in curry7_rfDC.info["chs"]
                  if ch["kind"] == FIFF.FIFFV_EEG_CH]
 
     assert_allclose(curry7_rfDC.get_data(eeg_names),
@@ -87,7 +87,8 @@ def test_read_raw_curry():
                     bdf.info["sfreq"])
 
     # we only use chans [0:3] here since the stim channel was already extracted
-    for curry_file in [curry7_bdf, curry7_bdf_ascii, curry8_bdf, curry8_bdf_ascii]:
+    for curry_file in [curry7_bdf, curry7_bdf_ascii,
+                       curry8_bdf, curry8_bdf_ascii]:
         assert_allclose([ch["kind"] for ch in curry_file.info["chs"]],
                         [ch["kind"] for ch in bdf.info["chs"][0:3]])
         assert_array_equal([ch["ch_name"] for ch in curry_file.info["chs"]],
