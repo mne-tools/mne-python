@@ -166,7 +166,7 @@ def set_3d_view(figure, azimuth=None, elevation=None,
                       distance=distance)
 
 
-def set_3d_title(figure, title):
+def set_3d_title(figure, title, size=40):
     """Configure the title of the given scene.
 
     Parameters
@@ -175,8 +175,10 @@ def set_3d_title(figure, title):
         The scene which is modified.
     title:
         The title of the scene.
+    size: int
+        The size of the title.
     """
-    _mod._set_3d_title(figure=figure, title=title)
+    _mod._set_3d_title(figure=figure, title=title, size=size)
 
 
 def create_3d_figure(size):

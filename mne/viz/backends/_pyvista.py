@@ -383,6 +383,6 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
                               'is not supported yet for this backend.')
 
 
-def _set_3d_title(figure, title):
+def _set_3d_title(figure, title, size=40):
     raise NotImplementedError('_set_3d_title() feature '
                               'is not supported yet for this backend.')

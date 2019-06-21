@@ -355,6 +355,8 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
                       focalpoint=focalpoint, figure=figure)
 
 
-def _set_3d_title(figure, title):
+def _set_3d_title(figure, title, size=40):
     from mayavi import mlab
-    mlab.title(text=title, figure=figure)
+    text = mlab.title(text=title, figure=figure)
+    text.property.vertical_justification = 'top'
+    text.property.font_size = size
