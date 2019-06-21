@@ -70,13 +70,11 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # some information about the file it's loading. For example, here it tells us
 # that there are three "projection items" in the file along with the recorded
 # data; those are :term:`SSP projectors <projector>` calculated to remove
-# environmental noise from the MEG signals, and are discussed in a later
-# tutorial. In addition to the information displayed during loading, you can
+# environmental noise from the MEG signals, and are discussed in a the tutorial
+# :doc:`../intro/plot_projectors_intro`.
+# In addition to the information displayed during loading, you can
 # get a glimpse of the basic details of a :class:`~mne.io.Raw` object by
 # printing it:
-#
-# .. TODO change "in a later tutorial" to crossref when the projectors tutorial
-#    is done.
 
 print(raw)
 
