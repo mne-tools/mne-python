@@ -315,6 +315,16 @@ def test_object_size():
             '%s < %s < %s:\n%s' % (lower, size, upper, obj)
 
 
+def test_object_diff_with_nans():
+    """Test object diff can handle NaNs."""
+    d0 = dict(nan=np.array([1, np.nan, 0]))
+    d1 = dict(nan=np.array([1, np.nan, 0]))
+    d2 = dict(nan=np.array([np.nan, 1, 0]))
+
+    assert len(object_diff(d0, d1, ignore_nan=True)) == 0
+    assert (len(object_diff(d0, d2, ignore_nan=True)) > 0)
+
+
 def test_hash():
     """Test dictionary hashing and comparison functions."""
     # does hashing all of these types work:

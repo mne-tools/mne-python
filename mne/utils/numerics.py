@@ -752,12 +752,11 @@ def object_diff(a, b, pre='', ignore_nan=False):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if ignore_nan:
-            if not np.array_equal(a[~np.isnan(a)], b[~np.isnan(b)]):
-                out += pre + ' array mismatch\n'
-        else:
-            if not np.array_equal(a, b):
-                out += pre + ' array mismatch\n'
+        a_idx = ~np.isnan(a) if ignore_nan else slice(None)
+        b_idx = ~np.isnan(b) if ignore_nan else slice(None)
+        if (not np.array_equal(a[a_idx], b[b_idx]) or
+                not np.array_equal(a_idx, b_idx)):
+            out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
             out += pre + ' StringIO mismatch\n'
