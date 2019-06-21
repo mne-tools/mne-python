@@ -115,6 +115,15 @@ def _get_info(eeg, montage, eog=()):
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
 
+    if eog == 'auto':
+        eog = _find_channels(ch_names)
+
+    for idx, ch in enumerate(info['chs']):
+        ch['cal'] = CAL
+        if ch['ch_name'] in eog or idx in eog:
+            ch['coil_type'] = FIFF.FIFFV_COIL_NONE
+            ch['kind'] = FIFF.FIFFV_EOG_CH
+
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
@@ -125,14 +134,6 @@ def _get_info(eeg, montage, eog=()):
         #     info, montage, path=path, update_ch_names=update_ch_names,
         #     raise_missing=False)
 
-    if eog == 'auto':
-        eog = _find_channels(ch_names)
-
-    for idx, ch in enumerate(info['chs']):
-        ch['cal'] = CAL
-        if ch['ch_name'] in eog or idx in eog:
-            ch['coil_type'] = FIFF.FIFFV_COIL_NONE
-            ch['kind'] = FIFF.FIFFV_EOG_CH
     return info
 
 
