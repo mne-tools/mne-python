@@ -6,6 +6,7 @@
 
 import os.path as op
 
+from copy import deepcopy
 import numpy as np
 
 from ..utils import _read_segments_file, _find_channels
@@ -18,8 +19,30 @@ from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
 
+from mne.utils import object_diff
+
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
+
+
+def assert_equal_montage(aa, bb):
+    for elem in [aa, bb]:
+        assert type(elem) in [str, Montage, type(None)], 'invalid montage type'
+
+    if aa is None or bb is None:
+        assert aa is None and bb is None, 'montge should both be None'
+    elif isinstance(aa, str):
+        assert aa == bb, 'montage not equal strings'
+    else:  # Montage
+        assert aa.ch_names == bb.ch_names, 'montage ch_names differ'
+        assert aa.kind == bb.kind, 'montage kind differ'
+        assert aa.lpa == bb.lpa, 'montage lpa differ'
+        assert aa.nasion == bb.nasion, 'montage nasion differ'
+        assert aa.rpa == bb.rpa, 'montage rpa differ'
+        np.testing.assert_array_equal(aa.pos, bb.pos, err_msg='different pos')
+        np.testing.assert_array_equal(aa.selection, bb.selection,
+                                      err_msg='different pos')
+
 
 
 def _check_fname(fname):
@@ -60,6 +83,7 @@ def _to_loc(ll):
 
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
+    xx_montage = deepcopy(montage)
     from scipy import io
     info = _empty_info(sfreq=eeg.srate)
     update_ch_names = True
@@ -134,6 +158,7 @@ def _get_info(eeg, montage, eog=()):
         #     info, montage, path=path, update_ch_names=update_ch_names,
         #     raise_missing=False)
 
+    assert_equal_montage(xx_montage, montage)
     return info
 
 
