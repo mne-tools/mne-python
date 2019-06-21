@@ -183,7 +183,7 @@ class _Renderer(_BaseRenderer):
 
     def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
              scalars=None, vmin=None, vmax=None, colormap=None,
-             opacity=1.0, backface_culling=False):
+             opacity=1.0, backface_culling=False, reverse_lut=False):
         raise NotImplementedError('tube() feature '
                                   'is not supported yet for this backend.')
 
@@ -267,6 +267,10 @@ class _Renderer(_BaseRenderer):
 
     def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
         raise NotImplementedError('text3d() feature '
+                                  'is not supported yet for this backend.')
+
+    def scalarbar(self, source, title=None, n_labels=None):
+        raise NotImplementedError('scalarbar() feature '
                                   'is not supported yet for this backend.')
 
     def show(self):
