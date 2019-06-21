@@ -312,6 +312,7 @@ def _fake_montage(ch_names):
     return Montage(
         pos=np.random.RandomState(42).randn(len(ch_names), 3),
         ch_names=ch_names,
+        # kind=4,
         kind='foo',
         selection=np.arange(len(ch_names))
     )
@@ -330,9 +331,12 @@ def test_montage():
     raw_montage = read_raw_eeglab(input_fname=fname, montage=montage,
                                   preload=False)
     raw_none.set_montage(montage)
-
-    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
     assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
+    # assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
+    diff = object_diff(raw_none.info['chs'],
+                       raw_montage.info['chs']).splitlines()
+    for dd in diff:
+        assert 'coord_frame' in dd
 
 
 run_tests_if_main()
