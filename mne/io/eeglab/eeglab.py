@@ -133,7 +133,10 @@ def _get_info(eeg, montage, eog=()):
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
         if n_channels_with_pos > 0:
             selection = np.arange(n_channels_with_pos)
-            montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+            new_montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+            montage = new_montage
+            # new_montage = montage
+
     elif isinstance(montage, str):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
@@ -148,17 +151,26 @@ def _get_info(eeg, montage, eog=()):
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
 
+    # assert_equal_montage(xx_montage, montage)
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
         from mne.channels.montage import _set_montage
-        _set_montage(info, montage, update_ch_names=update_ch_names,
-                     set_dig=True)
+
+        if 'new_montage' in locals():
+            _set_montage(info, montage=new_montage,
+                         update_ch_names=update_ch_names, set_dig=True)
+        else:
+            _set_montage(info, montage=montage,
+                         update_ch_names=update_ch_names, set_dig=True)
         # _check_update_montage(
         #     info, montage, path=path, update_ch_names=update_ch_names,
         #     raise_missing=False)
 
     assert_equal_montage(xx_montage, montage)
+
+    montage = new_montage if 'new_montage' in locals() else montage
+
     return info
 
 
