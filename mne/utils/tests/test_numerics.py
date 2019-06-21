@@ -18,7 +18,8 @@ from mne.utils import (_get_inst_data, md5sum, hashfunc,
                        _freq_mask, random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
-                       _undo_scaling_array, _PCA, requires_sklearn)
+                       _undo_scaling_array, _PCA, requires_sklearn,
+                       _array_equal_nan)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -447,3 +448,11 @@ def test_pca(n_components, whiten):
     else:
         assert n_components is None
         assert pca_mne.n_components_ == n_dim
+
+
+def test_array_equal_nan():
+    """Test comparing arrays with NaNs."""
+    assert not _array_equal_nan([1, np.nan, 0], [1, np.nan, 0], False)
+    assert _array_equal_nan([1, np.nan, 0], [1, np.nan, 0], True)
+    assert not _array_equal_nan([1, 0, np.nan], [1, np.nan, 0], True)
+    assert _array_equal_nan([np.nan, np.nan], [np.nan, np.nan], True)
