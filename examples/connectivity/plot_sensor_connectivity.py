@@ -47,9 +47,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 fmin, fmax = 3., 9.
 sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
+epochs.load_data().pick_types(meg='grad')  # just keep MEG and no EOG now
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     epochs, method='pli', mode='multitaper', sfreq=sfreq, fmin=fmin, fmax=fmax,
     faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=1)
 
 # Now, visualize the connectivity in 3D
-plot_sensors_connectivity(raw.info, epochs, con, picks)
+plot_sensors_connectivity(epochs.info, con[:, :, 0])

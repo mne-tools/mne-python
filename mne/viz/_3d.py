@@ -24,7 +24,7 @@ from scipy import linalg, sparse
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar
 from ..io import _loc_to_coil_trans
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
@@ -2560,16 +2560,14 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
 
 @fill_doc
-def plot_sensors_connectivity(info, epochs, con, picks=None):
+def plot_sensors_connectivity(info, con, picks=None):
     """Visualize the sensor connectivity in 3D.
 
     Parameters
     ----------
     info : dict | None
         The measurement info.
-    epochs: Epochs
-        The data used to get the channel names.
-    con: array | list of array
+    con: array, shape (n_channels, n_channels)
         The computed connectivity measure(s).
     %(picks_good_data)s
         Indices of selected channels.
@@ -2579,25 +2577,20 @@ def plot_sensors_connectivity(info, epochs, con, picks=None):
     fig : instance of mayavi.mlab.Figure
         The mayavi figure.
     """
-    from mne import Epochs
     _validate_type(info, "info")
-    _validate_type(epochs, Epochs)
 
     from .backends.renderer import _Renderer
 
     renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
 
-    # the epochs contain an EOG channel, which we remove now
-    ch_names = epochs.ch_names
-
-    idx = [ch_names.index(name) for name in ch_names if name.startswith('MEG')]
-    # con is a 3D array where the last dimension is size one since we averaged
-    # over frequencies in a single band. Here we make it 2D
-    con = con[idx][:, idx]
-    con = con[:, :, 0]
+    picks = _picks_to_idx(info, picks)
+    if len(picks) != len(con):
+        raise ValueError('The number of channels picked (%s) does not '
+                         'correspond the size of the connectivity data '
+                         '(%s)' % (len(picks), len(con)))
 
     # Plot the sensor locations
-    sens_loc = [info['chs'][picks[i]]['loc'][:3] for i in idx]
+    sens_loc = [info['chs'][k]['loc'][:3] for k in picks]
     sens_loc = np.array(sens_loc)
 
     renderer.sphere(np.c_[sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2]],
