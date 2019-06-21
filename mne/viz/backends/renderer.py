@@ -154,7 +154,7 @@ def set_3d_view(figure, azimuth=None, elevation=None,
         The azimuthal angle of the view.
     elevation: float
         The zenith angle of the view.
-    focalpoint: tuple
+    focalpoint: tuple, shape (3,)
         The focal point of the view: (x, y, z).
     distance: float
         The distance to the focal point.
