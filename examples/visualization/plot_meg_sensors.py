@@ -11,13 +11,11 @@ Show sensor layouts of different MEG systems.
 
 import os.path as op
 
-from mayavi import mlab
-
 import mne
 from mne.io import read_raw_fif, read_raw_ctf, read_raw_bti, read_raw_kit
 from mne.io import read_raw_artemis123
 from mne.datasets import sample, spm_face, testing
-from mne.viz import plot_alignment
+from mne.viz import plot_alignment, set_3d_title
 
 print(__doc__)
 
@@ -45,12 +43,11 @@ for system, raw in sorted(raws.items()):
     fig = plot_alignment(raw.info, trans=None, dig=False, eeg=False,
                          surfaces=[], meg=meg, coord_frame='meg',
                          verbose=True)
-    text = mlab.title(system)
-    text.x_position = 0.5
-    text.y_position = 0.95
-    text.property.vertical_justification = 'top'
-    text.property.justification = 'center'
-    text.actor.text_scale_mode = 'none'
-    text.property.bold = True
-    text.property.font_size = 40
-    mlab.draw(fig)
+    set_3d_title(figure=fig, title=system)
+    # text.x_position = 0.5
+    # text.y_position = 0.95
+    # text.property.vertical_justification = 'top'
+    # text.property.justification = 'center'
+    # text.actor.text_scale_mode = 'none'
+    # text.property.bold = True
+    # text.property.font_size = 40
