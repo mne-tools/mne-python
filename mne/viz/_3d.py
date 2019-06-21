@@ -2618,13 +2618,14 @@ def plot_sensors_connectivity(info, con, picks=None):
     for val, nodes in zip(con_val, con_nodes):
         x1, y1, z1 = sens_loc[nodes[0]]
         x2, y2, z2 = sens_loc[nodes[1]]
-        renderer.tube(origin=np.c_[x1, y1, z1],
-                      destination=np.c_[x2, y2, z2],
-                      scalars=np.c_[val, val],
-                      vmin=vmin, vmax=vmax, radius=0.001,
-                      colormap='RdBu')
+        tube = renderer.tube(origin=np.c_[x1, y1, z1],
+                             destination=np.c_[x2, y2, z2],
+                             scalars=np.c_[val, val],
+                             vmin=vmin, vmax=vmax, radius=0.001,
+                             colormap='RdBu',
+                             reverse_lut=True)
 
-    # renderer.scalarbar(points, title='Phase Lag Index (PLI)', nb_labels=4)
+    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)', n_labels=4)
 
     # Add the sensor names for the connections shown
     nodes_shown = list(set([n[0] for n in con_nodes] +

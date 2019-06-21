@@ -254,7 +254,6 @@ this package. You can also find a gallery of these examples in the
         .. toctree::
             :maxdepth: 1
 
-            auto_examples/forward/plot_decimate_head_surface.rst
             auto_examples/forward/plot_forward_sensitivity_maps.rst
             auto_examples/forward/plot_left_cerebellum_volume_source.rst
             auto_examples/forward/plot_source_space_morphing.rst

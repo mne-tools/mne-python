@@ -52,6 +52,11 @@ class _BaseRenderer(metaclass=ABCMeta):
             If True, enable backface culling on the mesh.
         kwargs: args
             The arguments to pass to triangular_mesh
+
+        Returns
+        -------
+        surface:
+            Handle of the mesh in the scene.
         """
         pass
 
@@ -138,7 +143,7 @@ class _BaseRenderer(metaclass=ABCMeta):
     @abstractclassmethod
     def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
              scalars=None, vmin=None, vmax=None, colormap=None,
-             opacity=1.0, backface_culling=False):
+             opacity=1.0, backface_culling=False, reverse_lut=False):
         """Add tube in the scene.
 
         Parameters
@@ -165,6 +170,13 @@ class _BaseRenderer(metaclass=ABCMeta):
             The opacity of the tube(s).
         backface_culling: bool
             If True, enable backface culling on the tube(s).
+        reverse_lut: bool
+            If True, reverse the lookup table.
+
+        Returns
+        -------
+        surface:
+            Handle of the tube in the scene.
         """
         pass
 
@@ -251,6 +263,21 @@ class _BaseRenderer(metaclass=ABCMeta):
             The width of the text.
         color: tuple
             The color of the text.
+        """
+        pass
+
+    @abstractclassmethod
+    def scalarbar(self, source, title=None, n_labels=None):
+        """Add a scalar bar in the scene.
+
+        Parameters
+        ----------
+        source:
+            The object of the scene used for the colormap.
+        title: str | None
+            The title of the scalar bar.
+        n_labels: int | None
+            The number of labels to display on the scalar bar.
         """
         pass
 
