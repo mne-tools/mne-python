@@ -9,7 +9,8 @@ from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
 from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_vector_source_estimates, plot_evoked_field,
                   plot_dipole_locations, snapshot_brain_montage,
-                  plot_head_positions, plot_alignment, plot_volume_source_estimates)
+                  plot_head_positions, plot_alignment,
+                  plot_volume_source_estimates, plot_sensors_connectivity)
 from .misc import (plot_cov, plot_csd, plot_bem, plot_events,
                    plot_source_spectrogram, _get_presser,
                    plot_dipole_amplitudes, plot_ideal_filter, plot_filter,
@@ -24,5 +25,6 @@ from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
                   _plot_sources_raw, _plot_sources_epochs, plot_ica_properties)
 from .montage import plot_montage
-from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend)
+from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
+                                set_3d_view, set_3d_title, create_3d_figure)
 from . import backends

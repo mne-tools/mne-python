@@ -181,6 +181,12 @@ class _Renderer(_BaseRenderer):
                                   backface_culling=backface_culling,
                                   smooth_shading=self.smooth_shading)
 
+    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+             scalars=None, vmin=None, vmax=None, colormap=None,
+             opacity=1.0, backface_culling=False, reverse_lut=False):
+        raise NotImplementedError('tube() feature '
+                                  'is not supported yet for this backend.')
+
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
@@ -254,10 +260,18 @@ class _Renderer(_BaseRenderer):
                                       backface_culling=backface_culling,
                                       smooth_shading=self.smooth_shading)
 
-    def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         self.plotter.add_text(text, position=(x, y),
                               font_size=int(width * 100),
                               color=color)
+
+    def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
+        raise NotImplementedError('text3d() feature '
+                                  'is not supported yet for this backend.')
+
+    def scalarbar(self, source, title=None, n_labels=None):
+        raise NotImplementedError('scalarbar() feature '
+                                  'is not supported yet for this backend.')
 
     def show(self):
         self.display = self.plotter.show(title=self.name)
@@ -345,8 +359,7 @@ def _get_view_to_display_matrix(size):
 
 
 def _close_all():
-    # XXX This is not implemented yet
-    pass
+    pyvista.close_all()
 
 
 def _check_notebook():
@@ -363,3 +376,13 @@ def _run_from_ipython():
         return True
     except NameError:
         return False
+
+
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+    raise NotImplementedError('_set_3d_view() feature '
+                              'is not supported yet for this backend.')
+
+
+def _set_3d_title(figure, title, size=40):
+    raise NotImplementedError('_set_3d_title() feature '
+                              'is not supported yet for this backend.')
