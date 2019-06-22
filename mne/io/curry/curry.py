@@ -47,8 +47,7 @@ def _check_missing_files(fname_base, curry_vers):
 
 
 def _read_curry_lines(fname, regex_list):
-    """
-    Read through the lines of a curry parameter files and save data.
+    """Read through the lines of a curry parameter files and save data.
 
     Parameters
     ----------
@@ -157,12 +156,11 @@ def _read_curry_info(fname_base, curry_vers):
 
 
 def read_events_curry(fname, event_ids=None):
-    """
-    Read events from Curry event files.
+    """Read events from Curry event files.
 
     Parameters
     ----------
-    input_fname : str
+    fname : str
         Path to a curry event file with extensions .cef, .ceo,
         .cdt.cef, or .cdt.ceo
     event_ids : tuple, list or None (default None)
@@ -171,8 +169,8 @@ def read_events_curry(fname, event_ids=None):
 
     Returns
     -------
-    events : ndarray
-        An array of shape (n_events,3) containing MNE events.
+    events : ndarray, shape (n_events, 3)
+        The array of events.
     """
     check_fname(fname, 'curry event', ('.cef', '.cdt.cef'),
                 endings_err=('.cef', '.cdt.cef'))
@@ -189,8 +187,7 @@ def read_events_curry(fname, event_ids=None):
 
 
 def read_raw_curry(input_fname, preload=False):
-    """
-    Read raw data from Curry files.
+    """Read raw data from Curry files.
 
     Parameters
     ----------
@@ -228,8 +225,7 @@ def read_raw_curry(input_fname, preload=False):
 
 
 class RawCurry(BaseRaw):
-    """
-    Raw object from Curry file.
+    """Raw object from Curry file.
 
     Parameters
     ----------
