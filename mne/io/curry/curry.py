@@ -186,7 +186,7 @@ def read_events_curry(fname, event_ids=None):
     return curry_events
 
 
-def read_raw_curry(input_fname, preload=False):
+def read_raw_curry(input_fname, preload=False, verbose=None):
     """Read raw data from Curry files.
 
     Parameters
@@ -200,6 +200,7 @@ def read_raw_curry(input_fname, preload=False):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
+    %(verbose)s
 
     Returns
     -------
@@ -207,19 +208,7 @@ def read_raw_curry(input_fname, preload=False):
         A Raw object containing Curry data.
 
     """
-    # we don't use os.path.splitext to also handle extensions like .cdt.dpa
-    fname_base, ext = input_fname.split(".", maxsplit=1)
-
-    curry_vers = _get_curry_version(ext)
-    _check_missing_files(fname_base, curry_vers)
-
-    info, n_trials, n_samples, curry_vers, is_ascii = _read_curry_info(fname_base,
-                                                                       curry_vers)
-
-    raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info,
-                   n_samples, is_ascii, preload)
-
-    return raw
+    return RawCurry(input_fname, preload, verbose)
 
 
 class RawCurry(BaseRaw):
@@ -227,15 +216,9 @@ class RawCurry(BaseRaw):
 
     Parameters
     ----------
-    data_fname : str
-        Path to the Curry data file (.dat or .cdt).
-    info : instance of mne.Info
-        An instance of mne.Info as returned by mne.io.curry._read_curry_info.
-    n_samples : int
-        The number of samples of the curry data file.
-    is_ascii : bool (default False)
-        If the loaded data file is coded in ASCII, is_ascii must be set to
-        True. Else must be False.
+    input_fname : str
+        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
+        .cdt.cef or .cef.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -250,13 +233,18 @@ class RawCurry(BaseRaw):
 
     """
 
-    def __init__(self, data_fname, info, n_samples, is_ascii,
-                 preload=False, verbose=None):
+    def __init__(self, input_fname, preload=False, verbose=None):
 
-        data_fname = os.path.abspath(data_fname)
+        # we don't use os.path.splitext to also handle extensions like .cdt.dpa
+        fname_base, ext = input_fname.split(".", maxsplit=1)
+        curry_vers = _get_curry_version(ext)
+        _check_missing_files(fname_base, curry_vers)
+        data_fname = os.path.abspath(fname_base + DATA_FILE_EXTENSION[curry_vers])
+
+        info, n_trials, n_samples, curry_vers, is_ascii = _read_curry_info(fname_base,
+                                                                           curry_vers)
 
         last_samps = [n_samples - 1]
-
         self._is_ascii = is_ascii
 
         super(RawCurry, self).__init__(
