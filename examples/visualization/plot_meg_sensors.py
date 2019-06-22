@@ -44,10 +44,3 @@ for system, raw in sorted(raws.items()):
                          surfaces=[], meg=meg, coord_frame='meg',
                          verbose=True)
     set_3d_title(figure=fig, title=system)
-    # text.x_position = 0.5
-    # text.y_position = 0.95
-    # text.property.vertical_justification = 'top'
-    # text.property.justification = 'center'
-    # text.actor.text_scale_mode = 'none'
-    # text.property.bold = True
-    # text.property.font_size = 40
