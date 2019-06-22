@@ -3,12 +3,15 @@
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 # License: BSD (3-clause)
-import types
-import numpy as np
+from functools import partial
 import os
+import types
+
+import numpy as np
+import pytest
+
 import mne
 
-from functools import partial
 
 info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'meas_date', 'highpass', 'lowpass', 'subject_info',
@@ -121,7 +124,11 @@ def get_raw_data(system, drop_extra_chs=False):
     if system == 'eximia':
         crop -= 0.5 * (1.0 / raw_data.info['sfreq'])
     raw_data.crop(0, crop)
-    raw_data.set_eeg_reference([])
+    if 'eeg' in raw_data:
+        raw_data.set_eeg_reference([])
+    else:
+        with pytest.raises(ValueError, match='No EEG channels'):
+            raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
     raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])
