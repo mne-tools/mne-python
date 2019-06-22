@@ -222,15 +222,13 @@ def test_plot_compare_evokeds():
     figs = plot_compare_evokeds(evoked)
     assert len(figs) == 2
     # test picks, combine, and vlines (1-channel pick also shows sensor inset)
-    fig0 = plot_compare_evokeds(evoked, picks='MEG 0113', vlines=[0.1, 0.2])
-    fig1 = plot_compare_evokeds(evoked, picks='mag', combine='mean', vlines=[])
-    fig2 = plot_compare_evokeds(evoked, picks=['MEG 0113', 'MEG 0223'],
-                                combine='std')
-    plot_compare_evokeds(evoked, picks=[0, 1],
-                         combine=lambda x: np.min(x, axis=1))
-    assert '(GFP)' in fig0[0].axes[0].get_title()
-    assert '(mean)' in fig1[0].axes[0].get_title()
-    assert '(std. dev.)' in fig2[0].axes[0].get_title()
+    picks = ['MEG 0113', 'mag'] + 2 * [['MEG 0113', 'MEG 0112']] + [[0, 1]]
+    vlines = [[0.1, 0.2], []] + 3 * ['auto']
+    combine = [None, 'mean', 'std', None, lambda x: np.min(x, axis=1)]
+    title = ['MEG 0113', '(mean)', '(std. dev.)', '(GFP)', 'MEG 0112']
+    for _p, _v, _c, _t in zip(picks, vlines, combine, title):
+        fig = plot_compare_evokeds(evoked, picks=_p, vlines=_v, combine=_c)
+        assert fig[0].axes[0].get_title().endswith(_t)
     # test passing more than one evoked
     red, blue = evoked.copy(), evoked.copy()
     red.data *= 1.5
@@ -253,24 +251,29 @@ def test_plot_compare_evokeds():
         assert (ys > ylim[0]).all()
     plt.close('all')
     # test other CI args
-    for _ci in (None, False, 0.5, lambda x: np.stack(x + 1, x - 1)):
+    for _ci in (None, False, 0.5,
+                lambda x: np.stack([x.mean(axis=0) + 1, x.mean(axis=0) - 1])):
         plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)
     # test sensor inset, legend location, and axis inversion & truncation
     plot_compare_evokeds(evoked_dict, invert_y=True,
                          show_legend='upper left', show_sensors='center',
                          truncate_xaxis=False, truncate_yaxis=False)
     plot_compare_evokeds(evoked, ylim=dict(mag=(-50, 50)), truncate_yaxis=True)
+    plt.close('all')
     # test styles
     plot_compare_evokeds(evoked_dict, colors=['b', 'r', 'g'],
                          linestyles=[':', '-', '--'], split_legend=True)
-    style_dict = dict(aud=dict(alpha=0.3), vis=dict(linewidth=3))
+    style_dict = dict(aud=dict(alpha=0.3), vis=dict(linewidth=3, c='k'))
     plot_compare_evokeds(evoked_dict, styles=style_dict, colors={'aud/r': 'r'},
                          linestyles=dict(vis='dotted'), ci=False)
+    plot_compare_evokeds(evoked_dict, colors=list(range(3)))
+    plt.close('all')
     # test colormap
     cmap = get_cmap('viridis')
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=0.4, vis=0.9))
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=1, vis=2))
-    plot_compare_evokeds(evoked_dict, cmap='inferno')
+    plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
+                         linestyles=['-', ':', '--'])
     plt.close('all')
     # test deprecation
     with pytest.warns(DeprecationWarning, match='"gfp" is deprecated'):
@@ -287,10 +290,7 @@ def test_plot_compare_evokeds():
         plot_compare_evokeds('foo')
     with pytest.raises(TypeError, match='"ci" must be None, bool, float or'):
         plot_compare_evokeds(evoked, ci='foo')
-    with pytest.raises(ValueError, match='If "split_legend" is True you must'):
-        plot_compare_evokeds(evoked_dict, cmap='inferno', split_legend=True,
-                             colors=None)
-    with pytest.raises(ValueError, match='keys in "styles" (.*) must match'):
+    with pytest.raises(ValueError, match=r'keys in "styles" \(.*\) must '):
         plot_compare_evokeds(evoked_dict, styles=dict(foo='foo', bar='bar'))
     with pytest.raises(ValueError, match='colors in the default color cycle'):
         plot_compare_evokeds(huge_dict, colors=None)
@@ -300,15 +300,15 @@ def test_plot_compare_evokeds():
                                                                'vis': 'baz'})
     plt.close('all')
     for kwargs in [dict(colors=[0, 1]), dict(linestyles=['-', ':'])]:
-        match = 'but there are only .* [colors|linestyles]. Please specify'
+        match = r'but there are only \d* (colors|linestyles). Please specify'
         with pytest.raises(ValueError, match=match):
             plot_compare_evokeds(evoked_dict, **kwargs)
     for kwargs in [dict(colors='foo'), dict(linestyles='foo')]:
-        match = '"[colors|linestyles]" must be a dict, list, or None; got .*'
-        with pytest.raises(ValueError, match=match):
+        match = r'"(colors|linestyles)" must be a dict, list, or None; got '
+        with pytest.raises(TypeError, match=match):
             plot_compare_evokeds(evoked_dict, **kwargs)
     for kwargs in [dict(colors=dict(foo='f')), dict(linestyles=dict(foo='f'))]:
-        match = 'If "[colors|linestyles]" is a dict its keys (.*) must match'
+        match = r'If "(colors|linestyles)" is a dict its keys \(.*\) must '
         with pytest.raises(ValueError, match=match):
             plot_compare_evokeds(evoked_dict, **kwargs)
     for kwargs in [dict(show_legend='foo'), dict(show_sensors='foo')]:
@@ -318,7 +318,7 @@ def test_plot_compare_evokeds():
         plot_compare_evokeds(evoked_dict, vlines='foo')
     plt.close('all')
     # test axes='topo'
-    figs = plot_compare_evokeds(evoked_dict, axes='topo')
+    figs = plot_compare_evokeds(evoked_dict, axes='topo', show_legend=True)
     for fig in figs:
         assert len(fig.axes[0].lines) == len(evoked_dict)
         assert len(fig.axes[-1].lines) == 0
@@ -327,11 +327,11 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(red, picks=[0],
                          ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
     # smoke test for tmin >= 0 (from mailing list)
-    red.crop(0.1, None)
+    red.crop(0.01, None)
     assert len(red.times) > 2
     plot_compare_evokeds(red)
     # smoke test for one time point (not useful but should not fail)
-    red.crop(0.2, 0.2)
+    red.crop(0.02, 0.02)
     assert len(red.times) == 1
     plot_compare_evokeds(red)
     # now that we've cropped `red`:
