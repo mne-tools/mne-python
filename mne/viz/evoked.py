@@ -1502,7 +1502,7 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 def _check_loc_legal(loc, what='your choice', default=1):
     """Check if loc is a legal location for MPL subordinate axes."""
-    true_default = {"show_legend": 3, "show_sensors": 4}.get(what, default)
+    true_default = {"show_legend": 2, "show_sensors": 1}.get(what, default)
     if isinstance(loc, (bool, np.bool_)) and loc:
         loc = true_default
     loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
@@ -1544,7 +1544,6 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
         for key in list(styles):
             if key not in conditions:
                 del styles[key]
-
     # COLORS
     # make colors a list if it's not defined
     suffix = ''
@@ -1794,7 +1793,7 @@ def _get_data_and_ci(evoked, combine, combine_func, scaling=1, picks=None,
     # apply scalings
     data = np.array([evk.data[picks] * scaling for evk in evoked])
     # combine across sensors
-    if combine_func is not None:
+    if combine is not None:
         logger.info('combining channels using "{}"'.format(combine))
         data = combine_func(data)
     # get confidence band
@@ -2102,7 +2101,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     do_topo = (axes == 'topo')
     if do_topo:
         show_sensors = False
-        if show_legend is None:
+        if show_legend:  # override, since it gets its own axes in topo layout
             show_legend = 'lower right'
         if len(picks) > 70:
             logger.info('You are plotting to a topographical layout with >70 '
@@ -2226,6 +2225,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     norm = np.all(allvalues > 0)
     ymin, ymax = ylim.get(ch_type, [None, None])
     ymin, ymax = _setup_vmin_vmax(allvalues, ymin, ymax, norm)
+    # avoid matplotlib error
+    if ymin == ymax:
+        ymax += 1e-9
 
     # add empty data (all zeros) for the legend axis
     all_data.append({cond: np.zeros(dat.shape)
