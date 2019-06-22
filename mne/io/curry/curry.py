@@ -12,7 +12,7 @@ import numpy as np
 
 from ..base import BaseRaw
 from ..meas_info import create_info
-from ..utils import _read_segments_file, warn
+from ..utils import _read_segments_file, _mult_cal_one
 from ...utils import check_fname
 from ..constants import FIFF
 
@@ -115,7 +115,7 @@ def _read_curry_info(fname_base, curry_vers):
     n_trials = int(param_dict["numtrials"])
     sfreq = float(param_dict["samplefreqhz"])
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
-    ascii = param_dict["dataformat"] == "ASCII"
+    is_ascii = param_dict["dataformat"] == "ASCII"
 
     if (sfreq == 0) and (time_step != 0):
         sfreq = 1. / time_step
@@ -152,7 +152,7 @@ def _read_curry_info(fname_base, curry_vers):
                                FIFF.FIFFV_EEG_CH):
             ch_dict["loc"] = all_chans[ind]["loc"]
 
-    return info, n_trials, n_samples, curry_vers, ascii
+    return info, n_trials, n_samples, curry_vers, is_ascii
 
 
 def read_events_curry(fname, event_ids=None):
@@ -199,9 +199,7 @@ def read_raw_curry(input_fname, preload=False):
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory). If the curry file
-        is stored in ASCII data format, then preload will automatically be
-        set to True.
+        on the hard drive (slower, requires less memory).
 
     Returns
     -------
@@ -215,11 +213,11 @@ def read_raw_curry(input_fname, preload=False):
     curry_vers = _get_curry_version(ext)
     _check_missing_files(fname_base, curry_vers)
 
-    info, n_trials, n_samples, curry_vers, ascii = _read_curry_info(fname_base,
-                                                                    curry_vers)
+    info, n_trials, n_samples, curry_vers, is_ascii = _read_curry_info(fname_base,
+                                                                       curry_vers)
 
     raw = RawCurry(fname_base + DATA_FILE_EXTENSION[curry_vers], info,
-                   n_samples, ascii, preload)
+                   n_samples, is_ascii, preload)
 
     return raw
 
@@ -235,16 +233,15 @@ class RawCurry(BaseRaw):
         An instance of mne.Info as returned by mne.io.curry._read_curry_info.
     n_samples : int
         The number of samples of the curry data file.
-    ascii : bool (default False)
-        If the loaded data file is coded in ASCII, ascii must be set to True.
-        Else must be False.
+    is_ascii : bool (default False)
+        If the loaded data file is coded in ASCII, is_ascii must be set to
+        True. Else must be False.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory) If ascii is True,
-        preload will automatically be set to True.
+        on the hard drive (slower, requires less memory).
     %(verbose)s
 
     See Also
@@ -253,19 +250,14 @@ class RawCurry(BaseRaw):
 
     """
 
-    def __init__(self, data_fname, info, n_samples, ascii,
+    def __init__(self, data_fname, info, n_samples, is_ascii,
                  preload=False, verbose=None):
 
         data_fname = os.path.abspath(data_fname)
 
         last_samps = [n_samples - 1]
 
-        if ascii:
-            if not preload:
-                warn('Got ASCII format data as input. Data will be preloaded.')
-
-            cals = [[ch_dict["cal"]] for ch_dict in info["chs"]]
-            preload = np.loadtxt(data_fname).T * cals
+        self._is_ascii = is_ascii
 
         super(RawCurry, self).__init__(
             info, preload, filenames=[data_fname], last_samps=last_samps,
@@ -273,5 +265,16 @@ class RawCurry(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
-                            dtype="<f4")
+        if self._is_ascii:
+            ch_idx = range(0, len(self.ch_names))
+            block = np.loadtxt(self.filenames[0],
+                               skiprows=start,
+                               usecols=ch_idx[idx],
+                               max_rows=stop - start).T
+
+            data_view = data[:, 0:block.shape[1]]
+            _mult_cal_one(data_view, block, idx, cals, mult)
+
+        else:
+            _read_segments_file(self, data, idx, fi, start, stop, cals,
+                                mult, dtype="<f4")
