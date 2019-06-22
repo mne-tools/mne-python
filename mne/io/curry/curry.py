@@ -94,9 +94,10 @@ def _read_curry_lines(fname, regex_list):
 
 def _read_curry_info(fname_base, curry_vers):
     """Extract info from curry parameter files."""
-    var_names = ['NumSamples', 'NumTrials', 'SampleFreqHz', 'DataFormat',
-                 'SampleTimeUsec', 'NUM_SAMPLES', 'NUM_TRIALS',
-                 'SAMPLE_FREQ_HZ', 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
+    var_names = ['NumSamples', 'SampleFreqHz',
+                 'DataFormat', 'SampleTimeUsec',
+                 'NUM_SAMPLES', 'SAMPLE_FREQ_HZ',
+                 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
 
     param_dict = dict()
     unit_dict = dict()
@@ -112,7 +113,6 @@ def _read_curry_info(fname_base, curry_vers):
                         .replace("\n", "").split("=")[-1]
 
     n_samples = int(param_dict["numsamples"])
-    n_trials = int(param_dict["numtrials"])
     sfreq = float(param_dict["samplefreqhz"])
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
@@ -152,7 +152,7 @@ def _read_curry_info(fname_base, curry_vers):
                                FIFF.FIFFV_EEG_CH):
             ch_dict["loc"] = all_chans[ind]["loc"]
 
-    return info, n_trials, n_samples, curry_vers, is_ascii
+    return info, n_samples, is_ascii
 
 
 def read_events_curry(fname, event_ids=None):
@@ -239,10 +239,10 @@ class RawCurry(BaseRaw):
         fname_base, ext = input_fname.split(".", maxsplit=1)
         curry_vers = _get_curry_version(ext)
         _check_missing_files(fname_base, curry_vers)
-        data_fname = os.path.abspath(fname_base + DATA_FILE_EXTENSION[curry_vers])
+        data_fname = os.path.abspath(fname_base +
+                                     DATA_FILE_EXTENSION[curry_vers])
 
-        info, n_trials, n_samples, curry_vers, is_ascii = _read_curry_info(fname_base,
-                                                                           curry_vers)
+        info, n_samples, is_ascii = _read_curry_info(fname_base, curry_vers)
 
         last_samps = [n_samples - 1]
         self._is_ascii = is_ascii
