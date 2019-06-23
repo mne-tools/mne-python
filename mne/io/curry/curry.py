@@ -14,7 +14,7 @@ from ..base import BaseRaw
 from ..meas_info import create_info
 from ..utils import _read_segments_file, _mult_cal_one, warn
 from ..constants import FIFF
-from ...utils import check_fname
+from ...utils import check_fname, check_version
 from ...annotations import Annotations
 
 INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
@@ -291,9 +291,7 @@ class RawCurry(BaseRaw):
         """Read a chunk of raw data."""
         if self._is_ascii:
             ch_idx = range(0, len(self.ch_names))
-            # mne doesn't have packaging lib, so we check np.version like this
-            np_vers = np.array(np.version.version.split("."), dtype=int)
-            if np_vers[0] >= 1 and np_vers[1] >= 16:
+            if check_version("numpy", "1.16.0"):
                 block = np.loadtxt(self.filenames[0],
                                    skiprows=start,
                                    usecols=ch_idx[idx],

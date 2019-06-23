@@ -53,10 +53,6 @@ def test_read_raw_curry():
         read_raw_curry(curry7_bdf_file, preload=False)._data
         read_raw_curry(curry7_bdf_ascii_file, preload=False)._data
 
-    # check if warning is raised for ASCII data
-    with pytest.warns(RuntimeWarning, match="take longer for ASCII files"):
-        read_raw_curry(curry7_bdf_ascii_file, preload=True)
-
     # check data
     bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)
     curry7_rfDC = read_raw_curry(curry7_rfDC_file)
