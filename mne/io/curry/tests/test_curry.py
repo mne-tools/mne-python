@@ -14,8 +14,8 @@ from mne.event import find_events
 from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
-from mne.io.curry import read_raw_curry, read_events_curry
-from mne.io.curry.curry import _check_missing_files
+from mne.io.curry import read_raw_curry
+from mne.io.curry.curry import _check_missing_files, _read_events_curry
 
 
 data_dir = testing.data_path(download=False)
@@ -102,9 +102,9 @@ def test_read_raw_curry():
 def test_read_events_curry():
     """Test reading curry event files."""
     with pytest.raises(IOError, match="file type .*? must end with"):
-        read_events_curry(curry7_bdf_file)
+        _read_events_curry(curry7_bdf_file)
 
-    events = read_events_curry(event_file, event_ids=[1, 2, 4])
+    events = _read_events_curry(event_file, event_ids=[1, 2, 4])
     bdf = read_raw_bdf(bdf_file, preload=True)
     ref_events = find_events(bdf, stim_channel="Status")
 

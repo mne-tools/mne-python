@@ -28,6 +28,7 @@ from mne.datasets import testing
 
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
+curry_dir = op.join(testing.data_path(download=False), 'curry')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
@@ -262,6 +263,29 @@ def test_read_brainstorm_annotations():
     assert len(annot) == 238
     assert annot.onset.min() > 40  # takes into account first_samp
     assert np.unique(annot.description).size == 5
+
+
+@testing.requires_testing_data
+def test_read_curry_annotations():
+    """Test reading for Curry events file."""
+    fnames = ["test_bdf_stim_channel Curry 7.cef",
+              "test_bdf_stim_channel Curry 8.cdt.cef",
+              "test_bdf_stim_channel Curry 7 ASCII.cef",
+              "test_bdf_stim_channel Curry 8 ASCII.cdt.cef"]
+
+    # check sfreq input
+    annot = read_annotations(op.join(curry_dir, fnames[0]),
+                             sfreq=500)
+    assert len(annot) == 18
+    assert annot.onset.min() == 0.484
+    assert np.unique(annot.description).size == 4
+
+    # check sfreq='auto'
+    for fname in fnames:
+        annot = read_annotations(op.join(curry_dir, fname))
+        assert len(annot) == 18
+        assert annot.onset.min() == 0.484
+        assert np.unique(annot.description).size == 4
 
 
 @first_samps

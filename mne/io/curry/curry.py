@@ -14,8 +14,9 @@ import numpy as np
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ..utils import _read_segments_file, _mult_cal_one
-from ...utils import check_fname
 from ..constants import FIFF
+from ...utils import check_fname
+from ...annotations import Annotations
 
 INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
 LABEL_FILE_EXTENSION = {7: '.rs3', 8: '.cdt.dpa'}
@@ -156,7 +157,7 @@ def _read_curry_info(fname_base, curry_vers):
     return info, n_samples, is_ascii
 
 
-def read_events_curry(fname, event_ids=None):
+def _read_events_curry(fname, event_ids=None):
     """Read events from Curry event files.
 
     Parameters
@@ -185,6 +186,43 @@ def read_events_curry(fname, event_ids=None):
         curry_events = curry_events[idx]
 
     return curry_events
+
+
+def _read_annotations_curry(fname, sfreq='auto'):
+    r"""Read events from Curry event files.
+
+    Parameters
+    ----------
+    fname : str
+        The filename.
+    sfreq : float | 'auto'
+        The sampling frequency in the file. If set to 'auto' then the
+        ``sfreq`` is taken from the respective info file of the same name with
+        according file extension (\*.dap for Curry 7; \*.cdt.dpa for Curry8).
+         So data.cef looks in data.dap and data.cdt.cef looks in data.cdt.dpa.
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
+    """
+    events = _read_events_curry(fname)
+
+    if sfreq == 'auto':
+        fname_base, ext = fname.split(".", maxsplit=1)
+        curry_vers = _get_curry_version(ext)
+        with open(fname_base + INFO_FILE_EXTENSION[curry_vers]) as fid:
+            for line in fid:
+                if ('SampleFreqHz' or 'SAMPLE_FREQ_HZ') in line:
+                    sfreq = float(line.split("=")[1])
+    else:
+        sfreq = sfreq
+
+    onset = events[:, 0] / sfreq
+    duration = np.zeros(events.shape[0])
+    description = events[:, 2]
+
+    return Annotations(onset, duration, description)
 
 
 def read_raw_curry(input_fname, preload=False, verbose=None):
