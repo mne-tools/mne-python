@@ -39,6 +39,7 @@ curry8_bdf_ascii_file = op.join(curry_dir,
 event_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.cef")
 
 
+@pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @testing.requires_testing_data
 def test_read_raw_curry():
     """Test reading CURRY files."""
@@ -51,6 +52,10 @@ def test_read_raw_curry():
     with pytest.raises(AttributeError, match="no attribute '_data'"):
         read_raw_curry(curry7_bdf_file, preload=False)._data
         read_raw_curry(curry7_bdf_ascii_file, preload=False)._data
+
+    # check if warning is raised for ASCII data
+    with pytest.warns(RuntimeWarning, match="take longer for ASCII files"):
+        read_raw_curry(curry7_bdf_ascii_file, preload=True)
 
     # check data
     bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)
@@ -93,7 +98,7 @@ def test_read_raw_curry():
                            [ch["ch_name"] for ch in bdf.info["chs"][:3]])
         assert_allclose(curry_file.get_data(), bdf.get_data()[:3], atol=1e-6)
         # can't use bdf.get_data(picks) here, since it seems bugged
-        assert_allclose(curry8_bdf.get_data(picks, start, stop),
+        assert_allclose(curry_file.get_data(picks, start, stop),
                         bdf.get_data(start=start, stop=stop)[:2],
                         atol=1e-6)
 

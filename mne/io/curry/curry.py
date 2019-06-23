@@ -12,7 +12,7 @@ import numpy as np
 
 from ..base import BaseRaw
 from ..meas_info import create_info
-from ..utils import _read_segments_file, _mult_cal_one
+from ..utils import _read_segments_file, _mult_cal_one, warn
 from ..constants import FIFF
 from ...utils import check_fname
 from ...annotations import Annotations
@@ -299,6 +299,9 @@ class RawCurry(BaseRaw):
                                    usecols=ch_idx[idx],
                                    max_rows=stop - start).T
             else:
+                warn("Data reading might take longer for ASCII files. Update "
+                     "numpy to version 1.16.0 or greater for more efficient "
+                     "data reading.")
                 block = np.loadtxt(self.filenames[0],
                                    skiprows=start,
                                    usecols=ch_idx[idx]).T
