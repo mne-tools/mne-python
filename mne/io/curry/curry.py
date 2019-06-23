@@ -8,7 +8,6 @@
 import os
 import re
 from pathlib import Path
-from packaging import version
 import numpy as np
 
 from ..base import BaseRaw
@@ -215,8 +214,6 @@ def _read_annotations_curry(fname, sfreq='auto'):
             for line in fid:
                 if ('SampleFreqHz' or 'SAMPLE_FREQ_HZ') in line:
                     sfreq = float(line.split("=")[1])
-    else:
-        sfreq = sfreq
 
     onset = events[:, 0] / sfreq
     duration = np.zeros(events.shape[0])
@@ -294,7 +291,9 @@ class RawCurry(BaseRaw):
         """Read a chunk of raw data."""
         if self._is_ascii:
             ch_idx = range(0, len(self.ch_names))
-            if version.parse(np.version.version) >= version.parse("1.16.0"):
+            # mne doesn't have packaging lib, so we check np.version like this
+            np_vers = np.array(np.version.version.split("."), dtype=int)
+            if np_vers[0] >= 1 and np_vers[1] >= 16:
                 block = np.loadtxt(self.filenames[0],
                                    skiprows=start,
                                    usecols=ch_idx[idx],
