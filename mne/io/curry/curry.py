@@ -182,7 +182,7 @@ def _read_events_curry(fname, event_ids=None):
     curry_events = np.array(events_dict["NUMBER_LIST"], dtype=int)[:, 0:3]
 
     if event_ids is not None:
-        idx = np.isin(curry_events[:, -1], event_ids)
+        idx = np.array([i in event_ids for i in curry_events[:, -1]])
         curry_events = curry_events[idx]
 
     return curry_events
