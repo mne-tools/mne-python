@@ -8,6 +8,7 @@
 import os
 import re
 from pathlib import Path
+from packaging import version
 import numpy as np
 
 from ..base import BaseRaw
@@ -255,10 +256,16 @@ class RawCurry(BaseRaw):
         """Read a chunk of raw data."""
         if self._is_ascii:
             ch_idx = range(0, len(self.ch_names))
-            block = np.loadtxt(self.filenames[0],
-                               skiprows=start,
-                               usecols=ch_idx[idx],
-                               max_rows=stop - start).T
+            if version.parse(np.version.version) >= version.parse("1.16.0"):
+                block = np.loadtxt(self.filenames[0],
+                                   skiprows=start,
+                                   usecols=ch_idx[idx],
+                                   max_rows=stop - start).T
+            else:
+                block = np.loadtxt(self.filenames[0],
+                                   skiprows=start,
+                                   usecols=ch_idx[idx]).T
+                block = block[:, :stop - start]
 
             data_view = data[:, 0:block.shape[1]]
             _mult_cal_one(data_view, block, idx, cals, mult)
