@@ -252,6 +252,7 @@ Visualization
    plot_raw
    plot_raw_psd
    plot_sensors
+   plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
    plot_volume_source_estimates
@@ -266,6 +267,9 @@ Visualization
    set_3d_backend
    get_3d_backend
    use_3d_backend
+   set_3d_view
+   set_3d_title
+   create_3d_figure
 
 
 Preprocessing
