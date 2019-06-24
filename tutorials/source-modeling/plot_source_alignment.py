@@ -67,7 +67,7 @@ fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
                              subjects_dir=subjects_dir, surfaces='head-dense',
                              show_axes=True, dig=True, eeg=[], meg='sensors',
                              coord_frame='meg')
-mne.viz_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
+mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
 print('Distance from head origin to MEG origin: %0.1f mm'
       % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
 print('Distance from head origin to MRI origin: %0.1f mm'
