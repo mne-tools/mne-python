@@ -926,12 +926,12 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     if spatial_colors is None:
         spatial_colors = False
         warn('spatial_colors defaults to False in 0.19 but will change to True'
-             ' in 0.2. Set it explicitly to avoid this warning.',
+             ' in 0.20. Set it explicitly to avoid this warning.',
              DeprecationWarning)
     if average is None:
         average = True
         warn('average defaults to True in 0.19 but will change to False'
-             ' in 0.2. Set it explicitly to avoid this warning.',
+             ' in 0.20. Set it explicitly to avoid this warning.',
              DeprecationWarning)
 
     from .utils import _set_psd_plot_params, _plot_psd

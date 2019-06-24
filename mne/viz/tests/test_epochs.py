@@ -225,8 +225,7 @@ def test_plot_psd_epochs():
     """Test plotting epochs psd (+topomap)."""
     epochs = _get_epochs()
     epochs.load_data()
-    with pytest.warns(DeprecationWarning):
-        epochs.plot_psd()
+    epochs.plot_psd(average=True, spatial_colors=False)
     epochs.plot_psd(average=False, spatial_colors=True)
     epochs.plot_psd(average=False, spatial_colors=False)
     pytest.raises(RuntimeError, epochs.plot_psd_topomap,
