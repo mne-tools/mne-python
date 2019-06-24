@@ -19,6 +19,7 @@ from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
 
+from mne.channels.montage import _set_montage
 from mne.utils import object_diff
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
@@ -131,6 +132,7 @@ def _get_eeg_montage_information(eeg, get_pos):
             if not np.any(np.isnan(locs)):
                 pos_ch_names.append(chanloc['labels'])
                 pos.append(locs)
+
     n_channels_with_pos = len(pos_ch_names)
     if n_channels_with_pos > 0:
         selection = np.arange(n_channels_with_pos)
@@ -162,6 +164,7 @@ def _get_info_no_montage(eeg, montage, eog=()):
     return eeg_montage, update_ch_names, ch_names
 
 
+
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
     # import pdb; pdb.set_trace()
@@ -176,7 +179,7 @@ def _get_info(eeg, montage, eog=()):
 
     if montage is None and eeg_montage is None:
         pass
-    else:
+    else:  # XXX: This is kept for backcompat, we should check the logic
 
         if eog == 'auto':
             eog = _find_channels(ch_names)
@@ -187,16 +190,7 @@ def _get_info(eeg, montage, eog=()):
                 ch['coil_type'] = FIFF.FIFFV_COIL_NONE
                 ch['kind'] = FIFF.FIFFV_EOG_CH
 
-        from mne.channels.montage import _set_montage
-
-        if eeg_montage is not None:
-            _set_montage(info, montage=eeg_montage,
-                         update_ch_names=update_ch_names, set_dig=True)
-        else:
-            _set_montage(info, montage=montage,
-                         update_ch_names=update_ch_names, set_dig=True)
-
-    return info
+    return info, eeg_montage, update_ch_names
 
 
 @fill_doc
@@ -364,10 +358,12 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        aa = deepcopy(montage)
-        info = _get_info(eeg, montage, eog=eog)
-        bb = deepcopy(montage)
-        assert_equal_montage(aa, bb)
+        info, eeg_montage, update_ch_names = _get_info(eeg, montage, eog=eog)
+
+        montage = eeg_montage if montage is None else montage
+        del eeg_montage
+        _set_montage(info, montage=montage, update_ch_names=update_ch_names,
+                     set_dig=True)
 
         # read the data
         if isinstance(eeg.data, str):
@@ -552,8 +548,11 @@ class EpochsEEGLAB(BaseEpochs):
 
         logger.info('Extracting parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        info = _get_info(eeg, montage, eog=eog)
-
+        info, eeg_montage, update_ch_names = _get_info(eeg, montage, eog=eog)
+        montage = eeg_montage if montage is None else montage
+        del eeg_montage
+        _set_montage(info, montage=montage, update_ch_names=update_ch_names,
+                     set_dig=True)
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError('No matching events found for %s '
