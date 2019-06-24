@@ -628,7 +628,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     del ax
     psd_list = list()
     if n_fft is None:
-        tmax = raw.times[-1] if tmax is None else tmax
+        if tmax is None or not np.isfinite(tmax):
+            tmax = raw.times[-1]
         tmin = 0. if tmin is None else tmin
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
     for picks in picks_list:

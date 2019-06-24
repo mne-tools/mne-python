@@ -3040,11 +3040,12 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     line_alpha=line_alpha, nave=None)
     for ax in ax_list:
         ax.grid(True, linestyle=':')
-        ax.set(xlim=(freqs[0], freqs[-1]))
         if xscale == 'log':
             ax.set(xscale='log')
             ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
             ax.get_xaxis().set_major_formatter(ScalarFormatter())
+        else:
+            ax.set(xlim=(freqs[0], freqs[-1]))
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Frequency (Hz)')
