@@ -9,6 +9,7 @@ import os
 import os.path as op
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
+from mne.annotations import events_from_annotations
 from mne.datasets import testing
 from mne.event import find_events
 from mne.io.constants import FIFF
@@ -106,18 +107,22 @@ def test_read_raw_curry():
 @testing.requires_testing_data
 def test_read_events_curry():
     """Test reading curry event files."""
-
     events = _read_events_curry(event_file, event_ids=[1, 2, 4])
     bdf = read_raw_bdf(bdf_file, preload=True)
     ref_events = find_events(bdf, stim_channel="Status")
 
     assert_allclose(events, ref_events)
 
+    raw = read_raw_curry(curry7_bdf_file)
+    annot_events, _ = events_from_annotations(raw, event_id={"1": 1,
+                                                             "2": 2,
+                                                             "4": 4})
+    assert_allclose(annot_events, ref_events)
+
 
 def test_check_missing_files():
     """Test checking for missing curry files."""
-
-    invalid_fname = "/invalid/path/name.csv"
+    invalid_fname = "/invalid/path/name"
 
     with pytest.raises(IOError, match="file type .*? must end with"):
         _read_events_curry(invalid_fname)

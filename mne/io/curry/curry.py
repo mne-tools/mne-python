@@ -5,21 +5,21 @@
 #
 # License: BSD (3-clause)
 
-import os
+import os.path as op
 import re
-from pathlib import Path
 import numpy as np
 
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ..utils import _read_segments_file, _mult_cal_one, warn
 from ..constants import FIFF
-from ...utils import check_fname, check_version
+from ...utils import check_fname, check_version, logger
 from ...annotations import Annotations
 
 INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
 LABEL_FILE_EXTENSION = {7: '.rs3', 8: '.cdt.dpa'}
 DATA_FILE_EXTENSION = {7: '.dat', 8: '.cdt'}
+EVENT_FILE_EXTENSION = {7: '.cef', 8: '.cdt.cef'}
 CHANTYPES = {"meg": "_MAG1", "eeg": "", "misc": "_OTHERS"}
 FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
                    "misc": FIFF.FIFFV_MISC_CH}
@@ -37,14 +37,14 @@ def _check_missing_files(fname_base, curry_vers):
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory."
 
-    missing = [str(Path(fname_base).with_suffix(ext))
+    missing = [fname_base + ext
                for ext in [DATA_FILE_EXTENSION[curry_vers],
                            INFO_FILE_EXTENSION[curry_vers],
                            LABEL_FILE_EXTENSION[curry_vers]]
-               if not Path(fname_base).with_suffix(ext).is_file()]
+               if not op.isfile(fname_base + ext)]
 
     if missing:
-        raise FileNotFoundError(_msg.format(missing))
+        raise FileNotFoundError(_msg.format(np.unique(missing)))
 
 
 def _read_curry_lines(fname, regex_list):
@@ -275,8 +275,7 @@ class RawCurry(BaseRaw):
         fname_base, ext = input_fname.split(".", maxsplit=1)
         curry_vers = _get_curry_version(ext)
         _check_missing_files(fname_base, curry_vers)
-        data_fname = os.path.abspath(fname_base +
-                                     DATA_FILE_EXTENSION[curry_vers])
+        data_fname = op.abspath(fname_base + DATA_FILE_EXTENSION[curry_vers])
 
         info, n_samples, is_ascii = _read_curry_info(fname_base, curry_vers)
 
@@ -286,6 +285,16 @@ class RawCurry(BaseRaw):
         super(RawCurry, self).__init__(
             info, preload, filenames=[data_fname], last_samps=last_samps,
             orig_format='int', verbose=verbose)
+
+        event_file = fname_base + EVENT_FILE_EXTENSION[curry_vers]
+        if op.isfile(event_file):
+            logger.info('Event file found. Extractinng Annotations from'
+                        ' %s...' % event_file)
+            annots = _read_annotations_curry(event_file,
+                                             sfreq=self.info["sfreq"])
+            self.set_annotations(annots)
+        else:
+            logger.info('Event file not found. No Annotations set.')
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
