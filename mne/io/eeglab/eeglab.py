@@ -80,6 +80,7 @@ def _to_loc(ll):
     else:
         return np.nan
 
+
 def _massage_eeg(eeg):
     # add the ch_names and info['chs'][idx]['loc']
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
@@ -141,8 +142,7 @@ def _get_eeg_montage_information(eeg, get_pos):
 
 
 def _get_info_no_montage(eeg, montage, eog=()):
-    new_montage = None
-    ch_names = None   # XXXX: This adds logic to the value which is nasty but it will change at the end of the refactor # noqa
+    eeg_montage = None
     update_ch_names = True
 
     eeg_has_ch_names_info = len(eeg.chanlocs) > 0
@@ -153,61 +153,48 @@ def _get_info_no_montage(eeg, montage, eog=()):
     if eeg_has_ch_names_info:
         # assert False
         get_pos = has_pos and montage is None
-        ch_names, new_montage, update_ch_names = _get_eeg_montage_information(
+        ch_names, eeg_montage, update_ch_names = _get_eeg_montage_information(
             eeg, get_pos)
 
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
 
-    info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
-
-    if eog == 'auto':
-        eog = _find_channels(ch_names)
-
-    for idx, ch in enumerate(info['chs']):
-        ch['cal'] = CAL
-        if ch['ch_name'] in eog or idx in eog:
-            ch['coil_type'] = FIFF.FIFFV_COIL_NONE
-            ch['kind'] = FIFF.FIFFV_EOG_CH
-
-    return info, new_montage, update_ch_names, ch_names
+    return eeg_montage, update_ch_names, ch_names
 
 
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
     # import pdb; pdb.set_trace()
-    xx_montage = deepcopy(montage)
 
     eeg = _massage_eeg(eeg)
 
     # import pdb; pdb.set_trace()
-    info, new_montage, update_ch_names, ch_names = _get_info_no_montage(
+    eeg_montage, update_ch_names, ch_names = _get_info_no_montage(
         eeg, montage, eog)
 
-    if montage is None and new_montage is None:
-        if ch_names is None:
-            pass
-        else:
-            print ('chnames', ch_names)
-            info_xx = create_info(ch_names, eeg.srate, ch_types='eeg')
-            # assert len(object_diff(info, info_xx)) == 0
-            if object_diff(info, info_xx):
-                assert eog == ()
-                info = info_xx
-                assert False
-            else:
-                assert eog == 'auto'
+    info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
+
+    if montage is None and eeg_montage is None:
+        pass
     else:
+
+        if eog == 'auto':
+            eog = _find_channels(ch_names)
+
+        for idx, ch in enumerate(info['chs']):
+            ch['cal'] = CAL
+            if ch['ch_name'] in eog or idx in eog:
+                ch['coil_type'] = FIFF.FIFFV_COIL_NONE
+                ch['kind'] = FIFF.FIFFV_EOG_CH
+
         from mne.channels.montage import _set_montage
 
-        if new_montage is not None:
-            _set_montage(info, montage=new_montage,
+        if eeg_montage is not None:
+            _set_montage(info, montage=eeg_montage,
                          update_ch_names=update_ch_names, set_dig=True)
         else:
             _set_montage(info, montage=montage,
                          update_ch_names=update_ch_names, set_dig=True)
-
-    assert_equal_montage(xx_montage, montage)
 
     return info
 
