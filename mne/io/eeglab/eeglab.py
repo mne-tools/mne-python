@@ -114,12 +114,35 @@ def _eeg_has_montage_information(eeg):
     return has_pos
 
 
+def _get_eeg_montage_information(eeg, get_pos):
+
+    pos_ch_names, ch_names, pos = list(), list(), list()
+    kind = 'user_defined'
+    update_ch_names = False
+    for chanloc in eeg.chanlocs:
+        ch_names.append(chanloc['labels'])
+        if get_pos:
+            loc_x = _to_loc(chanloc['X'])
+            loc_y = _to_loc(chanloc['Y'])
+            loc_z = _to_loc(chanloc['Z'])
+            locs = np.r_[-loc_y, loc_x, loc_z]
+            if not np.any(np.isnan(locs)):
+                pos_ch_names.append(chanloc['labels'])
+                pos.append(locs)
+    n_channels_with_pos = len(pos_ch_names)
+    if n_channels_with_pos > 0:
+        selection = np.arange(n_channels_with_pos)
+        montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+    else:
+        montage = None
+
+    return ch_names, montage, update_ch_names
+
+
 def _get_info_no_montage(eeg, montage, eog=()):
     new_montage = None
     ch_names = None   # XXXX: This adds logic to the value which is nasty but it will change at the end of the refactor # noqa
-    info = _empty_info(sfreq=eeg.srate)
     update_ch_names = True
-
 
     good = len(eeg.chanlocs) > 0
 
@@ -129,30 +152,13 @@ def _get_info_no_montage(eeg, montage, eog=()):
     if good:
         # assert False
         get_pos = has_pos and montage is None
-        pos_ch_names, ch_names, pos = list(), list(), list()
-        kind = 'user_defined'
-        update_ch_names = False
-        for chanloc in eeg.chanlocs:
-            ch_names.append(chanloc['labels'])
-            if get_pos:
-                loc_x = _to_loc(chanloc['X'])
-                loc_y = _to_loc(chanloc['Y'])
-                loc_z = _to_loc(chanloc['Z'])
-                locs = np.r_[-loc_y, loc_x, loc_z]
-                if not np.any(np.isnan(locs)):
-                    pos_ch_names.append(chanloc['labels'])
-                    pos.append(locs)
-        n_channels_with_pos = len(pos_ch_names)
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
-        if n_channels_with_pos > 0:
-            selection = np.arange(n_channels_with_pos)
-            new_montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+        ch_names, new_montage, update_ch_names = _get_eeg_montage_information(
+            eeg, get_pos)
 
-    elif isinstance(montage, str):
-        pass  # noqa
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
-        info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
+
+    info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
     if eog == 'auto':
         eog = _find_channels(ch_names)
