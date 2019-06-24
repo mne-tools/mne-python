@@ -13,12 +13,10 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels.montage import Montage
+from ...channels.montage import Montage, _set_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
-
-from mne.channels.montage import _set_montage
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
