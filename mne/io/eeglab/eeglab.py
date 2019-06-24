@@ -80,14 +80,7 @@ def _to_loc(ll):
     else:
         return np.nan
 
-def _get_info_no_montage(eeg, montage, eog=()):
-
-    new_montage = None
-    ch_names = None   # XXXX: This adds logic to the value which is nasty but it will change at the end of the refactor # noqa
-    from scipy import io
-    info = _empty_info(sfreq=eeg.srate)
-    update_ch_names = True
-
+def _massage_eeg(eeg):
     # add the ch_names and info['chs'][idx]['loc']
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
         eeg.chanlocs = [eeg.chanlocs]
@@ -95,9 +88,15 @@ def _get_info_no_montage(eeg, montage, eog=()):
     if isinstance(eeg.chanlocs, dict):
         eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
 
-    good = len(eeg.chanlocs) > 0
+    return eeg
 
-    if good:
+
+def _eeg_has_montage_information(eeg):
+    from scipy import io
+
+    if not len(eeg.chanlocs):
+        has_pos = False
+    else:
         pos_fields = ['X', 'Y', 'Z']
         if isinstance(eeg.chanlocs[0], io.matlab.mio5_params.mat_struct):
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
@@ -110,10 +109,25 @@ def _get_info_no_montage(eeg, montage, eog=()):
             # new files
             has_pos = all(fld in eeg.chanlocs[0] for fld in pos_fields)
         else:
-            good = False
             has_pos = False  # unknown (sometimes we get [0, 0])
 
+    return has_pos
+
+
+def _get_info_no_montage(eeg, montage, eog=()):
+    new_montage = None
+    ch_names = None   # XXXX: This adds logic to the value which is nasty but it will change at the end of the refactor # noqa
+    info = _empty_info(sfreq=eeg.srate)
+    update_ch_names = True
+
+
+    good = len(eeg.chanlocs) > 0
+
     if good:
+        has_pos = _eeg_has_montage_information(eeg)
+
+    if good:
+        # assert False
         get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
         kind = 'user_defined'
@@ -157,7 +171,9 @@ def _get_info(eeg, montage, eog=()):
     # import pdb; pdb.set_trace()
     xx_montage = deepcopy(montage)
 
-    import pdb; pdb.set_trace()
+    eeg = _massage_eeg(eeg)
+
+    # import pdb; pdb.set_trace()
     info, new_montage, update_ch_names, ch_names = _get_info_no_montage(
         eeg, montage, eog)
 
@@ -165,6 +181,7 @@ def _get_info(eeg, montage, eog=()):
         if ch_names is None:
             pass
         else:
+            print ('chnames', ch_names)
             info_xx = create_info(ch_names, eeg.srate, ch_types='eeg')
             # assert len(object_diff(info, info_xx)) == 0
             if object_diff(info, info_xx):
