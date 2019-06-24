@@ -69,6 +69,8 @@ API
 
 - :func:`mne.io.read_raw_brainvision` no longer raises an error when there are inconsistencies between ``info['chs']`` and ``montage`` but warns instead by `Joan Massich`_
 
+- Add ``update_ch_names`` parameter to :meth:`mne.io.Raw.set_montage` to allow updating the channel names based on the montage by `Joan Massich`_
+
 .. _changes_0_18:
 
 Version 0.18
