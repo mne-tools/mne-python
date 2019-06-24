@@ -89,7 +89,6 @@ def _get_info_no_montage(eeg, montage, eog=()):
     update_ch_names = True
 
     # add the ch_names and info['chs'][idx]['loc']
-    path = None
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
         eeg.chanlocs = [eeg.chanlocs]
 
@@ -136,10 +135,10 @@ def _get_info_no_montage(eeg, montage, eog=()):
             new_montage = Montage(np.array(pos), pos_ch_names, kind, selection)
 
     elif isinstance(montage, str):
-        path = op.dirname(montage)
+        pass  # noqa
     else:  # if eeg.chanlocs is empty, we still need default chan names
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
-        # ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
     if eog == 'auto':
         eog = _find_channels(ch_names)
@@ -158,6 +157,7 @@ def _get_info(eeg, montage, eog=()):
     # import pdb; pdb.set_trace()
     xx_montage = deepcopy(montage)
 
+    import pdb; pdb.set_trace()
     info, new_montage, update_ch_names, ch_names = _get_info_no_montage(
         eeg, montage, eog)
 
@@ -165,7 +165,13 @@ def _get_info(eeg, montage, eog=()):
         if ch_names is None:
             pass
         else:
-            info = create_info(ch_names, eeg.srate, ch_types='eeg')
+            info_xx = create_info(ch_names, eeg.srate, ch_types='eeg')
+            # assert len(object_diff(info, info_xx)) == 0
+            if object_diff(info, info_xx):
+                assert eog == ()
+                info = info_xx
+            else:
+                assert eog == 'auto'
     else:
         from mne.channels.montage import _set_montage
 
