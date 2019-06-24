@@ -39,7 +39,6 @@ curry8_bdf_ascii_file = op.join(curry_dir,
 event_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.cef")
 
 
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @testing.requires_testing_data
 def test_read_raw_curry():
     """Test reading CURRY files."""
@@ -72,8 +71,9 @@ def test_read_raw_curry():
     curry8_bdf = read_raw_curry(curry8_bdf_file, preload=False)
     curry7_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file,
                                       preload=False)
-    curry8_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file,
-                                      preload=True)
+    with pytest.warns(RuntimeWarning, match="take longer for ASCII"):
+        curry8_bdf_ascii = read_raw_curry(curry7_bdf_ascii_file,
+                                          preload=True)
 
     assert_allclose([curry7_bdf.n_times, curry7_bdf_ascii.n_times,
                      curry8_bdf.n_times, curry8_bdf_ascii.n_times],
@@ -85,25 +85,27 @@ def test_read_raw_curry():
     # test all types of data
     picks = ["C3", "C4"]
     start, stop = 200, 800
-    for curry_file in [curry7_bdf, curry7_bdf_ascii,
-                       curry8_bdf, curry8_bdf_ascii]:
-        # use chans [:3] here since curry stim channel was already extracted
-        assert_allclose([ch["kind"] for ch in curry_file.info["chs"]],
-                        [ch["kind"] for ch in bdf.info["chs"][:3]])
-        assert_array_equal([ch["ch_name"] for ch in curry_file.info["chs"]],
-                           [ch["ch_name"] for ch in bdf.info["chs"][:3]])
-        assert_allclose(curry_file.get_data(), bdf.get_data()[:3], atol=1e-6)
-        # can't use bdf.get_data(picks) here, since it seems bugged
-        assert_allclose(curry_file.get_data(picks, start, stop),
-                        bdf.get_data(start=start, stop=stop)[:2],
-                        atol=1e-6)
+    with pytest.warns(RuntimeWarning, match="take longer for ASCII"):
+        for curry_file in [curry7_bdf, curry7_bdf_ascii,
+                           curry8_bdf, curry8_bdf_ascii]:
+            # use chans [:3] here since curry stim chan was already extracted
+            assert_allclose([ch["kind"] for ch in curry_file.info["chs"]],
+                            [ch["kind"] for ch in bdf.info["chs"][:3]])
+            assert_array_equal([ch["ch_name"] for ch in
+                                curry_file.info["chs"]],
+                               [ch["ch_name"] for ch in
+                                bdf.info["chs"][:3]])
+            assert_allclose(curry_file.get_data(), bdf.get_data()[:3],
+                            atol=1e-6)
+            # can't use bdf.get_data(picks) here, since it seems bugged
+            assert_allclose(curry_file.get_data(picks, start, stop),
+                            bdf.get_data(start=start, stop=stop)[:2],
+                            atol=1e-6)
 
 
 @testing.requires_testing_data
 def test_read_events_curry():
     """Test reading curry event files."""
-    with pytest.raises(IOError, match="file type .*? must end with"):
-        _read_events_curry(curry7_bdf_file)
 
     events = _read_events_curry(event_file, event_ids=[1, 2, 4])
     bdf = read_raw_bdf(bdf_file, preload=True)
@@ -114,7 +116,11 @@ def test_read_events_curry():
 
 def test_check_missing_files():
     """Test checking for missing curry files."""
-    invalid_fname = "/invalid/path"
+
+    invalid_fname = "/invalid/path/name.csv"
+
+    with pytest.raises(IOError, match="file type .*? must end with"):
+        _read_events_curry(invalid_fname)
 
     with pytest.raises(FileNotFoundError, match="files cannot be found"):
         _check_missing_files(invalid_fname, 7)
