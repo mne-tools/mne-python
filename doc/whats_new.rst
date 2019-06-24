@@ -38,7 +38,7 @@ Changelog
 
 - Add a new :func:`mne.viz.plot_sensors_connectivity` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
 
-- Add re-referencing functionality for ecog and seeg channel types in :func:`mne.io.reference.set_eeg_reference` by `Keith Doelling`_
+- Add re-referencing functionality for ecog and seeg channel types in :func:`mne.set_eeg_reference` by `Keith Doelling`_
 
 Bug
 ~~~
