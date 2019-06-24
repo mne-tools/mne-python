@@ -2411,8 +2411,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 @verbose
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
-                          show_all=True, ax=None, block=False,
-                          show=True, verbose=None):
+                          show_all=True, ax=None, block=False, show=True,
+                          verbose=None, color=(1.0, 0.0, 0.0), fig=None):
     """Plot dipole locations.
 
     If mode is set to 'cone' or 'sphere', only the location of the first
@@ -2474,6 +2474,11 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
 
         .. versionadded:: 0.14.0
     %(verbose)s
+    color : tuple
+        The color of the dipoles if ``mode`` is 'sphere' or 'cone'.
+    fig : mayavi.mlab.Figure | None
+        Mayavi Scene in which to plot the alignment.
+        If ``None``, creates a new 600x600 pixel figure with black background.
 
     Returns
     -------
@@ -2489,6 +2494,14 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show)
+    elif mode in ['sphere', 'cone']:
+        from .backends.renderer import _Renderer
+        renderer = _Renderer(fig=fig, size=(600, 600))
+        # XXX what positions to use for the dipoles?
+        pos = dipoles.pos
+        renderer.sphere(center=np.c_[pos[:, 0], pos[:, 1], pos[:, 2]],
+                        color=color, scale=1E-3)
+        fig = renderer.scene()
     else:
         raise ValueError('Mode must be "orthoview", got %s.' % (mode,))
 

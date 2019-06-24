@@ -32,7 +32,10 @@ fwd = mne.read_forward_solution(
     data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif')
 mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
 noise_cov = mne.read_cov(data_path + '/MEG/sample/sample_audvis-cov.fif')
+subject = 'sample'
 subjects_dir = data_path + '/subjects'
+trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+dipoles_fname = data_path + '/MEG/sample/sample_audvis_set1.dip'
 
 ###############################################################################
 # The source space
@@ -42,24 +45,30 @@ subjects_dir = data_path + '/subjects'
 # intervals on the cortex, determined by the ``spacing`` parameter. The source
 # space does not define the orientation for these dipoles.
 
+dipoles = mne.read_dipole(dipoles_fname)
+trans = mne.read_trans(trans_fname)
+
 lh = fwd['src'][0]  # Visualize the left hemisphere
 verts = lh['rr']  # The vertices of the source space
 tris = lh['tris']  # Groups of three vertices that form triangles
 dip_pos = lh['rr'][lh['vertno']]  # The position of the dipoles
 white = (1.0, 1.0, 1.0)  # RGB values for a white color
-gray = (0.5, 0.5, 0.5)  # RGB values for a gray color
 red = (1.0, 0.0, 0.0)  # RGB valued for a red color
 
-mlab.figure(size=(600, 400), bgcolor=white)
+fig = mne.viz.create_3d_figure(size=(600, 400))
 
 # Plot the cortex
-mlab.triangular_mesh(verts[:, 0], verts[:, 1], verts[:, 2], tris, color=gray)
+fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
+                             trans=trans,
+                             surfaces='white', coord_frame='head', fig=fig)
 
 # Mark the position of the dipoles with small red dots
-mlab.points3d(dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2], color=red,
-              scale_factor=1E-3)
+fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
+                                    mode='sphere', subject=subject,
+                                    subjects_dir=subjects_dir,
+                                    coord_frame='head', fig=fig)
 
-mlab.view(azimuth=180, distance=0.25)
+mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.25)
 
 ###############################################################################
 # .. _plot_dipole_orientations_fixed_orientations:
@@ -78,18 +87,20 @@ mlab.view(azimuth=180, distance=0.25)
 # fixed to be orthogonal to the surface of the cortex, pointing outwards. Let's
 # visualize this:
 
-mlab.figure(size=(600, 400), bgcolor=white)
+fig = mne.viz.create_3d_figure(size=(600, 400))
 
 # Plot the cortex
-mlab.triangular_mesh(verts[:, 0], verts[:, 1], verts[:, 2], tris, color=gray)
+fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
+                             trans=trans,
+                             surfaces='white', coord_frame='head', fig=fig)
 
 # Show the dipoles as arrows pointing along the surface normal
-normals = lh['nn'][lh['vertno']]
-mlab.quiver3d(dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2],
-              normals[:, 0], normals[:, 1], normals[:, 2],
-              color=red, scale_factor=1E-3)
+fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
+                                    mode='cone', subject=subject,
+                                    subjects_dir=subjects_dir,
+                                    coord_frame='head', fig=fig)
 
-mlab.view(azimuth=180, distance=0.1)
+mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 
 ###############################################################################
 # Restricting the dipole orientations in this manner leads to the following
@@ -126,14 +137,16 @@ brain_fixed = stc.plot(surface='white', subjects_dir=subjects_dir,
 # operator has the ability to place not one, but three dipoles at each
 # location defined by the source space. These three dipoles are placed
 # orthogonally to form a Cartesian coordinate system. Let's visualize this:
-mlab.figure(size=(600, 400), bgcolor=white)
+fig = mne.viz.create_3d_figure(size=(600, 400))
 
 # Define some more colors
 green = (0.0, 1.0, 0.0)
 blue = (0.0, 0.0, 1.0)
 
 # Plot the cortex
-mlab.triangular_mesh(verts[:, 0], verts[:, 1], verts[:, 2], tris, color=gray)
+fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
+                             trans=trans,
+                             surfaces='white', coord_frame='head', fig=fig)
 
 # Make an inverse operator with loose dipole orientations
 inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=False,
@@ -147,7 +160,7 @@ for ori, color in zip((0, 1, 2), (red, green, blue)):
                   dip_dir[:, ori, 0], dip_dir[:, ori, 1], dip_dir[:, ori, 2],
                   color=color, scale_factor=1E-3)
 
-mlab.view(azimuth=180, distance=0.1)
+mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 
 ###############################################################################
 # When computing the source estimate, the activity at each of the three dipoles
