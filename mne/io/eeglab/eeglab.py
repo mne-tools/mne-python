@@ -11,8 +11,8 @@ import numpy as np
 
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
-from ..meas_info import _empty_info, create_info
-from ..base import BaseRaw, _check_update_montage
+from ..meas_info import create_info
+from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
@@ -116,6 +116,7 @@ def _eeg_has_montage_information(eeg):
 
 def _get_eeg_montage_information(eeg, get_pos):
 
+    # assert get_pos == False
     pos_ch_names, ch_names, pos = list(), list(), list()
     kind = 'user_defined'
     update_ch_names = False
@@ -144,12 +145,12 @@ def _get_info_no_montage(eeg, montage, eog=()):
     ch_names = None   # XXXX: This adds logic to the value which is nasty but it will change at the end of the refactor # noqa
     update_ch_names = True
 
-    good = len(eeg.chanlocs) > 0
+    eeg_has_ch_names_info = len(eeg.chanlocs) > 0
 
-    if good:
+    if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
 
-    if good:
+    if eeg_has_ch_names_info:
         # assert False
         get_pos = has_pos and montage is None
         ch_names, new_montage, update_ch_names = _get_eeg_montage_information(
