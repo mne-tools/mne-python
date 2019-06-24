@@ -60,17 +60,6 @@ def _to_loc(ll):
         return np.nan
 
 
-def _massage_eeg(eeg):
-    # add the ch_names and info['chs'][idx]['loc']
-    if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
-        eeg.chanlocs = [eeg.chanlocs]
-
-    if isinstance(eeg.chanlocs, dict):
-        eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
-
-    return eeg
-
-
 def _eeg_has_montage_information(eeg):
     from scipy import io
 
@@ -120,9 +109,14 @@ def _get_eeg_montage_information(eeg, get_pos):
     return ch_names, montage, update_ch_names
 
 
-def _get_info_no_montage(eeg, montage, eog=()):
-    eeg_montage = None
-    update_ch_names = True
+def _get_info(eeg, montage, eog=()):
+    """Get measurement info."""
+    # add the ch_names and info['chs'][idx]['loc']
+    if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
+        eeg.chanlocs = [eeg.chanlocs]
+
+    if isinstance(eeg.chanlocs, dict):
+        eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
 
     eeg_has_ch_names_info = len(eeg.chanlocs) > 0
 
@@ -133,19 +127,8 @@ def _get_info_no_montage(eeg, montage, eog=()):
 
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
-
-    return eeg_montage, update_ch_names, ch_names
-
-
-def _get_info(eeg, montage, eog=()):
-    """Get measurement info."""
-    # import pdb; pdb.set_trace()
-
-    eeg = _massage_eeg(eeg)
-
-    # import pdb; pdb.set_trace()
-    eeg_montage, update_ch_names, ch_names = _get_info_no_montage(
-        eeg, montage, eog)
+        eeg_montage = None
+        update_ch_names = True
 
     info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
