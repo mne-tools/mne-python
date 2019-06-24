@@ -10,10 +10,10 @@ import numpy as np
 
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
-from ..meas_info import _empty_info, create_info
-from ..base import BaseRaw, _check_update_montage
+from ..meas_info import create_info
+from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels.montage import Montage
+from ...channels.montage import Montage, _set_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
@@ -58,23 +58,12 @@ def _to_loc(ll):
         return np.nan
 
 
-def _get_info(eeg, montage, eog=()):
-    """Get measurement info."""
+def _eeg_has_montage_information(eeg):
     from scipy import io
-    info = _empty_info(sfreq=eeg.srate)
-    update_ch_names = True
 
-    # add the ch_names and info['chs'][idx]['loc']
-    path = None
-    if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
-        eeg.chanlocs = [eeg.chanlocs]
-
-    if isinstance(eeg.chanlocs, dict):
-        eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
-
-    good = len(eeg.chanlocs) > 0
-
-    if good:
+    if not len(eeg.chanlocs):
+        has_pos = False
+    else:
         pos_fields = ['X', 'Y', 'Z']
         if isinstance(eeg.chanlocs[0], io.matlab.mio5_params.mat_struct):
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
@@ -87,50 +76,71 @@ def _get_info(eeg, montage, eog=()):
             # new files
             has_pos = all(fld in eeg.chanlocs[0] for fld in pos_fields)
         else:
-            good = False
             has_pos = False  # unknown (sometimes we get [0, 0])
 
-    if good:
-        get_pos = has_pos and montage is None
-        pos_ch_names, ch_names, pos = list(), list(), list()
-        kind = 'user_defined'
+    return has_pos
+
+
+def _get_eeg_montage_information(eeg, get_pos):
+
+    pos_ch_names, ch_names, pos = list(), list(), list()
+    for chanloc in eeg.chanlocs:
+        ch_names.append(chanloc['labels'])
+        if get_pos:
+            loc_x = _to_loc(chanloc['X'])
+            loc_y = _to_loc(chanloc['Y'])
+            loc_z = _to_loc(chanloc['Z'])
+            locs = np.r_[-loc_y, loc_x, loc_z]
+            if not np.any(np.isnan(locs)):
+                pos_ch_names.append(chanloc['labels'])
+                pos.append(locs)
+
+    if pos_ch_names:
+        montage = Montage(pos=np.array(pos),
+                          ch_names=pos_ch_names,
+                          kind='user_defined',
+                          selection=np.arange(len(pos_ch_names)))
+    else:
+        montage = None
+
+    return ch_names, montage
+
+
+def _get_info(eeg, montage, eog=()):
+    """Get measurement info."""
+    # add the ch_names and info['chs'][idx]['loc']
+    if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
+        eeg.chanlocs = [eeg.chanlocs]
+
+    if isinstance(eeg.chanlocs, dict):
+        eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
+
+    eeg_has_ch_names_info = len(eeg.chanlocs) > 0
+
+    if eeg_has_ch_names_info:
+        has_pos = _eeg_has_montage_information(eeg)
+        ch_names, eeg_montage = _get_eeg_montage_information(eeg, has_pos)
         update_ch_names = False
-        for chanloc in eeg.chanlocs:
-            ch_names.append(chanloc['labels'])
-            if get_pos:
-                loc_x = _to_loc(chanloc['X'])
-                loc_y = _to_loc(chanloc['Y'])
-                loc_z = _to_loc(chanloc['Z'])
-                locs = np.r_[-loc_y, loc_x, loc_z]
-                if not np.any(np.isnan(locs)):
-                    pos_ch_names.append(chanloc['labels'])
-                    pos.append(locs)
-        n_channels_with_pos = len(pos_ch_names)
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
-        if n_channels_with_pos > 0:
-            selection = np.arange(n_channels_with_pos)
-            montage = Montage(np.array(pos), pos_ch_names, kind, selection)
-    elif isinstance(montage, str):
-        path = op.dirname(montage)
+
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        eeg_montage = None
+        update_ch_names = True
 
-    if montage is None:
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
-    else:
-        _check_update_montage(
-            info, montage, path=path, update_ch_names=update_ch_names,
-            raise_missing=False)
+    info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
-    if eog == 'auto':
-        eog = _find_channels(ch_names)
+    if not(montage is None and eeg_montage is None):
+        # XXX: This is kept for back compatibility, we should check the logic
+        if eog == 'auto':
+            eog = _find_channels(ch_names)
 
-    for idx, ch in enumerate(info['chs']):
-        ch['cal'] = CAL
-        if ch['ch_name'] in eog or idx in eog:
-            ch['coil_type'] = FIFF.FIFFV_COIL_NONE
-            ch['kind'] = FIFF.FIFFV_EOG_CH
-    return info
+        for idx, ch in enumerate(info['chs']):
+            ch['cal'] = CAL
+            if ch['ch_name'] in eog or idx in eog:
+                ch['coil_type'] = FIFF.FIFFV_COIL_NONE
+                ch['kind'] = FIFF.FIFFV_EOG_CH
+
+    return info, eeg_montage, update_ch_names
 
 
 @fill_doc
@@ -298,7 +308,10 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info = _get_info(eeg, montage, eog=eog)
+        info, eeg_montage, update_ch_names = _get_info(eeg, montage, eog=eog)
+
+        montage = eeg_montage if montage is None else montage
+        del eeg_montage
 
         # read the data
         if isinstance(eeg.data, str):
@@ -330,8 +343,9 @@ class RawEEGLAB(BaseRaw):
         # create event_ch from annotations
         annot = read_annotations(input_fname)
         self.set_annotations(annot)
-
         _check_boundary(annot, None)
+
+        self.set_montage(montage=montage, update_ch_names=update_ch_names)
 
         latencies = np.round(annot.onset * self.info['sfreq'])
         _check_latencies(latencies)
@@ -483,8 +497,11 @@ class EpochsEEGLAB(BaseEpochs):
 
         logger.info('Extracting parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        info = _get_info(eeg, montage, eog=eog)
-
+        info, eeg_montage, update_ch_names = _get_info(eeg, montage, eog=eog)
+        montage = eeg_montage if montage is None else montage
+        del eeg_montage
+        _set_montage(info, montage=montage, update_ch_names=update_ch_names,
+                     set_dig=True)
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError('No matching events found for %s '

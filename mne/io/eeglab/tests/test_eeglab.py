@@ -20,9 +20,9 @@ from mne import write_events, read_epochs_eeglab
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_h5py
+from mne.utils import run_tests_if_main, requires_h5py, object_diff
 from mne.annotations import events_from_annotations, read_annotations
-
+from mne.channels import Montage
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -164,6 +164,7 @@ def test_io_set_raw(fnames, tmpdir):
     # load it
     with pytest.warns(RuntimeWarning, match='did not have a position'):
         raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+
     # position should be present for first two channels
     for i in range(2):
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
@@ -306,6 +307,37 @@ def test_eeglab_event_from_annot():
     raw1.set_annotations(annotations)
     events_b, _ = events_from_annotations(raw1, event_id=event_id)
     assert len(events_b) == 154
+
+
+def _fake_montage(ch_names):
+    return Montage(
+        pos=np.random.RandomState(42).randn(len(ch_names), 3),
+        ch_names=ch_names,
+        # kind=4,
+        kind='foo',
+        selection=np.arange(len(ch_names))
+    )
+
+
+@testing.requires_testing_data
+def test_montage():
+    """Test montage."""
+    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
+    fname = op.join(base_dir, 'test_raw.set')
+    # montage = op.join(base_dir, 'test_chans.locs')
+
+    raw_none = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
+    montage = _fake_montage(raw_none.info['ch_names'])
+
+    raw_montage = read_raw_eeglab(input_fname=fname, montage=montage,
+                                  preload=False)
+    raw_none.set_montage(montage)
+    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
+    # assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
+    diff = object_diff(raw_none.info['chs'],
+                       raw_montage.info['chs']).splitlines()
+    for dd in diff:
+        assert 'coord_frame' in dd
 
 
 run_tests_if_main()
