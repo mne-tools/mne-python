@@ -2497,8 +2497,11 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     elif mode in ['sphere', 'cone']:
         from .backends.renderer import _Renderer
         renderer = _Renderer(fig=fig, size=(600, 600))
-        # XXX what positions to use for the dipoles?
-        pos = dipoles.pos
+
+        pos, ori, _, _ = _get_dipole_loc(dipoles, trans, subject,
+                                         subjects_dir=subjects_dir,
+                                         coord_frame=coord_frame)
+
         renderer.sphere(center=np.c_[pos[:, 0], pos[:, 1], pos[:, 2]],
                         color=color, scale=1E-3)
         fig = renderer.scene()
@@ -2666,8 +2669,6 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     from .. import Dipole
     if not has_nibabel():
         raise ImportError('This function requires nibabel.')
-    import nibabel as nib
-    from nibabel.processing import resample_from_to
 
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
@@ -2681,32 +2682,12 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     else:
         idx = _ensure_int(idx, 'idx', 'an int or one of ["gof", "amplitude"]')
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
-    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    t1 = nib.load(t1_fname)
-    vox2ras = t1.header.get_vox2ras_tkr()
-    ras2vox = linalg.inv(vox2ras)
-    trans = _get_trans(trans, fro='head', to='mri')[0]
+    dipole_locs, ori, scatter_points, t1 = \
+        _get_dipole_loc(dipole, trans, subject,
+                        subjects_dir=subjects_dir,
+                        coord_frame=coord_frame)
+
     zooms = t1.header.get_zooms()
-    if coord_frame == 'head':
-        affine_to = trans['trans'].copy()
-        affine_to[:3, 3] *= 1000  # to mm
-        aff = t1.affine.copy()
-
-        aff[:3, :3] /= zooms
-        affine_to = np.dot(affine_to, aff)
-        t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
-                                    in range(3)], affine_to))
-        dipole_locs = apply_trans(ras2vox, dipole.pos * 1e3) * zooms
-
-        ori = dipole.ori
-        scatter_points = dipole.pos * 1e3
-    else:
-        scatter_points = apply_trans(trans['trans'], dipole.pos) * 1e3
-        ori = apply_trans(trans['trans'], dipole.ori, move=False)
-        dipole_locs = apply_trans(ras2vox, scatter_points)
-
     data = t1.get_data()
     dims = len(data)  # Symmetric size assumed.
     dd = dims / 2.
@@ -2735,6 +2716,40 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
 
     plt_show(show, block=block)
     return fig
+
+
+def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
+                    coord_frame='head'):
+    """Get the dipole locations and orientations."""
+    import nibabel as nib
+    from nibabel.processing import resample_from_to
+    _check_option('coord_frame', coord_frame, ['head', 'mri'])
+
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    t1 = nib.load(t1_fname)
+    vox2ras = t1.header.get_vox2ras_tkr()
+    ras2vox = linalg.inv(vox2ras)
+    trans = _get_trans(trans, fro='head', to='mri')[0]
+    zooms = t1.header.get_zooms()
+    if coord_frame == 'head':
+        affine_to = trans['trans'].copy()
+        affine_to[:3, 3] *= 1000  # to mm
+        aff = t1.affine.copy()
+
+        aff[:3, :3] /= zooms
+        affine_to = np.dot(affine_to, aff)
+        t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
+                                    in range(3)], affine_to))
+        dipole_locs = apply_trans(ras2vox, dipole.pos * 1e3) * zooms
+        dipole_oris = dipole.ori
+        scatter_points = dipole.pos * 1e3
+    else:
+        scatter_points = apply_trans(trans['trans'], dipole.pos) * 1e3
+        dipole_oris = apply_trans(trans['trans'], dipole.ori, move=False)
+        dipole_locs = apply_trans(ras2vox, scatter_points)
+    return dipole_locs, dipole_oris, scatter_points, t1
 
 
 def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,

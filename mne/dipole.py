@@ -262,7 +262,8 @@ class Dipole(object):
             The color of the dipoles if ``mode`` is 'sphere' or 'cone'.
         fig : mayavi.mlab.Figure | None
             Mayavi Scene in which to plot the alignment.
-            If ``None``, creates a new 600x600 pixel figure with black background.
+            If ``None``, creates a new 600x600 pixel figure with black
+            background.
 
         Returns
         -------
@@ -285,7 +286,7 @@ class Dipole(object):
                              "Got %s." % mode)
         return plot_dipole_locations(
             dipoles, trans, subject, subjects_dir, mode, coord_frame, idx,
-            show_all, ax, block, show, color, fig)
+            show_all, ax, block, show, color=color, fig=fig)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
