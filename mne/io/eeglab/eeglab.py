@@ -194,6 +194,7 @@ def _get_info(eeg, montage, eog=()):
             if object_diff(info, info_xx):
                 assert eog == ()
                 info = info_xx
+                assert False
             else:
                 assert eog == 'auto'
     else:
