@@ -251,33 +251,10 @@ processed with a bandpass, lowpass or highpass filter, dashed lines
 indicate the boundaries of the filter (--). The line noise frequency is
 also indicated with a dashed line (-.)
 """
-docdict["plot_psd_fmin"] = """
-fmin : float
-    Start frequency to consider. Defaults to 0.
-"""
-docdict["plot_psd_fmax"] = """
-fmax : float
-    End frequency to consider. Defaults to Inf.
-"""
-docdict["plot_psd_tmin"] = """
-tmin : float
-    Start time for calculations. If None (default), then 0.
-"""
-docdict["plot_psd_tmax"] = """
-tmax : float
-    End time for calculations. If None (default), then last time point.
-"""
-docdict["plot_psd_proj"] = """
-proj : bool
-    Apply projection.
-"""
 docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
     Cannot be None if `ax` is supplied.If both `picks` and `ax` are None
     separate subplots will be created for each standard channel type
-    (`mag`, `grad`, and `eeg`).\n"""
-docdict["plot_psd_ax"] = """
-ax : instance of matplotlib Axes | None
-    Axes to plot into. If None, axes will be created.
+    (`mag`, `grad`, and `eeg`).
 """
 docdict["plot_psd_color"] = """
 color : str | tuple
@@ -317,7 +294,7 @@ estimate : str, {'auto', 'power', 'amplitude'}
 """
 docdict["plot_psd_average"] = """
 average : bool
-    If False (default), the PSDs of all channels is displayed. No averaging
+    If False, the PSDs of all channels is displayed. No averaging
     is done and parameters area_mode and area_alpha are ignored. When
     False, it is possible to paint an area (hold left mouse button and
     drag) to plot a topomap.

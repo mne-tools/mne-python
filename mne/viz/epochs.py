@@ -868,7 +868,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     normalization='length', picks=None, ax=None, color='black',
                     xscale='linear', area_mode='std', area_alpha=0.33,
                     dB=True, estimate='auto', show=True, n_jobs=1,
-                    average=False, line_alpha=None, spatial_colors=True,
+                    average=None, line_alpha=None, spatial_colors=None,
                     verbose=None):
     """%(plot_psd_doc)s.
 
@@ -876,11 +876,16 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     ----------
     epochs : instance of Epochs
         The epochs object
-    %(plot_psd_fmin)s
-    %(plot_psd_fmax)s
-    %(plot_psd_tmin)s
-    %(plot_psd_tmax)s
-    %(plot_psd_proj)s
+    fmin : float
+        Start frequency to consider.
+    fmax : float
+        End frequency to consider.
+    tmin : float | None
+        Start time to consider.
+    tmax : float | None
+        End time to consider.
+    proj : bool
+        Apply projection.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -895,7 +900,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
     %(plot_psd_picks_good_data)s
-    %(plot_psd_ax)s
+    ax : instance of Axes | None
+        Axes to plot into. If None, axes will be created.
     %(plot_psd_color)s
     %(plot_psd_xscale)s
     %(plot_psd_area_mode)s
@@ -914,6 +920,20 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
+    # this chunk should be removed for 0.2
+    if average is False and spatial_colors is None:
+        spatial_colors = True
+    if spatial_colors is None:
+        spatial_colors = False
+        warn('spatial_colors defaults to False in 0.19 but will change to True'
+             ' in 0.2. Set it explicitly to avoid this warning.',
+             DeprecationWarning)
+    if average is None:
+        average = True
+        warn('average defaults to True in 0.19 but will change to False'
+             ' in 0.2. Set it explicitly to avoid this warning.',
+             DeprecationWarning)
+
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,

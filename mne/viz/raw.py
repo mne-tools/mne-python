@@ -578,11 +578,16 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     ----------
     raw : instance of Raw
         The raw object.
-    %(plot_psd_fmin)s
-    %(plot_psd_fmax)s
-    %(plot_psd_tmin)s
-    %(plot_psd_tmax)s
-    %(plot_psd_proj)s
+    fmin : float
+        Start frequency to consider.
+    fmax : float
+        End frequency to consider.
+    tmin : float | None
+        Start time to consider.
+    tmax : float | None
+        End time to consider.
+    proj : bool
+        Apply projection.
     n_fft : int | None
         Number of points to use in Welch FFT calculations.
         Default is None, which uses the minimum of 2048 and the
@@ -596,7 +601,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
         Evoked object. Defaults to True.
     %(plot_psd_picks_good_data)s
-    %(plot_psd_ax)s
+    ax : instance of Axes | None
+        Axes to plot into. If None, axes will be created.
     %(plot_psd_color)s
     %(plot_psd_xscale)s
     %(plot_psd_area_mode)s

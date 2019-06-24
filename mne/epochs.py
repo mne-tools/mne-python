@@ -938,7 +938,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  normalization='length', picks=None, ax=None, color='black',
                  xscale='linear', area_mode='std', area_alpha=0.33,
                  dB=True, estimate='auto', show=True, n_jobs=1,
-                 average=False, line_alpha=None, spatial_colors=True,
+                 average=None, line_alpha=None, spatial_colors=None,
                  verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
                                tmax=tmax, proj=proj, bandwidth=bandwidth,
