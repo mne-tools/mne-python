@@ -123,7 +123,7 @@ def _get_info(eeg, montage, eog=()):
     if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
         ch_names, eeg_montage, update_ch_names = _get_eeg_montage_information(
-            eeg, has_pos)
+            eeg, get_pos=has_pos)
 
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
