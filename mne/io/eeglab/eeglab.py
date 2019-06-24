@@ -86,8 +86,6 @@ def _eeg_has_montage_information(eeg):
 def _get_eeg_montage_information(eeg, get_pos):
 
     pos_ch_names, ch_names, pos = list(), list(), list()
-    kind = 'user_defined'
-    update_ch_names = False
     for chanloc in eeg.chanlocs:
         ch_names.append(chanloc['labels'])
         if get_pos:
@@ -99,14 +97,15 @@ def _get_eeg_montage_information(eeg, get_pos):
                 pos_ch_names.append(chanloc['labels'])
                 pos.append(locs)
 
-    n_channels_with_pos = len(pos_ch_names)
-    if n_channels_with_pos > 0:
-        selection = np.arange(n_channels_with_pos)
-        montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+    if pos_ch_names:
+        montage = Montage(pos=np.array(pos),
+                          ch_names=pos_ch_names,
+                          kind='user_defined',
+                          selection=np.arange(len(pos_ch_names)))
     else:
         montage = None
 
-    return ch_names, montage, update_ch_names
+    return ch_names, montage
 
 
 def _get_info(eeg, montage, eog=()):
@@ -122,8 +121,8 @@ def _get_info(eeg, montage, eog=()):
 
     if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
-        ch_names, eeg_montage, update_ch_names = _get_eeg_montage_information(
-            eeg, get_pos=has_pos)
+        ch_names, eeg_montage = _get_eeg_montage_information(eeg, has_pos)
+        update_ch_names = False
 
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
