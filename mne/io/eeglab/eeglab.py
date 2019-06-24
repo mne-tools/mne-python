@@ -362,8 +362,6 @@ class RawEEGLAB(BaseRaw):
 
         montage = eeg_montage if montage is None else montage
         del eeg_montage
-        _set_montage(info, montage=montage, update_ch_names=update_ch_names,
-                     set_dig=True)
 
         # read the data
         if isinstance(eeg.data, str):
@@ -395,8 +393,9 @@ class RawEEGLAB(BaseRaw):
         # create event_ch from annotations
         annot = read_annotations(input_fname)
         self.set_annotations(annot)
-
         _check_boundary(annot, None)
+
+        self.set_montage(montage=montage, update_ch_names=update_ch_names)
 
         latencies = np.round(annot.onset * self.info['sfreq'])
         _check_latencies(latencies)
