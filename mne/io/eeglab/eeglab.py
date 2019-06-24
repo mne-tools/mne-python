@@ -118,7 +118,6 @@ def _eeg_has_montage_information(eeg):
 
 def _get_eeg_montage_information(eeg, get_pos):
 
-    # assert get_pos == False
     pos_ch_names, ch_names, pos = list(), list(), list()
     kind = 'user_defined'
     update_ch_names = False
@@ -151,18 +150,13 @@ def _get_info_no_montage(eeg, montage, eog=()):
 
     if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
-
-    if eeg_has_ch_names_info:
-        # assert False
-        get_pos = has_pos and montage is None
         ch_names, eeg_montage, update_ch_names = _get_eeg_montage_information(
-            eeg, get_pos)
+            eeg, has_pos)
 
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
 
     return eeg_montage, update_ch_names, ch_names
-
 
 
 def _get_info(eeg, montage, eog=()):
@@ -177,10 +171,8 @@ def _get_info(eeg, montage, eog=()):
 
     info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
-    if montage is None and eeg_montage is None:
-        pass
-    else:  # XXX: This is kept for backcompat, we should check the logic
-
+    if not(montage is None and eeg_montage is None):
+        # XXX: This is kept for back compatibility, we should check the logic
         if eog == 'auto':
             eog = _find_channels(ch_names)
 
