@@ -41,7 +41,7 @@ this package. You can also find a gallery of these examples in the
         glossary.rst
         auto_examples/index.rst
         generated/commands.rst
-        auto_tutorials/intro/plot_configuration.rst
+        auto_tutorials/intro/plot_50_configure_mne.rst
         cited.rst
         faq.rst
 
@@ -58,12 +58,12 @@ this package. You can also find a gallery of these examples in the
     .. toctree::
         :maxdepth: 1
 
-        auto_tutorials/raw/plot_object_raw.rst
+        auto_tutorials/raw/plot_10_raw_overview.rst
         auto_tutorials/epochs/plot_object_epochs.rst
         auto_tutorials/evoked/plot_object_evoked.rst
         auto_tutorials/source-modeling/plot_object_source_estimate.rst
-        auto_tutorials/intro/plot_info.rst
-        auto_tutorials/intro/plot_object_annotations.rst
+        auto_tutorials/intro/plot_30_info.rst
+        auto_tutorials/intro/plot_20_events_from_raw.rst
 
 
 .. collapse:: Data I/O and datasets
@@ -162,7 +162,7 @@ this package. You can also find a gallery of these examples in the
     .. toctree::
         :maxdepth: 1
 
-        auto_tutorials/raw/plot_visualize_raw.rst
+        auto_tutorials/raw/plot_40_visualize_raw.rst
         auto_tutorials/epochs/plot_visualize_epochs.rst
         auto_tutorials/evoked/plot_visualize_evoked.rst
         auto_tutorials/source-modeling/plot_visualize_stc.rst
@@ -196,8 +196,8 @@ this package. You can also find a gallery of these examples in the
     .. toctree::
         :maxdepth: 1
 
-        auto_tutorials/intro/plot_introduction.rst
-        auto_tutorials/intro/plot_epoching_and_averaging.rst
+        auto_tutorials/intro/plot_10_overview.rst
+        auto_tutorials/epochs/plot_epoching_and_averaging.rst
         auto_tutorials/evoked/plot_eeg_erp.rst
         auto_tutorials/time-freq/plot_sensors_time_frequency.rst
         manual/time_frequency.rst

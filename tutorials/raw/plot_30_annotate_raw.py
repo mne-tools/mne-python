@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-annotate-raw:
+
 Annotating continuous data
 ==========================
 
@@ -161,7 +163,7 @@ raw.plot(start=2, duration=6)
 # controls window defaults to ``BAD_``. The reason for this is that annotation
 # is often used to mark bad temporal spans of data (such as movement artifacts
 # or environmental interference that cannot be removed in other ways such as
-# :doc:`projection <../intro/plot_projectors_intro>` or filtering). Several
+# :ref:`projection <tut-projectors-background>` or filtering). Several
 # MNE-Python operations
 # are "annotation aware" and will avoid using data that is annotated with a
 # description that begins with "bad" or "BAD"; such operations typically have a

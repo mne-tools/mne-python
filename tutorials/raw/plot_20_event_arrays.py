@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-event-arrays:
+
 Working with events
 ===================
 
@@ -26,7 +28,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
 
 ###############################################################################
-# The tutorial :doc:`../intro/plot_object_annotations` describes in detail the
+# The tutorial :ref:`tut-events-vs-annotations` describes in detail the
 # different ways of obtaining an :term:`Events array <events>` from a
 # :class:`~mne.io.Raw` object (see the section
 # :ref:`overview-tut-events-section` for details). Since the :ref:`sample
@@ -106,8 +108,8 @@ print(np.unique(merged_events[:, -1]))
 # experimental conditions during analysis. You may recall that the mapping of
 # integer Event IDs to meaningful descriptions for the :ref:`sample dataset
 # <sample-dataset>` is given in :ref:`this table
-# <sample-data-event-dict-table>` in the :doc:`introductory tutorial
-# <../intro/plot_introduction>`. Here we simply reproduce that mapping as an
+# <sample-data-event-dict-table>` in the :ref:`introductory tutorial
+# <tut-overview>`. Here we simply reproduce that mapping as an
 # *event dictionary*:
 
 event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,

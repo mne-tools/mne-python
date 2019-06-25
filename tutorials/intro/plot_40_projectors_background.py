@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-projectors-background:
+
 Background on projectors and projections
 ========================================
 
@@ -323,7 +325,7 @@ mags.plot(butterfly=True, proj=True)
 
 ###############################################################################
 # Additional ways of visualizing projectors are covered in the tutorial
-# :doc:`../preprocessing/plot_artifacts_correction_ssp`.
+# :ref:`tut-artifact-ssp`.
 #
 #
 # Loading and saving projectors

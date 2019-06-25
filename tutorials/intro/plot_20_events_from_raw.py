@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-events-vs-annotations:
+
 Parsing events from raw data
 ============================
 
@@ -16,16 +18,16 @@ example of reading experimental events from a :term:`"STIM" channel <stim
 channel>`; here we'll discuss :term:`events` and :term:`annotations` more
 broadly, give more detailed information about reading from STIM channels, and
 give an example of reading events that are in a marker file or included in the
-data file as an embedded array. The tutorials :doc:`../raw/plot_events` and
-:doc:`../raw/plot_annotating_raw` discuss how to plot, combine, load, save, and
+data file as an embedded array. The tutorials :ref:`tut-event-arrays` and
+:ref:`tut-annotate-raw` discuss how to plot, combine, load, save, and
 export :term:`events` and :class:`~mne.Annotations` (respectively), and the
 latter tutorial also covers interactive annotation of :class:`~mne.io.Raw`
 objects.
 
 We'll begin by loading the Python modules we need, and loading the same
-:ref:`example data <sample-dataset>` we used in the :doc:`introductory tutorial
-<plot_introduction>`, but to save memory we'll crop the :class:`~mne.io.Raw`
-object to just 60 seconds before loading it into RAM:
+:ref:`example data <sample-dataset>` we used in the :ref:`introductory tutorial
+<tut-overview>`, but to save memory we'll crop the :class:`~mne.io.Raw` object
+to just 60 seconds before loading it into RAM:
 """
 
 import os
@@ -132,7 +134,7 @@ print(events[:5])  # show the first 5
 #     :func:`mne.find_events` for more details.
 #
 # If you don't provide the name of a STIM channel, :func:`~mne.find_events`
-# will first look for MNE-Python :doc:`config variables <plot_configuration>`
+# will first look for MNE-Python :ref:`config variables <tut-configure-mne>`
 # for variables ``MNE_STIM_CHANNEL``, ``MNE_STIM_CHANNEL_1``, etc. If those are
 # not found, channels ``STI 014`` and ``STI101`` are tried, followed by the
 # first channel with type "STIM" present in ``raw.ch_names``. If you regularly
@@ -148,7 +150,7 @@ print(events[:5])  # show the first 5
 # passing ``output='step'`` to :func:`mne.find_events`; see the documentation
 # of :func:`~mne.find_events` for details. More information on working with
 # events arrays (including how to plot, combine, load, and save event arrays)
-# can be found in the tutorial :doc:`../raw/plot_events`.
+# can be found in the tutorial :ref:`tut-event-arrays`.
 #
 #
 # Reading embedded events as Annotations
@@ -183,7 +185,7 @@ print(eeglab_raw.annotations.onset[0])
 # More information on working with :class:`~mne.Annotations` objects, including
 # how to add annotations to :class:`~mne.io.Raw` objects interactively, and how
 # to plot, concatenate, load, save, and export :class:`~mne.Annotations`
-# objects can be found in the tutorial :doc:`../raw/plot_annotating_raw`.
+# objects can be found in the tutorial :ref:`tut-annotate-raw`.
 #
 #
 # Converting between Events arrays and Annotations objects
