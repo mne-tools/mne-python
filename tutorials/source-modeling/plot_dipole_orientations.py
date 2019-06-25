@@ -56,17 +56,18 @@ white = (1.0, 1.0, 1.0)  # RGB values for a white color
 red = (1.0, 0.0, 0.0)  # RGB valued for a red color
 
 fig = mne.viz.create_3d_figure(size=(600, 400))
+coord_frame = 'mri'
 
 # Plot the cortex
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
                              trans=trans,
-                             surfaces='white', coord_frame='head', fig=fig)
+                             surfaces='white', coord_frame=coord_frame, fig=fig)
 
 # Mark the position of the dipoles with small red dots
 fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
                                     mode='sphere', subject=subject,
                                     subjects_dir=subjects_dir,
-                                    coord_frame='head', fig=fig)
+                                    coord_frame=coord_frame, fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.25)
 
