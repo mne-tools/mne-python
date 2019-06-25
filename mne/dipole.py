@@ -204,7 +204,7 @@ class Dipole(object):
     def plot_locations(self, trans, subject, subjects_dir=None,
                        mode='orthoview', coord_frame='mri', idx='gof',
                        show_all=True, ax=None, block=False, show=True,
-                       verbose=None, color=(1.0, 0.0, 0.0), fig=None):
+                       color=(1.0, 0.0, 0.0), fig=None, verbose=None):
         """Plot dipole locations in 3d.
 
         Parameters
@@ -257,13 +257,13 @@ class Dipole(object):
             Only used if mode equals 'orthoview'.
 
             .. versionadded:: 0.14.0
-        %(verbose_meth)s
         color : tuple
             The color of the dipoles if ``mode`` is 'sphere' or 'cone'.
         fig : mayavi.mlab.Figure | None
             Mayavi Scene in which to plot the alignment.
             If ``None``, creates a new 600x600 pixel figure with black
             background.
+        %(verbose_meth)s
 
         Returns
         -------

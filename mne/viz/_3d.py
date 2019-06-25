@@ -2498,20 +2498,19 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     elif mode in ['sphere', 'cone']:
         from .backends.renderer import _Renderer
         renderer = _Renderer(fig=fig, size=(600, 600))
-
-        pos, ori, _, _ = _get_dipole_loc(dipoles, trans, subject,
-                                         subjects_dir=subjects_dir,
-                                         coord_frame=coord_frame)
-
-        pos /= 1000.0
+        pos = dipoles.pos
+        ori = dipoles.ori
+        if coord_frame != 'head':
+            trans = _get_trans(trans, fro='head', to=coord_frame)[0]
+            pos = apply_trans(trans, pos)
+            ori = apply_trans(trans, ori)
         renderer.sphere(center=np.c_[pos[:, 0], pos[:, 1], pos[:, 2]],
-                        color=color, scale=1E-3)
+                        color=color, scale=5e-3)
         fig = renderer.scene()
     else:
         raise ValueError('Mode must be "orthoview", got %s.' % (mode,))
 
     return fig
-
 
 def snapshot_brain_montage(fig, montage, hide_sensors=True):
     """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
