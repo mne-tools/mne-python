@@ -226,10 +226,10 @@ def test_set_eeg_reference():
 
     # gh-6454
     rng = np.random.RandomState(0)
-    data = rng.randn(2, 1000)
-    raw = RawArray(data, create_info(2, 1000., 'ecog'))
-    with pytest.raises(ValueError, match='No EEG channels found to apply'):
-        raw.set_eeg_reference()
+    data = rng.randn(3, 1000)
+    raw = RawArray(data, create_info(3, 1000., ['ecog'] * 2 + ['misc']))
+    reref, ref_data = set_eeg_reference(raw.copy())
+    _test_reference(raw, reref, ref_data, ['0', '1'])
 
 
 @testing.requires_testing_data
