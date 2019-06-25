@@ -106,7 +106,7 @@ def _get_eeg_montage_information(eeg, get_pos):
     return ch_names, montage
 
 
-def _get_info(eeg, montage, eog=()):
+def _get_info(eeg, eog=()):
     """Get measurement info."""
     # add the ch_names and info['chs'][idx]['loc']
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
@@ -129,16 +129,12 @@ def _get_info(eeg, montage, eog=()):
 
     info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
-    if not(montage is None and eeg_montage is None):
-        # XXX: This is kept for back compatibility, we should check the logic
-        if eog == 'auto':
-            eog = _find_channels(ch_names)
-
-        for idx, ch in enumerate(info['chs']):
-            ch['cal'] = CAL
-            if ch['ch_name'] in eog or idx in eog:
-                ch['coil_type'] = FIFF.FIFFV_COIL_NONE
-                ch['kind'] = FIFF.FIFFV_EOG_CH
+    eog = _find_channels(ch_names) if eog == 'auto' else eog
+    for idx, ch in enumerate(info['chs']):
+        ch['cal'] = CAL
+        if ch['ch_name'] in eog or idx in eog:
+            ch['coil_type'] = FIFF.FIFFV_COIL_NONE
+            ch['kind'] = FIFF.FIFFV_EOG_CH
 
     return info, eeg_montage, update_ch_names
 
@@ -308,7 +304,7 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info, eeg_montage, update_ch_names = _get_info(eeg, montage, eog=eog)
+        info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
 
         montage = eeg_montage if montage is None else montage
         del eeg_montage
@@ -497,7 +493,7 @@ class EpochsEEGLAB(BaseEpochs):
 
         logger.info('Extracting parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        info, eeg_montage, update_ch_names = _get_info(eeg, montage, eog=eog)
+        info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
         montage = eeg_montage if montage is None else montage
         del eeg_montage
         _set_montage(info, montage=montage, update_ch_names=update_ch_names,
