@@ -161,7 +161,7 @@ dip_true = \
     mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
 fig = mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces='inner_skull',
-                       coord_frame='head', meg='helmet', show_axes=True)
+                             coord_frame='head', meg='helmet', show_axes=True)
 
 # Plot the position and the orientation of the actual dipole
 fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='3d',

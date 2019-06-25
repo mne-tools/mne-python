@@ -2496,7 +2496,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show)
-    elif mode ==  '3d':
+    elif mode == '3d':
         from .backends.renderer import _Renderer
         renderer = _Renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
