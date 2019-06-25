@@ -883,14 +883,24 @@ def combine_evoked(all_evoked, weights):
     -----
     .. versionadded:: 0.9.0
     """
+    naves = np.array([evk.nave for evk in all_evoked], float)
     if isinstance(weights, str):
         _check_option('weights', weights, ['nave', 'equal'])
         if weights == 'nave':
-            weights = np.array([e.nave for e in all_evoked], float)
-            weights /= weights.sum()
-        else:  # == 'equal'
-            weights = [1. / len(all_evoked)] * len(all_evoked)
-    weights = np.array(weights, float)
+            weights = naves / naves.sum()
+            new_nave = np.sum(naves)
+        else:
+            weights = np.ones_like(naves)
+            new_nave = 1. / np.sum(1. / naves)
+        # for the new_nave calculation, cf. Matti's manual (pp 128-129); both
+        # of the formulae above are equivalent to the general formula below,
+        # but reduce numerical error.
+    else:
+        weights = np.array(weights, float)
+        new_nave = 1. / np.sum(weights ** 2 / naves)
+        # cf. section on how variances change when summing Gaussian random
+        # variables: https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
+
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
 
@@ -901,24 +911,8 @@ def combine_evoked(all_evoked, weights):
     bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
                                                  for ev in all_evoked[1:])))
     evoked.info['bads'] = bads
-
     evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
-    # We should set nave based on how variances change when summing Gaussian
-    # random variables. From:
-    #
-    #    https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
-    #
-    # We know that the variance of a weighted sample mean is:
-    #
-    #    σ^2 = w_1^2 σ_1^2 + w_2^2 σ_2^2 + ... + w_n^2 σ_n^2
-    #
-    # We estimate the variance of each evoked instance as 1 / nave to get:
-    #
-    #    σ^2 = w_1^2 / nave_1 + w_2^2 / nave_2 + ... + w_n^2 / nave_n
-    #
-    # And our resulting nave is the reciprocal of this:
-    evoked.nave = max(int(round(
-        1. / sum(w ** 2 / e.nave for w, e in zip(weights, all_evoked)))), 1)
+    evoked.nave = new_nave
     evoked.comment = ' + '.join('%0.3f * %s' % (w, e.comment or 'unknown')
                                 for w, e in zip(weights, all_evoked))
     return evoked
@@ -1188,6 +1182,13 @@ def _write_evokeds(fname, evoked, check=True):
     if not isinstance(evoked, list):
         evoked = [evoked]
 
+    # convert nave to integer to comply with FIFF spec
+    nave_int = round(evoked[0].nave)
+    if nave_int != evoked[0].nave:
+        warn('converting "nave" to integer before saving evoked; this can '
+             'have a minor effect on the scale of source estimates that are '
+             'computed using "nave".')
+
     # Create the file and save the essentials
     with start_file(fname) as fid:
 
@@ -1220,7 +1221,7 @@ def _write_evokeds(fname, evoked, check=True):
             start_block(fid, aspect)
 
             write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
-            write_int(fid, FIFF.FIFF_NAVE, e.nave)
+            write_int(fid, FIFF.FIFF_NAVE, nave_int)
 
             decal = np.zeros((e.info['nchan'], 1))
             for k in range(e.info['nchan']):
