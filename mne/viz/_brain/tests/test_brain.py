@@ -12,16 +12,20 @@ import pytest
 import numpy as np
 import os.path as path
 from mne import read_source_estimate
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.viz._brain import _Brain
 from mne.viz._brain.colormap import _calculate_lut
 
-data_path = sample.data_path()
+from matplotlib import cm
+
+data_path = testing.data_path(download=False)
 subject_id = 'sample'
 subjects_dir = path.join(data_path, 'subjects')
+fname_stc = path.join(data_path, 'MEG/sample/sample_audvis_trunc-meg')
 surf = 'inflated'
 
 
+@testing.requires_testing_data
 def test_brain_init(renderer):
     """Test initialization of the _Brain instance."""
     backend_name = renderer.get_3d_backend()
@@ -41,12 +45,11 @@ def test_brain_init(renderer):
         brain.show()
 
 
+@testing.requires_testing_data
 def test_brain_add_data(renderer):
     """Test adding data in _Brain instance."""
     backend_name = renderer.get_3d_backend()
-    act_data = path.join(data_path, 'MEG/sample/sample_audvis-meg-eeg')
-
-    stc = read_source_estimate(act_data)
+    stc = read_source_estimate(fname_stc)
 
     hemi = 'lh'
     hemi_data = stc.data[:len(stc.vertices[0]), 10]
@@ -73,7 +76,6 @@ def test_brain_add_data(renderer):
 
 def test_brain_colormap():
     """Test brain's colormap functions."""
-    from matplotlib import cm
     colormap = "coolwarm"
     alpha = 1.0
     fmin = 0.0
