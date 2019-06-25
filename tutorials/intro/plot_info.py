@@ -136,7 +136,7 @@ print(mne.pick_channels_regexp(info['ch_names'], '^E.G'))
 # Python standard module :mod:`re` to perform regular expression matching; see
 # the documentation of the :mod:`re` module for implementation details.
 #
-# ..warning::
+# .. warning::
 #    Both :func:`~mne.pick_channels` and :func:`~mne.pick_channels_regexp`
 #    operate on lists of channel names, so they are unaware of which channels
 #    (if any) have been marked as "bad" in ``info['bads']``. Use caution to
