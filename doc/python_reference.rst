@@ -99,6 +99,8 @@ File I/O
    :toctree: generated
 
    decimate_surface
+   channel_type
+   channel_indices_by_type
    get_head_surf
    get_meg_helmet_surf
    get_volume_labels_from_aseg

@@ -99,17 +99,17 @@ def channel_type(info, idx):
 
     Parameters
     ----------
-    info : dict
-        Measurement info
+    info : instance of Info
+        A measurement info object.
     idx : int
-        Index of channel
+        Index of channel.
 
     Returns
     -------
     type : str
         Type of channel. Will be one of::
 
-            {'grad','mag', 'eeg', 'stim', 'eog', 'emg', 'ecg', 'ref_meg',
+            {'grad', 'mag', 'eeg', 'stim', 'eog', 'emg', 'ecg', 'ref_meg',
              'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'bio', 'chpi',
              'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
 
@@ -663,15 +663,15 @@ def channel_indices_by_type(info, picks=None):
 
     Parameters
     ----------
-    info : instance of mne.measuerment_info.Info
-        The info.
+    info : instance of Info
+        A measurement info object.
     %(picks_all)s
 
     Returns
     -------
     idx_by_type : dict
-        The dictionary that maps each channel type to the list of
-        channel indidces.
+        A dictionary that maps each channel type to a (possibly empty) list of
+        channel indices.
     """
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
                    key not in ('meg', 'fnirs')}
