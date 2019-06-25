@@ -33,7 +33,6 @@ from mne import find_events, fit_dipole
 from mne.datasets.brainstorm import bst_phantom_elekta
 from mne.io import read_raw_fif
 
-from mayavi import mlab
 print(__doc__)
 
 ###############################################################################
@@ -41,6 +40,7 @@ print(__doc__)
 # and low-pass filtered at 330 Hz. Here the medium-amplitude (200 nAm) data
 # are read to construct instances of :class:`mne.io.Raw`.
 data_path = bst_phantom_elekta.data_path(verbose=True)
+subject = 'sample'
 
 raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
 raw = read_raw_fif(raw_fname)
@@ -86,7 +86,7 @@ epochs['1'].average().plot(time_unit='s')
 # is properly modeled by a single-shell sphere with origin (0., 0., 0.).
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
 
-mne.viz.plot_alignment(epochs.info, subject='sample', show_axes=True,
+mne.viz.plot_alignment(epochs.info, subject=subject, show_axes=True,
                        bem=sphere, dig=True, surfaces='inner_skull')
 
 ###############################################################################
@@ -151,29 +151,25 @@ ax3.set_ylabel('Amplitude error (nAm)')
 fig.tight_layout()
 plt.show()
 
-
 ###############################################################################
 # Let's plot the positions and the orientations of the actual and the estimated
 # dipoles
 
-def plot_pos_ori(pos, ori, color=(0., 0., 0.), opacity=1.):
-    """Plot dipole positions and orientations in 3D."""
-    x, y, z = pos.T
-    u, v, w = ori.T
-    mlab.points3d(x, y, z, scale_factor=0.005, opacity=opacity, color=color)
-    q = mlab.quiver3d(x, y, z, u, v, w,
-                      scale_factor=0.03, opacity=opacity,
-                      color=color, mode='arrow')
-    q.glyph.glyph_source.glyph_source.shaft_radius = 0.02
-    q.glyph.glyph_source.glyph_source.tip_length = 0.1
-    q.glyph.glyph_source.glyph_source.tip_radius = 0.05
+actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
+actual_gof = np.ones(len(dip))  # misc amp to create Dipole instance
+dip_true = \
+    mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
-
-mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces='inner_skull',
+fig = mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces='inner_skull',
                        coord_frame='head', meg='helmet', show_axes=True)
 
 # Plot the position and the orientation of the actual dipole
-plot_pos_ori(actual_pos, actual_ori, color=(0., 0., 0.), opacity=0.5)
+fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='3d',
+                                    subject=subject,
+                                    color=(0., 0., 0.), fig=fig)
+
 # Plot the position and the orientation of the estimated dipole
-plot_pos_ori(dip.pos, dip.ori, color=(0.2, 1., 0.5))
-mlab.view(70, 80, distance=0.5)
+fig = mne.viz.plot_dipole_locations(dipoles=dip, mode='3d', subject=subject,
+                                    color=(0.2, 1., 0.5), fig=fig)
+
+mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)

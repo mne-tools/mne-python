@@ -65,7 +65,7 @@ fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
 
 # Mark the position of the dipoles with small red dots
 fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
-                                    mode='sphere', subject=subject,
+                                    mode='3d', subject=subject,
                                     subjects_dir=subjects_dir,
                                     coord_frame=coord_frame, fig=fig)
 

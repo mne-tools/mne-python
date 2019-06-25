@@ -2409,7 +2409,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 
 @verbose
-def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
+def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
                           color=(1.0, 0.0, 0.0), fig=None, verbose=None):
@@ -2424,19 +2424,21 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     ----------
     dipoles : list of instances of Dipole | Dipole
         The dipoles to plot.
-    trans : dict
+    trans : dict | None
         The mri to head trans.
-    subject : str
+        Can be None with mode set to '3d'.
+    subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
+        Can be None with mode set to '3d'.
     subjects_dir : None | str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
         The default is None.
     mode : str
-        Currently only ``'orthoview'`` is supported.
+        Can be ``'orthoview'`` or ``'3d'``.
 
-        .. versionadded:: 0.14.0
+        .. versionadded:: 0.19.0
     coord_frame : str
         Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
 
@@ -2471,14 +2473,13 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     show : bool
         Show figure if True. Defaults to True.
         Only used if mode equals 'orthoview'.
-
     color : tuple
-        The color of the dipoles if ``mode`` is 'sphere' or 'cone'.
+        The color of the dipoles if ``mode`` is '3d'.
     fig : mayavi.mlab.Figure | None
-        Mayavi Scene in which to plot the alignment.
+        3D Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
-        .. versionadded:: 0.14.0
+        .. versionadded:: 0.19.0
     %(verbose)s
 
     Returns
@@ -2495,7 +2496,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show)
-    elif mode in ['sphere', 'cone']:
+    elif mode ==  '3d':
         from .backends.renderer import _Renderer
         renderer = _Renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
@@ -2504,13 +2505,19 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
             trans = _get_trans(trans, fro='head', to=coord_frame)[0]
             pos = apply_trans(trans, pos)
             ori = apply_trans(trans, ori)
-        renderer.sphere(center=np.c_[pos[:, 0], pos[:, 1], pos[:, 2]],
-                        color=color, scale=5e-3)
+
+        renderer.sphere(center=pos, color=color, scale=5e-3)
+        x, y, z = pos.T
+        u, v, w = ori.T
+        renderer.quiver3d(x, y, z, u, v, w, scale=0.03,
+                          color=color, mode='arrow')
+
         fig = renderer.scene()
     else:
         raise ValueError('Mode must be "orthoview", got %s.' % (mode,))
 
     return fig
+
 
 def snapshot_brain_montage(fig, montage, hide_sensors=True):
     """Take a snapshot of a Mayavi Scene and project channels onto 2d coords.
