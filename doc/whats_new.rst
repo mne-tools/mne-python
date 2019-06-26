@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Butterfly channel plots now possible for :func:mne.Epochs.plot_epochs_psd with ``average=False`` Infrastructure for this function now shared with analogous Raw function, found in mne.viz.utils by `Jeff Hanna` _
+
 - Accept filenames of raw .fif files to end on `_meg.fif` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 
 - Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
@@ -60,6 +62,8 @@ Bug
 
 API
 ~~~
+
+- Deprecate ``average=True`` and ``spatial_colors=False`` for :func:`mne.Epochs.plot_psd` by `Jeff Hanna`_
 
 .. _changes_0_18:
 
