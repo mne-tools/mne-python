@@ -313,7 +313,6 @@ def _fake_montage(ch_names):
     return Montage(
         pos=np.random.RandomState(42).randn(len(ch_names), 3),
         ch_names=ch_names,
-        # kind=4,
         kind='foo',
         selection=np.arange(len(ch_names))
     )
@@ -322,9 +321,7 @@ def _fake_montage(ch_names):
 @testing.requires_testing_data
 def test_montage():
     """Test montage."""
-    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     fname = op.join(base_dir, 'test_raw.set')
-    # montage = op.join(base_dir, 'test_chans.locs')
 
     raw_none = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
     montage = _fake_montage(raw_none.info['ch_names'])
@@ -332,12 +329,11 @@ def test_montage():
     raw_montage = read_raw_eeglab(input_fname=fname, montage=montage,
                                   preload=False)
     raw_none.set_montage(montage)
+
+    # Check they are the same
+    assert_array_equal(raw_none.get_data(), raw_montage.get_data())
     assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
-    # assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
-    diff = object_diff(raw_none.info['chs'],
-                       raw_montage.info['chs']).splitlines()
-    for dd in diff:
-        assert 'coord_frame' in dd
+    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
 
 
 run_tests_if_main()
