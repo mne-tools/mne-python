@@ -274,18 +274,11 @@ class Dipole(object):
         -----
         .. versionadded:: 0.9.0
         """
+        _check_option('mode', mode, [None, '3d', 'orthoview'])
+
         from .viz import plot_dipole_locations
-        dipoles = self
-        if mode in [None, 'cone', 'sphere']:  # support old behavior
-            dipoles = []
-            for t in self.times:
-                dipoles.append(self.copy())
-                dipoles[-1].crop(t, t)
-        elif mode != 'orthoview':
-            raise ValueError("mode must be 'cone', 'sphere' or 'orthoview'. "
-                             "Got %s." % mode)
         return plot_dipole_locations(
-            dipoles, trans, subject, subjects_dir, mode, coord_frame, idx,
+            self, trans, subject, subjects_dir, mode, coord_frame, idx,
             show_all, ax, block, show, color=color, fig=fig)
 
     def plot_amplitudes(self, color='k', show=True):

@@ -97,7 +97,7 @@ fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
 
 # Show the dipoles as arrows pointing along the surface normal
 fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
-                                    mode='cone', subject=subject,
+                                    mode='3d', subject=subject,
                                     subjects_dir=subjects_dir,
                                     coord_frame='head', fig=fig)
 

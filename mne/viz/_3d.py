@@ -2415,7 +2415,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           color=(1.0, 0.0, 0.0), fig=None, verbose=None):
     """Plot dipole locations.
 
-    If mode is set to 'cone' or 'sphere', only the location of the first
+    If mode is set to '3d', only the location of the first
     time point of each dipole is shown else use the show_all parameter.
 
     The option mode='orthoview' was added in version 0.14.
