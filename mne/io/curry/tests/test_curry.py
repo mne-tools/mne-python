@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
@@ -106,19 +106,18 @@ def test_read_raw_curry():
 
 
 @testing.requires_testing_data
-def test_read_events_curry():
-    """Test reading curry event files."""
-    events = _read_events_curry(event_file, event_ids=[1, 2, 4])
-    bdf = read_raw_bdf(bdf_file, preload=True)
-    ref_events = find_events(bdf, stim_channel="Status")
+@pytest.mark.parametrize('fname', [
+    pytest.param(curry7_bdf_file, id='curry 7'),
+    pytest.param(curry8_bdf_file, id='curry 8'),
+])
+def test_read_events_curry_are_same_as_bdf(fname):
+    """Test events from curry annotations recovers the right events."""
+    EVENT_ID = {str(ii): ii for ii in range(5)}
+    REF_EVENTS = find_events(read_raw_bdf(bdf_file, preload=True))
 
-    assert_allclose(events, ref_events)
-
-    raw = read_raw_curry(curry7_bdf_file)
-    annot_events, _ = events_from_annotations(raw, event_id={"1": 1,
-                                                             "2": 2,
-                                                             "4": 4})
-    assert_allclose(annot_events, ref_events)
+    raw = read_raw_curry(fname)
+    events, _ = events_from_annotations(raw, event_id=EVENT_ID)
+    assert_allclose(events, REF_EVENTS)
 
 
 def test_check_missing_files():
