@@ -334,9 +334,31 @@ def test_montage():
     assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
     # assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
     diff = object_diff(raw_none.info['chs'],
-                       raw_montage.info['chs']).splitlines()
-    for dd in diff:
+                       raw_montage.info['chs'])
+    for dd in diff.splitlines():
         assert 'coord_frame' in dd or 'cal' in dd
+
+
+@testing.requires_testing_data
+def test_channel_calibration():
+    """Test ch['cal'] (regression test)."""
+    # fname = op.join(base_dir, 'test_raw.fdt')
+    fname = op.join(base_dir, 'test_raw.set')
+
+    original_raw = read_raw_eeglab(input_fname=fname,
+                                   montage=None,
+                                   preload=True)
+
+    raw = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
+    raw.set_montage(_fake_montage(raw.info['ch_names']), update_ch_names=True)
+    raw.load_data()
+
+    # data is the same
+    assert_array_equal(raw.get_data(), original_raw.get_data())
+
+    # calibration is not
+    assert set([ch['cal'] for ch in raw.info['chs']]) == {1.0}
+    assert set([ch['cal'] for ch in original_raw.info['chs']]) == {1e-06}
 
 
 run_tests_if_main()
