@@ -99,12 +99,12 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 # .. role:: green
 # .. role:: red
 #
-# 1. Neuromag head coordinate frame ("head", :pink:`pink axes`)
+# 1. Neuromag/Elekta/MEGIN head coordinate frame ("head", :pink:`pink axes`)
 #      The head coordinate frame is defined through the coordinates of
 #      anatomical landmarks on the subject's head: Usually the Nasion (`NAS`_),
 #      and the left and right preauricular points (`LPA`_ and `RPA`_).
 #
-#      Concretely, the head coordinate frame is devined by the intersection of
+#      Concretely, the head coordinate frame is defined by the intersection of
 #
 #      1. the line between the LPA (:red:`red sphere`) and RPA
 #         (:purple:`purple sphere`), and
@@ -120,19 +120,30 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 #                perform such measurements, usually called "digitizers". For
 #                example, see the devices by the company `Polhemus`_.
 #
+#      .. note:: Other MEG manufacturers may have different definitions of the
+#                coordinate head frame, a good overview can be seen in the
+#                section "How are the different head and MRI coordinate systems
+#                defined?" in the FAQ of the FieldTrip toolbox WIKI.
+#
 # 2. MEG device coordinate frame ("meg", :blue:`blue axes`)
-#      This is defined by the MEG manufacturers. From the Elekta user manual:
+#      The MEG device coordinate frame is defined by the respective MEG
+#      manufacturers. All MEG data is acquired with respect to this coordinate
+#      frame. To account for the anatomy and position of the subject's head, we
+#      use so-called head position indicator (HPI) coils. The HPI coils are
+#      placed at known locations on the scalp of the subject and emit
+#      sinusoidal currents used to coregister the head coordinate frame with
+#      the device coordinate frame.
+#
+#      From the Neuromag/Elekta/MEGIN user manual:
 #
 #          The origin of the device coordinate system is located at the center
-#          of the posterior spherical section of the helmet with axis going
-#          from left to right and axis pointing front. The axis is, again
+#          of the posterior spherical section of the helmet with X axis going
+#          from left to right and Y axis pointing front. The Z axis is, again
 #          normal to the plane with positive direction up.
 #
-#      .. note:: The device is coregistered with the head coordinate frame
-#                during acquisition via emission of sinusoidal currents in
-#                head position indicator (HPI) coils
-#                (:magenta:`magenta spheres`) at the beginning of the
-#                recording. This is stored in ``raw.info['dev_head_t']``.
+#      .. note:: The HPI coils are shown as :magenta:`magenta spheres`.
+#                Coregistration happens at the beginning of the recording and
+#                the data is stored in ``raw.info['dev_head_t']``.
 #
 # 3. MRI coordinate frame ("mri", :gray:`gray axes`)
 #      Defined by Freesurfer, the MRI (surface RAS) origin is at the

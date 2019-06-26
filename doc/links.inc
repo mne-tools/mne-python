@@ -177,7 +177,7 @@
 .. _NAS https://en.wikipedia.org/wiki/Nasion
 .. _LPA http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/
 .. _RPA http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/
-.. Polhemus https://polhemus.com/scanning-digitizing/digitizing-products/
+.. _Polhemus https://polhemus.com/scanning-digitizing/digitizing-products/
 
 .. python packages
 
