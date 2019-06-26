@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 
-.. include:: ../doc/links.inc
+.. include:: ../../doc/links.inc
 .. _plot_source_alignment:
 
 Source alignment and coordinate frames
