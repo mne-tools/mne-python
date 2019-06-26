@@ -313,7 +313,6 @@ def _fake_montage(ch_names):
     return Montage(
         pos=np.random.RandomState(42).randn(len(ch_names), 3),
         ch_names=ch_names,
-        # kind=4,
         kind='foo',
         selection=np.arange(len(ch_names))
     )
@@ -337,7 +336,7 @@ def test_montage():
     diff = object_diff(raw_none.info['chs'],
                        raw_montage.info['chs']).splitlines()
     for dd in diff:
-        assert 'coord_frame' in dd
+        assert 'coord_frame' in dd or 'cal' in dd
 
 
 run_tests_if_main()
