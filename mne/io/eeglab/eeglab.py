@@ -129,7 +129,7 @@ def _get_info(eeg, eog=()):
 
     info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
-    eog = _find_channels(ch_names) if eog == 'auto' else eog
+    eog = _find_channels(ch_names, ch_type='EOG') if eog == 'auto' else eog
     for idx, ch in enumerate(info['chs']):
         ch['cal'] = CAL
         if ch['ch_name'] in eog or idx in eog:
