@@ -61,7 +61,7 @@ actual_gof = np.ones(dip_len)  # misc GOF to create Dipole instance
 dipoles = mne.Dipole(dip_times, dip_pos, actual_amp, dip_ori, actual_gof)
 trans = mne.read_trans(trans_fname)
 
-fig = mne.viz.create_3d_figure(size=(600, 400))
+fig = mne.viz.create_3d_figure(size=(600, 400), bgcolor=white)
 coord_frame = 'mri'
 
 # Plot the cortex

@@ -181,17 +181,20 @@ def set_3d_title(figure, title, size=40):
     _mod._set_3d_title(figure=figure, title=title, size=size)
 
 
-def create_3d_figure(size):
+def create_3d_figure(size, bgcolor=(0, 0, 0)):
     """Return an empty figure based on the current 3d backend.
 
     Parameters
     ----------
     size: tuple
         The dimensions of the 3d figure (width, height).
+    bgcolor: tuple
+        The color of the background.
 
     Returns
     -------
     figure:
         The requested empty scene.
     """
-    return _mod._Renderer(size=size).scene()
+    renderer = _mod._Renderer(size=size, bgcolor=bgcolor)
+    return renderer.scene()
