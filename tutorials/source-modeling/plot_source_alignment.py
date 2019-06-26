@@ -103,8 +103,12 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 #      The head coordinate frame is defined through the coordinates of
 #      anatomical landmarks on the subject's head: Usually the Nasion (`NAS`_),
 #      and the left and right preauricular points (`LPA`_ and `RPA`_).
+#      Different MEG manufacturers may have different definitions of the
+#      coordinate head frame. A good overview can be seen in the
+#      `FieldTrip FAQ on coordinate systems`_
 #
-#      Concretely, the head coordinate frame is defined by the intersection of
+#      For Neuromag/Elekta/MEGIN, the head coordinate frame is defined by the
+#      intersection of
 #
 #      1. the line between the LPA (:red:`red sphere`) and RPA
 #         (:purple:`purple sphere`), and
@@ -120,19 +124,14 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 #                perform such measurements, usually called "digitizers". For
 #                example, see the devices by the company `Polhemus`_.
 #
-#      .. note:: Other MEG manufacturers may have different definitions of the
-#                coordinate head frame, a good overview can be seen in the
-#                section "How are the different head and MRI coordinate systems
-#                defined?" in the FAQ of the FieldTrip toolbox WIKI.
-#
 # 2. MEG device coordinate frame ("meg", :blue:`blue axes`)
 #      The MEG device coordinate frame is defined by the respective MEG
 #      manufacturers. All MEG data is acquired with respect to this coordinate
 #      frame. To account for the anatomy and position of the subject's head, we
 #      use so-called head position indicator (HPI) coils. The HPI coils are
 #      placed at known locations on the scalp of the subject and emit
-#      sinusoidal currents used to coregister the head coordinate frame with
-#      the device coordinate frame.
+#      high-frequency magnetic fields used to coregister the head coordinate
+#      frame with the device coordinate frame.
 #
 #      From the Neuromag/Elekta/MEGIN user manual:
 #
@@ -150,8 +149,9 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 #      center of a 256×256×256 1mm anisotropic volume (may not be in the center
 #      of the head).
 #
-#      .. note:: This is aligned to the head coordinate frame that we
-#                typically refer to in MNE as ``trans``.
+#      .. note:: We typically align the MRI coordinate frame to the head
+#                coordinate frame through a rotation and translation matrix,
+#                that we refer to in MNE as ``trans``.
 #
 # A bad example
 # -------------
