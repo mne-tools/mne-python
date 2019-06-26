@@ -866,9 +866,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,
                     normalization='length', picks=None, ax=None, color='black',
-                    area_mode='std', area_alpha=0.33, dB=True, n_jobs=1,
-                    show=True, verbose=None):
-    """Plot the power spectral density across epochs.
+                    xscale='linear', area_mode='std', area_alpha=0.33,
+                    dB=True, estimate='auto', show=True, n_jobs=1,
+                    average=None, line_alpha=None, spatial_colors=None,
+                    verbose=None):
+    """%(plot_psd_doc)s.
 
     Parameters
     ----------
@@ -897,73 +899,62 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    %(picks_good_data)s
+    %(plot_psd_picks_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
-    color : str | tuple
-        A matplotlib-compatible color to use.
-    area_mode : str | None
-        Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
-        will be plotted. If 'range', the min and max (across channels) will be
-        plotted. Bad channels will be excluded from these calculations.
-        If None, no area will be plotted.
-    area_alpha : float
-        Alpha for the area.
-    dB : bool
-        If True, transform data to decibels.
+    %(plot_psd_color)s
+    %(plot_psd_xscale)s
+    %(plot_psd_area_mode)s
+    %(plot_psd_area_alpha)s
+    %(plot_psd_dB)s
+    %(plot_psd_estimate)s
+    %(show)s
     %(n_jobs)s
-    show : bool
-        Show figure if True.
+    %(plot_psd_average)s
+    %(plot_psd_line_alpha)s
+    %(plot_psd_spatial_colors)s
     %(verbose)s
 
     Returns
     -------
     fig : instance of Figure
-        Figure distributing one image per channel across sensor topography.
+        Figure with frequency spectra of the data channels.
     """
-    from .raw import _set_psd_plot_params, _convert_psds
+    # this chunk should be removed for 0.2
+    if average is False and spatial_colors is None:
+        spatial_colors = True
+    if spatial_colors is None:
+        spatial_colors = False
+        warn('spatial_colors defaults to False in 0.19 but will change to True'
+             ' in 0.20. Set it explicitly to avoid this warning.',
+             DeprecationWarning)
+    if average is None:
+        average = True
+        warn('average defaults to True in 0.19 but will change to False'
+             ' in 0.20. Set it explicitly to avoid this warning.',
+             DeprecationWarning)
+
+    from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label = _set_psd_plot_params(
-            epochs.info, proj, picks, ax, area_mode)
+        make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
+                                          area_mode)
+    del ax
+    psd_list = list()
+    for picks in picks_list:
+        # Multitaper used for epochs instead of Welch, because Welch chunks
+        # the data; epoched data are by nature already chunked, however.
+        psd, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
+                                    fmax=fmax, tmin=tmin, tmax=tmax,
+                                    bandwidth=bandwidth, adaptive=adaptive,
+                                    low_bias=low_bias,
+                                    normalization=normalization, proj=proj,
+                                    n_jobs=n_jobs)
+        psd_list.append(np.mean(psd, axis=0))
 
-    for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
-                                                ax_list)):
-        psds, freqs = psd_multitaper(epochs, picks=picks, fmin=fmin,
-                                     fmax=fmax, tmin=tmin, tmax=tmax,
-                                     bandwidth=bandwidth, adaptive=adaptive,
-                                     low_bias=low_bias,
-                                     normalization=normalization, proj=proj,
-                                     n_jobs=n_jobs)
-
-        # average across epochs before conversion
-        psds = np.mean(psds, axis=0)
-
-        ylabel = _convert_psds(psds, dB, 'auto', scalings_list[ii],
-                               units_list[ii],
-                               [epochs.ch_names[pi] for pi in picks])
-
-        # mean across channels
-        psd_mean = np.mean(psds, axis=0)
-        if area_mode == 'std':
-            # std across channels
-            psd_std = np.std(psds, axis=0)
-            hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
-        elif area_mode == 'range':
-            hyp_limits = (np.min(psds, axis=0),
-                          np.max(psds, axis=0))
-        else:  # area_mode is None
-            hyp_limits = None
-
-        ax.plot(freqs, psd_mean, color=color)
-        if hyp_limits is not None:
-            ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                            color=color, alpha=area_alpha)
-        if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Frequency (Hz)')
-            ax.set(ylabel=ylabel, title=title, xlim=(freqs[0], freqs[-1]))
-    if make_label:
-        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+    fig = _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
+                    units_list, scalings_list, ax_list, make_label, color,
+                    area_mode, area_alpha, dB, estimate, average,
+                    spatial_colors, xscale, line_alpha)
     plt_show(show)
     return fig
 
