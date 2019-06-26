@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-overview:
 
 Overview of MEG/EEG analysis with MNE-Python
 ============================================
@@ -57,7 +58,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # "projection items" in the file along with the recorded data; those are
 # :term:`SSP projectors <projector>` calculated to remove environmental noise
 # from the MEG signals, plus a projector to mean-reference the EEG channels;
-# these are discussed in the tutorial :doc:`../intro/plot_projectors_intro`.
+# these are discussed in the tutorial :ref:`tut-projectors-background`.
 # In addition to the information displayed during loading,
 # you can get a glimpse of the basic details of a :class:`~mne.io.Raw` object
 # by printing it; even more is available by printing its ``info`` attribute
@@ -66,7 +67,8 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # objects). The ``info`` data structure keeps track of channel locations,
 # applied filters, projectors, etc. Notice especially the ``chs`` entry,
 # showing that MNE-Python detects different sensor types and handles each
-# appropriately. See :doc:`plot_info` for more on the :class:`~mne.Info` class.
+# appropriately. See :ref:`tut-info-class` for more on the :class:`~mne.Info`
+# class.
 
 print(raw)
 print(raw.info)
@@ -94,8 +96,7 @@ raw.plot(duration=5, n_channels=30)
 # up our data by performing independent components analysis
 # (:class:`~mne.preprocessing.ICA`); for brevity we'll skip the steps that
 # helped us determined which components best capture the artifacts (see
-# :doc:`../preprocessing/plot_artifacts_correction_ica` for a detailed
-# walk-through of that process).
+# :ref:`tut-artifact-ica` for a detailed walk-through of that process).
 
 # set up and fit the ICA
 ica = mne.preprocessing.ICA(n_components=20, random_state=97, max_iter=800)

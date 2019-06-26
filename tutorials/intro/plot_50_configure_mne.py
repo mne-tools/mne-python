@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-configure-mne:
 
 Configuring MNE-Python
 ======================

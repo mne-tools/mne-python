@@ -14,8 +14,8 @@ of various recording details, and is attached to :class:`~mne.io.Raw`,
    :depth: 2
 
 We'll begin by loading the Python modules we need, and loading the same
-:ref:`example data <sample-dataset>` we used in the :doc:`introductory tutorial
-<plot_introduction>`:
+:ref:`example data <sample-dataset>` we used in the :ref:`introductory tutorial
+<tut-overview>`:
 """
 
 import os
@@ -27,7 +27,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 ###############################################################################
-# As seen in the :doc:`introductory tutorial <plot_introduction>`, when a
+# As seen in the :ref:`introductory tutorial <tut-overview>`, when a
 # :class:`~mne.io.Raw` object is loaded, an :class:`~mne.Info` object is
 # created automatically, and stored in the ``raw.info`` attribute:
 
