@@ -156,7 +156,7 @@ plt.show()
 # dipoles
 
 actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
-actual_gof = np.ones(len(dip))  # misc amp to create Dipole instance
+actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
 dip_true = \
     mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
