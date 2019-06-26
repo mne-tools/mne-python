@@ -42,7 +42,7 @@ raw.set_channel_types(mapping={'EOG 061': 'eeg'})
 print(raw.info)
 
 ###############################################################################
-# And to change the nameo of the EOG channel
+# And to change the name of the EOG channel
 raw.rename_channels(mapping={'EOG 061': 'EOG'})
 
 ###############################################################################
@@ -60,8 +60,8 @@ print(raw.info['chs'][0]['loc'])
 # And it's actually possible to plot the channel locations using
 # :func:`mne.io.Raw.plot_sensors`.
 # In the case where your data don't have locations you can use one of the
-# standard :class:`mne.channels.Montage` shipped with MNE.
-# See :ref:`plot_montage` and :ref:`plot_eeg_no_mri`.
+# standard :class:`Montages <mne.channels.Montage>` shipped with MNE.
+# See :ref:`plot_montage` and :ref:`tut-eeg-fsaverage-source-modeling`.
 
 raw.plot_sensors()
 raw.plot_sensors('3d')  # in 3D
