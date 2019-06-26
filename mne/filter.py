@@ -10,7 +10,7 @@ from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import get_sosfiltfilt, minimum_phase, _sosfreqz
+from .fixes import get_sosfiltfilt, minimum_phase, _sosfreqz, irfft
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
@@ -2222,7 +2222,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
         freq_resp[start:stop] *= np.cos(np.pi / 4. * k) ** 2
         freq_resp[stop:] = 0.0
     # Get the time-domain version of this signal
-    h = np.fft.irfft(freq_resp, n=2 * len(freq_resp) - 1)
+    h = irfft(freq_resp, n=2 * len(freq_resp) - 1)
     h = np.roll(h, n_freqs - 1)  # center the impulse like a linear-phase filt
     return h
 
