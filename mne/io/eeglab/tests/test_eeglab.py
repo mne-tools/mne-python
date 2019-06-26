@@ -321,9 +321,7 @@ def _fake_montage(ch_names):
 @testing.requires_testing_data
 def test_montage():
     """Test montage."""
-    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     fname = op.join(base_dir, 'test_raw.set')
-    # montage = op.join(base_dir, 'test_chans.locs')
 
     raw_none = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
     montage = _fake_montage(raw_none.info['ch_names'])
@@ -331,30 +329,11 @@ def test_montage():
     raw_montage = read_raw_eeglab(input_fname=fname, montage=montage,
                                   preload=False)
     raw_none.set_montage(montage)
+
+    # Check they are the same
+    assert_array_equal(raw_none.get_data(), raw_montage.get_data())
     assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
     assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
-
-
-@testing.requires_testing_data
-def test_channel_calibration():
-    """Test ch['cal'] (regression test)."""
-    # fname = op.join(base_dir, 'test_raw.fdt')
-    fname = op.join(base_dir, 'test_raw.set')
-
-    original_raw = read_raw_eeglab(input_fname=fname,
-                                   montage=None,
-                                   preload=True)
-
-    raw = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
-    raw.set_montage(_fake_montage(raw.info['ch_names']), update_ch_names=True)
-    raw.load_data()
-
-    # data is the same
-    assert_array_equal(raw.get_data(), original_raw.get_data())
-
-    # calibration is not
-    assert set([ch['cal'] for ch in raw.info['chs']]) == {1e-06}
-    assert set([ch['cal'] for ch in original_raw.info['chs']]) == {1e-06}
 
 
 run_tests_if_main()
