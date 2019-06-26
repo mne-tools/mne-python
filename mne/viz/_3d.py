@@ -2412,10 +2412,11 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
-                          color=(1.0, 0.0, 0.0), fig=None, verbose=None):
+                          scale=1.0, color=(1.0, 0.0, 0.0), fig=None,
+                          verbose=None):
     """Plot dipole locations.
 
-    If mode is set to '3d', only the location of the first
+    If mode is set to 'arrow' or 'sphere', only the location of the first
     time point of each dipole is shown else use the show_all parameter.
 
     The option mode='orthoview' was added in version 0.14.
@@ -2436,7 +2437,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
         The default is None.
     mode : str
-        Can be ``'orthoview'`` or ``'3d'``.
+        Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
 
         .. versionadded:: 0.19.0
     coord_frame : str
@@ -2473,8 +2474,10 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     show : bool
         Show figure if True. Defaults to True.
         Only used if mode equals 'orthoview'.
+    scale: float
+        The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
     color : tuple
-        The color of the dipoles if ``mode`` is '3d'.
+        The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
     fig : mayavi.mlab.Figure | None
         3D Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -2496,7 +2499,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show)
-    elif mode == '3d':
+    elif mode in ['arrow', 'sphere']:
         from .backends.renderer import _Renderer
         renderer = _Renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
@@ -2506,11 +2509,12 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             pos = apply_trans(trans, pos)
             ori = apply_trans(trans, ori)
 
-        renderer.sphere(center=pos, color=color, scale=5e-3)
-        x, y, z = pos.T
-        u, v, w = ori.T
-        renderer.quiver3d(x, y, z, u, v, w, scale=0.03,
-                          color=color, mode='arrow')
+        renderer.sphere(center=pos, color=color, scale=scale)
+        if mode == 'arrow':
+            x, y, z = pos.T
+            u, v, w = ori.T
+            renderer.quiver3d(x, y, z, u, v, w, scale=3 * scale,
+                              color=color, mode='arrow')
 
         fig = renderer.scene()
     else:

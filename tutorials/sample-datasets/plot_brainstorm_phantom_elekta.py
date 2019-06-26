@@ -164,12 +164,12 @@ fig = mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces='inner_skull',
                              coord_frame='head', meg='helmet', show_axes=True)
 
 # Plot the position and the orientation of the actual dipole
-fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='3d',
-                                    subject=subject,
+fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='arrow',
+                                    subject=subject, scale=6e-3,
                                     color=(0., 0., 0.), fig=fig)
 
 # Plot the position and the orientation of the estimated dipole
-fig = mne.viz.plot_dipole_locations(dipoles=dip, mode='3d', subject=subject,
-                                    color=(0.2, 1., 0.5), fig=fig)
+fig = mne.viz.plot_dipole_locations(dipoles=dip, mode='arrow', subject=subject,
+                                    scale=6e-3, color=(0.2, 1., 0.5), fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)

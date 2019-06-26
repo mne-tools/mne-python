@@ -73,8 +73,8 @@ dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, ori, actual_gof)
 fig = mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
 
 # Plot the position of the actual dipole
-fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='3d',
-                                    color=(1., 0., 0.), fig=fig)
+fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='sphere',
+                                    scale=6e-3, color=(1., 0., 0.), fig=fig)
 # Plot the position of the estimated dipole
-fig = mne.viz.plot_dipole_locations(dipoles=dip, mode='3d',
-                                    color=(1., 1., 0.), fig=fig)
+fig = mne.viz.plot_dipole_locations(dipoles=dip, mode='sphere',
+                                    scale=6e-3, color=(1., 1., 0.), fig=fig)

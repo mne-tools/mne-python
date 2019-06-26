@@ -204,7 +204,8 @@ class Dipole(object):
     def plot_locations(self, trans, subject, subjects_dir=None,
                        mode='orthoview', coord_frame='mri', idx='gof',
                        show_all=True, ax=None, block=False, show=True,
-                       color=(1.0, 0.0, 0.0), fig=None, verbose=None):
+                       scale=1.0, color=(1.0, 0.0, 0.0), fig=None,
+                       verbose=None):
         """Plot dipole locations in 3d.
 
         Parameters
@@ -219,7 +220,7 @@ class Dipole(object):
             It corresponds to Freesurfer environment variable SUBJECTS_DIR.
             The default is None.
         mode : str
-            Currently only ``'orthoview'`` is supported.
+            Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
 
             .. versionadded:: 0.14.0
         coord_frame : str
@@ -256,13 +257,16 @@ class Dipole(object):
             Show figure if True. Defaults to True.
             Only used if mode equals 'orthoview'.
 
-            .. versionadded:: 0.14.0
+        scale: float
+            The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
         color : tuple
-            The color of the dipoles if ``mode`` is 'sphere' or 'cone'.
+            The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
         fig : mayavi.mlab.Figure | None
             Mayavi Scene in which to plot the alignment.
             If ``None``, creates a new 600x600 pixel figure with black
             background.
+
+            .. versionadded:: 0.14.0
         %(verbose_meth)s
 
         Returns
@@ -274,12 +278,12 @@ class Dipole(object):
         -----
         .. versionadded:: 0.9.0
         """
-        _check_option('mode', mode, [None, '3d', 'orthoview'])
+        _check_option('mode', mode, [None, 'arrow', 'sphere', 'orthoview'])
 
         from .viz import plot_dipole_locations
         return plot_dipole_locations(
             self, trans, subject, subjects_dir, mode, coord_frame, idx,
-            show_all, ax, block, show, color=color, fig=fig)
+            show_all, ax, block, show, scale=scale, color=color, fig=fig)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.

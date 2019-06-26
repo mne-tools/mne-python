@@ -22,6 +22,7 @@ See :ref:`inverse_orientation_constrains`
 
 from mayavi import mlab
 import mne
+import numpy as np
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
@@ -35,7 +36,6 @@ noise_cov = mne.read_cov(data_path + '/MEG/sample/sample_audvis-cov.fif')
 subject = 'sample'
 subjects_dir = data_path + '/subjects'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
-dipoles_fname = data_path + '/MEG/sample/sample_audvis_set1.dip'
 
 ###############################################################################
 # The source space
@@ -45,15 +45,21 @@ dipoles_fname = data_path + '/MEG/sample/sample_audvis_set1.dip'
 # intervals on the cortex, determined by the ``spacing`` parameter. The source
 # space does not define the orientation for these dipoles.
 
-dipoles = mne.read_dipole(dipoles_fname)
-trans = mne.read_trans(trans_fname)
 
 lh = fwd['src'][0]  # Visualize the left hemisphere
 verts = lh['rr']  # The vertices of the source space
 tris = lh['tris']  # Groups of three vertices that form triangles
 dip_pos = lh['rr'][lh['vertno']]  # The position of the dipoles
+dip_ori = lh['nn'][lh['vertno']]
+dip_len = len(dip_pos)
+dip_times = [0]
 white = (1.0, 1.0, 1.0)  # RGB values for a white color
 red = (1.0, 0.0, 0.0)  # RGB valued for a red color
+
+actual_amp = np.ones(dip_len)  # misc amp to create Dipole instance
+actual_gof = np.ones(dip_len)  # misc GOF to create Dipole instance
+dipoles = mne.Dipole(dip_times, dip_pos, actual_amp, dip_ori, actual_gof)
+trans = mne.read_trans(trans_fname)
 
 fig = mne.viz.create_3d_figure(size=(600, 400))
 coord_frame = 'mri'
@@ -65,9 +71,10 @@ fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
 
 # Mark the position of the dipoles with small red dots
 fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
-                                    mode='3d', subject=subject,
+                                    mode='sphere', subject=subject,
                                     subjects_dir=subjects_dir,
-                                    coord_frame=coord_frame, fig=fig)
+                                    coord_frame=coord_frame,
+                                    scale=7e-4, fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.25)
 
@@ -97,9 +104,10 @@ fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
 
 # Show the dipoles as arrows pointing along the surface normal
 fig = mne.viz.plot_dipole_locations(dipoles=dipoles, trans=trans,
-                                    mode='3d', subject=subject,
+                                    mode='arrow', subject=subject,
                                     subjects_dir=subjects_dir,
-                                    coord_frame='head', fig=fig)
+                                    coord_frame='head',
+                                    scale=7e-4, fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 
