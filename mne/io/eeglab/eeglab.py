@@ -13,7 +13,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels.montage import Montage, _set_montage
+from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
@@ -507,11 +507,9 @@ class EpochsEEGLAB(BaseEpochs):
 
         logger.info('Extracting parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog)
         montage = eeg_montage if montage is None else montage
         del eeg_montage
-        _set_montage(info, montage=montage, update_ch_names=update_ch_names,
-                     set_dig=True)
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError('No matching events found for %s '
@@ -542,6 +540,7 @@ class EpochsEEGLAB(BaseEpochs):
 
         # data are preloaded but _bad_dropped is not set so we do it here:
         self._bad_dropped = True
+        self.set_montage(montage)
         logger.info('Ready.')
 
 
