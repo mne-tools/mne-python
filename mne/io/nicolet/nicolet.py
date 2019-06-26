@@ -9,7 +9,7 @@ import calendar
 
 from ...utils import logger, fill_doc
 from ..utils import _read_segments_file, _find_channels, _create_chs
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
@@ -171,11 +171,12 @@ class RawNicolet(BaseRaw):
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg,
                                               emg, misc)
         last_samps = [header_info['num_samples'] - 1]
-        _check_update_montage(info, montage)
+        # _check_update_montage(info, montage)
         super(RawNicolet, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format='int',
             verbose=verbose)
+        self.set_montage(montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
