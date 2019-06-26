@@ -24,8 +24,8 @@ def _read_header(fid):
     if version > 6 & ~np.bitwise_and(version, 6):
         version = version.byteswap().astype(np.uint32)
     else:
-        ValueError('Watchout. This does not seem to be a simple '
-                   'binary EGI file.')
+        raise ValueError('Watchout. This does not seem to be a simple '
+                         'binary EGI file.')
 
     def my_fread(*x, **y):
         return np.fromfile(*x, **y)[0]
@@ -49,7 +49,7 @@ def _read_header(fid):
     unsegmented = 1 if np.bitwise_and(version, 1) == 0 else 0
     precision = np.bitwise_and(version, 6)
     if precision == 0:
-        RuntimeError('Floating point precision is undefined.')
+        raise RuntimeError('Floating point precision is undefined.')
 
     if unsegmented:
         info.update(dict(n_categories=0,

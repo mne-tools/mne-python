@@ -25,7 +25,8 @@ from .utils import (set_log_level, set_log_file, verbose, set_config,
 from .io.pick import (pick_types, pick_channels,
                       pick_channels_regexp, pick_channels_forward,
                       pick_types_forward, pick_channels_cov,
-                      pick_channels_evoked, pick_info)
+                      pick_channels_evoked, pick_info,
+                      channel_type, channel_indices_by_type)
 from .io.base import concatenate_raws
 from .io.meas_info import create_info, Info
 from .io.proj import Projection

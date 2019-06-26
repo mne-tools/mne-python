@@ -246,8 +246,10 @@ def test_evoked_resample():
     tempdir = _TempDir()
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
+    orig_lp = ave.info['lowpass']
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal, npad=100)
+    assert ave.info['lowpass'] == orig_lp
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
     ave_up = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
@@ -257,6 +259,7 @@ def test_evoked_resample():
     # and compare the original to the downsampled upsampled version
     ave_new = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
     ave_new.resample(sfreq_normal, npad=100)
+    assert ave.info['lowpass'] == orig_lp
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
     assert_array_almost_equal(ave_normal.times, ave_new.times)
@@ -270,6 +273,10 @@ def test_evoked_resample():
     # we'll add a couple extra checks anyway
     assert (len(ave_up.times) == 2 * len(ave_normal.times))
     assert (ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+
+    ave_new.resample(50)
+    assert ave_new.info['sfreq'] == 50.
+    assert ave_new.info['lowpass'] == 25.
 
 
 def test_evoked_filter():

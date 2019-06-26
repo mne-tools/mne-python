@@ -24,7 +24,7 @@ from scipy import linalg, sparse
 from ..defaults import DEFAULTS
 from ..fixes import einsum, _crop_colorbar
 from ..io import _loc_to_coil_trans
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
@@ -406,7 +406,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
-    renderer.text(x=0.01, y=0.01, text=time_label, width=0.4)
+    renderer.text2d(x=0.01, y=0.01, text=time_label, width=0.4)
     renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
@@ -765,22 +765,27 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             # Try the BEM if applicable
             if s in ('head', 'outer_skin'):
                 if bem is not None:
+                    head_missing = (
+                        'Could not find the surface for '
+                        'head in the provided BEM model, '
+                        'looking in the subject directory.')
                     if isinstance(bem, ConductorModel):
                         if is_sphere:
                             head_surf = _complete_sphere_surf(
                                 bem, 3, sphere_level, complete=False)
                         else:  # BEM solution
-                            head_surf = _bem_find_surface(
-                                bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                            try:
+                                head_surf = _bem_find_surface(
+                                    bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                            except RuntimeError:
+                                logger.info(head_missing)
                     elif bem is not None:  # list of dict
                         for this_surf in bem:
                             if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
                                 head_surf = this_surf
                                 break
                         else:
-                            logger.info('Could not find the surface for '
-                                        'head in the provided BEM model, '
-                                        'looking in the subject directory.')
+                            logger.info(head_missing)
             if head_surf is None:
                 if subject is None:
                     raise ValueError('To plot the head surface, the BEM/sphere'
@@ -1118,7 +1123,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
     renderer.set_camera(azimuth=90, elevation=90,
-                        focalpoint=(0., 0., 0.), distance=0.6)
+                        distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
     return renderer.scene()
 
@@ -2552,6 +2557,91 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     im = renderer.screenshot()
     proj.visible(True)
     return proj.xy, im
+
+
+@fill_doc
+def plot_sensors_connectivity(info, con, picks=None):
+    """Visualize the sensor connectivity in 3D.
+
+    Parameters
+    ----------
+    info : dict | None
+        The measurement info.
+    con: array, shape (n_channels, n_channels)
+        The computed connectivity measure(s).
+    %(picks_good_data)s
+        Indices of selected channels.
+
+    Returns
+    -------
+    fig : instance of mayavi.mlab.Figure
+        The mayavi figure.
+    """
+    _validate_type(info, "info")
+
+    from .backends.renderer import _Renderer
+
+    renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
+
+    picks = _picks_to_idx(info, picks)
+    if len(picks) != len(con):
+        raise ValueError('The number of channels picked (%s) does not '
+                         'correspond the size of the connectivity data '
+                         '(%s)' % (len(picks), len(con)))
+
+    # Plot the sensor locations
+    sens_loc = [info['chs'][k]['loc'][:3] for k in picks]
+    sens_loc = np.array(sens_loc)
+
+    renderer.sphere(np.c_[sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2]],
+                    color=(1, 1, 1), opacity=1, scale=0.005)
+
+    # Get the strongest connections
+    n_con = 20  # show up to 20 connections
+    min_dist = 0.05  # exclude sensors that are less than 5cm apart
+    threshold = np.sort(con, axis=None)[-n_con]
+    ii, jj = np.where(con >= threshold)
+
+    # Remove close connections
+    con_nodes = list()
+    con_val = list()
+    for i, j in zip(ii, jj):
+        if linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
+            con_nodes.append((i, j))
+            con_val.append(con[i, j])
+
+    con_val = np.array(con_val)
+
+    # Show the connections as tubes between sensors
+    vmax = np.max(con_val)
+    vmin = np.min(con_val)
+    for val, nodes in zip(con_val, con_nodes):
+        x1, y1, z1 = sens_loc[nodes[0]]
+        x2, y2, z2 = sens_loc[nodes[1]]
+        tube = renderer.tube(origin=np.c_[x1, y1, z1],
+                             destination=np.c_[x2, y2, z2],
+                             scalars=np.c_[val, val],
+                             vmin=vmin, vmax=vmax, radius=0.001,
+                             colormap='RdBu',
+                             reverse_lut=True)
+
+    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)', n_labels=4)
+
+    # Add the sensor names for the connections shown
+    nodes_shown = list(set([n[0] for n in con_nodes] +
+                           [n[1] for n in con_nodes]))
+
+    for node in nodes_shown:
+        x, y, z = sens_loc[node]
+        renderer.text3d(x, y, z, text=info['ch_names'][picks[node]],
+                        scale=0.005,
+                        color=(0, 0, 0))
+
+    renderer.set_camera(azimuth=-88.7, elevation=40.8,
+                        distance=0.76,
+                        focalpoint=np.array([-3.9e-4, -8.5e-3, -1e-2]))
+    renderer.show()
+    return renderer.scene()
 
 
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,

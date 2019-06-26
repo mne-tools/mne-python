@@ -9,7 +9,7 @@ This tutorial covers the basics of working with raw EEG/MEG data in Python. It
 introduces the :class:`~mne.io.Raw` data structure in detail, including how to
 load, query, subselect, export, and plot data from a :class:`~mne.io.Raw`
 object. For more info on visualization of :class:`~mne.io.Raw` objects, see
-:doc:`plot_visualize_raw`. For info on creating a :class:`~mne.io.Raw` object
+:ref:`tut-visualize-raw`. For info on creating a :class:`~mne.io.Raw` object
 from simulated data in a :class:`NumPy array <numpy.ndarray>`, see
 :ref:`tut_creating_data_structures`.
 
@@ -39,8 +39,8 @@ import mne
 #     location is also configurable; see the documentation of any of the
 #     ``data_path`` functions for more information.
 #
-# As mentioned in :doc:`the introductory tutorial
-# <../intro/plot_introduction>`, MNE-Python data structures are based around
+# As mentioned in :ref:`the introductory tutorial <tut-overview>`,
+# MNE-Python data structures are based around
 # the :file:`.fif` file format from Neuromag. This tutorial uses an
 # :ref:`example dataset <sample-dataset>` in :file:`.fif` format, so here we'll
 # use the function :func:`mne.io.read_raw_fif` to load the raw data; there are
@@ -70,13 +70,11 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # some information about the file it's loading. For example, here it tells us
 # that there are three "projection items" in the file along with the recorded
 # data; those are :term:`SSP projectors <projector>` calculated to remove
-# environmental noise from the MEG signals, and are discussed in a later
-# tutorial. In addition to the information displayed during loading, you can
+# environmental noise from the MEG signals, and are discussed in a the tutorial
+# :ref:`tut-projectors-background`.
+# In addition to the information displayed during loading, you can
 # get a glimpse of the basic details of a :class:`~mne.io.Raw` object by
 # printing it:
-#
-# .. TODO change "in a later tutorial" to crossref when the projectors tutorial
-#    is done.
 
 print(raw)
 
@@ -132,7 +130,7 @@ raw.crop(tmax=60).load_data()
 # keys). Like Python dictionaries, ``raw.info`` has a ``.keys()`` method that
 # shows all the available field names; unlike Python dictionaries, printing
 # ``raw.info`` will print a nicely-formatted glimpse of each field's data. See
-# :doc:`../intro/plot_info` for more on what is stored in :class:`~mne.Info`
+# :ref:`tut-info-class` for more on what is stored in :class:`~mne.Info`
 # objects, and how to interact with them.
 
 n_time_samps = raw.n_times

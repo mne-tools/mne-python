@@ -99,6 +99,8 @@ File I/O
    :toctree: generated
 
    decimate_surface
+   channel_type
+   channel_indices_by_type
    get_head_surf
    get_meg_helmet_surf
    get_volume_labels_from_aseg
@@ -188,8 +190,6 @@ Datasets
    fetch_hcp_mmp_parcellation
    hf_sef.data_path
    kiloword.data_path
-   megsim.data_path
-   megsim.load_data
    misc.data_path
    mtrf.data_path
    multimodal.data_path
@@ -254,6 +254,7 @@ Visualization
    plot_raw
    plot_raw_psd
    plot_sensors
+   plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
    plot_volume_source_estimates
@@ -268,6 +269,9 @@ Visualization
    set_3d_backend
    get_3d_backend
    use_3d_backend
+   set_3d_view
+   set_3d_title
+   create_3d_figure
 
 
 Preprocessing
