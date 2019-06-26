@@ -7,6 +7,29 @@ html {
   position: relative;
   min-height: 100%;
 }
+/* overrides of bootstrap fonts */
+body {
+    font-family:"Source Sans Pro", sans-serif;
+}
+h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6 {
+    font-family:"Source Sans Pro", sans-serif;
+}
+code,kbd,pre,samp {
+    font-family:"Source Code Pro", monospace;
+    font-size: 100%;
+}
+/* reduce horizontal padding for inline code (bootstrap defaults to 4px) */
+p code {
+    padding: 0 2px 0;
+}
+/* use semibold instead of bold for API links */
+code.xref, a code {
+    font-weight: 600;
+}
+/* use semibold weight for version dropdown */
+.btn {
+    font-weight: 600;
+}
 
 .navbar-version {
     display: none;
