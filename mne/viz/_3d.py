@@ -2412,7 +2412,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
-                          scale=1.0, color=(1.0, 0.0, 0.0), fig=None,
+                          scale=5e-3, color=(1.0, 0.0, 0.0), fig=None,
                           verbose=None):
     """Plot dipole locations.
 
