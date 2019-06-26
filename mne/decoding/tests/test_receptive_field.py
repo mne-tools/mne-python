@@ -9,7 +9,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne import io, pick_types
-from mne.fixes import einsum
+from mne.fixes import einsum, rfft, irfft
 from mne.utils import requires_version, requires_sklearn, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
@@ -69,9 +69,9 @@ def test_rank_deficiency():
     rng = np.random.RandomState(0)
     eeg = rng.randn(N, 1)
     eeg *= 100
-    eeg = np.fft.rfft(eeg, axis=0)
+    eeg = rfft(eeg, axis=0)
     eeg[N // 4:] = 0  # rank-deficient lowpass
-    eeg = np.fft.irfft(eeg, axis=0)
+    eeg = irfft(eeg, axis=0)
     win = np.hanning(N // 8)
     win /= win.mean()
     y = np.apply_along_axis(np.convolve, 0, eeg, win, mode='same')
