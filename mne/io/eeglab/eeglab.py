@@ -125,7 +125,7 @@ def _get_info(eeg, eog=()):
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
         eeg_montage = None
-        update_ch_names = True
+        update_ch_names = False
 
     info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
