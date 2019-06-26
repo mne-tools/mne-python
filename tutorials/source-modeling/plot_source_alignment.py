@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+
+.. include:: ../doc/links.inc
 .. _plot_source_alignment:
 
 Source alignment and coordinate frames
@@ -38,8 +40,8 @@ src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
 ###############################################################################
 # Understanding coordinate frames
 # -------------------------------
-# For M/EEG source imaging, there are three **coordinate frames** that we must
-# bring into alignment using two 3D
+# For M/EEG source imaging, there are three **coordinate frames** (further
+# explained in the next section) that we must bring into alignment using two 3D
 # `transformation matrices <trans_matrices_>`_
 # that define how to rotate and translate points in one coordinate frame
 # to their equivalent locations in another.
@@ -98,15 +100,25 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 # .. role:: red
 #
 # 1. Neuromag head coordinate frame ("head", :pink:`pink axes`)
-#      Defined by the intersection of 1) the line between the LPA
-#      (:red:`red sphere`) and RPA (:purple:`purple sphere`), and
-#      2) the line perpendicular to this LPA-RPA line one that goes through
-#      the Nasion (:green:`green sphere`).
-#      The axes are oriented as **X** origin→RPA, **Y** origin→Nasion,
+#      The head coordinate frame is defined through the coordinates of
+#      anatomical landmarks on the subject's head: Usually the Nasion (`NAS`_),
+#      and the left and right preauricular points (`LPA`_ and `RPA`_).
+#
+#      Concretely, the head coordinate frame is devined by the intersection of
+#
+#      1. the line between the LPA (:red:`red sphere`) and RPA
+#         (:purple:`purple sphere`), and
+#      2. the line perpendicular to this LPA-RPA line one that goes through
+#         the Nasion (:green:`green sphere`).
+#
+#      The axes are oriented as **X** origin→RPA, **Y** origin→NAS,
 #      **Z** origin→upward (orthogonal to X and Y).
 #
-#      .. note:: This gets defined during the head digitization stage during
-#                acquisition, often by use of a Polhemus or other digitizer.
+#      .. note:: The required 3D coordinates for defining the head coordinate
+#                frame (NAS, LPA, RPA) are measured at a stage separate from
+#                the MEG data recording. There exist numerous devices to
+#                perform such measurements, usually called "digitizers". For
+#                example, see the devices by the company `Polhemus`_.
 #
 # 2. MEG device coordinate frame ("meg", :blue:`blue axes`)
 #      This is defined by the MEG manufacturers. From the Elekta user manual:
