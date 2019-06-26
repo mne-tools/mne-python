@@ -125,7 +125,7 @@ def _get_info(eeg, eog=()):
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
         eeg_montage = None
-        update_ch_names = False
+        update_ch_names = True
 
     info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
@@ -350,6 +350,22 @@ class RawEEGLAB(BaseRaw):
         """Read a chunk of raw data."""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=np.float32, n_channels=self.info['nchan'])
+
+    # XXX: to be removed when deprecating montage
+    def set_montage(self, montage, set_dig=True, update_ch_names=False,
+                    verbose=None):
+        """To be removed."""  # noqa
+        cal = set([ch['cal'] for ch in self.info['chs']]).pop()
+        coord_frame = set([ch['coord_frame'] for ch in self.info['chs']]).pop()
+        super(RawEEGLAB, self).set_montage(montage, set_dig=set_dig,
+                                           update_ch_names=update_ch_names,
+                                           verbose=verbose)
+        # Revert update_ch_names modifications in cal and coord_frame
+        if update_ch_names:
+            for ch in self.info['chs']:
+                ch['cal'] = cal
+                ch['coord_frame'] = coord_frame
+    set_montage.__doc__ = BaseRaw.set_montage.__doc__
 
 
 class EpochsEEGLAB(BaseEpochs):

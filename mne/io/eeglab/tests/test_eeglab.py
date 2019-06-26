@@ -332,11 +332,7 @@ def test_montage():
                                   preload=False)
     raw_none.set_montage(montage)
     assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
-    # assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
-    diff = object_diff(raw_none.info['chs'],
-                       raw_montage.info['chs'])
-    for dd in diff.splitlines():
-        assert 'coord_frame' in dd or 'cal' in dd
+    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
 
 
 @testing.requires_testing_data
@@ -357,7 +353,7 @@ def test_channel_calibration():
     assert_array_equal(raw.get_data(), original_raw.get_data())
 
     # calibration is not
-    assert set([ch['cal'] for ch in raw.info['chs']]) == {1.0}
+    assert set([ch['cal'] for ch in raw.info['chs']]) == {1e-06}
     assert set([ch['cal'] for ch in original_raw.info['chs']]) == {1e-06}
 
 
