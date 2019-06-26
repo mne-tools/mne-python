@@ -356,7 +356,6 @@ class RawEEGLAB(BaseRaw):
                     verbose=None):
         """To be removed."""  # noqa
         cal = set([ch['cal'] for ch in self.info['chs']]).pop()
-        coord_frame = set([ch['coord_frame'] for ch in self.info['chs']]).pop()
         super(RawEEGLAB, self).set_montage(montage, set_dig=set_dig,
                                            update_ch_names=update_ch_names,
                                            verbose=verbose)
@@ -364,7 +363,6 @@ class RawEEGLAB(BaseRaw):
         if update_ch_names:
             for ch in self.info['chs']:
                 ch['cal'] = cal
-                ch['coord_frame'] = coord_frame
     set_montage.__doc__ = BaseRaw.set_montage.__doc__
 
 
