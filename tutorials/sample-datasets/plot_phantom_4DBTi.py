@@ -19,7 +19,6 @@ Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
 
 import os.path as op
 import numpy as np
-from mayavi import mlab
 from mne.datasets import phantom_4dbti
 import mne
 
@@ -35,6 +34,7 @@ sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
 t0 = 0.07  # peak of the response
 
 pos = np.empty((4, 3))
+ori = np.empty((4, 3))
 
 for ii in range(4):
     raw = mne.io.read_raw_bti(raw_fname % (ii + 1,),
@@ -48,6 +48,7 @@ for ii in range(4):
     cov = mne.compute_covariance(epochs, tmax=0.)
     dip = mne.fit_dipole(evoked.copy().crop(t0, t0), cov, sphere)[0]
     pos[ii] = dip.pos[0]
+    ori[ii] = dip.ori[0]
 
 ###############################################################################
 # Compute localisation errors
@@ -64,15 +65,16 @@ print("errors (mm) : %s" % errors)
 
 ###############################################################################
 # Plot the dipoles in 3D
+actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
+actual_gof = np.ones(len(dip))  # misc amp to create Dipole instance
+dip = mne.Dipole(dip.times, pos, actual_amp, ori, actual_gof)
+dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, ori, actual_gof)
 
+fig = mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
 
-def plot_pos(pos, color=(0., 0., 0.)):
-    mlab.points3d(pos[:, 0], pos[:, 1], pos[:, 2], scale_factor=0.005,
-                  color=color)
-
-
-mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
 # Plot the position of the actual dipole
-plot_pos(actual_pos, color=(1., 0., 0.))
+fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='3d',
+                                    color=(1., 0., 0.), fig=fig)
 # Plot the position of the estimated dipole
-plot_pos(pos, color=(1., 1., 0.))
+fig = mne.viz.plot_dipole_locations(dipoles=dip, mode='3d',
+                                    color=(1., 1., 0.), fig=fig)
