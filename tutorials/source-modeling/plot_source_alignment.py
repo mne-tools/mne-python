@@ -18,7 +18,6 @@ Let's start out by loading some data.
 import os.path as op
 
 import numpy as np
-from mayavi import mlab
 
 import mne
 from mne.datasets import sample
@@ -64,11 +63,11 @@ src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
 #
 # Let's take a look:
 
-mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
-                       subjects_dir=subjects_dir, surfaces='head-dense',
-                       show_axes=True, dig=True, eeg=[], meg='sensors',
-                       coord_frame='meg')
-mlab.view(45, 90, distance=0.6, focalpoint=(0., 0., 0.))
+fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+                             subjects_dir=subjects_dir, surfaces='head-dense',
+                             show_axes=True, dig=True, eeg=[], meg='sensors',
+                             coord_frame='meg')
+mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
 print('Distance from head origin to MEG origin: %0.1f mm'
       % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
 print('Distance from head origin to MRI origin: %0.1f mm'

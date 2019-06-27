@@ -2409,13 +2409,14 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 
 @verbose
-def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
+def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
-                          show_all=True, ax=None, block=False,
-                          show=True, verbose=None):
+                          show_all=True, ax=None, block=False, show=True,
+                          scale=5e-3, color=(1.0, 0.0, 0.0), fig=None,
+                          verbose=None):
     """Plot dipole locations.
 
-    If mode is set to 'cone' or 'sphere', only the location of the first
+    If mode is set to 'arrow' or 'sphere', only the location of the first
     time point of each dipole is shown else use the show_all parameter.
 
     The option mode='orthoview' was added in version 0.14.
@@ -2424,19 +2425,21 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     ----------
     dipoles : list of instances of Dipole | Dipole
         The dipoles to plot.
-    trans : dict
+    trans : dict | None
         The mri to head trans.
-    subject : str
+        Can be None with mode set to '3d'.
+    subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
+        Can be None with mode set to '3d'.
     subjects_dir : None | str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
         The default is None.
     mode : str
-        Currently only ``'orthoview'`` is supported.
+        Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
 
-        .. versionadded:: 0.14.0
+        .. versionadded:: 0.19.0
     coord_frame : str
         Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
 
@@ -2471,8 +2474,15 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     show : bool
         Show figure if True. Defaults to True.
         Only used if mode equals 'orthoview'.
+    scale: float
+        The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
+    color : tuple
+        The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
+    fig : mayavi.mlab.Figure | None
+        3D Scene in which to plot the alignment.
+        If ``None``, creates a new 600x600 pixel figure with black background.
 
-        .. versionadded:: 0.14.0
+        .. versionadded:: 0.19.0
     %(verbose)s
 
     Returns
@@ -2489,6 +2499,24 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show)
+    elif mode in ['arrow', 'sphere']:
+        from .backends.renderer import _Renderer
+        renderer = _Renderer(fig=fig, size=(600, 600))
+        pos = dipoles.pos
+        ori = dipoles.ori
+        if coord_frame != 'head':
+            trans = _get_trans(trans, fro='head', to=coord_frame)[0]
+            pos = apply_trans(trans, pos)
+            ori = apply_trans(trans, ori)
+
+        renderer.sphere(center=pos, color=color, scale=scale)
+        if mode == 'arrow':
+            x, y, z = pos.T
+            u, v, w = ori.T
+            renderer.quiver3d(x, y, z, u, v, w, scale=3 * scale,
+                              color=color, mode='arrow')
+
+        fig = renderer.scene()
     else:
         raise ValueError('Mode must be "orthoview", got %s.' % (mode,))
 
@@ -2653,8 +2681,6 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     from .. import Dipole
     if not has_nibabel():
         raise ImportError('This function requires nibabel.')
-    import nibabel as nib
-    from nibabel.processing import resample_from_to
 
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
@@ -2668,32 +2694,12 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     else:
         idx = _ensure_int(idx, 'idx', 'an int or one of ["gof", "amplitude"]')
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
-    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    t1 = nib.load(t1_fname)
-    vox2ras = t1.header.get_vox2ras_tkr()
-    ras2vox = linalg.inv(vox2ras)
-    trans = _get_trans(trans, fro='head', to='mri')[0]
+    dipole_locs, ori, scatter_points, t1 = \
+        _get_dipole_loc(dipole, trans, subject,
+                        subjects_dir=subjects_dir,
+                        coord_frame=coord_frame)
+
     zooms = t1.header.get_zooms()
-    if coord_frame == 'head':
-        affine_to = trans['trans'].copy()
-        affine_to[:3, 3] *= 1000  # to mm
-        aff = t1.affine.copy()
-
-        aff[:3, :3] /= zooms
-        affine_to = np.dot(affine_to, aff)
-        t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
-                                    in range(3)], affine_to))
-        dipole_locs = apply_trans(ras2vox, dipole.pos * 1e3) * zooms
-
-        ori = dipole.ori
-        scatter_points = dipole.pos * 1e3
-    else:
-        scatter_points = apply_trans(trans['trans'], dipole.pos) * 1e3
-        ori = apply_trans(trans['trans'], dipole.ori, move=False)
-        dipole_locs = apply_trans(ras2vox, scatter_points)
-
     data = t1.get_data()
     dims = len(data)  # Symmetric size assumed.
     dd = dims / 2.
@@ -2722,6 +2728,40 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
 
     plt_show(show, block=block)
     return fig
+
+
+def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
+                    coord_frame='head'):
+    """Get the dipole locations and orientations."""
+    import nibabel as nib
+    from nibabel.processing import resample_from_to
+    _check_option('coord_frame', coord_frame, ['head', 'mri'])
+
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    t1 = nib.load(t1_fname)
+    vox2ras = t1.header.get_vox2ras_tkr()
+    ras2vox = linalg.inv(vox2ras)
+    trans = _get_trans(trans, fro='head', to='mri')[0]
+    zooms = t1.header.get_zooms()
+    if coord_frame == 'head':
+        affine_to = trans['trans'].copy()
+        affine_to[:3, 3] *= 1000  # to mm
+        aff = t1.affine.copy()
+
+        aff[:3, :3] /= zooms
+        affine_to = np.dot(affine_to, aff)
+        t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
+                                    in range(3)], affine_to))
+        dipole_locs = apply_trans(ras2vox, dipole.pos * 1e3) * zooms
+        dipole_oris = dipole.ori
+        scatter_points = dipole.pos * 1e3
+    else:
+        scatter_points = apply_trans(trans['trans'], dipole.pos) * 1e3
+        dipole_oris = apply_trans(trans['trans'], dipole.ori, move=False)
+        dipole_locs = apply_trans(ras2vox, scatter_points)
+    return dipole_locs, dipole_oris, scatter_points, t1
 
 
 def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
