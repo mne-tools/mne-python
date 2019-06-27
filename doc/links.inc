@@ -174,11 +174,6 @@
 .. _travis: https://travis-ci.org/
 .. _linterflake8: https://atom.io/packages/linter-flake8
 .. _Brain Imaging Data Structure: https://bids.neuroimaging.io/
-.. _NAS: https://en.wikipedia.org/wiki/Nasion
-.. _LPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/
-.. _RPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/
-.. _Polhemus: https://polhemus.com/scanning-digitizing/digitizing-products/
-.. _FieldTrip FAQ on coordinate systems: http://www.fieldtriptoolbox.org/faq/how_are_the_different_head_and_mri_coordinate_systems_defined/
 
 .. python packages
 

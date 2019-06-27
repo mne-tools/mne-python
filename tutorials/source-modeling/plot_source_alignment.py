@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-
-.. include:: ../../links.inc
 .. _plot_source_alignment:
 
 Source alignment and coordinate frames
@@ -105,7 +103,7 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 #      and the left and right preauricular points (`LPA`_ and `RPA`_).
 #      Different MEG manufacturers may have different definitions of the
 #      coordinate head frame. A good overview can be seen in the
-#      `FieldTrip FAQ on coordinate systems`_
+#      `FieldTrip FAQ on coordinate systems`_.
 #
 #      For Neuromag/Elekta/MEGIN, the head coordinate frame is defined by the
 #      intersection of
@@ -150,7 +148,7 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 #      of the head).
 #
 #      .. note:: We typically align the MRI coordinate frame to the head
-#                coordinate frame through a rotation and translation matrix,
+#                coordinate frame through a `rotation and translation matrix`_,
 #                that we refer to in MNE as ``trans``.
 #
 # A bad example
@@ -233,4 +231,9 @@ mne.viz.plot_alignment(
 # `these slides
 # <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
 #
-# .. _trans_matrices: https://en.wikipedia.org/wiki/Transformation_matrix
+# .. _rotation and translation matrix: https://en.wikipedia.org/wiki/Transformation_matrix  # noqa: E501
+# .. _NAS: https://en.wikipedia.org/wiki/Nasion
+# .. _LPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
+# .. _RPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
+# .. _Polhemus: https://polhemus.com/scanning-digitizing/digitizing-products/
+# .. _FieldTrip FAQ on coordinate systems: http://www.fieldtriptoolbox.org/faq/how_are_the_different_head_and_mri_coordinate_systems_defined/  # noqa:E501
