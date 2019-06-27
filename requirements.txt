@@ -28,6 +28,6 @@ neo
 xlrd
 pydocstyle
 flake8
-pyvista>=0.20.3
+git+git://github.com/pyvista/pyvista@modules
 pylsl>=1.12
 panel
