@@ -3000,12 +3000,13 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                 psd_std = np.std(psd, axis=0)
                 hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
             elif area_mode == 'range':
-                hyp_limits = (np.min(np.mean(psd, axis=0), axis=0),
-                              np.max(np.mean(psd, axis=0), axis=0))
+                hyp_limits = (np.min(psd, axis=0),
+                              np.max(psd, axis=0))
             else:  # area_mode is None
                 hyp_limits = None
 
-            ax.plot(freqs, psd_mean, color=color)
+            ax.plot(freqs, psd_mean, color=color, alpha=line_alpha,
+                    linewidth=0.5)
             if hyp_limits is not None:
                 ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
                                 color=color, alpha=area_alpha)
