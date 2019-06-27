@@ -531,7 +531,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
-                   meg=None, eeg='original',
+                   meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
@@ -577,6 +577,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         show EEG sensors in their digitized locations or projected onto the
         scalp, or a list of these options including ``[]`` (equivalent of
         False).
+    fwd : instance of Forward
+        The forward solution.
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
@@ -1122,6 +1124,20 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             opacity=0.75, glyph_height=0.25,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
+    if fwd is not None:
+        red = (1.0, 0.0, 0.0)
+        green = (0.0, 1.0, 0.0)
+        blue = (0.0, 0.0, 1.0)
+        vec = fwd['source_nn'].reshape(-1, 3, 3)
+        pos = fwd['source_rr']
+        for ori, color in zip((0, 1, 2), (red, green, blue)):
+            renderer.quiver3d(pos[:, 0],
+                              pos[:, 1],
+                              pos[:, 2],
+                              vec[:, ori, 0],
+                              vec[:, ori, 1],
+                              vec[:, ori, 2],
+                              color=color, mode='arrow', scale=1E-3)
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()

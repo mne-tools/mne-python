@@ -20,7 +20,6 @@ See :ref:`inverse_orientation_constrains`
 # ------------
 # Load everything we need to perform source localization on the sample dataset.
 
-from mayavi import mlab
 import mne
 import numpy as np
 from mne.datasets import sample
@@ -54,7 +53,6 @@ dip_ori = lh['nn'][lh['vertno']]
 dip_len = len(dip_pos)
 dip_times = [0]
 white = (1.0, 1.0, 1.0)  # RGB values for a white color
-red = (1.0, 0.0, 0.0)  # RGB valued for a red color
 
 actual_amp = np.ones(dip_len)  # misc amp to create Dipole instance
 actual_gof = np.ones(dip_len)  # misc GOF to create Dipole instance
@@ -148,10 +146,6 @@ brain_fixed = stc.plot(surface='white', subjects_dir=subjects_dir,
 # orthogonally to form a Cartesian coordinate system. Let's visualize this:
 fig = mne.viz.create_3d_figure(size=(600, 400))
 
-# Define some more colors
-green = (0.0, 1.0, 0.0)
-blue = (0.0, 0.0, 1.0)
-
 # Plot the cortex
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
                              trans=trans,
@@ -162,12 +156,9 @@ inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=False,
                             loose=1.0)
 
 # Show the three dipoles defined at each location in the source space
-dip_dir = inv['source_nn'].reshape(-1, 3, 3)
-dip_dir = dip_dir[:len(dip_pos)]  # Only select left hemisphere
-for ori, color in zip((0, 1, 2), (red, green, blue)):
-    mlab.quiver3d(dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2],
-                  dip_dir[:, ori, 0], dip_dir[:, ori, 1], dip_dir[:, ori, 2],
-                  color=color, scale_factor=1E-3)
+fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
+                             trans=trans, fwd=fwd,
+                             surfaces='white', coord_frame='head', fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 
