@@ -171,7 +171,6 @@ class RawNicolet(BaseRaw):
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg,
                                               emg, misc)
         last_samps = [header_info['num_samples'] - 1]
-        # _check_update_montage(info, montage)
         super(RawNicolet, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format='int',
