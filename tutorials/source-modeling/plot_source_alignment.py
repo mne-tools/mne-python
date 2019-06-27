@@ -40,7 +40,7 @@ src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
 # -------------------------------
 # For M/EEG source imaging, there are three **coordinate frames** (further
 # explained in the next section) that we must bring into alignment using two 3D
-# `transformation matrices <trans_matrices_>`_
+# `transformation matrices <rotation and translation matrix_>`_
 # that define how to rotate and translate points in one coordinate frame
 # to their equivalent locations in another.
 #
