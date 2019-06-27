@@ -214,6 +214,8 @@ Changelog
 
 - Add ``mne.realtime.MockLSLStream`` to simulate an LSL stream for testing and examples by `Teon Brooks`_
 
+- Add support for file-like objects in :func:`mne.epochs.read_epochs` as long as preloading is used by `Paul Roujansky`_
+
 Bug
 ~~~
 

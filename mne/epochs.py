@@ -2320,7 +2320,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
     Parameters
     ----------
     fname : str | file-like
-        The epochs filename to load. Filenames should end with -epo.fif or
+        The epochs filename to load. Filename should end with -epo.fif or
         -epo.fif.gz. If a file-like object is provided, preloading must be
         used.
     proj : bool | 'delayed'
