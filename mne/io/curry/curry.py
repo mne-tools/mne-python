@@ -156,7 +156,7 @@ def _read_curry_info(fname_base, curry_vers):
     return info, n_samples, is_ascii
 
 
-def _read_events_curry(fname, event_ids=None):
+def _read_events_curry(fname):
     """Read events from Curry event files.
 
     Parameters
@@ -164,9 +164,6 @@ def _read_events_curry(fname, event_ids=None):
     fname : str
         Path to a curry event file with extensions .cef, .ceo,
         .cdt.cef, or .cdt.ceo
-    event_ids : tuple, list or None (default None)
-        If tuple or list, only the event IDs in event_ids
-        will be read. If None, all event IDs will be read.
 
     Returns
     -------
@@ -179,10 +176,6 @@ def _read_events_curry(fname, event_ids=None):
     events_dict = _read_curry_lines(fname, ["NUMBER_LIST"])
     # The first 3 column seem to contain the event information
     curry_events = np.array(events_dict["NUMBER_LIST"], dtype=int)[:, 0:3]
-
-    if event_ids is not None:
-        idx = np.array([i in event_ids for i in curry_events[:, -1]])
-        curry_events = curry_events[idx]
 
     return curry_events
 
