@@ -40,8 +40,6 @@ curry8_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 8.cdt")
 curry8_bdf_ascii_file = op.join(curry_dir,
                                 "test_bdf_stim_channel Curry 8 ASCII.cdt")
 
-event_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.cef")
-
 if not check_version("numpy", "1.16.0"):
     do_warn = 'ignore:.*take longer for ASCII.*:'
 else:
@@ -57,12 +55,14 @@ def bdf_curry_ref():
 
 @pytest.mark.filterwarnings(do_warn)
 @testing.requires_testing_data
-@pytest.mark.parametrize('fname', [
-    pytest.param(curry7_bdf_file, id='curry 7'),
-    pytest.param(curry8_bdf_file, id='curry 8'),
+@pytest.mark.parametrize('fname,tol', [
+    pytest.param(curry7_bdf_file, 1e-7, id='curry 7'),
+    pytest.param(curry8_bdf_file, 1e-7, id='curry 8'),
+    pytest.param(curry7_bdf_ascii_file, 1e-4, id='curry 7 ascii'),
+    pytest.param(curry8_bdf_ascii_file, 1e-4, id='curry 8 ascii'),
 ])
 @pytest.mark.parametrize('preload', [True, False])
-def test_read_raw_curry(fname, preload, bdf_curry_ref):
+def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     """Test reading CURRY files."""
     raw = read_raw_curry(fname, preload=preload)
 
@@ -79,20 +79,20 @@ def test_read_raw_curry(fname, preload, bdf_curry_ref):
         assert_array_equal([ch[field] for ch in raw.info['chs']],
                            [ch[field] for ch in bdf_curry_ref.info['chs']])
 
-    assert_allclose(raw.get_data(), bdf_curry_ref.get_data())
+    assert_allclose(raw.get_data(), bdf_curry_ref.get_data(), atol=tol)
 
     picks, start, stop = ["C3", "C4"], 200, 800
     assert_allclose(
         raw.get_data(picks=picks, start=start, stop=stop),
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
-    )
+        rtol=tol)
 
 
 @pytest.mark.filterwarnings(do_warn)
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname,tol', [
     pytest.param(curry7_rfDC_file, 1e-6, id='curry 7'),
-    pytest.param(curry8_rfDC_file, 1e-3, id='curry 8'),  # XXX: why 1e-3?
+    pytest.param(curry8_rfDC_file, 1e-3, id='curry 8'),
 ])
 def test_read_raw_curry_rfDC(fname, tol):
     """Test reading CURRY files."""
