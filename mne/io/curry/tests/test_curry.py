@@ -40,6 +40,8 @@ curry8_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 8.cdt")
 curry8_bdf_ascii_file = op.join(curry_dir,
                                 "test_bdf_stim_channel Curry 8 ASCII.cdt")
 
+test_sfreq_0 = op.join(curry_dir, "test_sfreq_0.dat")
+
 if not check_version("numpy", "1.16.0"):
     do_warn = 'ignore:.*take longer for ASCII.*:'
 else:
@@ -60,6 +62,7 @@ def bdf_curry_ref():
     pytest.param(curry8_bdf_file, 1e-7, id='curry 8'),
     pytest.param(curry7_bdf_ascii_file, 1e-4, id='curry 7 ascii'),
     pytest.param(curry8_bdf_ascii_file, 1e-4, id='curry 8 ascii'),
+    pytest.param(test_sfreq_0, 1e-7, id='test sfreq = 0'),
 ])
 @pytest.mark.parametrize('preload', [True, False])
 def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
