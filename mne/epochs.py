@@ -30,6 +30,7 @@ from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
 from .io.constants import FIFF
+from .io.fiff.raw import _get_fname_rep
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
@@ -2318,8 +2319,10 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end with -epo.fif or -epo.fif.gz.
+    fname : str | file-like
+        The epochs filename to load. Filenames should end with -epo.fif or
+        -epo.fif.gz. If a file-like object is provided, preloading must be
+        used.
     proj : bool | 'delayed'
         Apply SSP projection vectors. If proj is 'delayed' and reject is not
         None the single epochs will be projected before the rejection
@@ -2366,8 +2369,9 @@ class EpochsFIF(BaseEpochs):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end with -epo.fif or -epo.fif.gz.
+    fname : str | file-like
+        The name of the file, which should end with -epo.fif or -epo.fif.gz. If
+        a file-like object is provided, preloading must be used.
     proj : bool | 'delayed'
         Apply SSP projection vectors. If proj is 'delayed' and reject is not
         None the single epochs will be projected before the rejection
@@ -2394,14 +2398,18 @@ class EpochsFIF(BaseEpochs):
     @verbose
     def __init__(self, fname, proj=True, preload=True,
                  verbose=None):  # noqa: D102
-        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
-                                      '_epo.fif', '_epo.fif.gz'))
+        if isinstance(fname, str):
+            check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
+                                          '_epo.fif', '_epo.fif.gz'))
+        elif not preload:
+            raise ValueError('preload must be used with file-like objects')
+
         fnames = [fname]
         ep_list = list()
         raw = list()
         for fname in fnames:
-            logger.info('Reading %s ...' % fname)
-            fid, tree, _ = fiff_open(fname)
+            logger.info('Reading %s ...' % _get_fname_rep(fname))
+            fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
              baseline, selection, drop_log, epoch_shape, cals,
