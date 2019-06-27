@@ -1581,6 +1581,7 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
     lut = len(set(color_vals)) if all_int else None
     # convert provided ints to sequential, rank-ordered ints
     if all_int:
+        colors = deepcopy(colors)
         ranks = {val: ix for ix, val in enumerate(sorted(set(color_vals)))}
         for key, orig_int in colors.items():
             colors[key] = ranks[orig_int]
@@ -1733,7 +1734,8 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
     if do_topo and isinstance(show_legend, bool):
         legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))
     if draw_legend:
-        ax.legend(**legend_params)
+        labels = [li.get_label() for li in lines]
+        ax.legend(lines, labels, **legend_params)
     # we needed the lines for the legends, but now we can kill them
     if do_topo:
         ax.lines.clear()
