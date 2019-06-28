@@ -315,6 +315,8 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['foo'])
+    fwd_fname = op.join(data_dir, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
     fwd = read_forward_solution(fwd_fname)
     plot_alignment(subject='sample', subjects_dir=subjects_dir,
                    trans=trans_fname, fwd=fwd,
