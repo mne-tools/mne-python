@@ -716,8 +716,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             fwd_nn = fwd['source_nn']
         else:
             fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
-    else:
-        fwd_rr = fwd_nn = np.empty((0, 3))
 
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
