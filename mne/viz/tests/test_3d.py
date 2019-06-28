@@ -17,7 +17,7 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, make_sphere_model, use_coil_def,
                  setup_volume_source_space, read_forward_solution,
-                 VolVectorSourceEstimate)
+                 VolVectorSourceEstimate, convert_forward_solution)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.digitization._utils import write_dig
 from mne.io.pick import pick_info
@@ -315,6 +315,17 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['foo'])
+    fwd_fname = op.join(data_dir, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+    fwd = read_forward_solution(fwd_fname)
+    plot_alignment(subject='sample', subjects_dir=subjects_dir,
+                   trans=trans_fname, fwd=fwd,
+                   surfaces='white', coord_frame='head')
+    fwd = convert_forward_solution(fwd, force_fixed=True)
+    plot_alignment(subject='sample', subjects_dir=subjects_dir,
+                   trans=trans_fname, fwd=fwd,
+                   surfaces='white', coord_frame='head')
+
     renderer._close_all()
 
 
