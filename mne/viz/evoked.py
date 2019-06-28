@@ -1749,10 +1749,9 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
         del ax.texts[-1]
 
 
-def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
-                                    truncate_yaxis, truncate_xaxis, invert_y,
-                                    vlines, tmin, tmax, unit,
-                                    skip_axlabel=True):
+def _draw_axes_pce(ax, any_positive, any_negative, ymin, ymax, truncate_yaxis,
+                   truncate_xaxis, invert_y, vlines, tmin, tmax, unit,
+                   skip_axlabel=True):
     """Set ylims for an evoked plot. Helper for plot_compare_evokeds."""
     # truncate the y axis - this is aesthetics
     orig_ymin, orig_ymax = ax.get_ylim()
@@ -2266,16 +2265,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             any_negative = True
 
     # set ylims
-    for ax_, idx in axes:
+    for _ax, idx in axes:
         skip_axlabel = do_topo and (idx != -1)
-        _set_ylims_plot_compare_evokeds(
-            ax_, any_positive, any_negative, ymin, ymax, truncate_yaxis,
-            truncate_xaxis, invert_y, vlines, tmin, tmax, units,
-            skip_axlabel=skip_axlabel)
-        ax_.patch.set_alpha(0)
-        if do_topo and idx != -1:
-            ax_.set_yticklabels([])
-            ax_.set_xticklabels([])
+        _draw_axes_pce(_ax, any_positive, any_negative, ymin, ymax,
+                       truncate_yaxis, truncate_xaxis, invert_y, vlines,
+                       tmin, tmax, units, skip_axlabel=skip_axlabel)
+
+        _ax.patch.set_alpha(0)
+        if skip_axlabel:
+            _ax.set_yticklabels([])
+            _ax.set_xticklabels([])
 
     # add inset scalp plot showing location of sensors picked
     if show_sensors:
