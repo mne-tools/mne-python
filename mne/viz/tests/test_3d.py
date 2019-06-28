@@ -424,6 +424,19 @@ def test_plot_dipole_mri_orthoview():
 
 
 @testing.requires_testing_data
+def test_plot_dipole_orientations(renderer):
+    """Test dipole plotting in 3d."""
+    dipoles = read_dipole(dip_fname)
+    trans = read_trans(trans_fname)
+    for coord_frame, idx, show_all in zip(['head', 'mri'],
+                                          ['gof', 'amplitude'], [True, False]):
+        dipoles.plot_locations(trans=trans, subject='sample',
+                               subjects_dir=subjects_dir,
+                               mode='arrow', coord_frame=coord_frame)
+    renderer._close_all()
+
+
+@testing.requires_testing_data
 @traits_test
 def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
