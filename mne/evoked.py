@@ -274,6 +274,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.info['sfreq'] = new_sfreq
         self.data = self.data[:, decim_slice].copy()
         self.times = self.times[decim_slice].copy()
+        self.first = int(self.times[0] * self.info['sfreq'])
+        self.last = len(self.times) + self.first - 1
         return self
 
     def shift_time(self, tshift, relative=True):
