@@ -1482,9 +1482,9 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             ymax_bound = ymax
         precision = 0.25  # round to .25
         if ymin is None:
-            ymin_bound = round(ymin_bound / precision) * precision
+            ymin_bound = round(ymin_bound / precision) * precision  # TODO COVERAGE
         if ymax is None:
-            ymax_bound = round(ymax_bound / precision) * precision
+            ymax_bound = round(ymax_bound / precision) * precision  # TODO COVERAGE
         axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
     else:  # code stolen from seaborn
         yticks = axes.get_yticks()
@@ -1738,7 +1738,7 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
     ncol = 1 + (len(lines) // (4 if split_legend else 5))
     legend_params = dict(loc=loc, frameon=True, ncol=ncol)
     if do_topo and isinstance(show_legend, bool):
-        legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))
+        legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))  # TODO COVERAGE
     if draw_legend:
         labels = [li.get_label() for li in lines]
         ax.legend(lines, labels, **legend_params)
@@ -1757,7 +1757,7 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
     # truncate the y axis - this is aesthetics
     orig_ymin, orig_ymax = ax.get_ylim()
     if not any_positive:
-        orig_ymax = 0
+        orig_ymax = 0  # TODO COVERAGE
     if not any_negative:
         orig_ymin = 0
 
@@ -1780,7 +1780,7 @@ def _set_ylims_plot_compare_evokeds(ax, any_positive, any_negative, ymin, ymax,
     # plot v lines
     # Why 'invert_y'? Many EEG people plot negative values up for ... reasons
     if invert_y and (current_ymin < 0):
-        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
+        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]  # TODO COVERAGE
     else:
         upper_v, lower_v = ax.get_ylim()[0], ymax_bound
     if vlines:
@@ -1796,7 +1796,7 @@ def _get_data_and_ci(evoked, combine, combine_func, scaling=1, picks=None,
                      ci_fun=None):
     """Compute (sensor-aggregated, scaled) time series and possibly CI."""
     if picks is None:
-        picks = Ellipsis
+        picks = Ellipsis  # TODO COVERAGE
     picks = np.array(picks).flatten()
     # apply scalings
     data = np.array([evk.data[picks] * scaling for evk in evoked])
@@ -2244,7 +2244,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     del allvalues
     # avoid matplotlib error
     if ymin == ymax:
-        ymax += 1e-9
+        ymax += 1e-9  # TODO COVERAGE (TEST A FLAT CHANNEL?)
 
     # add empty data (all zeros) for the legend axis
     all_data.append({cond: np.zeros(dat.shape)
@@ -2283,7 +2283,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                        'show_sensors', 'numeric, str, None or bool')
         if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
             warn('Cannot find channel coordinates in the supplied Evokeds. '
-                 'Not showing channel locations.')
+                 'Not showing channel locations.')  # TODO COVERAGE
         else:
             _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
                                   show_sensors, _ax)
