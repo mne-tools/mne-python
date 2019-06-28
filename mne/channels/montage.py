@@ -833,6 +833,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
 
             ch_idx = info_ch_names.index(ch_name)
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
+            info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
             sensors_found.append(ch_idx)
             dig[ch_name] = pos
         if set_dig:

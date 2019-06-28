@@ -353,6 +353,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         with SilenceStdout():
             mlab.view(azimuth, elevation, distance,
                       focalpoint=focalpoint, figure=figure)
+            mlab.draw(figure)
 
 
 def _set_3d_title(figure, title, size=40):
@@ -360,3 +361,4 @@ def _set_3d_title(figure, title, size=40):
     text = mlab.title(text=title, figure=figure)
     text.property.vertical_justification = 'top'
     text.property.font_size = size
+    mlab.draw(figure)

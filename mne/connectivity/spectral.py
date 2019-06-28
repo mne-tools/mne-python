@@ -10,7 +10,7 @@ import numpy as np
 
 from .utils import check_indices
 from ..utils import _check_option
-from ..fixes import _get_args
+from ..fixes import _get_args, rfftfreq
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import BaseEpochs
@@ -937,7 +937,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
     if mode in ('multitaper', 'fourier'):
         # fmin fmax etc is only supported for these modes
         # decide which frequencies to keep
-        freqs_all = np.fft.rfftfreq(n_times, 1. / sfreq)
+        freqs_all = rfftfreq(n_times, 1. / sfreq)
     elif mode == 'cwt_morlet':
         # cwt_morlet mode
         if cwt_freqs is None:

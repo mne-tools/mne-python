@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-projectors-background:
+
 Background on projectors and projections
 ========================================
 
@@ -154,7 +156,7 @@ z = z[mask]
 
 ###############################################################################
 # Computing the projection matrix from the ``trigger_effect`` vector is done
-# using `singular value decomposition <svd>`_ (SVD); interested readers may
+# using `singular value decomposition <svd_>`_ (SVD); interested readers may
 # consult the internet or a linear algebra textbook for details on this method.
 # With the projection matrix in place, we can project our original vector
 # :math:`(3, 2, 5)` to remove the effect of the trigger, and then plot it:
@@ -273,9 +275,9 @@ raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # In MNE-Python, the environmental noise vectors are computed using `principal
-# component analysis <pca>`_, usually abbreviated "PCA", which is why the SSP
+# component analysis <pca_>`_, usually abbreviated "PCA", which is why the SSP
 # projectors usually have names like "PCA-v1". (Incidentally, since the process
-# of performing PCA uses `singular value decomposition <svd>`_ under the hood,
+# of performing PCA uses `singular value decomposition <svd_>`_ under the hood,
 # it is also common to see phrases like "projectors were computed using SVD" in
 # published papers.) The projectors are stored in the ``projs`` field of
 # ``raw.info``:
@@ -323,7 +325,7 @@ mags.plot(butterfly=True, proj=True)
 
 ###############################################################################
 # Additional ways of visualizing projectors are covered in the tutorial
-# :doc:`../preprocessing/plot_artifacts_correction_ssp`.
+# :ref:`tut-artifact-ssp`.
 #
 #
 # Loading and saving projectors

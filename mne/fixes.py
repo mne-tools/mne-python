@@ -524,6 +524,15 @@ def minimum_phase(h):
 
 
 ###############################################################################
+# Triaging FFT functions to get fast pocketfft
+
+try:
+    from scipy.fft import rfft, irfft, rfftfreq
+except ImportError:
+    from numpy.fft import rfft, irfft, rfftfreq
+
+
+###############################################################################
 # Misc utilities
 
 def assert_true(expr, msg='False is not True'):

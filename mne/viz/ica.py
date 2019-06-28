@@ -12,10 +12,11 @@ import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _layout_figure, _plot_raw_onscroll, _mouse_click,
-                    _helper_raw_resize, _plot_raw_onkey, plt_show)
+                    _helper_raw_resize, _plot_raw_onkey, plt_show,
+                    _convert_psds)
 from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap)
-from .raw import _prepare_mne_browse_raw, _plot_raw_traces, _convert_psds
+from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn, _validate_type, fill_doc
