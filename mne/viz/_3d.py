@@ -969,9 +969,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                           [mri_trans, head_trans], copy=True)
 
     if src is not None:
-        _update_coord_frame(src[0], src_rr, src_nn, mri_trans, head_trans)
+        src_rr, src_nn = _update_coord_frame(src[0], src_rr, src_nn,
+                                             mri_trans, head_trans)
     if fwd is not None:
-        _update_coord_frame(fwd, fwd_rr, fwd_nn, mri_trans, head_trans)
+        fwd_rr, fwd_nn = _update_coord_frame(fwd, fwd_rr, fwd_nn,
+                                             mri_trans, head_trans)
 
     # determine points
     meg_rrs, meg_tris = list(), list()
@@ -2892,3 +2894,4 @@ def _update_coord_frame(obj, rr, nn, mri_trans, head_trans):
     elif obj['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
         rr = apply_trans(head_trans, rr)
         nn = apply_trans(head_trans, nn, move=False)
+    return rr, nn
