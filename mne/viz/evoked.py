@@ -1707,27 +1707,33 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
         else:
             draw_legend = False
         # plot the colorbar
-        if cmap is not None:
-            from mpl_toolkits.axes_grid1 import make_axes_locatable
-            from matplotlib.colorbar import ColorbarBase
-            divider = make_axes_locatable(ax)
-            ax_cb = divider.append_axes('right', size='5%', pad=0.1)
-            cb = ColorbarBase(ax_cb, cmap=cmap, norm=None,
-                              orientation='vertical')
-            cb.set_label(cmap_label)
-            ticks = list()
-            ticklabels = list()
-            for cond, loc in legend_tick_locs.items():
-                # handle conditions with same color/location
-                if loc in ticks:
-                    ticklabels[-1] = '\n'.join([ticklabels[-1], cond])
-                else:
-                    ticks.append(loc)
-                    ticklabels.append(cond)
-            order = np.argsort(ticks)
-            cb.set_ticks(np.array(ticks)[order])
-            cb.set_ticklabels(np.array(ticklabels)[order])
-            ax_cb.yaxis.tick_right()
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        from matplotlib.colorbar import ColorbarBase
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.1)
+        cb = ColorbarBase(cax, cmap=cmap, norm=None,
+                          orientation='vertical')
+        cb.set_label(cmap_label)
+        ticks = list()
+        ticklabels = list()
+        for cond, tick_loc in legend_tick_locs.items():
+            # handle conditions with same color/location
+            if tick_loc in ticks:
+                ticklabels[-1] = '\n'.join([ticklabels[-1], cond])
+            else:
+                ticks.append(tick_loc)
+                ticklabels.append(cond)
+        order = np.argsort(ticks)
+        cb.set_ticks(np.array(ticks)[order])
+        cb.set_ticklabels(np.array(ticklabels)[order])
+        cax.yaxis.tick_right()
+        # # TODO: shrink colorbar if colors are few. Doesn't work; cf
+        # # https://stackoverflow.com/q/56799079/1664024
+        # x, y, width, height = cax.get_position().bounds
+        # new_height = width * (len(set(colors.values())) + 0.5 * len(styles))
+        # new_y = y + (height - new_height) / 2
+        # cax.set_axes_locator(None)
+        # cax.set_position((x, new_y, width, new_height))
     # legend params
     ncol = 1 + (len(lines) // (4 if split_legend else 5))
     legend_params = dict(loc=loc, frameon=True, ncol=ncol)
@@ -2063,8 +2069,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     # ensure same channels and times across all evokeds
     all_evoked = sum(evokeds.values(), [])
     _check_evokeds_ch_names_times(all_evoked)
-    conditions = list(evokeds)
+    del all_evoked
+    # skip CIs when possible
+    if ci:
+        ci_bools = {key: len(value) > 1 for key, value in evokeds.items()}
+        if not any(ci_bools.values()):
+            logger.info('Skipping confidence bands (only 1 evoked per '
+                        'condition)')
+            ci = False
     # get representative info
+    conditions = list(evokeds)
     one_evoked = evokeds[conditions[0]][0]
     times = one_evoked.times
     info = one_evoked.info
