@@ -12,10 +12,11 @@ import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _layout_figure, _plot_raw_onscroll, _mouse_click,
-                    _helper_raw_resize, _plot_raw_onkey, plt_show)
+                    _helper_raw_resize, _plot_raw_onkey, plt_show,
+                    _convert_psds)
 from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap)
-from .raw import _prepare_mne_browse_raw, _plot_raw_traces, _convert_psds
+from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn, _validate_type, fill_doc
@@ -886,7 +887,8 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   ica=ica, n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
                   first_time=first_time, data_picks=[], decim=1,
-                  noise_cov=None, whitened_ch_names=())
+                  noise_cov=None, whitened_ch_names=(), clipping=None,
+                  use_scalebars=False)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0

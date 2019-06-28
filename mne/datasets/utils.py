@@ -236,7 +236,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.66', misc='0.3')
+    releases = dict(testing='0.67', misc='0.3')
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -318,7 +318,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
         somato='77a7601948c9e38d2da52446e2eab10f',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='f84d441c8e72fcc4e632332d49cf38fd',
+        testing='9bc5543854737f32d426629b31ea85d7',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         opm='370ad1dcfd5c47e029e692c85358a374',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
@@ -554,7 +554,7 @@ def _download_all_example_data(verbose=True):
     # This function is designed primarily to be used by CircleCI. It has
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
-    from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
+    from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
                    kiloword, phantom_4dbti, sleep_physionet, limo)
     sample.data_path()
@@ -578,12 +578,6 @@ def _download_all_example_data(verbose=True):
         brainstorm.bst_phantom_ctf.data_path()
     finally:
         sys.argv.pop(-1)
-    megsim.load_data(condition='visual', data_format='single-trial',
-                     data_type='simulation', update_path=True)
-    megsim.load_data(condition='visual', data_format='raw',
-                     data_type='experimental', update_path=True)
-    megsim.load_data(condition='visual', data_format='evoked',
-                     data_type='simulation', update_path=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1],
                                    update_path=True)

@@ -18,7 +18,8 @@ from mne.utils import (_get_inst_data, md5sum, hashfunc,
                        _freq_mask, random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
-                       _undo_scaling_array, _PCA, requires_sklearn)
+                       _undo_scaling_array, _PCA, requires_sklearn,
+                       _array_equal_nan)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -315,6 +316,16 @@ def test_object_size():
             '%s < %s < %s:\n%s' % (lower, size, upper, obj)
 
 
+def test_object_diff_with_nan():
+    """Test object diff can handle NaNs."""
+    d0 = np.array([1, np.nan, 0])
+    d1 = np.array([1, np.nan, 0])
+    d2 = np.array([np.nan, 1, 0])
+
+    assert object_diff(d0, d1) == ''
+    assert object_diff(d0, d2) != ''
+
+
 def test_hash():
     """Test dictionary hashing and comparison functions."""
     # does hashing all of these types work:
@@ -437,3 +448,14 @@ def test_pca(n_components, whiten):
     else:
         assert n_components is None
         assert pca_mne.n_components_ == n_dim
+
+
+def test_array_equal_nan():
+    """Test comparing arrays with NaNs."""
+    a = b = [1, np.nan, 0]
+    assert not np.array_equal(a, b)  # this is the annoying behavior we avoid
+    assert _array_equal_nan(a, b)
+    b = [np.nan, 1, 0]
+    assert not _array_equal_nan(a, b)
+    a = b = [np.nan] * 2
+    assert _array_equal_nan(a, b)

@@ -24,7 +24,7 @@ import numpy as np
 from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 
@@ -76,7 +76,6 @@ class RawBrainVision(BaseRaw):
         self._order = order
         self._n_samples = n_samples
 
-        _check_update_montage(info, montage)
         with open(data_fname, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
                 if self._order == 'F':  # multiplexed, channels in columns
@@ -104,6 +103,9 @@ class RawBrainVision(BaseRaw):
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
 
+        if montage is not None:
+            self.set_montage(montage)
+
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         # read data
@@ -124,11 +126,6 @@ class RawBrainVision(BaseRaw):
                     line = line.strip().replace(',', '.').split()
                     block[:n_data_ch, ii] = [float(l) for l in line]
             _mult_cal_one(data, block, idx, cals, mult)
-
-    @classmethod
-    def _get_auto_event_id(cls):
-        """Return default ``event_id`` behavior for Brainvision."""
-        return _BVEventParser()
 
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
@@ -849,3 +846,10 @@ class _BVEventParser(_DefaultEventParser):
             code = (super(_BVEventParser, self)
                     .__call__(description, offset=_OTHER_OFFSET))
         return code
+
+
+def _check_bv_annot(descriptions):
+    markers_basename = set([dd.rstrip('0123456789 ') for dd in descriptions])
+    bv_markers = (set(_BV_EVENT_IO_OFFSETS.keys())
+                  .union(set(_OTHER_ACCEPTED_MARKERS.keys())))
+    return len(markers_basename - bv_markers) == 0

@@ -52,13 +52,9 @@ def test_datasets_basic(tmpdir):
         assert sd.endswith('MNE-fsaverage-data')
 
 
-@requires_good_network
-def test_megsim(tmpdir):
-    """Test MEGSIM URL handling."""
-    paths = datasets.megsim.load_data(
-        'index', 'text', 'text', path=str(tmpdir), update_path=False)
-    assert len(paths) == 1
-    assert paths[0].endswith('index.html')
+def _fake_fetch_file(url, destination, print_destination=False):
+    with open(destination, 'w') as fid:
+        fid.write(url)
 
 
 @requires_good_network

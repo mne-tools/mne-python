@@ -68,7 +68,7 @@ console (e.g. Linux or MacOS Terminal)::
     $ my_NIfTI=/path/to/NIfTI.nii.gz
     $ recon-all -i $my_NIfTI -s $my_subject -all
 
-, where :math:`i` stands for "input" and :math:`s` for "subject". Executing
+where :code:`i` stands for "input" and :code:`s` for "subject". Executing
 this, will create the folder "~/subjects/sample", where all
 results are stored.
 

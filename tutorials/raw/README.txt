@@ -1,6 +1,6 @@
 Working with continuous data
 ============================
 
-These tutorials cover the basics of loading EEG/MEG data into Python, querying
-and manipulating the raw data, some basic plotting, and how to save or export
-continuous data.
+These tutorials cover the basics of loading EEG/MEG data into MNE-Python, and
+how to query, manipulate, annotate, plot, and export continuous data in the
+:class:`~mne.io.Raw` format.

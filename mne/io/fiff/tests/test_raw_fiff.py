@@ -370,15 +370,13 @@ def test_split_files(tmpdir):
     split_fname_bids_part1 = op.join(tempdir, 'split_raw_part-01_meg.fif')
     split_fname_bids_part2 = op.join(tempdir, 'split_raw_part-02_meg.fif')
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
-    with pytest.warns(RuntimeWarning, match='does not conform to MNE'):
-        raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
+    raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     # check that the filenames match the intended pattern
     assert op.exists(split_fname_elekta_part2)
     # check that filenames are being formatted correctly for BIDS
-    with pytest.warns(RuntimeWarning, match='does not conform to MNE'):
-        raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB',
-                   split_naming='bids', overwrite=True)
+    raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB',
+               split_naming='bids', overwrite=True)
     assert op.exists(split_fname_bids_part1)
     assert op.exists(split_fname_bids_part2)
 
@@ -399,8 +397,7 @@ def test_split_files(tmpdir):
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
 
-    with pytest.warns(RuntimeWarning, match='does not conform to MNE'):
-        raw_bids = read_raw_fif(split_fname_bids_part1)
+    raw_bids = read_raw_fif(split_fname_bids_part1)
     data_bids, times_bids = raw_bids[:, :]
     assert_array_equal(data_1, data_bids)
     assert_array_equal(times_1, times_bids)

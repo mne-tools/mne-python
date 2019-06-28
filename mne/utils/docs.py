@@ -28,6 +28,11 @@ verbose : bool, str, int, or None
     and :ref:`Logging documentation <tut_logging>` for more)."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
+# General plotting
+docdict["show"] = """
+show : bool
+    Show figure if True."""
+
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
 docdict['picks_base'] = docdict['picks_header'] + """
@@ -235,6 +240,73 @@ seed : None | int | instance of ~numpy.random.mtrand.RandomState
     obtained from the operating system (see
     :class:`~numpy.random.mtrand.RandomState` for details). Default is
     ``None``.
+"""
+
+# PSD plotting
+docdict["plot_psd_doc"] = """
+Plot the power spectral density across channels.
+
+Different channel types are drawn in sub-plots. When the data have been
+processed with a bandpass, lowpass or highpass filter, dashed lines
+indicate the boundaries of the filter (--). The line noise frequency is
+also indicated with a dashed line (-.)
+"""
+docdict['plot_psd_picks_good_data'] = docdict['picks_good_data'][:-2] + """
+    Cannot be None if `ax` is supplied.If both `picks` and `ax` are None
+    separate subplots will be created for each standard channel type
+    (`mag`, `grad`, and `eeg`).
+"""
+docdict["plot_psd_color"] = """
+color : str | tuple
+    A matplotlib-compatible color to use. Has no effect when
+    spatial_colors=True.
+"""
+docdict["plot_psd_xscale"] = """
+xscale : str
+    Can be 'linear' (default) or 'log'.
+"""
+docdict["plot_psd_area_mode"] = """
+area_mode : str | None
+    Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
+    will be plotted. If 'range', the min and max (across channels) will be
+    plotted. Bad channels will be excluded from these calculations.
+    If None, no area will be plotted. If average=False, no area is plotted.
+"""
+docdict["plot_psd_area_alpha"] = """
+area_alpha : float
+    Alpha for the area.
+"""
+docdict["plot_psd_dB"] = """
+dB : bool
+    Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
+    ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
+    in units (amplitude**2/Hz) if ``dB=False`` and,
+    ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
+    (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
+    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (db)), if
+    ``dB=True`` and ``estimate='amplitude'``.
+"""
+docdict["plot_psd_estimate"] = """
+estimate : str, {'auto', 'power', 'amplitude'}
+    Can be "power" for power spectral density (PSD), "amplitude" for
+    amplitude spectrum density (ASD), or "auto" (default), which uses
+    "power" when dB is True and "amplitude" otherwise.
+"""
+docdict["plot_psd_average"] = """
+average : bool
+    If False, the PSDs of all channels is displayed. No averaging
+    is done and parameters area_mode and area_alpha are ignored. When
+    False, it is possible to paint an area (hold left mouse button and
+    drag) to plot a topomap.
+"""
+docdict["plot_psd_line_alpha"] = """
+line_alpha : float | None
+    Alpha for the PSD line. Can be None (default) to use 1.0 when
+    ``average=True`` and 0.1 when ``average=False``.
+"""
+docdict["plot_psd_spatial_colors"] = """
+spatial_colors : bool
+    Whether to use spatial colors. Only used when ``average=False``.
 """
 
 # Finalize
@@ -657,4 +729,5 @@ class deprecated(object):
                     n_space = len(line) - len(line.lstrip())
                     break
             newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
+
         return newdoc

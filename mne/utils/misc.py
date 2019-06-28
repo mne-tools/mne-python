@@ -106,9 +106,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
         Stderr returned by the process.
     """
     with running_subprocess(command, *args, **kwargs) as p:
-        pass
-
-    stdout_, stderr = p.communicate()
+        stdout_, stderr = p.communicate()
     stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
     stderr = u'' if stderr is None else stderr.decode('utf-8')
     output = (stdout_, stderr)
@@ -136,6 +134,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
         Can be:
 
         - "wait" to use :meth:`~python:subprocess.Popen.wait`
+        - "communicate" to use :meth:`~python.subprocess.Popen.communicate`
         - "terminate" to use :meth:`~python:subprocess.Popen.terminate`
         - "kill" to use :meth:`~python:subprocess.Popen.kill`
 
@@ -149,7 +148,7 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
         The process.
     """
     _validate_type(after, str, 'after')
-    _check_option('after', after, ['wait', 'terminate', 'kill'])
+    _check_option('after', after, ['wait', 'terminate', 'kill', 'communicate'])
     for stdxxx, sys_stdxxx, thresh in (
             ['stderr', sys.stderr, logging.ERROR],
             ['stdout', sys.stdout, logging.WARNING]):

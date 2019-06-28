@@ -8,17 +8,42 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_equal
+from copy import deepcopy
 import pytest
 
 from mne import pick_types
 from mne.utils import run_tests_if_main
+from mne.utils.numerics import object_diff
 from mne.datasets import testing
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.cnt import read_raw_cnt
 from mne.annotations import read_annotations
+from mne.digitization import Digitization
+from mne.channels import Montage
 
 data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
+
+
+@testing.requires_testing_data
+def test_montage():
+    """Test setting up one of the default montages."""
+    with pytest.warns(RuntimeWarning, match='number of bytes'):
+        raw = read_raw_cnt(fname, montage=None, eog='auto',
+                           misc=['NA1', 'LEFT_EAR'])
+    assert raw.info['dig'] is None
+    original_chs = deepcopy(raw.info['chs'])
+
+    n_channels = len(raw.ch_names)
+    pos = np.random.RandomState(42).randn(n_channels, 3)
+    ch_names = map(str, range(n_channels))
+    kind = 'random'
+    selection = np.arange(n_channels)
+    montage = Montage(pos, ch_names, kind, selection)
+    raw.set_montage(montage)  # set a random montage of same num channels
+    assert isinstance(raw.info['dig'], Digitization)
+    assert raw.info['dig']
+    assert object_diff(raw.info['chs'], original_chs)
 
 
 @testing.requires_testing_data

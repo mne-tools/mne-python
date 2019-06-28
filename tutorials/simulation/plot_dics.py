@@ -23,7 +23,6 @@ sources.
 import os.path as op
 import numpy as np
 from scipy.signal import welch, coherence, unit_impulse
-from mayavi import mlab
 from matplotlib import pyplot as plt
 
 import mne
@@ -222,8 +221,10 @@ brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
 brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
 # Rotate the view and add a title.
-mlab.view(0, 0, 550, [0, 0, 0])
-mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
+fig = brain._figures[0][0]
+mne.viz.set_3d_view(fig, azimuth=0, elevation=0, distance=550,
+                    focalpoint=[0, 0, 0])
+mne.viz.set_3d_title(fig, 'MNE-dSPM inverse (RMS)')
 
 ###############################################################################
 # We will now compute the cortical power map at 10 Hz. using a DICS beamformer.
@@ -274,8 +275,10 @@ for approach, power in enumerate([power_approach1, power_approach2], 1):
     brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
     # Rotate the view and add a title.
-    mlab.view(0, 0, 550, [0, 0, 0])
-    mlab.title('DICS power map, approach %d' % approach, height=0.9)
+    fig = brain._figures[0][0]
+    mne.viz.set_3d_view(fig, azimuth=0, elevation=0, distance=550,
+                        focalpoint=[0, 0, 0])
+    mne.viz.set_3d_title(fig, 'DICS power map, approach %d' % approach)
 
 ###############################################################################
 # Excellent! All methods found our two simulated sources. Of course, with a

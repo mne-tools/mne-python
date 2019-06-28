@@ -1,4 +1,10 @@
+"""Test check utilities."""
+# Authors: MNE Developers
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
+# License: BSD (3-clause)
 import os.path as op
+import shutil as sh
 import pytest
 
 import mne
@@ -16,6 +22,7 @@ fname_fwd = op.join(base_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
+@testing.requires_testing_data
 def test_check():
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
@@ -24,6 +31,10 @@ def test_check():
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
     pytest.raises(TypeError, _check_subject, 1, None)
+
+    # _meg.fif is a valid ending and should not raise an error
+    sh.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))
+    mne.io.read_raw_fif(fname_raw.replace('_raw.', '_meg.'))
 
 
 @requires_mayavi

@@ -19,3 +19,16 @@ def _get_backend_based_on_env_and_defaults():
     _check_option('MNE_3D_BACKEND', backend, VALID_3D_BACKENDS)
 
     return backend
+
+
+def _get_colormap_from_array(colormap=None, normalized_colormap=False,
+                             default_colormap='coolwarm'):
+    from matplotlib import cm
+    from matplotlib.colors import ListedColormap
+    if colormap is None:
+        cmap = cm.get_cmap(default_colormap)
+    elif normalized_colormap:
+        cmap = ListedColormap(colormap)
+    else:
+        cmap = ListedColormap(colormap / 255.0)
+    return cmap
