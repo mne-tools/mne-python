@@ -46,8 +46,8 @@ def test_decim():
     evoked_dec = evoked.copy().decimate(decim)
     evoked_dec_2 = evoked.copy().decimate(decim, offset=1)
     evoked_dec_3 = evoked.decimate(dec_1).decimate(dec_2)
-    assert_array_equal(evoked_dec.data, data[:, :, ::decim])
-    assert_array_equal(evoked_dec_2.data, data[:, :, 1::decim])
+    assert_array_equal(evoked_dec.data, data[:, ::decim])
+    assert_array_equal(evoked_dec_2.data, data[:, 1::decim])
     assert_array_equal(evoked_dec.data, evoked_dec_3.data)
 
     # Check proper updating of various fields
