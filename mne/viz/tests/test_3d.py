@@ -315,6 +315,11 @@ def test_plot_alignment(tmpdir, renderer):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=['foo'])
+    fwd = read_forward_solution(fwd_fname)
+    plot_alignment(subject='sample', subjects_dir=subjects_dir,
+                   trans=trans_fname, fwd=fwd,
+                   surfaces='white', coord_frame='head')
+
     renderer._close_all()
 
 
