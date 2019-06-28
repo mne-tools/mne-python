@@ -1144,7 +1144,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                               fwd_nn[:, 0],
                               fwd_nn[:, 1],
                               fwd_nn[:, 2],
-                              color=red, mode='arrow', scale=1E-3)
+                              color=red, mode='arrow', scale=1.5e-3)
         else:
             for ori, color in zip((0, 1, 2), (red, green, blue)):
                 renderer.quiver3d(fwd_rr[:, 0],
@@ -1153,7 +1153,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                   fwd_nn[:, ori, 0],
                                   fwd_nn[:, ori, 1],
                                   fwd_nn[:, ori, 2],
-                                  color=color, mode='arrow', scale=1E-3)
+                                  color=color, mode='arrow', scale=1.5e-3)
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
