@@ -26,16 +26,17 @@ from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.h5io import read_hdf5, write_hdf5
 
 
-class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
-    """Base class for all source estimates.
+class SourceTFR(ToDataFrameMixin, TimeMixin):
+    """Class for time-frequency transformed source level data.
 
     Parameters
     ----------
-    data : array, shape (n_dipoles, n_times) | tuple, shape (2,)
-        The data in source space. The data can either be a single array or
-        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
-        "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+    data : array, shape (n_dipoles, n_freqs, n_times) | tuple, shape (2,)
+        Time-frequency transformed data in source space. The data can either
+        be a single array or a tuple with two arrays: "kernel" shape
+        (n_vertices, n_sensors) and "sens_data" shape (n_sensors, n_freqs,
+        n_times). In this case, the source space data corresponds to
+        "numpy.dot(kernel, sens_data)".
     vertices : array | list of array
         Vertex numbers corresponding to the data.
     tmin : float
@@ -65,8 +66,15 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):  # noqa: D102
-        assert hasattr(self, '_data_ndim'), self.__class__.__name__
-        assert hasattr(self, '_src_type'), self.__class__.__name__
+
+        if not (isinstance(vertices, np.ndarray) or
+                isinstance(vertices, list)):
+            raise ValueError('Vertices must be a numpy array or a list of '
+                             'arrays')
+
+        self._data_ndim = 3
+        self._src_type = 'SourceTFR'
+
         kernel, sens_data = None, None
         if isinstance(data, tuple):
             if len(data) != 2:
@@ -307,34 +315,3 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
         return copy.deepcopy(self)
 
         return stcs
-
-
-class SourceTFR(_BaseSourceTFR):
-    """
-    Parameters
-    ----------
-    data :
-    %(verbose)s
-
-    Attributes
-    ----------
-    subject :
-
-
-
-    """
-
-    _data_ndim = 3
-    _src_type = 'SourceTFR'
-
-    @verbose
-    def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, verbose=None, ):  # noqa: D102
-        if not (isinstance(vertices, np.ndarray) or
-                isinstance(vertices, list)):
-            raise ValueError('Vertices must be a numpy array or a list of '
-                             'arrays')
-
-        _BaseSourceTFR.__init__(self, data, vertices=vertices, tmin=tmin,
-                                tstep=tstep, subject=subject,
-                                verbose=verbose)

@@ -36,6 +36,28 @@ def test_source_tfr():
 
     full_stfr = SourceTFR(np.ones([1800, 40, 30]), vertices=np.ones([1800, 1]), tmin=0, tstep=1)
 
+    assert_equal(_fake_stfr().shape, _fake_kernel_stfr().shape)
+
+    # check dot product
+    kernel = np.random.rand(100, 40)
+    sens_data = np.random.rand(40, 10, 30)
+    verts = [np.arange(10), np.arange(90)]
+
+    assert_allclose(SourceTFR((kernel, sens_data), verts, tmin=0, tstep=1).data,
+                    np.tensordot(kernel, sens_data, axes=([-1], [0])))
+
     # check if data is in correct shape
     assert_equal(kernel_stfr.shape, full_stfr.shape)
     assert_array_equal(kernel_stfr.data.shape, full_stfr.data.shape)
+
+
+def _fake_stfr():
+    verts = [np.arange(10), np.arange(90)]
+    return SourceTFR(np.random.rand(100, 10, 30), verts, 0, 1e-1, 'foo')
+
+
+def _fake_kernel_stfr():
+    kernel = np.random.rand(100, 40)
+    sens_data = np.random.rand(40, 10, 30)
+    verts = [np.arange(10), np.arange(90)]
+    return SourceTFR((kernel, sens_data), verts, 0, 1e-1, 'foo')
