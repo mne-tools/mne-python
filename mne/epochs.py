@@ -2408,7 +2408,8 @@ class EpochsFIF(BaseEpochs):
         ep_list = list()
         raw = list()
         for fname in fnames:
-            logger.info('Reading %s ...' % _get_fname_rep(fname))
+            fname_rep = _get_fname_rep(fname)
+            logger.info('Reading %s ...' % fname_rep)
             fid, tree, _ = fiff_open(fname, preload=preload)
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
@@ -2455,7 +2456,7 @@ class EpochsFIF(BaseEpochs):
         super(EpochsFIF, self).__init__(
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
-            selection=selection, drop_log=drop_log, filename=fname,
+            selection=selection, drop_log=drop_log, filename=fname_rep,
             metadata=metadata, verbose=verbose, **reject_params)
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False

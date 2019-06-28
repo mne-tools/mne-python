@@ -2685,7 +2685,6 @@ def test_epochs_drop_selection(fname, preload):
 @pytest.mark.parametrize('preload', (True, False))
 def test_file_like(kind, preload, tmpdir):
     """Test handling with file-like objects."""
-    print(kind, preload)
     tempdir = str(tmpdir)
     raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
                           mne.create_info(100, 1000.))
