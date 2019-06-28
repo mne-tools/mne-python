@@ -24,7 +24,6 @@ from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, catch_logging
 from mne.viz.evoked import plot_compare_evokeds
 from mne.viz.utils import _fake_click
-from mne.stats import _parametric_ci
 from mne.datasets import testing
 from mne.io.constants import FIFF
 
@@ -241,19 +240,21 @@ def test_plot_compare_evokeds():
     # test that confidence bands are plausible
     for fig in figs:
         extents = fig.axes[0].collections[0].get_paths()[0].get_extents()
-        xs, ylim = extents.get_points().T
-        assert np.allclose(xs, evoked.times[[0, -1]])
+        xlim, ylim = extents.get_points().T
+        assert np.allclose(xlim, evoked.times[[0, -1]])
         line = fig.axes[0].lines[0]
-        xs = line.get_xdata()
-        assert np.allclose(xs, evoked.times)
-        ys = line.get_ydata()
-        assert (ys < ylim[1]).all()
-        assert (ys > ylim[0]).all()
+        xvals = line.get_xdata()
+        assert np.allclose(xvals, evoked.times)
+        yvals = line.get_ydata()
+        assert (yvals < ylim[1]).all()
+        assert (yvals > ylim[0]).all()
     plt.close('all')
     # test other CI args
     for _ci in (None, False, 0.5,
                 lambda x: np.stack([x.mean(axis=0) + 1, x.mean(axis=0) - 1])):
         plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)
+    with pytest.raises(TypeError, match='"ci" must be None, bool, float or'):
+        plot_compare_evokeds(evoked, ci='foo')
     # test sensor inset, legend location, and axis inversion & truncation
     plot_compare_evokeds(evoked_dict, invert_y=True,
                          show_legend='upper left', show_sensors='center',
@@ -278,18 +279,15 @@ def test_plot_compare_evokeds():
     # test deprecation
     with pytest.warns(DeprecationWarning, match='"gfp" is deprecated'):
         plot_compare_evokeds(evoked, gfp=True)
+    with pytest.warns(DeprecationWarning, match='"max_ticks" changed to '):
+        plot_compare_evokeds(evoked, picks=[0], truncate_yaxis='max_ticks')
     # test warnings
     with pytest.warns(RuntimeWarning, match='in "picks"; cannot combine'):
         plot_compare_evokeds(evoked, picks=[0], combine='median')
-    with pytest.warns(RuntimeWarning, match='ymin is all-positive'):
-        plot_compare_evokeds(evoked, ylim=dict(mag=(200, 800)),
-                             truncate_yaxis=True)
     plt.close('all')
     # test errors
     with pytest.raises(TypeError, match='"evokeds" must be a dict, list'):
         plot_compare_evokeds('foo')
-    with pytest.raises(TypeError, match='"ci" must be None, bool, float or'):
-        plot_compare_evokeds(evoked, ci='foo')
     with pytest.raises(ValueError, match=r'keys in "styles" \(.*\) must '):
         plot_compare_evokeds(evoked_dict, styles=dict(foo='foo', bar='bar'))
     with pytest.raises(ValueError, match='colors in the default color cycle'):
@@ -316,6 +314,8 @@ def test_plot_compare_evokeds():
             plot_compare_evokeds(evoked_dict, **kwargs)
     with pytest.raises(TypeError, match='an instance of list or tuple'):
         plot_compare_evokeds(evoked_dict, vlines='foo')
+    with pytest.raises(ValueError, match='"truncate_yaxis" must be bool or '):
+        plot_compare_evokeds(evoked_dict, truncate_yaxis='foo')
     plt.close('all')
     # test axes='topo'
     figs = plot_compare_evokeds(evoked_dict, axes='topo', show_legend=True)
@@ -329,6 +329,9 @@ def test_plot_compare_evokeds():
     # smoke test for tmin >= 0 (from mailing list)
     red.crop(0.01, None)
     assert len(red.times) > 2
+    plot_compare_evokeds(red)
+    # plot a flat channel
+    red.data = np.zeros_like(red.data)
     plot_compare_evokeds(red)
     # smoke test for one time point (not useful but should not fail)
     red.crop(0.02, 0.02)
