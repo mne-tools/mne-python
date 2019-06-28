@@ -13,7 +13,7 @@ from ..base import BaseRaw
 from ..meas_info import create_info
 from ..utils import _read_segments_file, _mult_cal_one, warn
 from ..constants import FIFF
-from ...utils import check_fname, check_version, logger
+from ...utils import check_fname, check_version, logger, verbose
 from ...annotations import Annotations
 
 INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
@@ -215,6 +215,7 @@ def _read_annotations_curry(fname, sfreq='auto'):
     return Annotations(onset, duration, description)
 
 
+@verbose
 def read_raw_curry(input_fname, preload=False, verbose=None):
     """Read raw data from Curry files.
 
@@ -262,6 +263,7 @@ class RawCurry(BaseRaw):
 
     """
 
+    @verbose
     def __init__(self, input_fname, preload=False, verbose=None):
 
         # we don't use os.path.splitext to also handle extensions like .cdt.dpa
