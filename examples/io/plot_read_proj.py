@@ -50,8 +50,10 @@ assert isinstance(empty_room_proj, list)
 mne.viz.plot_projs_topomap(empty_room_proj)
 
 ###############################################################################
-# As shown in the tutorial on how to :ref:`tut-viz-raw`
-# the ECG projections can be loaded from a file and added to the raw object
+# .. TODO: add this when the tutorial is up: "As shown in the tutorial
+#    :doc:`../auto_tutorials/preprocessing/plot_projectors`, ..."
+#
+# The ECG projections can be loaded from a file and added to the raw object
 
 # read the projections
 ecg_projs = read_proj(ecg_fname)

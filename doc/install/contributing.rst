@@ -416,14 +416,77 @@ Avoid API changes when possible
 Changes to the public API (e.g., class/function/method names and signatures)
 should not be made lightly, as they can break existing user scripts. Changes to
 the API require a deprecation cycle (with warnings) so that users have time to
-adapt their code before API changes become default behavior. See
-:class:`mne.utils.deprecated` for usage. Bug fixes (when something isn't doing
-what it says it will do) do not require a deprecation cycle.
+adapt their code before API changes become default behavior. See :ref:`the
+deprecation section <deprecating>` and :class:`mne.utils.deprecated` for
+instructions. Bug fixes (when something isn't doing what it says it will do) do
+not require a deprecation cycle.
 
 Note that any new API elements should be added to the master reference;
 classes, functions, methods, and attributes cannot be cross-referenced unless
 they are included in the :doc:`python_reference`
 (:file:`doc/python_reference.rst`).
+
+
+.. _deprecating:
+
+Deprecate with a decorator or a warning
+---------------------------------------
+
+MNE-Python has a :func:`~mne.utils.deprecated` decorator for classes and
+functions that will be removed in a future version::
+
+    from mne.utils import deprecated
+
+    @deprecated('my_function is deprecated and will be removed in 0.XX; please '
+                'use my_new_function instead.')
+    def my_function():
+       return 'foo'
+
+If you need to deprecate a parameter, use :func:`mne.utils.warn`. For example,
+to rename a parameter from ``old_param`` to ``new_param`` you can do something
+like this::
+
+    from mne.utils import warn
+
+    def my_other_function(new_param=None, old_param=None):
+        if old_param is not None:
+            depr_message = ('old_param is deprecated and will be replaced by '
+                            'new_param in 0.XX.')
+            if new_param is None:
+                new_param = old_param
+                warn(depr_message, DeprecationWarning)
+            else:
+                warn(depr_message + ' Since you passed values for both '
+                     'old_param and new_param, old_param will be ignored.',
+                     DeprecationWarning)
+        # Do whatever you have to do with new_param
+        return 'foo'
+
+When deprecating, you should also add corresponding test(s) to the relevant
+test file(s), to make sure that the warning(s) are being issued in the
+conditions you expect::
+
+    # test deprecation warning for function
+    with pytest.warns(DeprecationWarning, match='my_function is deprecated'):
+        my_function()
+
+    # test deprecation warning for parameter
+    with pytest.warns(DeprecationWarning, match='values for both old_param'):
+        my_other_function(new_param=1, old_param=2)
+    with pytest.warns(DeprecationWarning, match='old_param is deprecated and'):
+        my_other_function(old_param=2)
+
+You should also search the codebase for any cases where the deprecated function
+or parameter are being used internally, and update them immediately (don't wait
+to the *end* of the deprecation cycle to do this). Later, at the end of the
+deprecation period when the stated release is being prepared:
+
+- delete the deprecated functions
+- remove the deprecated parameters (along with the conditional branches of
+  ``my_other_function`` that handle the presence of ``old_param``)
+- remove the deprecation tests
+- double-check for any other tests that relied on the deprecated test or
+  parameter, and (if found) update them to use the new function / parameter.
 
 
 Describe your changes in the changelog

@@ -33,14 +33,14 @@ MNE-Python core terminology and general concepts
         model. Both are related to the forward model computation and more
         specifically the definion of the conductor model. The
         boundary element model consists of surfaces such as the inner skull,
-        outer skull and outer skiln (a.k.a. scalp) that define compartments
+        outer skull and outer skin (a.k.a. scalp) that define compartments
         of tissues of the head. You can compute the BEM surfaces with
         :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
         See :ref:`tut-forward` for usage demo.
 
     channels
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
-        or sensor such as EOG, ECG or sEEG, ECoG etc. Channels have typically
+        or sensor such as EOG, ECG or sEEG, ECoG etc. Channels usually have
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
 
@@ -82,14 +82,15 @@ MNE-Python core terminology and general concepts
         object class, and :ref:`tut-evoked-class` for a narrative overview.
 
     first_samp
-        The attribute of raw objects called ``first_samp`` is an integer that
-        refers to the number of time samples passed between the onset of the
-        acquisition system and the time when data started to be written
-        on disk. This is a specificity of the Vectorview MEG systems (fif files)
-        but for consistency it is available for all file formats in MNE.
-        One benefit of this system is that croppping data only boils
-        down to a change of the ``first_samp`` attribute to know when cropped data
-        was acquired.
+        The :attr:`~mne.io.Raw.first_samp` attribute of :class:`~mne.io.Raw`
+        objects is an integer representing the number of time samples that
+        passed between the onset of the hardware acquisition system and the
+        time when data started to be recorded to disk. This approach to sample
+        numbering is a peculiarity of VectorView MEG systems, but for
+        consistency it is present in all :class:`~mne.io.Raw` objects
+        regardless of the source of the data. In other words,
+        :attr:`~mne.io.Raw.first_samp` will be ``0`` in :class:`~mne.io.Raw`
+        objects loaded from non-VectorView data files.
 
     forward solution
         The forward solution (abbr. ``fwd``) is a linear operator capturing the

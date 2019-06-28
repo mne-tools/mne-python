@@ -34,22 +34,32 @@ event_name = op.join(base_dir, 'test-eve.fif')
 def test_decim():
     """Test evoked decimation."""
     rng = np.random.RandomState(0)
-    n_epochs, n_channels, n_times = 5, 10, 20
+    n_channels, n_times = 10, 20
     dec_1, dec_2 = 2, 3
     decim = dec_1 * dec_2
-    sfreq = 1000.
+    sfreq = 10.
     sfreq_new = sfreq / decim
-    data = rng.randn(n_epochs, n_channels, n_times)
-    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    data = rng.randn(n_channels, n_times)
     info = create_info(n_channels, sfreq, 'eeg')
     info['lowpass'] = sfreq_new / float(decim)
-    epochs = EpochsArray(data, info, events)
-    data_epochs = epochs.copy().decimate(decim).get_data()
-    data_epochs_2 = epochs.copy().decimate(decim, offset=1).get_data()
-    data_epochs_3 = epochs.decimate(dec_1).decimate(dec_2).get_data()
-    assert_array_equal(data_epochs, data[:, :, ::decim])
-    assert_array_equal(data_epochs_2, data[:, :, 1::decim])
-    assert_array_equal(data_epochs, data_epochs_3)
+    evoked = EvokedArray(data, info, tmin=-1)
+    evoked_dec = evoked.copy().decimate(decim)
+    evoked_dec_2 = evoked.copy().decimate(decim, offset=1)
+    evoked_dec_3 = evoked.decimate(dec_1).decimate(dec_2)
+    assert_array_equal(evoked_dec.data, data[:, ::decim])
+    assert_array_equal(evoked_dec_2.data, data[:, 1::decim])
+    assert_array_equal(evoked_dec.data, evoked_dec_3.data)
+
+    # Check proper updating of various fields
+    assert evoked_dec.first == -1
+    assert evoked_dec.last == 2
+    assert_array_equal(evoked_dec.times, [-1, -0.4, 0.2, 0.8])
+    assert evoked_dec_2.first == -1
+    assert evoked_dec_2.last == 2
+    assert_array_equal(evoked_dec_2.times, [-0.9, -0.3, 0.3, 0.9])
+    assert evoked_dec_3.first == -1
+    assert evoked_dec_3.last == 2
+    assert_array_equal(evoked_dec_3.times, [-1, -0.4, 0.2, 0.8])
 
     # Now let's do it with some real data
     raw = read_raw_fif(raw_fname)
@@ -246,8 +256,10 @@ def test_evoked_resample():
     tempdir = _TempDir()
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
+    orig_lp = ave.info['lowpass']
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal, npad=100)
+    assert ave.info['lowpass'] == orig_lp
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
     ave_up = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
@@ -257,6 +269,7 @@ def test_evoked_resample():
     # and compare the original to the downsampled upsampled version
     ave_new = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
     ave_new.resample(sfreq_normal, npad=100)
+    assert ave.info['lowpass'] == orig_lp
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
     assert_array_almost_equal(ave_normal.times, ave_new.times)
@@ -270,6 +283,10 @@ def test_evoked_resample():
     # we'll add a couple extra checks anyway
     assert (len(ave_up.times) == 2 * len(ave_normal.times))
     assert (ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+
+    ave_new.resample(50)
+    assert ave_new.info['sfreq'] == 50.
+    assert ave_new.info['lowpass'] == 25.
 
 
 def test_evoked_filter():

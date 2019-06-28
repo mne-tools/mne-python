@@ -17,7 +17,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa
-from mayavi import mlab
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -156,7 +155,7 @@ fig.gca().view_init(azim=70, elev=15)
 
 fig = plt.figure()
 ax2d = fig.add_subplot(121)
-ax3d = fig.add_subplot(122, projection='3d', aspect='equal')
+ax3d = fig.add_subplot(122, projection='3d')
 raw.plot_sensors(ch_type='eeg', axes=ax2d)
 raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
 ax3d.view_init(azim=70, elev=15)
@@ -197,7 +196,7 @@ ax3d.view_init(azim=70, elev=15)
 fig = mne.viz.plot_alignment(raw.info, trans=None, dig=False, eeg=False,
                              surfaces=[], meg=['helmet', 'sensors'],
                              coord_frame='meg')
-mlab.view(azimuth=50, elevation=90, distance=0.5)
+mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
 ###############################################################################
 # :func:`~mne.viz.plot_alignment` requires an :class:`~mne.Info` object, and

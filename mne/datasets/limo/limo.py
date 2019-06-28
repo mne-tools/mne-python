@@ -21,7 +21,26 @@ root_url = 'https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/'
 
 # subject identifier
 subject_ids = {'S1': '5cde823c8d6e050018595862',
-               'S2': '5cde825e23fec40017e0561a'}
+               'S2': '5cde825e23fec40017e0561a',
+               'S3': '5cf7eedee650a2001ad560f2',
+               'S4': '5cf7eee7d4c7d700193defcb',
+               'S5': '5cf7eeece650a20017d5b153',
+
+               'S6': '5cf8300fe650a20018d59cef',
+               'S7': '5cf83018a542b8001bc7c75f',
+               'S8': '5cf8301ea542b8001ac7cc47',
+               'S9': '5cf830243a4d9500178a692b',
+               'S10': '5cf83029e650a20017d600b1',
+
+               'S11': '5cf834bfa542b8001bc7cae0',
+               'S12': '5cf834c53a4d9500188a6311',
+               'S13': '5cf834caa542b8001cc8149b',
+               'S14': '5cf834cf3a4d9500178a6c6c',
+               'S15': '5cf834d63a4d9500168ae5d6',
+
+               'S16': '5cf834dbe650a20018d5a123',
+               'S17': '5cf834e23a4d9500198a911f',
+               'S18': '5cf834e73a4d9500198a9122'}
 
 
 @verbose
@@ -124,7 +143,7 @@ def load_data(subject, path=None, force_update=False, update_path=None,
     Parameters
     ----------
     subject : int
-        Subject to use. Must be of class ìnt in the range from 1 to 2.
+        Subject to use. Must be of class ìnt in the range from 1 to 18.
     path : str
         Location of where to look for the LIMO data.
         If None, the environment variable or config parameter

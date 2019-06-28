@@ -162,7 +162,7 @@ print(epochs_test)
 # Feature Engineering
 # -------------------
 #
-# Observing the power spectrum density (PSD) plot of the :term:`epochs` grouped
+# Observing the power spectral density (PSD) plot of the :term:`epochs` grouped
 # by sleeping stage we can see that different sleep stages have different
 # signatures. These signatures remain similar between Alice and Bob's data.
 #
@@ -181,10 +181,12 @@ for ax, title, epochs in zip([ax1, ax2],
 
     for stage, color in zip(stages, stage_colors):
         epochs[stage].plot_psd(area_mode=None, color=color, ax=ax,
-                               fmin=0.1, fmax=20.)
+                               fmin=0.1, fmax=20., show=False,
+                               average=True, spatial_colors=False)
     ax.set(title=title, xlabel='Frequency (Hz)')
 ax2.set(ylabel='uV^2/hz (dB)')
-ax2.legend(stages)
+ax2.legend(ax2.lines[2::3], stages)
+plt.show()
 
 ##############################################################################
 # Design a scikit-learn transformer from a Python function

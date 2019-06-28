@@ -16,7 +16,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
 from .channels.layout import _merge_grad_data, _pair_grad_sensors
-from .filter import detrend, FilterMixin, HilbertMixin
+from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
                     fill_doc, _check_option)
@@ -57,7 +57,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, ToDataFrameMixin, TimeMixin,
-             SizeMixin, HilbertMixin):
+             SizeMixin):
     """Evoked data.
 
     Parameters
@@ -274,6 +274,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.info['sfreq'] = new_sfreq
         self.data = self.data[:, decim_slice].copy()
         self.times = self.times[decim_slice].copy()
+        self.first = int(self.times[0] * self.info['sfreq'])
+        self.last = len(self.times) + self.first - 1
         return self
 
     def shift_time(self, tshift, relative=True):

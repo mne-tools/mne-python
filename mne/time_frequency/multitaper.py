@@ -6,7 +6,7 @@
 import operator
 import numpy as np
 
-from ..fixes import _get_dpss
+from ..fixes import _get_dpss, rfft, irfft, rfftfreq
 from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
@@ -103,8 +103,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
     n_fft = next_fast_len(rxx_size)
-    dpss_fft = np.fft.rfft(dpss, n_fft)
-    dpss_rxx = np.fft.irfft(dpss_fft * dpss_fft.conj(), n_fft)
+    dpss_fft = rfft(dpss, n_fft)
+    dpss_rxx = irfft(dpss_fft * dpss_fft.conj(), n_fft)
     print("dpss.shape = ", dpss.shape)  # !!! remove this
     dpss_rxx = dpss_rxx[:, :N]
 

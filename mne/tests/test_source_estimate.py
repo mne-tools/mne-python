@@ -93,18 +93,32 @@ def test_volume_stc():
     tempdir = _TempDir()
     N = 100
     data = np.arange(N)[:, np.newaxis]
-    datas = [data, data, np.arange(2)[:, np.newaxis]]
+    datas = [data,
+             data,
+             np.arange(2)[:, np.newaxis],
+             np.arange(6).reshape(2, 3, 1)]
     vertno = np.arange(N)
-    vertnos = [vertno, vertno[:, np.newaxis], np.arange(2)[:, np.newaxis]]
-    vertno_reads = [vertno, vertno, np.arange(2)]
+    vertnos = [vertno,
+               vertno[:, np.newaxis],
+               np.arange(2)[:, np.newaxis],
+               np.arange(2)]
+    vertno_reads = [vertno, vertno, np.arange(2), np.arange(2)]
     for data, vertno, vertno_read in zip(datas, vertnos, vertno_reads):
-        stc = VolSourceEstimate(data, vertno, 0, 1)
-        fname_temp = op.join(tempdir, 'temp-vl.stc')
+        if data.ndim in (1, 2):
+            stc = VolSourceEstimate(data, vertno, 0, 1)
+            ext = 'stc'
+            klass = VolSourceEstimate
+        else:
+            assert data.ndim == 3
+            stc = VolVectorSourceEstimate(data, vertno, 0, 1)
+            ext = 'h5'
+            klass = VolVectorSourceEstimate
+        fname_temp = op.join(tempdir, 'temp-vl.' + ext)
         stc_new = stc
         for _ in range(2):
             stc_new.save(fname_temp)
             stc_new = read_source_estimate(fname_temp)
-            assert (isinstance(stc_new, VolSourceEstimate))
+            assert isinstance(stc_new, klass)
             assert_array_equal(vertno_read, stc_new.vertices)
             assert_array_almost_equal(stc.data, stc_new.data)
 

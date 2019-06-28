@@ -22,6 +22,7 @@ from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  write_evokeds, create_info, make_fixed_length_events,
                  combine_evoked)
 from mne.baseline import rescale
+from mne.fixes import rfft, rfftfreq
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
@@ -463,12 +464,12 @@ def test_savgol_filter():
     pytest.raises(RuntimeError, epochs.savgol_filter, 10.)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
     epochs.pick_types(meg='grad')
-    freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
-    data = np.abs(np.fft.rfft(epochs.get_data()))
+    freqs = rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(rfft(epochs.get_data()))
     pass_mask = (freqs <= h_freq / 2. - 5.)
     stop_mask = (freqs >= h_freq * 2 + 5.)
     epochs.savgol_filter(h_freq)
-    data_filt = np.abs(np.fft.rfft(epochs.get_data()))
+    data_filt = np.abs(rfft(epochs.get_data()))
     # decent in pass-band
     assert_allclose(np.mean(data[:, :, pass_mask], 0),
                     np.mean(data_filt[:, :, pass_mask], 0),
@@ -487,15 +488,15 @@ def test_filter(tmpdir):
     pytest.raises(RuntimeError, epochs.savgol_filter, 10.)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
     epochs.pick_types(meg='grad')
-    freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
-    data_fft = np.abs(np.fft.rfft(epochs.get_data()))
+    freqs = rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data_fft = np.abs(rfft(epochs.get_data()))
     pass_mask = (freqs <= h_freq / 2. - 5.)
     stop_mask = (freqs >= h_freq * 2 + 5.)
     epochs_orig = epochs.copy()
     epochs.filter(None, h_freq)
     assert epochs.info['lowpass'] == h_freq
     data_filt = epochs.get_data()
-    data_filt_fft = np.abs(np.fft.rfft(data_filt))
+    data_filt_fft = np.abs(rfft(data_filt))
     # decent in pass-band
     assert_allclose(np.mean(data_filt_fft[:, :, pass_mask], 0),
                     np.mean(data_fft[:, :, pass_mask], 0),
