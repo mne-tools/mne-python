@@ -1831,8 +1831,8 @@ def _get_ci_function_pce(ci):
                         .format(type(ci).__name__))
 
 
-def _plot_compare_evokeds(ax, data_dict, conditions, times, ci_bools, ci_dict,
-                          styles, title, all_positive, topo):
+def _plot_compare_evokeds(ax, data_dict, conditions, times, ci_dict, styles,
+                          title, all_positive, topo):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
     any_negative, any_positive = False, False
     for condition in conditions:
@@ -1846,7 +1846,7 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, ci_bools, ci_dict,
             any_negative = True
 
         # plot the confidence interval if available
-        if ci_bools[condition]:
+        if ci_dict.get(condition, None) is not None:
             ci_ = ci_dict[condition]
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
                             zorder=9, color=styles[condition]['color'],
@@ -2068,8 +2068,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     all_evoked = sum(evokeds.values(), [])
     _check_evokeds_ch_names_times(all_evoked)
     del all_evoked
-    # skip CIs when possible
-    ci_bools = {key: len(value) > 1 for key, value in evokeds.items()}
     # get representative info
     conditions = list(evokeds)
     one_evoked = evokeds[conditions[0]][0]
@@ -2087,6 +2085,12 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     picks, picked_types = _picks_to_idx(info, picks, return_kind=True)
     # some things that depend on picks:
     ch_names = np.array(one_evoked.ch_names)[picks].tolist()
+    ch_types = list(_get_channel_types(info, picks=picks, unique=True)
+                    .intersection(_DATA_CH_TYPES_SPLIT))
+    picks_by_type = channel_indices_by_type(info, picks)
+    # discard picks from non-data channels (e.g., ref_meg)
+    good_picks = sum([picks_by_type[ch_type] for ch_type in ch_types], [])
+    picks = np.intersect1d(picks, good_picks)
     if show_sensors is None:
         show_sensors = (len(picks) == 1)
 
@@ -2115,10 +2119,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         if len(picks) > 70:
             logger.info('You are plotting to a topographical layout with >70 '
                         'sensors. This can be extremely slow. Consider using '
-                        'mne.viz.plot_topo, which is optimized for speed.')
-
-    picks_by_type = channel_indices_by_type(info, picks)
-    ch_types = list(_get_channel_types(info, picks=picks, unique=True))
+                        'mne.viz.plot_topo, which is optimized for speed.')  # TODO COVERAGE
 
     # let's take care of axis and figs
     if not do_topo:
@@ -2216,12 +2217,14 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         ci_dict = dict()
         for cond in conditions:
             this_evokeds = evokeds[cond]
-            ci_fun = None if not ci_bools[cond] else _get_ci_function_pce(ci)
+            # skip CIs when possible; assign ci_fun first to get arg checking
+            ci_fun = _get_ci_function_pce(ci)
+            ci_fun = ci_fun if len(this_evokeds) > 1 else None
             res = _get_data_and_ci(this_evokeds, combine, c_func,
                                    scaling=scalings, picks=_picks,
                                    ci_fun=ci_fun)
             data_dict[cond] = res[0]
-            if ci_bools[cond]:
+            if ci_fun is not None:
                 ci_dict[cond] = res[1]
         all_data.append(data_dict)  # grand means, or indiv. sensors if do_topo
         all_cis.append(ci_dict)
@@ -2229,12 +2232,12 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
 
     # compute ylims
     allvalues = list()
-    for _data, _ci in zip(all_data, all_cis):
-        _list = list((_ci if len(_ci) else _data).values())
-        if not len(_ci):
-            _list = [x[np.newaxis] for x in _list]
-        allvalues.extend(_list)
-    allvalues = np.stack(allvalues)
+    for _dict in all_data:
+        for _array in list(_dict.values()):
+            allvalues.append(_array[np.newaxis])  # to get same .ndim as CIs
+    for _dict in all_cis:
+        allvalues.extend(list(_dict.values()))
+    allvalues = np.concatenate(allvalues)
     norm = np.all(allvalues > 0)
     ymin, ymax = ylim.get(ch_type, [None, None])
     ymin, ymax = _setup_vmin_vmax(allvalues, ymin, ymax, norm)
@@ -2254,10 +2257,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     for _picks, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
-        _ci_bools = ({cond: False for cond in conditions} if (idx == -1) else
-                     ci_bools)
         any_pos, any_neg = _plot_compare_evokeds(ax, data, conditions, times,
-                                                 _ci_bools, cis, styles, title,
+                                                 cis, styles, title,
                                                  norm, do_topo)
         if any_pos:
             any_positive = True
@@ -2285,7 +2286,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                  'Not showing channel locations.')
         else:
             _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
-                                  show_sensors, ax_)
+                                  show_sensors, _ax)
 
     # add color/linestyle/colormap legend(s)
     if show_legend:
