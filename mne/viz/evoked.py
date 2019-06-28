@@ -2060,6 +2060,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     if not isinstance(evokeds, dict):
         raise TypeError('"evokeds" must be a dict, list, or instance of '
                         'mne.Evoked; got {}'.format(type(evokeds).__name__))
+    # avoid modifying dict outside function scope
+    evokeds = deepcopy(evokeds)
     for cond, evoked in evokeds.items():
         _validate_type(cond, 'str', 'Conditions')
         if isinstance(evoked, Evoked):
@@ -2212,10 +2214,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             picks = [picks]  # enables zipping w/ axes
     del info
 
-    # for each axis, compute the grand average and the CI
+    # for each axis, compute the grand average and (maybe) the CI
     # (per sensor if topo, otherwise aggregating over sensors)
-    ci_fun = _get_ci_function_for_evokeds(ci)
-    do_ci = ci_fun is not None
     c_func = None if do_topo else combine_func
     all_data = list()
     all_cis = list()
@@ -2224,7 +2224,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         data_dict = dict()
         ci_dict = dict()
         for cond in conditions:
+            do_ci = False if not ci else ci_bools[cond]
             this_evokeds = evokeds[cond]
+            ci_fun = _get_ci_function_for_evokeds(do_ci)
             res = _get_data_and_ci(this_evokeds, combine, c_func,
                                    scaling=scalings, picks=_picks,
                                    ci_fun=ci_fun)
