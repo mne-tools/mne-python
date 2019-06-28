@@ -2979,7 +2979,6 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     if line_alpha is None:
         line_alpha = 1.0 if average else 0.75
     line_alpha = float(line_alpha)
-
     ylabels = list()
     for ii, (psd, picks, title, ax, scalings, units) in enumerate(zip(
                                                                   psd_list,
@@ -3039,7 +3038,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha, nave=None)
-    for ax in ax_list:
+    for ii, (ax, title) in enumerate(zip(ax_list, titles_list)):
         ax.grid(True, linestyle=':')
         if xscale == 'log':
             ax.set(xscale='log')
@@ -3050,7 +3049,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Frequency (Hz)')
-            ax.set(ylabel=ylabel, title=title)
+            ax.set_ylabel(ylabel)
             ax.set_title(title)
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)

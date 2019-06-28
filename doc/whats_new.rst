@@ -45,8 +45,6 @@ Changelog
 Bug
 ~~~
 
-- Fix ``area_mode='range'`` in :func:`mne.viz.utils._plot_psd` Also line width set back to 0.5, und line_alpha is passed through. by `Jeff Hanna`
-
 - Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
 
 - Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
