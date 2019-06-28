@@ -1813,29 +1813,25 @@ def _get_data_and_ci(evoked, combine, combine_func, scaling=1, picks=None,
     return (data,) if ci_fun is None else (data, ci)
 
 
-def _get_ci_function_for_evokeds(ci):
-    """Get the function for calculating the confidence interval for evokeds."""
-    # check ci parameter
+def _get_ci_function_pce(ci):
+    """Helper to get confidence interval function for plot_compare_evokeds."""
     if ci is None:
         return None
-
-    if ci is True:
-        ci = .95
-    elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
-        raise TypeError('"ci" must be None, bool, float or callable, got %s' %
-                        type(ci))
-
-    _ci_fun = None
-    if ci is not False:
-        if callable(ci):
-            _ci_fun = ci
-        else:
-            from ..stats import _ci
-            _ci_fun = partial(_ci, ci=ci, method="bootstrap")
-    return _ci_fun
+    elif callable(ci):
+        return ci
+    elif isinstance(ci, bool) and not ci:
+        return None
+    elif isinstance(ci, bool):
+        ci = 0.95
+    if isinstance(ci, float):
+        from ..stats import _ci
+        return partial(_ci, ci=ci, method='bootstrap')
+    else:
+        raise TypeError('"ci" must be None, bool, float or callable, got {}'
+                        .format(type(ci).__name__))
 
 
-def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
+def _plot_compare_evokeds(ax, data_dict, conditions, times, ci_bools, ci_dict,
                           styles, title, all_positive, topo):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
     any_negative, any_positive = False, False
@@ -1850,7 +1846,7 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, do_ci, ci_dict,
             any_negative = True
 
         # plot the confidence interval if available
-        if do_ci:
+        if ci_bools[condition]:
             ci_ = ci_dict[condition]
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
                             zorder=9, color=styles[condition]['color'],
@@ -2073,12 +2069,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     _check_evokeds_ch_names_times(all_evoked)
     del all_evoked
     # skip CIs when possible
-    if ci:
-        ci_bools = {key: len(value) > 1 for key, value in evokeds.items()}
-        if not any(ci_bools.values()):
-            logger.info('Skipping confidence bands (only 1 evoked per '
-                        'condition)')
-            ci = False
+    ci_bools = {key: len(value) > 1 for key, value in evokeds.items()}
     # get representative info
     conditions = list(evokeds)
     one_evoked = evokeds[conditions[0]][0]
@@ -2224,25 +2215,30 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         data_dict = dict()
         ci_dict = dict()
         for cond in conditions:
-            do_ci = False if not ci else ci_bools[cond]
             this_evokeds = evokeds[cond]
-            ci_fun = _get_ci_function_for_evokeds(do_ci)
+            ci_fun = None if not ci_bools[cond] else _get_ci_function_pce(ci)
             res = _get_data_and_ci(this_evokeds, combine, c_func,
                                    scaling=scalings, picks=_picks,
                                    ci_fun=ci_fun)
             data_dict[cond] = res[0]
-            if do_ci:
+            if ci_bools[cond]:
                 ci_dict[cond] = res[1]
         all_data.append(data_dict)  # grand means, or indiv. sensors if do_topo
         all_cis.append(ci_dict)
     del evokeds
 
     # compute ylims
-    allvalues = np.stack([list(_dict.values()) for _dict in
-                          (all_cis if do_ci else all_data)])
+    allvalues = list()
+    for _data, _ci in zip(all_data, all_cis):
+        _list = list((_ci if len(_ci) else _data).values())
+        if not len(_ci):
+            _list = [x[np.newaxis] for x in _list]
+        allvalues.extend(_list)
+    allvalues = np.stack(allvalues)
     norm = np.all(allvalues > 0)
     ymin, ymax = ylim.get(ch_type, [None, None])
     ymin, ymax = _setup_vmin_vmax(allvalues, ymin, ymax, norm)
+    del allvalues
     # avoid matplotlib error
     if ymin == ymax:
         ymax += 1e-9
@@ -2258,9 +2254,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     for _picks, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
-        _do_ci = do_ci and (idx != -1)
+        _ci_bools = ({cond: False for cond in conditions} if (idx == -1) else
+                     ci_bools)
         any_pos, any_neg = _plot_compare_evokeds(ax, data, conditions, times,
-                                                 _do_ci, cis, styles, title,
+                                                 _ci_bools, cis, styles, title,
                                                  norm, do_topo)
         if any_pos:
             any_positive = True
