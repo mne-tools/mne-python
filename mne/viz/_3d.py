@@ -577,8 +577,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         show EEG sensors in their digitized locations or projected onto the
         scalp, or a list of these options including ``[]`` (equivalent of
         False).
-    fwd : instance of Forward. If present, will plot the source normals.
-        The forward solution.
+    fwd : instance of Forward
+        The forward solution. If present, the orientations of the dipoles
+        present in the forward solution are displayed.
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
