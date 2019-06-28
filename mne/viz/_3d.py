@@ -2550,7 +2550,8 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
         fig = renderer.scene()
     else:
-        raise ValueError('Mode must be "orthoview", got %s.' % (mode,))
+        raise ValueError('Mode must be "cone", "arrow" or orthoview", '
+                         'got %s.' % (mode,))
 
     return fig
 
