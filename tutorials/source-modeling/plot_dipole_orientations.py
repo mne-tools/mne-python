@@ -151,10 +151,6 @@ fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
                              trans=trans,
                              surfaces='white', coord_frame='head', fig=fig)
 
-# Make an inverse operator with loose dipole orientations
-inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=False,
-                            loose=1.0)
-
 # Show the three dipoles defined at each location in the source space
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
                              trans=trans, fwd=fwd,
@@ -166,6 +162,10 @@ mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 # When computing the source estimate, the activity at each of the three dipoles
 # is collapsed into the XYZ components of a single vector, which leads to the
 # following source estimate for the sample data:
+
+# Make an inverse operator with loose dipole orientations
+inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=False,
+                            loose=1.0)
 
 # Compute the source estimate, indicate that we want a vector solution
 stc = apply_inverse(left_auditory, inv, pick_ori='vector')

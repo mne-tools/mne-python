@@ -640,7 +640,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     .. versionadded:: 0.15
     """
-    from ..forward import _create_meg_coils
+    from ..forward import _create_meg_coils, Forward
     # Update the backend
     from .backends.renderer import _Renderer
 
@@ -707,6 +707,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                  for s in src])
     else:
         src_rr = src_nn = np.empty((0, 3))
+
+    if fwd is not None:
+        _validate_type(fwd, [Forward])
+        fwd_rr = fwd['source_rr']
+        fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
+    else:
+        fwd_rr = fwd_nn = np.empty((0, 3))
 
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
@@ -956,13 +963,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         # Surfs can sometimes be in head coords (e.g., if coming from sphere)
         surfs[key] = transform_surface_to(surfs[key], coord_frame,
                                           [mri_trans, head_trans], copy=True)
+
     if src is not None:
-        if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-            src_rr = apply_trans(mri_trans, src_rr)
-            src_nn = apply_trans(mri_trans, src_nn, move=False)
-        elif src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-            src_rr = apply_trans(head_trans, src_rr)
-            src_nn = apply_trans(head_trans, src_nn, move=False)
+        _update_coord_frame(src[0], src_rr, src_nn, mri_trans, head_trans)
+    if fwd is not None:
+        _update_coord_frame(fwd, fwd_rr, fwd_nn, mri_trans, head_trans)
 
     # determine points
     meg_rrs, meg_tris = list(), list()
@@ -1128,15 +1133,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         red = (1.0, 0.0, 0.0)
         green = (0.0, 1.0, 0.0)
         blue = (0.0, 0.0, 1.0)
-        vec = fwd['source_nn'].reshape(-1, 3, 3)
-        pos = fwd['source_rr']
         for ori, color in zip((0, 1, 2), (red, green, blue)):
-            renderer.quiver3d(pos[:, 0],
-                              pos[:, 1],
-                              pos[:, 2],
-                              vec[:, ori, 0],
-                              vec[:, ori, 1],
-                              vec[:, ori, 2],
+            renderer.quiver3d(fwd_rr[:, 0],
+                              fwd_rr[:, 1],
+                              fwd_rr[:, 2],
+                              fwd_nn[:, ori, 0],
+                              fwd_nn[:, ori, 1],
+                              fwd_nn[:, ori, 2],
                               color=color, mode='arrow', scale=1E-3)
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
@@ -2867,3 +2870,12 @@ def _dipole_changed(event, params):
                  params['idx'], params['dipole'], params['gridx'],
                  params['gridy'], params['ori'], params['coord_frame'],
                  params['zooms'], params['show_all'], params['scatter_points'])
+
+
+def _update_coord_frame(obj, rr, nn, mri_trans, head_trans):
+    if obj['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+        rr = apply_trans(mri_trans, rr)
+        nn = apply_trans(mri_trans, nn, move=False)
+    elif obj['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+        rr = apply_trans(head_trans, rr)
+        nn = apply_trans(head_trans, nn, move=False)
