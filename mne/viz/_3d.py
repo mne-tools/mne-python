@@ -713,7 +713,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         _validate_type(fwd, [Forward])
         fwd_rr = fwd['source_rr']
         if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-            fwd_nn = fwd['source_nn']
+            fwd_nn = fwd['source_nn'].reshape(-1, 1, 3)
         else:
             fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
 
@@ -1137,23 +1137,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         red = (1.0, 0.0, 0.0)
         green = (0.0, 1.0, 0.0)
         blue = (0.0, 0.0, 1.0)
-        if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+        for ori, color in zip(range(fwd_nn.shape[1]), (red, green, blue)):
             renderer.quiver3d(fwd_rr[:, 0],
                               fwd_rr[:, 1],
                               fwd_rr[:, 2],
-                              fwd_nn[:, 0],
-                              fwd_nn[:, 1],
-                              fwd_nn[:, 2],
-                              color=red, mode='arrow', scale=1.5e-3)
-        else:
-            for ori, color in zip((0, 1, 2), (red, green, blue)):
-                renderer.quiver3d(fwd_rr[:, 0],
-                                  fwd_rr[:, 1],
-                                  fwd_rr[:, 2],
-                                  fwd_nn[:, ori, 0],
-                                  fwd_nn[:, ori, 1],
-                                  fwd_nn[:, ori, 2],
-                                  color=color, mode='arrow', scale=1.5e-3)
+                              fwd_nn[:, ori, 0],
+                              fwd_nn[:, ori, 1],
+                              fwd_nn[:, ori, 2],
+                              color=color, mode='arrow', scale=1.5e-3)
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
