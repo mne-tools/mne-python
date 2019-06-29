@@ -10,7 +10,7 @@ import numpy as np
 
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
@@ -261,11 +261,13 @@ class RawEGI(BaseRaw):
                              'unit': FIFF.FIFF_UNIT_NONE})
         info['chs'] = chs
         info._update_redundant()
-        _check_update_montage(info, montage)
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],
             filenames=[input_fname], last_samps=[egi_info['n_samples'] - 1],
             raw_extras=[egi_info], verbose=verbose)
+
+        if montage is not None:
+            self.set_montage(montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
