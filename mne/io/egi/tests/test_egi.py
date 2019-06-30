@@ -212,7 +212,6 @@ def _test_montage(fname):
     raw_none = read_raw_egi(input_fname=fname, montage=None,
                             preload=False)
     montage = _fake_montage(raw_none.info['ch_names'])
-
     raw_montage = read_raw_egi(input_fname=fname,
                                montage=montage, preload=False)
     raw_none.set_montage(montage)
