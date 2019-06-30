@@ -223,6 +223,7 @@ def _test_montage(fname):
     assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
 
 
+@requires_testing_data
 def test_montage():
     """Test montage."""
     _test_montage(op.join(data_path(), 'EGI', 'test_egi.mff'))
