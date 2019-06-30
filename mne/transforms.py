@@ -19,7 +19,8 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger, verbose, _ensure_int
+from .utils import check_fname, logger, verbose, _ensure_int, warn
+from .utils import get_subjects_dir
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1321,3 +1322,59 @@ def _write_fs_xfm(fname, xfm, kind):
             line = ' '.join(['%0.6f' % l for l in line])
             line += '\n' if li < 2 else ';\n'
             fid.write(line.encode('ascii'))
+
+
+@verbose
+def check_coreg(trans, info, subject, subjects_dir=None, verbose=None):
+    """Compute distance between head shape points and scalp
+
+    This function is useful to check that coregistration is coreg.
+    Unless outliers are present in the head shape points,
+    one can assume an average distance around 2-3 mm.
+
+    Parameters
+    ----------
+    trans : str | instance of Transform
+        The head<->MRI transform. If str is passed it is the
+        path to file on disk.
+    info : instance of Infa
+        The measurement info that contains the head shape
+        points in info['dig'].
+    subject : str
+        The name of the subject.
+    subjects_dir : str | None
+        Directory containing subjects data. If None use
+        the Freesurfer SUBJECTS_DIR environment variable.
+
+    Returns
+    -------
+    dists : array, shape (n_points,)
+        The distances.
+    """
+    from mne.surface import read_surface, _compute_nearest
+    if isinstance(trans, str):
+        trans = read_trans(trans)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    high_res_surf = op.join(subjects_dir, subject, 'surf', 'lh.seghead')
+    low_res_surf = op.join(subjects_dir, subject, 'bem',
+                           '%s-outer_skull.surf' % subject)
+
+    if op.exists(high_res_surf):
+        pts, _ = read_surface(high_res_surf, verbose=False)
+    elif op.exists(low_res_surf):
+        warn("Using low resolution head surface "
+             "the average distance will be potentially overestimated")
+        pts, _ = read_surface(high_res_surf, verbose=False)
+    else:
+        raise FileNotFoundError("No MRI surface was found!")
+
+    pts /= 1e3  # convert to mm
+
+    trans = _get_trans(trans, fro="mri", to="head")[0]
+    pts = apply_trans(trans, pts)
+    info_dig = np.stack([list(x["r"]) for x in info["dig"]],
+                        axis=0)
+    dists = _compute_nearest(pts, info_dig,
+                             return_dists=True)[1]
+    return dists
