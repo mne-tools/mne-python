@@ -385,7 +385,7 @@ def _fake_montage(ch_names):
 def test_montage():
     """Test montage."""
     raw_none = read_raw_edf(input_fname=edf_path, montage=None, preload=False)
-    montage = _fake_montage(raw_none.info['ch_names'])
+    montage = _fake_montage(raw_none.info['ch_names'][:-1])
 
     raw_montage = read_raw_edf(edf_path, montage=montage,
                                preload=False)
