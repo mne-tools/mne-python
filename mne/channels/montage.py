@@ -823,6 +823,9 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             montage_ch_names = montage.ch_names
             info_ch_names = info['ch_names']
 
+        info_ch_names = [name.replace(' ', '') for name in info_ch_names]
+        montage_ch_names = [name.replace(' ', '') for name in montage_ch_names]
+
         dig = dict()
         for pos, ch_name in zip(montage.pos, montage_ch_names):
             if ch_name not in info_ch_names:
