@@ -180,26 +180,30 @@ def test_sfreq(sfreq_testing_data):
 
 
 @testing.requires_testing_data
-def test_read_curry_annotations():
+@pytest.mark.parametrize('fname', [
+    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 7.cef', id='7'),
+    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 8.cdt.cef', id='8'),
+    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 7 ASCII.cef',
+                 id='7 ascii'),
+    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 8 ASCII.cdt.cef',
+                 id='8 ascii'),
+])
+def test_read_curry_annotations(fname):
     """Test reading for Curry events file."""
-    fnames = ["test_bdf_stim_channel Curry 7.cef",
-              "test_bdf_stim_channel Curry 8.cdt.cef",
-              "test_bdf_stim_channel Curry 7 ASCII.cef",
-              "test_bdf_stim_channel Curry 8 ASCII.cdt.cef"]
+    EXPECTED_ONSET = [0.484, 0.486, 0.62, 0.622, 1.904, 1.906, 3.212, 3.214,
+                      4.498, 4.5, 5.8, 5.802, 7.074, 7.076, 8.324, 8.326, 9.58,
+                      9.582]
+    EXPECTED_DURATION = np.zeros_like(EXPECTED_ONSET)
+    EXPECTED_DESCRIPTION = ['4', '50000', '2', '50000', '1', '50000', '1',
+                            '50000', '1', '50000', '1', '50000', '1', '50000',
+                            '1', '50000', '1', '50000']
 
-    # check sfreq input
-    annot = read_annotations(op.join(curry_dir, fnames[0]),
-                             sfreq=500)
-    assert len(annot) == 18
-    assert annot.onset.min() == 0.484
-    assert np.unique(annot.description).size == 4
+    annot = read_annotations(fname, sfreq='auto')
 
-    # check sfreq='auto'
-    for fname in fnames:
-        annot = read_annotations(op.join(curry_dir, fname))
-        assert len(annot) == 18
-        assert annot.onset.min() == 0.484
-        assert np.unique(annot.description).size == 4
+    assert annot.orig_time is None
+    assert_array_equal(annot.onset, EXPECTED_ONSET)
+    assert_array_equal(annot.duration, EXPECTED_DURATION)
+    assert_array_equal(annot.description, EXPECTED_DESCRIPTION)
 
 
 run_tests_if_main()
