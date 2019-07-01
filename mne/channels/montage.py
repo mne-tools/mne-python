@@ -26,7 +26,7 @@ from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
-                     _clean_names, _check_option)
+                     _check_option)
 
 from .layout import _pol_to_cart, _cart_to_sph
 
@@ -822,9 +822,9 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         else:
             montage_ch_names = montage.ch_names
             info_ch_names = info['ch_names']
-        info_ch_names = _clean_names(info_ch_names, remove_whitespace=True)
-        montage_ch_names = _clean_names(montage_ch_names,
-                                        remove_whitespace=True)
+
+        info_ch_names = [name.replace(' ', '') for name in info_ch_names]
+        montage_ch_names = [name.replace(' ', '') for name in montage_ch_names]
 
         dig = dict()
         for pos, ch_name in zip(montage.pos, montage_ch_names):
