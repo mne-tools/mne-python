@@ -267,6 +267,13 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
         hemi_ind = hemi_to_ind[label.hemi]
         src_sel = np.intersect1d(src[hemi_ind]['vertno'],
                                  label.vertices)
+        if len(src_sel) == 0:
+            idx = np.unique(np.searchsorted(src[hemi_ind]['vertno'],
+                                            label.vertices))
+            l = len(src[hemi_ind]['vertno']) - 1
+            idx[idx > l] = l
+            src_sel = src[hemi_ind]['vertno'][idx]
+
         if value_fun is not None:
             idx_sel = np.searchsorted(label.vertices, src_sel)
             values_sel = np.array([value_fun(v) for v in
