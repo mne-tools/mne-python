@@ -45,4 +45,4 @@ print("Number of triangles on right hemisphere: %d" % len(src[1]['use_tris']))
 
 fig = mne.viz.plot_alignment(subject='sample', subjects_dir=subjects_dir,
                              trans=fname_trans, surfaces='white', src=src)
-set_3d_view(fig, focalpoint=[0., 0., 0.06])
+set_3d_view(fig, focalpoint=(0., 0., 0.06))
