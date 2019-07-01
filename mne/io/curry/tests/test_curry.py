@@ -20,6 +20,7 @@ from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
 from mne.io.curry.curry import _check_missing_files, _read_events_curry
 from mne.utils import check_version, run_tests_if_main
+from mne.annotations import read_annotations
 
 
 data_dir = testing.data_path(download=False)
@@ -171,10 +172,34 @@ def sfreq_testing_data(tmpdir, request):
     return out_base_name + 'dat'
 
 
+@testing.requires_testing_data
 def test_sfreq(sfreq_testing_data):
     """Test sfreq and time_step."""
     raw = read_raw_curry(sfreq_testing_data, preload=False)
     assert raw.info['sfreq'] == 500
+
+
+@testing.requires_testing_data
+def test_read_curry_annotations():
+    """Test reading for Curry events file."""
+    fnames = ["test_bdf_stim_channel Curry 7.cef",
+              "test_bdf_stim_channel Curry 8.cdt.cef",
+              "test_bdf_stim_channel Curry 7 ASCII.cef",
+              "test_bdf_stim_channel Curry 8 ASCII.cdt.cef"]
+
+    # check sfreq input
+    annot = read_annotations(op.join(curry_dir, fnames[0]),
+                             sfreq=500)
+    assert len(annot) == 18
+    assert annot.onset.min() == 0.484
+    assert np.unique(annot.description).size == 4
+
+    # check sfreq='auto'
+    for fname in fnames:
+        annot = read_annotations(op.join(curry_dir, fname))
+        assert len(annot) == 18
+        assert annot.onset.min() == 0.484
+        assert np.unique(annot.description).size == 4
 
 
 run_tests_if_main()
