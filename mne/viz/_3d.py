@@ -2252,7 +2252,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                scale_factor=scale_factor,
                                min=scale_pts[0], max=scale_pts[2],
                                **ad_kwargs)
-    if 'mid' not in ad_kwargs:  # PySurfer < 0.9
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
