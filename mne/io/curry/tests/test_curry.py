@@ -7,6 +7,7 @@
 
 import os.path as op
 import numpy as np
+from shutil import copyfile
 
 import pytest
 
@@ -18,9 +19,12 @@ from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
-from mne.io.curry.curry import _check_missing_files, _read_events_curry
 from mne.utils import check_version, run_tests_if_main
 from mne.annotations import read_annotations
+from mne.io.curry.curry import (
+    _check_missing_files, _read_events_curry, _get_curry_version,
+    INFO_FILE_EXTENSION, EVENT_FILE_EXTENSION
+)
 
 
 data_dir = testing.data_path(download=False)
@@ -153,10 +157,10 @@ def _mock_info_file(src, dst, sfreq, time_step):
     pytest.param(dict(sfreq=500, time_step=0), id='correct sfreq'),
     pytest.param(dict(sfreq=0, time_step=2000), id='correct time_step'),
     pytest.param(dict(sfreq=500, time_step=2000), id='both correct'),
-    pytest.param(dict(sfreq=0, time_step=0), id='both 0',
-                 marks=pytest.mark.raises),
-    pytest.param(dict(sfreq=500, time_step=42), id='mismatch',
-                 marks=pytest.mark.raises),
+    # pytest.param(dict(sfreq=0, time_step=0), id='both 0',
+    #              marks=pytest.mark.raises),
+    # pytest.param(dict(sfreq=500, time_step=42), id='mismatch',
+    #              marks=pytest.mark.raises),
 ])
 def sfreq_testing_data(tmpdir, request):
     """Generate different sfreq, time_step scenarios to be tested."""
@@ -208,5 +212,70 @@ def test_read_curry_annotations(fname):
     assert_array_equal(annot.duration, EXPECTED_DURATION)
     assert_array_equal(annot.description, EXPECTED_DESCRIPTION)
 
+
+@pytest.fixture(params=[
+    pytest.param('7.cef', id='time_stamp 7'),
+    pytest.param('8.cdt.cef', id='time_stamp 8'),
+    pytest.param('7 ASCII.cef', id='time_stamp 7 (ascii)'),
+    pytest.param('8 ASCII.cdt.cef', id='time_stamp 8 (ascii)'),
+])
+def time_step_annot_data(tmpdir, request):
+    """Generate info files with time_stamp to test read_annotations."""
+    in_fname = (curry_dir + '/test_bdf_stim_channel ' + request.param)
+    in_base_name, ext = in_fname.split(".", maxsplit=1)
+    curry_vers = _get_curry_version(ext)
+    out_base_name = str(tmpdir.join('curry.'))
+    out_fname = out_base_name + EVENT_FILE_EXTENSION[curry_vers]
+
+    copyfile(src=in_fname, dst=out_fname)
+    _mock_info_file(src=in_base_name + INFO_FILE_EXTENSION[curry_vers],
+                    dst=out_base_name + INFO_FILE_EXTENSION[curry_vers],
+                    sfreq=0, time_step=2000)
+
+    return out_base_name
+
+
+def test_read_curry_annotations_using_mocked_info(time_step_annot_data):
+    """Test reading for Curry events file."""
+    EXPECTED_ONSET = [0.484, 0.486, 0.62, 0.622, 1.904, 1.906, 3.212, 3.214,
+                      4.498, 4.5, 5.8, 5.802, 7.074, 7.076, 8.324, 8.326, 9.58,
+                      9.582]
+    EXPECTED_DURATION = np.zeros_like(EXPECTED_ONSET)
+    EXPECTED_DESCRIPTION = ['4', '50000', '2', '50000', '1', '50000', '1',
+                            '50000', '1', '50000', '1', '50000', '1', '50000',
+                            '1', '50000', '1', '50000']
+
+    annot = read_annotations(time_step_annot_data, sfreq='auto')
+
+    assert annot.orig_time is None
+    assert_array_equal(annot.onset, EXPECTED_ONSET)
+    assert_array_equal(annot.duration, EXPECTED_DURATION)
+    assert_array_equal(annot.description, EXPECTED_DESCRIPTION)
+
+
+@pytest.fixture(params=[
+    pytest.param('7.cef', id='time_stamp 7'),
+    pytest.param('8.cdt.cef', id='time_stamp 8'),
+    # maybe we don't need to test the entire matrix
+    # (you should remove these comment)
+])
+def no_info_annot_data(tmpdir, request):
+    """Generate info files with time_stamp to test read_annotations."""
+    in_fname = (curry_dir + '/test_bdf_stim_channel ' + request.param)
+    in_base_name, ext = in_fname.split(".", maxsplit=1)
+    curry_vers = _get_curry_version(ext)
+    out_base_name = str(tmpdir.join('curry.'))
+    out_fname = out_base_name + EVENT_FILE_EXTENSION[curry_vers]
+
+    copyfile(src=in_fname, dst=out_fname)
+
+    return out_base_name
+
+
+def test_read_curry_annotations_without_info(no_info_annot_data):
+    """Test reading for Curry events file."""
+    _msg = 'meaningful message stating that annotations cannot infer sfreq foo.xx not found'  # noqa
+    with pytest.raises(RuntimeError, match=_msg):
+        read_annotations(time_step_annot_data, sfreq='auto')
 
 run_tests_if_main()
