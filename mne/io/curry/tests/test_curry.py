@@ -138,6 +138,17 @@ def test_check_missing_files():
         _check_missing_files(invalid_fname, 8)
 
 
+def _mock_info_file(src, dst, sfreq, time_step):
+    with open(src, 'r') as in_file, open(dst, 'w') as out_file:
+        for line in in_file:
+            if 'SampleFreqHz' in line:
+                out_file.write(line.replace('500', str(sfreq)))
+            elif 'SampleTimeUsec' in line:
+                out_file.write(line.replace('2000', str(time_step)))
+            else:
+                out_file.write(line)
+
+
 @pytest.fixture(params=[
     pytest.param(dict(sfreq=500, time_step=0), id='correct sfreq'),
     pytest.param(dict(sfreq=0, time_step=2000), id='correct time_step'),
@@ -158,16 +169,8 @@ def sfreq_testing_data(tmpdir, request):
     for fname in [out_base_name + ext for ext in ['dat', 'rs3']]:
         open(fname, 'a').close()
 
-    # mock the info file based on sfreq and time_step
-    with open(in_base_name + 'dap', 'r') as in_file:
-        with open(out_base_name + 'dap', 'w') as out_file:
-            for line in in_file:
-                if 'SampleFreqHz' in line:
-                    out_file.write(line.replace('500', str(sfreq)))
-                elif 'SampleTimeUsec' in line:
-                    out_file.write(line.replace('2000', str(time_step)))
-                else:
-                    out_file.write(line)
+    _mock_info_file(src=in_base_name + 'dap', dst=out_base_name + 'dap',
+                    sfreq=sfreq, time_step=time_step)
 
     return out_base_name + 'dat'
 
