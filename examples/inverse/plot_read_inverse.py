@@ -12,6 +12,7 @@ The inverse operator's source space is shown in 3D.
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator
+from mne.viz import set_3d_view
 
 print(__doc__)
 
@@ -42,5 +43,6 @@ print("Number of triangles on right hemisphere: %d" % len(src[1]['use_tris']))
 ###############################################################################
 # Show result on 3D source space
 
-mne.viz.plot_alignment(subject='sample', subjects_dir=subjects_dir,
-                       trans=fname_trans, surfaces='white', src=src)
+fig = mne.viz.plot_alignment(subject='sample', subjects_dir=subjects_dir,
+                             trans=fname_trans, surfaces='white', src=src)
+set_3d_view(fig, focalpoint=(0., 0., 0.06))
