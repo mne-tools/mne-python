@@ -13,10 +13,11 @@ from scipy import io as sio
 
 
 from mne import find_events, pick_types
+from mne.channels import Montage
 from mne.io import read_raw_egi
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi.egi import _combine_triggers
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, object_diff
 from mne.datasets.testing import data_path, requires_testing_data
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -196,5 +197,36 @@ def test_io_egi_crop_no_preload():
     raw_preload.crop(17.5, 20.5)
     raw_preload.load_data()
     assert_allclose(raw._data, raw_preload._data)
+
+
+def _fake_montage(ch_names):
+    return Montage(
+        pos=np.random.RandomState(42).randn(len(ch_names), 3),
+        ch_names=ch_names,
+        kind='foo',
+        selection=np.arange(len(ch_names))
+    )
+
+
+def _test_montage(fname):
+    raw_none = read_raw_egi(input_fname=fname, montage=None,
+                            preload=False)
+    montage = _fake_montage(raw_none.info['ch_names'])
+    raw_montage = read_raw_egi(input_fname=fname,
+                               montage=montage, preload=False)
+    raw_none.set_montage(montage)
+
+    # Check they are the same
+    assert_array_equal(raw_none.get_data(), raw_montage.get_data())
+    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
+    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
+
+
+@requires_testing_data
+def test_montage():
+    """Test montage."""
+    _test_montage(op.join(data_path(), 'EGI', 'test_egi.mff'))
+    with pytest.warns(RuntimeWarning, match='Did not find any event code'):
+        _test_montage(egi_fname)
 
 run_tests_if_main()
