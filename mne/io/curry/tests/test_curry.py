@@ -157,10 +157,10 @@ def _mock_info_file(src, dst, sfreq, time_step):
     pytest.param(dict(sfreq=500, time_step=0), id='correct sfreq'),
     pytest.param(dict(sfreq=0, time_step=2000), id='correct time_step'),
     pytest.param(dict(sfreq=500, time_step=2000), id='both correct'),
-    # pytest.param(dict(sfreq=0, time_step=0), id='both 0',
-    #              marks=pytest.mark.raises),
-    # pytest.param(dict(sfreq=500, time_step=42), id='mismatch',
-    #              marks=pytest.mark.raises),
+    pytest.param(dict(sfreq=0, time_step=0), id='both 0',
+                 marks=pytest.mark.raises),
+    pytest.param(dict(sfreq=500, time_step=42), id='mismatch',
+                 marks=pytest.mark.raises),
 ])
 def sfreq_testing_data(tmpdir, request):
     """Generate different sfreq, time_step scenarios to be tested."""
