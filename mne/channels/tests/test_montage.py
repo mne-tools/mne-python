@@ -563,9 +563,13 @@ def _check_roundtrip(montage, fname):
 from mne.utils import object_diff
 from mne.io import read_raw_nicolet
 from mne.channels import Montage
+from mne.io import read_raw_eeglab
 
 nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
                         'test_nicolet_raw.data')
+
+testing_base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
+eeglab_fname = op.join(testing_base_dir, 'test_raw.set')
 
 
 def _fake_montage(ch_names):
@@ -577,17 +581,19 @@ def _fake_montage(ch_names):
     )
 
 
+from functools import partial
 @pytest.mark.parametrize('read_raw,fname', [
-    pytest.param(read_raw_nicolet, nicolet_fname, id='nicolet'),
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname,
+                 id='nicolet'),
+    pytest.param(read_raw_eeglab, eeglab_fname, id='eeglab'),
 ])
 def test_montage_when_reading_and_setting(read_raw, fname):
     """Test montage."""
-    raw_none = read_raw(input_fname=fname, ch_type='eeg',
-                        montage=None, preload=False)
+    raw_none = read_raw(input_fname=fname, montage=None, preload=False)
     montage = _fake_montage(raw_none.info['ch_names'])
 
-    raw_montage = read_raw(input_fname=fname, ch_type='eeg',
-                           montage=montage, preload=False)
+    raw_montage = read_raw(input_fname=fname, montage=montage, preload=False)
     raw_none.set_montage(montage)
 
     # Check they are the same
