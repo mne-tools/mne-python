@@ -10,7 +10,6 @@
 
 import os.path as op
 import inspect
-from copy import deepcopy
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -22,7 +21,6 @@ import pytest
 from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
-from mne.utils import object_diff
 from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
@@ -97,49 +95,6 @@ def test_bdf_data():
     assert (raw_py.info['chs'][0]['loc']).any()
     assert (raw_py.info['chs'][25]['loc']).any()
     assert (raw_py.info['chs'][63]['loc']).any()
-
-
-def test_same_behaviour_in_init_and_set_montage():
-    """Test that __init__ and set_montage lead to equal results.
-
-    This is a regression test to help refactor Digitization.
-    """
-    montage = 'biosemi256'
-    with pytest.warns(RuntimeWarning) as init_warns:
-        raw_montage = read_raw_edf(edf_path, montage=montage)
-
-    raw_none = read_raw_edf(edf_path, montage=None)
-    assert raw_none.info['dig'] is None
-
-    with pytest.warns((RuntimeWarning)) as set_montage_warns:
-        raw_none.set_montage(montage)
-
-    # Assert equal objects
-    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
-    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
-
-    # Assert equal warnings
-    assert len(init_warns) == len(set_montage_warns)
-    for ii in range(len(init_warns)):
-        msg_a = init_warns[ii].message.args[0]
-        msg_b = set_montage_warns[ii].message.args[0]
-        assert msg_a == msg_b
-
-
-def test_edf_set_montage_none():
-    """Test that using montage=None in init and set_montage differs."""
-    raw = read_raw_edf(edf_path, montage=None)
-    original_chs = deepcopy(raw.info['chs'])
-    assert raw.info['dig'] is None
-
-    raw.set_montage(None)
-    assert object_diff(raw.info['chs'], original_chs)  # They differ
-
-    # read_raw_edf initializes 0s and set_montage NaNs
-    all_loc = np.array([ch['loc'] for ch in original_chs])
-    assert_array_equal(all_loc, np.zeros_like(all_loc))
-    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
-                       np.full_like(all_loc, np.NaN))
 
 
 @testing.requires_testing_data

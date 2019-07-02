@@ -589,6 +589,7 @@ def _fake_montage(ch_names):
 from mne.io import read_raw_edf
 from mne.io import read_raw_bdf
 from functools import partial
+from copy import deepcopy
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('read_raw,fname', [
@@ -604,17 +605,56 @@ from functools import partial
     pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
 ])
 def test_montage_when_reading_and_setting(read_raw, fname):
-    """Test montage."""
+    """Test montage.
+
+    This is a regression test to help refactor Digitization.
+    """
     raw_none = read_raw(input_fname=fname, montage=None, preload=False)
+    # raw_none_copy = deepcopy(raw_none)
     montage = _fake_montage(raw_none.info['ch_names'])
 
     raw_montage = read_raw(input_fname=fname, montage=montage, preload=False)
     raw_none.set_montage(montage)
 
-    # Check they are the same
+    # Check that reading with montage or setting the montage is the same
     assert_array_equal(raw_none.get_data(), raw_montage.get_data())
     assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
     assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
 
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('read_raw,fname', [
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname,
+                 marks=pytest.mark.skip,
+                 id='nicolet'),
+    pytest.param(read_raw_eeglab, eeglab_fname,
+                 marks=pytest.mark.skip,
+                 id='eeglab'),
+    pytest.param(read_raw_edf, edf_path, id='edf'),
+    pytest.param(read_raw_bdf, bdf_path,
+                 marks=pytest.mark.xfail(raises=NotImplementedError),
+                 id='bdf 1'),
+    pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
+    pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+])
+def test_montage_when_reading_and_setting_more(read_raw, fname):
+    """Test montage.
+
+    This is a regression test to help refactor Digitization.
+    """
+    raw_none = read_raw(input_fname=fname, montage=None, preload=False)
+    raw_none_copy = deepcopy(raw_none)
+
+    # check consistency between reading and setting with montage=None
+    assert raw_none_copy.info['dig'] is None
+    original_chs = deepcopy(raw_none_copy.info['chs'])
+    original_loc = np.array([ch['loc'] for ch in original_chs])
+    assert_array_equal(original_loc, np.zeros_like(original_loc))
+
+    raw_none_copy.set_montage(montage=None)
+    loc = np.array([ch['loc'] for ch in raw_none_copy.info['chs']])
+    assert_array_equal(loc, np.full_like(loc, np.NaN))
 
 run_tests_if_main()
