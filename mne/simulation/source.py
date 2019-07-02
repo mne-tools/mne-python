@@ -270,8 +270,8 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
         if len(src_sel) == 0:
             idx = np.searchsorted(src[hemi_ind]['vertno'],
                                   label.vertices)
-            l = len(src[hemi_ind]['vertno']) - 1
-            idx[idx > l] = l
+            src_len = len(src[hemi_ind]['vertno']) - 1
+            idx[idx > src_len] = src_len
             src_sel = np.unique(src[hemi_ind]['vertno'][idx])
 
         if value_fun is not None:
