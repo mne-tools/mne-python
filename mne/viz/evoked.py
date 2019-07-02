@@ -1873,7 +1873,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         of legal inputs to :func:`matplotlib.pyplot.plot`. Those values will be
         passed as parameters to the line plot call of the corresponding
         condition, overriding defaults (e.g.,
-        ``styles=``{"Aud/L": {"linewidth": 3}}`` will set the linewidth for
+        ``styles={"Aud/L": {"linewidth": 3}}`` will set the linewidth for
         "Aud/L" to 3). As with ``colors`` and ``linestyles``, keys matching
         conditions in ``/``-separated ``evokeds`` keys are supported (see Notes
         for details).
@@ -1903,37 +1903,41 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         (i.e., the 95%% confidence band is drawn). If a callable, it must take
         a single array (n_observations × n_times) as input and return upper and
         lower confidence margins (2 × n_times). Defaults to ``True``.
-    truncate_yaxis : bool | str
-        If not False, the left y axis spine is truncated to reduce visual
-        clutter. If 'auto', the spine is truncated at the minimum and
-        maximum ticks. Else, it is truncated to half the max absolute value,
-        rounded to .25. Defaults to 'auto'.
+    truncate_yaxis : bool | 'auto'
+        Whether to shorten the y-axis spine. If 'auto', the spine is truncated
+        at the minimum and maximum ticks. If ``True``, it is truncated at the
+        multiple of 0.25 nearest to half the maximum absolute value of the
+        data. If ``truncate_xaxis=False``, only the far bound of the y-axis
+        will be truncated. Defaults to 'auto'.
     truncate_xaxis : bool
-        If True, the x axis is truncated to span from the first to the last
-        xtick. Defaults to True.
+        Whether to shorten the x-axis spine. If ``True``, the spine is
+        truncated at the minimum and maximum ticks. If
+        ``truncate_yaxis=False``, only the far bound of the x-axis will be
+        truncated. Defaults to ``True``.
     ylim : dict | None
-        ylim for plots (after scaling has been applied). e.g.
-        ylim = dict(eeg=[-20, 20])
-        Valid keys are eeg, mag, grad, misc. If ``None``, the ylim parameter
-        for each channel equals the pyplot default. Defaults to ``None``.
+        Y-axis limits for plots (after scaling has been applied). :class:`dict`
+        keys should match channel types; valid keys are eeg, mag, grad, misc
+        (example: ``ylim=dict(eeg=[-20, 20])``). If ``None``, the y-axis limits
+        will be set automatically by matplotlib. Defaults to ``None``.
     invert_y : bool
-        If True, negative values are plotted up (as is sometimes done
-        for ERPs out of tradition). Defaults to False.
+        Whether to plot negative values upward (as is sometimes done
+        for ERPs out of tradition). Defaults to ``False``.
     show_sensors : bool | int | str | None
-        If not False, an inset displays channel locations on a head outline.
-        If :class:`int` or :class:`str`, indicates the position of the inset
-        (see :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`). If
-        ``None``, treat as ``True`` if there is only one channel in ``picks``.
-        If ``True``, attempts to pick the best position. Defaults to ``None``.
+        Whether to display an inset showing sensor locations on a head outline.
+        If :class:`int` or :class:`str`, indicates position of the inset (see
+        :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`). If ``None``,
+        treated as ``True`` if there is only one channel in ``picks``. If
+        ``True``, location is upper or lower right corner, depending on data
+        values. Defaults to ``None``.
     show_legend : bool | int | str
-        If not False, show a legend. If :class:`int` or :class:`str`, indicates
-        the position of the legend (see
-        :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`). If ``True``,
-        equivalent to ``'upper left'``. Defaults to ``True``.
+        Whether to show a legend for the colors/linestyles of the conditions
+        plotted. If :class:`int` or :class:`str`, indicates position of the
+        legend (see :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`).
+        If ``True``, equivalent to ``'upper left'``. Defaults to ``True``.
     split_legend : bool | None
-        Whether to show separate color and linestyle legends. If ``None``,
-        separate legends will be shown only if ``cmap`` is specified.
-        Defaults to ``None``.
+        Whether to separate color and linestyle in the legend. If ``None``,
+        a separate linestyle legend will still be shown if ``cmap`` is
+        specified. Defaults to ``None``.
     axes : None | Axes instance | list of Axes | 'topo'
         :class:`~matplotlib.axes.Axes` object to plot into. If plotting
         multiple channel types (or multiple channels when ``combine=None``),

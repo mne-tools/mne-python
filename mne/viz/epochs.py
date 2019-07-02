@@ -68,7 +68,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Display or not a colorbar.
     order : None | array of int | callable
         If not ``None``, order is used to reorder the epochs along the y-axis
-        of the image. If it's an array of class:`int` its length should match
+        of the image. If it's an array of :class:`int` its length should match
         the number of good epochs. If it's a callable it should accept two
         positional parameters (``times`` and ``data``, where
         ``data.shape == (len(good_epochs), len(times))``) and return an
@@ -78,11 +78,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Show figure if True.
     units : dict | None
         The units of the channel types used for axes labels. If None,
-        defaults to `units=dict(eeg='uV', grad='fT/cm', mag='fT')`.
+        defaults to ``units=dict(eeg='uV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
-        If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
-        eog=1e6)`.
+        If None, defaults to ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
+        eog=1e6)``.
     cmap : None | colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
@@ -146,11 +146,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     evoked : bool
         Draw the ER[P/F] below the image or not.
     ts_args : None | dict
-        Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
+        Arguments passed to a call to `plot_compare_evokeds` to style
         the evoked plot below the image. Defaults to an empty dictionary,
-        meaning `plot_compare_evokeds` will be called with default parameters
-        (yaxis truncation will be turned off, and inversion of the y axis
-        via ``invert_y=True`` will raise an error).
+        meaning `plot_compare_evokeds` will be called with default parameters.
     title : None | str
         If :class:`str`, will be plotted as figure title. Otherwise, the
         title will indicate channel(s) or channel type being plotted. Defaults
@@ -159,7 +157,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     Returns
     -------
     figs : list of Figure
-        One figure per channel displayed.
+        One figure per channel, channel type, or group, depending on values of
+        ``picks``, ``group_by``, and ``combine``. See Notes.
 
     Notes
     -----
@@ -169,6 +168,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     any valid values of ``picks`` and ``combine``).  If ``group_by`` is
     ``None``, the number and content of the figures generated depends on the
     values of ``picks`` and ``combine``, as summarized in this table:
+
+    .. cssclass:: table-bordered
+    .. rst-class:: midvalign
 
     +----------+----------------------------+------------+-------------------+
     | group_by | picks                      | combine    | result            |
