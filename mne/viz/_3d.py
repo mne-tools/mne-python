@@ -531,7 +531,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
-                   meg=None, eeg='original',
+                   meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
@@ -577,6 +577,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         show EEG sensors in their digitized locations or projected onto the
         scalp, or a list of these options including ``[]`` (equivalent of
         False).
+    fwd : instance of Forward
+        The forward solution. If present, the orientations of the dipoles
+        present in the forward solution are displayed.
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
@@ -638,7 +641,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     .. versionadded:: 0.15
     """
-    from ..forward import _create_meg_coils
+    from ..forward import _create_meg_coils, Forward
     # Update the backend
     from .backends.renderer import _Renderer
 
@@ -705,6 +708,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                  for s in src])
     else:
         src_rr = src_nn = np.empty((0, 3))
+
+    if fwd is not None:
+        _validate_type(fwd, [Forward])
+        fwd_rr = fwd['source_rr']
+        if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+            fwd_nn = fwd['source_nn'].reshape(-1, 1, 3)
+        else:
+            fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
 
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
@@ -954,13 +965,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         # Surfs can sometimes be in head coords (e.g., if coming from sphere)
         surfs[key] = transform_surface_to(surfs[key], coord_frame,
                                           [mri_trans, head_trans], copy=True)
+
     if src is not None:
-        if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-            src_rr = apply_trans(mri_trans, src_rr)
-            src_nn = apply_trans(mri_trans, src_nn, move=False)
-        elif src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-            src_rr = apply_trans(head_trans, src_rr)
-            src_nn = apply_trans(head_trans, src_nn, move=False)
+        src_rr, src_nn = _update_coord_frame(src[0], src_rr, src_nn,
+                                             mri_trans, head_trans)
+    if fwd is not None:
+        fwd_rr, fwd_nn = _update_coord_frame(fwd, fwd_rr, fwd_nn,
+                                             mri_trans, head_trans)
 
     # determine points
     meg_rrs, meg_tris = list(), list()
@@ -1122,6 +1133,18 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             opacity=0.75, glyph_height=0.25,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
+    if fwd is not None:
+        red = (1.0, 0.0, 0.0)
+        green = (0.0, 1.0, 0.0)
+        blue = (0.0, 0.0, 1.0)
+        for ori, color in zip(range(fwd_nn.shape[1]), (red, green, blue)):
+            renderer.quiver3d(fwd_rr[:, 0],
+                              fwd_rr[:, 1],
+                              fwd_rr[:, 2],
+                              fwd_nn[:, ori, 0],
+                              fwd_nn[:, ori, 1],
+                              fwd_nn[:, ori, 2],
+                              color=color, mode='arrow', scale=1.5e-3)
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
@@ -2229,7 +2252,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                scale_factor=scale_factor,
                                min=scale_pts[0], max=scale_pts[2],
                                **ad_kwargs)
-    if 'mid' not in ad_kwargs:  # PySurfer < 0.9
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
@@ -2518,7 +2540,8 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
         fig = renderer.scene()
     else:
-        raise ValueError('Mode must be "orthoview", got %s.' % (mode,))
+        raise ValueError('Mode must be "cone", "arrow" or orthoview", '
+                         'got %s.' % (mode,))
 
     return fig
 
@@ -2851,3 +2874,13 @@ def _dipole_changed(event, params):
                  params['idx'], params['dipole'], params['gridx'],
                  params['gridy'], params['ori'], params['coord_frame'],
                  params['zooms'], params['show_all'], params['scatter_points'])
+
+
+def _update_coord_frame(obj, rr, nn, mri_trans, head_trans):
+    if obj['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+        rr = apply_trans(mri_trans, rr)
+        nn = apply_trans(mri_trans, nn, move=False)
+    elif obj['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+        rr = apply_trans(head_trans, rr)
+        nn = apply_trans(head_trans, nn, move=False)
+    return rr, nn
