@@ -23,7 +23,6 @@ from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
-from ..channels.montage import read_montage, _set_montage, Montage
 from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -2303,36 +2302,6 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
         return raws[0]
     else:
         return raws[0], events
-
-
-def _check_update_montage(info, montage, path=None, update_ch_names=False,
-                          raise_missing=True):
-    """Help eeg readers to add montage."""
-    if montage is not None:
-        if not isinstance(montage, (str, Montage)):
-            err = ("Montage must be str, None, or instance of Montage. "
-                   "%s was provided" % type(montage))
-            raise TypeError(err)
-        if montage is not None:
-            if isinstance(montage, str):
-                montage = read_montage(montage, path=path)
-            _set_montage(info, montage, update_ch_names=update_ch_names)
-
-            missing_positions = []
-            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
-                       FIFF.FIFFV_STIM_CH)
-            for ch in info['chs']:
-                if not ch['kind'] in exclude:
-                    if not np.isfinite(ch['loc'][:3]).all():
-                        missing_positions.append(ch['ch_name'])
-
-            # raise error if positions are missing
-            if missing_positions and raise_missing:
-                raise KeyError(
-                    "The following positions are missing from the montage "
-                    "definitions: %s. If those channels lack positions "
-                    "because they are EOG channels use the eog parameter."
-                    % str(missing_positions))
 
 
 def _check_maxshield(allow_maxshield):
