@@ -95,8 +95,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         case "Reds" is used.
     fig : Figure | None
         :class:`~matplotlib.figure.Figure` instance to draw the image to.
-        Figure must contain two axes for drawing the single trials and evoked
-        responses. If ``None`` a new figure is created. Defaults to ``None``.
+        Figure must contain the correct number of axes for drawing the epochs
+        image, the evoked response, and a colorbar (depending on values of
+        ``evoked`` and ``colorbar``). If ``None`` a new figure is created.
+        Defaults to ``None``.
     axes : list of Axes | dict of list of Axes | None
         List of :class:`~matplotlib.axes.Axes` objects in which to draw the
         image, evoked response, and colorbar (in that order). Length of list
