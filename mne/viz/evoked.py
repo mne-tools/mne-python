@@ -2031,7 +2031,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     # some things that depend on picks:
     ch_names = np.array(one_evoked.ch_names)[picks].tolist()
     ch_types = list(_get_channel_types(info, picks=picks, unique=True)
-                    .intersection(_DATA_CH_TYPES_SPLIT))
+                    .intersection(_DATA_CH_TYPES_SPLIT + ('misc',)))  # miscICA
     picks_by_type = channel_indices_by_type(info, picks)
     # discard picks from non-data channels (e.g., ref_meg)
     good_picks = sum([picks_by_type[ch_type] for ch_type in ch_types], [])
