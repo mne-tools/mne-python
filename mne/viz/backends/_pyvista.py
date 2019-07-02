@@ -183,8 +183,7 @@ class _Renderer(_BaseRenderer):
 
     def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
-             normalized_colormap=False, opacity=1.0, backface_culling=False,
-             reverse_lut=False):
+             normalized_colormap=False, reverse_lut=False):
         cmap = _get_colormap_from_array(colormap, normalized_colormap)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
@@ -203,9 +202,7 @@ class _Renderer(_BaseRenderer):
                                       rng=[vmin, vmax],
                                       color=color,
                                       show_scalar_bar=False,
-                                      opacity=opacity,
                                       cmap=cmap,
-                                      backface_culling=backface_culling,
                                       smooth_shading=self.smooth_shading)
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
