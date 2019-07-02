@@ -146,8 +146,9 @@ class _Renderer(_BaseRenderer):
         surface.actor.property.backface_culling = backface_culling
 
     def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
-             scalars=None, vmin=None, vmax=None, colormap=None,
-             opacity=1.0, backface_culling=False, reverse_lut=False):
+             scalars=None, vmin=None, vmax=None, colormap='RdBu',
+             normalized_colormap=False, opacity=1.0, backface_culling=False,
+             reverse_lut=False):
         if scalars is None:
             surface = self.mlab.plot3d([origin[:, 0], destination[:, 0]],
                                        [origin[:, 1], destination[:, 1]],

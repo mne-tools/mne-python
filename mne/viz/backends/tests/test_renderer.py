@@ -121,13 +121,11 @@ def test_3d_backend(renderer):
                   mode=qv_mode)
 
     # use tube
-    if renderer.get_3d_backend() == "pyvista":
-        with pytest.raises(NotImplementedError):
-            rend.tube(origin=np.array([[0, 0, 0]]),
-                      destination=np.array([[0, 1, 0]]))
-    else:
-        rend.tube(origin=np.array([[0, 0, 0]]),
-                  destination=np.array([[0, 1, 0]]))
+    rend.tube(origin=np.array([[0, 0, 0]]),
+              destination=np.array([[0, 1, 0]]))
+    rend.tube(origin=np.array([[1, 0, 0]]),
+              destination=np.array([[1, 1, 0]]),
+              scalars=np.array([[1.0, 1.0]]))
 
     # use text
     rend.text2d(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
