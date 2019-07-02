@@ -7,6 +7,7 @@
 
 import os.path as op
 import numpy as np
+from shutil import copyfile
 
 import pytest
 
@@ -18,8 +19,12 @@ from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
-from mne.io.curry.curry import _check_missing_files, _read_events_curry
-from mne.utils import check_version
+from mne.utils import check_version, run_tests_if_main
+from mne.annotations import read_annotations
+from mne.io.curry.curry import (
+    _check_missing_files, _read_events_curry, _get_curry_version,
+    INFO_FILE_EXTENSION, EVENT_FILE_EXTENSION
+)
 
 
 data_dir = testing.data_path(download=False)
@@ -62,7 +67,6 @@ def bdf_curry_ref():
     pytest.param(curry8_bdf_file, 1e-7, id='curry 8'),
     pytest.param(curry7_bdf_ascii_file, 1e-4, id='curry 7 ascii'),
     pytest.param(curry8_bdf_ascii_file, 1e-4, id='curry 8 ascii'),
-    pytest.param(test_sfreq_0, 1e-7, id='test sfreq = 0'),
 ])
 @pytest.mark.parametrize('preload', [True, False])
 def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
@@ -136,3 +140,125 @@ def test_check_missing_files():
     with pytest.raises(FileNotFoundError, match="files cannot be found"):
         _check_missing_files(invalid_fname, 7)
         _check_missing_files(invalid_fname, 8)
+
+
+def _mock_info_file(src, dst, sfreq, time_step):
+    with open(src, 'r') as in_file, open(dst, 'w') as out_file:
+        for line in in_file:
+            if 'SampleFreqHz' in line:
+                out_file.write(line.replace('500', str(sfreq)))
+            elif 'SampleTimeUsec' in line:
+                out_file.write(line.replace('2000', str(time_step)))
+            else:
+                out_file.write(line)
+
+
+@pytest.fixture(params=[
+    pytest.param(dict(sfreq=500, time_step=0), id='correct sfreq'),
+    pytest.param(dict(sfreq=0, time_step=2000), id='correct time_step'),
+    pytest.param(dict(sfreq=500, time_step=2000), id='both correct'),
+    pytest.param(dict(sfreq=0, time_step=0), id='both 0',
+                 marks=pytest.mark.raises),
+    pytest.param(dict(sfreq=500, time_step=42), id='mismatch',
+                 marks=pytest.mark.raises),
+])
+def sfreq_testing_data(tmpdir, request):
+    """Generate different sfreq, time_step scenarios to be tested."""
+    sfreq, time_step = request.param['sfreq'], request.param['time_step']
+
+    in_base_name = curry7_bdf_file.strip('dat')
+    out_base_name = str(tmpdir.join('curry.'))
+
+    # create dummy empty files for 'dat' and 'rs3'
+    for fname in [out_base_name + ext for ext in ['dat', 'rs3']]:
+        open(fname, 'a').close()
+
+    _mock_info_file(src=in_base_name + 'dap', dst=out_base_name + 'dap',
+                    sfreq=sfreq, time_step=time_step)
+
+    return out_base_name + 'dat'
+
+
+@testing.requires_testing_data
+def test_sfreq(sfreq_testing_data):
+    """Test sfreq and time_step."""
+    raw = read_raw_curry(sfreq_testing_data, preload=False)
+    assert raw.info['sfreq'] == 500
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname', [
+    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 7.cef', id='7'),
+    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 8.cdt.cef', id='8'),
+    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 7 ASCII.cef',
+                 id='7 ascii'),
+    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 8 ASCII.cdt.cef',
+                 id='8 ascii'),
+])
+def test_read_curry_annotations(fname):
+    """Test reading for Curry events file."""
+    EXPECTED_ONSET = [0.484, 0.486, 0.62, 0.622, 1.904, 1.906, 3.212, 3.214,
+                      4.498, 4.5, 5.8, 5.802, 7.074, 7.076, 8.324, 8.326, 9.58,
+                      9.582]
+    EXPECTED_DURATION = np.zeros_like(EXPECTED_ONSET)
+    EXPECTED_DESCRIPTION = ['4', '50000', '2', '50000', '1', '50000', '1',
+                            '50000', '1', '50000', '1', '50000', '1', '50000',
+                            '1', '50000', '1', '50000']
+
+    annot = read_annotations(fname, sfreq='auto')
+
+    assert annot.orig_time is None
+    assert_array_equal(annot.onset, EXPECTED_ONSET)
+    assert_array_equal(annot.duration, EXPECTED_DURATION)
+    assert_array_equal(annot.description, EXPECTED_DESCRIPTION)
+
+
+def _get_read_annotations_mock_info(name_part, mock_dir):
+    original, modified = dict(), dict()
+
+    original['event'] = (curry_dir + '/test_bdf_stim_channel ' + name_part)
+    original['base'], ext = original['event'].split(".", maxsplit=1)
+    curry_vers = _get_curry_version(ext)
+    original['info'] = original['base'] + INFO_FILE_EXTENSION[curry_vers]
+
+    modified['base'] = str(mock_dir.join('curry.'))
+    modified['event'] = modified['base'] + EVENT_FILE_EXTENSION[curry_vers]
+    modified['info'] = modified['base'] + INFO_FILE_EXTENSION[curry_vers]
+
+    return original, modified
+
+
+@pytest.mark.parametrize('name_part', [
+    pytest.param('7.cef', id='7'),
+    pytest.param('8.cdt.cef', id='8'),
+    pytest.param('7 ASCII.cef', id='7 (ascii)'),
+    pytest.param('8 ASCII.cdt.cef', id='8 (ascii)'),
+])
+def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
+    """Test reading for Curry events file."""
+    EXPECTED_ONSET = [0.484, 0.486, 0.62, 0.622, 1.904, 1.906, 3.212, 3.214,
+                      4.498, 4.5, 5.8, 5.802, 7.074, 7.076, 8.324, 8.326, 9.58,
+                      9.582]
+    EXPECTED_DURATION = np.zeros_like(EXPECTED_ONSET)
+    EXPECTED_DESCRIPTION = ['4', '50000', '2', '50000', '1', '50000', '1',
+                            '50000', '1', '50000', '1', '50000', '1', '50000',
+                            '1', '50000', '1', '50000']
+    _msg = 'meaningful message stating that annotations cannot infer sfreq foo.xx not found'  # noqa
+
+    original, fname = _get_read_annotations_mock_info(name_part, tmpdir)
+    copyfile(src=original['event'], dst=fname['event'])
+    with pytest.raises(RuntimeError, match=_msg):
+        read_annotations(fname['event'], sfreq='auto')
+
+    _mock_info_file(src=original['info'], dst=fname['info'],
+                    sfreq=0, time_step=2000)
+
+    annot = read_annotations(fname['event'], sfreq='auto')
+
+    assert annot.orig_time is None
+    assert_array_equal(annot.onset, EXPECTED_ONSET)
+    assert_array_equal(annot.duration, EXPECTED_DURATION)
+    assert_array_equal(annot.description, EXPECTED_DESCRIPTION)
+
+
+run_tests_if_main()
