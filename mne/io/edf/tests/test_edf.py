@@ -32,7 +32,6 @@ from mne.io.edf.edf import find_edf_events
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
 from mne.io.meas_info import _kind_dict as _KIND_DICT
-from mne.channels import Montage
 
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -370,31 +369,6 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     raw = read_raw_edf(fname, stim_channel=test_input)
     ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
     assert ch_types == EXPECTED
-
-
-def _fake_montage(ch_names):
-    return Montage(
-        pos=np.random.RandomState(42).randn(len(ch_names), 3),
-        ch_names=ch_names,
-        kind='foo',
-        selection=np.arange(len(ch_names))
-    )
-
-
-@testing.requires_testing_data
-def test_montage():
-    """Test montage."""
-    raw_none = read_raw_edf(input_fname=edf_path, montage=None, preload=False)
-    montage = _fake_montage(raw_none.info['ch_names'][:-1])
-
-    raw_montage = read_raw_edf(edf_path, montage=montage,
-                               preload=False)
-    raw_none.set_montage(montage)
-
-    # Check they are the same
-    assert_array_equal(raw_none.get_data(), raw_montage.get_data())
-    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
-    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
 
 
 run_tests_if_main()
