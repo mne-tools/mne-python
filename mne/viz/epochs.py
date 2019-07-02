@@ -351,7 +351,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
 
 def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
-    """check user-provided fig/axes compatibility with plot_epochs_image."""
+    """Check user-provided fig/axes compatibility with plot_epochs_image."""
     from matplotlib.pyplot import figure, Axes, subplot2grid
 
     n_axes = 1 + int(evoked) + int(colorbar)

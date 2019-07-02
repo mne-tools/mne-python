@@ -1476,7 +1476,7 @@ def _check_loc_legal(loc, what='your choice', default=1):
 
 
 def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
-    """style checking and assignment for plot_compare_evokeds."""
+    """Check and assign styles for plot_compare_evokeds."""
     from matplotlib.cm import get_cmap
     from matplotlib.colors import Colormap
     # check if style dict is valid
@@ -1710,7 +1710,7 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
 
 def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
                    vlines, tmin, tmax, unit, skip_axlabel=True):
-    """Helper to position, draw, and truncate axes for plot_compare_evokeds."""
+    """Position, draw, and truncate axes for plot_compare_evokeds."""
     # avoid matplotlib errors
     if ymin == ymax:
         ymax += 1e-15
@@ -1761,7 +1761,7 @@ def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,
 
 
 def _get_ci_function_pce(ci):
-    """Helper to get confidence interval function for plot_compare_evokeds."""
+    """Get confidence interval function for plot_compare_evokeds."""
     if ci is None:
         return None
     elif callable(ci):
@@ -1799,7 +1799,7 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, ci_dict, styles,
 
 
 def _title_helper_pce(title, picked_types, picks, ch_names, combine):
-    """title formatter for plot_compare_evokeds."""
+    """Format title for plot_compare_evokeds."""
     if title is None:
         title = (_handle_default('titles').get(picks, None) if picked_types
                  else _set_title_multiple_electrodes(title, combine, ch_names))

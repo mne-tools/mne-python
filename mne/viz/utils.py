@@ -2794,16 +2794,15 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
 @fill_doc
 def _make_combine_callable(combine):
-    """convert None or string values of ``combine`` into callables.
+    """Convert None or string values of ``combine`` into callables.
 
     Params
     ------
     %(combine)s
-        If callable, the call signature and return type depend on the value of
-        ``kind``: for ``kind='epochs'``, input shape must be
-        ``(n_epochs, n_channels, n_times)`` and output shape
-        ``(n_epochs, n_times)``; for ``kind='evoked'`` input shape must be
-        ``(n_channels, n_times)``) and output shape ``(n_times,)``.
+        If callable, the callable must accept one positional input (data of
+        shape ``(n_epochs, n_channels, n_times)`` or ``(n_evokeds, n_channels,
+        n_times)``) and return an :class:`array <numpy.ndarray>` of shape
+        ``(n_epochs, n_times)`` or ``(n_evokeds, n_times)``.
     """
     if combine is None:
         combine = partial(np.squeeze, axis=1)
@@ -3071,5 +3070,6 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
 
 
 def _trim_ticks(ticks, _min, _max):
+    """Remove ticks that are more extreme than the given limits."""
     keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
     return ticks[keep]
