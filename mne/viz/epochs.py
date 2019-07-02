@@ -37,7 +37,7 @@ from .misc import _handle_event_colors
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None, fig=None,
-                      axes=None, overlay_times=None, combine=None,
+                      axes=None, clear=False, overlay_times=None, combine=None,
                       group_by=None, evoked=True, ts_args=None, title=None):
     """Plot Event Related Potential / Fields image.
 
@@ -108,6 +108,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ``group_by`` are dicts, their keys must match. Providing non-``None``
         values for both ``fig`` and ``axes``  results in an error. Defaults to
         ``None``.
+    clear : bool
+        Whether to clear the axes before plotting (if ``fig`` or ``axes`` are
+        provided). Defaults to ``False``.
     overlay_times : array_like, shape (n_epochs,) | None
         Times (in seconds) at which to draw a line on the corresponding row of
         the image (e.g., a reaction time associated with each epoch). Note that
@@ -253,13 +256,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # check for compatible `fig` / `axes`; instantiate figs if needed; add
     # fig(s) and axes into group_by
-    group_by = _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar)
-
-    # handle `order`
-    data = epochs.get_data()
+    group_by = _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar,
+                                      clear=clear)
 
     # prepare images in advance to get consistent vmin/vmax.
     # At the same time, create a subsetted epochs object for each group
+    data = epochs.get_data()
     vmin_vmax = {ch_type: dict(images=list(), norm=list())
                  for ch_type in set(ch_types)}
     for this_group, this_group_dict in group_by.items():
@@ -352,7 +354,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     return [this_group_dict['fig'] for this_group_dict in group_by.values()]
 
 
-def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
+def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
     """Check user-provided fig/axes compatibility with plot_epochs_image."""
     from matplotlib.pyplot import figure, Axes, subplot2grid
 
@@ -386,7 +388,9 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
 
     # got a Figure instance
     if fig is not None:
-        if len(fig.axes) != n_axes:
+        # If we're re-plotting into a fig made by a previous call to
+        # `plot_image`, be forgiving of presence/absence of sensor inset axis.
+        if len(fig.axes) not in (n_axes, n_axes + 1):
             raise ValueError('{}"fig" must contain {} axes, got {}.'
                              ''.format(prefix, n_axes, len(fig.axes)))
         if len(list(group_by)) != 1:
@@ -394,6 +398,11 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar):
                              'have one group (got {}: {}).'
                              .format(len(group_by), ', '.join(group_by)))
         key = list(group_by)[0]
+        if clear:  # necessary if re-plotting into previous figure
+            _ = [ax.clear() for ax in fig.axes]
+            if len(fig.axes) > n_axes:  # get rid of sensor inset
+                fig.axes[-1].remove()
+            fig.canvas.set_window_title(key)
         axes = {key: fig.axes}
 
     # got an Axes instance, be forgiving (if evoked and colorbar are False)
@@ -1452,6 +1461,7 @@ def _plot_onscroll(event, params):
 
 def _mouse_click(event, params):
     """Handle mouse click events."""
+    from matplotlib.pyplot import fignum_exists
     if event.inaxes is None:
         if params['butterfly'] or not params['settings'][0]:
             return
@@ -1472,9 +1482,14 @@ def _mouse_click(event, params):
                     logger.info('Event related fields / potentials only '
                                 'available for MEG and EEG channels.')
                     return
+                # check if the figure was already closed
+                if (params['image_plot'] is not None and
+                        not fignum_exists(params['image_plot'].number)):
+                    params['image_plot'] = None
                 fig = plot_epochs_image(params['epochs'],
                                         picks=params['inds'][ch_idx],
-                                        fig=params['image_plot'])[0]
+                                        fig=params['image_plot'],
+                                        clear=True)[0]
                 params['image_plot'] = fig
     elif event.button == 1:  # left click
         # vertical scroll bar changed
