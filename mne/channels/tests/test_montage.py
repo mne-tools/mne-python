@@ -568,9 +568,13 @@ from mne.io import read_raw_eeglab
 nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
                         'test_nicolet_raw.data')
 edf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test.edf')
+bdf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test_bdf_eeglab.mat')
 
-testing_base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
-eeglab_fname = op.join(testing_base_dir, 'test_raw.set')
+testing_base_dir = op.join(testing.data_path(download=False))
+eeglab_fname = op.join(testing_base_dir, 'EEGLAB', 'test_raw.set')
+
+bdf_fname1 = op.join(testing_base_dir, 'BDF', 'test_generator_2.bdf')
+bdf_fname2 = op.join(testing_base_dir, 'BDF', 'test_bdf_stim_channel.bdf')
 
 
 def _fake_montage(ch_names):
@@ -583,14 +587,21 @@ def _fake_montage(ch_names):
 
 
 from mne.io import read_raw_edf
+from mne.io import read_raw_bdf
 from functools import partial
 
+@testing.requires_testing_data
 @pytest.mark.parametrize('read_raw,fname', [
     pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
                  nicolet_fname,
                  id='nicolet'),
     pytest.param(read_raw_eeglab, eeglab_fname, id='eeglab'),
     pytest.param(read_raw_edf, edf_path, id='edf'),
+    pytest.param(read_raw_bdf, bdf_path,
+                 marks=pytest.mark.xfail(raises=NotImplementedError),
+                 id='bdf 1'),
+    pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
+    pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
 ])
 def test_montage_when_reading_and_setting(read_raw, fname):
     """Test montage."""
