@@ -29,7 +29,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _connection_line, _get_color_list, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes,
                     _set_title_multiple_electrodes, _check_time_unit,
-                    _plot_masked_image)
+                    _plot_masked_image, _trim_ticks)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
 
@@ -1459,47 +1459,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 # The following functions are all helpers for plot_compare_evokeds.           #
 ###############################################################################
 
-def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
-                    any_positive, any_negative, truncation_style):
-    """Truncate the y axis in plot_compare_evokeds."""
-    if truncation_style != "max_ticks":
-        abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
-                    else np.abs(orig_ymin))
-        ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
-        # user supplied ymin and ymax overwrite everything
-        if ymin is not None and ymin > ymin_:
-            ymin_ = ymin
-        if ymax is not None and ymax < ymax_:
-            ymax_ = ymax
-        yticks = (ymin_ if any_negative else 0, ymax_ if any_positive else 0)
-        axes.set_yticks(yticks)
-        ymin_bound, ymax_bound = (-(abs_lims // fraction),
-                                  abs_lims // fraction)
-        # user supplied ymin and ymax still overwrite everything
-        if ymin is not None and ymin > ymin_bound:
-            ymin_bound = ymin
-        if ymax is not None and ymax < ymax_bound:
-            ymax_bound = ymax
-        precision = 0.25  # round to .25
-        if ymin is None:
-            ymin_bound = round(ymin_bound / precision) * precision  # TODO COVERAGE
-        if ymax is None:
-            ymax_bound = round(ymax_bound / precision) * precision  # TODO COVERAGE
-        axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
-    else:  # code stolen from seaborn
-        yticks = axes.get_yticks()
-        firsttick = np.compress(yticks >= min(axes.get_ylim()),
-                                yticks)[0]
-        lasttick = np.compress(yticks <= max(axes.get_ylim()),
-                               yticks)[-1]
-        axes.spines['left'].set_bounds(firsttick, lasttick)
-        newticks = yticks.compress(yticks <= lasttick)
-        newticks = newticks.compress(newticks >= firsttick)
-        axes.set_yticks(newticks)
-        ymin_bound, ymax_bound = newticks[[0, -1]]
-    return ymin_bound, ymax_bound
-
-
 def _check_loc_legal(loc, what='your choice', default=1):
     """Check if loc is a legal location for MPL subordinate axes."""
     true_default = {"show_legend": 2, "show_sensors": 1}.get(what, default)
@@ -1546,11 +1505,11 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
                 del styles[key]
     # COLORS
     # make colors a list if it's not defined
-    suffix = ''
+    err_suffix = ''
     if colors is None:
         if cmap is None:
             colors = _get_color_list()
-            suffix = ' in the default color cycle'
+            err_suffix = ' in the default color cycle'
         else:
             colors = list(range(len(conditions)))
     # convert color list to dict
@@ -1559,7 +1518,7 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
             raise ValueError('Trying to plot {} conditions, but there are '
                              'only {} colors{}. Please specify colors '
                              'manually.'
-                             .format(len(conditions), len(colors), suffix))
+                             .format(len(conditions), len(colors), err_suffix))
         colors = dict(zip(conditions, colors))
     # should be a dict by now...
     if not isinstance(colors, dict):
@@ -1738,7 +1697,7 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
     ncol = 1 + (len(lines) // (4 if split_legend else 5))
     legend_params = dict(loc=loc, frameon=True, ncol=ncol)
     if do_topo and isinstance(show_legend, bool):
-        legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))  # TODO COVERAGE
+        legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))
     if draw_legend:
         labels = [li.get_label() for li in lines]
         ax.legend(lines, labels, **legend_params)
@@ -1749,53 +1708,42 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
         del ax.texts[-1]
 
 
-def _draw_axes_pce(ax, any_positive, any_negative, ymin, ymax, truncate_yaxis,
-                   truncate_xaxis, invert_y, vlines, tmin, tmax, unit,
-                   skip_axlabel=True):
-    """Set ylims for an evoked plot. Helper for plot_compare_evokeds."""
-    # truncate the y axis - this is aesthetics
-    orig_ymin, orig_ymax = ax.get_ylim()
-    if not any_positive:
-        orig_ymax = 0  # TODO COVERAGE
-    if not any_negative:
-        orig_ymin = 0
-
-    ax.set_ylim(orig_ymin if ymin is None else ymin,
-                orig_ymax if ymax is None else ymax)
-
-    fraction = 2 if ax.get_ylim()[0] >= 0 else 3
-
-    ymax_bound = ax.get_ylim()[-1]
+def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
+                   vlines, tmin, tmax, unit, skip_axlabel=True):
+    """Helper to position, draw, and truncate axes for plot_compare_evokeds."""
+    # avoid matplotlib errors
+    if ymin == ymax:
+        ymax += 1e-15
+    if tmin == tmax:
+        tmax += 1e-9
+    ax.set_xlim(tmin, tmax)
+    ax.set_ylim(ymin, ymax)
+    ybounds = (ymin, ymax)
+    # determine ymin/ymax for spine truncation
+    trunc_y = True if truncate_yaxis == 'auto' else truncate_yaxis
     if truncate_yaxis:
-        if ymin is not None and ymin > 0:
-            warn("ymin is all-positive, not truncating yaxis")
+        if isinstance(truncate_yaxis, bool):
+            # truncate to half the max abs. value and round to a nice-ish
+            # number. ylims are already symmetric about 0 or have a lower bound
+            # of 0, so div. by 2 should suffice.
+            ybounds = np.array([ymin, ymax]) / 2.
+            precision = 0.25
+            ybounds = np.round(ybounds / precision) * precision
+        elif truncate_yaxis == 'auto':
+            # truncate to existing max/min ticks
+            ybounds = _trim_ticks(ax.get_yticks(), ymin, ymax)[[0, -1]]
         else:
-            _, ymax_bound = _truncate_yaxis(
-                ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
-                any_positive, any_negative, truncate_yaxis)
-
-    current_ymin = ax.get_ylim()[0]
-
-    # plot v lines
-    # Why 'invert_y'? Many EEG people plot negative values up for ... reasons
-    if invert_y and (current_ymin < 0):
-        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]  # TODO COVERAGE
-    else:
-        upper_v, lower_v = ax.get_ylim()[0], ymax_bound
-    if vlines:
-        ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
-                  linewidth=1., zorder=1)
-
-    # more aesthetics
-    _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
-                     truncate_xaxis, skip_axlabel=skip_axlabel)
+            raise ValueError('"truncate_yaxis" must be bool or '
+                             '"auto", got {}'.format(truncate_yaxis))
+    _setup_ax_spines(ax, vlines, tmin, tmax, ybounds[0], ybounds[1], invert_y,
+                     unit, truncate_xaxis, trunc_y, skip_axlabel)
+    # for dark backgrounds:
+    ax.patch.set_alpha(0)
 
 
-def _get_data_and_ci(evoked, combine, combine_func, scaling=1, picks=None,
+def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,
                      ci_fun=None):
     """Compute (sensor-aggregated, scaled) time series and possibly CI."""
-    if picks is None:
-        picks = Ellipsis  # TODO COVERAGE
     picks = np.array(picks).flatten()
     # apply scalings
     data = np.array([evk.data[picks] * scaling for evk in evoked])
@@ -1833,17 +1781,11 @@ def _get_ci_function_pce(ci):
 def _plot_compare_evokeds(ax, data_dict, conditions, times, ci_dict, styles,
                           title, all_positive, topo):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
-    any_negative, any_positive = False, False
     for condition in conditions:
         # plot the actual data ('d') as a line
         d = data_dict[condition].T
         ax.plot(times, d, zorder=1000, label=condition, clip_on=False,
                 **styles[condition])
-        if any_positive or np.any(d > 0):
-            any_positive = True
-        if any_negative or np.any(d < 0):
-            any_negative = True
-
         # plot the confidence interval if available
         if ci_dict.get(condition, None) is not None:
             ci_ = ci_dict[condition]
@@ -1854,8 +1796,6 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, ci_dict, styles,
         ax.text(-.1, 1, title, transform=ax.transAxes)
     else:
         ax.set_title(title)
-
-    return any_positive, any_negative
 
 
 def _title_helper_pce(title, picked_types, picks, ch_names, combine):
@@ -1876,7 +1816,7 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
-                         vlines='auto', ci=True, truncate_yaxis='max_ticks',
+                         vlines='auto', ci=True, truncate_yaxis='auto',
                          truncate_xaxis=True, ylim=None, invert_y=False,
                          show_sensors=None, show_legend=True,
                          split_legend=None, axes=None, title=None, show=True,
@@ -1965,9 +1905,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         lower confidence margins (2 × n_times). Defaults to ``True``.
     truncate_yaxis : bool | str
         If not False, the left y axis spine is truncated to reduce visual
-        clutter. If 'max_ticks', the spine is truncated at the minimum and
+        clutter. If 'auto', the spine is truncated at the minimum and
         maximum ticks. Else, it is truncated to half the max absolute value,
-        rounded to .25. Defaults to 'max_ticks'.
+        rounded to .25. Defaults to 'auto'.
     truncate_xaxis : bool
         If True, the x axis is truncated to span from the first to the last
         xtick. Defaults to True.
@@ -2042,11 +1982,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     import matplotlib.pyplot as plt
     from ..evoked import Evoked, _check_evokeds_ch_names_times
 
-    # deprecation
+    # deprecations
     if gfp is not None:
         warn('"gfp" is deprecated and will be removed in version 0.20; please '
              'use `combine="gfp"` instead.', DeprecationWarning)
-
+    if truncate_yaxis == 'max_ticks':
+        warn('truncate_yaxis="max_ticks" changed to truncate_yaxis="auto" in '
+             'version 0.19; in version 0.20 passing "max_ticks" will result '
+             'in an error. Please update your code accordingly.',
+             DeprecationWarning)
+        truncate_yaxis = 'auto'
     # build up evokeds into a dict, if it's not already
     if isinstance(evokeds, Evoked):
         evokeds = [evokeds]
@@ -2055,8 +2000,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     if not isinstance(evokeds, dict):
         raise TypeError('"evokeds" must be a dict, list, or instance of '
                         'mne.Evoked; got {}'.format(type(evokeds).__name__))
-    # avoid modifying dict outside function scope
-    evokeds = deepcopy(evokeds)
+    evokeds = deepcopy(evokeds)  # avoid modifying dict outside function scope
     for cond, evoked in evokeds.items():
         _validate_type(cond, 'str', 'Conditions')
         if isinstance(evoked, Evoked):
@@ -2067,14 +2011,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     all_evoked = sum(evokeds.values(), [])
     _check_evokeds_ch_names_times(all_evoked)
     del all_evoked
-    # get representative info
+
+    # get some representative info
     conditions = list(evokeds)
     one_evoked = evokeds[conditions[0]][0]
     times = one_evoked.times
     info = one_evoked.info
     tmin, tmax = times[0], times[-1]
-
-    # vlines
+    # set some defaults
+    if ylim is None:
+        ylim = dict()
     if vlines == 'auto':
         vlines = [0.] if (tmin < 0 < tmax) else []
     _validate_type(vlines, (list, tuple), 'vlines', 'list or tuple')
@@ -2097,28 +2043,23 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     if (len(picks) < 2) and combine is not None:
         warn('Only {} channel in "picks"; cannot combine by method "{}".'
              .format(len(picks), combine))
-    # `combine` defaults to 'gfp' unless `picks` is a single channel or
-    # `axes='topo'`
+    # `combine` defaults to GFP unless picked a single channel or axes='topo'
     if combine is None and len(picks) > 1 and axes != 'topo':
         combine = 'gfp'
     # convert `combine` into callable (if None or str)
     combine_func = _make_combine_callable(combine)
+
     # title
     title = _title_helper_pce(title, picked_types, picks=orig_picks,
                               ch_names=ch_names, combine=combine)
 
-    if ylim is None:
-        ylim = dict()
-
     do_topo = (axes == 'topo')
     if do_topo:
         show_sensors = False
-        if show_legend:  # override, since it gets its own axes in topo layout
-            show_legend = 'lower right'
         if len(picks) > 70:
             logger.info('You are plotting to a topographical layout with >70 '
                         'sensors. This can be extremely slow. Consider using '
-                        'mne.viz.plot_topo, which is optimized for speed.')  # TODO COVERAGE
+                        'mne.viz.plot_topo, which is optimized for speed.')
 
     # let's take care of axis and figs
     if not do_topo:
@@ -2127,8 +2068,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                 axes = [axes]
                 _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
         else:
-            axes = (plt.subplots(figsize=(8, 6))[1]
-                    for _ in range(len(ch_types)))
+            axes = (plt.subplots(figsize=(8, 6))[1] for _ in ch_types)
     else:
         axes = ['topo'] * len(ch_types)
 
@@ -2140,7 +2080,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             _picks = picks_by_type[ch_type]
             _ch_names = np.array(one_evoked.ch_names)[_picks].tolist()
             _picks = ch_type if picked_types else _picks
-            # don't pass combine here; title will run through this helper
+            # don't pass `combine` here; title will run through this helper
             # function a second time & it will get added then
             _title = _title_helper_pce(title, picked_types, picks=_picks,
                                        ch_names=_ch_names, combine=None)
@@ -2158,7 +2098,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     (styles, cmap, cmap_label, colors, linestyles,
      legend_tick_locs) = _handle_styles_pce(styles, colors, cmap, linestyles,
                                             conditions)
-
     # From now on there is only 1 channel type
     assert len(ch_types) == 1
     ch_type = ch_types[0]
@@ -2166,11 +2105,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     units = _handle_default('units')[ch_type]
     scalings = _handle_default('scalings')[ch_type]
 
-    pos_picks = picks  # keep locations to pick for plotting
-
-    info = pick_info(info, sel=pos_picks, copy=True)
+    # prep for topo
+    pos_picks = picks  # need this version of picks for sensor location inset
+    info = pick_info(info, sel=picks, copy=True)
     all_ch_names = info['ch_names']
-    if do_topo:
+    if not do_topo:
+        # add vacuous "index" (needed for topo) so same code works for both
+        axes = [(ax, 0) for ax in axes]
+        if np.array(picks).ndim < 2:
+            picks = [picks]  # enables zipping w/ axes
+    else:
         from .topo import iter_topography
         fig = plt.figure(figsize=(18, 14))
 
@@ -2199,10 +2143,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
             axis_spinecolor='k', layout_scale=.925, legend=True))
         picks = list(picks)
-    else:
-        axes = [(ax, 0) for ax in axes]
-        if np.array(picks).ndim < 2:
-            picks = [picks]  # enables zipping w/ axes
     del info
 
     # for each axis, compute the grand average and (maybe) the CI
@@ -2210,7 +2150,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     c_func = None if do_topo else combine_func
     all_data = list()
     all_cis = list()
-    any_positive, any_negative = False, False
     for _picks, (ax, idx) in zip(picks, axes):
         data_dict = dict()
         ci_dict = dict()
@@ -2219,9 +2158,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             # skip CIs when possible; assign ci_fun first to get arg checking
             ci_fun = _get_ci_function_pce(ci)
             ci_fun = ci_fun if len(this_evokeds) > 1 else None
-            res = _get_data_and_ci(this_evokeds, combine, c_func,
-                                   scaling=scalings, picks=_picks,
-                                   ci_fun=ci_fun)
+            res = _get_data_and_ci(this_evokeds, combine, c_func, picks=_picks,
+                                   scaling=scalings, ci_fun=ci_fun)
             data_dict[cond] = res[0]
             if ci_fun is not None:
                 ci_dict[cond] = res[1]
@@ -2238,12 +2176,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         allvalues.extend(list(_dict.values()))
     allvalues = np.concatenate(allvalues)
     norm = np.all(allvalues > 0)
-    ymin, ymax = ylim.get(ch_type, [None, None])
-    ymin, ymax = _setup_vmin_vmax(allvalues, ymin, ymax, norm)
+    orig_ymin, orig_ymax = ylim.get(ch_type, [None, None])
+    ymin, ymax = _setup_vmin_vmax(allvalues, orig_ymin, orig_ymax, norm)
     del allvalues
-    # avoid matplotlib error
-    if ymin == ymax:
-        ymax += 1e-9  # TODO COVERAGE (TEST A FLAT CHANNEL?)
 
     # add empty data (all zeros) for the legend axis
     all_data.append({cond: np.zeros(dat.shape)
@@ -2256,42 +2191,30 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     for _picks, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
-        any_pos, any_neg = _plot_compare_evokeds(ax, data, conditions, times,
-                                                 cis, styles, title,
-                                                 norm, do_topo)
-        if any_pos:
-            any_positive = True
-        if any_neg:
-            any_negative = True
-
-    # set ylims
+        _plot_compare_evokeds(ax, data, conditions, times, cis, styles, title,
+                              norm, do_topo)
+    # draw axes
     for _ax, idx in axes:
         skip_axlabel = do_topo and (idx != -1)
-        _draw_axes_pce(_ax, any_positive, any_negative, ymin, ymax,
-                       truncate_yaxis, truncate_xaxis, invert_y, vlines,
-                       tmin, tmax, units, skip_axlabel=skip_axlabel)
-
-        _ax.patch.set_alpha(0)
-        if skip_axlabel:
-            _ax.set_yticklabels([])
-            _ax.set_xticklabels([])
-
+        _ymin = ymin if orig_ymin is None else orig_ymin
+        _ymax = ymax if orig_ymax is None else orig_ymax
+        _draw_axes_pce(_ax, _ymin, _ymax, truncate_yaxis, truncate_xaxis,
+                       invert_y, vlines, tmin, tmax, units, skip_axlabel)
     # add inset scalp plot showing location of sensors picked
     if show_sensors:
         _validate_type(show_sensors, (np.int, bool, str, type(None)),
                        'show_sensors', 'numeric, str, None or bool')
         if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
             warn('Cannot find channel coordinates in the supplied Evokeds. '
-                 'Not showing channel locations.')  # TODO COVERAGE
+                 'Not showing channel locations.')
         else:
             _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
                                   show_sensors, _ax)
-
     # add color/linestyle/colormap legend(s)
     if show_legend:
         _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
                          cmap_label, linestyles, legend_tick_locs, do_topo,
                          ax)
-
+    # finish
     plt_show(show)
     return [ax.figure]

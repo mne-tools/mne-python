@@ -2376,77 +2376,78 @@ def _set_ax_facecolor(ax, face_color):
         ax.set_axis_bgcolor(face_color)
 
 
-def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
-                     ymax_bound=None, unit=None, truncate_xaxis=True,
-                     skip_axlabel=True):
-    ymin, ymax = axes.get_ylim()
-    y_range = -np.subtract(ymin, ymax)
-
-    # style the spines/axes
-    axes.spines["top"].set_position('zero')
-    if truncate_xaxis:
-        axes.spines["top"].set_smart_bounds(True)
+def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
+                     unit=None, truncate_xaxis=True, truncate_yaxis=True,
+                     skip_axlabel=False, hline=True):
+    # don't show zero line if it coincides with x-axis (even if hline=True)
+    if hline and ymin != 0.:
+        axes.spines['top'].set_position('zero')
     else:
-        axes.spines['top'].set_bounds(tmin, tmax)
-
-    axes.tick_params(direction='out')
-    axes.tick_params(right=False)
-
-    current_ymin = axes.get_ylim()[0]
-
-    # set x label
-    if not skip_axlabel:
-        axes.set_xlabel('Time (s)')
-    axes.xaxis.get_label().set_verticalalignment('center')
-
-    # set y label and ylabel position
-    if unit is not None:
-        if not skip_axlabel:
-            axes.set_ylabel(unit + "\n", rotation=90)
-        ylabel_height = (-(current_ymin / y_range)
-                         if 0 > current_ymin  # ... if we have negative values
-                         else (axes.get_yticks()[-1] / 2 / y_range))
-        axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
-                                    if invert_y else ylabel_height)
-
+        axes.spines['top'].set_visible(False)
     # the axes can become very small with topo plotting. This prevents the
     # x-axis from shrinking to length zero if truncate_xaxis=True, by adding
     # new ticks that are nice round numbers close to (but less extreme than)
-    # tmin and tmax
+    # xmin and xmax
     vlines = [] if vlines is None else vlines
-    xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
-    ticks_in_range = [t for t in xticks if tmax >= t >= tmin]
-    if len(ticks_in_range) < 2:
+    xticks = _trim_ticks(axes.get_xticks(), xmin, xmax)
+    xticks = np.array(sorted(set([x for x in xticks] + vlines)))
+    if len(xticks) < 2:
         def log_fix(tval):
             exp = np.log10(np.abs(tval))
             return np.sign(tval) * 10 ** (np.fix(exp) - (exp < 0))
-        tlims = np.array([tmin, tmax])
-        temp_ticks = log_fix(tlims)
-        closer_idx = np.argmin(np.abs(tlims - temp_ticks))
-        further_idx = np.argmax(np.abs(tlims - temp_ticks))
-        start_stop = [temp_ticks[closer_idx], tlims[further_idx]]
+        xlims = np.array([xmin, xmax])
+        temp_ticks = log_fix(xlims)
+        closer_idx = np.argmin(np.abs(xlims - temp_ticks))
+        further_idx = np.argmax(np.abs(xlims - temp_ticks))
+        start_stop = [temp_ticks[closer_idx], xlims[further_idx]]
         step = np.sign(np.diff(start_stop)) * np.max(np.abs(temp_ticks))
         tts = np.arange(*start_stop, step)
-        ticks_in_range = sorted(ticks_in_range + [tts[0]] + [tts[-1]])
-
-    if truncate_xaxis:
-        axes.spines['top'].set_bounds(ticks_in_range[0], ticks_in_range[-1])
+        xticks = np.array(sorted(xticks + [tts[0], tts[-1]]))
+    axes.set_xticks(xticks)
+    # y-axis is simpler
+    yticks = _trim_ticks(axes.get_yticks(), ymin, ymax)
+    axes.set_yticks(yticks)
+    # truncation case 1: truncate both
+    if truncate_xaxis and truncate_yaxis:
+        axes.spines['bottom'].set_bounds(*xticks[[0, -1]])
+        axes.spines['left'].set_bounds(*yticks[[0, -1]])
+    # case 2: truncate only x (only right side; connect to y at left)
+    elif truncate_xaxis:
+        xbounds = np.array(axes.get_xlim())
+        xbounds[1] = axes.get_xticks()[-1]
+        axes.spines['bottom'].set_bounds(*xbounds)
+    # case 3: truncate only y (only top; connect to x at bottom)
+    elif truncate_yaxis:
+        ybounds = np.array(axes.get_ylim())
+        if invert_y:
+            ybounds[0] = axes.get_yticks()[0]
+        else:
+            ybounds[1] = axes.get_yticks()[-1]
+        axes.spines['left'].set_bounds(*ybounds)
+    # handle axis labels
+    if skip_axlabel:
+        axes.set_yticklabels([])
+        axes.set_xticklabels([])
     else:
-        axes.spines['top'].set_bounds(tmin, tmax)
-    if ymin >= 0:
-        axes.spines["top"].set_color('none')
-    axes.spines["left"].set_zorder(0)
-    axes.set_xticks(ticks_in_range)
-
-    # finishing touches
+        if unit is not None:
+            axes.set_ylabel(unit, rotation=90)
+            # center label between the ticks
+            # axes.set_label_coords(-0.05, some_yval)
+        axes.set_xlabel('Time (s)')
+    # axes.xaxis.get_label().set_verticalalignment('center')
+    # plot vertical lines
+    if vlines:
+        _ymin, _ymax = axes.get_ylim()
+        axes.vlines(vlines, _ymax, _ymin, linestyles='--', colors='k',
+                    linewidth=1., zorder=1)
+    # invert?
     if invert_y:
         axes.invert_yaxis()
-    axes.spines['right'].set_color('none')
-    if tmin != tmax:
-        axes.set_xlim(tmin, tmax)
-    if truncate_xaxis is False:
-        axes.axis("tight")
-        axes.set_autoscale_on(False)
+    # changes we always make:
+    axes.tick_params(direction='out')
+    axes.tick_params(right=False)
+    axes.spines['right'].set_visible(False)
+    axes.spines['left'].set_zorder(0)
 
 
 def _handle_decim(info, decim, lowpass):
@@ -3067,3 +3068,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     return fig
+
+
+def _trim_ticks(ticks, _min, _max):
+    keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
+    return ticks[keep]
