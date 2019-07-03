@@ -36,12 +36,12 @@ MNE-Python, including packages for:
 - managing MNE projects so that they comply with the `Brain
   Imaging Data Structure`_ specification (`MNE-BIDS`_)
 - automatic bad channel detection and interpolation (`autoreject`_)
-- sparse dictionary learning (`alphaCSC`_)
-- preconditioned ICA for real data (`PICARD`_)
+- convolutional sparse dictionary learning and waveform shape estimation (`alphaCSC`_)
+- independent component analysis (ICA) with good performance on real data (`PICARD`_)
 - phase-amplitude coupling (`pactools`_)
 - representational similarity analysis (`rsa`_)
 - microstate analysis (`microstate`_)
-- connectivity analysis using dynamic imaging of coherent sources (`conpy`_)
+- connectivity analysis using dynamic imaging of coherent sources (DICS) (`conpy`_)
 - general-purpose statistical analysis of M/EEG data (`eelbrain`_)
 - post-hoc modification of linear models (`posthoc`_)
 
