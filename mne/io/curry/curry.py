@@ -31,7 +31,10 @@ FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
 SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
 SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, μ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
-CurryFileStructure = namedtuple('CurryFileStructure', 'info, data, labels, events')
+CurryFileStructure = namedtuple('CurryFileStructure',
+                                'info, data, labels, events')
+CurryParameters = namedtuple('CurryParameters',
+                             'n_samples, sfreq, is_ascii, unit_dict')
 
 
 def _get_curry_version(file_extension):
@@ -64,25 +67,6 @@ def _get_curry_file_structure(fname, required):
         raise FileNotFoundError(_msg.format(np.unique(missing)))
 
     return my_curry
-
-
-def _set_sfreq_curry(sfreq, time_step):
-    """Set sfreq and time_steps from a curry file."""
-    _msg_match = "The sampling frequency and the time steps extracted from " \
-                 "the parameter file do not match."
-    _msg_invalid = "sfreq must be greater than 0. Got sfreq = {0}"
-
-    if time_step == 0:
-        true_sfreq = sfreq
-    elif sfreq == 0:
-        true_sfreq = 1 / time_step
-    elif not np.isclose(sfreq, 1 / time_step):
-        raise ValueError(_msg_match)
-    else:  # they're equal and != 0
-        true_sfreq = sfreq
-    if true_sfreq <= 0:
-        raise ValueError(_msg_invalid.format(true_sfreq))
-    return true_sfreq
 
 
 def _read_curry_lines(fname, regex_list):
@@ -131,8 +115,12 @@ def _read_curry_lines(fname, regex_list):
     return data_dict
 
 
-def _read_curry_info(info_fname, label_fname):
-    """Extract info from curry parameter files."""
+def _read_curry_parameters(fname):
+    """Extract Curry params from a Curry info file."""
+    _msg_match = "The sampling frequency and the time steps extracted from " \
+                 "the parameter file do not match."
+    _msg_invalid = "sfreq must be greater than 0. Got sfreq = {0}"
+
     var_names = ['NumSamples', 'SampleFreqHz',
                  'DataFormat', 'SampleTimeUsec',
                  'NUM_SAMPLES', 'SAMPLE_FREQ_HZ',
@@ -140,7 +128,7 @@ def _read_curry_info(info_fname, label_fname):
 
     param_dict = dict()
     unit_dict = dict()
-    with open(info_fname) as fid:
+    with open(fname) as fid:
         for line in iter(fid):
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
@@ -156,7 +144,23 @@ def _read_curry_info(info_fname, label_fname):
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
 
-    sfreq = _set_sfreq_curry(sfreq, time_step)
+    if time_step == 0:
+        true_sfreq = sfreq
+    elif sfreq == 0:
+        true_sfreq = 1 / time_step
+    elif not np.isclose(sfreq, 1 / time_step):
+        raise ValueError(_msg_match)
+    else:  # they're equal and != 0
+        true_sfreq = sfreq
+    if true_sfreq <= 0:
+        raise ValueError(_msg_invalid.format(true_sfreq))
+
+    return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict)
+
+
+def _read_curry_info(info_fname, label_fname):
+    """Extract info from curry parameter files."""
+    curry_params = _read_curry_parameters(info_fname)
 
     # read labels from label files
     labels = _read_curry_lines(label_fname,
@@ -171,7 +175,7 @@ def _read_curry_info(info_fname, label_fname):
     for key in ["meg", "eeg", "misc"]:
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
             ch = {"ch_name": chan,
-                  "unit": unit_dict[key],
+                  "unit": curry_params.unit_dict[key],
                   "kind": FIFFV_CHANTYPES[key]}
             if key in ("meg", "eeg"):
                 loc = sensors["SENSORS" + CHANTYPES[key]][ind]
@@ -180,7 +184,7 @@ def _read_curry_info(info_fname, label_fname):
             all_chans.append(ch)
 
     ch_names = [chan["ch_name"] for chan in all_chans]
-    info = create_info(ch_names, sfreq)
+    info = create_info(ch_names, curry_params.sfreq)
 
     for ind, ch_dict in enumerate(info["chs"]):
         ch_dict["kind"] = all_chans[ind]["kind"]
@@ -190,7 +194,7 @@ def _read_curry_info(info_fname, label_fname):
                                FIFF.FIFFV_EEG_CH):
             ch_dict["loc"] = all_chans[ind]["loc"]
 
-    return info, n_samples, is_ascii
+    return info, curry_params.n_samples, curry_params.is_ascii
 
 
 def _read_events_curry(fname):
@@ -237,19 +241,9 @@ def _read_annotations_curry(fname, sfreq='auto'):
     """
     required = ["events", "info"] if sfreq == 'auto' else ["events"]
     curry_paths = _get_curry_file_structure(fname, required)
-
     events = _read_events_curry(curry_paths.events)
-
-    if sfreq == 'auto':
-
-        with open(curry_paths.info) as fid:
-            for line in fid:
-                if ('SampleFreqHz' or 'SAMPLE_FREQ_HZ') in line:
-                    sfreq = float(line.split("=")[1])
-                elif ('SampleTimeUsec' or 'SAMPLE_TIME_USEC') in line:
-                    time_step = float(line.split("=")[1]) * 1e-6
-
-        sfreq = _set_sfreq_curry(sfreq, time_step)
+    sfreq = _read_curry_parameters(curry_paths.info).sfreq if sfreq == 'auto' \
+        else sfreq
 
     onset = events[:, 0] / sfreq
     duration = np.zeros(events.shape[0])
