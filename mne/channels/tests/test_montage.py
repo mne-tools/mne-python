@@ -31,12 +31,8 @@ from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
-                    read_raw_cnt,
-                    read_raw_edf,
-                    read_raw_nicolet,
-                    read_raw_bdf,
-                    read_raw_eeglab,
-                    read_fiducials)
+                    read_raw_cnt, read_raw_edf, read_raw_nicolet, read_raw_bdf,
+                    read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
 
 from mne.datasets import testing
 
@@ -47,15 +43,26 @@ egi_raw_fname = op.join(data_path, 'montage', 'egi_dig_test.raw')
 egi_fif_fname = op.join(data_path, 'montage', 'egi_dig_raw.fif')
 locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
+eeglab_fname = op.join(data_path, 'EEGLAB', 'test_raw.set')
+bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
+bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
+egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
+cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+io_dir = op.dirname(_mne_io_file)
 kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
 elp = op.join(kit_dir, 'test_elp.txt')
 hsp = op.join(kit_dir, 'test_hsp.txt')
 hpi = op.join(kit_dir, 'test_mrk.sqd')
 bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+edf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test.edf')
+bdf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test_bdf_eeglab.mat')
+egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
+vhdr_path = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 ctf_fif_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
+                        'test_nicolet_raw.data')
 
 
 def test_fiducials():
@@ -570,23 +577,6 @@ def _check_roundtrip(montage, fname):
     assert_equal(montage_read.coord_frame, 'head')
 
 
-nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
-                        'test_nicolet_raw.data')
-edf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test.edf')
-bdf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test_bdf_eeglab.mat')
-
-testing_base_dir = op.join(testing.data_path(download=False))
-eeglab_fname = op.join(testing_base_dir, 'EEGLAB', 'test_raw.set')
-
-bdf_fname1 = op.join(testing_base_dir, 'BDF', 'test_generator_2.bdf')
-bdf_fname2 = op.join(testing_base_dir, 'BDF', 'test_bdf_stim_channel.bdf')
-egi_fname1 = op.join(testing_base_dir, 'EGI', 'test_egi.mff')
-egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
-cnt_fname = op.join(testing_base_dir, 'CNT', 'scan41_short.cnt')
-
-vhdr_path = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
-
-
 def _fake_montage(ch_names):
     return Montage(
         pos=np.random.RandomState(42).randn(len(ch_names), 3),
@@ -605,6 +595,7 @@ cnt_ignore_warns = [
         ' Defaulting to 2.')
     ),
 ]
+
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('read_raw,fname', [
@@ -642,7 +633,6 @@ def test_montage_when_reading_and_setting(read_raw, fname):
     assert_array_equal(raw_none.get_data(), raw_montage.get_data())
     assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
     assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
-
 
 
 @testing.requires_testing_data
