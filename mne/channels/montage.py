@@ -210,10 +210,12 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     .. versionadded:: 0.9.0
     """
     _check_option('unit', unit, ['mm', 'cm', 'm', 'auto'])
-
+    # XXX:
+    print('[sik db] montage::kind : ', kind)
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
+        # XXX: I would like to see what we get in here
         supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.loc',
                      '.locs', '.eloc', '.bvef')
         montages = [op.splitext(f) for f in os.listdir(path)]
@@ -792,6 +794,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     This function will change the info variable in place.
     """
     if isinstance(montage, str):  # load builtin montage
+        # XXX: we land here when montage is a path aswell
         montage = read_montage(montage)
 
     if isinstance(montage, Montage):
