@@ -579,6 +579,8 @@ egi_fname1 = op.join(testing_base_dir, 'EGI', 'test_egi.mff')
 egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
 cnt_fname = op.join(testing_base_dir, 'CNT', 'scan41_short.cnt')
 
+vhdr_path = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
+
 
 def _fake_montage(ch_names):
     return Montage(
@@ -589,6 +591,7 @@ def _fake_montage(ch_names):
     )
 
 
+from mne.io import read_raw_brainvision
 from mne.io.cnt import read_raw_cnt
 from mne.io import read_raw_egi
 from mne.io import read_raw_edf
@@ -624,17 +627,18 @@ cnt_ignore_warns = [
                  id='egi raw'),
     pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
                  cnt_fname, marks=cnt_ignore_warns, id='cnt'),
+    pytest.param(read_raw_brainvision, vhdr_path, id='brainvision'),
 ])
 def test_montage_when_reading_and_setting(read_raw, fname):
     """Test montage.
 
     This is a regression test to help refactor Digitization.
     """
-    raw_none = read_raw(input_fname=fname, montage=None, preload=False)
+    raw_none = read_raw(fname, montage=None, preload=False)
     # raw_none_copy = deepcopy(raw_none)
     montage = _fake_montage(raw_none.info['ch_names'])
 
-    raw_montage = read_raw(input_fname=fname, montage=montage, preload=False)
+    raw_montage = read_raw(fname, montage=montage, preload=False)
     raw_none.set_montage(montage)
 
     # Check that reading with montage or setting the montage is the same
@@ -669,13 +673,16 @@ def test_montage_when_reading_and_setting(read_raw, fname):
                  cnt_fname,
                  marks=[*cnt_ignore_warns, pytest.mark.skip],
                  id='cnt'),
+    pytest.param(read_raw_brainvision, vhdr_path,
+                 marks=pytest.mark.skip,
+                 id='brainvision'),
 ])
 def test_montage_when_reading_and_setting_more(read_raw, fname):
     """Test montage.
 
     This is a regression test to help refactor Digitization.
     """
-    raw_none = read_raw(input_fname=fname, montage=None, preload=False)
+    raw_none = read_raw(fname, montage=None, preload=False)
     raw_none_copy = deepcopy(raw_none)
 
     # check consistency between reading and setting with montage=None
