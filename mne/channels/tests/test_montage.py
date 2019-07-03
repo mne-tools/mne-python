@@ -626,7 +626,8 @@ def test_montage_when_reading_and_setting(read_raw, fname):
     # raw_none_copy = deepcopy(raw_none)
     montage = _fake_montage(raw_none.info['ch_names'])
 
-    raw_montage = read_raw(fname, montage=montage, preload=False)
+    with pytest.deprecated_call():
+        raw_montage = read_raw(fname, montage=montage, preload=False)
     raw_none.set_montage(montage)
 
     # Check that reading with montage or setting the montage is the same
