@@ -22,6 +22,8 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import requires_h5py, run_tests_if_main
 from mne.annotations import events_from_annotations, read_annotations
+from mne.channels.montage import read_montage
+
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -312,5 +314,19 @@ def test_eeglab_event_from_annot():
     events_b, _ = events_from_annotations(raw1, event_id=event_id)
     assert len(events_b) == 154
 
+
+@pytest.mark.parametrize("fname", [
+    raw_fname_mat,
+])
+def test_montage_depreaction(fname):
+    EXPECTED_POS = np.pad(read_montage(montage).pos,
+                          ((0, 0), (0, 9)), 'constant')
+    with pytest.deprecated_call():
+        raw = read_raw_eeglab(input_fname=fname,
+                              montage=montage, preload=False)
+    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
+                       EXPECTED_POS)
+
+    # import pdb; pdb.set_trace()
 
 run_tests_if_main()
