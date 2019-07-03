@@ -21,10 +21,7 @@ from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
 from mne.utils import check_version, run_tests_if_main
 from mne.annotations import read_annotations
-from mne.io.curry.curry import (
-    _check_missing_files, _read_events_curry, _get_curry_version,
-    INFO_FILE_EXTENSION, EVENT_FILE_EXTENSION
-)
+from mne.io.curry.curry import (_get_curry_version, FILE_EXTENSIONS)
 
 
 data_dir = testing.data_path(download=False)
@@ -130,18 +127,6 @@ def test_read_events_curry_are_same_as_bdf(fname):
     assert_allclose(events, REF_EVENTS)
 
 
-def test_check_missing_files():
-    """Test checking for missing curry files (smoke test)."""
-    invalid_fname = "/invalid/path/name"
-
-    with pytest.raises(IOError, match="file type .*? must end with"):
-        _read_events_curry(invalid_fname)
-
-    with pytest.raises(FileNotFoundError, match="files cannot be found"):
-        _check_missing_files(invalid_fname, 7)
-        _check_missing_files(invalid_fname, 8)
-
-
 def _mock_info_file(src, dst, sfreq, time_step):
     with open(src, 'r') as in_file, open(dst, 'w') as out_file:
         for line in in_file:
@@ -218,12 +203,12 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
 
     original['event'] = (curry_dir + '/test_bdf_stim_channel ' + name_part)
     original['base'], ext = original['event'].split(".", maxsplit=1)
-    curry_vers = _get_curry_version(ext)
-    original['info'] = original['base'] + INFO_FILE_EXTENSION[curry_vers]
+    version = _get_curry_version(ext)
+    original['info'] = original['base'] + FILE_EXTENSIONS[version]["info"]
 
     modified['base'] = str(mock_dir.join('curry'))
-    modified['event'] = modified['base'] + EVENT_FILE_EXTENSION[curry_vers]
-    modified['info'] = modified['base'] + INFO_FILE_EXTENSION[curry_vers]
+    modified['event'] = modified['base'] + FILE_EXTENSIONS[version]["events"]
+    modified['info'] = modified['base'] + FILE_EXTENSIONS[version]["info"]
 
     return original, modified
 
@@ -248,7 +233,7 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
                                                       tmpdir)
     copyfile(src=original['event'], dst=fname['event'])
 
-    _msg = 'Info file .*? could not be found. sfreq can not be extracted'
+    _msg = 'required files cannot be found'
     with pytest.raises(FileNotFoundError, match=_msg):
         read_annotations(fname['event'], sfreq='auto')
 

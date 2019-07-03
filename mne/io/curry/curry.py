@@ -6,6 +6,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
+from collections import namedtuple
 import re
 import numpy as np
 
@@ -16,39 +17,57 @@ from ..constants import FIFF
 from ...utils import check_fname, check_version, logger, verbose
 from ...annotations import Annotations
 
-INFO_FILE_EXTENSION = {7: '.dap', 8: '.cdt.dpa'}
-LABEL_FILE_EXTENSION = {7: '.rs3', 8: '.cdt.dpa'}
-DATA_FILE_EXTENSION = {7: '.dat', 8: '.cdt'}
-EVENT_FILE_EXTENSION = {7: '.cef', 8: '.cdt.cef'}
+FILE_EXTENSIONS = {"Curry 7": {"info": ".dap",
+                               "data": ".dat",
+                               "labels": ".rs3",
+                               "events": ".cef"},
+                   "Curry 8": {"info": ".cdt.dpa",
+                               "data": ".cdt",
+                               "labels": ".cdt.dpa",
+                               "events": ".cdt.cef"}}
 CHANTYPES = {"meg": "_MAG1", "eeg": "", "misc": "_OTHERS"}
 FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
                    "misc": FIFF.FIFFV_MISC_CH}
 SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
 SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, μ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
+CurryFileStructure = namedtuple('CurryFileStructure', 'info, data, labels, events')
+
 
 def _get_curry_version(file_extension):
     """Check out the curry file version."""
-    return 8 if 'cdt' in file_extension else 7
+    return "Curry 8" if "cdt" in file_extension else "Curry 7"
 
 
-def _check_missing_files(fname_base, curry_vers):
-    """Check if all necessary files exist."""
+def _get_curry_file_structure(fname, required):
+    """Store paths to a CurryFileStructure and check for required files."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory."
 
-    missing = [fname_base + ext
-               for ext in [DATA_FILE_EXTENSION[curry_vers],
-                           INFO_FILE_EXTENSION[curry_vers],
-                           LABEL_FILE_EXTENSION[curry_vers]]
-               if not op.isfile(fname_base + ext)]
+    # we don't use os.path.splitext to also handle extensions like .cdt.dpa
+    fname_base, ext = fname.split(".", maxsplit=1)
+    version = _get_curry_version(ext)
 
+    info = fname_base + FILE_EXTENSIONS[version]["info"]
+    data = fname_base + FILE_EXTENSIONS[version]["data"]
+    labels = fname_base + FILE_EXTENSIONS[version]["labels"]
+    events = fname_base + FILE_EXTENSIONS[version]["events"]
+    my_curry = CurryFileStructure(
+        info=info if op.isfile(info) else None,
+        data=data if op.isfile(data) else None,
+        labels=labels if op.isfile(labels) else None,
+        events=events if op.isfile(events) else None)
+
+    missing = [fname_base + FILE_EXTENSIONS[version][field]
+               for field in required if getattr(my_curry, field) is None]
     if missing:
         raise FileNotFoundError(_msg.format(np.unique(missing)))
 
+    return my_curry
+
 
 def _set_sfreq_curry(sfreq, time_step):
-    """set sfreq and time_steps from a curry file"""
+    """Set sfreq and time_steps from a curry file."""
     _msg_match = "The sampling frequency and the time steps extracted from " \
                  "the parameter file do not match."
     _msg_invalid = "sfreq must be greater than 0. Got sfreq = {0}"
@@ -112,7 +131,7 @@ def _read_curry_lines(fname, regex_list):
     return data_dict
 
 
-def _read_curry_info(fname_base, curry_vers):
+def _read_curry_info(info_fname, label_fname):
     """Extract info from curry parameter files."""
     var_names = ['NumSamples', 'SampleFreqHz',
                  'DataFormat', 'SampleTimeUsec',
@@ -121,7 +140,7 @@ def _read_curry_info(fname_base, curry_vers):
 
     param_dict = dict()
     unit_dict = dict()
-    with open(fname_base + INFO_FILE_EXTENSION[curry_vers]) as fid:
+    with open(info_fname) as fid:
         for line in iter(fid):
             if any(var_name in line for var_name in var_names):
                 key, val = line.replace(" ", "").replace("\n", "").split("=")
@@ -140,11 +159,11 @@ def _read_curry_info(fname_base, curry_vers):
     sfreq = _set_sfreq_curry(sfreq, time_step)
 
     # read labels from label files
-    labels = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
+    labels = _read_curry_lines(label_fname,
                                ["LABELS" + CHANTYPES[key] for key in
                                 ["meg", "eeg", "misc"]])
 
-    sensors = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
+    sensors = _read_curry_lines(label_fname,
                                 ["SENSORS" + CHANTYPES[key] for key in
                                  ["meg", "eeg", "misc"]])
 
@@ -216,16 +235,14 @@ def _read_annotations_curry(fname, sfreq='auto'):
     annot : instance of Annotations | None
         The annotations.
     """
-    _msg = "Info file {0} could not be found. sfreq can not be extracted"
-    events = _read_events_curry(fname)
+    required = ["events", "info"] if sfreq == 'auto' else ["events"]
+    curry_paths = _get_curry_file_structure(fname, required)
+
+    events = _read_events_curry(curry_paths.events)
 
     if sfreq == 'auto':
-        fname_base, ext = fname.split(".", maxsplit=1)
-        curry_vers = _get_curry_version(ext)
-        info_file = fname_base + INFO_FILE_EXTENSION[curry_vers]
-        if not op.isfile(info_file):
-            raise FileNotFoundError(_msg.format(info_file))
-        with open(info_file) as fid:
+
+        with open(curry_paths.info) as fid:
             for line in fid:
                 if ('SampleFreqHz' or 'SAMPLE_FREQ_HZ') in line:
                     sfreq = float(line.split("=")[1])
@@ -242,12 +259,12 @@ def _read_annotations_curry(fname, sfreq='auto'):
 
 
 @verbose
-def read_raw_curry(input_fname, preload=False, verbose=None):
+def read_raw_curry(fname, preload=False, verbose=None):
     """Read raw data from Curry files.
 
     Parameters
     ----------
-    input_fname : str
+    fname : str
         Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
         .cdt.cef or .cef.
     preload : bool or str (default False)
@@ -264,7 +281,7 @@ def read_raw_curry(input_fname, preload=False, verbose=None):
         A Raw object containing Curry data.
 
     """
-    return RawCurry(input_fname, preload, verbose)
+    return RawCurry(fname, preload, verbose)
 
 
 class RawCurry(BaseRaw):
@@ -272,7 +289,7 @@ class RawCurry(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
+    fname : str
         Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
         .cdt.cef or .cef.
     preload : bool or str (default False)
@@ -290,15 +307,16 @@ class RawCurry(BaseRaw):
     """
 
     @verbose
-    def __init__(self, input_fname, preload=False, verbose=None):
+    def __init__(self, fname, preload=False, verbose=None):
 
-        # we don't use os.path.splitext to also handle extensions like .cdt.dpa
-        fname_base, ext = input_fname.split(".", maxsplit=1)
-        curry_vers = _get_curry_version(ext)
-        _check_missing_files(fname_base, curry_vers)
-        data_fname = op.abspath(fname_base + DATA_FILE_EXTENSION[curry_vers])
+        curry_paths = _get_curry_file_structure(fname, required=["info",
+                                                                 "data",
+                                                                 "labels"])
 
-        info, n_samples, is_ascii = _read_curry_info(fname_base, curry_vers)
+        data_fname = op.abspath(curry_paths.data)
+
+        info, n_samples, is_ascii = _read_curry_info(curry_paths.info,
+                                                     curry_paths.labels)
 
         last_samps = [n_samples - 1]
         self._is_ascii = is_ascii
@@ -307,11 +325,10 @@ class RawCurry(BaseRaw):
             info, preload, filenames=[data_fname], last_samps=last_samps,
             orig_format='int', verbose=verbose)
 
-        event_file = fname_base + EVENT_FILE_EXTENSION[curry_vers]
-        if op.isfile(event_file):
+        if curry_paths.events is not None:
             logger.info('Event file found. Extractinng Annotations from'
-                        ' %s...' % event_file)
-            annots = _read_annotations_curry(event_file,
+                        ' %s...' % curry_paths.events)
+            annots = _read_annotations_curry(curry_paths.events,
                                              sfreq=self.info["sfreq"])
             self.set_annotations(annots)
         else:
