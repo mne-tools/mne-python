@@ -60,17 +60,20 @@ def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
     tmpdir = str(tmpdir)
     raw_fname, raw_fname_onefile = fnames
-    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
-                     montage=montage)
+    with pytest.deprecated_call():
+        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
+                         montage=montage)
     # test that preloading works
-    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                           preload=True)
+    with pytest.deprecated_call():
+        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               preload=True)
     raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                 phase='zero')
 
     # test that using uint16_codec does not break stuff
-    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                           preload=False, uint16_codec='ascii')
+    with pytest.deprecated_call():
+        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               preload=False, uint16_codec='ascii')
 
     # test reading file with one event (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
@@ -298,8 +301,10 @@ def test_eeglab_event_from_annot():
     raw_fname = raw_fname_mat
     montage = op.join(base_dir, 'test_chans.locs')
     event_id = {'rt': 1, 'square': 2}
-    raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                           preload=False)
+
+    with pytest.deprecated_call():
+        raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+                               preload=False)
 
     annotations = read_annotations(raw_fname)
     assert len(raw1.annotations) == 154
