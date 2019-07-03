@@ -639,10 +639,8 @@ def test_montage_when_reading_and_setting(read_raw, fname):
 @pytest.mark.parametrize('read_raw,fname', [
     pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
                  nicolet_fname,
-                 marks=pytest.mark.skip,
                  id='nicolet'),
     pytest.param(read_raw_eeglab, eeglab_fname,
-                 marks=pytest.mark.skip,
                  id='eeglab'),
     pytest.param(read_raw_edf, edf_path, id='edf'),
     pytest.param(read_raw_bdf, bdf_path,
