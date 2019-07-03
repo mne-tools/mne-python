@@ -143,12 +143,12 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def save(self, fname, ftype='h5', verbose=None):
-        """Save the full source estimate to an HDF5 file.
+        """Save the full SourceTFR to an HDF5 file.
 
         Parameters
         ----------
         fname : string
-            The file name to write the source estimate to, should end in
+            The file name to write the SourceTFR to, should end in
             '-stc.h5'.
         ftype : string
             File format to use. Currently, the only allowed values is "h5".
@@ -179,7 +179,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             self._sens_data = None
 
     def crop(self, tmin=None, tmax=None):
-        """Restrict SourceEstimate to a time interval.
+        """Restrict SourceTFR to a time interval.
 
         Parameters
         ----------
@@ -235,7 +235,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     @property
     def data(self):
-        """Numpy array of source estimate data."""
+        """Numpy array of SourceTFR data."""
         if self._data is None:
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
@@ -311,7 +311,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         self._times.flags.writeable = False
 
     def copy(self):
-        """Return copy of source estimate instance."""
+        """Return copy of SourceTFR instance."""
         return copy.deepcopy(self)
 
         return stcs
