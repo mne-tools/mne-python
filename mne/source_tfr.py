@@ -1,8 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Mads Jensen <mje.mads@gmail.com>
-#
+
 # License: BSD (3-clause)
 
 import copy
@@ -106,7 +102,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         # safeguard the user against doing something silly
         if data is not None:
             if data.shape[0] != n_src:
-                raise ValueError('Number of vertices (%i) and stc.shape[0] '
+                raise ValueError('Number of vertices (%i) and stfr.shape[0] '
                                  '(%i) must match' % (n_src, data.shape[0]))
             if data.ndim == self._data_ndim - 1:  # allow upbroadcasting
                 data = data[..., np.newaxis]
@@ -149,7 +145,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         ----------
         fname : string
             The file name to write the SourceTFR to, should end in
-            '-stc.h5'.
+            '-stfr.h5'.
         ftype : string
             File format to use. Currently, the only allowed values is "h5".
         %(verbose_meth)s
@@ -158,7 +154,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
         if not fname.endswith('.h5'):
-            fname += '-stc.h5'
+            fname += '-stfr.h5'
         write_hdf5(fname,
                    dict(vertices=self.vertices, data=self.data, tmin=self.tmin,
                         tstep=self.tstep, subject=self.subject,
@@ -314,4 +310,4 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         """Return copy of SourceTFR instance."""
         return copy.deepcopy(self)
 
-        return stcs
+        return stfrs
