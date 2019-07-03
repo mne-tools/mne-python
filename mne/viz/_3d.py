@@ -2675,7 +2675,7 @@ def plot_sensors_connectivity(info, con, picks=None):
                              vmin=vmin, vmax=vmax, radius=0.001,
                              reverse_lut=True)
 
-    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)', n_labels=4)
+    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)')
 
     # Add the sensor names for the connections shown
     nodes_shown = list(set([n[0] for n in con_nodes] +

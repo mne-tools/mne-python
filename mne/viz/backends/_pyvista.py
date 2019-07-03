@@ -285,10 +285,13 @@ class _Renderer(_BaseRenderer):
                               color=color)
 
     def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
-        raise NotImplementedError('text3d() feature '
-                                  'is not supported yet for this backend.')
+        self.plotter.add_point_labels(points=[x, y, z],
+                                      labels=[text],
+                                      point_size=scale,
+                                      text_color=color,
+                                      name=text)
 
-    def scalarbar(self, source, title=None, n_labels=None):
+    def scalarbar(self, source, title=None, n_labels=4):
         self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
                                     position_x=0.15, width=0.7)
 

@@ -267,7 +267,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def scalarbar(self, source, title=None, n_labels=None):
+    def scalarbar(self, source, title=None, n_labels=4):
         """Add a scalar bar in the scene.
 
         Parameters
