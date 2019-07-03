@@ -289,7 +289,8 @@ class _Renderer(_BaseRenderer):
                                       labels=[text],
                                       point_size=scale,
                                       text_color=color,
-                                      name=text)
+                                      name=text,
+                                      shape_opacity=0)
 
     def scalarbar(self, source, title=None, n_labels=4):
         self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
