@@ -577,6 +577,7 @@ bdf_fname1 = op.join(testing_base_dir, 'BDF', 'test_generator_2.bdf')
 bdf_fname2 = op.join(testing_base_dir, 'BDF', 'test_bdf_stim_channel.bdf')
 egi_fname1 = op.join(testing_base_dir, 'EGI', 'test_egi.mff')
 egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
+cnt_fname = op.join(testing_base_dir, 'CNT', 'scan41_short.cnt')
 
 
 def _fake_montage(ch_names):
@@ -588,11 +589,22 @@ def _fake_montage(ch_names):
     )
 
 
+from mne.io.cnt import read_raw_cnt
 from mne.io import read_raw_egi
 from mne.io import read_raw_edf
 from mne.io import read_raw_bdf
 from functools import partial
 from copy import deepcopy
+
+cnt_ignore_warns = [
+    pytest.mark.filterwarnings(
+        'ignore:.*Could not parse meas date from the header. Setting to None.'
+    ),
+    pytest.mark.filterwarnings((
+        'ignore:.*Could not define the number of bytes automatically.'
+        ' Defaulting to 2.')
+    ),
+]
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('read_raw,fname', [
@@ -610,6 +622,8 @@ from copy import deepcopy
     pytest.param(read_raw_egi, egi_fname2,
                  marks=pytest.mark.filterwarnings('ignore:.*than one event'),
                  id='egi raw'),
+    pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
+                 cnt_fname, marks=cnt_ignore_warns, id='cnt'),
 ])
 def test_montage_when_reading_and_setting(read_raw, fname):
     """Test montage.
@@ -651,6 +665,10 @@ def test_montage_when_reading_and_setting(read_raw, fname):
     pytest.param(read_raw_egi, egi_fname2,
                  marks=pytest.mark.filterwarnings('ignore:.*than one event'),
                  id='egi raw'),
+    pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
+                 cnt_fname,
+                 marks=[*cnt_ignore_warns, pytest.mark.skip],
+                 id='cnt'),
 ])
 def test_montage_when_reading_and_setting_more(read_raw, fname):
     """Test montage.
