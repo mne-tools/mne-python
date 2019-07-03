@@ -622,11 +622,11 @@ def test_montage_when_reading_and_setting(read_raw, fname):
 
     This is a regression test to help refactor Digitization.
     """
-    raw_none = read_raw(fname, montage=None, preload=False)
+    raw_none = read_raw(input_fname=fname, montage=None, preload=False)
     # raw_none_copy = deepcopy(raw_none)
     montage = _fake_montage(raw_none.info['ch_names'])
 
-    raw_montage = read_raw(fname, montage=montage, preload=False)
+    raw_montage = read_raw(input_fname=fname, montage=montage, preload=False)
     raw_none.set_montage(montage)
 
     # Check that reading with montage or setting the montage is the same
@@ -661,7 +661,6 @@ def test_montage_when_reading_and_setting(read_raw, fname):
                  marks=[*cnt_ignore_warns, pytest.mark.skip],
                  id='cnt'),
     pytest.param(read_raw_brainvision, vhdr_path,
-                 marks=pytest.mark.skip,
                  id='brainvision'),
 ])
 def test_montage_when_reading_and_setting_more(read_raw, fname):
@@ -669,7 +668,7 @@ def test_montage_when_reading_and_setting_more(read_raw, fname):
 
     This is a regression test to help refactor Digitization.
     """
-    raw_none = read_raw(fname, montage=None, preload=False)
+    raw_none = read_raw(input_fname=fname, montage=None, preload=False)
     raw_none_copy = deepcopy(raw_none)
 
     # check consistency between reading and setting with montage=None
