@@ -622,7 +622,11 @@ def test_montage_when_reading_and_setting(read_raw, fname):
 
     This is a regression test to help refactor Digitization.
     """
-    raw_none = read_raw(fname, montage=None, preload=False)
+    raw = read_raw(fname, preload=False)
+    with pytest.deprecated_call():
+        raw_none = read_raw(fname, montage=None, preload=False)
+    assert object_diff(raw.info, raw_none.info) == ''
+
     # raw_none_copy = deepcopy(raw_none)
     montage = _fake_montage(raw_none.info['ch_names'])
 
@@ -670,7 +674,8 @@ def test_montage_when_reading_and_setting_more(read_raw, fname):
 
     This is a regression test to help refactor Digitization.
     """
-    raw_none = read_raw(fname, montage=None, preload=False)
+    with pytest.deprecated_call():
+        raw_none = read_raw(fname, montage=None, preload=False)
     raw_none_copy = deepcopy(raw_none)
 
     # check consistency between reading and setting with montage=None
