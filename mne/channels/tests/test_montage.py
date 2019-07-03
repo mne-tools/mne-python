@@ -9,14 +9,19 @@ import pytest
 
 import numpy as np
 from scipy.io import savemat
+from copy import deepcopy
+from functools import partial
 
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
                            assert_array_less, assert_equal)
-from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
-                                  get_builtin_montages)
-from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
+
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
+from mne.channels import (Montage, read_montage, read_dig_montage,
+                          get_builtin_montages)
+from mne.channels.montage import _set_montage
+from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
+                       object_diff)
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
@@ -26,6 +31,11 @@ from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
+                    read_raw_cnt,
+                    read_raw_edf,
+                    read_raw_nicolet,
+                    read_raw_bdf,
+                    read_raw_eeglab,
                     read_fiducials)
 
 from mne.datasets import testing
@@ -560,11 +570,6 @@ def _check_roundtrip(montage, fname):
     assert_equal(montage_read.coord_frame, 'head')
 
 
-from mne.utils import object_diff
-from mne.io import read_raw_nicolet
-from mne.channels import Montage
-from mne.io import read_raw_eeglab
-
 nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
                         'test_nicolet_raw.data')
 edf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test.edf')
@@ -590,14 +595,6 @@ def _fake_montage(ch_names):
         selection=np.arange(len(ch_names))
     )
 
-
-from mne.io import read_raw_brainvision
-from mne.io.cnt import read_raw_cnt
-from mne.io import read_raw_egi
-from mne.io import read_raw_edf
-from mne.io import read_raw_bdf
-from functools import partial
-from copy import deepcopy
 
 cnt_ignore_warns = [
     pytest.mark.filterwarnings(
