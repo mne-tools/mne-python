@@ -575,6 +575,8 @@ eeglab_fname = op.join(testing_base_dir, 'EEGLAB', 'test_raw.set')
 
 bdf_fname1 = op.join(testing_base_dir, 'BDF', 'test_generator_2.bdf')
 bdf_fname2 = op.join(testing_base_dir, 'BDF', 'test_bdf_stim_channel.bdf')
+egi_fname1 = op.join(testing_base_dir, 'EGI', 'test_egi.mff')
+egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
 
 
 def _fake_montage(ch_names):
@@ -586,6 +588,7 @@ def _fake_montage(ch_names):
     )
 
 
+from mne.io import read_raw_egi
 from mne.io import read_raw_edf
 from mne.io import read_raw_bdf
 from functools import partial
@@ -603,6 +606,10 @@ from copy import deepcopy
                  id='bdf 1'),
     pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
     pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+    pytest.param(read_raw_egi, egi_fname1, id='egi mff'),
+    pytest.param(read_raw_egi, egi_fname2,
+                 marks=pytest.mark.filterwarnings('ignore:.*than one event'),
+                 id='egi raw'),
 ])
 def test_montage_when_reading_and_setting(read_raw, fname):
     """Test montage.
@@ -638,6 +645,12 @@ def test_montage_when_reading_and_setting(read_raw, fname):
                  id='bdf 1'),
     pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
     pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+    pytest.param(read_raw_egi, egi_fname1,
+                 marks=pytest.mark.skip,
+                 id='egi mff'),
+    pytest.param(read_raw_egi, egi_fname2,
+                 marks=pytest.mark.filterwarnings('ignore:.*than one event'),
+                 id='egi raw'),
 ])
 def test_montage_when_reading_and_setting_more(read_raw, fname):
     """Test montage.
