@@ -280,21 +280,27 @@ class _Renderer(_BaseRenderer):
                                       smooth_shading=self.smooth_shading)
 
     def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
-        self.plotter.add_text(text, position=(x, y),
-                              font_size=int(width * 100),
-                              color=color)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            self.plotter.add_text(text, position=(x, y),
+                                  font_size=int(width * 100),
+                                  color=color)
 
     def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
-        self.plotter.add_point_labels(points=[x, y, z],
-                                      labels=[text],
-                                      point_size=scale,
-                                      text_color=color,
-                                      name=text,
-                                      shape_opacity=0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            self.plotter.add_point_labels(points=[x, y, z],
+                                          labels=[text],
+                                          point_size=scale,
+                                          text_color=color,
+                                          name=text,
+                                          shape_opacity=0)
 
     def scalarbar(self, source, title=None, n_labels=4):
-        self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
-                                    position_x=0.15, width=0.7)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
+                                        position_x=0.15, width=0.7)
 
     def show(self):
         self.display = self.plotter.show(title=self.name)
