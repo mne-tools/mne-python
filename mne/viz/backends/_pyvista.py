@@ -204,6 +204,7 @@ class _Renderer(_BaseRenderer):
                                       show_scalar_bar=False,
                                       cmap=cmap,
                                       smooth_shading=self.smooth_shading)
+        return tube
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -288,8 +289,8 @@ class _Renderer(_BaseRenderer):
                                   'is not supported yet for this backend.')
 
     def scalarbar(self, source, title=None, n_labels=None):
-        raise NotImplementedError('scalarbar() feature '
-                                  'is not supported yet for this backend.')
+        self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
+                                    position_x=0.15, width=0.7)
 
     def show(self):
         self.display = self.plotter.show(title=self.name)
