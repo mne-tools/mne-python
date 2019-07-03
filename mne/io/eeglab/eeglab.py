@@ -9,6 +9,7 @@ import os.path as op
 import numpy as np
 
 from ..utils import _read_segments_file, _find_channels
+from ..utils import _deprecate_montage_parameter
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
@@ -139,6 +140,9 @@ def _get_info(eeg, eog=()):
     return info, eeg_montage, update_ch_names
 
 
+@_deprecate_montage_parameter(
+    deprecated_in='0.19', removed_in='0.20', old_param='montage',
+)
 @fill_doc
 def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
                     uint16_codec=None, verbose=None):
