@@ -47,6 +47,25 @@ def _check_missing_files(fname_base, curry_vers):
         raise FileNotFoundError(_msg.format(np.unique(missing)))
 
 
+def _set_sfreq_curry(sfreq, time_step):
+    """set sfreq and time_steps from a curry file"""
+    _msg_match = "The sampling frequency and the time steps extracted from " \
+                 "the parameter file do not match."
+    _msg_invalid = "sfreq must be greater than 0. Got sfreq = {0}"
+
+    if time_step == 0:
+        true_sfreq = sfreq
+    elif sfreq == 0:
+        true_sfreq = 1 / time_step
+    elif not np.isclose(sfreq, 1 / time_step):
+        raise ValueError(_msg_match)
+    else:  # they're equal and != 0
+        true_sfreq = sfreq
+    if true_sfreq <= 0:
+        raise ValueError(_msg_invalid.format(true_sfreq))
+    return true_sfreq
+
+
 def _read_curry_lines(fname, regex_list):
     """Read through the lines of a curry parameter files and save data.
 
@@ -118,8 +137,7 @@ def _read_curry_info(fname_base, curry_vers):
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
 
-    if (sfreq == 0) and (time_step != 0):
-        sfreq = 1. / time_step
+    sfreq = _set_sfreq_curry(sfreq, time_step)
 
     # read labels from label files
     labels = _read_curry_lines(fname_base + LABEL_FILE_EXTENSION[curry_vers],
@@ -198,15 +216,23 @@ def _read_annotations_curry(fname, sfreq='auto'):
     annot : instance of Annotations | None
         The annotations.
     """
+    _msg = "Info file {0} could not be found. sfreq can not be extracted"
     events = _read_events_curry(fname)
 
     if sfreq == 'auto':
         fname_base, ext = fname.split(".", maxsplit=1)
         curry_vers = _get_curry_version(ext)
-        with open(fname_base + INFO_FILE_EXTENSION[curry_vers]) as fid:
+        info_file = fname_base + INFO_FILE_EXTENSION[curry_vers]
+        if not op.isfile(info_file):
+            raise FileNotFoundError(_msg.format(info_file))
+        with open(info_file) as fid:
             for line in fid:
                 if ('SampleFreqHz' or 'SAMPLE_FREQ_HZ') in line:
                     sfreq = float(line.split("=")[1])
+                elif ('SampleTimeUsec' or 'SAMPLE_TIME_USEC') in line:
+                    time_step = float(line.split("=")[1]) * 1e-6
+
+        sfreq = _set_sfreq_curry(sfreq, time_step)
 
     onset = events[:, 0] / sfreq
     duration = np.zeros(events.shape[0])

@@ -158,9 +158,9 @@ def _mock_info_file(src, dst, sfreq, time_step):
     pytest.param(dict(sfreq=0, time_step=2000), id='correct time_step'),
     pytest.param(dict(sfreq=500, time_step=2000), id='both correct'),
     pytest.param(dict(sfreq=0, time_step=0), id='both 0',
-                 marks=pytest.mark.raises),
+                 marks=pytest.mark.xfail(raises=ValueError)),
     pytest.param(dict(sfreq=500, time_step=42), id='mismatch',
-                 marks=pytest.mark.raises),
+                 marks=pytest.mark.xfail(raises=ValueError)),
 ])
 def sfreq_testing_data(tmpdir, request):
     """Generate different sfreq, time_step scenarios to be tested."""
@@ -221,7 +221,7 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     curry_vers = _get_curry_version(ext)
     original['info'] = original['base'] + INFO_FILE_EXTENSION[curry_vers]
 
-    modified['base'] = str(mock_dir.join('curry.'))
+    modified['base'] = str(mock_dir.join('curry'))
     modified['event'] = modified['base'] + EVENT_FILE_EXTENSION[curry_vers]
     modified['info'] = modified['base'] + INFO_FILE_EXTENSION[curry_vers]
 
@@ -243,11 +243,12 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
     EXPECTED_DESCRIPTION = ['4', '50000', '2', '50000', '1', '50000', '1',
                             '50000', '1', '50000', '1', '50000', '1', '50000',
                             '1', '50000', '1', '50000']
-    _msg = 'meaningful message stating that annotations cannot infer sfreq foo.xx not found'  # noqa
 
-    original, fname = _get_read_annotations_mock_info(name_part, tmpdir)
+    original, fname = _get_read_annotations_mock_info("Curry " + name_part, tmpdir)
     copyfile(src=original['event'], dst=fname['event'])
-    with pytest.raises(RuntimeError, match=_msg):
+
+    _msg = 'Info file .*? could not be found. sfreq can not be extracted'
+    with pytest.raises(FileNotFoundError, match=_msg):
         read_annotations(fname['event'], sfreq='auto')
 
     _mock_info_file(src=original['info'], dst=fname['info'],
