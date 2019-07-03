@@ -31,17 +31,21 @@ Overview of the MNE tools suite
 There is also a growing ecosystem of other Python packages that work alongside
 MNE-Python, including packages for:
 
+- a graphical user interface for MNE-Python (`MNELAB`_)
 - easily importing MEG data from the Human Connectome Project for
   use with MNE-Python (`MNE-HCP`_)
 - managing MNE projects so that they comply with the `Brain
   Imaging Data Structure`_ specification (`MNE-BIDS`_)
 - automatic bad channel detection and interpolation (`autoreject`_)
-- convolutional sparse dictionary learning and waveform shape estimation (`alphaCSC`_)
-- independent component analysis (ICA) with good performance on real data (`PICARD`_)
+- convolutional sparse dictionary learning and waveform shape estimation
+  (`alphaCSC`_)
+- independent component analysis (ICA) with good performance on real data
+  (`PICARD`_)
 - phase-amplitude coupling (`pactools`_)
 - representational similarity analysis (`rsa`_)
 - microstate analysis (`microstate`_)
-- connectivity analysis using dynamic imaging of coherent sources (DICS) (`conpy`_)
+- connectivity analysis using dynamic imaging of coherent sources (DICS)
+  (`conpy`_)
 - general-purpose statistical analysis of M/EEG data (`eelbrain`_)
 - post-hoc modification of linear models (`posthoc`_)
 
@@ -86,6 +90,7 @@ bug.
 
 .. LINKS:
 
+.. _MNELAB: https://github.com/cbrnr/mnelab
 .. _autoreject: https://autoreject.github.io/
 .. _alphaCSC: https://alphacsc.github.io/
 .. _picard: https://pierreablin.github.io/picard/
