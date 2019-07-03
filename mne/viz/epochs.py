@@ -411,6 +411,10 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
     if isinstance(axes, Axes):
         axes = [axes]
 
+    # got an ndarray; be forgiving
+    if isinstance(axes, np.ndarray):
+        axes = axes.ravel().tolist()
+
     # got a list of axes, make it a dict
     if isinstance(axes, list):
         if len(axes) != n_axes:

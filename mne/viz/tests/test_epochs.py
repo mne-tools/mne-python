@@ -144,15 +144,26 @@ def test_plot_epochs_nodata():
 
 
 def test_plot_epochs_image():
-    """Test plotting of epochs image."""
+    """Test plotting of epochs image.
+
+    Note that some of these tests that should pass are triggering MPL
+    UserWarnings about tight_layout not being applied ("tight_layout cannot
+    make axes width small enough to accommodate all axes decorations"). Calling
+    `plt.close('all')` just before the offending test seems to prevent this
+    warning, though it's unclear why.
+    """
     epochs = _get_epochs()
-    epochs.plot_image()
+    figs = epochs.plot_image()
+    assert len(figs) == 2  # one fig per ch_type (test data has mag, grad)
     epochs.plot_image(picks='mag', sigma=0.1)
-    epochs.plot_image(picks=[0, 1], combine='mean')
+    epochs.plot_image(picks=[0, 1], combine='mean',
+                      ts_args=dict(show_sensors=False))
     epochs.plot_image(picks=[1], order=[0], overlay_times=[0.1], vmin=0.01,
                       title='test')
     plt.close('all')
     epochs.plot_image(picks=[1], overlay_times=[0.1], vmin=-0.001, vmax=0.001)
+    plt.close('all')
+    epochs.plot_image(picks=[1], vmin=lambda x: x.min())
     # test providing figure
     fig, axs = plt.subplots(3, 1)
     epochs.plot_image(picks=[1], fig=fig)
@@ -171,6 +182,7 @@ def test_plot_epochs_image():
     # units and scalings keys must match
     with pytest.raises(ValueError, match='Scalings and units must have the'):
         epochs.plot_image(units=dict(hi=1), scalings=dict(ho=1))
+    plt.close('all')
     # invert_y not implemented
     with pytest.raises(NotImplementedError, match='"invert_y" found in "ts_'):
         epochs.plot_image(ts_args=dict(invert_y=True))
@@ -188,25 +200,27 @@ def test_plot_epochs_image():
         fig, axs = plt.subplots(3, 1)
         epochs.plot_image(fig=fig, group_by=dict(foo=[0, 1], bar=[5, 6]))
         del fig, axs
+    plt.close('all')
     # must pass correct number of axes (1, 2, or 3)
-    fig, ax = plt.subplots()
     with pytest.raises(ValueError, match='is a list, can only plot one group'):
-        epochs.plot_image(axes=[ax] * 3)
+        fig, axs = plt.subplots(1, 3)
+        epochs.plot_image(axes=axs)
     for length, kwargs in ([3, dict()],
                            [2, dict(evoked=False)],
                            [2, dict(colorbar=False)],
                            [1, dict(evoked=False, colorbar=False)]):
-        # TODO: these should work, but are getting MPL UserWarnings
-        # epochs.plot_image(picks='mag', axes=[ax] * length, **kwargs)
+        fig, axs = plt.subplots(1, length + 1)
+        epochs.plot_image(picks='mag', axes=axs[:length], **kwargs)
         with pytest.raises(ValueError, match='"axes" must be length ., got .'):
-            epochs.plot_image(picks='mag', axes=[ax] * (length + 1), **kwargs)
+            epochs.plot_image(picks='mag', axes=axs, **kwargs)
+    plt.close('all')
     # mismatch between axes dict keys and group_by dict keys
     with pytest.raises(ValueError, match='must match the keys in "group_by"'):
         epochs.plot_image(axes=dict())
     # wrong number of axes in dict
     match = 'each value in "axes" must be a list of . axes, got .'
     with pytest.raises(ValueError, match=match):
-        epochs.plot_image(axes=dict(foo=[ax] * 2, bar=[ax] * 3),
+        epochs.plot_image(axes=dict(foo=axs[:2], bar=axs[:3]),
                           group_by=dict(foo=[0, 1], bar=[5, 6]))
     # bad value of "combine"
     with pytest.raises(ValueError, match='"combine" must be None, a callable'):
@@ -214,24 +228,12 @@ def test_plot_epochs_image():
     # mismatched picks and overlay_times
     with pytest.raises(ValueError, match='size of overlay_times parameter'):
         epochs.plot_image(picks=[1], overlay_times=[0.1, 0.2])
+    # bad overlay times
+    with pytest.warns(RuntimeWarning, match='fall outside'):
+        epochs.plot_image(overlay_times=[999.])
     # mismatched picks and order
     with pytest.raises(ValueError, match='must match the length of the data'):
         epochs.plot_image(picks=[1], order=[0, 1])
-
-    # leftover tests from before, still needed?
-    assert len(epochs.plot_image(picks=["eeg", "mag", "grad"])) < 6
-    epochs.load_data().pick_types(meg='mag')
-    epochs.info.normalize_proj()
-    epochs.plot_image(combine='mean')
-    epochs.plot_image(vmin=lambda x: x.min())
-    ts_args = dict(show_sensors=False)
-    with pytest.warns(RuntimeWarning, match='fall outside'):
-        epochs.plot_image(overlay_times=[1.1], combine="gfp", ts_args=ts_args)
-    pytest.raises(ValueError, epochs.plot_image, combine='error',
-                  ts_args=ts_args)
-    with pytest.raises(NotImplementedError, match='currently'):
-        epochs.plot_image(ts_args=dict(invert_y=True))
-
     plt.close('all')
 
 
