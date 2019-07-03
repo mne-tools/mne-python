@@ -12,6 +12,7 @@
 
 import numpy as np
 import os
+from functools import wraps
 
 from .constants import FIFF
 from .meas_info import _get_valid_units
@@ -44,6 +45,54 @@ def _deprecate_stim_channel(stim_channel, removed_in='0.19'):
         raise RuntimeError('stim_channel was supposed to be removed in version'
                            ' %s, and it is still present in %s' %
                            (removed_in, __version__))
+
+
+def _deprecate_montage_parameter(deprecated_in, removed_in,
+                                 old_param,
+                                 current_version=__version__,
+                                 details=None,
+                                 transform=None):
+    """Mark a function parameter as deprecated.
+
+    Issue a warning when the function is called with the `old_parameter`.
+
+
+    Parameters
+    ----------
+    extra: string
+    deprecated_in: string
+        When was deprecated.
+    removed_in: string
+        When `old_param` would no longer be accepted.
+    old_param: string
+        Old parameter name.
+    current_version: string
+        MNE-python current version. This parameter is meant for test purposes.
+    details: string
+        Extra information to append to the warning message.
+    """
+    _MSG_KEYS = {'old_param': old_param,
+                 'deprecated_in': deprecated_in,
+                 'removed_in': removed_in,
+                 'details': details}
+    if details is None:
+        _MSG = ('`{old_param}` is deprecated since {deprecated_in} and will be'
+                ' removed in {removed_in}.').format(**_MSG_KEYS)
+    else:
+        _MSG = ('`{old_param}` is deprecated since {deprecated_in} and will be'
+                ' removed in {removed_in}. {details}').format(**_MSG_KEYS)
+
+    # XXX: __version__ should be tested
+
+    def true_decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            if old_param in kwargs:
+                warn(_MSG, DeprecationWarning)
+            r = f(*args, **kwargs)
+            return r
+        return wrapped
+    return true_decorator
 
 
 def _check_orig_units(orig_units):

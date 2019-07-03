@@ -12,8 +12,12 @@ from ..utils import _read_segments_file, _find_channels, _create_chs
 from ..base import BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
+from ..utils import _deprecate_montage_parameter
 
 
+@_deprecate_montage_parameter(
+    deprecated_in='0.19', removed_in='0.20', old_param='montage',
+)
 @fill_doc
 def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
                      emg=(), misc=(), preload=False, verbose=None):
