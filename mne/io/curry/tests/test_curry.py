@@ -244,7 +244,8 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
                             '50000', '1', '50000', '1', '50000', '1', '50000',
                             '1', '50000', '1', '50000']
 
-    original, fname = _get_read_annotations_mock_info("Curry " + name_part, tmpdir)
+    original, fname = _get_read_annotations_mock_info("Curry " + name_part,
+                                                      tmpdir)
     copyfile(src=original['event'], dst=fname['event'])
 
     _msg = 'Info file .*? could not be found. sfreq can not be extracted'
