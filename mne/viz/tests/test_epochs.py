@@ -151,12 +151,14 @@ def test_plot_epochs_image():
     epochs.plot_image(picks=[0, 1], combine='mean')
     epochs.plot_image(picks=[1], order=[0], overlay_times=[0.1], vmin=0.01,
                       title='test')
+    plt.close('all')
     epochs.plot_image(picks=[1], overlay_times=[0.1], vmin=-0.001, vmax=0.001)
     # test providing figure
     fig, axs = plt.subplots(3, 1)
     epochs.plot_image(picks=[1], fig=fig)
     # test providing axes instance
     epochs.plot_image(picks=[1], axes=axs[0], evoked=False, colorbar=False)
+    plt.close('all')
     # test order=callable
     epochs.plot_image(picks=[0, 1],
                       order=lambda times, data: np.arange(len(data))[::-1])
