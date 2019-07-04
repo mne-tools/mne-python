@@ -311,31 +311,30 @@ def test_eeglab_event_from_annot():
 def test_reading_3_channels_one_without_position_information(tmpdir):
     """Test reading file with 3 channels - one without position information."""
     # first, create chanlocs structured array
-    ch_names = ['F3', 'unknown', 'FPz']
-    x, y, z = [1., 2., np.nan], [4., 5., np.nan], [7., 8., np.nan]
-    dt = [('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
-    nopos_dt = [('labels', 'S10'), ('Z', 'f8')]
-    chanlocs = np.zeros((3,), dtype=dt)
-    nopos_chanlocs = np.zeros((3,), dtype=nopos_dt)
-    for ind, vals in enumerate(zip(ch_names, x, y, z)):
-        for fld in range(4):
-            chanlocs[ind][dt[fld][0]] = vals[fld]
-            if fld in (0, 3):
-                nopos_chanlocs[ind][dt[fld][0]] = vals[fld]
+    chanlocs = np.array(
+        [(b'F3',  1.,  4.,  7.),
+         (b'unknown',  2.,  5.,  8.),
+         (b'FPz', np.nan, np.nan, np.nan)],
+        dtype=[('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
+    )
 
     # test reading file with one event (read old version)
-    eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
-                     squeeze_me=True)['EEG']
     # save set file
     one_chanpos_fname = op.join(tmpdir, 'test_chanpos.set')
-    io.savemat(one_chanpos_fname,
-               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
-                        'nbchan': 3, 'data': np.random.random((3, 3)),
-                        'epoch': eeg.epoch, 'event': eeg.epoch,
-                        'chanlocs': chanlocs, 'times': eeg.times[:3],
-                        'pnts': 3}},
-               appendmat=False, oned_as='row')
+
+    io.savemat(
+        file_name=one_chanpos_fname,
+        mdict=dict(EEG={'trials': 1, 'srate': 128, 'nbchan': 3,
+                        'pnts': 3, 'epoch': [], 'event': [],
+                        'times': np.array([0., 7.8125, 15.625]),
+                        'data': np.random.random((3, 3)),
+                        'chanlocs': chanlocs}),
+        appendmat=False,
+        oned_as='row'
+    )
+
     # load it
+    # import pdb; pdb.set_trace()
     with pytest.warns(RuntimeWarning, match='did not have a position'):
         raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
 
