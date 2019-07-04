@@ -350,6 +350,7 @@ def one_chanpos_fname(tmpdir_factory):
 @pytest.mark.filterwarnings('ignore:.*did not have a position.*')
 def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
+    from mne.channels import read_montage
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
         [-4.,  1.,  7.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
@@ -370,6 +371,33 @@ def test_position_information(one_chanpos_fname):
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
                           montage=montage)
     _assert_array_equal_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
+                            EXPECTED_LOCATIONS_FROM_MONTAGE)
+
+    foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    foo.set_montage(montage)
+
+    # Things that happen:
+    montage_info = read_montage(montage)
+    for actual, expected in zip([ch['ch_name'] for ch in foo.info['chs']],
+                                ['F3', 'unknown', 'FPz']):
+        assert actual == expected
+
+    assert_array_equal(foo.info['chs'][0]['loc'][:3],
+                       montage_info.pos[montage_info.ch_names.index('F3')])
+    assert_array_equal(foo.info['chs'][2]['loc'][:3],
+                       montage_info.pos[montage_info.ch_names.index('FPz')])
+
+    # There are 3 values but they don't come from montage
+    assert_array_equal(foo.info['chs'][1]['loc'][:3], [-5.,  2.,  8.])
+    assert np.count_nonzero(
+        np.isin(montage_info.pos,
+                np.random.choice(montage_info.pos.flatten(), 3))
+    ) == 3
+    assert np.count_nonzero(
+        np.isin(montage_info.pos, foo.info['chs'][1]['loc'][:3])) == 0
+
+    # Things that we would like to happen:
+    _assert_array_equal_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
                             EXPECTED_LOCATIONS_FROM_MONTAGE)
 
 
