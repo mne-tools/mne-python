@@ -215,7 +215,8 @@ def test_read_curry_annotations(fname):
 def _get_read_annotations_mock_info(name_part, mock_dir):
     original, modified = dict(), dict()
 
-    original['event'] = (curry_dir + '/test_bdf_stim_channel ' + name_part)
+    original['event'] = op.join(curry_dir,
+                                ('test_bdf_stim_channel ' + name_part))
     original['base'], ext = original['event'].split(".", maxsplit=1)
     version = _get_curry_version(ext)
     original['info'] = original['base'] + FILE_EXTENSIONS[version]["info"]
@@ -245,7 +246,7 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
 
     original, fname = _get_read_annotations_mock_info("Curry " + name_part,
                                                       tmpdir)
-    copyfile(src=op.abspath(original['event']), dst=fname['event'])
+    copyfile(src=original['event'], dst=fname['event'])
 
     _msg = 'required files cannot be found'
     with pytest.raises(FileNotFoundError, match=_msg):
