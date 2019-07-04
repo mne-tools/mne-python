@@ -64,17 +64,17 @@ def test_io_set_raw(fnames, tmpdir):
     raw_fname, raw_fname_onefile = fnames
     with pytest.deprecated_call():
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
-                         montage=montage)
+                         montage=None)
     # test that preloading works
     with pytest.deprecated_call():
-        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=None,
                                preload=True)
     raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                 phase='zero')
 
     # test that using uint16_codec does not break stuff
     with pytest.deprecated_call():
-        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=None,
                                preload=False, uint16_codec='ascii')
 
     # test reading file with one event (read old version)
@@ -96,7 +96,7 @@ def test_io_set_raw(fnames, tmpdir):
                     negative_latency_fname.replace('.set', '.fdt'))
     with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
-                        montage=montage)
+                        montage=None)
     evnts.latency = -1
     io.savemat(negative_latency_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
@@ -108,7 +108,7 @@ def test_io_set_raw(fnames, tmpdir):
     with pytest.raises(ValueError, match='event sample index is negative'):
         with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
             read_raw_eeglab(input_fname=negative_latency_fname, preload=True,
-                            montage=montage)
+                            montage=None)
 
     # test overlapping events
     overlap_fname = op.join(tmpdir, 'test_overlap_event.set')
