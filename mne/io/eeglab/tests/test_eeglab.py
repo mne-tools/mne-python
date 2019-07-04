@@ -316,8 +316,39 @@ def _assert_array_equal_nan(left, right):
     assert_allclose(left[~np.isnan(left)], right[~np.isnan(left)], atol=1e-8)
 
 
+@pytest.fixture(scope='session')
+def one_chanpos_fname(tmpdir_factory):
+    """Test file with 3 channels to exercise EEGLAB reader.
+
+    File characteristics
+       - ch_names: 'F3', 'unknown', 'FPz'
+       - 'FPz' has no position information.
+       - the rest is aleatory
+
+    Notes from when this code was factorized:
+    # test reading file with one event (read old version)
+    """
+    fname = str(tmpdir_factory.mktemp('data').join('test_chanpos.set'))
+    file_conent = dict(EEG={
+        'trials': 1, 'nbchan': 3, 'pnts': 3, 'epoch': [], 'event': [],
+        'srate': 128, 'times': np.array([0., 0.1, 0.2]),
+        'data': np.empty([3, 3]),
+        'chanlocs': np.array(
+            [(b'F3',  1.,  4.,  7.),
+             (b'unknown',  2.,  5.,  8.),
+             (b'FPz', np.nan, np.nan, np.nan)],
+            dtype=[('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
+        )
+    })
+
+    io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
+               oned_as='row')
+
+    return fname
+
+
 @pytest.mark.filterwarnings('ignore:.*did not have a position.*')
-def test_reading_3_channels_one_without_position_information(tmpdir):
+def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
@@ -331,29 +362,6 @@ def test_reading_3_channels_one_without_position_information(tmpdir):
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
         [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ])
-
-    # first, create chanlocs structured array
-    chanlocs = np.array(
-        [(b'F3',  1.,  4.,  7.),
-         (b'unknown',  2.,  5.,  8.),
-         (b'FPz', np.nan, np.nan, np.nan)],
-        dtype=[('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
-    )
-
-    # test reading file with one event (read old version)
-    # save set file
-    one_chanpos_fname = op.join(tmpdir, 'test_chanpos.set')
-
-    io.savemat(
-        file_name=one_chanpos_fname,
-        mdict=dict(EEG={'trials': 1, 'srate': 128, 'nbchan': 3,
-                        'pnts': 3, 'epoch': [], 'event': [],
-                        'times': np.array([0., 7.8125, 15.625]),
-                        'data': np.random.random((3, 3)),
-                        'chanlocs': chanlocs}),
-        appendmat=False,
-        oned_as='row'
-    )
 
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
