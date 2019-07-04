@@ -224,7 +224,7 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     modified['event'] = modified['base'] + FILE_EXTENSIONS[version]["events"]
     modified['info'] = modified['base'] + FILE_EXTENSIONS[version]["info"]
 
-    return op.abspath(original), modified
+    return original, modified
 
 
 @pytest.mark.parametrize('name_part', [
@@ -245,7 +245,7 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
 
     original, fname = _get_read_annotations_mock_info("Curry " + name_part,
                                                       tmpdir)
-    copyfile(src=original['event'], dst=fname['event'])
+    copyfile(src=op.abspath(original['event']), dst=fname['event'])
 
     _msg = 'required files cannot be found'
     with pytest.raises(FileNotFoundError, match=_msg):
