@@ -42,7 +42,6 @@ ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
 fif_fname = op.join(test_base_dir, 'MEG', 'sample',
                     'sample_audvis_trunc_raw.fif')
 eeglab_fname = op.join(test_base_dir, 'EEGLAB', 'test_raw.set')
-eeglab_montage = op.join(test_base_dir, 'EEGLAB', 'test_chans.locs')
 
 ctf_fname2 = op.join(test_base_dir, 'CTF', 'catch-alp-good-f.ds')
 
@@ -1006,8 +1005,7 @@ def test_ica_eeg():
     """Test ICA on EEG."""
     method = 'fastica'
     raw_fif = read_raw_fif(fif_fname, preload=True)
-    raw_eeglab = read_raw_eeglab(input_fname=eeglab_fname,
-                                 montage=eeglab_montage, preload=True)
+    raw_eeglab = read_raw_eeglab(input_fname=eeglab_fname, preload=True)
     for raw in [raw_fif, raw_eeglab]:
         events = make_fixed_length_events(raw, 99999, start=0, stop=0.3,
                                           duration=0.1)

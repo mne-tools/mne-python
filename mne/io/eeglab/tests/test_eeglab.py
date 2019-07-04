@@ -301,12 +301,9 @@ def test_eeglab_event_from_annot():
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname_mat = op.join(base_dir, 'test_raw.set')
     raw_fname = raw_fname_mat
-    montage = op.join(base_dir, 'test_chans.locs')
     event_id = {'rt': 1, 'square': 2}
 
-    with pytest.deprecated_call():
-        raw1 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
-                               preload=False)
+    raw1 = read_raw_eeglab(input_fname=raw_fname, preload=False)
 
     annotations = read_annotations(raw_fname)
     assert len(raw1.annotations) == 154
