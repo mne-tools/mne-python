@@ -317,6 +317,7 @@ def test_eeglab_event_from_annot():
 
 @pytest.mark.parametrize("fname", [
     raw_fname_mat,
+    # one_chanpos_fname,  # XXX: this file is generated in the first test
 ])
 def test_montage_depreaction(fname):
     """Test deprecation."""
