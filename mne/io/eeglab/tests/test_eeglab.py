@@ -156,40 +156,6 @@ def test_io_set_raw(fnames, tmpdir):
         # this write to fail!
         raise SkipTest('Need to fix bug in NumPy 1.14.0!')
 
-    # save set file
-    one_chanpos_fname = op.join(tmpdir, 'test_chanpos.set')
-    io.savemat(one_chanpos_fname,
-               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
-                        'nbchan': 3, 'data': np.random.random((3, 3)),
-                        'epoch': eeg.epoch, 'event': eeg.epoch,
-                        'chanlocs': chanlocs, 'times': eeg.times[:3],
-                        'pnts': 3}},
-               appendmat=False, oned_as='row')
-    # load it
-    with pytest.warns(RuntimeWarning, match='did not have a position'):
-        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-
-    # position should be present for first two channels
-    for i in range(2):
-        assert_array_equal(raw.info['chs'][i]['loc'][:3],
-                           np.array([-chanlocs[i]['Y'],
-                                     chanlocs[i]['X'],
-                                     chanlocs[i]['Z']]))
-    # position of the last channel should be zero
-    assert_array_equal(raw.info['chs'][-1]['loc'][:3], [np.nan] * 3)
-
-    # test reading channel names from set and positions from montage
-    with pytest.warns(RuntimeWarning, match='did not have a position'):
-        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
-                              montage=montage)
-
-    # when montage was passed - channel positions should be taken from there
-    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
-                   [0., 0.99977915, -0.02101571]]
-    for ch_ind in range(3):
-        assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
-                                  np.array(correct_pos[ch_ind]))
-
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure
     nopos_fname = op.join(tmpdir, 'test_no_chanpos.set')
@@ -348,5 +314,59 @@ def test_montage_depreaction(fname):
     assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_POS)
+
+
+def test_reading_3_channels_one_without_position_information(tmpdir):
+    """Test reading file with 3 channels - one without position information."""
+    # first, create chanlocs structured array
+    ch_names = ['F3', 'unknown', 'FPz']
+    x, y, z = [1., 2., np.nan], [4., 5., np.nan], [7., 8., np.nan]
+    dt = [('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
+    nopos_dt = [('labels', 'S10'), ('Z', 'f8')]
+    chanlocs = np.zeros((3,), dtype=dt)
+    nopos_chanlocs = np.zeros((3,), dtype=nopos_dt)
+    for ind, vals in enumerate(zip(ch_names, x, y, z)):
+        for fld in range(4):
+            chanlocs[ind][dt[fld][0]] = vals[fld]
+            if fld in (0, 3):
+                nopos_chanlocs[ind][dt[fld][0]] = vals[fld]
+
+    # test reading file with one event (read old version)
+    eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
+                     squeeze_me=True)['EEG']
+    # save set file
+    one_chanpos_fname = op.join(tmpdir, 'test_chanpos.set')
+    io.savemat(one_chanpos_fname,
+               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
+                        'nbchan': 3, 'data': np.random.random((3, 3)),
+                        'epoch': eeg.epoch, 'event': eeg.epoch,
+                        'chanlocs': chanlocs, 'times': eeg.times[:3],
+                        'pnts': 3}},
+               appendmat=False, oned_as='row')
+    # load it
+    with pytest.warns(RuntimeWarning, match='did not have a position'):
+        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+
+    # position should be present for first two channels
+    for i in range(2):
+        assert_array_equal(raw.info['chs'][i]['loc'][:3],
+                           np.array([-chanlocs[i]['Y'],
+                                     chanlocs[i]['X'],
+                                     chanlocs[i]['Z']]))
+    # position of the last channel should be zero
+    assert_array_equal(raw.info['chs'][-1]['loc'][:3], [np.nan] * 3)
+
+    # test reading channel names from set and positions from montage
+    with pytest.warns(RuntimeWarning, match='did not have a position'):
+        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
+                              montage=montage)
+
+    # when montage was passed - channel positions should be taken from there
+    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
+                   [0., 0.99977915, -0.02101571]]
+    for ch_ind in range(3):
+        assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
+                                  np.array(correct_pos[ch_ind]))
+
 
 run_tests_if_main()
