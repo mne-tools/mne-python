@@ -308,6 +308,14 @@ def test_eeglab_event_from_annot():
     assert len(events_b) == 154
 
 
+def _assert_array_equal_nan(left, right):
+    # from mne.utils import _array_equal_nan
+    # assert _array_equal_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
+    #                         EXPECTED_LOCATIONS_FROM_MONTAGE)
+    assert_array_equal(np.isnan(left), np.isnan(right))
+    assert_allclose(left[~np.isnan(left)], right[~np.isnan(left)], atol=1e-8)
+
+
 def test_reading_3_channels_one_without_position_information(tmpdir):
     """Test reading file with 3 channels - one without position information."""
     # first, create chanlocs structured array
@@ -334,18 +342,18 @@ def test_reading_3_channels_one_without_position_information(tmpdir):
     )
 
     # load it
-    # import pdb; pdb.set_trace()
     with pytest.warns(RuntimeWarning, match='did not have a position'):
         raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
 
-    # position should be present for first two channels
-    for i in range(2):
-        assert_array_equal(raw.info['chs'][i]['loc'][:3],
-                           np.array([-chanlocs[i]['Y'],
-                                     chanlocs[i]['X'],
-                                     chanlocs[i]['Z']]))
-    # position of the last channel should be zero
-    assert_array_equal(raw.info['chs'][-1]['loc'][:3], [np.nan] * 3)
+    nan = np.nan
+    EXPECTED_LOCATIONS_FROM_FILE = np.array([
+        [-4.,  1.,  7.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+    ])
+
+    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
+                       EXPECTED_LOCATIONS_FROM_FILE)
 
     # test reading channel names from set and positions from montage
     with pytest.warns(RuntimeWarning, match='did not have a position'):
@@ -353,11 +361,13 @@ def test_reading_3_channels_one_without_position_information(tmpdir):
                               montage=montage)
 
     # when montage was passed - channel positions should be taken from there
-    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
-                   [0., 0.99977915, -0.02101571]]
-    for ch_ind in range(3):
-        assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
-                                  np.array(correct_pos[ch_ind]))
+    EXPECTED_LOCATIONS_FROM_MONTAGE = np.array([
+        [-0.56705965, 0.67706631, 0.46906776, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+        [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ])
+    _assert_array_equal_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
+                            EXPECTED_LOCATIONS_FROM_MONTAGE)
 
 
 run_tests_if_main()
