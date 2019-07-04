@@ -224,7 +224,7 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     modified['event'] = modified['base'] + FILE_EXTENSIONS[version]["events"]
     modified['info'] = modified['base'] + FILE_EXTENSIONS[version]["info"]
 
-    return original, modified
+    return op.abspath(original), modified
 
 
 @pytest.mark.parametrize('name_part', [
