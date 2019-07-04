@@ -92,9 +92,8 @@ def _deprecate_montage_parameter(deprecated_in, removed_in,
                     return f(*args, **kwargs)
                 else:
                     warn(_MSG + details, DeprecationWarning)
-                    raw = f(*args, **kwargs)
-                    raw.set_montage(value, update_ch_names=True)
-                    return raw
+                    kwargs[old_param] = value
+                    return f(*args, **kwargs)
         return wrapped
     return true_decorator
 
