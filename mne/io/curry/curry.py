@@ -261,12 +261,7 @@ def read_raw_curry(fname, preload=False, verbose=None):
     fname : str
         Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
         .cdt.cef or .cef.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     %(verbose)s
 
     Returns
@@ -286,12 +281,7 @@ class RawCurry(BaseRaw):
     fname : str
         Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
         .cdt.cef or .cef.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     %(verbose)s
 
     See Also
