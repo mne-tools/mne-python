@@ -319,13 +319,29 @@ def test_eeglab_event_from_annot():
     raw_fname_mat,
 ])
 def test_montage_depreaction(fname):
+    """Test deprecation."""
+    EXPECTED_DEPRECATION_MESSAGE_A = (
+        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
+    )
     EXPECTED_DEPRECATION_MESSAGE = (
-        '`montage` is deprecated since 0.19 and will be removed in 0.20. '
+        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
         ' Remove the `montage` parameter from `read_raw_eeglab` and use '
         ' raw.set_montage(montage) instead.'
     )
     EXPECTED_POS = np.pad(read_montage(montage).pos,
                           ((0, 0), (0, 9)), 'constant')
+
+    # Test No warn
+    raw = read_raw_eeglab(input_fname=fname, preload=False)
+
+    # Test message when None
+    with pytest.deprecated_call() as recwarn:
+        raw = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
+
+    assert len(recwarn) == 1
+    assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE_A
+
+    # Test message when montage
     with pytest.deprecated_call() as recwarn:
         raw = read_raw_eeglab(input_fname=fname,
                               montage=montage, preload=False)
