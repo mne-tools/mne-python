@@ -82,17 +82,19 @@ def _deprecate_montage_parameter(deprecated_in, removed_in,
     def true_decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            if old_param in kwargs:
+            if old_param not in kwargs:
+                # all good just return the func
+                return f(*args, **kwargs)
+            else:
                 value = kwargs.pop(old_param)
                 if value is None:
                     warn(_MSG, DeprecationWarning)
                     return f(*args, **kwargs)
                 else:
                     warn(_MSG + details, DeprecationWarning)
-                    kwargs[old_param] = value  # XXX: put it back
-                    return f(*args, **kwargs)
-            else:
-                return f(*args, **kwargs)  # all good just return the func
+                    raw = f(*args, **kwargs)
+                    raw.set_montage(value, update_ch_names=True)
+                    return raw
         return wrapped
     return true_decorator
 
