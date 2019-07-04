@@ -42,10 +42,10 @@ def _get_curry_version(file_extension):
     return "Curry 8" if "cdt" in file_extension else "Curry 7"
 
 
-def _get_curry_file_structure(fname, required):
+def _get_curry_file_structure(fname, required=[]):
     """Store paths to a CurryFileStructure and check for required files."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
-           "sure all required files are located in the same directory."
+           "sure all required files are located in the same directory as {1}."
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
     fname_base, ext = fname.split(".", maxsplit=1)
@@ -64,7 +64,7 @@ def _get_curry_file_structure(fname, required):
     missing = [fname_base + FILE_EXTENSIONS[version][field]
                for field in required if getattr(my_curry, field) is None]
     if missing:
-        raise FileNotFoundError(_msg.format(np.unique(missing)))
+        raise FileNotFoundError(_msg.format(np.unique(missing), fname))
 
     return my_curry
 

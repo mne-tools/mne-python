@@ -21,7 +21,8 @@ from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
 from mne.utils import check_version, run_tests_if_main
 from mne.annotations import read_annotations
-from mne.io.curry.curry import (_get_curry_version, FILE_EXTENSIONS)
+from mne.io.curry.curry import (_get_curry_version, _get_curry_file_structure,
+                                _read_events_curry, FILE_EXTENSIONS)
 
 
 data_dir = testing.data_path(download=False)
@@ -42,7 +43,7 @@ curry8_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 8.cdt")
 curry8_bdf_ascii_file = op.join(curry_dir,
                                 "test_bdf_stim_channel Curry 8 ASCII.cdt")
 
-test_sfreq_0 = op.join(curry_dir, "test_sfreq_0.dat")
+missing_event_file = op.join(curry_dir, "test_sfreq_0.dat")
 
 if not check_version("numpy", "1.16.0"):
     do_warn = 'ignore:.*take longer for ASCII.*:'
@@ -125,6 +126,19 @@ def test_read_events_curry_are_same_as_bdf(fname):
     raw = read_raw_curry(fname)
     events, _ = events_from_annotations(raw, event_id=EVENT_ID)
     assert_allclose(events, REF_EVENTS)
+
+
+def test_check_missing_files():
+    """Test checking for missing curry files (smoke test)."""
+    invalid_fname = "/invalid/path/name.xy"
+
+    with pytest.raises(IOError, match="file type .*? must end with"):
+        _read_events_curry(invalid_fname)
+
+    with pytest.raises(FileNotFoundError, match="files cannot be found"):
+        _get_curry_file_structure(invalid_fname)
+        _get_curry_file_structure(missing_event_file,
+                                  required=["info", "events"])
 
 
 def _mock_info_file(src, dst, sfreq, time_step):
