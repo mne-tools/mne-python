@@ -14,6 +14,7 @@ from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
 from ..utils import check_random_state, warn, _check_option, fill_doc
 from ..label import Label
+from ..surface import _compute_nearest
 
 
 @fill_doc
@@ -269,13 +270,9 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
                                  label.vertices)
         if len(src_sel) == 0:
             idx = src[hemi_ind]['inuse'].astype('bool')
-            rr = src[hemi_ind]['rr'][idx]
-            closest_src = np.empty(len(label.vertices), dtype=np.int)
-            for j, vert in enumerate(label.vertices):
-                vert_pos = src[hemi_ind]['rr'][vert:vert + 1, :]
-                vert_matrix = np.tile(vert_pos, (rr.shape[0], 1))
-                distances = np.sum((rr - vert_matrix) ** 2, axis=1)
-                closest_src[j] = np.argmin(distances)
+            xhs = src[hemi_ind]['rr'][idx]
+            rr = src[hemi_ind]['rr'][label.vertices]
+            closest_src = _compute_nearest(xhs, rr)
             src_sel = src[hemi_ind]['vertno'][np.unique(closest_src)]
 
         if value_fun is not None:
