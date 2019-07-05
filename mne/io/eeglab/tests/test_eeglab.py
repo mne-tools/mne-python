@@ -308,10 +308,7 @@ def test_eeglab_event_from_annot():
     assert len(events_b) == 154
 
 
-def _assert_array_equal_nan(left, right):
-    # from mne.utils import _array_equal_nan
-    # assert _array_equal_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
-    #                         EXPECTED_LOCATIONS_FROM_MONTAGE)
+def _assert_array_allclose_nan(left, right):
     assert_array_equal(np.isnan(left), np.isnan(right))
     assert_allclose(left[~np.isnan(left)], right[~np.isnan(left)], atol=1e-8)
 
@@ -369,8 +366,8 @@ def test_position_information(one_chanpos_fname):
 
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
                           montage=montage)
-    _assert_array_equal_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
-                            EXPECTED_LOCATIONS_FROM_MONTAGE)
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
+                               EXPECTED_LOCATIONS_FROM_MONTAGE)
 
     # To acomodate the new behavior so that:
     # read_raw_eeglab(.. montage=montage) and raw.set_montage(montage)
@@ -381,10 +378,10 @@ def test_position_information(one_chanpos_fname):
     foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
     foo.set_montage(None)
     foo.set_montage(montage)
-    _assert_array_equal_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
-                            EXPECTED_LOCATIONS_FROM_MONTAGE)
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
+                               EXPECTED_LOCATIONS_FROM_MONTAGE)
 
-    # flushing
+    # Mixed montage: from the file and from montage
     foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
     foo.set_montage(montage)
     mixed = np.array([
@@ -392,8 +389,8 @@ def test_position_information(one_chanpos_fname):
         [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
         [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ])
-    _assert_array_equal_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
-                            mixed)
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
+                               mixed)
 
 
 run_tests_if_main()
