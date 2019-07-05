@@ -203,7 +203,7 @@ class _Renderer(_BaseRenderer):
             self.mlab.text3d(x, y, z, text, scale=scale, color=color,
                              figure=self.fig)
 
-    def scalarbar(self, source, title=None, n_labels=None):
+    def scalarbar(self, source, title=None, n_labels=4):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.scalarbar(source, title=title, nb_labels=n_labels)
 

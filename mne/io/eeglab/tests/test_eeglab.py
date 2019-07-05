@@ -277,6 +277,11 @@ def test_eeglab_event_from_annot():
     assert len(events_b) == 154
 
 
+def _assert_array_allclose_nan(left, right):
+    assert_array_equal(np.isnan(left), np.isnan(right))
+    assert_allclose(left[~np.isnan(left)], right[~np.isnan(left)], atol=1e-8)
+
+
 @pytest.fixture(scope='session')
 def one_chanpos_fname(tmpdir_factory):
     """Test file with 3 channels to exercise EEGLAB reader.
@@ -308,6 +313,56 @@ def one_chanpos_fname(tmpdir_factory):
     return fname
 
 
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*did not have a position.*')
+def test_position_information(one_chanpos_fname):
+    """Test reading file with 3 channels - one without position information."""
+    nan = np.nan
+    EXPECTED_LOCATIONS_FROM_FILE = np.array([
+        [-4.,  1.,  7.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+    ])
+
+    EXPECTED_LOCATIONS_FROM_MONTAGE = np.array([
+        [-0.56705965, 0.67706631, 0.46906776, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+        [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ])
+
+    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
+                       EXPECTED_LOCATIONS_FROM_FILE)
+
+    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
+                          montage=montage)
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
+                               EXPECTED_LOCATIONS_FROM_MONTAGE)
+
+    # To acomodate the new behavior so that:
+    # read_raw_eeglab(.. montage=montage) and raw.set_montage(montage)
+    # behaves the same we need to flush the montage. otherwise we get
+    # a mix of what is in montage and in the file
+
+    # flushing
+    foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    foo.set_montage(None)
+    foo.set_montage(montage)
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
+                               EXPECTED_LOCATIONS_FROM_MONTAGE)
+
+    # Mixed montage: from the file and from montage
+    foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    foo.set_montage(montage)
+    mixed = np.array([
+        [-0.56705965, 0.67706631, 0.46906776, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ])
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
+                               mixed)
+
+
 @pytest.mark.filterwarnings('ignore:.*did not have a position.*')
 def test_montage_deprecation_B(one_chanpos_fname):
     """Test deprecation."""
@@ -322,5 +377,6 @@ def test_montage_deprecation_B(one_chanpos_fname):
         np.array([ch['loc'] for ch in raw.info['chs']]),
         np.array([ch['loc'] for ch in raw_deprecated.info['chs']]),
     )
+
 
 run_tests_if_main()
