@@ -308,4 +308,90 @@ def test_eeglab_event_from_annot():
     assert len(events_b) == 154
 
 
+def _assert_array_allclose_nan(left, right):
+    assert_array_equal(np.isnan(left), np.isnan(right))
+    assert_allclose(left[~np.isnan(left)], right[~np.isnan(left)], atol=1e-8)
+
+
+@pytest.fixture(scope='session')
+def one_chanpos_fname(tmpdir_factory):
+    """Test file with 3 channels to exercise EEGLAB reader.
+
+    File characteristics
+       - ch_names: 'F3', 'unknown', 'FPz'
+       - 'FPz' has no position information.
+       - the rest is aleatory
+
+    Notes from when this code was factorized:
+    # test reading file with one event (read old version)
+    """
+    fname = str(tmpdir_factory.mktemp('data').join('test_chanpos.set'))
+    file_conent = dict(EEG={
+        'trials': 1, 'nbchan': 3, 'pnts': 3, 'epoch': [], 'event': [],
+        'srate': 128, 'times': np.array([0., 0.1, 0.2]),
+        'data': np.empty([3, 3]),
+        'chanlocs': np.array(
+            [(b'F3',  1.,  4.,  7.),
+             (b'unknown',  2.,  5.,  8.),
+             (b'FPz', np.nan, np.nan, np.nan)],
+            dtype=[('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
+        )
+    })
+
+    io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
+               oned_as='row')
+
+    return fname
+
+
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*did not have a position.*')
+def test_position_information(one_chanpos_fname):
+    """Test reading file with 3 channels - one without position information."""
+    nan = np.nan
+    EXPECTED_LOCATIONS_FROM_FILE = np.array([
+        [-4.,  1.,  7.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+    ])
+
+    EXPECTED_LOCATIONS_FROM_MONTAGE = np.array([
+        [-0.56705965, 0.67706631, 0.46906776, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+        [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ])
+
+    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
+                       EXPECTED_LOCATIONS_FROM_FILE)
+
+    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
+                          montage=montage)
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
+                               EXPECTED_LOCATIONS_FROM_MONTAGE)
+
+    # To acomodate the new behavior so that:
+    # read_raw_eeglab(.. montage=montage) and raw.set_montage(montage)
+    # behaves the same we need to flush the montage. otherwise we get
+    # a mix of what is in montage and in the file
+
+    # flushing
+    foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    foo.set_montage(None)
+    foo.set_montage(montage)
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
+                               EXPECTED_LOCATIONS_FROM_MONTAGE)
+
+    # Mixed montage: from the file and from montage
+    foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    foo.set_montage(montage)
+    mixed = np.array([
+        [-0.56705965, 0.67706631, 0.46906776, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ])
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
+                               mixed)
+
+
 run_tests_if_main()
