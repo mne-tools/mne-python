@@ -21,8 +21,7 @@ import pytest
 from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
-from mne.utils import _array_equal_nan
-from mne.io import read_raw_edf, read_raw_bdf, read_raw_gdf
+from mne.io import read_raw_bdf, read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_annotations_edf
@@ -31,7 +30,6 @@ from mne.io.edf.edf import find_edf_events
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
 from mne.io.meas_info import _kind_dict as _KIND_DICT
-from mne.channels.tests.test_montage import _fake_montage
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -329,54 +327,5 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
     assert ch_types == EXPECTED
 
-
-@pytest.mark.parametrize('reader,fname,_msg', [
-    pytest.param(read_raw_edf, edf_path, 'read_raw_edf', id='read_raw_edf'),
-    pytest.param(read_raw_bdf, bdf_path, 'read_raw_bdf', id='read_raw_bdf'),
-    pytest.param(read_raw_gdf, gdf1_path, 'read_raw_gdf', id='read_raw_gdf 1'),
-    pytest.param(read_raw_gdf, gdf2_path, 'read_raw_gdf', id='read_raw_gdf 2'),
-])
-def test_montage_deprecation(reader, fname, _msg):
-    """Test montage deprecation."""
-    EXPECTED_DEPRECATION_MESSAGE_SHORT = (
-        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
-    )
-    EXPECTED_DEPRECATION_MESSAGE = (
-        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
-        ' Remove the `montage` parameter from `{0}` and use '
-        ' raw.set_montage(montage) instead.'
-    ).format(_msg)
-
-    # Test No warn
-    raw = reader(fname)
-
-    # Test message when None
-    with pytest.deprecated_call(match='montage') as recwarn:
-        raw_none = reader(fname, montage=None)
-
-    assert len(recwarn) == 1
-    assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE_SHORT
-
-    # Test message when montage
-    montage = _fake_montage(raw.info['ch_names'])
-    EXPECTED_POS = np.pad(montage.pos, ((0, 0), (0, 9)), 'constant')
-    with pytest.deprecated_call(match='montage') as recwarn:
-        raw_montage = reader(fname, montage=montage)
-
-    assert len(recwarn) == 1
-    assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE
-
-    # Test position consistency for montage=None
-    assert _array_equal_nan(
-        np.array([ch['loc'] for ch in raw_none.info['chs']]),
-        np.array([ch['loc'] for ch in raw.info['chs']]),  # reference
-    )
-
-    # Test position consistency for montage=montage
-    raw.set_montage(montage)
-    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
-                       EXPECTED_POS)
-    assert_array_equal(np.array([ch['loc'] for ch in raw_montage.info['chs']]),
-                       EXPECTED_POS)
 
 run_tests_if_main()

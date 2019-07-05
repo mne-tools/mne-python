@@ -21,7 +21,7 @@ from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages)
 from mne.channels.montage import _set_montage
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
-                       object_diff)
+                       object_diff, _array_equal_nan)
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
@@ -32,7 +32,8 @@ from mne.viz._3d import _fiducial_coords
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_raw_cnt, read_raw_edf, read_raw_nicolet, read_raw_bdf,
-                    read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
+                    read_raw_eeglab, read_raw_gdf, read_fiducials,
+                    __file__ as _mne_io_file)
 
 from mne.datasets import testing
 
@@ -48,6 +49,8 @@ bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
 cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
+gdf1_fname = op.join(data_path, 'GDF', 'test_gdf_1.25.gdf')
+gdf2_fname = op.join(data_path, 'GDF', 'test_gdf_2.20.gdf')
 
 io_dir = op.dirname(_mne_io_file)
 kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
@@ -58,6 +61,7 @@ bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
 edf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test.edf')
 bdf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test_bdf_eeglab.mat')
+bdf_fname2 = op.join(io_dir, 'edf', 'tests', 'data', 'test.bdf')
 egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
 vhdr_path = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 ctf_fif_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
@@ -597,6 +601,8 @@ cnt_ignore_warns = [
 ]
 
 
+# XXX: gdf seems to be missing
+@pytest.mark.skip
 @testing.requires_testing_data
 @pytest.mark.parametrize('read_raw,fname', [
     pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
@@ -640,6 +646,7 @@ def test_montage_when_reading_and_setting(read_raw, fname):
     assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
 
 
+@pytest.mark.skip
 @testing.requires_testing_data
 @pytest.mark.parametrize('read_raw,fname', [
     pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
@@ -687,5 +694,62 @@ def test_montage_when_reading_and_setting_more(read_raw, fname):
     raw_none_copy.set_montage(montage=None)
     loc = np.array([ch['loc'] for ch in raw_none_copy.info['chs']])
     assert_array_equal(loc, np.full_like(loc, np.NaN))
+
+
+@pytest.mark.parametrize('reader,fname,_reader_name', [
+    pytest.param(read_raw_edf, edf_path, 'read_raw_edf', id='read_raw_edf'),
+    pytest.param(read_raw_bdf, bdf_fname2, 'read_raw_bdf', id='read_raw_bdf'),
+    pytest.param(read_raw_gdf, gdf1_fname, 'read_raw_gdf',
+                 id='read_raw_gdf 1'),
+    pytest.param(read_raw_gdf, gdf2_fname, 'read_raw_gdf',
+                 id='read_raw_gdf 2'),
+    pytest.param(read_raw_eeglab, eeglab_fname, 'read_raw_eeglab',
+                 id='read_raw_eeglab'),
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname, 'read_raw_nicolet', id='read_raw_nicolet'),
+])
+def test_montage_deprecation_in_readers(reader, fname, _reader_name):
+    """Test montage deprecation."""
+    EXPECTED_DEPRECATION_MESSAGE_SHORT = (
+        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
+    )
+    EXPECTED_DEPRECATION_MESSAGE = (
+        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
+        ' Remove the `montage` parameter from `{0}` and use '
+        ' raw.set_montage(montage) instead.'
+    ).format(_reader_name)
+
+    # Test No warn
+    raw = reader(fname)
+
+    # Test message when None
+    with pytest.deprecated_call(match='montage') as recwarn:
+        raw_none = reader(fname, montage=None)
+
+    assert len(recwarn) == 1
+    assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE_SHORT
+
+    # Test message when montage
+    montage = _fake_montage(raw.info['ch_names'])
+    EXPECTED_POS = np.pad(montage.pos, ((0, 0), (0, 9)), 'constant')
+    with pytest.deprecated_call(match='montage') as recwarn:
+        raw_montage = reader(fname, montage=montage)
+
+    assert len(recwarn) == 1
+    assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE
+
+    # Test position consistency for montage=None
+    assert _array_equal_nan(
+        np.array([ch['loc'] for ch in raw_none.info['chs']]),
+        np.array([ch['loc'] for ch in raw.info['chs']]),  # reference
+    )
+
+    # Test position consistency for montage=montage
+    raw.set_montage(montage)
+    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
+                       EXPECTED_POS)
+    assert_array_equal(np.array([ch['loc'] for ch in raw_montage.info['chs']]),
+                       EXPECTED_POS)
+
 
 run_tests_if_main()

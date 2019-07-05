@@ -24,16 +24,4 @@ def test_data():
                          ecg='auto', eog='auto', emg='auto', misc=['PHO'])
 
 
-def test_montage_deprecation():
-    """Test deprecation."""
-    EXPECTED_DEPRECATION_MESSAGE = (
-        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
-    )
-    read_raw_nicolet(input_fname=fname, ch_type='eeg')
-    with pytest.deprecated_call() as recwarn:
-        read_raw_nicolet(input_fname=fname, ch_type='eeg', montage=None)
-    assert len(recwarn) == 1
-    assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE
-
-
 run_tests_if_main()

@@ -22,7 +22,6 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import requires_h5py, run_tests_if_main, _array_equal_nan
 from mne.annotations import events_from_annotations, read_annotations
-from mne.channels.montage import read_montage
 
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -307,44 +306,6 @@ def one_chanpos_fname(tmpdir_factory):
                oned_as='row')
 
     return fname
-
-
-@pytest.mark.parametrize("fname", [
-    raw_fname_mat,
-    # one_chanpos_fname,  # XXX: this file is generated in the first test
-])
-def test_montage_depreaction(fname):
-    """Test deprecation."""
-    EXPECTED_DEPRECATION_MESSAGE_A = (
-        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
-    )
-    EXPECTED_DEPRECATION_MESSAGE = (
-        '`montage` is deprecated since 0.19 and will be removed in 0.20.'
-        ' Remove the `montage` parameter from `read_raw_eeglab` and use '
-        ' raw.set_montage(montage) instead.'
-    )
-    EXPECTED_POS = np.pad(read_montage(montage).pos,
-                          ((0, 0), (0, 9)), 'constant')
-
-    # Test No warn
-    raw = read_raw_eeglab(input_fname=fname, preload=False)
-
-    # Test message when None
-    with pytest.deprecated_call() as recwarn:
-        raw = read_raw_eeglab(input_fname=fname, montage=None, preload=False)
-
-    assert len(recwarn) == 1
-    assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE_A
-
-    # Test message when montage
-    with pytest.deprecated_call() as recwarn:
-        raw = read_raw_eeglab(input_fname=fname,
-                              montage=montage, preload=False)
-
-    assert len(recwarn) == 1
-    assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE
-    assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
-                       EXPECTED_POS)
 
 
 @pytest.mark.filterwarnings('ignore:.*did not have a position.*')

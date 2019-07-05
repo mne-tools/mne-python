@@ -17,6 +17,10 @@ from ..utils import _deprecate_montage_parameter
 
 @_deprecate_montage_parameter(
     deprecated_in='0.19', removed_in='0.20', old_param='montage',
+    details=(
+        ' Remove the `montage` parameter from `read_raw_nicolet` and use '
+        ' raw.set_montage(montage) instead.'
+    )
 )
 @fill_doc
 def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
