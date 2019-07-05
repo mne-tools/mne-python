@@ -55,20 +55,21 @@ def _check_h5(fname):
 
 @requires_h5py
 @testing.requires_testing_data
-@pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
-def test_io_set_raw(fnames):
+@pytest.mark.parametrize(
+    'fname', [raw_fname_mat, raw_fname_h5], ids=op.basename
+)
+def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
-    raw_fname, _ = fnames
-    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
+    _test_raw_reader(read_raw_eeglab, input_fname=fname,
                      montage=montage)
     # test that preloading works
-    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+    raw0 = read_raw_eeglab(input_fname=fname, montage=montage,
                            preload=True)
     raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                 phase='zero')
 
     # test that using uint16_codec does not break stuff
-    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+    raw0 = read_raw_eeglab(input_fname=fname, montage=montage,
                            preload=False, uint16_codec='ascii')
 
 
