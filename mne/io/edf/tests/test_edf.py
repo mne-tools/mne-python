@@ -22,7 +22,7 @@ from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.utils import _array_equal_nan
-from mne.io import read_raw_edf, read_raw_bdf
+from mne.io import read_raw_edf, read_raw_bdf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_annotations_edf
@@ -56,6 +56,9 @@ bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
+
+gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25.gdf')
+gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20.gdf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -330,6 +333,8 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
 @pytest.mark.parametrize('reader,fname,_msg', [
     pytest.param(read_raw_edf, edf_path, 'read_raw_edf', id='read_raw_edf'),
     pytest.param(read_raw_bdf, bdf_path, 'read_raw_bdf', id='read_raw_bdf'),
+    pytest.param(read_raw_gdf, gdf1_path, 'read_raw_gdf', id='read_raw_gdf 1'),
+    pytest.param(read_raw_gdf, gdf2_path, 'read_raw_gdf', id='read_raw_gdf 2'),
 ])
 def test_montage_deprecation(reader, fname, _msg):
     """Test montage deprecation."""
