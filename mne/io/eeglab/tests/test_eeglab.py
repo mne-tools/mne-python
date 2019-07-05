@@ -61,20 +61,16 @@ def test_io_set_raw(fnames, tmpdir):
     """Test importing EEGLAB .set files."""
     tmpdir = str(tmpdir)
     raw_fname, raw_fname_onefile = fnames
-    with pytest.deprecated_call():
-        _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
-                         montage=None)
+    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname)
+
     # test that preloading works
-    with pytest.deprecated_call():
-        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=None,
-                               preload=True)
+    raw0 = read_raw_eeglab(input_fname=raw_fname, preload=True)
     raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                 phase='zero')
 
     # test that using uint16_codec does not break stuff
-    with pytest.deprecated_call():
-        raw0 = read_raw_eeglab(input_fname=raw_fname, montage=None,
-                               preload=False, uint16_codec='ascii')
+    raw0 = read_raw_eeglab(input_fname=raw_fname, preload=False,
+                           uint16_codec='ascii')
 
     # test reading file with one event (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
