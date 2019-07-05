@@ -1591,6 +1591,8 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
                     for this_tag in cond.split('/'):      # try the cond tags
                         try:
                             inner_dict[style_name] = curr[this_tag]
+                            if style_name == 'color' and cmap is not None:
+                                inner_dict['cmap_label'] = this_tag
                             break
                         except KeyError:                  # else, use defaults
                             inner_dict[style_name] = defaults[style_name]
@@ -1608,7 +1610,12 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
             number = inner_dict['color']
             inner_dict['color'] = cmap(number)
             tick_loc = tick_dict[number] if all_int else number
-            legend_tick_locs[cond] = tick_loc
+            # simplify redundant labels (only happens if orig. spec. as "tags")
+            if 'cmap_label' in inner_dict:
+                legend_tick_locs[inner_dict['cmap_label']] = tick_loc
+                del styles[cond]['cmap_label']
+            else:
+                legend_tick_locs[cond] = tick_loc
     return styles, cmap, cmap_label, colors, linestyles, legend_tick_locs
 
 
@@ -1678,7 +1685,9 @@ def _draw_legend_pce(styles, legend, split_legend, colors, cmap,
         for cond, tick_loc in legend_tick_locs.items():
             # handle conditions with same color/location
             if tick_loc in ticks:
-                ticklabels[-1] = '\n'.join([ticklabels[-1], cond])
+                idx = ticks.index(tick_loc)
+                if ticklabels[idx] != cond:
+                    ticklabels[idx] = '\n'.join([ticklabels[idx], cond])
             else:
                 ticks.append(tick_loc)
                 ticklabels.append(cond)
