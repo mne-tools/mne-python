@@ -1675,6 +1675,8 @@ def _draw_legend_pce(styles, legend, split_legend, colors, cmap,
         # plot the colorbar
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         from matplotlib.colorbar import ColorbarBase
+        from matplotlib.transforms import Bbox
+        orig_bbox = ax.get_position()
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         cb = ColorbarBase(cax, cmap=cmap, norm=None,
@@ -1695,13 +1697,24 @@ def _draw_legend_pce(styles, legend, split_legend, colors, cmap,
         cb.set_ticks(np.array(ticks)[order])
         cb.set_ticklabels(np.array(ticklabels)[order])
         cax.yaxis.tick_right()
-        # # TODO: shrink colorbar if colors are few. Doesn't work; cf
-        # # https://stackoverflow.com/q/56799079/1664024
-        # x, y, width, height = cax.get_position().bounds
-        # new_height = width * (len(set(colors.values())) + 0.5 * len(styles))
-        # new_y = y + (height - new_height) / 2
-        # cax.set_axes_locator(None)
-        # cax.set_position((x, new_y, width, new_height))
+        # shrink colorbar if discrete colors
+        color_vals = list(colors.values())
+        if all([isinstance(_color, Integral) for _color in color_vals]):
+            fig = ax.get_figure()
+            fig.canvas.draw()
+            fig_aspect = np.divide(*fig.get_size_inches())
+            plot_bbox = ax.get_position()
+            cax_width = 0.75 * (orig_bbox.xmax - plot_bbox.xmax)
+            # add extra space for multiline colorbar labels
+            h_mult = max(2, max([len(lab.split('\n')) for lab in ticklabels]))
+            cax_height = len(set(color_vals)) * h_mult * cax_width / fig_aspect
+            x0 = orig_bbox.xmax - cax_width
+            y0 = (plot_bbox.ymax + plot_bbox.ymin - cax_height) / 2
+            x1 = orig_bbox.xmax
+            y1 = y0 + cax_height
+            new_bbox = Bbox([[x0, y0], [x1, y1]])
+            cax.set_axes_locator(None)
+            cax.set_position(new_bbox)
     # legend params
     ncol = 1 + (len(lines) // (4 if split_legend else 5))
     legend_params = dict(loc=loc, frameon=True, ncol=ncol)
