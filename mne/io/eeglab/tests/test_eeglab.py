@@ -372,8 +372,9 @@ def test_position_information(one_chanpos_fname):
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
 
-    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
-                          montage=montage)
+    with pytest.deprecated_call():
+        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
+                            montage=montage)
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
 
