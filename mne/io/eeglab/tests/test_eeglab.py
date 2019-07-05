@@ -74,8 +74,9 @@ def test_io_set_raw(fname):
 
 
 @testing.requires_testing_data
-def test_io_set_raw_foo(tmpdir):
+def test_io_set_raw_more(tmpdir):
     """Test importing EEGLAB .set files."""
+    tmpdir = str(tmpdir)
     # test reading file with one event (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
