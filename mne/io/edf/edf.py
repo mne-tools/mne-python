@@ -19,6 +19,7 @@ import numpy as np
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
+from ..utils import _deprecate_montage_parameter
 from ..base import BaseRaw
 from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
@@ -1161,6 +1162,13 @@ def _find_tal_idx(ch_names):
     return tal_channel_idx
 
 
+@_deprecate_montage_parameter(
+    deprecated_in='0.19', removed_in='0.20', old_param='montage',
+    details=(
+        ' Remove the `montage` parameter from `read_raw_edf` and use '
+        ' raw.set_montage(montage) instead.'
+    )
+)
 @fill_doc
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):

@@ -417,6 +417,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if load_from_disk:
             self._preload_data(preload)
         self._init_kwargs = _get_argvalues()
+        _ = self._init_kwargs.pop('montage', None)  # XXX: deprecate montage
 
     @verbose
     def apply_gradient_compensation(self, grade, verbose=None):
