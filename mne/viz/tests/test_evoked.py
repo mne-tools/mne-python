@@ -256,9 +256,9 @@ def test_plot_compare_evokeds():
     with pytest.raises(TypeError, match='"ci" must be None, bool, float or'):
         plot_compare_evokeds(evoked, ci='foo')
     # test sensor inset, legend location, and axis inversion & truncation
-    plot_compare_evokeds(evoked_dict, invert_y=True,
-                         show_legend='upper left', show_sensors='center',
-                         truncate_xaxis=False, truncate_yaxis=False)
+    plot_compare_evokeds(evoked_dict, invert_y=True, legend='upper left',
+                         show_sensors='center', truncate_xaxis=False,
+                         truncate_yaxis=False)
     plot_compare_evokeds(evoked, ylim=dict(mag=(-50, 50)), truncate_yaxis=True)
     plt.close('all')
     # test styles
@@ -309,7 +309,7 @@ def test_plot_compare_evokeds():
         match = r'If "(colors|linestyles)" is a dict its keys \(.*\) must '
         with pytest.raises(ValueError, match=match):
             plot_compare_evokeds(evoked_dict, **kwargs)
-    for kwargs in [dict(show_legend='foo'), dict(show_sensors='foo')]:
+    for kwargs in [dict(legend='foo'), dict(show_sensors='foo')]:
         with pytest.raises(ValueError, match='not a legal MPL loc, please'):
             plot_compare_evokeds(evoked_dict, **kwargs)
     with pytest.raises(TypeError, match='an instance of list or tuple'):
@@ -318,7 +318,7 @@ def test_plot_compare_evokeds():
         plot_compare_evokeds(evoked_dict, truncate_yaxis='foo')
     plt.close('all')
     # test axes='topo'
-    figs = plot_compare_evokeds(evoked_dict, axes='topo', show_legend=True)
+    figs = plot_compare_evokeds(evoked_dict, axes='topo', legend=True)
     for fig in figs:
         assert len(fig.axes[0].lines) == len(evoked_dict)
         assert len(fig.axes[-1].lines) == 0

@@ -220,7 +220,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
     ts_defaults = dict(colors={'cond': 'k'}, ylim=dict(), title='', show=False,
                        truncate_yaxis=False, truncate_xaxis=False,
-                       vlines=vlines, show_legend=False)
+                       vlines=vlines, legend=False)
     ts_defaults.update(**ts_args)
     ts_args = ts_defaults
 

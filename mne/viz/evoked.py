@@ -1461,7 +1461,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
 def _check_loc_legal(loc, what='your choice', default=1):
     """Check if loc is a legal location for MPL subordinate axes."""
-    true_default = {"show_legend": 2, "show_sensors": 1}.get(what, default)
+    true_default = {"legend": 2, "show_sensors": 1}.get(what, default)
     if isinstance(loc, (bool, np.bool_)) and loc:
         loc = true_default
     loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
@@ -1628,14 +1628,14 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
                  show_sensors, size=25)
 
 
-def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
+def _draw_legend_pce(styles, legend, split_legend, colors, cmap,
                      cmap_label, linestyles, legend_tick_locs, do_topo, ax):
     """Draw legend for plot_compare_evokeds."""
     import matplotlib.lines as mlines
     # triage defaults
     if split_legend is None:
         split_legend = (cmap is not None)
-    loc = _check_loc_legal(show_legend, 'show_legend')
+    loc = _check_loc_legal(legend, 'legend')
     # some vars / containers
     n_linestyles = len(set(linestyles.values()))
     lines = list()
@@ -1696,7 +1696,7 @@ def _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
     # legend params
     ncol = 1 + (len(lines) // (4 if split_legend else 5))
     legend_params = dict(loc=loc, frameon=True, ncol=ncol)
-    if do_topo and isinstance(show_legend, bool):
+    if do_topo and isinstance(legend, bool):
         legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))
     if draw_legend:
         labels = [li.get_label() for li in lines]
@@ -1818,7 +1818,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
                          vlines='auto', ci=True, truncate_yaxis='auto',
                          truncate_xaxis=True, ylim=None, invert_y=False,
-                         show_sensors=None, show_legend=True,
+                         show_sensors=None, show_legend=None, legend=True,
                          split_legend=None, axes=None, title=None, show=True,
                          combine=None):
     """Plot evoked time courses for one or more conditions and/or channels.
@@ -1929,7 +1929,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         treated as ``True`` if there is only one channel in ``picks``. If
         ``True``, location is upper or lower right corner, depending on data
         values. Defaults to ``None``.
-    show_legend : bool | int | str
+    show_legend : None
+        .. versionchanged:: 0.19
+            The ``show_legend`` parameter has been renamed to ``legend``, and
+            will be removed in version 0.20.
+    legend : bool | int | str
         Whether to show a legend for the colors/linestyles of the conditions
         plotted. If :class:`int` or :class:`str`, indicates position of the
         legend (see :func:`mpl_toolkits.axes_grid1.inset_locator.inset_axes`).
@@ -1990,6 +1994,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     if gfp is not None:
         warn('"gfp" is deprecated and will be removed in version 0.20; please '
              'use `combine="gfp"` instead.', DeprecationWarning)
+    if show_legend is not None:
+        warn('the "show_legend" parameter has been renamed to "legend", and '
+             'will be removed in version 0.20.', DeprecationWarning)
     if truncate_yaxis == 'max_ticks':
         warn('truncate_yaxis="max_ticks" changed to truncate_yaxis="auto" in '
              'version 0.19; in version 0.20 passing "max_ticks" will result '
@@ -2092,7 +2099,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                 evokeds, picks=_picks, gfp=gfp, colors=colors, cmap=cmap,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
-                show_legend=show_legend, show_sensors=show_sensors,
+                legend=legend, show_sensors=show_sensors,
                 axes=ax, title=_title, split_legend=split_legend, show=show))
         return figs
 
@@ -2127,14 +2134,14 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                 linestyles=linestyles, styles=styles, cmap=cmap, vlines=vlines,
                 ci=ci, truncate_yaxis=truncate_yaxis,
                 truncate_xaxis=truncate_xaxis, ylim=ylim, invert_y=invert_y,
-                show_sensors=show_sensors, show_legend=show_legend,
+                show_sensors=show_sensors, legend=legend,
                 split_legend=split_legend, picks=picks, combine=combine):
             plot_compare_evokeds(
                 evokeds=evokeds, gfp=gfp, colors=colors, linestyles=linestyles,
                 styles=styles, cmap=cmap, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, truncate_xaxis=truncate_xaxis,
                 ylim=ylim, invert_y=invert_y, show_sensors=show_sensors,
-                show_legend=show_legend, split_legend=split_legend,
+                legend=legend, split_legend=split_legend,
                 picks=picks[pick_], combine=combine, axes=ax_, show=True)
 
         layout = find_layout(info)
@@ -2215,8 +2222,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
                                   show_sensors, _ax)
     # add color/linestyle/colormap legend(s)
-    if show_legend:
-        _draw_legend_pce(styles, show_legend, split_legend, colors, cmap,
+    if legend:
+        _draw_legend_pce(styles, legend, split_legend, colors, cmap,
                          cmap_label, linestyles, legend_tick_locs, do_topo,
                          ax)
     # finish
