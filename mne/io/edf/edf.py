@@ -1255,6 +1255,13 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                   verbose=verbose)
 
 
+@_deprecate_montage_parameter(
+    deprecated_in='0.19', removed_in='0.20', old_param='montage',
+    details=(
+        ' Remove the `montage` parameter from `read_raw_bdf` and use '
+        ' raw.set_montage(montage) instead.'
+    )
+)
 @fill_doc
 def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):

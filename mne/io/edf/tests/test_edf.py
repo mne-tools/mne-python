@@ -327,24 +327,27 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     assert ch_types == EXPECTED
 
 
-def test_montage_deprecation():
+@pytest.mark.parametrize('reader,fname,_msg', [
+    pytest.param(read_raw_edf, edf_path, 'read_raw_edf', id='read_raw_edf'),
+    pytest.param(read_raw_bdf, bdf_path, 'read_raw_bdf', id='read_raw_bdf'),
+])
+def test_montage_deprecation(reader, fname, _msg):
     """Test montage deprecation."""
-    fname = edf_path
     EXPECTED_DEPRECATION_MESSAGE_SHORT = (
         '`montage` is deprecated since 0.19 and will be removed in 0.20.'
     )
     EXPECTED_DEPRECATION_MESSAGE = (
         '`montage` is deprecated since 0.19 and will be removed in 0.20.'
-        ' Remove the `montage` parameter from `read_raw_edf` and use '
+        ' Remove the `montage` parameter from `{0}` and use '
         ' raw.set_montage(montage) instead.'
-    )
+    ).format(_msg)
 
     # Test No warn
-    raw = read_raw_edf(fname)
+    raw = reader(fname)
 
     # Test message when None
     with pytest.deprecated_call(match='montage') as recwarn:
-        raw_none = read_raw_edf(fname, montage=None)
+        raw_none = reader(fname, montage=None)
 
     assert len(recwarn) == 1
     assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE_SHORT
@@ -353,7 +356,7 @@ def test_montage_deprecation():
     montage = _fake_montage(raw.info['ch_names'])
     EXPECTED_POS = np.pad(montage.pos, ((0, 0), (0, 9)), 'constant')
     with pytest.deprecated_call(match='montage') as recwarn:
-        raw_montage = read_raw_edf(fname, montage=montage)
+        raw_montage = reader(fname, montage=montage)
 
     assert len(recwarn) == 1
     assert recwarn[0].message.args[0] == EXPECTED_DEPRECATION_MESSAGE
