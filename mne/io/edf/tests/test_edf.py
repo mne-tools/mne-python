@@ -21,7 +21,7 @@ import pytest
 from mne import pick_types, Annotations
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
-from mne.io import read_raw_bdf, read_raw_edf
+from mne.io import read_raw_edf, read_raw_bdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_annotations_edf
@@ -30,6 +30,7 @@ from mne.io.edf.edf import find_edf_events
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
 from mne.io.meas_info import _kind_dict as _KIND_DICT
+
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -54,9 +55,6 @@ bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
-
-gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25.gdf')
-gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20.gdf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
