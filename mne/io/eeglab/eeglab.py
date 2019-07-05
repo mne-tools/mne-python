@@ -371,6 +371,8 @@ class RawEEGLAB(BaseRaw):
         if update_ch_names:
             for ch in self.info['chs']:
                 ch['cal'] = cal
+
+        return self
     set_montage.__doc__ = BaseRaw.set_montage.__doc__
 
 
