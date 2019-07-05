@@ -53,11 +53,12 @@ def _check_h5(fname):
             raise SkipTest('h5py module required')
 
 
+@requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
 def test_io_set_raw(fnames):
     """Test importing EEGLAB .set files."""
-    raw_fname, raw_fname_onefile = fnames
+    raw_fname, _ = fnames
     _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
                      montage=montage)
     # test that preloading works
@@ -71,7 +72,6 @@ def test_io_set_raw(fnames):
                            preload=False, uint16_codec='ascii')
 
 
-@requires_h5py
 @testing.requires_testing_data
 def test_io_set_raw_foo(tmpdir):
     """Test importing EEGLAB .set files."""
