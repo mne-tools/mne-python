@@ -55,23 +55,28 @@ def _check_h5(fname):
 
 @requires_h5py
 @testing.requires_testing_data
-@pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
-def test_io_set_raw(fnames, tmpdir):
+@pytest.mark.parametrize(
+    'fname', [raw_fname_mat, raw_fname_h5], ids=op.basename
+)
+def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
-    tmpdir = str(tmpdir)
-    raw_fname, raw_fname_onefile = fnames
-    _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
+    _test_raw_reader(read_raw_eeglab, input_fname=fname,
                      montage=montage)
     # test that preloading works
-    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+    raw0 = read_raw_eeglab(input_fname=fname, montage=montage,
                            preload=True)
     raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                 phase='zero')
 
     # test that using uint16_codec does not break stuff
-    raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
+    raw0 = read_raw_eeglab(input_fname=fname, montage=montage,
                            preload=False, uint16_codec='ascii')
 
+
+@testing.requires_testing_data
+def test_io_set_raw_more(tmpdir):
+    """Test importing EEGLAB .set files."""
+    tmpdir = str(tmpdir)
     # test reading file with one event (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
@@ -150,40 +155,6 @@ def test_io_set_raw(fnames, tmpdir):
         # There is a bug in 1.14.0 (or maybe with SciPy 1.0.0?) that causes
         # this write to fail!
         raise SkipTest('Need to fix bug in NumPy 1.14.0!')
-
-    # save set file
-    one_chanpos_fname = op.join(tmpdir, 'test_chanpos.set')
-    io.savemat(one_chanpos_fname,
-               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
-                        'nbchan': 3, 'data': np.random.random((3, 3)),
-                        'epoch': eeg.epoch, 'event': eeg.epoch,
-                        'chanlocs': chanlocs, 'times': eeg.times[:3],
-                        'pnts': 3}},
-               appendmat=False, oned_as='row')
-    # load it
-    with pytest.warns(RuntimeWarning, match='did not have a position'):
-        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-
-    # position should be present for first two channels
-    for i in range(2):
-        assert_array_equal(raw.info['chs'][i]['loc'][:3],
-                           np.array([-chanlocs[i]['Y'],
-                                     chanlocs[i]['X'],
-                                     chanlocs[i]['Z']]))
-    # position of the last channel should be zero
-    assert_array_equal(raw.info['chs'][-1]['loc'][:3], [np.nan] * 3)
-
-    # test reading channel names from set and positions from montage
-    with pytest.warns(RuntimeWarning, match='did not have a position'):
-        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
-                              montage=montage)
-
-    # when montage was passed - channel positions should be taken from there
-    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
-                   [0., 0.99977915, -0.02101571]]
-    for ch_ind in range(3):
-        assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
-                                  np.array(correct_pos[ch_ind]))
 
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure
