@@ -1845,10 +1845,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         * If the selected channels are gradiometers, the signal from
           corresponding (gradiometer) pairs will be combined.
 
-    gfp : bool | None
+    gfp : None
         .. versionchanged:: 0.19
-            The ``gfp`` parameter is deprecated and will be removed in 0.20.
-            Use ``combine='gfp'`` instead.
+            The ``gfp`` parameter is deprecated and will be removed in version
+            0.20. Use ``combine='gfp'`` instead.
     colors : list | dict | None
         Colors to use when plotting the ERP/F lines and confidence bands. If
         ``cmap`` is not ``None``, ``colors`` must be a :class:`list` or
