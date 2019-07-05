@@ -53,12 +53,10 @@ def _check_h5(fname):
             raise SkipTest('h5py module required')
 
 
-@requires_h5py
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
-def test_io_set_raw(fnames, tmpdir):
+def test_io_set_raw(fnames):
     """Test importing EEGLAB .set files."""
-    tmpdir = str(tmpdir)
     raw_fname, raw_fname_onefile = fnames
     _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
                      montage=montage)
@@ -75,8 +73,7 @@ def test_io_set_raw(fnames, tmpdir):
 
 @requires_h5py
 @testing.requires_testing_data
-@pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
-def test_io_set_raw_foo(fnames, tmpdir):
+def test_io_set_raw_foo(tmpdir):
     """Test importing EEGLAB .set files."""
     # test reading file with one event (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
