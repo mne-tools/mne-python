@@ -72,6 +72,12 @@ def test_io_set_raw(fnames, tmpdir):
     raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                            preload=False, uint16_codec='ascii')
 
+
+@requires_h5py
+@testing.requires_testing_data
+@pytest.mark.parametrize('fnames', [raw_mat_fnames, raw_h5_fnames])
+def test_io_set_raw_foo(fnames, tmpdir):
+    """Test importing EEGLAB .set files."""
     # test reading file with one event (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
