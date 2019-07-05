@@ -1782,9 +1782,9 @@ def _plot_compare_evokeds(ax, data_dict, conditions, times, ci_dict, styles,
                           title, all_positive, topo):
     """Plot evokeds (to compare them; with CIs) based on a data_dict."""
     for condition in conditions:
-        # plot the actual data ('d') as a line
-        d = data_dict[condition].T
-        ax.plot(times, d, zorder=1000, label=condition, clip_on=False,
+        # plot the actual data ('dat') as a line
+        dat = data_dict[condition].T
+        ax.plot(times, dat, zorder=1000, label=condition, clip_on=False,
                 **styles[condition])
         # plot the confidence interval if available
         if ci_dict.get(condition, None) is not None:
@@ -2064,6 +2064,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     title = _title_helper_pce(title, picked_types, picks=orig_picks,
                               ch_names=ch_names, combine=combine)
 
+    # setup axes
     do_topo = (axes == 'topo')
     if do_topo:
         show_sensors = False
@@ -2071,17 +2072,13 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             logger.info('You are plotting to a topographical layout with >70 '
                         'sensors. This can be extremely slow. Consider using '
                         'mne.viz.plot_topo, which is optimized for speed.')
-
-    # let's take care of axis and figs
-    if not do_topo:
-        if axes is not None:
-            if not isinstance(axes, list):
-                axes = [axes]
-                _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
-        else:
-            axes = (plt.subplots(figsize=(8, 6))[1] for _ in ch_types)
-    else:
         axes = ['topo'] * len(ch_types)
+    else:
+        if axes is None:
+            axes = (plt.subplots(figsize=(8, 6))[1] for _ in ch_types)
+        elif isinstance(axes, plt.Axes):
+            axes = [axes]
+            _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
 
     if len(ch_types) > 1:
         logger.info('Multiple channel types selected, returning one figure '
