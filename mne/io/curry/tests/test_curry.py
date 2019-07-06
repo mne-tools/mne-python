@@ -215,8 +215,7 @@ def test_read_curry_annotations(fname):
 def _get_read_annotations_mock_info(name_part, mock_dir):
     original, modified = dict(), dict()
 
-    original['event'] = op.join(curry_dir,
-                                ('test_bdf_stim_channel ' + name_part))
+    original['event'] = curry_dir + '/test_bdf_stim_channel ' + name_part
     original['base'], ext = original['event'].split(".", maxsplit=1)
     version = _get_curry_version(ext)
     original['info'] = original['base'] + FILE_EXTENSIONS[version]["info"]
@@ -228,6 +227,7 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     return original, modified
 
 
+@testing.requires_testing_data
 @pytest.mark.parametrize('name_part', [
     pytest.param('7.cef', id='7'),
     pytest.param('8.cdt.cef', id='8'),
