@@ -6,7 +6,6 @@
 import os.path as op
 import inspect
 
-
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_nicolet
 from mne.io.tests.test_raw import _test_raw_reader

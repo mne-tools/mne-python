@@ -12,7 +12,8 @@ from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
-                     _deprecate_stim_channel, _synthesize_stim_channel)
+                     _deprecate_stim_channel, _synthesize_stim_channel,
+                     _deprecate_montage)
 from ..meas_info import _empty_info
 from ..base import BaseRaw
 from ...annotations import Annotations
@@ -115,11 +116,7 @@ def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
     ----------
     input_fname : str
         Path to the data file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        xy sensor locations are read from the header (``x_coord`` and
-        ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
-        of :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list | tuple | 'auto' | 'header'
         Names of channels or list of indices that should be designated
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
@@ -429,8 +426,8 @@ class RawCNT(BaseRaw):
         data_format = 'int32' if cnt_info['n_bytes'] == 4 else 'int16'
         self.set_annotations(
             _read_annotations_cnt(input_fname, data_format=data_format))
-        if montage is not None:
-            self.set_montage(montage)
+
+        _deprecate_montage(self, "read_raw_cnt", montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

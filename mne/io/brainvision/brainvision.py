@@ -25,7 +25,7 @@ from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw
-from ..utils import _read_segments_file, _mult_cal_one
+from ..utils import _read_segments_file, _mult_cal_one, _deprecate_montage
 from ...annotations import Annotations, read_annotations
 
 
@@ -37,11 +37,7 @@ class RawBrainVision(BaseRaw):
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        read sensor locations from header file if present, otherwise (0, 0, 0).
-        See the documentation of :func:`mne.channels.read_montage` for more
-        information.
+    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
@@ -101,8 +97,7 @@ class RawBrainVision(BaseRaw):
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
 
-        if montage is not None:
-            self.set_montage(montage)
+        _deprecate_montage(self, "read_raw_brainvision", montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -784,10 +779,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list or tuple of str
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file

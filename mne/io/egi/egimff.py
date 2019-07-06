@@ -13,7 +13,7 @@ from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..utils import _create_chs
+from ..utils import _create_chs, _deprecate_montage
 from ...utils import verbose, logger, warn
 from ...annotations import _sync_onset
 
@@ -225,10 +225,7 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
     ----------
     input_fname : str
         Path to the raw file.
-    montage : str | None | instance of montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Default is None.
@@ -424,8 +421,7 @@ class RawMff(BaseRaw):
             last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
             verbose=verbose)
 
-        if montage is not None:
-            self.set_montage(montage)
+        _deprecate_montage(self, "read_raw_egi", montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""

@@ -9,6 +9,7 @@ import os.path as op
 import numpy as np
 
 from ..utils import _read_segments_file, _find_channels
+from ..utils import _deprecate_montage
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
@@ -298,9 +299,6 @@ class RawEEGLAB(BaseRaw):
         last_samps = [eeg.pnts - 1]
         info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
 
-        montage = eeg_montage if montage is None else montage
-        del eeg_montage
-
         # read the data
         if isinstance(eeg.data, str):
             data_fname = op.join(basedir, eeg.data)
@@ -333,7 +331,11 @@ class RawEEGLAB(BaseRaw):
         self.set_annotations(annot)
         _check_boundary(annot, None)
 
-        self.set_montage(montage=montage, update_ch_names=update_ch_names)
+        if montage is not None:
+            _deprecate_montage(self, "read_raw_eeglab", montage,
+                               update_ch_names=True)
+        else:
+            self.set_montage(eeg_montage)
 
         latencies = np.round(annot.onset * self.info['sfreq'])
         _check_latencies(latencies)
@@ -344,13 +346,15 @@ class RawEEGLAB(BaseRaw):
                             dtype=np.float32, n_channels=self.info['nchan'])
 
     # XXX: to be removed when deprecating montage
-    def set_montage(self, montage, set_dig=True, update_ch_names=False,
+    def set_montage(self, montage, set_dig=True, update_ch_names=True,
                     verbose=None):
         """To be removed."""  # noqa
         cal = set([ch['cal'] for ch in self.info['chs']]).pop()
-        super(RawEEGLAB, self).set_montage(montage, set_dig=set_dig,
-                                           update_ch_names=update_ch_names,
-                                           verbose=verbose)
+
+        from ...channels.montage import _set_montage
+        _set_montage(self.info, montage, update_ch_names=update_ch_names,
+                     set_dig=set_dig)
+
         # Revert update_ch_names modifications in cal and coord_frame
         if update_ch_names:
             for ch in self.info['chs']:
@@ -412,10 +416,7 @@ class EpochsEEGLAB(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
@@ -532,7 +533,8 @@ class EpochsEEGLAB(BaseEpochs):
 
         # data are preloaded but _bad_dropped is not set so we do it here:
         self._bad_dropped = True
-        self.set_montage(montage)
+
+        _deprecate_montage(self, "read_epochs_eeglab", montage)
         logger.info('Ready.')
 
 

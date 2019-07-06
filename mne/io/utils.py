@@ -19,6 +19,16 @@ from .. import __version__
 from ..utils import warn
 
 
+def _deprecate_montage(raw, raw_type, montage, **kwargs):
+    if montage is not None:
+        raw.set_montage(montage, **kwargs)
+
+        _MSG = (
+            'The `montage` parameter from `%s` is deprecated. Use '
+            ' raw.set_montage(montage) instead.' % raw_type)
+        warn(_MSG, DeprecationWarning)
+
+
 def _deprecate_stim_channel(stim_channel, removed_in='0.19'):
     minor_current = int(__version__.split('.')[1])
     minor_removed_in = int(removed_in.split('.')[1])
