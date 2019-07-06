@@ -232,7 +232,7 @@ def _read_annotations_curry(fname, sfreq='auto'):
         The sampling frequency in the file. If set to 'auto' then the
         ``sfreq`` is taken from the respective info file of the same name with
         according file extension (\*.dap for Curry 7; \*.cdt.dpa for Curry8).
-         So data.cef looks in data.dap and data.cdt.cef looks in data.cdt.dpa.
+        So data.cef looks in data.dap and data.cdt.cef looks in data.cdt.dpa.
 
     Returns
     -------
@@ -242,8 +242,9 @@ def _read_annotations_curry(fname, sfreq='auto'):
     required = ["events", "info"] if sfreq == 'auto' else ["events"]
     curry_paths = _get_curry_file_structure(fname, required)
     events = _read_events_curry(curry_paths.events)
-    sfreq = _read_curry_parameters(curry_paths.info).sfreq if sfreq == 'auto' \
-        else sfreq
+
+    if sfreq == 'auto':
+        sfreq = _read_curry_parameters(curry_paths.info).sfreq
 
     onset = events[:, 0] / sfreq
     duration = np.zeros(events.shape[0])
@@ -310,7 +311,7 @@ class RawCurry(BaseRaw):
             orig_format='int', verbose=verbose)
 
         if curry_paths.events is not None:
-            logger.info('Event file found. Extractinng Annotations from'
+            logger.info('Event file found. Extracting Annotations from'
                         ' %s...' % curry_paths.events)
             annots = _read_annotations_curry(curry_paths.events,
                                              sfreq=self.info["sfreq"])
@@ -336,7 +337,7 @@ class RawCurry(BaseRaw):
                                    usecols=ch_idx[idx]).T
                 block = block[:, :stop - start]
 
-            data_view = data[:, 0:block.shape[1]]
+            data_view = data[:, :block.shape[1]]
             _mult_cal_one(data_view, block, idx, cals, mult)
 
         else:
