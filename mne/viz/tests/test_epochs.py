@@ -183,9 +183,8 @@ def test_plot_epochs_image():
     with pytest.raises(ValueError, match='Scalings and units must have the'):
         epochs.plot_image(units=dict(hi=1), scalings=dict(ho=1))
     plt.close('all')
-    # invert_y not implemented
-    with pytest.raises(NotImplementedError, match='"invert_y" found in "ts_'):
-        epochs.plot_image(ts_args=dict(invert_y=True))
+    # test invert_y
+    epochs.plot_image(ts_args=dict(invert_y=True))
     # can't combine different sensor types
     with pytest.raises(ValueError, match='Cannot combine sensors of differ'):
         epochs.plot_image(group_by=dict(foo=[0, 1, 2]))
