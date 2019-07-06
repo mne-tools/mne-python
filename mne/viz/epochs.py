@@ -214,15 +214,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     manual_ylims = 'ylim' in ts_args
     if combine is not None:
         ts_args['show_sensors'] = False
-    if 'invert_y' in ts_args and ts_args['invert_y']:
-        raise NotImplementedError('"invert_y" found in "ts_args". '
-                                  'This is currently not implemented.')
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
-    ts_defaults = dict(colors={'cond': 'k'}, ylim=dict(), title='', show=False,
-                       truncate_yaxis=False, truncate_xaxis=False,
+    ts_defaults = dict(colors={'cond': 'k'}, title='', show=False,
+                       truncate_yaxis='auto', truncate_xaxis=False,
                        vlines=vlines, legend=False)
     ts_defaults.update(**ts_args)
-    ts_args = ts_defaults
+    ts_args = ts_defaults.copy()
 
     # construct a group_by dict if one wasn't supplied
     if group_by is None:
@@ -304,7 +301,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     del image_stack, vmin, vmax
 
     # prepare to plot
-    auto_ylims = {ch_type: (1., -1.) for ch_type in set(ch_types)}
+    auto_ylims = {ch_type: [0., 0.] for ch_type in set(ch_types)}
 
     # plot
     for this_group, this_group_dict in group_by.items():
@@ -335,23 +332,31 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
         # detect ylims across figures
         if evoked and not manual_ylims:
-            this_min, this_max = this_axes_dict['evoked'].get_ylim()
+            this_bot, this_top = this_axes_dict['evoked'].get_ylim()
+            this_min = min(this_bot, this_top)
+            this_max = max(this_bot, this_top)
             curr_min, curr_max = auto_ylims[ch_type]
-            auto_ylims[this_ch_type] = (min(curr_min, this_min),
-                                        max(curr_max, this_max))
+            auto_ylims[this_ch_type] = [min(curr_min, this_min),
+                                        max(curr_max, this_max)]
 
-    # adjust ylims across figures
+    # equalize ylims across figures (does not adjust ticks)
     if evoked:
         for this_group_dict in group_by.values():
             ax = this_group_dict['axes']['evoked']
             ch_type = this_group_dict['ch_type']
             this_ymin, this_ymax = ax.get_ylim()
             if not manual_ylims:
-                this_ymin, this_ymax = auto_ylims[ch_type]
-                ax.set_ylim(this_ymin, this_ymax)
+                args = auto_ylims[ch_type]
+                func = max
+                if 'invert_y' in ts_args:
+                    args = args[::-1]
+                    func = min
+                ax.set_ylim(*args)
                 yticks = np.array(ax.get_yticks())
-                top_tick = yticks[yticks < this_ymax][-1]
-                ax.spines['left'].set_bounds(this_ymin, top_tick)
+                top_tick = func(yticks)
+                # new_ticks = sorted(set([0, top_tick, args[0]]))
+                # ax.set_yticks(new_ticks)
+                ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
     return [this_group_dict['fig'] for this_group_dict in group_by.values()]
 
