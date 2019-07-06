@@ -2431,10 +2431,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
     else:
         if unit is not None:
             axes.set_ylabel(unit, rotation=90)
-            # center label between the ticks
-            # axes.set_label_coords(-0.05, some_yval)
         axes.set_xlabel('Time (s)')
-    # axes.xaxis.get_label().set_verticalalignment('center')
     # plot vertical lines
     if vlines:
         _ymin, _ymax = axes.get_ylim()

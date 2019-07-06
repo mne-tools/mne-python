@@ -2270,9 +2270,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     # draw axes
     for _ax, idx in axes:
         skip_axlabel = do_topo and (idx != -1)
-        _ymin = ymin if orig_ymin is None else orig_ymin
-        _ymax = ymax if orig_ymax is None else orig_ymax
-        _draw_axes_pce(_ax, _ymin, _ymax, truncate_yaxis, truncate_xaxis,
+        _draw_axes_pce(_ax, ymin, ymax, truncate_yaxis, truncate_xaxis,
                        invert_y, vlines, tmin, tmax, units, skip_axlabel)
     # add inset scalp plot showing location of sensors picked
     if show_sensors:
