@@ -1484,6 +1484,7 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
     if styles is None:
         styles = {cond: dict() for cond in conditions}
     else:
+        styles = styles.copy()
         if not set(styles).issubset(tags.union(conditions)):
             raise ValueError('The keys in "styles" ({}) must '
                              'match the keys in "evokeds" ({}).'
