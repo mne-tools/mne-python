@@ -1648,22 +1648,23 @@ def _draw_legend_pce(styles, legend, split_legend, colors, cmap,
     n_linestyles = len(set(linestyles.values()))
     lines = list()
     draw_legend = True  # we suppress it later in some cases
-    # easiest case first: non-split legend
-    if not split_legend:
-        for cond, inner_dict in styles.items():
-            line = mlines.Line2D([], [], label=cond, **inner_dict)
-            lines.append(line)
-    # next case: split legend with no colorbar
-    elif cmap is None:
-        for cond, color in colors.items():
-            line = mlines.Line2D([], [], label=cond, linestyle='solid',
-                                 color=color)
-            lines.append(line)
-        for cond, linestyle in linestyles.items():
-            line = mlines.Line2D([], [], label=cond, linestyle=linestyle,
-                                 color='black')
-            lines.append(line)
-    # last case: split legend with colorbar
+    if cmap is None:
+        # easiest case first: non-split legend
+        if not split_legend:
+            for cond, inner_dict in styles.items():
+                line = mlines.Line2D([], [], label=cond, **inner_dict)
+                lines.append(line)
+        # next case: split legend with no colorbar
+        else:
+            for cond, color in colors.items():
+                line = mlines.Line2D([], [], label=cond, linestyle='solid',
+                                     color=color)
+                lines.append(line)
+            for cond, linestyle in linestyles.items():
+                line = mlines.Line2D([], [], label=cond, linestyle=linestyle,
+                                     color='black')
+                lines.append(line)
+    # last case: colorbar (split_legend has no effect)
     else:
         # linestyles
         if n_linestyles > 1:
