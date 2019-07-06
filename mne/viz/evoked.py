@@ -1877,11 +1877,12 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         :class:`dict` of :class:`ints <int>` or :class:`floats <float>`
         indicating steps or percentiles (respectively) along the colormap. If
         ``cmap`` is ``None``, list elements or dict values of ``colors`` must
-        be valid :doc:`matplotlib colors <tutorials/colors/colors>`; lists are
-        cycled through sequentially, while dicts must have keys matching the
-        keys or conditions of an ``evokeds`` dict (see Notes for details). If
-        ``None``, the current :doc:`matplotlib color cycle
-        <gallery/color/color_cycle_default>` is used. Defaults to ``None``.
+        be :class:`ints <int>` or valid :doc:`matplotlib colors
+        <tutorials/colors/colors>`; lists are cycled through sequentially,
+        while dicts must have keys matching the keys or conditions of an
+        ``evokeds`` dict (see Notes for details). If ``None``, the current
+        :doc:`matplotlib color cycle <gallery/color/color_cycle_default>` is
+        used. Defaults to ``None``.
     linestyles : list | dict | None
         Styles to use when plotting the ERP/F lines. If a :class:`list` or
         :class:`dict`, elements must be valid :doc:`matplotlib linestyles
@@ -2008,6 +2009,47 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     and Vis/L conditions with dashed lines and both Aud/R and Vis/R conditions
     with solid lines. Similarly, ``colors=dict(Aud='r', Vis='b')`` will plot
     Aud/L and Aud/R conditions red and Vis/L and Vis/R conditions blue.
+
+    Color specification depends on whether a colormap has been provided in the
+    ``cmap`` parameter. The following table summarizes how the ``colors``
+    parameter is interpreted:
+
+    .. cssclass:: table-bordered
+    .. rst-class:: midvalign
+
+    +-------------+----------------+------------------------------------------+
+    | ``cmap``    | ``colors``     | result                                   |
+    +=============+================+==========================================+
+    |             | None           | matplotlib default color cycle; unique   |
+    |             |                | color for each condition                 |
+    |             +----------------+------------------------------------------+
+    |             |                | matplotlib default color cycle; lowest   |
+    |             | list or dict   | integer mapped to first cycle color;     |
+    |             | of integers    | conditions with same integer get same    |
+    | None        |                | color; unspecified conditions are "gray" |
+    |             +----------------+------------------------------------------+
+    |             | list or dict   | ``ValueError``                           |
+    |             | of floats      |                                          |
+    |             +----------------+------------------------------------------+
+    |             | list or dict   | the specified hex colors; unspecified    |
+    |             | of hexadecimal | conditions are "gray"                    |
+    |             | color strings  |                                          |
+    +-------------+----------------+------------------------------------------+
+    |             | None           | equally spaced colors on the colormap;   |
+    |             |                | unique color for each condition          |
+    |             +----------------+------------------------------------------+
+    |             |                | equally spaced colors on the colormap;   |
+    |             | list or dict   | lowest integer mapped to first cycle     |
+    | string or   | of integers    | color; conditions with same integer      |
+    | instance of |                | get same color                           |
+    | matplotlib  +----------------+------------------------------------------+
+    | Colormap    | list or dict   | floats mapped to corresponding colormap  |
+    |             | of floats      | values                                   |
+    |             +----------------+------------------------------------------+
+    |             | list or dict   |                                          |
+    |             | of hexadecimal | ``TypeError``                            |
+    |             | color strings  |                                          |
+    +-------------+----------------+------------------------------------------+
     """
     import matplotlib.pyplot as plt
     from ..evoked import Evoked, _check_evokeds_ch_names_times
