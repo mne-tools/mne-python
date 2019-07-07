@@ -29,32 +29,6 @@ from mne.io import read_raw_fif
 from mne.source_tfr import SourceTFR
 
 
-def test_source_tfr():
-    # compare kernelized and normal data shapes
-    kernel_stfr = SourceTFR((np.ones([1800, 300]), np.ones([300, 40, 30])),
-                            vertices=np.ones([1800, 1]), tmin=0, tstep=1)
-
-    full_stfr = SourceTFR(np.ones([1800, 40, 30]), vertices=np.ones([1800, 1]), tmin=0, tstep=1)
-
-    assert_equal(_fake_stfr().shape, _fake_kernel_stfr().shape)
-
-    # check dot product
-    kernel = np.random.rand(100, 40)
-    sens_data = np.random.rand(40, 10, 30)
-    verts = [np.arange(10), np.arange(90)]
-
-    assert_allclose(SourceTFR((kernel, sens_data), verts, tmin=0, tstep=1).data,
-                    np.tensordot(kernel, sens_data, axes=([-1], [0])))
-
-    # check if data is in correct shape
-    assert_equal(kernel_stfr.shape, full_stfr.shape)
-    assert_array_equal(kernel_stfr.data.shape, full_stfr.data.shape)
-
-    # alternatively with the fake data
-    assert_equal(_fake_stfr().shape, _fake_kernel_stfr().shape)
-    assert_array_equal(_fake_stfr().data.shape, _fake_kernel_stfr().data.shape)
-
-
 def _fake_stfr():
     verts = [np.arange(10), np.arange(90)]
     return SourceTFR(np.random.rand(100, 20, 10), verts, 0, 1e-1, 'foo')
@@ -67,10 +41,38 @@ def _fake_kernel_stfr():
     return SourceTFR((kernel, sens_data), verts, 0, 1e-1, 'foo')
 
 
+def test_stfr_kernel_equality():
+    # compare kernelized and normal data
+    kernel = np.random.rand(100, 40)
+    sens_data = np.random.rand(40, 10, 30)
+    verts = [np.arange(10), np.arange(90)]
+    data = np.tensordot(kernel, sens_data, axes=([-1], [0]))
+    tmin = 0
+    tstep = 1e-3
+
+    kernel_stfr = SourceTFR((kernel, sens_data), verts, tmin, tstep)
+    full_stfr = SourceTFR(data, verts, tmin, tstep)
+
+    # check if data is in correct shape
+    expected = [100, 10, 30]
+    assert_allclose([kernel_stfr.shape, full_stfr.shape,
+                     kernel_stfr.data.shape, full_stfr.data.shape],
+                    [expected] * 4)
+    assert_allclose(kernel_stfr.data, full_stfr.data)
+
+    # alternatively with the fake data
+    assert_equal(_fake_stfr().shape, _fake_kernel_stfr().shape)
+    assert_array_equal(_fake_stfr().data.shape, _fake_kernel_stfr().data.shape)
+
+
 def test_stfr_attributes():
-    """Test STC attributes."""
+    """Test stfr attributes."""
     stfr = _fake_stfr()
     stfr_kernel = _fake_kernel_stfr()
+
+    n_times = len(stfr.times)
+    assert_equal(stfr._data.shape[-1], n_times)
+    assert_array_equal(stfr.times, stfr.tmin + np.arange(n_times) * stfr.tstep)
 
     assert_array_almost_equal(
         stfr.times, [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
@@ -124,9 +126,126 @@ def test_stfr_attributes():
 
     # bad size of data
     stfr = _fake_stfr()
-    data = stfr.data[:, np.newaxis, :, :]
+    data = stfr.data[:, :, np.newaxis, :]
     with pytest.raises(ValueError, match='3 dimensions for SourceTFR'):
         SourceTFR(data, stfr.vertices)
-    # TODO: check this
-    # stfr = SourceTFR(data[:, 0, 0], stfr.vertices, 0, 1)
-    # assert stfr.data.shape == (len(data), 1)
+    stfr = SourceTFR(data[:, :, 0, 0], stfr.vertices, 0, 1)
+    assert stfr.data.shape == (data.shape[0], data.shape[1], 1)
+
+
+@requires_h5py
+def test_io_stfr_h5():
+    """Test IO for stfr files using HDF5."""
+    for stfr in [_fake_stfr(), _fake_kernel_stfr()]:
+        tempdir = _TempDir()
+        pytest.raises(ValueError, stfr.save, op.join(tempdir, 'tmp'),
+                      ftype='foo')
+        out_name = op.join(tempdir, 'tempfile')
+        stfr.save(out_name, ftype='h5')
+        stfr.save(out_name, ftype='h5')  # test overwrite
+        # TODO: no read_source_tfr yet
+
+
+def test_stfr_resample():
+    """test sftr.resample()."""
+
+    stfr_ = _fake_stfr()
+    kernel_stfr_ = _fake_kernel_stfr()
+
+    for stfr in [stfr_, kernel_stfr_]:
+        stfr_new = deepcopy(stfr)
+        o_sfreq = 1.0 / stfr.tstep
+        # note that using no padding for this stfr reduces edge ringing...
+        stfr_new.resample(2 * o_sfreq, npad=0)
+        assert (stfr_new.data.shape[-1] == 2 * stfr.data.shape[-1])
+        assert (stfr_new.tstep == stfr.tstep / 2)
+        stfr_new.resample(o_sfreq, npad=0)
+        assert (stfr_new.data.shape[-1] == stfr.data.shape[-1])
+        assert (stfr_new.tstep == stfr.tstep)
+        assert_array_almost_equal(stfr_new.data, stfr.data, 5)
+
+
+def test_stfr_crop():
+    stfr = _fake_stfr()
+    kernel_stfr = _fake_kernel_stfr()
+
+    for inst in [stfr, kernel_stfr]:
+        copy_1 = inst.copy()
+        assert_allclose(copy_1.crop(tmax=0.8).data, inst.data[:, :, :9])
+        # FIXME: the next line would neither work for kernel stfr nor kernel stc
+        # assert_allclose(copy_1.times, inst.times[:9])
+
+        copy_2 = inst.copy()
+        assert_allclose(copy_2.crop(tmin=0.2).data, inst.data[:, :, 2:])
+        assert_allclose(copy_2.times, inst.times[2:])
+
+
+def test_invalid_params():
+    data = np.random.rand(40, 10, 20)
+    verts = [np.arange(10), np.arange(30)]
+    tmin = 0
+    tstep = 1e-3
+
+    with pytest.raises(ValueError, match='Vertices must be a numpy array or a '
+                                         'list of arrays'):
+        SourceTFR(data, {"1": 1, "2": 2}, tmin, tstep)
+
+    with pytest.raises(ValueError, match='tuple it has to be length 2'):
+        SourceTFR((data, (42, 42), (42, 42)), verts, tmin, tstep)
+
+    with pytest.raises(ValueError, match='kernel and sens_data have invalid '
+                                         'dimension'):
+        SourceTFR((np.zeros((42, 42)), data), verts, tmin, tstep)
+
+    with pytest.raises(ValueError, match='sensor data must have .*? dimensions'):
+        SourceTFR((np.zeros((2, 20)), np.zeros((20, 3))), verts, tmin, tstep)
+
+    with pytest.raises(ValueError, match='Vertices must be ordered in '
+                                         'increasing order.'):
+        SourceTFR(data, [np.zeros(10), np.zeros(90)], tmin, tstep)
+
+    with pytest.raises(ValueError, match='vertices .*? and stfr.shape.*? must match'):
+        SourceTFR(np.random.rand(42, 10, 20), verts, tmin, tstep)
+
+    with pytest.raises(ValueError, match='(shape .*?) must have .*? dimensions'):
+        SourceTFR(np.random.rand(40, 10, 20, 10), verts, tmin, tstep)
+
+
+# TODO: To test lh/rh data, binned etc., valid STFR need to be created from SourceEstimates
+
+
+# TODO: This is for checking coverage while writing. Remove it before push
+import unittest
+
+
+class TestSTFR(unittest.TestCase):
+    def test_kernel(self):
+        test_stfr_kernel_equality()
+
+    def test_attributes(self):
+        test_stfr_attributes()
+
+    def test_io_stfr(self):
+        test_io_stfr_h5()
+
+    def test_resample(self):
+        test_stfr_resample()
+
+    def test_crop(self):
+        test_stfr_crop()
+
+    def test_inv_params(self):
+        test_invalid_params()
+
+
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(
+        unittest.TestLoader().loadTestsFromTestCase((TestSTFR))
+    )
+
+    return suite
+
+
+if __name__ == '__main__':
+    unittest.TextTestRunner(verbosity=2).run(suite())

@@ -96,8 +96,6 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                 vertices = vertices[0]
         elif isinstance(vertices, np.ndarray):
             n_src = len(vertices)
-        else:
-            raise ValueError('Vertices must be a list or numpy array')
 
         # safeguard the user against doing something silly
         if data is not None:
@@ -310,4 +308,3 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         """Return copy of SourceTFR instance."""
         return copy.deepcopy(self)
 
-        return stfrs
