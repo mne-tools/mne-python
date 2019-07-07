@@ -82,6 +82,8 @@ Bug
 API
 ~~~
 
+- Deprecate ``montage`` parameter in favor of the ``set_montage`` method in all EEG data readers :func:`mne.io.read_raw_cnt`, :func:`mne.io.read_raw_egi`, :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_gdf`, :func:`mne.io.read_raw_nicolet`, :func:`mne.io.read_raw_eeglab` and :func:`mne.io.read_epochs_eeglab` by `Alex Gramfort`_
+
 - Deprecate ``average=True`` and ``spatial_colors=False`` for :func:`mne.Epochs.plot_psd` by `Jeff Hanna`_
 
 - :func:`mne.io.read_raw_brainvision` no longer raises an error when there are inconsistencies between ``info['chs']`` and ``montage`` but warns instead by `Joan Massich`_
