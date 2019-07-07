@@ -341,7 +341,8 @@ def test_position_information(one_chanpos_fname):
 
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
     if montage is not None:
-        raw.set_montage(montage)
+        raw.set_montage(None)  # flushing
+        raw.set_montage(montage, update_ch_names=False)
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
 
@@ -352,13 +353,13 @@ def test_position_information(one_chanpos_fname):
 
     foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
     foo.set_montage(None)  # flushing
-    foo.set_montage(montage)
+    foo.set_montage(montage, update_ch_names=False)
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
 
     # Mixed montage: from the file and from montage
     foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-    foo.set_montage(montage)
+    foo.set_montage(montage, update_ch_names=False)
     mixed = np.array([
         [-0.56705965, 0.67706631, 0.46906776, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [-5., 2., 8., 0., 0., 0., 0., 0., 0., 0., 0., 0.],

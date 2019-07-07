@@ -796,14 +796,14 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
 
     if isinstance(montage, Montage):
         if update_ch_names:
-            info['chs'] = list()
-            for ii, ch_name in enumerate(montage.ch_names):
+            for ii, (ch, ch_name) in \
+                    enumerate(zip(info['chs'], montage.ch_names)):
                 ch_info = {'cal': 1., 'logno': ii + 1, 'scanno': ii + 1,
                            'range': 1.0, 'unit_mul': 0, 'ch_name': ch_name,
                            'unit': FIFF.FIFF_UNIT_V, 'kind': FIFF.FIFFV_EEG_CH,
                            'coord_frame': FIFF.FIFFV_COORD_HEAD,
                            'coil_type': FIFF.FIFFV_COIL_EEG}
-                info['chs'].append(ch_info)
+                ch.update(ch_info)
             info._update_redundant()
 
         if not _contains_ch_type(info, 'eeg'):

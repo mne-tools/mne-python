@@ -348,7 +348,22 @@ class RawEEGLAB(BaseRaw):
     # XXX: to be removed when deprecating montage
     def set_montage(self, montage, set_dig=True, update_ch_names=True,
                     verbose=None):
-        """To be removed."""  # noqa
+        """Set EEG sensor configuration and head digitization.
+
+        Parameters
+        ----------
+        montage : instance of Montage | instance of DigMontage | str | None
+            The montage to use (None removes any location information).
+        set_dig : bool
+            If True, update the digitization information (``info['dig']``)
+            in addition to the channel positions (``info['chs'][idx]['loc']``).
+
+            .. versionadded: 0.15
+        update_ch_names : bool
+            If True, overwrite the info channel names with the ones from
+            montage. Defaults to False.
+        %(verbose_meth)s
+        """
         cal = set([ch['cal'] for ch in self.info['chs']]).pop()
 
         from ...channels.montage import _set_montage
@@ -359,7 +374,6 @@ class RawEEGLAB(BaseRaw):
         if update_ch_names:
             for ch in self.info['chs']:
                 ch['cal'] = cal
-    set_montage.__doc__ = BaseRaw.set_montage.__doc__
 
 
 class EpochsEEGLAB(BaseEpochs):
