@@ -2032,9 +2032,6 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 def equalize_epoch_counts(epochs_list, method='mintime'):
     """Equalize the number of trials in multiple Epoch instances.
 
-    .. note::
-       This operates on the Epochs instances in-place.
-
     Parameters
     ----------
     epochs_list : list of Epochs instances
@@ -2058,7 +2055,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
 
     Examples
     --------
-    >>> equalize_epoch_counts(epochs1, epochs2)  # doctest: +SKIP
+    >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
     if not all(isinstance(e, BaseEpochs) for e in epochs_list):
         raise ValueError('All inputs must be Epochs instances')
