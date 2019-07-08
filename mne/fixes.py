@@ -316,6 +316,15 @@ except ImportError:
 
 
 ###############################################################################
+# NumPy Generator
+
+def rng_uniform(rng):
+    """Get the unform/randint from the rng."""
+    # prefer Generator.integers, fall back to RandomState.randint
+    return getattr(rng, 'integers', getattr(rng, 'randint', None))
+
+
+###############################################################################
 # Backporting scipy.signal.sosfiltfilt (0.18)
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):

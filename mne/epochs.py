@@ -44,7 +44,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin
 from .event import _read_events_fif, make_fixed_length_events
-from .fixes import _get_args
+from .fixes import _get_args, rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
@@ -2520,7 +2520,7 @@ def bootstrap(epochs, random_state=None):
     rng = check_random_state(random_state)
     epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
-    idx = rng.randint(0, n_events, n_events)
+    idx = rng_uniform(rng)(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
     return epochs_bootstrap
 

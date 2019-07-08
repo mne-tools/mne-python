@@ -178,9 +178,10 @@ def test_mxne_vol_sphere():
                   maxit=3, tol=1e-8, active_set_size=10)
 
     # irMxNE tests
+    random_state = 0
     stc = mixed_norm(evoked_l21, fwd, cov, alpha,
                      n_mxne_iter=1, maxit=30, tol=1e-8,
-                     active_set_size=10)
+                     active_set_size=10, random_state=random_state)
     assert isinstance(stc, VolSourceEstimate)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
 
