@@ -541,6 +541,8 @@ def test_arithmetic():
     assert_equal(ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
     pytest.raises(TypeError, grand_average, [1, evoked1])
+    gave = grand_average([ev1, ev1, ev2])
+    assert_allclose(gave.data, np.ones_like(gave.data))
 
     # test channel (re)ordering
     evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
