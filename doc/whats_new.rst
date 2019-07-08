@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
+
 - Butterfly channel plots now possible for :func:mne.Epochs.plot_epochs_psd with ``average=False`` Infrastructure for this function now shared with analogous Raw function, found in mne.viz.utils by `Jeff Hanna` _
 
 - Accept filenames of raw .fif files to end on `_meg.fif` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_

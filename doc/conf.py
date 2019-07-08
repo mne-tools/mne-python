@@ -537,7 +537,7 @@ numpydoc_xref_ignore = {
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision',
+    'RawBrainVision', 'RawCurry',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
