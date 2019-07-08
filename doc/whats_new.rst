@@ -24,11 +24,13 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
+
 - Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
 
-- Butterfly channel plots now possible for :func:mne.Epochs.plot_epochs_psd with ``average=False`` Infrastructure for this function now shared with analogous Raw function, found in mne.viz.utils by `Jeff Hanna` _
+- Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna` _
 
-- Accept filenames of raw .fif files to end on `_meg.fif` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
+- Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 
 - Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
 
@@ -46,6 +48,8 @@ Changelog
 
 Bug
 ~~~
+
+- Fix formula for effective number of averages in :func:`mne.combine_evoked` when ``weights='equal'`` by `Daniel McCloy`_.
 
 - Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
 
@@ -3255,8 +3259,6 @@ of commits):
 .. _Olaf Hauk: http://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
 
 .. _Lukas Breuer: http://www.researchgate.net/profile/Lukas_Breuer
-
-.. _Federico Raimondo: https://github.com/fraimondo
 
 .. _Alan Leggitt: https://github.com/leggitta
 
