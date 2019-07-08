@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import sys
 import os
 import re
 from optparse import OptionParser
@@ -27,25 +26,11 @@ def load_module(name, path):
     mod : module
         Imported module.
     """
-    if sys.version_info < (3, 3):
-        import imp
-        if path.endswith('.pyc'):
-            return imp.load_compiled(name, path)
-        else:
-            return imp.load_source(name, path)
-    elif sys.version_info < (3, 5):
-        if path.endswith('.pyc'):
-            from importlib.machinery import SourcelessFileLoader
-            return SourcelessFileLoader(name, path).load_module()
-        else:
-            from importlib.machinery import SourceFileLoader
-            return SourceFileLoader(name, path).load_module()
-    else:  # Python 3.5 or greater
-        from importlib.util import spec_from_file_location, module_from_spec
-        spec = spec_from_file_location(name, path)
-        mod = module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
+    from importlib.util import spec_from_file_location, module_from_spec
+    spec = spec_from_file_location(name, path)
+    mod = module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def get_optparser(cmdpath, usage=None):

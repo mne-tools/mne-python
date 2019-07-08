@@ -10,7 +10,7 @@ import numpy as np
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains, _block_r)
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..utils import _create_chs
@@ -414,7 +414,6 @@ class RawMff(BaseRaw):
 
         info['chs'] = chs
         info._update_redundant()
-        _check_update_montage(info, montage)
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
@@ -429,6 +428,9 @@ class RawMff(BaseRaw):
             info, preload=preload, orig_format='float', filenames=[file_bin],
             last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
             verbose=verbose)
+
+        if montage is not None:
+            self.set_montage(montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""

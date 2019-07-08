@@ -67,6 +67,7 @@ Bug
 
 - Fix bug in :func:`mne.Epochs.plot_psd` when some channels had zero/infinite ``psd`` values causing erroneous error messages by `Luke Bloy`_
 
+- Fix :func:`mne.Evoked.decimate` not setting ``inst.first`` and ``inst.last`` properly by `Marijn van Vliet`_
 
 API
 ~~~
@@ -213,6 +214,8 @@ Changelog
 - Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
 
 - Add ``mne.realtime.MockLSLStream`` to simulate an LSL stream for testing and examples by `Teon Brooks`_
+
+- Add support for file-like objects in :func:`mne.read_epochs` as long as preloading is used by `Paul Roujansky`_
 
 Bug
 ~~~
@@ -3448,3 +3451,5 @@ of commits):
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 
 .. _Thomas Radman: https://github.com/tradman
+
+.. _Paul Roujansky: https://github.com/paulroujansky

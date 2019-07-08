@@ -7,6 +7,7 @@
 from copy import deepcopy
 from distutils.version import LooseVersion
 from functools import partial
+from io import BytesIO
 import os.path as op
 import pickle
 
@@ -2678,6 +2679,29 @@ def test_epochs_drop_selection(fname, preload):
     selection = np.round(epochs.get_data()[:, 0].max(axis=-1) / scale)
     selection = selection.astype(int) - 1
     assert_array_equal(selection, epochs.selection)
+
+
+@pytest.mark.parametrize('kind', ('file', 'bytes'))
+@pytest.mark.parametrize('preload', (True, False))
+def test_file_like(kind, preload, tmpdir):
+    """Test handling with file-like objects."""
+    tempdir = str(tmpdir)
+    raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
+                          mne.create_info(100, 1000.))
+    events = mne.make_fixed_length_events(raw, 1)
+    epochs = mne.Epochs(raw, events, preload=preload)
+    fname = op.join(tempdir, 'test-epo.fif')
+    epochs.save(fname, overwrite=True)
+
+    with open(fname, 'rb') as file_fid:
+        fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
+        assert not fid.closed
+        assert not file_fid.closed
+        with pytest.raises(ValueError, match='preload must be used with file'):
+            read_epochs(fid, preload=False)
+        assert not fid.closed
+        assert not file_fid.closed
+    assert file_fid.closed
 
 
 run_tests_if_main()
