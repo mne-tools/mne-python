@@ -825,7 +825,8 @@ def grand_average(all_evoked, interpolate_bads=True):
 
     equalize_channels(all_evoked)  # apply equalize_channels
     # make grand_average object using combine_evoked
-    grand_average = combine_evoked(all_evoked, weights='equal')
+    weights = [1. / len(all_evoked)] * len(all_evoked)
+    grand_average = combine_evoked(all_evoked, weights=weights)
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_evoked)
     # change comment field
