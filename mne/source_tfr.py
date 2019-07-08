@@ -1,41 +1,31 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Mads Jensen <mje.mads@gmail.com>
+# -*- coding: utf-8 -*-
+#
+# Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
+# TODO: This file uses a lot of stuff from io/base.py and source_estimate.py
+# TODO: Maybe name these persons as authors too?
 #
 # License: BSD (3-clause)
 
 import copy
-import os.path as op
 import numpy as np
-from scipy import linalg, sparse
-from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
 from .filter import resample
-from .fixes import einsum
-from .evoked import _get_peak
-from .surface import read_surface, _get_ico_surface, mesh_edges
-from .source_space import (_ensure_src, _get_morph_src_reordering,
-                           _ensure_src_subject, SourceSpaces)
-from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    _time_mask, warn as warn_, copy_function_doc_to_method_doc,
-                    fill_doc, _check_option)
-from .viz import (plot_source_estimates, plot_vector_source_estimates,
-                  plot_volume_source_estimates)
+from .utils import (_check_subject, verbose, _time_mask)
 from .io.base import ToDataFrameMixin, TimeMixin
-from .externals.h5io import read_hdf5, write_hdf5
+from .externals.h5io import write_hdf5
 
 
-class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
-    """Base class for all source estimates.
+class SourceTFR(ToDataFrameMixin, TimeMixin):
+    """Class for time-frequency transformed source level data.
 
     Parameters
     ----------
-    data : array, shape (n_dipoles, n_times) | tuple, shape (2,)
-        The data in source space. The data can either be a single array or
-        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
-        "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+    data : array, shape (n_dipoles, n_freqs, n_times) | tuple, shape (2,)
+        Time-frequency transformed data in source space. The data can either
+        be a single array or a tuple with two arrays: "kernel" shape
+        (n_vertices, n_sensors) and "sens_data" shape (n_sensors, n_freqs,
+        n_times). In this case, the source space data corresponds to
+        "numpy.dot(kernel, sens_data)".
     vertices : array | list of array
         Vertex numbers corresponding to the data.
     tmin : float
@@ -65,8 +55,15 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):  # noqa: D102
-        assert hasattr(self, '_data_ndim'), self.__class__.__name__
-        assert hasattr(self, '_src_type'), self.__class__.__name__
+
+        if not (isinstance(vertices, np.ndarray) or
+                isinstance(vertices, list)):
+            raise ValueError('Vertices must be a numpy array or a list of '
+                             'arrays')
+
+        self._data_ndim = 3
+        self._src_type = 'SourceTFR'
+
         kernel, sens_data = None, None
         if isinstance(data, tuple):
             if len(data) != 2:
@@ -77,8 +74,8 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
                 raise ValueError('kernel and sens_data have invalid '
                                  'dimensions')
             if sens_data.ndim != self._data_ndim:
-                raise ValueError('The sensor data must have %s dimensions, got '
-                                 '%s' % (self._data_ndim, sens_data.ndim,))
+                raise ValueError('The sensor data must have %s dimensions, got'
+                                 ' %s' % (self._data_ndim, sens_data.ndim,))
 
         if isinstance(vertices, list):
             vertices = [np.asarray(v, int) for v in vertices]
@@ -92,13 +89,11 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
                 vertices = vertices[0]
         elif isinstance(vertices, np.ndarray):
             n_src = len(vertices)
-        else:
-            raise ValueError('Vertices must be a list or numpy array')
 
         # safeguard the user against doing something silly
         if data is not None:
             if data.shape[0] != n_src:
-                raise ValueError('Number of vertices (%i) and stc.shape[0] '
+                raise ValueError('Number of vertices (%i) and stfr.shape[0] '
                                  '(%i) must match' % (n_src, data.shape[0]))
             if data.ndim == self._data_ndim - 1:  # allow upbroadcasting
                 data = data[..., np.newaxis]
@@ -135,13 +130,13 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def save(self, fname, ftype='h5', verbose=None):
-        """Save the full source estimate to an HDF5 file.
+        """Save the full SourceTFR to an HDF5 file.
 
         Parameters
         ----------
         fname : string
-            The file name to write the source estimate to, should end in
-            '-stc.h5'.
+            The file name to write the SourceTFR to, should end in
+            '-stfr.h5'.
         ftype : string
             File format to use. Currently, the only allowed values is "h5".
         %(verbose_meth)s
@@ -150,7 +145,7 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
         if not fname.endswith('.h5'):
-            fname += '-stc.h5'
+            fname += '-stfr.h5'
         write_hdf5(fname,
                    dict(vertices=self.vertices, data=self.data, tmin=self.tmin,
                         tstep=self.tstep, subject=self.subject,
@@ -166,12 +161,13 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
         """Remove kernel and sensor space data and compute self._data."""
         if self._kernel is not None or self._sens_data is not None:
             self._kernel_removed = True
-            self._data = np.tensordot(self._kernel, self._sens_data, axes=([-1], [0]))
+            self._data = np.tensordot(self._kernel, self._sens_data,
+                                      axes=([-1], [0]))
             self._kernel = None
             self._sens_data = None
 
     def crop(self, tmin=None, tmax=None):
-        """Restrict SourceEstimate to a time interval.
+        """Restrict SourceTFR to a time interval.
 
         Parameters
         ----------
@@ -227,7 +223,7 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
 
     @property
     def data(self):
-        """Numpy array of source estimate data."""
+        """Numpy array of SourceTFR data."""
         if self._data is None:
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
@@ -262,7 +258,9 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
         """Shape of the data."""
         if self._data is not None:
             return self._data.shape
-        return (self._kernel.shape[0], self._sens_data.shape[1], self._sens_data.shape[2])
+        return (self._kernel.shape[0],
+                self._sens_data.shape[1],
+                self._sens_data.shape[2])
 
     @property
     def tmin(self):
@@ -303,24 +301,5 @@ class _BaseSourceTFR(ToDataFrameMixin, TimeMixin):
         self._times.flags.writeable = False
 
     def copy(self):
-        """Return copy of source estimate instance."""
+        """Return copy of SourceTFR instance."""
         return copy.deepcopy(self)
-
-        return stcs
-
-
-class SourceTFR(_BaseSourceTFR):
-    _data_ndim = 3
-    _src_type = 'SourceTFR'
-
-    @verbose
-    def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, verbose=None, ):  # noqa: D102
-        if not (isinstance(vertices, np.ndarray) or
-                isinstance(vertices, list)):
-            raise ValueError('Vertices must be a numpy array or a list of '
-                             'arrays')
-
-        _BaseSourceTFR.__init__(self, data, vertices=vertices, tmin=tmin,
-                                tstep=tstep, subject=subject,
-                                verbose=verbose)
