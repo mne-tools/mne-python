@@ -5,6 +5,8 @@
 # License: BSD (3-clause)
 import os.path as op
 import shutil as sh
+
+import numpy as np
 import pytest
 
 import mne
@@ -31,6 +33,12 @@ def test_check():
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
     pytest.raises(TypeError, _check_subject, 1, None)
+    # smoke tests for permitted types
+    check_random_state(None).random(1)
+    check_random_state(0).random(1)
+    check_random_state(np.random.RandomState(0)).random(1)
+    if hasattr(np.random, 'default_rng'):
+        check_random_state(np.random.default_rng(0)).random(1)
 
     # _meg.fif is a valid ending and should not raise an error
     sh.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))

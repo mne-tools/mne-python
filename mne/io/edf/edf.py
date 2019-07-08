@@ -397,8 +397,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
                         # it forces edge artifacts to appear at
                         # each buffer boundary :(
                         # it can also be very slow...
-                        ch_data = resample(ch_data, buf_len, n_samps[ci],
-                                           npad=0, axis=-1)
+                        ch_data = resample(
+                            ch_data.astype(np.float64), buf_len, n_samps[ci],
+                            npad=0, axis=-1)
                 assert ch_data.shape == (len(ch_data), buf_len)
                 data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
 
