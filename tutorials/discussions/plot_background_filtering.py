@@ -135,7 +135,8 @@ MNE-Python.
 # values for our data that are reasonable for M/EEG.
 
 import numpy as np
-from scipy import signal, fftpack
+from numpy.fft import fft, fftfreq
+from scipy import signal
 import matplotlib.pyplot as plt
 
 from mne.time_frequency.tfr import morlet
@@ -216,7 +217,7 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
 #        :func:`scipy.signal.firwin`, and `MATLAB fir2`_)
 #     3. Least squares designs (:func:`scipy.signal.firls`, `MATLAB firls`_)
 #     4. Frequency-domain design (construct filter in Fourier
-#        domain and use an :func:`IFFT <scipy.fftpack.ifft>` to invert it)
+#        domain and use an :func:`IFFT <numpy.ifft>` to invert it)
 #
 # .. note:: Remez and least squares designs have advantages when there are
 #           "do not care" regions in our frequency response. However, we want
@@ -448,8 +449,8 @@ def plot_signal(x, offset):
     t = np.arange(len(x)) / sfreq
     axes[0].plot(t, x + offset)
     axes[0].set(xlabel='Time (s)', xlim=t[[0, -1]])
-    X = fftpack.fft(x)
-    freqs = fftpack.fftfreq(len(x), 1. / sfreq)
+    X = fft(x)
+    freqs = fftfreq(len(x), 1. / sfreq)
     mask = freqs >= 0
     X = X[mask]
     freqs = freqs[mask]

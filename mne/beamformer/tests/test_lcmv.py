@@ -89,7 +89,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
             raw, events, event_id, tmin, tmax, proj=True,
             baseline=(None, 0), preload=epochs_preload, reject=reject)
         if epochs_preload:
-            epochs.resample(200, npad=0, n_jobs=2)
+            epochs.resample(200, npad=0)
         epochs.crop(0, None)
         evoked = epochs.average()
         info = evoked.info

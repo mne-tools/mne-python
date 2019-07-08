@@ -307,6 +307,15 @@ def _get_dpss():
 
 
 ###############################################################################
+# Triaging FFT functions to get fast pocketfft
+
+try:
+    from scipy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
+except ImportError:
+    from numpy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
+
+
+###############################################################################
 # Backporting scipy.signal.sosfiltfilt (0.18)
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
@@ -489,7 +498,6 @@ def minimum_phase(h):
         pass
     else:
         return minimum_phase(h)
-    from scipy.fftpack import fft, ifft
     h = np.asarray(h)
     if np.iscomplexobj(h):
         raise ValueError('Complex filters not supported')
@@ -521,15 +529,6 @@ def minimum_phase(h):
     h_minimum = h_temp.real
     n_out = n_half + len(h) % 2
     return h_minimum[:n_out]
-
-
-###############################################################################
-# Triaging FFT functions to get fast pocketfft
-
-try:
-    from scipy.fft import rfft, irfft, rfftfreq
-except ImportError:
-    from numpy.fft import rfft, irfft, rfftfreq
 
 
 ###############################################################################
