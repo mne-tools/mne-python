@@ -87,6 +87,7 @@ def _check_mayavi_version(min_version='4.3.0'):
         raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
+# adapted from scikit-learn utils/validation.py
 def check_random_state(seed):
     """Turn seed into a numpy.random.mtrand.RandomState instance.
 
@@ -101,6 +102,12 @@ def check_random_state(seed):
         return np.random.mtrand.RandomState(seed)
     if isinstance(seed, np.random.mtrand.RandomState):
         return seed
+    try:
+        # Generator is only available in numpy >= 1.17
+        if isinstance(seed, np.random.Generator):
+            return seed
+    except AttributeError:
+        pass
     raise ValueError('%r cannot be used to seed a '
                      'numpy.random.mtrand.RandomState instance' % seed)
 

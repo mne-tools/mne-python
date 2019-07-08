@@ -12,6 +12,7 @@ import numpy as np
 
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
+from ..fixes import rng_uniform
 from ..utils import check_random_state, warn, _check_option, fill_doc
 from ..label import Label
 
@@ -77,7 +78,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
         hemi_idx = 1
     src_sel = np.intersect1d(src[hemi_idx]['vertno'], label.vertices)
     if location == 'random':
-        idx = src_sel[rng.randint(0, len(src_sel), 1)[0]]
+        idx = src_sel[rng_uniform(rng)(0, len(src_sel), 1)[0]]
     else:  # 'center'
         idx = label.center_of_mass(
             subject, restrict_vertices=src_sel, subjects_dir=subjects_dir,

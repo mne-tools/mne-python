@@ -587,8 +587,8 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         blink_rate = (1 + np.cos(2 * np.pi * 1. / 60. * times)) / 2.
         blink_rate *= 12.5 / 60.
         blink_rate += 4.5 / 60.
-        blink_data = rng.rand(len(times)) < blink_rate / info['sfreq']
-        blink_data = blink_data * (rng.rand(len(times)) + 0.5)  # varying amps
+        blink_data = rng.uniform(size=len(times)) < blink_rate / info['sfreq']
+        blink_data = blink_data * (rng.uniform(size=len(times)) + 0.5)  # amps
         # Activation kernel is a simple hanning window
         blink_kernel = np.hanning(int(0.25 * info['sfreq']))
         exg_data = np.convolve(blink_data, blink_kernel,
@@ -622,7 +622,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         picks = meg_picks
         del cardiac_data, cardiac_kernel, max_beats, cardiac_idx
     del meg_picks, meeg_picks
-    noise = rng.randn(exg_data.shape[1]) * 5e-6
+    noise = rng.standard_normal(exg_data.shape[1]) * 5e-6
     if len(ch) >= 1:
         ch = ch[-1]
         data[ch, :] = exg_data * 1e3 + noise

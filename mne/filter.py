@@ -4,13 +4,13 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.fftpack import ifftshift, fftfreq
 
 from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import get_sosfiltfilt, minimum_phase, _sosfreqz, irfft
+from .fixes import (get_sosfiltfilt, minimum_phase, _sosfreqz, irfft,
+                    ifftshift, fftfreq)
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
@@ -263,9 +263,7 @@ def _filter_attenuation(h, freq, gain):
 
 def _prep_for_filtering(x, copy, picks=None):
     """Set up array as 2D for filtering ease."""
-    if x.dtype != np.float64:
-        raise TypeError("Arrays passed for filtering must have a dtype of "
-                        "np.float64, got type %s" % (x.dtype,))
+    x = _check_filterable(x)
     if copy is True:
         x = x.copy()
     orig_shape = x.shape
@@ -811,8 +809,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     :ref:`disc-filtering` and :ref:`tut-filter-resample` and
     :func:`mne.filter.create_filter`.
     """
-    if not isinstance(data, np.ndarray):
-        raise ValueError('data must be an array')
+    data = _check_filterable(data)
     iir_params, method = _check_method(method, iir_params)
     filt = create_filter(
         data, sfreq, l_freq, h_freq, filter_length, l_trans_bandwidth,
@@ -1330,6 +1327,14 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     return x - datafit, rm_freqs
 
 
+def _check_filterable(x, kind='filtered'):
+    x = np.asanyarray(x)
+    if x.dtype != np.float64:
+        raise ValueError('Data to be %s must be real floating, got %s'
+                         % (kind, x.dtype,))
+    return x
+
+
 @verbose
 def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
              pad='reflect_limited', verbose=None):
@@ -1384,7 +1389,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         raise TypeError(err)
 
     # make sure our arithmetic will work
-    x = np.asanyarray(x)
+    x = _check_filterable(x, 'resampled')
     ratio = float(up) / down
     if axis < 0:
         axis = x.ndim + axis
@@ -1755,7 +1760,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
 
     # If we have data supplied, do a sanity check
     if x is not None:
-        x = np.asanyarray(x)
+        x = _check_filterable(x)
         len_x = x.shape[-1]
         if method != 'fir':
             filter_length = len_x

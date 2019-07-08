@@ -227,8 +227,8 @@ def test_temporal_filter():
         assert (X.shape == Xt.shape)
 
     # Test fit and transform numpy type check
-    with pytest.warns(RuntimeWarning, match='longer than the signal'):
-        pytest.raises(TypeError, filt.transform, [1, 2])
+    with pytest.raises(ValueError, match='Data to be filtered must be'):
+        filt.transform([1, 2])
 
     # Test with 2 dimensional data array
     X = np.random.rand(101, 500)

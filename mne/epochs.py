@@ -44,7 +44,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin
 from .event import _read_events_fif, make_fixed_length_events
-from .fixes import _get_args
+from .fixes import _get_args, rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
@@ -2032,21 +2032,8 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 def equalize_epoch_counts(epochs_list, method='mintime'):
     """Equalize the number of trials in multiple Epoch instances.
 
-    It tries to make the remaining epochs occurring as close as possible in
-    time. This method works based on the idea that if there happened to be some
-    time-varying (like on the scale of minutes) noise characteristics during
-    a recording, they could be compensated for (to some extent) in the
-    equalization process. This method thus seeks to reduce any of those effects
-    by minimizing the differences in the times of the events in the two sets of
-    epochs. For example, if one had event times [1, 2, 3, 4, 120, 121] and the
-    other one had [3.5, 4.5, 120.5, 121.5], it would remove events at times
-    [1, 2] in the first epochs and not [120, 121].
-
-    Note that this operates on the Epochs instances in-place.
-
-    Example:
-
-        equalize_epoch_counts(epochs1, epochs2)
+    .. note::
+       This operates on the Epochs instances in-place.
 
     Parameters
     ----------
@@ -2056,6 +2043,22 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
         If 'truncate', events will be truncated from the end of each event
         list. If 'mintime', timing differences between each event list will be
         minimized.
+
+    Notes
+    -----
+    This tries to make the remaining epochs occurring as close as possible in
+    time. This method works based on the idea that if there happened to be some
+    time-varying (like on the scale of minutes) noise characteristics during
+    a recording, they could be compensated for (to some extent) in the
+    equalization process. This method thus seeks to reduce any of those effects
+    by minimizing the differences in the times of the events in the two sets of
+    epochs. For example, if one had event times [1, 2, 3, 4, 120, 121] and the
+    other one had [3.5, 4.5, 120.5, 121.5], it would remove events at times
+    [1, 2] in the first epochs and not [120, 121].
+
+    Examples
+    --------
+    >>> equalize_epoch_counts(epochs1, epochs2)  # doctest: +SKIP
     """
     if not all(isinstance(e, BaseEpochs) for e in epochs_list):
         raise ValueError('All inputs must be Epochs instances')
@@ -2517,7 +2520,7 @@ def bootstrap(epochs, random_state=None):
     rng = check_random_state(random_state)
     epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
-    idx = rng.randint(0, n_events, n_events)
+    idx = rng_uniform(rng)(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
     return epochs_bootstrap
 

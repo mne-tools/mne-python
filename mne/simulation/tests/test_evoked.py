@@ -17,7 +17,7 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked, add_noise
 from mne.io import read_raw_fif
 from mne.io.pick import pick_channels_cov
 from mne.cov import regularize, whiten_evoked
-from mne.utils import run_tests_if_main, catch_logging
+from mne.utils import run_tests_if_main, catch_logging, check_version
 
 data_path = testing.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
@@ -91,7 +91,10 @@ def test_simulate_evoked():
 @pytest.mark.filterwarnings('ignore:Epochs are not baseline corrected')
 def test_add_noise():
     """Test noise addition."""
-    rng = np.random.RandomState(0)
+    if check_version('numpy', '1.17'):
+        rng = np.random.default_rng(0)
+    else:
+        rng = np.random.RandomState(0)
     raw = read_raw_fif(raw_fname)
     raw.del_proj()
     picks = pick_types(raw.info, eeg=True, exclude=())
