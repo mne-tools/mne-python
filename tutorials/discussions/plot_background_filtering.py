@@ -217,7 +217,7 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
 #        :func:`scipy.signal.firwin`, and `MATLAB fir2`_)
 #     3. Least squares designs (:func:`scipy.signal.firls`, `MATLAB firls`_)
 #     4. Frequency-domain design (construct filter in Fourier
-#        domain and use an :func:`IFFT <numpy.ifft>` to invert it)
+#        domain and use an :func:`IFFT <numpy.fft.ifft>` to invert it)
 #
 # .. note:: Remez and least squares designs have advantages when there are
 #           "do not care" regions in our frequency response. However, we want
