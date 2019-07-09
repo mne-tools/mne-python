@@ -15,6 +15,7 @@ from ..source_space import _ensure_src
 from ..fixes import rng_uniform
 from ..utils import check_random_state, warn, _check_option, fill_doc
 from ..label import Label
+from ..surface import _compute_nearest
 
 
 @fill_doc
@@ -268,6 +269,13 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
         hemi_ind = hemi_to_ind[label.hemi]
         src_sel = np.intersect1d(src[hemi_ind]['vertno'],
                                  label.vertices)
+        if len(src_sel) == 0:
+            idx = src[hemi_ind]['inuse'].astype('bool')
+            xhs = src[hemi_ind]['rr'][idx]
+            rr = src[hemi_ind]['rr'][label.vertices]
+            closest_src = _compute_nearest(xhs, rr)
+            src_sel = src[hemi_ind]['vertno'][np.unique(closest_src)]
+
         if value_fun is not None:
             idx_sel = np.searchsorted(label.vertices, src_sel)
             values_sel = np.array([value_fun(v) for v in

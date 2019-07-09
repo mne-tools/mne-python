@@ -98,6 +98,14 @@ def test_simulate_stc(_get_fwd_labels):
     pytest.raises(RuntimeError, simulate_stc, fwd['src'], label_subset * 2,
                   np.concatenate([data_subset] * 2, axis=0), tmin, tstep, fun)
 
+    i = np.where(fwd['src'][0]['inuse'] == 0)[0][0]
+    label_single_vert = Label(vertices=[i],
+                              pos=fwd['src'][0]['rr'][i:i + 1, :],
+                              hemi='lh')
+    stc = simulate_stc(fwd['src'], [label_single_vert], stc_data[:1], tmin,
+                       tstep)
+    assert_equal(len(stc.lh_vertno), 1)
+
 
 def test_simulate_sparse_stc(_get_fwd_labels):
     """Test generation of sparse source estimate."""
