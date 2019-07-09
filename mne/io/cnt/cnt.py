@@ -142,12 +142,7 @@ def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
         Defaults to 'auto'.
     date_format : 'mm/dd/yy' | 'dd/mm/yy'
         Format of date in the header. Defaults to 'mm/dd/yy'.
-    preload : bool | str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
         future warning.
@@ -394,12 +389,7 @@ class RawCNT(BaseRaw):
         Defaults to 'auto'.
     date_format : 'mm/dd/yy' | 'dd/mm/yy'
         Format of date in the header. Defaults to 'mm/dd/yy'.
-    preload : bool | str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
         future warning.

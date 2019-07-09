@@ -31,11 +31,11 @@ docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 # Preload
 docdict['preload'] = """
 preload : bool or str (default False)
-    Preload data into memory for data manipulation and faster indexing. If
-    True, data will be preloaded into memory (fast, but requires large
-    amount of memory). If preload is a string, preload is the file name of
-    a memory-mapped file which is used to store the data on the hard drive
-    (slower, but requires less memory)."""
+    Preload data into memory for data manipulation and faster indexing.
+    If True, the data will be preloaded into memory (fast, requires
+    large amount of memory). If preload is a string, preload is the
+    file name of a memory-mapped file which is used to store the data
+    on the hard drive (slower, requires less memory)."""
 
 # General plotting
 docdict["show"] = """

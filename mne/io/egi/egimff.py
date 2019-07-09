@@ -244,12 +244,7 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
        trigger. Defaults to None. If None, channels that have more than
        one event and the ``sync`` and ``TREV`` channels will be
        ignored.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     channel_naming : str
         Channel naming convention for the data channels. Defaults to 'E%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default

@@ -111,12 +111,7 @@ class RawEDF(BaseRaw):
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
@@ -236,12 +231,7 @@ class RawGDF(BaseRaw):
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
@@ -1199,12 +1189,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
@@ -1285,12 +1270,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
@@ -1373,12 +1353,7 @@ def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
