@@ -76,8 +76,6 @@ def _get_event_parser(event_type):
         event_maker = CNTEventType3
         struct_pattern = '<HBclhhfccc'  # Same as event type 2
     else:
-        # event_maker = CNTEventType3
-        # struct_pattern = '<HBclhhfccc'  # Same as event type 2
         raise ValueError('unknown CNT even type %s' % event_type)
 
     def parser(buffer):
