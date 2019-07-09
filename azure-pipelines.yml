@@ -50,8 +50,7 @@ jobs:
       $PSDefaultParameterValues['*:ErrorAction']='Stop'
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
-      pip install $env:PIP_DEPENDENCIES
-      pip install pylsl
+      pip install codecov
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
   - powershell: |
