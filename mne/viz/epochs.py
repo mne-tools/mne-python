@@ -37,8 +37,9 @@ from .misc import _handle_event_colors
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None, fig=None,
-                      axes=None, clear=False, overlay_times=None, combine=None,
-                      group_by=None, evoked=True, ts_args=None, title=None):
+                      axes=None, overlay_times=None, combine=None,
+                      group_by=None, evoked=True, ts_args=None, title=None,
+                      clear=False):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -68,9 +69,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Display or not a colorbar.
     order : None | array of int | callable
         If not ``None``, order is used to reorder the epochs along the y-axis
-        of the image. If it's an array of :class:`int` its length should match
-        the number of good epochs. If it's a callable it should accept two
-        positional parameters (``times`` and ``data``, where
+        of the image. If it is an array of :class:`int`, its length should
+        match the number of good epochs. If it is a callable it should accept
+        two positional parameters (``times`` and ``data``, where
         ``data.shape == (len(good_epochs), len(times))``) and return an
         :class:`array <numpy.ndarray>` of indices that will sort ``data`` along
         its first axis.
@@ -108,9 +109,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ``group_by`` are dicts, their keys must match. Providing non-``None``
         values for both ``fig`` and ``axes``  results in an error. Defaults to
         ``None``.
-    clear : bool
-        Whether to clear the axes before plotting (if ``fig`` or ``axes`` are
-        provided). Defaults to ``False``.
     overlay_times : array_like, shape (n_epochs,) | None
         Times (in seconds) at which to draw a line on the corresponding row of
         the image (e.g., a reaction time associated with each epoch). Note that
@@ -153,6 +151,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         If :class:`str`, will be plotted as figure title. Otherwise, the
         title will indicate channel(s) or channel type being plotted. Defaults
         to ``None``.
+    clear : bool
+        Whether to clear the axes before plotting (if ``fig`` or ``axes`` are
+        provided). Defaults to ``False``.
 
     Returns
     -------
@@ -162,12 +163,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     Notes
     -----
-    The number of figures generated depends on the values of ``picks``,
-    ``group_by``, and ``combine``. If ``group_by`` is a :class:`dict`, the
-    result is one :class:`~matplotlib.figure.Figure` per dictionary key (for
-    any valid values of ``picks`` and ``combine``).  If ``group_by`` is
-    ``None``, the number and content of the figures generated depends on the
-    values of ``picks`` and ``combine``, as summarized in this table:
+    You can control how channels are aggregated into one figure or plotted in
+    separate figures through a combination of the ``picks``, ``group_by``, and
+    ``combine`` parameters. If ``group_by`` is a :class:`dict`, the result is
+    one :class:`~matplotlib.figure.Figure` per dictionary key (for any valid
+    values of ``picks`` and ``combine``). If ``group_by`` is ``None``, the
+    number and content of the figures generated depends on the values of
+    ``picks`` and ``combine``, as summarized in this table:
 
     .. cssclass:: table-bordered
     .. rst-class:: midvalign
@@ -203,7 +205,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # `combine` defaults to 'gfp' unless picks are specific channels and
     # there was no group_by passed
-    combine_given = (combine is not None)
+    combine_given = combine is not None
     if combine is None and (group_by is not None or picked_types):
         combine = 'gfp'
     # convert `combine` into callable (if None or str)
@@ -305,16 +307,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # plot
     for this_group, this_group_dict in group_by.items():
-        this_norm = this_group_dict['norm']
-        this_image = this_group_dict['image']
-        this_epochs = this_group_dict['epochs']
         this_ch_type = this_group_dict['ch_type']
         this_axes_dict = this_group_dict['axes']
-        this_title = this_group_dict['title']
         vmin, vmax = vmin_vmax[this_ch_type]
 
         # plot title
-        if this_title is None:
+        if this_group_dict['title'] is None:
             title = _handle_default('titles').get(this_group, this_group)
             if isinstance(combine, str) and len(title):
                 _comb = combine.upper() if combine == 'gfp' else combine
@@ -323,8 +321,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
         # plot the image
         this_fig = _plot_epochs_image(
-            this_image, style_axes=True, epochs=this_epochs, picks=picks,
-            colorbar=colorbar, vmin=vmin, vmax=vmax, norm=this_norm, cmap=cmap,
+            this_group_dict['image'], epochs=this_group_dict['epochs'],
+            picks=picks, colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+            style_axes=True, norm=this_group_dict['norm'],
             unit=units[this_ch_type], ax=this_axes_dict, show=False,
             title=title, combine=combine, combine_given=combine_given,
             overlay_times=overlay_times, evoked=evoked, ts_args=ts_args)
@@ -354,8 +353,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 ax.set_ylim(*args)
                 yticks = np.array(ax.get_yticks())
                 top_tick = func(yticks)
-                # new_ticks = sorted(set([0, top_tick, args[0]]))
-                # ax.set_yticks(new_ticks)
                 ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
     return [this_group_dict['fig'] for this_group_dict in group_by.values()]

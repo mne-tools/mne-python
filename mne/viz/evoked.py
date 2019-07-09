@@ -1475,37 +1475,37 @@ def _check_loc_legal(loc, what='your choice', default=1):
     return loc_
 
 
-def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
-    """Check and assign styles for plot_compare_evokeds."""
-    from matplotlib.cm import get_cmap
-    from matplotlib.colors import Colormap
-    # check if style dict is valid
-    tags = set(tag for cond in conditions for tag in cond.split('/'))
-    if styles is None:
-        styles = {cond: dict() for cond in conditions}
-    else:
-        styles = styles.copy()
-        if not set(styles).issubset(tags.union(conditions)):
-            raise ValueError('The keys in "styles" ({}) must '
-                             'match the keys in "evokeds" ({}).'
-                             .format(list(styles), conditions))
-        # make sure all the keys are in there
-        for cond in conditions:
-            if cond not in styles:
-                styles[cond] = dict()
-            # deal with matplotlib's synonymous handling of "c" and "color"
-            elif 'c' in styles[cond]:
-                styles[cond]['color'] = styles[cond].pop('c')
-            # transfer styles from partial-matched entries
-            for tag in cond.split('/'):
-                if tag in styles:
-                    styles[cond].update(styles[tag])
-        # remove the (now transferred) partial-matching style entries
-        for key in list(styles):
-            if key not in conditions:
-                del styles[key]
-    # COLORS
-    # make colors a list if it's not defined
+def _validate_style_keys_pce(styles, conditions, tags):
+    """Validate styles dict keys for plot_compare_evokeds."""
+    styles = deepcopy(styles)
+    if not set(styles).issubset(tags.union(conditions)):
+        raise ValueError('The keys in "styles" ({}) must match the keys in '
+                         '"evokeds" ({}).'.format(list(styles), conditions))
+    # make sure all the keys are in there
+    for cond in conditions:
+        if cond not in styles:
+            styles[cond] = dict()
+        # deal with matplotlib's synonymous handling of "c" and "color" /
+        # "ls" and "linestyle" / "lw" and "linewidth"
+        elif 'c' in styles[cond]:
+            styles[cond]['color'] = styles[cond].pop('c')
+        elif 'ls' in styles[cond]:
+            styles[cond]['linestyle'] = styles[cond].pop('ls')
+        elif 'lw' in styles[cond]:
+            styles[cond]['linewidth'] = styles[cond].pop('lw')
+        # transfer styles from partial-matched entries
+        for tag in cond.split('/'):
+            if tag in styles:
+                styles[cond].update(styles[tag])
+    # remove the (now transferred) partial-matching style entries
+    for key in list(styles):
+        if key not in conditions:
+            del styles[key]
+    return styles
+
+
+def _validate_colors_pce(colors, cmap, conditions, tags):
+    """Check and assign colors for plot_compare_evokeds."""
     err_suffix = ''
     if colors is None:
         if cmap is None:
@@ -1516,9 +1516,8 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
     # convert color list to dict
     if isinstance(colors, (list, tuple, np.ndarray)):
         if len(conditions) > len(colors):
-            raise ValueError('Trying to plot {} conditions, but there are '
-                             'only {} colors{}. Please specify colors '
-                             'manually.'
+            raise ValueError('Trying to plot {} conditions, but there are only'
+                             ' {} colors{}. Please specify colors manually.'
                              .format(len(conditions), len(colors), err_suffix))
         colors = dict(zip(conditions, colors))
     # should be a dict by now...
@@ -1532,14 +1531,13 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
                          .format(list(colors), conditions))
     # validate color dict values
     color_vals = list(colors.values())
-    if cmap is not None and not all(_is_numeric(n) for n in color_vals):
+    all_numeric = all(_is_numeric(_color) for _color in color_vals)
+    if cmap is not None and not all_numeric:
         raise TypeError('if "cmap" is specified, then "colors" must be '
                         'None or a (list or dict) of (ints or floats); got {}.'
                         .format(', '.join(color_vals)))
-    all_int = all([isinstance(_color, Integral) for _color in color_vals])
-    # compute cmap lut
-    lut = len(set(color_vals)) if all_int else None
     # convert provided ints to sequential, rank-ordered ints
+    all_int = all([isinstance(_color, Integral) for _color in color_vals])
     if all_int:
         colors = deepcopy(colors)
         ranks = {val: ix for ix, val in enumerate(sorted(set(color_vals)))}
@@ -1550,18 +1548,34 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
             color_list = _get_color_list()
             for cond, color_int in colors.items():
                 colors[cond] = color_list[color_int]
-    # instantiate cmap
-    cmap_label = ''
+    # recompute color_vals as a sorted set (we'll need it that way later)
+    color_vals = set(colors.values())
+    if all_numeric:
+        color_vals = sorted(color_vals)
+    return colors, color_vals
+
+
+def _validate_cmap_pce(cmap, colors, color_vals):
+    """Check and assign colormap for plot_compare_evokeds."""
+    from matplotlib.cm import get_cmap
+    from matplotlib.colors import Colormap
+    all_int = all([isinstance(_color, Integral) for _color in color_vals])
+    lut = len(color_vals) if all_int else None
+    colorbar_title = ''
     if isinstance(cmap, (list, tuple, np.ndarray)) and len(cmap) == 2:
-        cmap_label, cmap = cmap
+        colorbar_title, cmap = cmap
     if isinstance(cmap, str):
         cmap = get_cmap(cmap, lut=lut)
     elif isinstance(cmap, Colormap) and all_int:
         cmap = cmap._resample(lut)
-    # LINESTYLES
+    return cmap, colorbar_title
+
+
+def _validate_linestyles_pce(linestyles, conditions, tags):
+    """Check and assign linestyles for plot_compare_evokeds."""
     # make linestyles a list if it's not defined
     if linestyles is None:
-        linestyles = [None] * len(conditions)  # will get assigned default
+        linestyles = [None] * len(conditions)  # will get changed to defaults
     # convert linestyle list to dict
     if isinstance(linestyles, (list, tuple, np.ndarray)):
         if len(conditions) > len(linestyles):
@@ -1575,49 +1589,89 @@ def _handle_styles_pce(styles, colors, cmap, linestyles, conditions):
         raise TypeError('"linestyles" must be a dict, list, or None; got {}.'
                         .format(type(linestyles).__name__))
     # validate linestyle dict keys
-    # (skip validating linestyle dict values... too hard to test)
     if not set(linestyles).issubset(tags.union(conditions)):
         raise ValueError('If "linestyles" is a dict its keys ({}) must '
                          'match the keys/conditions in "evokeds" ({}).'
                          .format(list(linestyles), conditions))
+    # normalize linestyle values (so we can accurately count unique linestyles
+    # later). See https://github.com/matplotlib/matplotlib/blob/master/matplotlibrc.template#L131-L133  # noqa
+    linestyle_map = {'solid': (0, ()),
+                     'dotted': (0, (1., 1.65)),
+                     'dashed': (0, (3.7, 1.6)),
+                     'dashdot': (0, (6.4, 1.6, 1., 1.6)),
+                     '-': (0, ()),
+                     ':': (0, (1., 1.65)),
+                     '--': (0, (3.7, 1.6)),
+                     '-.': (0, (6.4, 1.6, 1., 1.6))}
+    for cond, _ls in linestyles.items():
+        linestyles[cond] = linestyle_map.get(_ls, _ls)
+    return linestyles
+
+
+def _populate_style_dict_pce(condition, condition_styles, style_name,
+                             style_dict, cmap):
+    """Transfer styles into condition_styles dict for plot_compare_evokeds."""
+    defaults = dict(color='gray', linestyle=(0, ()))  # (0, ()) == 'solid'
+    # if condition X doesn't yet have style Y defined:
+    if condition_styles.get(style_name, None) is None:
+        # check the style dict for the full condition name
+        try:
+            condition_styles[style_name] = style_dict[condition]
+        # if it's not in there, try the slash-separated condition tags
+        except KeyError:
+            for tag in condition.split('/'):
+                try:
+                    condition_styles[style_name] = style_dict[tag]
+                # if the tag's not in there, assign a default value (but also
+                # continue looping in search of a tag that *is* in there)
+                except KeyError:
+                    condition_styles[style_name] = defaults[style_name]
+                # if we found a valid tag, keep track of it for colorbar
+                # legend purposes, and also stop looping (so we don't overwrite
+                # a valid tag's style with an invalid tag → default style)
+                else:
+                    if style_name == 'color' and cmap is not None:
+                        condition_styles['cmap_label'] = tag
+                    break
+    return condition_styles
+
+
+def _handle_styles_pce(styles, linestyles, colors, cmap, conditions):
+    """Check and assign styles for plot_compare_evokeds."""
+    styles = deepcopy(styles)
+    # validate style dict structure (doesn't check/assign values yet)
+    tags = set(tag for cond in conditions for tag in cond.split('/'))
+    if styles is None:
+        styles = {cond: dict() for cond in conditions}
+    styles = _validate_style_keys_pce(styles, conditions, tags)
+    # validate color dict
+    colors, color_vals = _validate_colors_pce(colors, cmap, conditions, tags)
+    all_int = all([isinstance(_color, Integral) for _color in color_vals])
+    # instantiate cmap
+    cmap, colorbar_title = _validate_cmap_pce(cmap, colors, color_vals)
+    # validate linestyles
+    linestyles = _validate_linestyles_pce(linestyles, conditions, tags)
+
+    # prep for colorbar tick handling
+    colorbar_ticks = None if cmap is None else dict()
+    # array mapping color integers (indices) to tick locations (array values)
+    tick_locs = np.linspace(0, 1, 2 * len(color_vals) + 1)[1::2]
+
     # transfer colors/linestyles dicts into styles dict; fall back on defaults
-    defaults = dict(color='gray', linestyle='solid')
-    current_styles = dict(color=colors, linestyle=linestyles)
-    for cond, inner_dict in styles.items():               # for each condition
-        for style_name, curr in current_styles.items():   # for each style type
-            if inner_dict.get(style_name, None) is None:  # if not defined yet
-                try:                                      # try full cond name
-                    inner_dict[style_name] = curr[cond]
-                except KeyError:                          # if it's not there,
-                    for this_tag in cond.split('/'):      # try the cond tags
-                        try:
-                            inner_dict[style_name] = curr[this_tag]
-                            if style_name == 'color' and cmap is not None:
-                                inner_dict['cmap_label'] = this_tag
-                            break
-                        except KeyError:                  # else, use defaults
-                            inner_dict[style_name] = defaults[style_name]
-    # prep for legend handling and converting numbers to cycler / cmap colors
-    legend_tick_locs = None if cmap is None else dict()
-    if cmap is not None:
-        these_colors = sorted(set(colors.values()))
-        n_colors = len(these_colors)
-        if all_int:
-            # map color rank integers to tick locations between 0 and 1
-            tick_dict = {ix: val for ix, val in
-                         enumerate(np.linspace(0, 1, 2 * n_colors + 1)[1::2])}
-        # convert numeric colors into cmap color values; store legend tick locs
-        for cond, inner_dict in styles.items():
-            number = inner_dict['color']
-            inner_dict['color'] = cmap(number)
-            tick_loc = tick_dict[number] if all_int else number
-            # simplify redundant labels (only happens if orig. spec. as "tags")
-            if 'cmap_label' in inner_dict:
-                legend_tick_locs[inner_dict['cmap_label']] = tick_loc
-                del styles[cond]['cmap_label']
-            else:
-                legend_tick_locs[cond] = tick_loc
-    return styles, cmap, cmap_label, colors, linestyles, legend_tick_locs
+    color_and_linestyle = dict(color=colors, linestyle=linestyles)
+    for cond, cond_styles in styles.items():
+        for _name, _style in color_and_linestyle.items():
+            cond_styles = _populate_style_dict_pce(cond, cond_styles, _name,
+                                                   _style, cmap)
+        # convert numeric colors into cmap color values; store colorbar ticks
+        if cmap is not None:
+            color_number = cond_styles['color']
+            cond_styles['color'] = cmap(color_number)
+            tick_loc = tick_locs[color_number] if all_int else color_number
+            key = cond_styles.pop('cmap_label', cond)
+            colorbar_ticks[key] = tick_loc
+
+    return styles, linestyles, colors, cmap, colorbar_title, colorbar_ticks
 
 
 def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
@@ -1636,100 +1690,90 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
                  show_sensors, size=25)
 
 
-def _draw_legend_pce(styles, legend, split_legend, colors, cmap,
-                     cmap_label, linestyles, legend_tick_locs, do_topo, ax):
+def _draw_colorbar_pce(ax, colors, cmap, colorbar_title, colorbar_ticks):
+    """Draw colorbar for plot_compare_evokeds."""
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    from matplotlib.colorbar import ColorbarBase
+    from matplotlib.transforms import Bbox
+    # create colorbar axes
+    orig_bbox = ax.get_position()
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='5%', pad=0.1)
+    cax.yaxis.tick_right()
+    cb = ColorbarBase(cax, cmap=cmap, norm=None, orientation='vertical')
+    cb.set_label(colorbar_title)
+    # handle ticks
+    ticks = sorted(set(colorbar_ticks.values()))
+    ticklabels = [''] * len(ticks)
+    for label, tick in colorbar_ticks.items():
+        idx = ticks.index(tick)
+        if len(ticklabels[idx]):  # handle labels with the same color/location
+            ticklabels[idx] = '\n'.join([ticklabels[idx], label])
+        else:
+            ticklabels[idx] = label
+    assert all(len(label) for label in ticklabels)
+    cb.set_ticks(ticks)
+    cb.set_ticklabels(ticklabels)
+    # shrink colorbar if discrete colors
+    color_vals = set(colors.values())
+    if all([isinstance(_color, Integral) for _color in color_vals]):
+        fig = ax.get_figure()
+        fig.canvas.draw()
+        fig_aspect = np.divide(*fig.get_size_inches())
+        new_bbox = ax.get_position()
+        cax_width = 0.75 * (orig_bbox.xmax - new_bbox.xmax)
+        # add extra space for multiline colorbar labels
+        h_mult = max(2, max([len(label.split('\n')) for label in ticklabels]))
+        cax_height = len(color_vals) * h_mult * cax_width / fig_aspect
+        x0 = orig_bbox.xmax - cax_width
+        y0 = (new_bbox.ymax + new_bbox.ymin - cax_height) / 2
+        x1 = orig_bbox.xmax
+        y1 = y0 + cax_height
+        new_bbox = Bbox([[x0, y0], [x1, y1]])
+        cax.set_axes_locator(None)
+        cax.set_position(new_bbox)
+
+
+def _draw_legend_pce(legend, split_legend, styles, linestyles, colors, cmap,
+                     do_topo, ax):
     """Draw legend for plot_compare_evokeds."""
     import matplotlib.lines as mlines
-    # triage defaults
-    if split_legend is None:
-        split_legend = (cmap is not None)
-    loc = _check_loc_legal(legend, 'legend')
-    # some vars / containers
-    n_linestyles = len(set(linestyles.values()))
     lines = list()
-    draw_legend = True  # we suppress it later in some cases
-    if cmap is None:
-        # easiest case first: non-split legend
-        if not split_legend:
-            for cond, inner_dict in styles.items():
-                line = mlines.Line2D([], [], label=cond, **inner_dict)
-                lines.append(line)
-        # next case: split legend with no colorbar
-        else:
-            for cond, color in colors.items():
-                line = mlines.Line2D([], [], label=cond, linestyle='solid',
+    # triage
+    if split_legend is None:
+        split_legend = cmap is not None
+    n_colors = len(set(colors.values()))
+    n_linestyles = len(set(linestyles.values()))
+    draw_styles = cmap is None and not split_legend
+    draw_colors = cmap is None and split_legend and n_colors > 1
+    draw_linestyles = (cmap is None or split_legend) and n_linestyles > 1
+    # create the fake lines for the legend
+    if draw_styles:
+        for label, cond_styles in styles.items():
+            line = mlines.Line2D([], [], label=label, **cond_styles)
+            lines.append(line)
+    else:
+        if draw_colors:
+            for label, color in colors.items():
+                line = mlines.Line2D([], [], label=label, linestyle='solid',
                                      color=color)
                 lines.append(line)
-            for cond, linestyle in linestyles.items():
-                line = mlines.Line2D([], [], label=cond, linestyle=linestyle,
+        if draw_linestyles:
+            for label, linestyle in linestyles.items():
+                line = mlines.Line2D([], [], label=label, linestyle=linestyle,
                                      color='black')
                 lines.append(line)
-    # last case: colorbar (split_legend has no effect)
-    else:
-        # linestyles
-        if n_linestyles > 1:
-            for cond, linestyle in linestyles.items():
-                line = mlines.Line2D([], [], label=cond, linestyle=linestyle,
-                                     color='black')
-                lines.append(line)
-        else:
-            draw_legend = False
-        # plot the colorbar
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        from matplotlib.colorbar import ColorbarBase
-        from matplotlib.transforms import Bbox
-        orig_bbox = ax.get_position()
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes('right', size='5%', pad=0.1)
-        cb = ColorbarBase(cax, cmap=cmap, norm=None,
-                          orientation='vertical')
-        cb.set_label(cmap_label)
-        ticks = list()
-        ticklabels = list()
-        for cond, tick_loc in legend_tick_locs.items():
-            # handle conditions with same color/location
-            if tick_loc in ticks:
-                idx = ticks.index(tick_loc)
-                if ticklabels[idx] != cond:
-                    ticklabels[idx] = '\n'.join([ticklabels[idx], cond])
-            else:
-                ticks.append(tick_loc)
-                ticklabels.append(cond)
-        order = np.argsort(ticks)
-        cb.set_ticks(np.array(ticks)[order])
-        cb.set_ticklabels(np.array(ticklabels)[order])
-        cax.yaxis.tick_right()
-        # shrink colorbar if discrete colors
-        color_vals = list(colors.values())
-        if all([isinstance(_color, Integral) for _color in color_vals]):
-            fig = ax.get_figure()
-            fig.canvas.draw()
-            fig_aspect = np.divide(*fig.get_size_inches())
-            plot_bbox = ax.get_position()
-            cax_width = 0.75 * (orig_bbox.xmax - plot_bbox.xmax)
-            # add extra space for multiline colorbar labels
-            h_mult = max(2, max([len(lab.split('\n')) for lab in ticklabels]))
-            cax_height = len(set(color_vals)) * h_mult * cax_width / fig_aspect
-            x0 = orig_bbox.xmax - cax_width
-            y0 = (plot_bbox.ymax + plot_bbox.ymin - cax_height) / 2
-            x1 = orig_bbox.xmax
-            y1 = y0 + cax_height
-            new_bbox = Bbox([[x0, y0], [x1, y1]])
-            cax.set_axes_locator(None)
-            cax.set_position(new_bbox)
     # legend params
-    ncol = 1 + (len(lines) // (4 if split_legend else 5))
+    ncol = 1 + (len(lines) // 5)
+    loc = _check_loc_legal(legend, 'legend')
     legend_params = dict(loc=loc, frameon=True, ncol=ncol)
+    # special placement (above dedicated legend axes) in topoplot
     if do_topo and isinstance(legend, bool):
         legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))
-    if draw_legend:
-        labels = [li.get_label() for li in lines]
+    # draw the legend
+    if any([draw_styles, draw_colors, draw_linestyles]):
+        labels = [line.get_label() for line in lines]
         ax.legend(lines, labels, **legend_params)
-    # we needed the lines for the legends, but now we can kill them
-    if do_topo:
-        ax.lines.clear()
-        ax.set_title('')
-        del ax.texts[-1]
 
 
 def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
@@ -2169,9 +2213,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     # colors and colormap. This yields a `styles` dict with one entry per
     # condition, specifying at least color and linestyle. THIS MUST BE DONE
     # AFTER THE "MULTIPLE CHANNEL TYPES" LOOP
-    (styles, cmap, cmap_label, colors, linestyles,
-     legend_tick_locs) = _handle_styles_pce(styles, colors, cmap, linestyles,
-                                            conditions)
+    (_styles, _linestyles, _colors, _cmap, colorbar_title,
+     colorbar_ticks) = _handle_styles_pce(styles, linestyles, colors, cmap,
+                                          conditions)
     # From now on there is only 1 channel type
     assert len(ch_types) == 1
     ch_type = ch_types[0]
@@ -2211,7 +2255,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         # shift everything to the right by 15% of one axes width
         layout.pos[:, 0] += layout.pos[0, 2] * .15
         layout.pos[:, 1] += layout.pos[0, 3] * .15
-        # fixme: prevent having to loop over the axes multiple times
+        # TODO: ideally we would keep this as a generator?
         axes = list(iter_topography(
             info, layout=layout, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
@@ -2254,23 +2298,23 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     ymin, ymax = _setup_vmin_vmax(allvalues, orig_ymin, orig_ymax, norm)
     del allvalues
 
-    # add empty data (all zeros) for the legend axis
-    all_data.append({cond: np.zeros(dat.shape)
-                     for cond, dat in data_dict.items()})
-    all_cis.append({cond: np.zeros(np.array(dat).shape)
-                    for cond, dat in ci_dict.items()})
+    # add empty data and title for the legend axis
     if do_topo:
-        picks.append(-1)  # so we don't terminate loop before legend axis drawn
+        all_data.append({cond: np.array([]) for cond in data_dict})
+        all_cis.append({cond: None for cond in ci_dict})
+        all_ch_names.append('')
 
-    for _picks, (ax, idx), data, cis in zip(picks, axes, all_data, all_cis):
+    # plot!
+    for (ax, idx), data, cis in zip(axes, all_data, all_cis):
         if do_topo:
             title = all_ch_names[idx]
-        _plot_compare_evokeds(ax, data, conditions, times, cis, styles, title,
-                              norm, do_topo)
-    # draw axes
-    for _ax, idx in axes:
+        # plot the data
+        _times = [] if idx == -1 else times
+        _plot_compare_evokeds(ax, data, conditions, _times, cis, _styles,
+                              title, norm, do_topo)
+        # draw axes & vlines
         skip_axlabel = do_topo and (idx != -1)
-        _draw_axes_pce(_ax, ymin, ymax, truncate_yaxis, truncate_xaxis,
+        _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis,
                        invert_y, vlines, tmin, tmax, units, skip_axlabel)
     # add inset scalp plot showing location of sensors picked
     if show_sensors:
@@ -2281,12 +2325,13 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                  'Not showing channel locations.')
         else:
             _evoked_sensor_legend(one_evoked.info, pos_picks, ymin, ymax,
-                                  show_sensors, _ax)
+                                  show_sensors, ax)
     # add color/linestyle/colormap legend(s)
     if legend:
-        _draw_legend_pce(styles, legend, split_legend, colors, cmap,
-                         cmap_label, linestyles, legend_tick_locs, do_topo,
-                         ax)
+        _draw_legend_pce(legend, split_legend, _styles, _linestyles, _colors,
+                         _cmap, do_topo, ax)
+    if cmap is not None:
+        _draw_colorbar_pce(ax, _colors, _cmap, colorbar_title, colorbar_ticks)
     # finish
     plt_show(show)
     return [ax.figure]
