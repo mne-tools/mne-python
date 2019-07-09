@@ -889,21 +889,30 @@ def combine_evoked(all_evoked, weights):
         _check_option('weights', weights, ['nave', 'equal'])
         if weights == 'nave':
             weights = naves / naves.sum()
-            new_nave = np.sum(naves)
         else:
             weights = np.ones_like(naves)
-            new_nave = 1. / np.sum(1. / naves)
-        # for the new_nave calculation, cf. Matti's manual (pp 128-129); both
-        # of the formulae above are equivalent to the general formula below,
-        # but reduce numerical error.
     else:
         weights = np.array(weights, float)
-        new_nave = 1. / np.sum(weights ** 2 / naves)
-        # cf. section on how variances change when summing Gaussian random
-        # variables: https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
 
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
+
+    # cf. https://en.wikipedia.org/wiki/Weighted_arithmetic_mean, section on
+    # how variances change when summing Gaussian random variables. The variance
+    # of a weighted sample mean is:
+    #
+    #    σ² = w₁² σ₁² + w₂² σ₂² + ... + wₙ² σₙ²
+    #
+    # We estimate the variance of each evoked instance as 1 / nave to get:
+    #
+    #    σ² = w₁² / nave₁ + w₂² / nave₂ + ... + wₙ² / naveₙ
+    #
+    # And our resulting nave is the reciprocal of this:
+    new_nave = 1. / np.sum(weights ** 2 / naves)
+    # This general formula is equivalent to formulae in Matti's manual
+    # (pp 128-129), where:
+    # new_nave = sum(naves) when weights='nave' and
+    # new_nave = 1. / sum(1. / naves) when weights='equal'
 
     all_evoked = _check_evokeds_ch_names_times(all_evoked)
     evoked = all_evoked[0].copy()

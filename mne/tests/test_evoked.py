@@ -478,30 +478,30 @@ def test_arithmetic():
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave
     ev = combine_evoked([ev1, ev2], weights='nave')
-    assert_equal(ev.nave, ev1.nave + ev2.nave)
+    assert_allclose(ev.nave, ev1.nave + ev2.nave)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
 
     # with same trial counts, a bunch of things should be equivalent
     for weights in ('nave', [0.5, 0.5]):
         ev = combine_evoked([ev1, ev1], weights=weights)
         assert_allclose(ev.data, ev1.data)
-        assert_equal(ev.nave, 2 * ev1.nave)
+        assert_allclose(ev.nave, 2 * ev1.nave)
         ev = combine_evoked([ev1, -ev1], weights=weights)
         assert_allclose(ev.data, 0., atol=1e-20)
-        assert_equal(ev.nave, 2 * ev1.nave)
+        assert_allclose(ev.nave, 2 * ev1.nave)
     # adding evoked to itself
     ev = combine_evoked([ev1, ev1], weights='equal')
     assert_allclose(ev.data, 2 * ev1.data)
-    assert_equal(ev.nave, ev1.nave / 2)
+    assert_allclose(ev.nave, ev1.nave / 2)
     # subtracting evoked from itself
     ev = combine_evoked([ev1, -ev1], weights='equal')
     assert_allclose(ev.data, 0., atol=1e-20)
-    assert_equal(ev.nave, ev1.nave / 2)
+    assert_allclose(ev.nave, ev1.nave / 2)
     # subtracting different evokeds
     ev = combine_evoked([ev1, -ev2], weights='equal')
     assert_allclose(ev.data, 2., atol=1e-20)
     expected_nave = 1. / (1. / ev1.nave + 1. / ev2.nave)
-    assert_equal(ev.nave, expected_nave)
+    assert_allclose(ev.nave, expected_nave)
 
     # default comment behavior if evoked.comment is None
     old_comment1 = ev1.comment
@@ -520,7 +520,7 @@ def test_arithmetic():
 
     # combine_evoked([ev1, ev2], weights=[1, 0]) should yield the same as ev1
     ev = combine_evoked([ev1, ev2], weights=[1, 0])
-    assert_equal(ev.nave, ev1.nave)
+    assert_allclose(ev.nave, ev1.nave)
     assert_allclose(ev.data, ev1.data)
 
     # simple subtraction (like in oddball)
