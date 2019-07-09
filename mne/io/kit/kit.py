@@ -757,9 +757,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    %(preload)s
     stim_code : 'binary' | 'channel'
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.
