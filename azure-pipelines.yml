@@ -68,6 +68,7 @@ jobs:
       conda env update -f $env:CONDA_ENV
       python -c "import numpy; print(numpy)"
       pip uninstall -yq mne
+      pip install codecov
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'
