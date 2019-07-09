@@ -65,7 +65,7 @@ jobs:
       cd ..
       powershell ci-helpers/appveyor/install-miniconda.ps1
       $env:PATH = $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PATH
-      conda env update -n base -f $env:CONDA_ENV
+      conda env update -f $env:CONDA_ENV
       pip uninstall -yq mne
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
