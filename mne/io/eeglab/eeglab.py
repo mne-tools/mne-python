@@ -141,7 +141,7 @@ def _get_info(eeg, eog=()):
 
 
 @fill_doc
-def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
+def read_raw_eeglab(input_fname, montage='deprecated', eog=(), preload=False,
                     uint16_codec=None, verbose=None):
     r"""Read an EEGLAB .set file.
 
@@ -187,8 +187,9 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
 
 
 @fill_doc
-def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
-                       eog=(), verbose=None, uint16_codec=None):
+def read_epochs_eeglab(input_fname, events=None, event_id=None,
+                       montage='deprecated', eog=(), verbose=None,
+                       uint16_codec=None):
     r"""Reader function for EEGLAB epochs files.
 
     Parameters
@@ -287,8 +288,8 @@ class RawEEGLAB(BaseRaw):
     """
 
     @verbose
-    def __init__(self, input_fname, montage, eog=(), preload=False,
-                 uint16_codec=None, verbose=None):  # noqa: D102
+    def __init__(self, input_fname, montage='deprecated', eog=(),
+                 preload=False, uint16_codec=None, verbose=None):  # noqa: D102
         basedir = op.dirname(input_fname)
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
@@ -331,7 +332,7 @@ class RawEEGLAB(BaseRaw):
         self.set_annotations(annot)
         _check_boundary(annot, None)
 
-        if montage is not None:
+        if montage != 'deprecated':
             _deprecate_montage(self, "read_raw_eeglab", montage,
                                update_ch_names=True)
         else:
@@ -455,7 +456,7 @@ class EpochsEEGLAB(BaseEpochs):
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None, reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, montage=None, eog=(), verbose=None,
+                 reject_tmax=None, montage='deprecated', eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
         eeg = _check_load_mat(input_fname, uint16_codec)
 

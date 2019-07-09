@@ -1146,7 +1146,7 @@ def _find_tal_idx(ch_names):
 
 
 @fill_doc
-def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
+def read_raw_edf(input_fname, montage='deprecated', eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for EDF or EDF+ files.
 
@@ -1224,7 +1224,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
 
 
 @fill_doc
-def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
+def read_raw_bdf(input_fname, montage='deprecated', eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for BDF files.
 
@@ -1312,7 +1312,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
 
 
 @fill_doc
-def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
+def read_raw_gdf(input_fname, montage='deprecated', eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for GDF files.
 

@@ -20,12 +20,15 @@ from ..utils import warn
 
 
 def _deprecate_montage(raw, raw_type, montage, **kwargs):
-    if montage is not None:
+    _MSG = (
+        'The `montage` parameter from `%s` is deprecated. Use '
+        ' raw.set_montage(montage) instead.' % raw_type)
+    if montage == 'deprecated':
+        return
+    elif montage is None:
+        warn(_MSG, DeprecationWarning)
+    else:
         raw.set_montage(montage, **kwargs)
-
-        _MSG = (
-            'The `montage` parameter from `%s` is deprecated. Use '
-            ' raw.set_montage(montage) instead.' % raw_type)
         warn(_MSG, DeprecationWarning)
 
 

@@ -95,9 +95,9 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
 
 @fill_doc
-def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
-                 data_format='auto', date_format='mm/dd/yy', preload=False,
-                 stim_channel=False, verbose=None):
+def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
+                 emg=(), data_format='auto', date_format='mm/dd/yy',
+                 preload=False, stim_channel=False, verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
@@ -404,8 +404,8 @@ class RawCNT(BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
 
-    def __init__(self, input_fname, montage=None, eog=(), misc=(), ecg=(),
-                 emg=(), data_format='auto', date_format='mm/dd/yy',
+    def __init__(self, input_fname, montage='deprecated', eog=(), misc=(),
+                 ecg=(), emg=(), data_format='auto', date_format='mm/dd/yy',
                  preload=False, stim_channel=False,
                  verbose=None):  # noqa: D102
 

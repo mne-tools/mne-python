@@ -59,7 +59,7 @@ class RawBrainVision(BaseRaw):
     """
 
     @verbose
-    def __init__(self, vhdr_fname, montage=None,
+    def __init__(self, vhdr_fname, montage='deprecated',
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, verbose=None):  # noqa: D107
         # Channel info and events
@@ -526,7 +526,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage
-    if cfg.has_section('Coordinates') and montage is None:
+    if cfg.has_section('Coordinates') and montage in (None, 'deprecated'):
         from ...transforms import _sph_to_cart
         from ...channels.montage import Montage
         montage_pos = list()
@@ -770,7 +770,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
 
 @fill_doc
-def read_raw_brainvision(vhdr_fname, montage=None,
+def read_raw_brainvision(vhdr_fname, montage='deprecated',
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, verbose=None):
     """Reader for Brain Vision EEG file.

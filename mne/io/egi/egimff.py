@@ -213,7 +213,7 @@ def _read_locs(filepath, chs, egi_info):
 
 
 @verbose
-def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
+def _read_raw_egi_mff(input_fname, montage='deprecated', eog=None, misc=None,
                       include=None, exclude=None, preload=False,
                       channel_naming='E%d', verbose=None):
     """Read EGI mff binary as raw object.
@@ -282,7 +282,7 @@ class RawMff(BaseRaw):
     """RawMff class."""
 
     @verbose
-    def __init__(self, input_fname, montage=None, eog=None, misc=None,
+    def __init__(self, input_fname, montage='deprecated', eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
         """Init the RawMff class."""

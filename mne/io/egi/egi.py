@@ -88,7 +88,7 @@ def _read_events(fid, info):
 
 
 @verbose
-def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
+def read_raw_egi(input_fname, montage='deprecated', eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
@@ -160,7 +160,7 @@ class RawEGI(BaseRaw):
     """Raw object from EGI simple binary file."""
 
     @verbose
-    def __init__(self, input_fname, montage=None, eog=None, misc=None,
+    def __init__(self, input_fname, montage='deprecated', eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):  # noqa: D102
         if eog is None:
