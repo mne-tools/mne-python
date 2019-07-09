@@ -179,21 +179,11 @@ Finally, set up a link between your local clone and the official repository
     $ git remote add upstream git://github.com/mne-tools/mne-python.git
     $ git fetch --all
 
-Next, use the `environment file`_ provided in the root of the MNE-Python
+Next, use the :ref:`environment file <environment_file>` provided in the root of the MNE-Python
 repository to set up your local development environment. This will install all
-of the dependencies needed for running MNE-Python. The environment name "mne"
-is built-in to the environment file, so we'll override that on the command line
-by passing our preferred name ("mnedev") after the ``-n`` flag. See ``conda env
-create --help`` for more info.
-
-.. code-block:: console
-
-    $ conda env create -n mnedev -f environment.yml
-    $ conda activate mnedev
-
-The environment file installed the *stable* version of MNE-Python, so next
-we'll remove that and replace it with the *development* version (the clone we
-just created with git):
+of the dependencies needed for running MNE-Python. The environment file installs the
+*stable* version of MNE-Python, so next we'll remove that and replace it with the *development*
+version (the clone we just created with git):
 
 .. code-block:: console
 
@@ -835,7 +825,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _MNE-Python GitHub: https://github.com/mne-tools/mne-python
 .. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
-.. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
 
 .. git installation

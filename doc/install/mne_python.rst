@@ -87,36 +87,24 @@ conda to ``/home/user/anaconda3``)::
     Anaconda install tips (`Stack Overflow`_ results are often helpful)
     to fix these or other problems when ``conda`` does not work.
 
+.. _environment_file:
+
 Installing MNE-Python and its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Once you have Anaconda installed, the easiest way to install
-MNE-Python is to use the provided `environment file`_ to install MNE-Python
-and its dependencies into a new conda environment::
+MNE-Python is to download the conda environment file for your operating system:
 
-    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
-    $ conda env create -f environment.yml
+- `Linux https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_linux.yml`__
+- `macOS https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml`__
+- `Windows https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_Windows.yml`__
 
-You can also use a web browser to download the required `environment file`_ if
-you do not have ``curl``. Then you should activate the environment::
+And then update your base Anaconda environment to have the required dependencies::
 
-    $ conda activate mne
+    $ conda env update -f environment_linux.yml  # or _macOS.yml / _Windows.yml
 
-You can activate the environment (``conda activate mne``) each time you
-open a terminal, or add this activation command in your ``~/.bashrc`` or
-``~/.profile`` so that it happens automatically. You should now see that
-``python`` points to the one from your MNE environment::
-
-    $ which python
-    /home/user/anaconda3/envs/mne/bin/python
-
-.. admonition:: |apple| macOS
-    :class: note
-
-    If you are on macOS, you need to manually update PyQt5 in the environment.
-    This step is not needed on Linux, and even breaks things on Windows. ::
-
-        $ pip install --upgrade "pyqt5>=5.10"
+If you prefer to work with isolated environments, you can also instead install
+to a dedicated environment with ``conda env create`` instead of ``conda env update``.
 
 Testing MNE-Python installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -131,7 +119,7 @@ MNE-Python and its dependencies. Typical output looks like this::
 
     Platform:      Linux-4.18.0-13-generic-x86_64-with-debian-buster-sid
     Python:        3.6.8 |Anaconda, Inc.| (default, Dec 30 2018, 01:22:34)  [GCC 7.3.0]
-    Executable:    /home/travis/miniconda/envs/test/bin/python
+    Executable:    /home/travis/miniconda/bin/python
     CPU:           x86_64: 48 cores
     Memory:        62.7 GB
 
