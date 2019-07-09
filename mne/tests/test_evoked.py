@@ -478,24 +478,30 @@ def test_arithmetic():
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave
     ev = combine_evoked([ev1, ev2], weights='nave')
-    assert_equal(ev.nave, ev1.nave + ev2.nave)
+    assert_allclose(ev.nave, ev1.nave + ev2.nave)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
 
     # with same trial counts, a bunch of things should be equivalent
-    for weights in ('nave', 'equal', [0.5, 0.5]):
+    for weights in ('nave', [0.5, 0.5]):
         ev = combine_evoked([ev1, ev1], weights=weights)
         assert_allclose(ev.data, ev1.data)
-        assert_equal(ev.nave, 2 * ev1.nave)
+        assert_allclose(ev.nave, 2 * ev1.nave)
         ev = combine_evoked([ev1, -ev1], weights=weights)
         assert_allclose(ev.data, 0., atol=1e-20)
-        assert_equal(ev.nave, 2 * ev1.nave)
+        assert_allclose(ev.nave, 2 * ev1.nave)
+    # adding evoked to itself
+    ev = combine_evoked([ev1, ev1], weights='equal')
+    assert_allclose(ev.data, 2 * ev1.data)
+    assert_allclose(ev.nave, ev1.nave / 2)
+    # subtracting evoked from itself
     ev = combine_evoked([ev1, -ev1], weights='equal')
     assert_allclose(ev.data, 0., atol=1e-20)
-    assert_equal(ev.nave, 2 * ev1.nave)
+    assert_allclose(ev.nave, ev1.nave / 2)
+    # subtracting different evokeds
     ev = combine_evoked([ev1, -ev2], weights='equal')
-    expected = int(round(1. / (0.25 / ev1.nave + 0.25 / ev2.nave)))
-    assert_equal(expected, 27)  # this is reasonable
-    assert_equal(ev.nave, expected)
+    assert_allclose(ev.data, 2., atol=1e-20)
+    expected_nave = 1. / (1. / ev1.nave + 1. / ev2.nave)
+    assert_allclose(ev.nave, expected_nave)
 
     # default comment behavior if evoked.comment is None
     old_comment1 = ev1.comment
@@ -514,7 +520,7 @@ def test_arithmetic():
 
     # combine_evoked([ev1, ev2], weights=[1, 0]) should yield the same as ev1
     ev = combine_evoked([ev1, ev2], weights=[1, 0])
-    assert_equal(ev.nave, ev1.nave)
+    assert_allclose(ev.nave, ev1.nave)
     assert_allclose(ev.data, ev1.data)
 
     # simple subtraction (like in oddball)
@@ -535,11 +541,13 @@ def test_arithmetic():
     assert_equal(ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
     pytest.raises(TypeError, grand_average, [1, evoked1])
+    gave = grand_average([ev1, ev1, ev2])
+    assert_allclose(gave.data, np.ones_like(gave.data))
 
     # test channel (re)ordering
     evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
     data2 = evoked2.data  # assumes everything is ordered to the first evoked
-    data = (evoked1.data + evoked2.data) / 2
+    data = (evoked1.data + evoked2.data)
     evoked2.reorder_channels(evoked2.ch_names[::-1])
     assert not np.allclose(data2, evoked2.data)
     with pytest.warns(RuntimeWarning, match='reordering'):
