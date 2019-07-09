@@ -822,7 +822,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
                           verbose=verbose)
 
 
-_BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 2000}
+_BV_EVENT_IO_OFFSETS = {'Event/': 0, 'Stimulus/S': 0, 'Response/R': 1000,
+                        'Optic/O': 2000}
 _OTHER_ACCEPTED_MARKERS = {
     'New Segment/': 99999, 'SyncStatus/Sync On': 99998
 }

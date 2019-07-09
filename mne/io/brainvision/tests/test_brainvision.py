@@ -462,9 +462,9 @@ def test_read_vhdr_annotations_and_events():
          6629., 7629., 7699.]
     )
     expected_annot_description = [
-        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
-        'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255', 'Stimulus/S253',
-        'Stimulus/S255', 'Response/R255', 'Stimulus/S254', 'Stimulus/S255',
+        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Event/254',
+        'Stimulus/S255', 'Event/254', 'Stimulus/S255', 'Stimulus/S253',
+        'Stimulus/S255', 'Response/R255', 'Event/254', 'Stimulus/S255',
         'SyncStatus/Sync On', 'Optic/O  1'
     ]
     expected_events = np.stack([
@@ -474,7 +474,7 @@ def test_read_vhdr_annotations_and_events():
          2001],
     ]).astype('int64').T
     expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
-                         'Stimulus/S255': 255, 'Stimulus/S254': 254,
+                         'Stimulus/S255': 255, 'Event/254': 254,
                          'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
                          'Optic/O  1': 2001}
 
