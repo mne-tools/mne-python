@@ -2255,7 +2255,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         # shift everything to the right by 15% of one axes width
         layout.pos[:, 0] += layout.pos[0, 2] * .15
         layout.pos[:, 1] += layout.pos[0, 3] * .15
-        # TODO: ideally we would keep this as a generator?
+        # `axes` will be a list of (axis_object, channel_index) tuples
         axes = list(iter_topography(
             info, layout=layout, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
