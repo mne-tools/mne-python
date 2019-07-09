@@ -22,7 +22,7 @@ matrix:
 
         # Linux
         - os: linux
-          env: CONDA_ENV="environment_linux.yml"
+          env: CONDA_ENV="environment_Linux.yml"
 
         # OSX conda
         - os: osx

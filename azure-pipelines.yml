@@ -64,9 +64,7 @@ jobs:
       $env:PATH = $env:PYTHON + ";" + $env:PYTHON + "\Scripts;" + $env:PYTHON + "\Library\bin;" + $env:PATH
       conda env list
       conda install numpy scipy matplotlib scikit-learn
-      python -c "import numpy; print(numpy)"
       conda env update -f $env:CONDA_ENV
-      python -c "import numpy; print(numpy)"
       pip uninstall -yq mne
       pip install codecov
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
