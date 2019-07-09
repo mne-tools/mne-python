@@ -101,7 +101,7 @@ MNE-Python is to download the conda environment file for your operating system:
 
 And then update your base Anaconda environment to have the required dependencies::
 
-    $ conda env update -f environment_linux.yml  # or _macOS.yml / _Windows.yml
+    $ conda env update -n base -f environment_linux.yml  # or _macOS.yml / _Windows.yml
 
 If you prefer to work with isolated environments, you can also instead install
 to a dedicated environment with ``conda env create`` instead of ``conda env update``.
