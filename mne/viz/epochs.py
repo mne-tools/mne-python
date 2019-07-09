@@ -343,7 +343,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         for this_group_dict in group_by.values():
             ax = this_group_dict['axes']['evoked']
             ch_type = this_group_dict['ch_type']
-            this_ymin, this_ymax = ax.get_ylim()
             if not manual_ylims:
                 args = auto_ylims[ch_type]
                 func = max
