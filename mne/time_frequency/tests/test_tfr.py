@@ -19,6 +19,24 @@ from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click
 from mne.tests.test_epochs import assert_metadata_equal
+import os.path as op
+import pytest
+import numpy as np
+from mne.datasets import testing
+from mne import find_events, Epochs, pick_types
+from mne.io import read_raw_fif
+from mne.label import read_label
+from mne.time_frequency import tfr_morlet, tfr_multitaper
+from mne.minimum_norm.inverse import (read_inverse_operator,
+                                      apply_inverse_epochs,
+                                      apply_inverse,
+                                      prepare_inverse_operator)
+from mne.minimum_norm.time_frequency import (source_band_induced_power,
+                                             source_induced_power,
+                                             compute_source_psd,
+                                             compute_source_psd_epochs)
+
+from mne.time_frequency.multitaper import psd_array_multitaper
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
@@ -754,25 +772,62 @@ def test_getitem_epochsTFR():
     assert_array_equal(power.next(), power.data[ind + 1])
 
 
-def test_source_tfr_morlet():
-    import os.path as op
-    import pytest
+def _plot_func(src_tfr, src_tfr_ref):
+    import matplotlib.pyplot as plt
     import numpy as np
-    from mne.datasets import testing
-    from mne import find_events, Epochs, pick_types
-    from mne.io import read_raw_fif
-    from mne.label import read_label
-    from mne.time_frequency import tfr_morlet, tfr_multitaper
-    from mne.minimum_norm.inverse import (read_inverse_operator,
-                                          apply_inverse_epochs,
-                                          apply_inverse,
-                                          prepare_inverse_operator)
-    from mne.minimum_norm.time_frequency import (source_band_induced_power,
-                                                 source_induced_power,
-                                                 compute_source_psd,
-                                                 compute_source_psd_epochs)
+    fig = plt.figure(figsize=(2, 1))
+    fig.add_subplot(2, 1, 1)
+    plt.imshow(np.squeeze(src_tfr_ref), cmap='hot', interpolation='nearest')
+    fig.add_subplot(2, 1, 2)
+    plt.imshow(np.squeeze(src_tfr.data), cmap='hot', interpolation='nearest')
+    plt.show()
 
-    from mne.time_frequency.multitaper import psd_array_multitaper
+
+def test_induced_power_equivalence():
+    data_path = testing.data_path(download=False)
+    fname_inv = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+    fname_data = op.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc_raw.fif')
+    fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+    tmin, tmax, event_id = -0.2, 0.5, 1
+
+    # Setup for reading the raw data
+    raw = read_raw_fif(fname_data)
+    events = find_events(raw, stim_channel='STI 014')
+    inverse_operator = read_inverse_operator(fname_inv)
+    inv = prepare_inverse_operator(inverse_operator, nave=1,
+                                   lambda2=1. / 9., method="dSPM")
+    raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg=True, eeg=False, eog=True,
+                       stim=False, exclude='bads')
+    # Load condition 1
+    event_id = 1
+    events3 = events[:3]  # take 3 events to keep the computation time low
+    epochs = Epochs(raw, events3, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
+                    preload=True)
+
+    # Compute a source estimate per frequency band
+    bands = dict(alpha=[10, 10])
+    label = read_label(fname_label)
+    l2 = 0.1111111111111111
+
+    stc = apply_inverse_epochs(epochs, inv, lambda2=l2,
+                               label=label, pick_ori="vector")[0]
+
+    freqs = np.array([10])
+    # assert equal data
+    src_tfr = tfr_morlet(stc, freqs=freqs, n_cycles=2, use_fft=True, return_itc=False)
+
+    src_tfr_ref, _ = source_induced_power(epochs, inv, freqs=freqs, lambda2=l2, decim=1,
+                                          n_cycles=2, use_fft=True, pca=False,
+                                          label=label, prepared=True, baseline=None)
+    _plot_func(src_tfr, src_tfr_ref)
+
+
+def test_source_tfr_morlet():
 
     data_path = testing.data_path(download=False)
     fname_inv = op.join(data_path, 'MEG', 'sample',
@@ -808,7 +863,6 @@ def test_source_tfr_morlet():
 
     stc = apply_inverse_epochs(epochs, inv, lambda2=0.1111111111111111, label=label)[0]
 
-
     # assert return_itc error
     with pytest.raises(ValueError, match="return_itc must be False"):
         tfr_morlet(stc, np.arange(1, 30, 3), 5,
@@ -835,16 +889,6 @@ def test_source_tfr_morlet():
                                           n_cycles=2, use_fft=False, pca=False,
                                           label=label, prepared=True)
 
+    _plot_func(src_tfr, src_tfr_ref)
 
-def plot_func(src_tfr, src_tfr_ref):
-    import matplotlib.pyplot as plt
-    import numpy as np
-    fig = plt.figure(figsize=(2, 1))
-    fig.add_subplot(2, 1, 1)
-    plt.imshow(np.squeeze(src_tfr_ref), cmap='hot', interpolation='nearest')
-    fig.add_subplot(2, 1, 2)
-    plt.imshow(np.squeeze(src_tfr.data), cmap='hot', interpolation='nearest')
-    plt.show()
-
-
-run_tests_if_main()
+# run_tests_if_main()

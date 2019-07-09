@@ -597,16 +597,17 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
     from ..epochs import BaseEpochs
-    from ..source_estimate import VectorSourceEstimate, _BaseSourceEstimate
+    from ..source_estimate import VectorSourceEstimate, SourceEstimate, _BaseSourceEstimate
 
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
 
-    if isinstance(inst, VectorSourceEstimate):
-        data = np.expand_dims(np.linalg.norm(inst.data, axis=1), axis=0)
-        print("THIS IS THE SHAPE AFTER NORMING: ", data.shape)  # !!! remove this
-    elif not (isinstance(inst, _BaseSourceEstimate)):
+    # if isinstance(inst, VectorSourceEstimate): # !!!change this back
+    #    data = np.expand_dims(np.linalg.norm(inst.data, axis=1), axis=0)
+    #    print("THIS IS THE SHAPE AFTER NORMING: ", data.shape)  # !!! remove this
+    # elif not (isinstance(inst, _BaseSourceEstimate)):
+    if not (isinstance(inst, _BaseSourceEstimate)):
         info = inst.info
         info, data = _prepare_picks(info, data, picks, axis=1)
         del picks
@@ -624,9 +625,29 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    if isinstance(inst, _BaseSourceEstimate):
+    print("DATA SHAPE BEFORE COMPUTE TFR:  ", data.shape)  # !!!remove this
+    if isinstance(inst, SourceEstimate):
         out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
                            output=output, decim=decim, **tfr_params)
+    elif isinstance(inst, VectorSourceEstimate):
+        print("DATA SHAPE For Vector:  ", data[:, :, 0, :].shape)  # !!!remove this
+        out = np.empty((3, 33, 1, 211))
+        for i in range(3):
+            x = _compute_tfr(data[:, :, 0, :], freqs, 1 / inst.tstep, method=method,
+                             output=output, decim=decim, **tfr_params)
+            y = _compute_tfr(data[:, :, 1, :], freqs, 1 / inst.tstep, method=method,
+                             output=output, decim=decim, **tfr_params)
+            z = _compute_tfr(data[:, :, 2, :], freqs, 1 / inst.tstep, method=method,
+                             output=output, decim=decim, **tfr_params)
+
+            if np.iscomplexobj(x):
+                x, y, z = np.abs(x), np.abs(y), np.abs(z)
+            comb = x ** 2
+            comb += y ** 2
+            comb += z ** 2
+            out = np.sqrt(comb)
+
+            print("DATA SHAPE For Vector:  ", out.shape)
     else:
         out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                            output=output, decim=decim, **tfr_params)
