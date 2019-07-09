@@ -49,6 +49,8 @@ Changelog
 Bug
 ~~~
 
+- Fix reading CNT files larger than 2Gb by `Joan Massich`_
+
 - Fix formula for effective number of averages in :func:`mne.combine_evoked` when ``weights='equal'`` by `Daniel McCloy`_.
 
 - Fix bug in :func:`mne.simulation.simulate_stc` to avoid empty stc if label vertices and source space do not intersect, by `Kostiantyn Maksymenko`_
