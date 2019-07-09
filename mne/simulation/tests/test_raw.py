@@ -28,7 +28,7 @@ from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
 from mne.time_frequency import psd_welch
-from mne.utils import run_tests_if_main, catch_logging
+from mne.utils import run_tests_if_main, catch_logging, check_version
 
 base_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname_short = op.join(base_path, 'test_raw.fif')
@@ -333,7 +333,13 @@ def test_simulate_raw_sphere(raw_data, tmpdir):
         raw_sim_hann = simulate_raw(raw, stc, trans, src, sphere, cov=None,
                                     head_pos=head_pos_sim, interp='hann')
     assert_allclose(raw_sim[:][0], raw_sim_hann[:][0], rtol=1e-1, atol=1e-14)
-    del raw_sim, raw_sim_hann
+    del raw_sim_hann
+
+    # check that new Generator objects can be used
+    if check_version('numpy', '1.17'):
+        random_state = np.random.default_rng(seed)
+        add_ecg(raw_sim, random_state=random_state)
+        add_eog(raw_sim, random_state=random_state)
 
 
 def test_degenerate(raw_data):

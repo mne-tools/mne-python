@@ -5,10 +5,8 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
-from scipy.fftpack import fft
 from scipy import sparse
 
-from mne.datasets import testing
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
                  read_evokeds, MixedSourceEstimate, find_events, Epochs,
@@ -18,8 +16,9 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatial_inter_hemi_connectivity,
                  spatial_src_connectivity, spatial_tris_connectivity,
                  SourceSpaces, VolVectorSourceEstimate)
+from mne.datasets import testing
+from mne.fixes import fft
 from mne.source_estimate import grade_to_tris, _get_vol_mask
-
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs)
 from mne.label import read_labels_from_annot, label_sign_flip

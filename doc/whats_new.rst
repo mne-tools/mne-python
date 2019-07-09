@@ -51,6 +51,8 @@ Bug
 
 - Fix formula for effective number of averages in :func:`mne.combine_evoked` when ``weights='equal'`` by `Daniel McCloy`_.
 
+- Fix bug in :func:`mne.simulation.simulate_stc` to avoid empty stc if label vertices and source space do not intersect, by `Kostiantyn Maksymenko`_
+
 - Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
 
 - Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
