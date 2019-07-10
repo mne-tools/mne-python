@@ -99,8 +99,8 @@ style_plot = dict(
     split_legend=True,
     ci=.68,
     show_sensors='lower right',
-    show_legend='lower left',
-    truncate_yaxis="max_ticks",
+    legend='lower left',
+    truncate_yaxis="auto",
     picks=epochs.ch_names.index("Pz"),
 )
 
