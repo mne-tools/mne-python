@@ -69,7 +69,7 @@ before_install:
           pip uninstall -yq mne;
           pip install codecov nitime;
           if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-￼            pip install "pyqt5>=5.10";
+            pip install "pyqt5>=5.10";
           fi;
         fi;
       fi
