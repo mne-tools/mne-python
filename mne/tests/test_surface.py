@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne.datasets import testing
 from mne import (read_surface, write_surface, decimate_surface, pick_types,
-                 check_coreg)
+                 dig_mri_distances)
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
@@ -200,17 +200,19 @@ def test_decimate_surface():
     pytest.raises(ValueError, decimate_surface, points, tris, n_tri)
 
 
-@pytest.mark.parametrize('kwargs, count, outliers', [
-    (dict(), 72, 0),
-    (dict(dig_kinds=('eeg', 'extra', 'cardinal', 'hpi')), 146, 1),
+@pytest.mark.parametrize('dig_kinds, exclude, count, bounds, outliers', [
+    ('auto', False, 72, (0.001, 0.002), 0),
+    (('eeg', 'extra', 'cardinal', 'hpi'), False, 146, (0.002, 0.003), 1),
+    (('eeg', 'extra', 'cardinal', 'hpi'), True, 139, (0.001, 0.002), 0),
 ])
 @testing.requires_testing_data
-def test_check_coreg(kwargs, count, outliers):
+def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
     """Test the trans obtained by coregistration."""
     info = read_info(fname_raw)
-    dists = check_coreg(info, fname_trans, 'sample', subjects_dir, **kwargs)
+    dists = dig_mri_distances(info, fname_trans, 'sample', subjects_dir,
+                              dig_kinds=dig_kinds, exclude_frontal=exclude)
     assert dists.shape == (count,)
-    assert 0.002 < np.mean(dists) < 0.004  # between 2 and 4 mm
+    assert bounds[0] < np.mean(dists) < bounds[1]
     assert np.sum(dists > 0.03) == outliers
 
 

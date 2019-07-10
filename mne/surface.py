@@ -1414,8 +1414,8 @@ def _complete_sphere_surf(sphere, idx, level, complete=True):
 
 
 @verbose
-def check_coreg(info, trans, subject, subjects_dir=None, dig_kinds='auto',
-                verbose=None):
+def dig_mri_distances(info, trans, subject, subjects_dir=None,
+                      dig_kinds='auto', exclude_frontal=False, verbose=None):
     """Compute distances between head shape points and the scalp surface.
 
     This function is useful to check that coregistration is correct.
@@ -1436,6 +1436,8 @@ def check_coreg(info, trans, subject, subjects_dir=None, dig_kinds='auto',
         Directory containing subjects data. If None use
         the Freesurfer SUBJECTS_DIR environment variable.
     %(dig_kinds)s
+    %(exclude_frontal)s
+        Default is False.
     %(verbose)s
 
     Returns
@@ -1452,9 +1454,11 @@ def check_coreg(info, trans, subject, subjects_dir=None, dig_kinds='auto',
     .. versionadded:: 0.19
     """
     from .bem import get_fitting_dig
-    pts = get_head_surf(subject, 'head', subjects_dir=subjects_dir)['rr']
+    pts = get_head_surf(subject, ('head-dense', 'head', 'bem'),
+                        subjects_dir=subjects_dir)['rr']
     trans = _get_trans(trans, fro="mri", to="head")[0]
     pts = apply_trans(trans, pts)
-    info_dig = get_fitting_dig(info, dig_kinds, exclude_frontal=False)
+    info_dig = get_fitting_dig(
+        info, dig_kinds, exclude_frontal=exclude_frontal)
     dists = _compute_nearest(pts, info_dig, return_dists=True)[1]
     return dists

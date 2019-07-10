@@ -206,6 +206,12 @@ dig_kinds : list of str | str
         enough (more than 10) are available, and if not, uses 'extra' and
         'eeg' points.
 """
+docdict['exclude_frontal'] = """
+exclude_frontal : bool
+    If True, exclude points that have both negative Z values
+    (below the nasion) and positivy Y values (in front of the LPA/RPA).
+"""
+
 
 # Simulation
 docdict['interp'] = """

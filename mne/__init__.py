@@ -61,7 +61,7 @@ from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               extract_label_time_course)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf,
-                      check_coreg)
+                      dig_mri_distances)
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
                     compute_morph_matrix, compute_source_morph)
 from .source_space import (read_source_spaces, vertex_to_mni,

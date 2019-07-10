@@ -876,9 +876,8 @@ def get_fitting_dig(info, dig_kinds='auto', exclude_frontal=True,
     info : instance of Info
         The measurement info.
     %(dig_kinds)s
-    exclude_frontal : bool
-        If True, exclude points that have both negative Z values
-        (below the nasion) and positivy Y values (in front of the LPA/RPA).
+    %(exclude_frontal)s
+        Default is True.
 
         .. versionadded:: 0.19
     %(verbose)s
