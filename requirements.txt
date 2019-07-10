@@ -22,7 +22,7 @@ joblib
 psutil
 dipy
 numpydoc
-pysurfer
+PySurfer[save_movie]
 nilearn
 neo
 xlrd
