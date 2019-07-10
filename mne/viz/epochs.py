@@ -1006,12 +1006,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         if title is None or len(title) == 0:
             title = ''
     fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
-    fig.canvas.set_window_title('mne_browse_epochs')
+    fig.canvas.set_window_title(title if title else "Epochs")
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
-
-    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 15),
-                ha='center', va='bottom', size=12, xycoords='axes fraction',
-                textcoords='offset points')
     color = _handle_default('color', None)
 
     ax.axis([0, duration, 0, 200])
