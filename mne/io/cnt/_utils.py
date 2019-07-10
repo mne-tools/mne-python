@@ -124,7 +124,7 @@ def _compute_robust_event_table_position(fid, data_format='int32'):
         if data_format == 'auto':
             warn('Using `data_format=\'auto\' for a CNT file larger'
                  ' than 2Gb is not granted to work. Please pass'
-                 ' \'int16\' or \'int32\'.` (asuming int32)')
+                 ' \'int16\' or \'int32\'.` (assuming int32)')
 
         n_bytes = 2 if data_format == 'int16' else 4
 
