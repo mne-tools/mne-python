@@ -8,7 +8,7 @@ from os import path
 
 import numpy as np
 
-from ...utils import warn, verbose, fill_doc, _check_option
+from ...utils import _check_option, fill_doc, verbose
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
@@ -22,7 +22,7 @@ from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
                      _compute_robust_event_table_position, CNTEventType3)
 
 
-def _read_annotations_cnt(fname, data_format='int16'):
+def _read_annotations_cnt(fname, data_format='to deprecate?'):
     """CNT Annotation File Reader.
 
     This method opens the .cnt files, searches all the metadata to construct
@@ -43,12 +43,9 @@ def _read_annotations_cnt(fname, data_format='int16'):
         The annotations.
     """
     # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
-    SETUP_NCHANNELS_OFFSET = 370
     SETUP_RATE_OFFSET = 376
 
-    def _translating_function(offset, n_channels, event_type,
-                              data_format=data_format):
-        n_bytes = 2 if data_format == 'int16' else 4
+    def _translating_function(offset, event_type):
         if event_type == CNTEventType3:
             offset *= n_bytes * n_channels
         event_time = offset - 900 - (75 * n_channels)
@@ -56,14 +53,11 @@ def _read_annotations_cnt(fname, data_format='int16'):
         return event_time - 1
 
     with open(fname, 'rb') as fid:
-        fid.seek(SETUP_NCHANNELS_OFFSET)
-        (n_channels,) = np.frombuffer(fid.read(2), dtype='<u2')
-
         fid.seek(SETUP_RATE_OFFSET)
         (sfreq,) = np.frombuffer(fid.read(2), dtype='<u2')
 
-        event_table_pos = _compute_robust_event_table_position(
-            fid=fid, data_format=data_format)
+        n_channels, n_samples, event_table_pos, n_bytes = (
+            _compute_robust_event_table_position(fid))
 
     with open(fname, 'rb') as fid:
         teeg = _read_teeg(fid, teeg_offset=event_table_pos)
@@ -79,11 +73,10 @@ def _read_annotations_cnt(fname, data_format='int16'):
     if not my_events:
         return Annotations(list(), list(), list(), None)
     else:
-        onset = _translating_function(np.array([e.Offset for e in my_events],
-                                               dtype=float),
-                                      n_channels=n_channels,
-                                      event_type=type(my_events[0]),
-                                      data_format=data_format)
+        onset = _translating_function(
+            offset=np.array([e.Offset for e in my_events], dtype=float),
+            event_type=type(my_events[0])
+        )
         duration = np.array([e.Latency for e in my_events], dtype=float)
         description = np.array([str(e.StimType) for e in my_events])
         return Annotations(onset=onset / sfreq,
@@ -211,8 +204,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
         session_date = ('%s %s' % (read_str(fid, 10), read_str(fid, 12)))
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
-        fid.seek(370)
-        n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
         fid.seek(376)
         sfreq = np.fromfile(fid, dtype='<u2', count=1)[0]
         if eog == 'header':
@@ -223,40 +214,17 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
         lowpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
         highpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
 
-        # Header has a field for number of samples, but it does not seem to be
-        # too reliable. That's why we have option for setting n_bytes manually.
-        fid.seek(864)
-        n_samples = np.fromfile(fid, dtype='<i4', count=1)[0]
         fid.seek(869)
         lowcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
         fid.seek(2, 1)
         highcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
 
-        event_offset = _compute_robust_event_table_position(
-            fid=fid, data_format=data_format
-        )
         fid.seek(890)
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
 
-        if event_offset < data_offset:  # no events
-            data_size = n_samples * n_channels
-        else:
-            data_size = event_offset - (data_offset + 75 * n_channels)
-
-        _check_option('data_format', data_format, ['auto', 'int16', 'int32'])
-        if data_format == 'auto':
-            if (n_samples == 0 or
-                    data_size // (n_samples * n_channels) not in [2, 4]):
-                warn('Could not define the number of bytes automatically. '
-                     'Defaulting to 2.')
-                n_bytes = 2
-                n_samples = data_size // (n_bytes * n_channels)
-            else:
-                n_bytes = data_size // (n_samples * n_channels)
-        else:
-            n_bytes = 2 if data_format == 'int16' else 4
-            n_samples = data_size // (n_bytes * n_channels)
+        n_channels, n_samples, event_offset, n_bytes = (
+            _compute_robust_event_table_position(fid))
 
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
