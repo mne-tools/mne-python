@@ -309,17 +309,10 @@ class _Renderer(_BaseRenderer):
     def close(self):
         self.plotter.close()
 
-    def set_camera(self, azimuth=0.0, elevation=0.0, distance=1.0,
-                   focalpoint=(0, 0, 0)):
-        phi = _deg2rad(azimuth)
-        theta = _deg2rad(elevation)
-        position = [
-            distance * np.cos(phi) * np.sin(theta),
-            distance * np.sin(phi) * np.sin(theta),
-            distance * np.cos(theta)]
-        self.plotter.camera_position = [
-            position, focalpoint, [0, 0, 1]]
-        self.plotter.reset_camera()
+    def set_camera(self, azimuth=None, elevation=None, distance=None,
+                   focalpoint=None):
+        _set_3d_view(self.plotter, azimuth=azimuth, elevation=elevation,
+                     distance=distance, focalpoint=focalpoint)
 
     def screenshot(self):
         return self.plotter.screenshot()
@@ -334,8 +327,11 @@ class _Renderer(_BaseRenderer):
 
 
 def _deg2rad(deg):
-    from numpy import pi
-    return deg * pi / 180.
+    return deg * np.pi / 180.
+
+
+def _rad2deg(rad):
+    return rad * 180. / np.pi
 
 
 def _mat_to_array(vtk_mat):
@@ -407,9 +403,37 @@ def _run_from_ipython():
         return False
 
 
+def _get_camera_direction(focalpoint, position):
+    x, y, z = position - focalpoint
+    r = np.sqrt(x * x + y * y + z * z)
+    theta = np.arccos(z / r)
+    phi = np.arctan2(y, x)
+    return r, theta, phi, focalpoint
+
+
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
-    raise NotImplementedError('_set_3d_view() feature '
-                              'is not supported yet for this backend.')
+    position = np.array(figure.camera_position[0])
+    if focalpoint is None:
+        focalpoint = np.array(figure.camera_position[1])
+    r, theta, phi, fp = _get_camera_direction(focalpoint, position)
+
+    if azimuth is None:
+        azimuth = _rad2deg(phi)
+    else:
+        phi = _deg2rad(azimuth)
+    if elevation is None:
+        elevation = _rad2deg(theta)
+    else:
+        theta = _deg2rad(elevation)
+    if distance is not None:
+        r = distance
+
+    position = [
+        r * np.cos(phi) * np.sin(theta),
+        r * np.sin(phi) * np.sin(theta),
+        r * np.cos(theta)]
+    figure.camera_position = [
+        position, focalpoint, [0, 0, 1]]
 
 
 def _set_3d_title(figure, title, size=40):
