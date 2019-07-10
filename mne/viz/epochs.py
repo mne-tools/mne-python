@@ -1006,7 +1006,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         if title is None or len(title) == 0:
             title = ''
     fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
-    fig.canvas.set_window_title(title if title else "Epochs")
+    fig.canvas.set_window_title(title or "Epochs")
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
     color = _handle_default('color', None)
 
