@@ -437,5 +437,6 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
 
 
 def _set_3d_title(figure, title, size=40):
-    raise NotImplementedError('_set_3d_title() feature '
-                              'is not supported yet for this backend.')
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        figure.add_text(title, font_size=32, color=(1.0, 1.0, 1.0))
