@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -5,14 +6,89 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
 import numpy as np
 import os
 
-from ..externals.six import b
 from .constants import FIFF
+from .meas_info import _get_valid_units
+from .. import __version__
+from ..utils import warn
+
+
+def _deprecate_stim_channel(stim_channel, removed_in='0.19'):
+    minor_current = int(__version__.split('.')[1])
+    minor_removed_in = int(removed_in.split('.')[1])
+    if minor_current == minor_removed_in - 2:
+        if stim_channel is None:
+            _MSG = (
+                'The parameter `stim_channel` controlling the stim channel'
+                ' synthesis has not been specified. In 0.%s it defaults to'
+                ' True but will change to False in 0.%s (when no stim channel'
+                ' synthesis will be allowed) and be removed in %s; migrate'
+                ' code to use `stim_channel=False` and'
+                ' :func:`mne.events_from_annotations` or set'
+                ' `stim_channel=True` to avoid this warning.'
+                % (minor_removed_in - 2, minor_removed_in - 1, removed_in))
+            warn(_MSG, FutureWarning)
+
+    elif minor_current == minor_removed_in - 1:
+        if stim_channel is not False:
+            _MSG = ('stim_channel must be False or omitted; it will be '
+                    'removed in %s' % removed_in)
+            raise ValueError(_MSG, DeprecationWarning)
+    else:
+        raise RuntimeError('stim_channel was supposed to be removed in version'
+                           ' %s, and it is still present in %s' %
+                           (removed_in, __version__))
+
+
+def _check_orig_units(orig_units):
+    """Check original units from a raw file.
+
+    Units that are close to a valid_unit but not equal can be remapped to fit
+    into the valid_units. All other units that are not valid will be replaced
+    with "n/a".
+
+    Parameters
+    ----------
+    orig_units : dict
+        Dictionary mapping channel names to their units as specified in
+        the header file. Example: {'FC1': 'nV'}
+
+    Returns
+    -------
+    orig_units_remapped : dict
+        Dictionary mapping channel names to their VALID units as specified in
+        the header file. Invalid units are now labeled "n/a".
+        Example: {'FC1': 'nV', 'Hfp3erz': 'n/a'}
+    """
+    if orig_units is None:
+        return
+    valid_units = _get_valid_units()
+    valid_units_lowered = [unit.lower() for unit in valid_units]
+    orig_units_remapped = dict(orig_units)
+    for ch_name, unit in orig_units.items():
+
+        # Be lenient: we ignore case for now.
+        if unit.lower() in valid_units_lowered:
+            continue
+
+        # Common "invalid units" can be remapped to their valid equivalent
+        remap_dict = dict()
+        remap_dict['uv'] = u'µV'
+        remap_dict[u'μv'] = u'µV'  # greek letter mu vs micro sign. use micro
+        if unit.lower() in remap_dict:
+            orig_units_remapped[ch_name] = remap_dict[unit.lower()]
+            continue
+
+        # Some units cannot be saved, they are invalid: assign "n/a"
+        orig_units_remapped[ch_name] = 'n/a'
+
+    return orig_units_remapped
 
 
 def _find_channels(ch_names, ch_type='EOG'):
@@ -188,8 +264,8 @@ def read_str(fid, count=1):
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
     data = np.frombuffer(string, dtype=dtype)[0]
-    bytestr = b('').join([data[0:data.index(b('\x00')) if
-                          b('\x00') in data else count]])
+    bytestr = b''.join([data[0:data.index(b'\x00') if
+                             b'\x00' in data else count]])
 
     return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
 
@@ -229,9 +305,7 @@ def _synthesize_stim_channel(events, n_samples):
     Parameters
     ----------
     events : array, shape (n_events, 3)
-        Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by `_read_vmrk_events` or `_read_eeglab_events`).
-        Durations equal to 0 are converted to 1.
+        Each row representing an event.
     n_samples : int
         The number of samples.
 
@@ -241,7 +315,6 @@ def _synthesize_stim_channel(events, n_samples):
         An array containing the whole recording's event marking.
     """
     # select events overlapping buffer
-    onset = events[:, 0]
     events = events.copy()
     events[events[:, 1] < 1, 1] = 1
     # create output buffer
@@ -249,3 +322,18 @@ def _synthesize_stim_channel(events, n_samples):
     for onset, duration, trigger in events:
         stim_channel[onset:onset + duration] = trigger
     return stim_channel
+
+
+def _construct_bids_filename(base, ext, part_idx):
+    """Construct a BIDS compatible filename for split files."""
+    # insert index in filename
+    deconstructed_base = base.split('_')
+    bids_supported = ['meg', 'eeg', 'ieeg']
+    for mod in bids_supported:
+        if mod in deconstructed_base:
+            idx = deconstructed_base.index(mod)
+            modality = deconstructed_base.pop(idx)
+    base = '_'.join(deconstructed_base)
+    use_fname = '%s_part-%02d_%s%s' % (base, part_idx, modality, ext)
+
+    return use_fname

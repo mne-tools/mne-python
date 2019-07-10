@@ -2,24 +2,25 @@ name: mne
 channels:
 - defaults
 dependencies:
-- python>=3.6
+- python<3.7
 - pip
 - mkl
 - numpy
 - scipy
 - matplotlib
+- cython
 - pyqt>=5.9
-- vtk>=8
-- pandas
+- pandas>=0.18
+- xlrd
 - scikit-learn
 - h5py
 - pillow
 - statsmodels
 - jupyter
-- nose
 - pytest
 - pytest-cov
-- sphinx
+- pytest-mock
+- pytest-timeout
 - joblib
 - psutil
 - numpydoc
@@ -29,18 +30,21 @@ dependencies:
 - traits>=4.6.0
 - pyface>=6
 - traitsui>=6
+- testpath<0.4
 - pip:
   - mne
-  - mayavi
-  - "https://api.github.com/repos/nipy/PySurfer/zipball/master"
-  - nitime
+  - vtk
+  - pyvista>=0.20.3
+  - https://api.github.com/repos/enthought/mayavi/zipball/e2569be1096be3deecb15f8fa8581a3ae3fb77d3
+  - PySurfer[save_movie]
+  - dipy --only-binary dipy
   - nibabel
   - nilearn
   - neo
-  - pytest-sugar
   - pytest-faulthandler
+  - pytest-sugar
   - pydocstyle
-  - sphinx_bootstrap_theme
-  - "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
+  - codespell
   - python-picard
-  - sphinx_fontawesome
+  - pylsl>=1.12
+  - panel

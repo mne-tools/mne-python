@@ -9,8 +9,8 @@ orthogonal spatial filters that maximally correlate with a continuous target.
 SPoC can be seen as an extension of the CSP for continuous variables.
 
 Here, SPoC is applied to decode the (continuous) fluctuation of an
-electromyogram from MEG beta activity using data from `Cortico-Muscular
-Coherence example of fieldtrip
+electromyogram from MEG beta activity using data from
+`Cortico-Muscular Coherence example of FieldTrip
 <http://www.fieldtriptoolbox.org/tutorial/coherence>`_
 
 References
@@ -31,12 +31,13 @@ import mne
 from mne import Epochs
 from mne.decoding import SPoC
 from mne.datasets.fieldtrip_cmc import data_path
+from mne.channels import read_layout
 
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold, cross_val_predict
 
-# define parameters
+# Define parameters
 fname = data_path() + '/SubjectCMC.ds'
 raw = mne.io.read_raw_ctf(fname)
 raw.crop(50., 250.).load_data()  # crop for memory purposes
@@ -45,7 +46,7 @@ raw.crop(50., 250.).load_data()  # crop for memory purposes
 emg = raw.copy().pick_channels(['EMGlft'])
 emg.filter(20., None, fir_design='firwin')
 
-# Filter MEG data to focus on alpha band
+# Filter MEG data to focus on beta band
 raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False)
 raw.filter(15., 30., fir_design='firwin')
 
@@ -62,15 +63,15 @@ X = meg_epochs.get_data()
 y = emg_epochs.get_data().var(axis=2)[:, 0]  # target is EMG power
 
 # Classification pipeline with SPoC spatial filtering and Ridge Regression
-clf = make_pipeline(SPoC(n_components=2, log=True, reg='oas'), Ridge())
-
+spoc = SPoC(n_components=2, log=True, reg='oas', rank='full')
+clf = make_pipeline(spoc, Ridge())
 # Define a two fold cross-validation
 cv = KFold(n_splits=2, shuffle=False)
 
 # Run cross validaton
 y_preds = cross_val_predict(clf, X, y, cv=cv)
 
-# plot the True EMG power and the EMG power predicted from MEG data
+# Plot the True EMG power and the EMG power predicted from MEG data
 fig, ax = plt.subplots(1, 1, figsize=[10, 4])
 times = raw.times[meg_epochs.events[:, 0] - raw.first_samp]
 ax.plot(times, y_preds, color='b', label='Predicted EMG')
@@ -81,3 +82,10 @@ ax.set_title('SPoC MEG Predictions')
 plt.legend()
 mne.viz.tight_layout()
 plt.show()
+
+##############################################################################
+# Plot the contributions to the detected components (i.e., the forward model)
+
+spoc.fit(X, y)
+layout = read_layout('CTF151.lay')
+spoc.plot_patterns(meg_epochs.info, layout=layout)

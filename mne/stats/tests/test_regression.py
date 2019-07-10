@@ -5,14 +5,12 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+import pytest
 
 from scipy.signal import hann
-
-from nose.tools import assert_raises, assert_true, assert_equal
 
 import mne
 from mne import read_source_estimate
@@ -20,8 +18,6 @@ from mne.datasets import testing
 from mne.stats.regression import linear_regression, linear_regression_raw
 from mne.io import RawArray
 from mne.utils import requires_sklearn, run_tests_if_main
-
-warnings.simplefilter('always')
 
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
@@ -48,37 +44,33 @@ def test_regression():
     design_matrix[:, 0] = 1
     # creates contrast: aud_l=0, aud_r=1
     design_matrix[:, 1] -= 1
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='non-data'):
         lm = linear_regression(epochs, design_matrix, ['intercept', 'aud'])
-        assert_true(w[0].category == RuntimeWarning)
-        assert_true('non-data' in '%s' % w[0].message)
 
     for predictor, parameters in lm.items():
         for value in parameters:
             assert_equal(value.data.shape, evoked.data.shape)
 
-    assert_raises(ValueError, linear_regression, [epochs, epochs],
+    pytest.raises(ValueError, linear_regression, [epochs, epochs],
                   design_matrix)
 
     stc = read_source_estimate(stc_fname).crop(0, 0.02)
     stc_list = [stc, stc, stc]
     stc_gen = (s for s in stc_list)
-    with warnings.catch_warnings(record=True):  # divide by zero
-        warnings.simplefilter('always')
+    with np.errstate(invalid='ignore'):  # divide by zero
         lm1 = linear_regression(stc_list, design_matrix[:len(stc_list)])
     lm2 = linear_regression(stc_gen, design_matrix[:len(stc_list)])
     for val in lm2.values():
         # all p values are 0 < p <= 1 to start, but get stored in float32
         # data, so can actually be truncated to 0. Thus the mlog10_p_val
         # actually maintains better precision for tiny p-values.
-        assert_true(np.isfinite(val.p_val.data).all())
-        assert_true((val.p_val.data <= 1).all())
-        assert_true((val.p_val.data >= 0).all())
+        assert (np.isfinite(val.p_val.data).all())
+        assert ((val.p_val.data <= 1).all())
+        assert ((val.p_val.data >= 0).all())
         # all -log10(p) are non-negative
-        assert_true(np.isfinite(val.mlog10_p_val.data).all())
-        assert_true((val.mlog10_p_val.data >= 0).all())
-        assert_true((val.mlog10_p_val.data >= 0).all())
+        assert (np.isfinite(val.mlog10_p_val.data).all())
+        assert ((val.mlog10_p_val.data >= 0).all())
+        assert ((val.mlog10_p_val.data >= 0).all())
 
     for k in lm1:
         for v1, v2 in zip(lm1[k], lm2[k]):
@@ -118,12 +110,12 @@ def test_continuous_regression_no_overlap():
     # Test events that will lead to "duplicate" errors
     old_latency = events[1, 0]
     events[1, 0] = events[0, 0]
-    assert_raises(ValueError, linear_regression_raw,
+    pytest.raises(ValueError, linear_regression_raw,
                   raw, events, event_id, tmin, tmax)
 
     events[1, 0] = old_latency
     events[:, 0] = range(len(events))
-    assert_raises(ValueError, linear_regression_raw, raw,
+    pytest.raises(ValueError, linear_regression_raw, raw,
                   events, event_id, tmin, tmax, decim=2)
 
 
@@ -148,19 +140,17 @@ def test_continuous_regression_with_overlap():
     from sklearn.linear_model.ridge import ridge_regression
 
     def solver(X, y):
-        return ridge_regression(X, y, alpha=0.)
-
-    with warnings.catch_warnings(record=True):  # transpose
-        assert_allclose(effect, linear_regression_raw(
-            raw, events, tmin=0, solver=solver)['1'].data.flatten())
+        return ridge_regression(X, y, alpha=0., solver="cholesky")
+    assert_allclose(effect, linear_regression_raw(
+        raw, events, tmin=0, solver=solver)['1'].data.flatten())
 
     # test bad solvers
     def solT(X, y):
-        return ridge_regression(X, y, alpha=0.).T
-    with warnings.catch_warnings(record=True):  # transpose
-        assert_raises(ValueError, linear_regression_raw, raw, events,
-                      solver=solT)
-    assert_raises(ValueError, linear_regression_raw, raw, events, solver='err')
-    assert_raises(TypeError, linear_regression_raw, raw, events, solver=0)
+        return ridge_regression(X, y, alpha=0., solver="cholesky").T
+    pytest.raises(ValueError, linear_regression_raw, raw, events,
+                  solver=solT)
+    pytest.raises(ValueError, linear_regression_raw, raw, events, solver='err')
+    pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
+
 
 run_tests_if_main()

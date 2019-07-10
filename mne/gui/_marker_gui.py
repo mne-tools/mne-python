@@ -20,17 +20,17 @@ from traitsui.menu import Action, CancelButton
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
 from ..io.kit import read_mrk
-from ..io.meas_info import _write_dig_points
+from ..digitization._utils import _write_dig_points
 from ._viewer import PointObject
+from ._backend import _check_pyface_backend
 
 
-backend_is_wx = False  # is there a way to determine this?
-if backend_is_wx:
-    mrk_wildcard = ['Supported Files (*.sqd, *.mrk, *.txt, *.pickled)|'
-                    '*.sqd;*.mrk;*.txt;*.pickled',
-                    'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
-                    'Text marker file (*.txt)|*.txt',
-                    'Pickled markers (*.pickled)|*.pickled']
+if _check_pyface_backend()[0] == 'wx':
+    mrk_wildcard = [
+        'Supported Files (*.sqd, *.mrk, *.txt, *.pickled)|*.sqd;*.mrk;*.txt;*.pickled',  # noqa:E501
+        'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
+        'Text marker file (*.txt)|*.txt',
+        'Pickled markers (*.pickled)|*.pickled']
     mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
     if sys.platform in ('win32',  'linux2'):
@@ -294,7 +294,8 @@ class MarkerPointDest(MarkerPoints):  # noqa: D401
             return pts
 
         # Transform method
-        idx = np.intersect1d(self.src1.use, self.src2.use, assume_unique=True)
+        idx = np.intersect1d(np.array(self.src1.use),
+                             np.array(self.src2.use), assume_unique=True)
         if len(idx) < 3:
             error(None, "Need at least three shared points for trans"
                   "formation.", "Marker Interpolation Error")

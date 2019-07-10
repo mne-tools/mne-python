@@ -1,3 +1,4 @@
+junit-results.xml
 *.pyc
 *.pyo
 *.sh
@@ -37,11 +38,13 @@ MNE-somato-data*
 MNE-spm-face*
 MNE-testing-data*
 MNE-brainstorm-data*
+physionet-sleep-data*
 MEGSIM*
 build
 coverage
 .cache/
 .pytest_cache/
+prof/
 
 dist/
 doc/_build/
@@ -51,12 +54,12 @@ doc/auto_tutorials/
 doc/modules/generated/
 doc/sphinxext/cachedir
 pip-log.txt
-.coverage
+.coverage*
 tags
 doc/coverages
 doc/samples
 cover
-examples/visualization/foobar.html
+*.html
 
 *.orig
 
@@ -68,3 +71,10 @@ examples/visualization/foobar.html
 
 # Visual Studio Code
 .vscode
+
+# Emacs
+*.py#
+*.rst#
+
+.venv/
+venv/

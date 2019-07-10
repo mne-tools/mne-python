@@ -1,0 +1,13 @@
+extraction:
+  python:
+    index:
+      filters:
+        - exclude: "mne/externals/*.py"
+        - exclude: "mne/externals/*/*.py"
+  javascript:
+    index:
+      filters:
+        - exclude: "**/*.js"
+queries:
+  - exclude: py/missing-equals
+  - exclude: py/import-and-import-from

@@ -44,7 +44,7 @@ forward = mne.read_forward_solution(fwd_fname)
 
 # Read noise noise covariance matrix and regularize it
 cov = mne.read_cov(cov_fname)
-cov = mne.cov.regularize(cov, evoked.info)
+cov = mne.cov.regularize(cov, evoked.info, rank=None)
 
 # Run the Gamma-MAP method with dipole output
 alpha = 0.5

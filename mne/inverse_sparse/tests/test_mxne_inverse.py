@@ -32,7 +32,7 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
 def _check_stcs(stc1, stc2):
-    """Helper to check correctness"""
+    """Check STC correctness."""
     assert_allclose(stc1.times, stc2.times)
     assert_allclose(stc1.data, stc2.data)
     assert_allclose(stc1.vertices[0], stc2.vertices[0])
@@ -41,10 +41,11 @@ def _check_stcs(stc1, stc2):
     assert_allclose(stc1.tstep, stc2.tstep)
 
 
+@pytest.mark.timeout(120)  # ~30 sec on AppVeyor and Travis Linux
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_mxne_inverse():
-    """Test (TF-)MxNE inverse computation"""
+def test_mxne_inverse_standard():
+    """Test (TF-)MxNE inverse computation."""
     # Read noise covariance matrix
     cov = read_cov(fname_cov)
 
@@ -58,6 +59,7 @@ def test_mxne_inverse():
     evoked_l21 = evoked.copy()
     evoked_l21.crop(tmin=0.081, tmax=0.1)
     label = read_label(fname_label)
+    assert label.hemi == 'rh'
 
     forward = read_forward_solution(fname_fwd)
     forward = convert_forward_solution(forward, surf_ori=True)
@@ -79,10 +81,12 @@ def test_mxne_inverse():
                           depth=depth, maxit=300, tol=1e-8,
                           active_set_size=10, weights=stc_dspm,
                           weights_min=weights_min, solver='prox')
-    stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                        depth=depth, maxit=300, tol=1e-8, active_set_size=10,
-                        weights=stc_dspm, weights_min=weights_min,
-                        solver='cd')
+    with pytest.warns(None):  # CD
+        stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                            depth=depth, maxit=300, tol=1e-8,
+                            active_set_size=10, weights=stc_dspm,
+                            weights_min=weights_min, solver='cd',
+                            pca=False)  # pca=False deprecated, doesn't matter
     stc_bcd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                          weights=stc_dspm, weights_min=weights_min,
@@ -97,26 +101,31 @@ def test_mxne_inverse():
     assert stc_cd.vertices[1][0] in label.vertices
     assert stc_bcd.vertices[1][0] in label.vertices
 
-    dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                      depth=depth, maxit=300, tol=1e-8, active_set_size=10,
-                      weights=stc_dspm, weights_min=weights_min,
-                      solver='cd', return_as_dipoles=True)
+    with pytest.warns(None):  # CD
+        dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+                          weights=stc_dspm, weights_min=weights_min,
+                          solver='cd', return_as_dipoles=True)
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
     assert isinstance(dips[0], Dipole)
+    assert stc_dip.subject == "sample"
     _check_stcs(stc_cd, stc_dip)
 
-    stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                        depth=depth, maxit=300, tol=1e-8,
-                        active_set_size=10, return_residual=True,
-                        solver='cd')
+    with pytest.warns(None):  # CD
+        stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                            depth=depth, maxit=300, tol=1e-8,
+                            weights=stc_dspm,  # gh-6382
+                            active_set_size=10, return_residual=True,
+                            solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
 
     # irMxNE tests
-    stc = mixed_norm(evoked_l21, forward, cov, alpha,
-                     n_mxne_iter=5, loose=loose, depth=depth,
-                     maxit=300, tol=1e-8, active_set_size=10,
-                     solver='cd')
+    with pytest.warns(None):  # CD
+        stc = mixed_norm(evoked_l21, forward, cov, alpha,
+                         n_mxne_iter=5, loose=loose, depth=depth,
+                         maxit=300, tol=1e-8, active_set_size=10,
+                         solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert stc.vertices[1][0] in label.vertices
     assert stc.vertices == [[63152], [79017]]
@@ -142,7 +151,7 @@ def test_mxne_inverse():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mxne_vol_sphere():
-    """(TF-)MxNE with a sphere forward and volumic source space"""
+    """Test (TF-)MxNE with a sphere forward and volumic source space."""
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(tmin=-0.05, tmax=0.2)
     cov = read_cov(fname_cov)
@@ -194,6 +203,8 @@ def test_mxne_vol_sphere():
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert np.abs(np.dot(dip_fit.ori[0], dip_mxne.ori[0])) > 0.99
+    dist = 1000 * np.linalg.norm(dip_fit.pos[0] - dip_mxne.pos[0])
+    assert dist < 4.  # within 4 mm
 
     # Do with TF-MxNE for test memory savings
     alpha = 60.  # overall regularization parameter

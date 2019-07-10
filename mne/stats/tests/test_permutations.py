@@ -8,7 +8,7 @@ from scipy import stats, sparse
 
 from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import permutation_t_test, _ci, _bootstrap_ci
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, check_version
 
 
 def test_permutation_t_test():
@@ -63,6 +63,7 @@ def test_permutation_t_test():
 
 
 def test_ci():
+    """Test confidence intervals."""
     # isolated test of CI functions
     arr = np.linspace(0, 1, 1000)[..., np.newaxis]
     assert_allclose(_ci(arr, method="parametric"),
@@ -70,6 +71,10 @@ def test_ci():
     assert_allclose(_bootstrap_ci(arr, stat_fun="median", random_state=0),
                     _bootstrap_ci(arr, stat_fun="mean", random_state=0),
                     rtol=.1)
+    # smoke test for new API
+    if check_version('numpy', '1.17'):
+        random_state = np.random.default_rng(0)
+        _bootstrap_ci(arr, random_state=random_state)
 
 
 run_tests_if_main()

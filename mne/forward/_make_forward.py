@@ -6,48 +6,42 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+from contextlib import contextmanager
 import os
-from os import path as op
+import os.path as op
+
 import numpy as np
 
+from ._compute_forward import _compute_forwards
 from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
 from ..io.pick import _has_kit_refs, pick_types, pick_info
-from ..io.constants import FIFF
+from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, _pl
 from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, SourceSpaces)
 from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
-from ..externals.six import string_types
 
 from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
-from ._compute_forward import _compute_forwards
 
 
-_accuracy_dict = dict(normal=FIFF.FWD_COIL_ACCURACY_NORMAL,
-                      accurate=FIFF.FWD_COIL_ACCURACY_ACCURATE)
+_accuracy_dict = dict(normal=FWD.COIL_ACCURACY_NORMAL,
+                      accurate=FWD.COIL_ACCURACY_ACCURATE)
+_extra_coil_def_fname = None
 
 
 @verbose
-def _read_coil_defs(elekta_defs=False, verbose=None):
+def _read_coil_defs(verbose=None):
     """Read a coil definition file.
 
     Parameters
     ----------
-    elekta_defs : bool
-        If true, prepend Elekta's coil definitions for numerical
-        integration (from Abramowitz and Stegun section 25.4.62).
-        Note that this will likely cause duplicate coil definitions,
-        so the first matching coil should be selected for optimal
-        integration parameters.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -57,23 +51,28 @@ def _read_coil_defs(elekta_defs=False, verbose=None):
         'chname' | 'accuracy'.
         cosmag contains the direction of the coils and rmag contains the
         position vector.
+
+    Notes
+    -----
+    The global variable "_extra_coil_def_fname" can be used to prepend
+    additional definitions. These are never added to the registry.
     """
     coil_dir = op.join(op.split(__file__)[0], '..', 'data')
     coils = list()
-    if elekta_defs:
-        coils += _read_coil_def_file(op.join(coil_dir, 'coil_def_Elekta.dat'))
+    if _extra_coil_def_fname is not None:
+        coils += _read_coil_def_file(_extra_coil_def_fname, use_registry=False)
     coils += _read_coil_def_file(op.join(coil_dir, 'coil_def.dat'))
     return coils
 
 
 # Typically we only have 1 or 2 coil def files, but they can end up being
 # read a lot. Let's keep a list of them and just reuse them:
-_coil_register = {}
+_coil_registry = {}
 
 
-def _read_coil_def_file(fname):
+def _read_coil_def_file(fname, use_registry=True):
     """Read a coil def file."""
-    if fname not in _coil_register:
+    if not use_registry or fname not in _coil_registry:
         big_val = 0.5
         coils = list()
         with open(fname, 'r') as fid:
@@ -117,9 +116,11 @@ def _read_coil_def_file(fname):
                 cosmag /= size[:, np.newaxis]
                 coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
                 coils.append(coil)
-        _coil_register[fname] = coils
-    coils = deepcopy(_coil_register[fname])
-    logger.info('%d coil definitions read', len(coils))
+        if use_registry:
+            _coil_registry[fname] = coils
+    if use_registry:
+        coils = deepcopy(_coil_registry[fname])
+    logger.info('%d coil definition%s read', len(coils), _pl(coils))
     return coils
 
 
@@ -180,7 +181,7 @@ def _create_eeg_el(ch, t=None):
     # The electrode location
     cosmag = r0ex.copy()
     _normalize_vectors(cosmag)
-    res = dict(chname=ch['ch_name'], coil_class=FIFF.FWD_COILC_EEG, w=w,
+    res = dict(chname=ch['ch_name'], coil_class=FWD.COILC_EEG, w=w,
                accuracy=_accuracy_dict['normal'], type=ch['coil_type'],
                coord_frame=t['to'], rmag=r0ex, cosmag=cosmag)
     return res
@@ -188,7 +189,7 @@ def _create_eeg_el(ch, t=None):
 
 def _create_meg_coils(chs, acc, t=None, coilset=None, do_es=False):
     """Create a set of MEG coils in the head coordinate frame."""
-    acc = _accuracy_dict[acc] if isinstance(acc, string_types) else acc
+    acc = _accuracy_dict[acc] if isinstance(acc, str) else acc
     coilset = _read_coil_defs(verbose=False) if coilset is None else coilset
     coils = [_create_meg_coil(coilset, ch, acc, do_es) for ch in chs]
     _transform_orig_meg_coils(coils, t, do_es=do_es)
@@ -224,7 +225,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
     if allow_none and bem is None:
         return None
     logger.info('')
-    if isinstance(bem, string_types):
+    if isinstance(bem, str):
         logger.info('Setting up the BEM model using %s...\n' % bem_extra)
         bem = read_bem_solution(bem)
     else:
@@ -244,8 +245,9 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
                 'BEM is in %s coordinates, should be in MRI'
                 % (_coord_frame_name(bem['surfs'][0]['coord_frame']),))
         if neeg > 0 and len(bem['surfs']) == 1:
-            raise RuntimeError('Cannot use a homogeneous model in EEG '
-                               'calculations')
+            raise RuntimeError('Cannot use a homogeneous (1-layer BEM) model '
+                               'for EEG forward calculations, consider '
+                               'using a 3-layer BEM instead')
         logger.info('Employing the head->MRI coordinate transform with the '
                     'BEM model.')
         # fwd_bem_set_head_mri_t: Set the coordinate transformation
@@ -257,8 +259,8 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
 
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
-                       elekta_defs=False, head_frame=True, do_es=False,
-                       do_picking=True, verbose=None):
+                       head_frame=True, do_es=False, do_picking=True,
+                       verbose=None):
     """Prepare MEG coil definitions for forward calculation.
 
     Parameters
@@ -273,18 +275,13 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         info['bads']
     ignore_ref : bool
         If true, ignore compensation coils
-    elekta_defs : bool
-        If True, use Elekta's coil definitions, which use different integration
-        point geometry. False by default.
     head_frame : bool
         If True (default), use head frame coords. Otherwise, use device frame.
     do_es : bool
         If True, compute and store ex, ey, ez, and r0_exey.
     do_picking : bool
         If True, pick info and return it.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -339,7 +336,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
 
     # Create coil descriptions with transformation to head or device frame
-    templates = _read_coil_defs(elekta_defs=elekta_defs)
+    templates = _read_coil_defs()
 
     if head_frame:
         _print_coord_trans(info['dev_head_t'])
@@ -366,7 +363,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
     out = (megcoils, compcoils, megnames)
     if do_picking:
-        out = out + (pick_info(info, picks) if nmeg > 0 else None,)
+        out = out + (pick_info(info, picks),)
     return out
 
 
@@ -381,9 +378,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     exclude : list of str | str
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -392,7 +387,6 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     eegnames : list of str
         Name of each prepped EEG electrode
     """
-    eegnames, eegels = [], []
     info_extra = 'info'
 
     # Find EEG electrodes
@@ -470,7 +464,6 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
         raise RuntimeError('No MEG or EEG channels found.')
 
     # pick out final info
-    info['comps'] = []
     info = pick_info(info, pick_types(info, meg=meg, eeg=eeg, ref_meg=False,
                                       exclude=[]))
 
@@ -540,11 +533,8 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since forward computation
         with reference channels is not currently supported.
-    n_jobs : int
-        Number of jobs to run in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -575,9 +565,9 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         bem_extra = 'instance of ConductorModel'
     else:
         bem_extra = bem
-    if not isinstance(info, (Info, string_types)):
+    if not isinstance(info, (Info, str)):
         raise TypeError('info should be an instance of Info or string')
-    if isinstance(info, string_types):
+    if isinstance(info, str):
         info_extra = op.split(info)[1]
         info = read_info(info, verbose=False)
     else:
@@ -628,6 +618,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     return fwd
 
 
+@verbose
 def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
@@ -656,11 +647,8 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
-    n_jobs : int
-        Number of jobs to run in parallel (used in making forward solution).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -773,3 +761,35 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
         fwd.update(dict(sol_grad=sol_grad),
                    _orig_sol_grad=sol_grad['data'].copy())
     return fwd
+
+
+@contextmanager
+def use_coil_def(fname):
+    """Use a custom coil definition file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename of the coil definition file.
+
+    Returns
+    -------
+    context : contextmanager
+        The context for using the coil definition.
+
+    Notes
+    -----
+    This is meant to be used a context manager such as:
+
+    >>> with use_coil_def(my_fname):  # doctest:+SKIP
+    ...     make_forward_solution(...)
+
+    This allows using custom coil definitions with functions that require
+    forward modeling.
+    """
+    global _extra_coil_def_fname
+    _extra_coil_def_fname = fname
+    try:
+        yield
+    finally:
+        _extra_coil_def_fname = None

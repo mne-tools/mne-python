@@ -5,15 +5,14 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
 from copy import deepcopy
-import warnings
+import os.path as op
+import pickle
 
 import numpy as np
 from scipy import fftpack
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
-from nose.tools import assert_true, assert_raises, assert_not_equal
 import pytest
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
@@ -21,12 +20,9 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  Epochs, EpochsArray)
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
-from mne.tests.common import assert_naming
+from mne.io.constants import FIFF
 from mne.utils import (_TempDir, requires_pandas, requires_version,
                        run_tests_if_main)
-from mne.externals.six.moves import cPickle as pickle
-
-warnings.simplefilter('always')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -38,22 +34,32 @@ event_name = op.join(base_dir, 'test-eve.fif')
 def test_decim():
     """Test evoked decimation."""
     rng = np.random.RandomState(0)
-    n_epochs, n_channels, n_times = 5, 10, 20
+    n_channels, n_times = 10, 20
     dec_1, dec_2 = 2, 3
     decim = dec_1 * dec_2
-    sfreq = 1000.
+    sfreq = 10.
     sfreq_new = sfreq / decim
-    data = rng.randn(n_epochs, n_channels, n_times)
-    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    data = rng.randn(n_channels, n_times)
     info = create_info(n_channels, sfreq, 'eeg')
     info['lowpass'] = sfreq_new / float(decim)
-    epochs = EpochsArray(data, info, events)
-    data_epochs = epochs.copy().decimate(decim).get_data()
-    data_epochs_2 = epochs.copy().decimate(decim, offset=1).get_data()
-    data_epochs_3 = epochs.decimate(dec_1).decimate(dec_2).get_data()
-    assert_array_equal(data_epochs, data[:, :, ::decim])
-    assert_array_equal(data_epochs_2, data[:, :, 1::decim])
-    assert_array_equal(data_epochs, data_epochs_3)
+    evoked = EvokedArray(data, info, tmin=-1)
+    evoked_dec = evoked.copy().decimate(decim)
+    evoked_dec_2 = evoked.copy().decimate(decim, offset=1)
+    evoked_dec_3 = evoked.decimate(dec_1).decimate(dec_2)
+    assert_array_equal(evoked_dec.data, data[:, ::decim])
+    assert_array_equal(evoked_dec_2.data, data[:, 1::decim])
+    assert_array_equal(evoked_dec.data, evoked_dec_3.data)
+
+    # Check proper updating of various fields
+    assert evoked_dec.first == -1
+    assert evoked_dec.last == 2
+    assert_array_equal(evoked_dec.times, [-1, -0.4, 0.2, 0.8])
+    assert evoked_dec_2.first == -1
+    assert evoked_dec_2.last == 2
+    assert_array_equal(evoked_dec_2.times, [-0.9, -0.3, 0.3, 0.9])
+    assert evoked_dec_3.first == -1
+    assert evoked_dec_3.last == 2
+    assert_array_equal(evoked_dec_3.times, [-1, -0.4, 0.2, 0.8])
 
     # Now let's do it with some real data
     raw = read_raw_fif(raw_fname)
@@ -84,7 +90,7 @@ def test_savgol_filter():
     data = np.abs(fftpack.fft(evoked.data))
     match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
     mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
-    assert_raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
+    pytest.raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
     evoked_sg = evoked.copy().savgol_filter(h_freq)
     data_filt = np.abs(fftpack.fft(evoked_sg.data))
     # decent in pass-band
@@ -92,8 +98,8 @@ def test_savgol_filter():
                     np.mean(data_filt[:, match_mask], 0),
                     rtol=1e-4, atol=1e-2)
     # suppression in stop-band
-    assert_true(np.mean(data[:, mismatch_mask]) >
-                np.mean(data_filt[:, mismatch_mask]) * 5)
+    assert (np.mean(data[:, mismatch_mask]) >
+            np.mean(data_filt[:, mismatch_mask]) * 5)
     # original preserved
     assert_allclose(data, np.abs(fftpack.fft(evoked.data)), atol=1e-16)
 
@@ -102,12 +108,38 @@ def test_hash_evoked():
     """Test evoked hashing."""
     ave = read_evokeds(fname, 0)
     ave_2 = read_evokeds(fname, 0)
-    assert_equal(hash(ave), hash(ave_2))
+    assert hash(ave) == hash(ave_2)
+    assert ave == ave_2
     # do NOT use assert_equal here, failing output is terrible
-    assert_true(pickle.dumps(ave) == pickle.dumps(ave_2))
+    assert pickle.dumps(ave) == pickle.dumps(ave_2)
 
     ave_2.data[0, 0] -= 1
-    assert_not_equal(hash(ave), hash(ave_2))
+    assert hash(ave) != hash(ave_2)
+
+
+def _aspect_kinds():
+    """Yield evoked aspect kinds."""
+    kinds = list()
+    for key in FIFF:
+        if not key.startswith('FIFFV_ASPECT_'):
+            continue
+        kinds.append(getattr(FIFF, str(key)))
+    return kinds
+
+
+@pytest.mark.parametrize('aspect_kind', _aspect_kinds())
+def test_evoked_aspects(aspect_kind, tmpdir):
+    """Test handling of evoked aspects."""
+    # gh-6359
+    ave = read_evokeds(fname, 0)
+    ave._aspect_kind = aspect_kind
+    assert 'Evoked' in repr(ave)
+    # for completeness let's try a round-trip
+    temp_fname = op.join(str(tmpdir), 'test-ave.fif')
+    ave.save(temp_fname)
+    ave_2 = read_evokeds(temp_fname, condition=0)
+    assert_allclose(ave.data, ave_2.data)
+    assert ave.kind == ave_2.kind
 
 
 @pytest.mark.slowtest
@@ -120,23 +152,23 @@ def test_io_evoked():
     ave2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
 
     # This not being assert_array_equal due to windows rounding
-    assert_true(np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-3))
+    assert (np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-3))
     assert_array_almost_equal(ave.times, ave2.times)
     assert_equal(ave.nave, ave2.nave)
     assert_equal(ave._aspect_kind, ave2._aspect_kind)
     assert_equal(ave.kind, ave2.kind)
     assert_equal(ave.last, ave2.last)
     assert_equal(ave.first, ave2.first)
-    assert_true(repr(ave))
+    assert (repr(ave))
 
     # test compressed i/o
     ave2 = read_evokeds(fname_gz, 0)
-    assert_true(np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-8))
+    assert (np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-8))
 
     # test str access
     condition = 'Left Auditory'
-    assert_raises(ValueError, read_evokeds, fname, condition, kind='stderr')
-    assert_raises(ValueError, read_evokeds, fname, condition,
+    pytest.raises(ValueError, read_evokeds, fname, condition, kind='stderr')
+    pytest.raises(ValueError, read_evokeds, fname, condition,
                   kind='standard_error')
     ave3 = read_evokeds(fname, condition)
     assert_array_almost_equal(ave.data, ave3.data, 19)
@@ -160,33 +192,29 @@ def test_io_evoked():
 
     # test warnings on bad filenames
     fname2 = op.join(tempdir, 'test-bad-name.fif')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='-ave.fif'):
         write_evokeds(fname2, ave)
+    with pytest.warns(RuntimeWarning, match='-ave.fif'):
         read_evokeds(fname2)
-    assert_naming(w, 'test_evoked.py', 2)
 
     # constructor
-    assert_raises(TypeError, Evoked, fname)
+    pytest.raises(TypeError, Evoked, fname)
 
     # MaxShield
     fname_ms = op.join(tempdir, 'test-ave.fif')
-    assert_true(ave.info['maxshield'] is False)
+    assert (ave.info['maxshield'] is False)
     ave.info['maxshield'] = True
     ave.save(fname_ms)
-    assert_raises(ValueError, read_evokeds, fname_ms)
-    with warnings.catch_warnings(record=True) as w:
+    pytest.raises(ValueError, read_evokeds, fname_ms)
+    with pytest.warns(RuntimeWarning, match='Elekta'):
         aves = read_evokeds(fname_ms, allow_maxshield=True)
-    assert_true(all('Elekta' in str(ww.message) for ww in w))
-    assert_true(all(ave.info['maxshield'] is True for ave in aves))
-    with warnings.catch_warnings(record=True) as w:
-        aves = read_evokeds(fname_ms, allow_maxshield='yes')
-    assert_equal(len(w), 0)
-    assert_true(all(ave.info['maxshield'] is True for ave in aves))
+    assert all(ave.info['maxshield'] is True for ave in aves)
+    aves = read_evokeds(fname_ms, allow_maxshield='yes')
+    assert (all(ave.info['maxshield'] is True for ave in aves))
 
 
 def test_shift_time_evoked():
-    """ Test for shifting of time scale."""
+    """Test for shifting of time scale."""
     tempdir = _TempDir()
     # Shift backward
     ave = read_evokeds(fname, 0)
@@ -206,8 +234,7 @@ def test_shift_time_evoked():
     ave_normal = read_evokeds(fname, 0)
     ave_relative = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
-    assert_true(np.allclose(ave_normal.data, ave_relative.data,
-                            atol=1e-16, rtol=1e-3))
+    assert_allclose(ave_normal.data, ave_relative.data, atol=1e-16, rtol=1e-3)
     assert_array_almost_equal(ave_normal.times, ave_relative.times, 10)
 
     assert_equal(ave_normal.last, ave_relative.last)
@@ -220,8 +247,7 @@ def test_shift_time_evoked():
 
     ave_absolute = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
-    assert_true(np.allclose(ave_normal.data, ave_absolute.data,
-                            atol=1e-16, rtol=1e-3))
+    assert_allclose(ave_normal.data, ave_absolute.data, atol=1e-16, rtol=1e-3)
     assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
 
 
@@ -230,8 +256,10 @@ def test_evoked_resample():
     tempdir = _TempDir()
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
+    orig_lp = ave.info['lowpass']
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal, npad=100)
+    assert ave.info['lowpass'] == orig_lp
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
     ave_up = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
@@ -241,6 +269,7 @@ def test_evoked_resample():
     # and compare the original to the downsampled upsampled version
     ave_new = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
     ave_new.resample(sfreq_normal, npad=100)
+    assert ave.info['lowpass'] == orig_lp
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
     assert_array_almost_equal(ave_normal.times, ave_new.times)
@@ -252,8 +281,12 @@ def test_evoked_resample():
 
     # for the above to work, the upsampling just about had to, but
     # we'll add a couple extra checks anyway
-    assert_true(len(ave_up.times) == 2 * len(ave_normal.times))
-    assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+    assert (len(ave_up.times) == 2 * len(ave_normal.times))
+    assert (ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+
+    ave_new.resample(50)
+    assert ave_new.info['sfreq'] == 50.
+    assert ave_new.info['lowpass'] == 25.
 
 
 def test_evoked_filter():
@@ -274,44 +307,51 @@ def test_evoked_detrend():
     ave.detrend(0)
     ave_normal.data -= np.mean(ave_normal.data, axis=1)[:, np.newaxis]
     picks = pick_types(ave.info, meg=True, eeg=True, exclude='bads')
-    assert_true(np.allclose(ave.data[picks], ave_normal.data[picks],
-                            rtol=1e-8, atol=1e-16))
+    assert_allclose(ave.data[picks], ave_normal.data[picks],
+                    rtol=1e-8, atol=1e-16)
 
 
 @requires_pandas
 def test_to_data_frame():
     """Test evoked Pandas exporter."""
     ave = read_evokeds(fname, 0)
-    assert_raises(ValueError, ave.to_data_frame, picks=np.arange(400))
+    pytest.raises(ValueError, ave.to_data_frame, picks=np.arange(400))
     df = ave.to_data_frame()
-    assert_true((df.columns == ave.ch_names).all())
+    assert ((df.columns == ave.ch_names).all())
     df = ave.to_data_frame(index=None).reset_index()
-    assert_true('time' in df.columns)
+    assert ('time' in df.columns)
     assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
     assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)
+
+    df = ave.to_data_frame(long_format=True)
+    assert(len(df) == ave.data.size)
+    assert("time" in df.columns)
+    assert("channel" in df.columns)
+    assert("ch_type" in df.columns)
+    assert("observation" in df.columns)
 
 
 def test_evoked_proj():
     """Test SSP proj operations."""
     for proj in [True, False]:
         ave = read_evokeds(fname, condition=0, proj=proj)
-        assert_true(all(p['active'] == proj for p in ave.info['projs']))
+        assert (all(p['active'] == proj for p in ave.info['projs']))
 
         # test adding / deleting proj
         if proj:
-            assert_raises(ValueError, ave.add_proj, [],
+            pytest.raises(ValueError, ave.add_proj, [],
                           {'remove_existing': True})
-            assert_raises(ValueError, ave.del_proj, 0)
+            pytest.raises(ValueError, ave.del_proj, 0)
         else:
             projs = deepcopy(ave.info['projs'])
             n_proj = len(ave.info['projs'])
             ave.del_proj(0)
-            assert_true(len(ave.info['projs']) == n_proj - 1)
+            assert (len(ave.info['projs']) == n_proj - 1)
             # Test that already existing projections are not added.
             ave.add_proj(projs, remove_existing=False)
-            assert_true(len(ave.info['projs']) == n_proj)
+            assert (len(ave.info['projs']) == n_proj)
             ave.add_proj(projs[:-1], remove_existing=True)
-            assert_true(len(ave.info['projs']) == n_proj - 1)
+            assert (len(ave.info['projs']) == n_proj - 1)
 
     ave = read_evokeds(fname, condition=0, proj=False)
     data = ave.data.copy()
@@ -322,26 +362,26 @@ def test_evoked_proj():
 def test_get_peak():
     """Test peak getter."""
     evoked = read_evokeds(fname, condition=0, proj=True)
-    assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
-    assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
-    assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02,
+    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
+    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
+    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02,
                   tmax=0.01)
-    assert_raises(ValueError, evoked.get_peak, ch_type='mag', mode='foo')
-    assert_raises(RuntimeError, evoked.get_peak, ch_type=None, mode='foo')
-    assert_raises(ValueError, evoked.get_peak, ch_type='misc', mode='foo')
+    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', mode='foo')
+    pytest.raises(RuntimeError, evoked.get_peak, ch_type=None, mode='foo')
+    pytest.raises(ValueError, evoked.get_peak, ch_type='misc', mode='foo')
 
     ch_name, time_idx = evoked.get_peak(ch_type='mag')
-    assert_true(ch_name in evoked.ch_names)
-    assert_true(time_idx in evoked.times)
+    assert (ch_name in evoked.ch_names)
+    assert (time_idx in evoked.times)
 
     ch_name, time_idx, max_amp = evoked.get_peak(ch_type='mag',
                                                  time_as_index=True,
                                                  return_amplitude=True)
-    assert_true(time_idx < len(evoked.times))
+    assert (time_idx < len(evoked.times))
     assert_equal(ch_name, 'MEG 1421')
     assert_allclose(max_amp, 7.17057e-13, rtol=1e-5)
 
-    assert_raises(ValueError, evoked.get_peak, ch_type='mag', merge_grads=True)
+    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', merge_grads=True)
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
 
@@ -365,8 +405,8 @@ def test_get_peak():
     assert_equal(time_idx, 2)
     assert_allclose(max_amp, 2.)
 
-    assert_raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
-    assert_raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
+    pytest.raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
+    pytest.raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
 
 
 def test_drop_channels_mixin():
@@ -388,7 +428,7 @@ def test_drop_channels_mixin():
     assert_equal(len(ch_names), len(evoked.data))
 
     for ch_names in ([1, 2], "fake", ["fake"]):
-        assert_raises(ValueError, evoked.drop_channels, ch_names)
+        pytest.raises(ValueError, evoked.drop_channels, ch_names)
 
 
 def test_pick_channels_mixin():
@@ -407,12 +447,12 @@ def test_pick_channels_mixin():
     assert_equal(len(ch_names), len(evoked.data))
 
     evoked = read_evokeds(fname, condition=0, proj=True)
-    assert_true('meg' in evoked)
-    assert_true('eeg' in evoked)
+    assert ('meg' in evoked)
+    assert ('eeg' in evoked)
     evoked.pick_types(meg=False, eeg=True)
-    assert_true('meg' not in evoked)
-    assert_true('eeg' in evoked)
-    assert_true(len(evoked.ch_names) == 60)
+    assert ('meg' not in evoked)
+    assert ('eeg' in evoked)
+    assert (len(evoked.ch_names) == 60)
 
 
 def test_equalize_channels():
@@ -438,24 +478,30 @@ def test_arithmetic():
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave
     ev = combine_evoked([ev1, ev2], weights='nave')
-    assert_equal(ev.nave, ev1.nave + ev2.nave)
+    assert_allclose(ev.nave, ev1.nave + ev2.nave)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
 
     # with same trial counts, a bunch of things should be equivalent
-    for weights in ('nave', 'equal', [0.5, 0.5]):
+    for weights in ('nave', [0.5, 0.5]):
         ev = combine_evoked([ev1, ev1], weights=weights)
         assert_allclose(ev.data, ev1.data)
-        assert_equal(ev.nave, 2 * ev1.nave)
+        assert_allclose(ev.nave, 2 * ev1.nave)
         ev = combine_evoked([ev1, -ev1], weights=weights)
         assert_allclose(ev.data, 0., atol=1e-20)
-        assert_equal(ev.nave, 2 * ev1.nave)
+        assert_allclose(ev.nave, 2 * ev1.nave)
+    # adding evoked to itself
+    ev = combine_evoked([ev1, ev1], weights='equal')
+    assert_allclose(ev.data, 2 * ev1.data)
+    assert_allclose(ev.nave, ev1.nave / 2)
+    # subtracting evoked from itself
     ev = combine_evoked([ev1, -ev1], weights='equal')
     assert_allclose(ev.data, 0., atol=1e-20)
-    assert_equal(ev.nave, 2 * ev1.nave)
+    assert_allclose(ev.nave, ev1.nave / 2)
+    # subtracting different evokeds
     ev = combine_evoked([ev1, -ev2], weights='equal')
-    expected = int(round(1. / (0.25 / ev1.nave + 0.25 / ev2.nave)))
-    assert_equal(expected, 27)  # this is reasonable
-    assert_equal(ev.nave, expected)
+    assert_allclose(ev.data, 2., atol=1e-20)
+    expected_nave = 1. / (1. / ev1.nave + 1. / ev2.nave)
+    assert_allclose(ev.nave, expected_nave)
 
     # default comment behavior if evoked.comment is None
     old_comment1 = ev1.comment
@@ -463,8 +509,8 @@ def test_arithmetic():
     ev1.comment = None
     ev = combine_evoked([ev1, -ev2], weights=[1, -1])
     assert_equal(ev.comment.count('unknown'), 2)
-    assert_true('-unknown' in ev.comment)
-    assert_true(' + ' in ev.comment)
+    assert ('-unknown' in ev.comment)
+    assert (' + ' in ev.comment)
     ev1.comment = old_comment1
     ev2.comment = old_comment2
 
@@ -474,15 +520,15 @@ def test_arithmetic():
 
     # combine_evoked([ev1, ev2], weights=[1, 0]) should yield the same as ev1
     ev = combine_evoked([ev1, ev2], weights=[1, 0])
-    assert_equal(ev.nave, ev1.nave)
+    assert_allclose(ev.nave, ev1.nave)
     assert_allclose(ev.data, ev1.data)
 
     # simple subtraction (like in oddball)
     ev = combine_evoked([ev1, ev2], weights=[1, -1])
     assert_allclose(ev.data, 2 * np.ones_like(ev1.data))
 
-    assert_raises(ValueError, combine_evoked, [ev1, ev2], weights='foo')
-    assert_raises(ValueError, combine_evoked, [ev1, ev2], weights=[1])
+    pytest.raises(ValueError, combine_evoked, [ev1, ev2], weights='foo')
+    pytest.raises(ValueError, combine_evoked, [ev1, ev2], weights=[1])
 
     # grand average
     evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
@@ -494,7 +540,21 @@ def test_arithmetic():
     assert_equal(gave.data.shape, [len(ch_names), evoked1.data.shape[1]])
     assert_equal(ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
-    assert_raises(TypeError, grand_average, [1, evoked1])
+    pytest.raises(TypeError, grand_average, [1, evoked1])
+    gave = grand_average([ev1, ev1, ev2])
+    assert_allclose(gave.data, np.ones_like(gave.data))
+
+    # test channel (re)ordering
+    evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
+    data2 = evoked2.data  # assumes everything is ordered to the first evoked
+    data = (evoked1.data + evoked2.data)
+    evoked2.reorder_channels(evoked2.ch_names[::-1])
+    assert not np.allclose(data2, evoked2.data)
+    with pytest.warns(RuntimeWarning, match='reordering'):
+        ev3 = grand_average((evoked1, evoked2))
+    assert np.allclose(ev3.data, data)
+    assert evoked1.ch_names != evoked2.ch_names
+    assert evoked1.ch_names == ev3.ch_names
 
 
 def test_array_epochs():
@@ -534,14 +594,16 @@ def test_array_epochs():
     assert_equal(evoked1.nave, evoked3.nave)
 
     # test kind check
-    assert_raises(TypeError, EvokedArray, data1, info, tmin=0, kind=1)
-    assert_raises(ValueError, EvokedArray, data1, info, kind='mean')
+    with pytest.raises(ValueError, match='Invalid value'):
+        EvokedArray(data1, info, tmin=0, kind=1)
+    with pytest.raises(ValueError, match='Invalid value'):
+        EvokedArray(data1, info, kind='mean')
 
     # test match between channels info and data
     ch_names = ['EEG %03d' % (i + 1) for i in range(19)]
     types = ['eeg'] * 19
     info = create_info(ch_names, sfreq, types)
-    assert_raises(ValueError, EvokedArray, data1, info, tmin=-0.01)
+    pytest.raises(ValueError, EvokedArray, data1, info, tmin=-0.01)
 
 
 def test_time_as_index():
@@ -554,7 +616,6 @@ def test_time_as_index():
 def test_add_channels():
     """Test evoked splitting / re-appending channel types."""
     evoked = read_evokeds(fname, condition=0)
-    evoked.info['buffer_size_sec'] = None
     hpi_coils = [{'event_bits': []},
                  {'event_bits': np.array([256,   0, 256, 256])},
                  {'event_bits': np.array([512,   0, 512, 512])}]
@@ -564,24 +625,24 @@ def test_add_channels():
     evoked_stim = evoked.copy().pick_types(meg=False, stim=True)
     evoked_eeg_meg = evoked.copy().pick_types(meg=True, eeg=True)
     evoked_new = evoked_meg.copy().add_channels([evoked_eeg, evoked_stim])
-    assert_true(all(ch in evoked_new.ch_names
-                    for ch in evoked_stim.ch_names + evoked_meg.ch_names))
+    assert (all(ch in evoked_new.ch_names
+                for ch in evoked_stim.ch_names + evoked_meg.ch_names))
     evoked_new = evoked_meg.copy().add_channels([evoked_eeg])
 
-    assert_true(ch in evoked_new.ch_names for ch in evoked.ch_names)
+    assert (ch in evoked_new.ch_names for ch in evoked.ch_names)
     assert_array_equal(evoked_new.data, evoked_eeg_meg.data)
-    assert_true(all(ch not in evoked_new.ch_names
-                    for ch in evoked_stim.ch_names))
+    assert (all(ch not in evoked_new.ch_names
+                for ch in evoked_stim.ch_names))
 
     # Now test errors
     evoked_badsf = evoked_eeg.copy()
     evoked_badsf.info['sfreq'] = 3.1415927
     evoked_eeg = evoked_eeg.crop(-.1, .1)
 
-    assert_raises(RuntimeError, evoked_meg.add_channels, [evoked_badsf])
-    assert_raises(AssertionError, evoked_meg.add_channels, [evoked_eeg])
-    assert_raises(ValueError, evoked_meg.add_channels, [evoked_meg])
-    assert_raises(TypeError, evoked_meg.add_channels, evoked_badsf)
+    pytest.raises(RuntimeError, evoked_meg.add_channels, [evoked_badsf])
+    pytest.raises(AssertionError, evoked_meg.add_channels, [evoked_eeg])
+    pytest.raises(ValueError, evoked_meg.add_channels, [evoked_meg])
+    pytest.raises(TypeError, evoked_meg.add_channels, evoked_badsf)
 
 
 def test_evoked_baseline():
@@ -597,5 +658,32 @@ def test_evoked_baseline():
     evoked.apply_baseline((None, None))
 
     assert_allclose(evoked.data, np.zeros_like(evoked.data))
+
+
+def test_hilbert():
+    """Test hilbert on raw, epochs, and evoked."""
+    raw = read_raw_fif(raw_fname).load_data()
+    raw.del_proj()
+    raw.pick_channels(raw.ch_names[:2])
+    events = read_events(event_name)
+    epochs = Epochs(raw, events)
+    with pytest.raises(RuntimeError, match='requires epochs data to be load'):
+        epochs.apply_hilbert()
+    epochs.load_data()
+    evoked = epochs.average()
+    raw_hilb = raw.apply_hilbert()
+    epochs_hilb = epochs.apply_hilbert()
+    evoked_hilb = evoked.copy().apply_hilbert()
+    evoked_hilb_2_data = epochs_hilb.get_data().mean(0)
+    assert_allclose(evoked_hilb.data, evoked_hilb_2_data)
+    # This one is only approximate because of edge artifacts
+    evoked_hilb_3 = Epochs(raw_hilb, events).average()
+    corr = np.corrcoef(np.abs(evoked_hilb_3.data.ravel()),
+                       np.abs(evoked_hilb.data.ravel()))[0, 1]
+    assert 0.96 < corr < 0.98
+    # envelope=True mode
+    evoked_hilb_env = evoked.apply_hilbert(envelope=True)
+    assert_allclose(evoked_hilb_env.data, np.abs(evoked_hilb.data))
+
 
 run_tests_if_main()

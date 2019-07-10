@@ -1,10 +1,34 @@
+:root {
+  --a-color-dark: rgb(31, 92, 153);
+  --a-color: rgb(41, 122, 204);
+  --a-hover-color: rgb(102, 179, 255);
+}
 html {
   position: relative;
   min-height: 100%;
 }
-
+/* overrides of bootstrap fonts */
 body {
-    margin-bottom: 150px;
+    font-family:"Source Sans Pro", sans-serif;
+}
+h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6 {
+    font-family:"Source Sans Pro", sans-serif;
+}
+code,kbd,pre,samp {
+    font-family:"Source Code Pro", monospace;
+    font-size: 100%;
+}
+/* reduce horizontal padding for inline code (bootstrap defaults to 4px) */
+p code {
+    padding: 0 2px 0;
+}
+/* use semibold instead of bold for API links */
+code.xref, a code {
+    font-weight: 600;
+}
+/* use semibold weight for version dropdown */
+.btn {
+    font-weight: 600;
 }
 
 .navbar-version {
@@ -12,12 +36,12 @@ body {
 }
 
 a {
-    color: rgb(41, 122, 204);
+    color: var(--a-color);
     text-decoration: none;
 }
 
 a:hover {
-    color: rgb(102, 179, 255);
+    color: var(--a-hover-color);
 }
 
 blockquote {
@@ -61,18 +85,35 @@ a.button-front {
 
 }
 
-.note a {
-    color: rgb(0,0,255);
+a code {
+    color: var(--a-color);
 }
-
+a:hover code {
+    color: var(--a-hover-color);
+}
+.note a, .note a code {
+    color: var(--a-color-dark);
+}
+.note a:hover, .note a:hover code {
+    color: var(--a-color);
+}
 .note {
     background-color: rgb(204, 230, 255);
     color: rgb(0, 0, 0);
     border: none;
 }
-
 .note pre {
     background-color: rgb(242, 249, 255);
+}
+.warning {
+    background-color: rgb(230, 57, 57);
+    color: white;
+}
+.warning a, .warning a code {
+    color: rgb(255, 238, 0);
+}
+.warning a:hover, .warning a:hover code {
+    color: rgb(255, 200, 60);
 }
 
 blockquote {
@@ -125,13 +166,6 @@ div.sphx-glr-download-link-note {
   height: 0px;
   visibility: hidden;
 }
-.warning {
-    background-color: rgb(230, 57, 57);
-    color: white;
-}
-.warning a {
-    color: rgb(255, 238, 0);
-}
 dt:target, .highlighted {
     background-color: rgb(255, 238, 0);
 }
@@ -139,7 +173,11 @@ dt:target code {
     color: inherit !important;
     background-color: inherit !important;
 }
-
+div.sidebar {
+    background-color: rgb(221, 236, 236) !important;
+    border: 1px solid rgb(164, 195, 195) !important;
+    border-radius: 4px;
+}
 .label {  /* Necessary for multiple refs, from bootstrap.min.css:7 */
     color: #2c3e50;
 }
@@ -157,6 +195,14 @@ dt:target code {
     padding:  0px;
     margin: 10px;
     float: left;
+}
+.table.midvalign td {
+    vertical-align: middle;
+    border-width: 2px;
+}
+.table.midvalign th {
+    border-width: 2px;
+    border-top-width: 2px;
 }
 /* our carousel */
 .chopper {
@@ -188,9 +234,8 @@ dt:target code {
     width: 100%;
 }
 .footer {
-    position: absolute;
-    bottom: 0;
     width: 100%;
+    margin-top: 20px;
 }
 .footer a {
     font-weight: 700;
@@ -277,6 +322,12 @@ h4.list-group-item-heading {
       display:block !important;
   }
 }
+details.example_details summary {
+    font-weight: bold;
+}
+.panel {
+    margin-bottom: 3px;
+}
 
 .skinnytable {
     width: auto;
@@ -284,3 +335,92 @@ h4.list-group-item-heading {
 .skinnytable thead {
     border-bottom: 1px solid black;
 }
+/* Unify color of refs and classes in parameter lists */
+span.classifier a span.xref, span.classifier a code.docutils.literal.notranslate, span.classifier a.reference.external {
+    color: var(--a-color);
+}
+span.classifier a:hover span.xref, span.classifier a:hover code.docutils.literal.notranslate, span.classifier a.reference.external:hover {
+    color: var(--a-hover-color);
+}
+
+/* Allow easier copy-paste in code blocks */
+div.highlight-console div.highlight span.gp {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+/* Sizing */
+.body {
+    max-width: unset !important;
+    min-width: unset !important;
+}
+/* Callout */
+.callout {
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid #eee;
+    border-left-width: 5px;
+    border-left-color: #ddd;
+    /* background-color: #eee; */
+}
+.callout h3:first-child {
+    margin-top: 0;
+}
+.callout p:last-child {
+    margin-bottom: 0;
+}
+dl.cmd-list span.option {
+    white-space: nowrap;
+}
+dl.cmd-list dt, dl.cmd-list dd {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding-top: 0px;
+    padding-bottom: 5px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+dl.cmd-list dt::after {
+    visibility: hidden;
+}
+/* Attributes / methods not taking up entire width ends up looking odd */
+dd table.align-center {
+    width: 100%;
+}
+/* Sphinx-gallery Report embedding */
+iframe.sg_report {
+    width: 95%;
+    height: 70vh;
+    margin: 20px auto;
+    display: block;
+    border-style: solid;
+}
+/* institutions logos in footer */
+div.institutions {
+    text-align: center;
+    line-height: 52px;
+    margin-bottom: 6px;
+  }
+div.institutions a {
+    border: 0px;
+    margin-right: 6px;
+}
+.institution_xs .institution_sm .institution_md .institution_lg {
+    vertical-align: middle;
+  }
+  .institution_xs {
+    max-height: 24px;
+  }
+  .institution_sm {
+    max-height: 36px;
+  }
+  .institution_md {
+    max-height: 48px;
+  }
+  .institution_lg {
+    max-height: 60px;
+  }

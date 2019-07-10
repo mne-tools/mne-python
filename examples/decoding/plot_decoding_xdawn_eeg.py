@@ -66,7 +66,8 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
 clf = make_pipeline(Xdawn(n_components=3),
                     Vectorizer(),
                     MinMaxScaler(),
-                    LogisticRegression(penalty='l1'))
+                    LogisticRegression(penalty='l1', solver='liblinear',
+                                       multi_class='auto'))
 
 # Get the labels
 labels = epochs.events[:, -1]

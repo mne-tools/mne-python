@@ -23,6 +23,7 @@ def print_help():
     print("\nGetting help example : mne compute_proj_eog -h")
     sys.exit(0)
 
+
 if len(sys.argv) == 1:
     print_help()
 elif ("help" in sys.argv[1] or "-h" in sys.argv[1]):

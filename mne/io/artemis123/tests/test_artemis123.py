@@ -4,11 +4,10 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
-from nose.tools import assert_true
+import pytest
 
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_artemis123
@@ -38,11 +37,12 @@ def _assert_trans(actual, desired, dist_tol=0.003, angle_tol=5.):
 
     angle = 180 * _angle_between_quats(quat_est, quat) / np.pi
     dist = np.sqrt(np.sum((trans - trans_est) ** 2))
-    assert_true(dist <= dist_tol, '%0.3f > %0.3f mm' % (1000 * dist,
-                                                        1000 * dist_tol))
-    assert_true(angle <= angle_tol, '%0.3f > %0.3f deg' % (angle, angle_tol))
+    assert dist <= dist_tol, '%0.3f > %0.3f mm' % (1000 * dist,
+                                                   1000 * dist_tol)
+    assert angle <= angle_tol, '%0.3f > %0.3f deg' % (angle, angle_tol)
 
 
+@pytest.mark.timeout(60)  # ~25 sec on Travis Linux OpenBLAS
 @testing.requires_testing_data
 def test_data():
     """Test reading raw Artemis123 files."""
@@ -73,7 +73,7 @@ def test_data():
     assert_equal(raw.info['sfreq'], 5000.0)
 
     # test with head loc and digitization
-    with warnings.catch_warnings(record=True):  # bad dig
+    with pytest.warns(RuntimeWarning, match='Large difference'):
         raw = read_raw_artemis123(short_HPI_dip_fname,  add_head_trans=True,
                                   pos_fname=dig_fname)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_1)

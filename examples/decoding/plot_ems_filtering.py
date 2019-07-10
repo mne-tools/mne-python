@@ -79,7 +79,7 @@ filters = list()  # Spatial filters at each time point
 # to overfit and cannot be used to estimate the variance of the
 # prediction within a given fold.
 
-for train, test in StratifiedKFold().split(X, y):
+for train, test in StratifiedKFold(n_splits=5).split(X, y):
     # In the original paper, the z-scoring is applied outside the CV.
     # However, we recommend to apply this preprocessing inside the CV.
     # Note that such scaling should be done separately for each channels if the
@@ -121,7 +121,7 @@ plt.show()
 
 # Visualize spatial filters across time
 evoked = EvokedArray(filters, epochs.info, tmin=epochs.tmin)
-evoked.plot_topomap(time_unit='s')
+evoked.plot_topomap(time_unit='s', scalings=1)
 
 #############################################################################
 # Note that a similar transformation can be applied with `compute_ems`

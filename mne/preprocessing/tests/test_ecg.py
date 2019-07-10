@@ -19,6 +19,11 @@ def test_find_ecg():
 
     # once with mag-trick
     # once with characteristic channel
+    raw_bad = raw.copy().load_data()
+    ecg_idx = raw.ch_names.index('MEG 1531')
+    raw_bad._data[ecg_idx, :1] = 1e6  # this will break the detector
+    raw_bad.annotations.append(raw.first_samp / raw.info['sfreq'],
+                               1. / raw.info['sfreq'], 'BAD_values')
     for ch_name in ['MEG 1531', None]:
         events, ch_ECG, average_pulse, ecg = find_ecg_events(
             raw, event_id=999, ch_name=ch_name, return_ecg=True)
@@ -26,6 +31,17 @@ def test_find_ecg():
         n_events = len(events)
         _, times = raw[0, :]
         assert 55 < average_pulse < 60
+        # with annotations
+        with pytest.deprecated_call():
+            average_pulse = find_ecg_events(raw_bad, ch_name=ch_name)[2]
+        assert average_pulse < 1.
+        average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
+                                        reject_by_annotation=True)[2]
+        assert 55 < average_pulse < 60
+    average_pulse = find_ecg_events(raw_bad, ch_name='MEG 2641',
+                                    reject_by_annotation=False)[2]
+    assert 55 < average_pulse < 65
+    del raw_bad
 
     picks = pick_types(
         raw.info, meg='grad', eeg=False, stim=False,

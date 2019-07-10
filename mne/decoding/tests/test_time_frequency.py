@@ -5,20 +5,22 @@
 
 import numpy as np
 from numpy.testing import assert_array_equal
-from nose.tools import assert_raises
+import pytest
+
 from mne.utils import requires_sklearn
 from mne.decoding.time_frequency import TimeFrequency
 
 
 @requires_sklearn
 def test_timefrequency():
+    """Test TimeFrequency."""
     from sklearn.base import clone
     # Init
     n_freqs = 3
     freqs = np.linspace(20, 30, n_freqs)
     tf = TimeFrequency(freqs, sfreq=100)
     for output in ['avg_power', 'foo', None]:
-        assert_raises(ValueError, TimeFrequency, freqs, output=output)
+        pytest.raises(ValueError, TimeFrequency, freqs, output=output)
     tf = clone(tf)
 
     # Fit

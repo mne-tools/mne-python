@@ -6,30 +6,34 @@
 #
 # License: BSD (3-clause)
 
+import base64
+from io import BytesIO
 import os
 import os.path as op
 import fnmatch
 import re
 import codecs
+from shutil import copyfile
 import time
 from glob import glob
-import base64
-
+import warnings
+import webbrowser
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw_fif, read_info, _stamp_to_dt
-from .utils import logger, verbose, get_subjects_dir, warn, _import_mlab
+from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
+                    fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
+from .viz.raw import _data_types
 
 from .externals.tempita import HTMLTemplate, Template
-from .externals.six import BytesIO
-from .externals.six import moves
+from .externals.h5io import read_hdf5, write_hdf5
 
 VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
                     '-eve.fif', '-eve.fif.gz', '-cov.fif', '-cov.fif.gz',
@@ -45,11 +49,8 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 
 def _ndarray_to_fig(img):
     """Convert to MPL figure, adapted from matplotlib.image.imsave."""
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
     figsize = np.array(img.shape[:2][::-1]) / 100.
-    fig = Figure(dpi=100, figsize=figsize, frameon=False)
-    FigureCanvasAgg(fig)
+    fig = _figure_agg(dpi=100, figsize=figsize, frameon=False)
     fig.figimage(img)
     return fig
 
@@ -70,10 +71,15 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         try:
             mlab = _import_mlab()
         # on some systems importing Mayavi raises SystemExit (!)
-        except Exception as e:
-            warn('Could not import mayavi (%r). Trying to render'
-                 '`mayavi.core.scene.Scene` figure instances'
-                 ' will throw an error.' % (e,))
+        except Exception:
+            is_mayavi = False
+        else:
+            import mayavi
+            is_mayavi = isinstance(fig, mayavi.core.scene.Scene)
+        if not is_mayavi:
+            raise TypeError('Each fig must be a matplotlib Figure, mayavi '
+                            'Scene, or NumPy ndarray, got %s (type %s)'
+                            % (fig, type(fig)))
         if fig.scene is not None:
             img = mlab.screenshot(figure=fig)
         else:  # Testing mode
@@ -87,8 +93,10 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         _scale_mpl_figure(fig, scale)
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
-                bbox_to_inches='tight')
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')  # incompatible axes
+        fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
+                    bbox_to_inches='tight')
     plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
@@ -104,12 +112,13 @@ def _scale_mpl_figure(fig, scale):
 
     XXX it's unclear why this works, but good to go for most cases
     """
+    scale = float(scale)
     fig.set_size_inches(fig.get_size_inches() * scale)
     fig.set_dpi(fig.get_dpi() * scale)
     import matplotlib as mpl
     if scale >= 1:
         sfactor = scale ** 2
-    elif scale < 1:
+    else:
         sfactor = -((1. / scale) ** 2)
     for text in fig.findobj(mpl.text.Text):
         fs = text.get_fontsize()
@@ -138,14 +147,17 @@ def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
     from mayavi import mlab, core
+    from pyface.api import GUI
     fig = function(**kwargs)
-
+    gui = GUI()
+    gui.process_events()
     assert isinstance(fig, core.scene.Scene)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
         mlab.view(view[0], view[1])
+        gui.process_events()
         if fig.scene is not None:
             im = mlab.screenshot(figure=fig)
         else:  # Testing mode
@@ -314,26 +326,74 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
 
     return htmls, report_fnames, report_sectionlabels
 
+
+def open_report(fname, **params):
+    """Read a saved report or, if it doesn't exist yet, create a new one.
+
+    The returned report can be used as a context manager, in which case any
+    changes to the report are saved when exiting the context block.
+
+    Parameters
+    ----------
+    fname : str
+        The file containing the report, stored in the HDF5 format. If the file
+        does not exist yet, a new report is created that will be saved to the
+        specified file.
+    **params : kwargs
+        When creating a new report, any named parameters other than ``fname``
+        are passed to the ``__init__`` function of the `Report` object. When
+        reading an existing report, the parameters are checked with the
+        loaded report and an exception is raised when they don't match.
+
+    Returns
+    -------
+    report : instance of Report
+        The report.
+    """
+    if op.exists(fname):
+        # Check **params with the loaded report
+        state = read_hdf5(fname, title='mnepython')
+        for param in params.keys():
+            if param not in state:
+                raise ValueError('The loaded report has no attribute %s' %
+                                 param)
+            if params[param] != state[param]:
+                raise ValueError("Attribute '%s' of loaded report does not "
+                                 "match the given parameter." % param)
+        report = Report()
+        report.__setstate__(state)
+    else:
+        report = Report(**params)
+    # Keep track of the filename in case the Report object is used as a context
+    # manager.
+    report._fname = fname
+    return report
+
+
 ###############################################################################
 # IMAGE FUNCTIONS
+
+def _figure_agg(**kwargs):
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    fig = Figure(**kwargs)
+    FigureCanvas(fig)
+    return fig
 
 
 def _build_image_png(data, cmap='gray'):
     """Build an image encoded in base64."""
     import matplotlib.pyplot as plt
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
     figsize = data.shape[::-1]
     if figsize[0] == 1:
         figsize = tuple(figsize[1:])
         data = data[:, :, 0]
-    fig = Figure(figsize=figsize, dpi=1.0, frameon=False)
-    FigureCanvas(fig)
+    fig = _figure_agg(figsize=figsize, dpi=1.0, frameon=False)
     cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
     output = BytesIO()
-    fig.savefig(output, dpi=1.0, format='png')
+    fig.savefig(output, dpi=fig.get_dpi(), format='png')
     return base64.b64encode(output.getvalue()).decode('ascii')
 
 
@@ -445,12 +505,14 @@ def _build_html_slider(slices_range, slides_klass, slider_id,
     """Build an html slider for a given slices range and a slices klass."""
     if start_value is None:
         start_value = slices_range[len(slices_range) // 2]
-    return slider_template.substitute(slider_id=slider_id,
-                                      klass=slides_klass,
-                                      step=slices_range[1] - slices_range[0],
-                                      minvalue=slices_range[0],
-                                      maxvalue=slices_range[-1],
-                                      startvalue=start_value)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        out = slider_template.substitute(
+            slider_id=slider_id, klass=slides_klass,
+            step=slices_range[1] - slices_range[0],
+            minvalue=slices_range[0], maxvalue=slices_range[-1],
+            startvalue=start_value)
+    return out
 
 
 ###############################################################################
@@ -458,7 +520,7 @@ def _build_html_slider(slices_range, slides_klass, slider_id,
 
 header_template = Template(u"""
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{lang}}">
 <head>
 {{include}}
 <script type="text/javascript">
@@ -760,18 +822,16 @@ def _check_scale(scale):
 
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
-    if image_format not in ('png', 'svg'):
-        if rep is None:
-            raise ValueError('image_format must be "svg" or "png", got %s'
-                             % (image_format,))
-        elif image_format is not None:
-            raise ValueError('image_format must be one of "svg", "png", or '
-                             'None, got %s' % (image_format,))
-        else:  # rep is not None and image_format is None
-            image_format = rep.image_format
+    if rep is None:
+        _check_option('image_format', image_format, ['png', 'svg'])
+    elif image_format is not None:
+        _check_option('image_format', image_format, ['png', 'svg', None])
+    else:  # rep is not None and image_format is None
+        image_format = rep.image_format
     return image_format
 
 
+@fill_doc
 class Report(object):
     """Object for rendering HTML.
 
@@ -805,9 +865,13 @@ class Report(object):
 
         .. versionadded:: 0.15
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    raw_psd : bool | dict
+        If True, include PSD plots for raw files. Can be False (default) to
+        omit, True to plot, or a dict to pass as ``kwargs`` to
+        :meth:`mne.io.Raw.plot_psd`.
+
+        .. versionadded:: 0.17
+    %(verbose)s
 
     Notes
     -----
@@ -818,7 +882,7 @@ class Report(object):
 
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', verbose=None):  # noqa: D102
+                 image_format='png', raw_psd=False, verbose=None):
         self.info_fname = info_fname
         self.cov_fname = cov_fname
         self.baseline = baseline
@@ -832,12 +896,16 @@ class Report(object):
         self.html = []
         self.fnames = []  # List of file names rendered
         self.sections = []  # List of sections
+        self.lang = 'en-us'  # language setting for the HTML file
         self._sectionlabels = []  # Section labels
         self._sectionvars = {}  # Section variable names in js
         # boolean to specify if sections should be ordered in natural
         # order of processing (raw -> events ... -> inverse)
         self._sort_sections = False
-
+        if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
+            raise TypeError('raw_psd must be bool or dict, got %s'
+                            % (type(raw_psd),))
+        self.raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
 
     def __repr__(self):
@@ -889,11 +957,128 @@ class Report(object):
 
         return items, captions, comments
 
-    def _add_figs_to_section(self, figs, captions, section='custom',
-                             image_format='png', scale=None, comments=None):
-        """Auxiliary method for `add_section` and `add_figs_to_section`."""
+    def remove(self, caption, section=None):
+        """Remove a figure from the report.
+
+        The figure to remove is searched for by its caption. When searching by
+        caption, the section label can be specified as well to narrow down the
+        search. If multiple figures match the search criteria, the last one
+        will be removed.
+
+        Any empty sections will be removed as well.
+
+        Parameters
+        ----------
+        caption : str
+            If set, search for the figure by caption.
+        section : str | None
+            If set, limit the search to the section with the given label.
+
+        Returns
+        -------
+        removed_index : int | None
+            The integer index of the figure that was removed, or ``None`` if no
+            figure matched the search criteria.
+        """
+        # Construct the search pattern
+        pattern = r'^%s-#-.*-#-custom$' % caption
+
+        # Search for figures matching the search pattern, regardless of
+        # section
+        matches = [i for i, fname_ in enumerate(self.fnames)
+                   if re.match(pattern, fname_)]
+        if section is not None:
+            # Narrow down the search to the given section
+            svar = self._sectionvars[section]
+            matches = [i for i in matches
+                       if self._sectionlabels[i] == svar]
+        if len(matches) == 0:
+            return None
+
+        # Remove last occurrence
+        index = max(matches)
+
+        # Remove the figure
+        del self.fnames[index]
+        del self._sectionlabels[index]
+        del self.html[index]
+
+        # Remove any (now) empty sections.
+        # We use a list() to copy the _sectionvars dictionary, since we are
+        # removing elements during the loop.
+        for section_, sectionlabel_ in list(self._sectionvars.items()):
+            if sectionlabel_ not in self._sectionlabels:
+                self.sections.remove(section_)
+                del self._sectionvars[section_]
+
+        return index
+
+    def _add_or_replace(self, fname, sectionlabel, html, replace=False):
+        """Append a figure to the report, or replace it if it already exists.
+
+        Parameters
+        ----------
+        fname : str
+            A unique identifier for the figure. If a figure with this
+            identifier has already been added, it will be replaced.
+        sectionlabel : str
+            The section to place the figure in.
+        html : str
+            The HTML that contains the figure.
+        replace : bool
+            Existing figures are only replaced if this is set to ``True``.
+            Defaults to ``False``.
+        """
+        assert isinstance(html, str)  # otherwise later will break
+        if replace and fname in self.fnames:
+            # Find last occurrence of the figure
+            ind = max([i for i, existing in enumerate(self.fnames)
+                       if existing == fname])
+            self.fnames[ind] = fname
+            self._sectionlabels[ind] = sectionlabel
+            self.html[ind] = html
+        else:
+            # Append new record
+            self.fnames.append(fname)
+            self._sectionlabels.append(sectionlabel)
+            self.html.append(html)
+
+    def add_figs_to_section(self, figs, captions, section='custom',
+                            scale=None, image_format=None, comments=None,
+                            replace=False):
+        """Append custom user-defined figures.
+
+        Parameters
+        ----------
+        figs : matplotlib.figure.Figure | mlab.Figure | array | list
+            A figure or a list of figures to add to the report. Each figure in
+            the list can be an instance of :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
+        captions : str | list of str
+            A caption or a list of captions to the figures.
+        section : str
+            Name of the section to place the figure in. If section already
+            exists, the figures will be appended to the end of the section.
+        scale : float | None | callable
+            Scale the images maintaining the aspect ratio.
+            If None, no scaling is applied. If float, scale will determine
+            the relative scaling (might not work for scale <= 1 depending on
+            font sizes). If function, should take a figure object as input
+            parameter. Defaults to None.
+        image_format : str | None
+            The image format to be used for the report, can be 'png' or 'svd'.
+            None (default) will use the default specified during Report
+            class construction.
+        comments : None | str | list of str
+            A string of text or a list of strings of text to be appended after
+            the figure.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
+        """
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
+        image_format = _check_image_format(self, image_format)
         _check_scale(scale)
         for fig, caption, comment in zip(figs, captions, comments):
             caption = 'custom plot' if caption == '' else caption
@@ -910,47 +1095,11 @@ class Report(object):
                                              show=True,
                                              image_format=image_format,
                                              comment=comment)
-            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
-            self._sectionlabels.append(sectionvar)
-            self.html.append(html)
-
-    def add_figs_to_section(self, figs, captions, section='custom',
-                            scale=None, image_format=None, comments=None):
-        """Append custom user-defined figures.
-
-        Parameters
-        ----------
-        figs : list of figures.
-            Each figure in the list can be an instance of
-            :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
-        captions : list of str
-            A list of captions to the figures.
-        section : str
-            Name of the section. If section already exists, the figures
-            will be appended to the end of the section
-        scale : float | None | callable
-            Scale the images maintaining the aspect ratio.
-            If None, no scaling is applied. If float, scale will determine
-            the relative scaling (might not work for scale <= 1 depending on
-            font sizes). If function, should take a figure object as input
-            parameter. Defaults to None.
-        image_format : str | None
-            The image format to be used for the report, can be 'png' or 'svd'.
-            None (default) will use the default specified during Report
-            class construction.
-        comments : None | str | list of str
-            A string of text or a list of strings of text to be appended after
-            the figure.
-        """
-        image_format = _check_image_format(self, image_format)
-        return self._add_figs_to_section(figs=figs, captions=captions,
-                                         section=section, scale=scale,
-                                         image_format=image_format,
-                                         comments=comments)
+            self._add_or_replace('%s-#-%s-#-custom' % (caption, sectionvar),
+                                 sectionvar, html, replace)
 
     def add_images_to_section(self, fnames, captions, scale=None,
-                              section='custom', comments=None):
+                              section='custom', comments=None, replace=False):
         """Append custom user-defined images.
 
         Parameters
@@ -969,6 +1118,10 @@ class Report(object):
         comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
             the image.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
+
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
@@ -987,9 +1140,7 @@ class Report(object):
             image_format = os.path.splitext(fname)[1][1:]
             image_format = image_format.lower()
 
-            if image_format not in ['png', 'gif', 'svg']:
-                raise ValueError("Unknown image format. Only 'png', 'gif' or "
-                                 "'svg' are supported. Got %s" % image_format)
+            _check_option('image_format', image_format, ['png', 'gif', 'svg'])
 
             # Convert image to binary string.
             with open(fname, 'rb') as f:
@@ -1002,11 +1153,12 @@ class Report(object):
                                              width=scale,
                                              comment=comment,
                                              show=True)
-            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
-            self._sectionlabels.append(sectionvar)
-            self.html.append(html)
 
-    def add_htmls_to_section(self, htmls, captions, section='custom'):
+            self._add_or_replace('%s-#-%s-#-custom' % (caption, sectionvar),
+                                 sectionvar, html, replace)
+
+    def add_htmls_to_section(self, htmls, captions, section='custom',
+                             replace=False):
         """Append htmls to the report.
 
         Parameters
@@ -1018,6 +1170,9 @@ class Report(object):
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
 
         Notes
         -----
@@ -1030,14 +1185,15 @@ class Report(object):
             global_id = self._get_id()
             div_klass = self._sectionvars[section]
 
-            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
-            self._sectionlabels.append(sectionvar)
-            self.html.append(
+            self._add_or_replace(
+                '%s-#-%s-#-custom' % (caption, sectionvar), sectionvar,
                 html_template.substitute(div_klass=div_klass, id=global_id,
-                                         caption=caption, html=html))
+                                         caption=caption, html=html), replace)
 
+    @fill_doc
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
-                           decim=2, n_jobs=1, subjects_dir=None):
+                           decim=2, n_jobs=1, subjects_dir=None,
+                           replace=False):
         """Render a bem slider html str.
 
         Parameters
@@ -1052,11 +1208,14 @@ class Report(object):
         decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
-        n_jobs : int
-          Number of jobs to run in parallel.
+        %(n_jobs)s
         subjects_dir : str | None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
+
 
         Notes
         -----
@@ -1068,13 +1227,15 @@ class Report(object):
                                 caption=caption)
         html, caption, _ = self._validate_input(html, caption, section)
         sectionvar = self._sectionvars[section]
-
-        self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
-        self._sectionlabels.append(sectionvar)
-        self.html.extend(html)
+        # convert list->str
+        assert isinstance(html, list)
+        html = u''.join(html)
+        self._add_or_replace('%s-#-%s-#-custom' % (caption[0], sectionvar),
+                             sectionvar, html)
 
     def add_slider_to_section(self, figs, captions=None, section='custom',
-                              title='Slider', scale=None, image_format=None):
+                              title='Slider', scale=None, image_format=None,
+                              replace=False):
         """Render a slider of figs to the report.
 
         Parameters
@@ -1103,6 +1264,10 @@ class Report(object):
             The image format to be used for the report, can be 'png' or 'svd'.
             None (default) will use the default specified during Report
             class construction.
+        replace : bool
+            If ``True``, figures already present that have the same caption
+            will be replaced. Defaults to ``False``.
+
 
         Notes
         -----
@@ -1121,9 +1286,7 @@ class Report(object):
         figs = figs[0]
 
         sectionvar = self._sectionvars[section]
-        self._sectionlabels.append(sectionvar)
         global_id = self._get_id()
-        img_klass = self._sectionvars[section]
         name = 'slider'
 
         html = []
@@ -1150,8 +1313,8 @@ class Report(object):
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
             slices.append(_build_html_image(img, slice_id, div_klass,
-                          img_klass, caption, first,
-                          image_format=image_format))
+                                            img_klass, caption, first,
+                                            image_format=image_format))
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         # Render the slices
@@ -1161,13 +1324,13 @@ class Report(object):
         html = '\n'.join(html)
 
         slider_klass = sectionvar
-        self.html.append(
+
+        self._add_or_replace(
+            '%s-#-%s-#-custom' % (title, sectionvar), sectionvar,
             slider_full_template.substitute(id=global_id, title=title,
                                             div_klass=slider_klass,
                                             slider_id=slider_id, html=html,
                                             image_html=image_html))
-
-        self.fnames.append('%s-#-%s-#-custom' % (section, sectionvar))
 
     ###########################################################################
     # HTML rendering
@@ -1176,7 +1339,6 @@ class Report(object):
         """Render one axis of the array."""
         global_id = global_id or name
         html = []
-        slices, slices_range = [], []
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
@@ -1202,23 +1364,22 @@ class Report(object):
     @verbose
     def _init_render(self, verbose=None):
         """Initialize the renderer."""
-        inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.min.js',
+        inc_fnames = ['jquery.js', 'jquery-ui.min.js',
                       'bootstrap.min.js', 'jquery-ui.min.css',
                       'bootstrap.min.css']
 
         include = list()
         for inc_fname in inc_fnames:
             logger.info('Embedding : %s' % inc_fname)
-            f = open(op.join(op.dirname(__file__), 'html', inc_fname),
-                     'r')
+            fname = op.join(op.dirname(__file__), 'html', inc_fname)
+            with open(fname, 'rb') as fid:
+                file_content = fid.read().decode('utf-8')
             if inc_fname.endswith('.js'):
                 include.append(u'<script type="text/javascript">' +
-                               f.read() + u'</script>')
+                               file_content + u'</script>')
             elif inc_fname.endswith('.css'):
                 include.append(u'<style type="text/css">' +
-                               f.read() + u'</style>')
-            f.close()
-
+                               file_content + u'</style>')
         self.include = ''.join(include)
 
     @verbose
@@ -1236,8 +1397,7 @@ class Report(object):
             Filename pattern(s) to include in the report.
             Example: [\*raw.fif, \*ave.fif] will include Raw as well as Evoked
             files.
-        n_jobs : int
-          Number of jobs to run in parallel.
+        %(n_jobs)s
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
@@ -1257,16 +1417,10 @@ class Report(object):
             If True (default), try to render the BEM.
 
             .. versionadded:: 0.16
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
         """
         image_format = _check_image_format(self, image_format)
-        valid_errors = ['ignore', 'warn', 'raise']
-        if on_error not in valid_errors:
-            raise ValueError('on_error must be one of %s, not %s'
-                             % (valid_errors, on_error))
+        _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
         self._sort = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)
@@ -1287,8 +1441,15 @@ class Report(object):
             info = read_info(self.info_fname, verbose=False)
             sfreq = info['sfreq']
         else:
-            warn('`info_fname` not provided. Cannot render -cov.fif(.gz) and '
-                 '-trans.fif(.gz) files.')
+            # only warn if relevant
+            if any(fname.endswith(('-cov.fif', '-cov.fif.gz'))
+                   for fname in fnames):
+                warn('`info_fname` not provided. Cannot render '
+                     '-cov.fif(.gz) files.')
+            if any(fname.endswith(('-trans.fif', '-trans.fif.gz'))
+                   for fname in fnames):
+                warn('`info_fname` not provided. Cannot render '
+                     '-trans.fif(.gz) files.')
             info, sfreq = None, None
 
         cov = None
@@ -1330,17 +1491,67 @@ class Report(object):
                 warn('`subjects_dir` and `subject` not provided. Cannot '
                      'render MRI and -trans.fif(.gz) files.')
 
+    def _get_state_params(self):
+        """Obtain all fields that are in the state dictionary of this object.
+
+        Returns
+        -------
+        non_opt_params : list of str
+            All parameters that must be present in the state dictionary.
+        opt_params : list of str
+            All parameters that are optionally present in the state dictionary.
+        """
+        # Note: self._fname is not part of the state
+        return (['baseline', 'cov_fname', 'fnames', 'html', 'include',
+                 'image_format', 'info_fname', 'initial_id', 'raw_psd',
+                 '_sectionlabels', 'sections', '_sectionvars',
+                 '_sort_sections', 'subjects_dir', 'subject', 'title',
+                 'verbose'],
+                ['data_path', 'lang', '_sort'])
+
+    def __getstate__(self):
+        """Get the state of the report as a dictionary."""
+        state = dict()
+        non_opt_params, opt_params = self._get_state_params()
+        for param in non_opt_params:
+            state[param] = getattr(self, param)
+        for param in opt_params:
+            if hasattr(self, param):
+                state[param] = getattr(self, param)
+        return state
+
+    def __setstate__(self, state):
+        """Set the state of the report."""
+        non_opt_params, opt_params = self._get_state_params()
+        for param in non_opt_params:
+            setattr(self, param, state[param])
+        for param in opt_params:
+            if param in state:
+                setattr(self, param, state[param])
+        return state
+
     def save(self, fname=None, open_browser=True, overwrite=False):
-        """Save html report and open it in browser.
+        """Save the report and optionally open it in browser.
 
         Parameters
         ----------
-        fname : str
-            File name of the report.
+        fname : str | None
+            File name of the report. If the file name ends in '.h5' or '.hdf5',
+            the report is saved in HDF5 format, so it can later be loaded again
+            with :func:`open_report`. If the file name ends in anything else,
+            the report is rendered to HTML. If ``None``, the report is saved to
+            'report.html' in the current working directory.
+            Defaults to ``None``.
         open_browser : bool
-            Open html browser after saving if True.
+            When saving to HTML, open the rendered HTML file browser after
+            saving if True. Defaults to True.
         overwrite : bool
-            If True, overwrite report if it already exists.
+            If True, overwrite report if it already exists. Defaults to False.
+
+        Returns
+        -------
+        fname : str
+            The file name to which the report was saved.
         """
         if fname is None:
             if not hasattr(self, 'data_path'):
@@ -1351,36 +1562,62 @@ class Report(object):
         else:
             fname = op.realpath(fname)
 
-        self._render_toc()
-
-        html = footer_template.substitute(date=time.strftime("%B %d, %Y"),
-                                          current_year=time.strftime("%Y"))
-        self.html.append(html)
-
         if not overwrite and op.isfile(fname):
             msg = ('Report already exists at location %s. '
                    'Overwrite it (y/[n])? '
                    % fname)
-            answer = moves.input(msg)
+            answer = input(msg)
             if answer.lower() == 'y':
                 overwrite = True
 
+        _, ext = op.splitext(fname)
+        is_hdf5 = ext.lower() in ['.h5', '.hdf5']
+
         if overwrite or not op.isfile(fname):
             logger.info('Saving report to location %s' % fname)
-            fobj = codecs.open(fname, 'w', 'utf-8')
-            fobj.write(_fix_global_ids(u''.join(self.html)))
-            fobj.close()
 
-            # remove header, TOC and footer to allow more saves
-            self.html.pop(0)
-            self.html.pop(0)
-            self.html.pop()
+            if is_hdf5:
+                write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
+                           title='mnepython')
+            else:
+                self._render_toc()
 
-        if open_browser:
-            import webbrowser
+                # Annotate the HTML with a TOC and footer.
+                with warnings.catch_warnings(record=True):
+                    warnings.simplefilter('ignore')
+                    html = footer_template.substitute(
+                        date=time.strftime("%B %d, %Y"),
+                        current_year=time.strftime("%Y"))
+                self.html.append(html)
+
+                # Writing to disk may fail. However, we need to make sure that
+                # the TOC and footer are removed regardless, otherwise they
+                # will be duplicated when the user attempts to save again.
+                try:
+                    # Write HTML
+                    with codecs.open(fname, 'w', 'utf-8') as fobj:
+                        fobj.write(_fix_global_ids(u''.join(self.html)))
+                finally:
+                    self.html.pop(0)
+                    self.html.pop(0)
+                    self.html.pop()
+
+        building_doc = os.getenv('_MNE_BUILDING_DOC', '').lower() == 'true'
+        if open_browser and not is_hdf5 and not building_doc:
             webbrowser.open_new_tab('file://' + fname)
 
+        self.fname = fname
         return fname
+
+    def __enter__(self):
+        """Do nothing when entering the context block."""
+        return self
+
+    def __exit__(self, type, value, traceback):
+        """Save the report when leaving the context block."""
+        if self._fname is not None:
+            self.save(self._fname, open_browser=False, overwrite=True)
+        return self
 
     @verbose
     def _render_toc(self, verbose=None):
@@ -1453,10 +1690,10 @@ class Report(object):
         self.fnames = fnames
         self._sectionlabels = sectionlabels
 
-        html_header = header_template.substitute(title=self.title,
-                                                 include=self.include,
-                                                 sections=self.sections,
-                                                 sectionvars=self._sectionvars)
+        lang = getattr(self, 'lang', 'en-us')
+        html_header = header_template.substitute(
+            title=self.title, include=self.include, lang=lang,
+            sections=self.sections, sectionvars=self._sectionvars)
         self.html.insert(0, html_header)  # Insert header at position 0
         self.html.insert(1, html_toc)  # insert TOC
 
@@ -1553,6 +1790,7 @@ class Report(object):
 
     def _render_raw(self, raw_fname):
         """Render raw (only text)."""
+        import matplotlib.pyplot as plt
         global_id = self._get_id()
 
         raw = read_raw_fif(raw_fname, allow_maxshield='yes')
@@ -1575,13 +1813,25 @@ class Report(object):
         meas_date = raw.info['meas_date']
         if meas_date is not None:
             meas_date = _stamp_to_dt(meas_date).strftime("%B %d, %Y") + ' GMT'
-        tmin = raw.first_samp / raw.info['sfreq']
-        tmax = raw.last_samp / raw.info['sfreq']
 
         html = raw_template.substitute(
             div_klass='raw', id=global_id, caption=caption, info=raw.info,
             meas_date=meas_date, n_eeg=n_eeg, n_grad=n_grad, n_mag=n_mag,
-            eog=eog, ecg=ecg, tmin=tmin, tmax=tmax)
+            eog=eog, ecg=ecg, tmin=raw._first_time, tmax=raw._last_time)
+
+        raw_psd = {} if self.raw_psd is True else self.raw_psd
+        if isinstance(raw_psd, dict):
+            from matplotlib.backends.backend_agg import FigureCanvasAgg
+            n_ax = sum(kind in raw for kind in _data_types)
+            fig, axes = plt.subplots(n_ax, 1, figsize=(6, 1 + 1.5 * n_ax),
+                                     dpi=92)
+            FigureCanvasAgg(fig)
+            img = _fig_to_img(raw.plot_psd, self.image_format,
+                              ax=axes, **raw_psd)
+            new_html = image_template.substitute(
+                img=img, div_klass='raw', img_klass='raw',
+                caption='PSD', show=True, image_format=self.image_format)
+            html += '\n\n' + new_html
         return html
 
     def _render_forward(self, fwd_fname):
@@ -1812,3 +2062,64 @@ def _fix_global_ids(html):
         html = re.sub('id="###"', 'id="%s"' % global_id, html, count=1)
         global_id += 1
     return html
+
+
+###############################################################################
+# Scraper for sphinx-gallery
+
+_SCRAPER_TEXT = '''
+.. only:: builder_html
+
+    .. container:: row
+
+        .. rubric:: The `HTML document <{0}>`__ written by :meth:`mne.Report.save`:
+
+        .. raw:: html
+
+            <iframe class="sg_report" sandbox="allow-scripts" src="{0}"></iframe>
+
+'''  # noqa: E501
+# Adapted from fa-file-code
+_FA_FILE_CODE = '<svg class="sg_report" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="#dec" d="M149.9 349.1l-.2-.2-32.8-28.9 32.8-28.9c3.6-3.2 4-8.8.8-12.4l-.2-.2-17.4-18.6c-3.4-3.6-9-3.7-12.4-.4l-57.7 54.1c-3.7 3.5-3.7 9.4 0 12.8l57.7 54.1c1.6 1.5 3.8 2.4 6 2.4 2.4 0 4.8-1 6.4-2.8l17.4-18.6c3.3-3.5 3.1-9.1-.4-12.4zm220-251.2L286 14C277 5 264.8-.1 252.1-.1H48C21.5 0 0 21.5 0 48v416c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48V131.9c0-12.7-5.1-25-14.1-34zM256 51.9l76.1 76.1H256zM336 464H48V48h160v104c0 13.3 10.7 24 24 24h104zM209.6 214c-4.7-1.4-9.5 1.3-10.9 6L144 408.1c-1.4 4.7 1.3 9.6 6 10.9l24.4 7.1c4.7 1.4 9.6-1.4 10.9-6L240 231.9c1.4-4.7-1.3-9.6-6-10.9zm24.5 76.9l.2.2 32.8 28.9-32.8 28.9c-3.6 3.2-4 8.8-.8 12.4l.2.2 17.4 18.6c3.3 3.5 8.9 3.7 12.4.4l57.7-54.1c3.7-3.5 3.7-9.4 0-12.8l-57.7-54.1c-3.5-3.3-9.1-3.2-12.4.4l-17.4 18.6c-3.3 3.5-3.1 9.1.4 12.4z" class=""></path></svg>'  # noqa: E501
+
+
+class _ReportScraper(object):
+    """Scrape Report outputs.
+
+    Only works properly if conf.py is configured properly and the file
+    is written to the same directory as the example script.
+    """
+
+    def __init__(self):
+        self.app = None
+        self.files = dict()
+
+    def __repr__(self):
+        return '<ReportScraper>'
+
+    def __call__(self, block, block_vars, gallery_conf):
+        for report in block_vars['example_globals'].values():
+            if (isinstance(report, Report) and hasattr(report, 'fname') and
+                    report.fname.endswith('.html') and
+                    gallery_conf['builder_name'] == 'html'):
+                # Thumbnail
+                image_path_iterator = block_vars['image_path_iterator']
+                img_fname = next(image_path_iterator)
+                img_fname = img_fname.replace('.png', '.svg')
+                with open(img_fname, 'w') as fid:
+                    fid.write(_FA_FILE_CODE)
+                # copy HTML file
+                html_fname = op.basename(report.fname)
+                out_fname = op.join(
+                    self.app.builder.outdir,
+                    op.relpath(op.dirname(block_vars['target_file']),
+                               self.app.builder.srcdir), html_fname)
+                self.files[report.fname] = out_fname
+                # embed links/iframe
+                data = _SCRAPER_TEXT.format(html_fname)
+                return data
+        return ''
+
+    def copyfiles(self, *args, **kwargs):
+        for key, value in self.files.items():
+            copyfile(key, value)

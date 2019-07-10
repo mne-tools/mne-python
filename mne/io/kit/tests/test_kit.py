@@ -1,18 +1,14 @@
-"""Data and Channel Location Equivalence Tests"""
-from __future__ import print_function
-
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
 import inspect
 import os.path as op
-import warnings
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import (assert_equal, assert_almost_equal, assert_raises,
-                        assert_true)
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
+import pytest
 from scipy import linalg
 import scipy.io
 
@@ -20,8 +16,7 @@ import mne
 from mne import pick_types, Epochs, find_events, read_events
 from mne.datasets.testing import requires_testing_data
 from mne.transforms import apply_trans
-from mne.tests.common import assert_dig_allclose
-from mne.utils import run_tests_if_main, _TempDir
+from mne.utils import run_tests_if_main, assert_dig_allclose
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.constants import FIFF
 from mne.io.kit.coreg import read_sns
@@ -51,12 +46,12 @@ sqd_as_path = op.join(data_path, 'KIT', 'test_as-raw.con')
 @requires_testing_data
 def test_data():
     """Test reading raw kit files."""
-    assert_raises(TypeError, read_raw_kit, epochs_path)
-    assert_raises(TypeError, read_epochs_kit, sqd_path)
-    assert_raises(ValueError, read_raw_kit, sqd_path, mrk_path, elp_txt_path)
-    assert_raises(ValueError, read_raw_kit, sqd_path, None, None, None,
+    pytest.raises(TypeError, read_raw_kit, epochs_path)
+    pytest.raises(TypeError, read_epochs_kit, sqd_path)
+    pytest.raises(ValueError, read_raw_kit, sqd_path, mrk_path, elp_txt_path)
+    pytest.raises(ValueError, read_raw_kit, sqd_path, None, None, None,
                   list(range(200, 190, -1)))
-    assert_raises(ValueError, read_raw_kit, sqd_path, None, None, None,
+    pytest.raises(ValueError, read_raw_kit, sqd_path, None, None, None,
                   list(range(167, 159, -1)), '*', 1, True)
     # check functionality
     raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_txt_path,
@@ -65,7 +60,7 @@ def test_data():
                               elp=elp_txt_path, hsp=hsp_txt_path,
                               stim=list(range(167, 159, -1)), slope='+',
                               stimthresh=1)
-    assert_true('RawKIT' in repr(raw_py))
+    assert 'RawKIT' in repr(raw_py)
     assert_equal(raw_mrk.info['kit_system_id'], KIT.SYSTEM_NYU_2010)
 
     # check number/kind of channels
@@ -228,34 +223,35 @@ def test_hsp_elp():
     assert_array_almost_equal(pts_elp_in_dev, pts_txt_in_dev, decimal=5)
 
 
-def test_decimate():
+def test_decimate(tmpdir):
     """Test decimation of digitizer headshapes with too many points."""
     # load headshape and convert to meters
     hsp_mm = _get_ico_surface(5)['rr'] * 100
     hsp_m = hsp_mm / 1000.
 
     # save headshape to a file in mm in temporary directory
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     sphere_hsp_path = op.join(tempdir, 'test_sphere.txt')
     np.savetxt(sphere_hsp_path, hsp_mm)
 
     # read in raw data using spherical hsp, and extract new hsp
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning,
+                      match='was automatically downsampled .* FastScan'):
         raw = read_raw_kit(sqd_path, mrk_path, elp_txt_path, sphere_hsp_path)
-    assert_true(any('more than' in str(ww.message) for ww in w))
     # collect headshape from raw (should now be in m)
     hsp_dec = np.array([dig['r'] for dig in raw.info['dig']])[8:]
 
     # with 10242 points and _decimate_points set to resolution of 5 mm, hsp_dec
     # should be a bit over 5000 points. If not, something is wrong or
     # decimation resolution has been purposefully changed
-    assert_true(len(hsp_dec) > 5000)
+    assert len(hsp_dec) > 5000
 
     # should have similar size, distance from center
     dist = np.sqrt(np.sum((hsp_m - np.mean(hsp_m, axis=0))**2, axis=1))
     dist_dec = np.sqrt(np.sum((hsp_dec - np.mean(hsp_dec, axis=0))**2, axis=1))
     hsp_rad = np.mean(dist)
     hsp_dec_rad = np.mean(dist_dec)
-    assert_almost_equal(hsp_rad, hsp_dec_rad, places=3)
+    assert_array_almost_equal(hsp_rad, hsp_dec_rad, decimal=3)
+
 
 run_tests_if_main()

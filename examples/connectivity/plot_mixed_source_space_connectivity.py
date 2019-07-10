@@ -6,7 +6,7 @@ Compute mixed source space connectivity and visualize it using a circular graph
 This example computes the all-to-all connectivity between 75 regions in
 a mixed source space based on dSPM inverse solutions and a FreeSurfer cortical
 parcellation. The connectivity is visualized using a circular graph which
-is ordered based on the locations of the regions.
+is ordered based on the locations of the regions in the axial plane.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
@@ -53,25 +53,25 @@ labels_vol = ['Left-Amygdala',
               'Right-Thalamus-Proper',
               'Right-Cerebellum-Cortex']
 
-# Setup a surface-based source space
+# Setup a surface-based source space, oct5 is not very dense (just used
+# to speed up this example; we recommend oct6 in actual analyses)
 src = setup_source_space(subject, subjects_dir=subjects_dir,
-                         spacing='oct6', add_dist=False)
+                         spacing='oct5', add_dist=False)
 
 # Setup a volume source space
-# set pos=7.0 for speed issue
-vol_src = setup_volume_source_space(subject, mri=fname_aseg,
-                                    pos=7.0,
-                                    bem=fname_model,
-                                    volume_label=labels_vol,
-                                    subjects_dir=subjects_dir)
+# set pos=10.0 for speed, not very accurate; we recommend something smaller
+# like 5.0 in actual analyses:
+vol_src = setup_volume_source_space(
+    subject, mri=fname_aseg, pos=10.0, bem=fname_model,
+    add_interpolator=False,  # just for speed, usually use True
+    volume_label=labels_vol, subjects_dir=subjects_dir)
 # Generate the mixed source space
 src += vol_src
 
 # compute the fwd matrix
 fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
                             mindist=5.0,  # ignore sources<=5mm from innerskull
-                            meg=True, eeg=False,
-                            n_jobs=1)
+                            meg=True, eeg=False, n_jobs=1)
 
 # Load data
 raw = read_raw_fif(fname_raw, preload=True)
@@ -164,7 +164,6 @@ rh_labels = [label[:-2] + 'rh' for label in lh_labels
              if label != 'Brain-Stem' and label[:-2] + 'rh' in rh_labels]
 
 # Save the plot order
-node_order = list()
 node_order = lh_labels[::-1] + rh_labels
 
 node_angles = circular_layout(label_names, node_order, start_pos=90,
@@ -178,7 +177,7 @@ fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
 plot_connectivity_circle(conmat, label_names, n_lines=300,
                          node_angles=node_angles, node_colors=node_colors,
                          title='All-to-All Connectivity left-Auditory '
-                         'Condition (PLI)', fig=fig, interactive=False)
+                         'Condition (PLI)', fig=fig)
 
 ###############################################################################
 # Save the figure (optional)

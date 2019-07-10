@@ -4,31 +4,35 @@
 
 import os
 import os.path as op
-import warnings
 
-from nose.tools import assert_equal, assert_true, assert_raises
+import pytest
 
 import numpy as np
 from scipy.io import savemat
+from copy import deepcopy
+from functools import partial
 
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
-                           assert_array_less)
-from mne.tests.common import assert_dig_allclose
-from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
-                                  get_builtin_montages)
-from mne.utils import _TempDir, run_tests_if_main
+                           assert_array_less, assert_equal)
+
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
+from mne.channels import (Montage, read_montage, read_dig_montage,
+                          get_builtin_montages)
+from mne.channels.montage import _set_montage
+from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
+                       object_diff)
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
-from mne.io.meas_info import _read_dig_points
+from mne.digitization._utils import _read_dig_points
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
-                    read_fiducials)
+                    read_raw_cnt, read_raw_edf, read_raw_nicolet, read_raw_bdf,
+                    read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
 
 from mne.datasets import testing
 
@@ -39,15 +43,26 @@ egi_raw_fname = op.join(data_path, 'montage', 'egi_dig_test.raw')
 egi_fif_fname = op.join(data_path, 'montage', 'egi_dig_raw.fif')
 locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
+eeglab_fname = op.join(data_path, 'EEGLAB', 'test_raw.set')
+bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
+bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
+egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
+cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+io_dir = op.dirname(_mne_io_file)
 kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
 elp = op.join(kit_dir, 'test_elp.txt')
 hsp = op.join(kit_dir, 'test_hsp.txt')
 hpi = op.join(kit_dir, 'test_mrk.sqd')
 bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+edf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test.edf')
+bdf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test_bdf_eeglab.mat')
+egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
+vhdr_path = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 ctf_fif_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
+                        'test_nicolet_raw.data')
 
 
 def test_fiducials():
@@ -81,15 +96,15 @@ def test_documented():
         elif start is not None and li > start and line.startswith('===='):
             stop = li
             break
-    assert_true(start is not None)
-    assert_true(stop is not None)
+    assert (start is not None)
+    assert (stop is not None)
     kinds = [line.split(' ')[0] for line in lines[start:stop]]
     kinds = [kind for kind in kinds if kind != '']
     montages = os.listdir(op.join(op.dirname(_mne_file), 'channels', 'data',
                                   'montages'))
     montages = sorted(op.splitext(m)[0] for m in montages)
     assert_equal(len(set(montages)), len(montages))
-    assert_equal(len(set(kinds)), len(kinds), msg=sorted(kinds))
+    assert_equal(len(set(kinds)), len(kinds), err_msg=str(sorted(kinds)))
     assert_equal(set(montages), set(kinds))
 
 
@@ -193,7 +208,7 @@ def test_montage():
             fid.write(text)
         montage = read_montage(fname)
         if kind in ('sfp', 'txt'):
-            assert_true('very_very_very_long_name' in montage.ch_names)
+            assert ('very_very_very_long_name' in montage.ch_names)
         assert_equal(len(montage.ch_names), 4)
         assert_equal(len(montage.ch_names), len(montage.pos))
         assert_equal(montage.pos.shape, (4, 3))
@@ -282,39 +297,34 @@ def test_montage():
             data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
 
         # test return type as well as set montage
-        assert_true(isinstance(evoked.set_montage(montage), type(evoked)))
+        assert (isinstance(evoked.set_montage(montage), type(evoked)))
 
         pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
         assert_array_equal(pos3, montage.pos)
         assert_equal(montage.ch_names, evoked.info['ch_names'])
 
         # Warning should be raised when some EEG are not specified in montage
-        with warnings.catch_warnings(record=True) as w:
-            info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
-                               ['eeg'] * (len(montage.ch_names) + 2))
+        info = create_info(montage.ch_names + ['foo', 'bar'], 1e3,
+                           ['eeg'] * (len(montage.ch_names) + 2))
+        with pytest.warns(RuntimeWarning, match='position specified'):
             _set_montage(info, montage)
-            assert_true(len(w) == 1)
 
     # Channel names can be treated case insensitive
-    with warnings.catch_warnings(record=True) as w:
-        info = create_info(['FP1', 'af7', 'AF3'], 1e3, ['eeg'] * 3)
-        _set_montage(info, montage)
-        assert_true(len(w) == 0)
+    info = create_info(['FP1', 'af7', 'AF3'], 1e3, ['eeg'] * 3)
+    _set_montage(info, montage)
 
     # Unless there is a collision in names
-    with warnings.catch_warnings(record=True) as w:
-        info = create_info(['FP1', 'Fp1', 'AF3'], 1e3, ['eeg'] * 3)
-        assert_true(info['dig'] is None)
+    info = create_info(['FP1', 'Fp1', 'AF3'], 1e3, ['eeg'] * 3)
+    assert (info['dig'] is None)
+    with pytest.warns(RuntimeWarning, match='position specified'):
         _set_montage(info, montage)
-        assert_equal(len(info['dig']), 5)  # 2 EEG w/pos, 3 fiducials
-        assert_true(len(w) == 1)
-    with warnings.catch_warnings(record=True) as w:
-        montage.ch_names = ['FP1', 'Fp1', 'AF3']
-        info = create_info(['fp1', 'AF3'], 1e3, ['eeg', 'eeg'])
-        assert_true(info['dig'] is None)
+    assert len(info['dig']) == 5  # 2 EEG w/pos, 3 fiducials
+    montage.ch_names = ['FP1', 'Fp1', 'AF3']
+    info = create_info(['fp1', 'AF3'], 1e3, ['eeg', 'eeg'])
+    assert (info['dig'] is None)
+    with pytest.warns(RuntimeWarning, match='position specified'):
         _set_montage(info, montage, set_dig=False)
-        assert_true(info['dig'] is None)
-        assert_true(len(w) == 1)
+    assert (info['dig'] is None)
 
     # test get_pos2d method
     montage = read_montage("standard_1020")
@@ -323,19 +333,19 @@ def test_montage():
     fz = montage.get_pos2d()[montage.ch_names.index("Fz")]
     oz = montage.get_pos2d()[montage.ch_names.index("Oz")]
     f1 = montage.get_pos2d()[montage.ch_names.index("F1")]
-    assert_true(c3[0] < 0)  # left hemisphere
-    assert_true(c4[0] > 0)  # right hemisphere
-    assert_true(fz[1] > 0)  # frontal
-    assert_true(oz[1] < 0)  # occipital
+    assert (c3[0] < 0)  # left hemisphere
+    assert (c4[0] > 0)  # right hemisphere
+    assert (fz[1] > 0)  # frontal
+    assert (oz[1] < 0)  # occipital
     assert_allclose(fz[0], 0, atol=1e-2)  # midline
     assert_allclose(oz[0], 0, atol=1e-2)  # midline
-    assert_true(f1[0] < 0 and f1[1] > 0)  # left frontal
+    assert (f1[0] < 0 and f1[1] > 0)  # left frontal
 
     # test get_builtin_montages function
     montages = get_builtin_montages()
-    assert_true(len(montages) > 0)  # MNE should always ship with montages
-    assert_true("standard_1020" in montages)  # 10/20 montage
-    assert_true("standard_1005" in montages)  # 10/05 montage
+    assert (len(montages) > 0)  # MNE should always ship with montages
+    assert ("standard_1020" in montages)  # 10/20 montage
+    assert ("standard_1005" in montages)  # 10/05 montage
 
 
 @testing.requires_testing_data
@@ -350,7 +360,7 @@ def test_read_locs():
 
 
 def test_read_dig_montage():
-    """Test read_dig_montage"""
+    """Test read_dig_montage."""
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
     montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
     elp_points = _read_dig_points(elp)
@@ -360,7 +370,7 @@ def test_read_dig_montage():
     assert_array_equal(montage.elp, elp_points)
     assert_array_equal(montage.hsp, hsp_points)
     assert_array_equal(montage.hpi, hpi_points)
-    assert_true(montage.dev_head_t is None)
+    assert (montage.dev_head_t is None)
     montage = read_dig_montage(hsp, hpi, elp, names,
                                transform=True, dev_head_t=True)
     # check coordinate transformation
@@ -385,12 +395,12 @@ def test_read_dig_montage():
     # test unit parameter and .mat support
     tempdir = _TempDir()
     mat_hsp = op.join(tempdir, 'test.mat')
-    savemat(mat_hsp, dict(Points=(1000 * hsp_points).T))
+    savemat(mat_hsp, dict(Points=(1000 * hsp_points).T), oned_as='row')
     montage_cm = read_dig_montage(mat_hsp, hpi, elp, names, unit='cm')
     assert_allclose(montage_cm.hsp, montage.hsp * 10.)
     assert_allclose(montage_cm.elp, montage.elp * 10.)
     assert_array_equal(montage_cm.hpi, montage.hpi)
-    assert_raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
+    pytest.raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
                   unit='km')
     # extra columns
     extra_hsp = op.join(tempdir, 'test.txt')
@@ -402,9 +412,8 @@ def test_read_dig_montage():
                 else:
                     # extra column
                     fout.write(line.rstrip() + b' 0.0 0.0 0.0\n')
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Found .* columns instead of 3'):
         montage_extra = read_dig_montage(extra_hsp, hpi, elp, names)
-    assert_true(len(w) == 1 and all('columns' in str(ww.message) for ww in w))
     assert_allclose(montage_extra.hsp, montage.hsp)
     assert_allclose(montage_extra.elp, montage.elp)
 
@@ -430,9 +439,8 @@ def test_set_dig_montage():
     montage_read = read_dig_montage(fif=fname_temp)
     for use_mon in (montage, montage_read):
         info = create_info(['Test Ch'], 1e3, ['eeg'])
-        with warnings.catch_warnings(record=True) as w:  # test ch pos not set
+        with pytest.warns(None):  # warns on one run about not all positions
             _set_montage(info, use_mon)
-        assert_true(all('not set' in str(ww.message) for ww in w))
         hs = np.array([p['r'] for i, p in enumerate(info['dig'])
                        if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
         nasion_dig = np.array([p['r'] for p in info['dig']
@@ -465,18 +473,15 @@ def test_fif_dig_montage():
     _check_roundtrip(dig_montage, fname_temp)
 
     # Make a BrainVision file like the one the user would have had
-    with warnings.catch_warnings(record=True) as w:
-        raw_bv = read_raw_brainvision(bv_fname, preload=True)
-    assert_true(any('will be dropped' in str(ww.message) for ww in w))
+    raw_bv = read_raw_brainvision(bv_fname, preload=True)
     raw_bv_2 = raw_bv.copy()
     mapping = dict()
-    for ii, ch_name in enumerate(raw_bv.ch_names[:-1]):
+    for ii, ch_name in enumerate(raw_bv.ch_names):
         mapping[ch_name] = 'EEG%03d' % (ii + 1,)
     raw_bv.rename_channels(mapping)
-    for ii, ch_name in enumerate(raw_bv_2.ch_names[:-1]):
+    for ii, ch_name in enumerate(raw_bv_2.ch_names):
         mapping[ch_name] = 'EEG%03d' % (ii + 33,)
     raw_bv_2.rename_channels(mapping)
-    raw_bv.drop_channels(['STI 014'])
     raw_bv.add_channels([raw_bv_2])
 
     for ii in range(2):
@@ -489,8 +494,8 @@ def test_fif_dig_montage():
         # Check the result
         evoked = read_evokeds(evoked_fname)[0]
 
-        assert_equal(len(raw_bv.ch_names), len(evoked.ch_names))
-        for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs']):
+        assert_equal(len(raw_bv.ch_names), len(evoked.ch_names) - 1)
+        for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs'][:-1]):
             assert_equal(ch_py['ch_name'],
                          ch_c['ch_name'].replace('EEG ', 'EEG'))
             # C actually says it's unknown, but it's not (?):
@@ -504,7 +509,7 @@ def test_fif_dig_montage():
     # Roundtrip of non-FIF start
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
     montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
-    assert_raises(RuntimeError, montage.save, fname_temp)  # must be head coord
+    pytest.raises(RuntimeError, montage.save, fname_temp)  # must be head coord
     montage = read_dig_montage(hsp, hpi, elp, names)
     _check_roundtrip(montage, fname_temp)
 
@@ -550,7 +555,7 @@ def test_set_montage():
     raw.set_montage('mgh60')  # test loading with string argument
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
-    assert_true((orig_pos != new_pos).all())
+    assert ((orig_pos != new_pos).all())
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
     # mgh70 has no 61/62/63/64 (these are EOG/ECG)
@@ -571,5 +576,110 @@ def _check_roundtrip(montage, fname):
                             getattr(montage_read, kind), err_msg=kind)
     assert_equal(montage_read.coord_frame, 'head')
 
+
+def _fake_montage(ch_names):
+    return Montage(
+        pos=np.random.RandomState(42).randn(len(ch_names), 3),
+        ch_names=ch_names,
+        kind='foo',
+        selection=np.arange(len(ch_names))
+    )
+
+
+cnt_ignore_warns = [
+    pytest.mark.filterwarnings(
+        'ignore:.*Could not parse meas date from the header. Setting to None.'
+    ),
+    pytest.mark.filterwarnings((
+        'ignore:.*Could not define the number of bytes automatically.'
+        ' Defaulting to 2.')
+    ),
+]
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('read_raw,fname', [
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname,
+                 id='nicolet'),
+    pytest.param(read_raw_eeglab, eeglab_fname, id='eeglab'),
+    pytest.param(read_raw_edf, edf_path, id='edf'),
+    pytest.param(read_raw_bdf, bdf_path,
+                 marks=pytest.mark.xfail(raises=NotImplementedError),
+                 id='bdf 1'),
+    pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
+    pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+    pytest.param(read_raw_egi, egi_fname1, id='egi mff'),
+    pytest.param(read_raw_egi, egi_fname2,
+                 marks=pytest.mark.filterwarnings('ignore:.*than one event'),
+                 id='egi raw'),
+    pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
+                 cnt_fname, marks=cnt_ignore_warns, id='cnt'),
+    pytest.param(read_raw_brainvision, vhdr_path, id='brainvision'),
+])
+def test_montage_when_reading_and_setting(read_raw, fname):
+    """Test montage.
+
+    This is a regression test to help refactor Digitization.
+    """
+    raw_none = read_raw(fname, montage=None, preload=False)
+    # raw_none_copy = deepcopy(raw_none)
+    montage = _fake_montage(raw_none.info['ch_names'])
+
+    raw_montage = read_raw(fname, montage=montage, preload=False)
+    raw_none.set_montage(montage)
+
+    # Check that reading with montage or setting the montage is the same
+    assert_array_equal(raw_none.get_data(), raw_montage.get_data())
+    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
+    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('read_raw,fname', [
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname,
+                 marks=pytest.mark.skip,
+                 id='nicolet'),
+    pytest.param(read_raw_eeglab, eeglab_fname,
+                 marks=pytest.mark.skip,
+                 id='eeglab'),
+    pytest.param(read_raw_edf, edf_path, id='edf'),
+    pytest.param(read_raw_bdf, bdf_path,
+                 marks=pytest.mark.xfail(raises=NotImplementedError),
+                 id='bdf 1'),
+    pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
+    pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+    pytest.param(read_raw_egi, egi_fname1,
+                 marks=pytest.mark.skip,
+                 id='egi mff'),
+    pytest.param(read_raw_egi, egi_fname2,
+                 marks=pytest.mark.filterwarnings('ignore:.*than one event'),
+                 id='egi raw'),
+    pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
+                 cnt_fname,
+                 marks=[*cnt_ignore_warns, pytest.mark.skip],
+                 id='cnt'),
+    pytest.param(read_raw_brainvision, vhdr_path,
+                 marks=pytest.mark.skip,
+                 id='brainvision'),
+])
+def test_montage_when_reading_and_setting_more(read_raw, fname):
+    """Test montage.
+
+    This is a regression test to help refactor Digitization.
+    """
+    raw_none = read_raw(fname, montage=None, preload=False)
+    raw_none_copy = deepcopy(raw_none)
+
+    # check consistency between reading and setting with montage=None
+    assert raw_none_copy.info['dig'] is None
+    original_chs = deepcopy(raw_none_copy.info['chs'])
+    original_loc = np.array([ch['loc'] for ch in original_chs])
+    assert_array_equal(original_loc, np.zeros_like(original_loc))
+
+    raw_none_copy.set_montage(montage=None)
+    loc = np.array([ch['loc'] for ch in raw_none_copy.info['chs']])
+    assert_array_equal(loc, np.full_like(loc, np.NaN))
 
 run_tests_if_main()

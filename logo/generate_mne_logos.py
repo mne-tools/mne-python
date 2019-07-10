@@ -14,20 +14,17 @@ import numpy as np
 import os.path as op
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-from matplotlib.mlab import bivariate_normal
+from scipy.stats import multivariate_normal
 from matplotlib.path import Path
 from matplotlib.text import TextPath
 from matplotlib.patches import PathPatch
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.transforms import Bbox
 
 # manually set values
 dpi = 72.
 center_fudge = np.array([2, 0])  # compensate for font bounding box padding
 tagline_scale_fudge = 0.98  # to get justification right
 tagline_offset_fudge = np.array([0.4, 0])
-
-static_dir = op.join('..', 'doc', '_static')
 
 # font, etc
 rcp = {'font.sans-serif': ['Primetime'], 'font.style': 'normal',
@@ -47,8 +44,11 @@ delta = 0.1
 x = np.arange(-8.0, 8.0, delta)
 y = np.arange(-3.0, 3.0, delta)
 X, Y = np.meshgrid(x, y)
-Z1 = bivariate_normal(X, Y, 8.0, 7.0, -5.0, 0.9, 1.0)
-Z2 = bivariate_normal(X, Y, 15.0, 2.5, 2.6, -2.5, 2.5)
+xy = np.array([X, Y]).transpose(1, 2, 0)
+Z1 = multivariate_normal.pdf(xy, mean=[-5.0, 0.9],
+                             cov=np.array([[8.0, 1.0], [1.0, 7.0]]) ** 2)
+Z2 = multivariate_normal.pdf(xy, mean=[2.6, -2.5],
+                             cov=np.array([[15.0, 2.5], [2.5, 2.5]]) ** 2)
 Z = Z2 - 0.7 * Z1
 
 # color map: field gradient (yellow-red-gray-blue-cyan)
@@ -110,6 +110,8 @@ ax.set_ylim(np.ceil(yy), yl[-1])
 
 # only save actual image extent plus a bit of padding
 plt.draw()
+static_dir = op.join(op.dirname(__file__), '..', 'doc', '_static')
+assert op.isdir(static_dir)
 plt.savefig(op.join(static_dir, 'mne_logo.png'), transparent=True)
 plt.close()
 
@@ -128,9 +130,9 @@ ax = plt.Axes(fig, [0., 0., 1., 1.])
 ax.set_axis_off()
 fig.add_axes(ax)
 # plot rainbow
-im = ax.imshow(X, cmap=mne_field_grad_cols, aspect='equal', zorder=1)
-im = ax.imshow(np.ones_like(X) * 0.5, cmap='Greys', aspect='equal', zorder=0,
-               clim=[0, 1])
+ax.imshow(X, cmap=mne_field_grad_cols, aspect='equal', zorder=1)
+ax.imshow(np.ones_like(X) * 0.5, cmap='Greys', aspect='equal', zorder=0,
+          clim=[0, 1])
 plot_dims = np.r_[np.diff(ax.get_xbound()), np.diff(ax.get_ybound())]
 # MNE text in white
 mne_path = TextPath((0, 0), 'MNE')

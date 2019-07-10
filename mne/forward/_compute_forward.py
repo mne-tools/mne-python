@@ -17,9 +17,9 @@ import numpy as np
 from copy import deepcopy
 
 from ..surface import fast_cross_3d, _project_onto_surface
-from ..io.constants import FIFF
+from ..io.constants import FIFF, FWD
 from ..transforms import apply_trans
-from ..utils import logger, verbose, _pl
+from ..utils import logger, verbose, _pl, warn, fill_doc
 from ..parallel import parallel_func
 from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import pick_types
@@ -59,6 +59,7 @@ def _check_coil_frame(coils, coord_frame, bem):
     return coils, coord_frame
 
 
+@fill_doc
 def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
     """Parallel wrapper for _do_lin_field_coeff to compute linear coefficients.
 
@@ -77,8 +78,7 @@ def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
         Weights for MEG coil integration points
     bins : ndarray, shape (n_integration_points,)
         The sensor assignments for each rmag/cosmag/w.
-    n_jobs : int
-        Number of jobs to run in parallel
+    %(n_jobs)s
 
     Returns
     -------
@@ -126,28 +126,31 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
         Linear coefficients with effect of each BEM vertex on each sensor (?)
     """
     coeff = np.zeros((bins[-1] + 1, len(bem_rr)))
+    w_cosmags = ws[:, np.newaxis] * cosmags
+    diff = rmags[:, np.newaxis, :] - bem_rr
+    den = np.sum(diff * diff, axis=-1)
+    den *= np.sqrt(den)
+    den *= 3
     for tri, tri_nn, tri_area in zip(tris, tn, ta):
         # Accumulate the coefficients for each triangle node and add to the
         # corresponding coefficient matrix
-        tri_rr = bem_rr[tri]
 
+        # Simple version (bem_lin_field_coeffs_simple)
         # The following is equivalent to:
+        # tri_rr = bem_rr[tri]
         # for j, coil in enumerate(coils['coils']):
         #     x = func(coil['rmag'], coil['cosmag'],
         #              tri_rr, tri_nn, tri_area)
         #     res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
         #     coeff[j][tri + off] += mult * res
 
-        # Simple version (bem_lin_field_coeffs_simple)
-        zz = []
-        for trr in tri_rr:
-            diff = rmags - trr
-            dl = np.sum(diff * diff, axis=1)
-            c = fast_cross_3d(diff, tri_nn[np.newaxis, :])
-            x = tri_area * np.sum(c * cosmags, axis=1) / \
-                (3.0 * dl * np.sqrt(dl))
-            zz += [np.bincount(bins, weights=x * ws, minlength=bins[-1] + 1)]
-        coeff[:, tri] += np.array(zz).T
+        c = fast_cross_3d(diff[:, tri], tri_nn)
+        c *= w_cosmags[:, np.newaxis]
+        for ti in range(3):
+            x = np.sum(c[:, ti], axis=-1)
+            x /= den[:, tri[ti]] / tri_area
+            coeff[:, tri[ti]] += \
+                np.bincount(bins, weights=x, minlength=bins[-1] + 1)
     return coeff
 
 
@@ -166,6 +169,7 @@ def _concatenate_coils(coils):
     return rmags, cosmags, ws, bins
 
 
+@fill_doc
 def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     """Set up for computing the solution at a set of MEG coils.
 
@@ -179,8 +183,7 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
         Class constant identifying coordinate frame
     mults : ndarray, shape (1, n_BEM_vertices)
         Multiplier for every vertex in BEM
-    n_jobs : int
-        Number of jobs to run in parallel
+    %(n_jobs)s
 
     Returns
     -------
@@ -312,13 +315,17 @@ def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
     """
     # NOTE: the (μ_0 / (4π) factor has been moved to _prep_field_communication
     # Get position difference vector between BEM vertex and dipole
-    diff = bem_rr.T[np.newaxis, :, :] - mri_rr[:, :, np.newaxis]
-    diff_norm = np.sum(diff * diff, axis=1)
-    diff_norm *= np.sqrt(diff_norm)  # Position difference magnitude cubed
-    diff_norm[diff_norm == 0] = 1  # avoid nans
-    if mri_Q is not None:  # save time when mri_Q=np.eye(3) (e.g., MEG sensors)
-        diff = einsum('ijk,mj->imk', diff, mri_Q)
-    diff /= diff_norm[:, np.newaxis, :]
+    diff = np.empty((len(mri_rr), 3, len(bem_rr)))
+    for ri, rr in enumerate(mri_rr):
+        this_diff = bem_rr - rr
+        diff_norm = np.sum(this_diff * this_diff, axis=1, keepdims=True)
+        diff_norm *= np.sqrt(diff_norm)
+        diff_norm[diff_norm == 0] = 1
+        if mri_Q is not None:
+            this_diff = np.dot(this_diff, mri_Q.T)
+        this_diff /= diff_norm
+        diff[ri] = this_diff.T
+
     return diff
 
 
@@ -374,6 +381,7 @@ def _bem_inf_fields(rr, rmag, cosmag):
     return np.rollaxis(x / diff_norm, 1)
 
 
+@fill_doc
 def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
                       coil_type):
     """Calculate the magnetic field or electric potential forward solution.
@@ -396,8 +404,7 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
         Comes from _bem_specify_coils
     bem_rr : ndarray, shape (n_BEM_vertices, 3)
         3D vertex positions for all surfaces in the BEM
-    n_jobs : int
-        Number of jobs to run in parallel
+    %(n_jobs)s
     coil_type : str
         'meg' or 'eeg'
 
@@ -486,7 +493,7 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     for bi in range(len(bounds) - 1):
         # v0 in Hamalainen et al., 1989 == v_inf in Mosher, et al., 1999
         v0s = _bem_inf_pots(mri_rr[bounds[bi]:bounds[bi + 1]], bem_rr, mri_Q)
-        v0s = np.reshape(v0s, (v0s.shape[0] * 3, v0s.shape[2]))
+        v0s = v0s.reshape(-1, v0s.shape[2])
         B[3 * bounds[bi]:3 * bounds[bi + 1]] = np.dot(v0s, sol)
     return B
 
@@ -500,7 +507,7 @@ def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, sphere, bem_rr,
     fun = _eeg_spherepot_coil if coil_type == 'eeg' else _sphere_field
     parallel, p_fun, _ = parallel_func(fun, n_jobs)
     B = np.concatenate(parallel(p_fun(r, coils, sphere)
-                       for r in np.array_split(rr, n_jobs)))
+                                for r in np.array_split(rr, n_jobs)))
     return B
 
 
@@ -617,7 +624,7 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 # #############################################################################
 # MAGNETIC DIPOLE (e.g. CHPI)
 
-def _magnetic_dipole_field_vec(rrs, coils):
+def _magnetic_dipole_field_vec(rrs, coils, too_close='raise'):
     """Compute an MEG forward solution for a set of magnetic dipoles."""
     # The code below is a more efficient version (~30x) of this:
     # for ri, rr in enumerate(rrs):
@@ -645,7 +652,12 @@ def _magnetic_dipole_field_vec(rrs, coils):
         dist2 = np.sum(diff * diff, axis=1)[:, np.newaxis]
         dist = np.sqrt(dist2)
         if (dist < 1e-5).any():
-            raise RuntimeError('Coil too close (dist = %g m)' % dist.min())
+            msg = 'Coil too close (dist = %g m)' % dist.min()
+            if too_close == 'raise':
+                raise RuntimeError(msg)
+            else:  # warning
+                func = warn if too_close == 'warning' else logger.info
+                func('Coil too close (dist = %g m)' % dist.min())
         sum_ = ws[:, np.newaxis] * (3 * diff * np.sum(diff * cosmags,
                                                       axis=1)[:, np.newaxis] -
                                     dist2 * cosmags) / (dist2 * dist2 * dist)
@@ -674,15 +686,12 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     fwd_data : dict
         Dict containing sensor information. Gets updated here with BEM and
         sensor information for later forward calculations
-    n_jobs : int
-        Number of jobs to run in parallel
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(n_jobs)s
+    %(verbose)s
     """
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
-        if bem['bem_method'] != FIFF.FWD_BEM_LINEAR_COLL:
+        if bem['bem_method'] != FWD.BEM_LINEAR_COLL:
             raise RuntimeError('only linear collocation supported')
         # Store (and apply soon) μ_0/(4π) factor before source computations
         mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
@@ -692,7 +701,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
 
         # The dipole location and orientation must be transformed
         head_mri_t = bem['head_mri_t']
-        mri_Q = apply_trans(bem['head_mri_t']['trans'], np.eye(3), False)
+        mri_Q = bem['head_mri_t']['trans'][:3, :3].T
 
     # Compute solution and compensation for dif sensor types ('meg', 'eeg')
     if len(set(fwd_data['coil_types'])) != len(fwd_data['coil_types']):
@@ -759,11 +768,8 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
         3D dipole positions in head coordinates
     fd : dict
         Dict containing forward data after update in _prep_field_computation
-    n_jobs : int
-        Number of jobs to run in parallel
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -832,8 +838,7 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
         Optional list of MEG compensation information
     coil_types : list of str
         Sensor types. May contain 'meg' and/or 'eeg'
-    n_jobs: int
-        Number of jobs to run in parallel
+    %(n_jobs)s
     infos : list, len(2)
         infos[0] is MEG info, infos[1] is EEG info
 

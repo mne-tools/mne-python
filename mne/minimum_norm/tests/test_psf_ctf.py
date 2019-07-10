@@ -8,8 +8,6 @@ from mne.minimum_norm import (read_inverse_operator,
                               point_spread_function, cross_talk_function)
 from mne.utils import run_tests_if_main
 
-from nose.tools import assert_true
-
 data_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
 
 fname_inv_meg = op.join(data_path,
@@ -28,8 +26,7 @@ lambda2 = 1.0 / snr ** 2
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_psf_ctf():
-    """Test computation of PSFs and CTFs for linear estimators
-    """
+    """Test computation of PSFs and CTFs for linear estimators."""
     forward = read_forward_solution(fname_fwd)
     labels = [mne.read_label(ss) for ss in fname_label]
 
@@ -54,11 +51,11 @@ def test_psf_ctf():
             else:
                 should_n_samples = len(labels) + 1
 
-            assert_true(n_vert == should_n_vert)
-            assert_true(n_samples == should_n_samples)
+            assert (n_vert == should_n_vert)
+            assert (n_samples == should_n_samples)
 
             n_chan, n_samples = psf_ev.data.shape
-            assert_true(n_chan == forward['nchan'])
+            assert (n_chan == forward['nchan'])
 
         # Test CTFs
         for mode in ('sum', 'svd'):
@@ -75,8 +72,8 @@ def test_psf_ctf():
             else:
                 should_n_samples = len(labels) + 1
 
-            assert_true(n_vert == should_n_vert)
-            assert_true(n_samples == should_n_samples)
+            assert (n_vert == should_n_vert)
+            assert (n_samples == should_n_samples)
 
 
 run_tests_if_main()

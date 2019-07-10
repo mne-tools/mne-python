@@ -4,6 +4,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 """
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
@@ -17,19 +18,38 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...coreg import fit_matched_points, _decimate_points
-from ...utils import verbose, logger, warn
-from ...transforms import (apply_trans, als_ras_trans,
-                           get_ras_to_neuromag_trans, Transform)
+from ...utils import verbose, logger, warn, fill_doc, _check_option
+from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
 from ..utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ..constants import FIFF
-from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
+from ..meas_info import _empty_info
 from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
-from ...externals.six import string_types
 from ...event import read_events
+
+from ...digitization._utils import _set_dig_kit
+
+
+def _call_digitization(info, mrk, elp, hsp):
+    # prepare mrk
+    if isinstance(mrk, list):
+        mrk = [read_mrk(marker) if isinstance(marker, str)
+               else marker for marker in mrk]
+        mrk = np.mean(mrk, axis=0)
+
+    # setup digitiztaion
+    if (mrk is not None and elp is not None and hsp is not None):
+        dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
+        info['dig'] = dig_points
+        info['dev_head_t'] = dev_head_t
+    elif (mrk is not None or elp is not None or hsp is not None):
+        err = ("mrk, elp and hsp need to be provided as a group (all or "
+               "none)")
+        raise ValueError(err)
+
+    return info
 
 
 class UnsupportedKITFormat(ValueError):
@@ -40,6 +60,7 @@ class UnsupportedKITFormat(ValueError):
         ValueError.__init__(self, *args, **kwargs)
 
 
+@fill_doc
 class RawKIT(BaseRaw):
     """Raw object from KIT SQD file.
 
@@ -58,12 +79,12 @@ class RawKIT(BaseRaw):
     hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
         10,000 points are in the head shape, they are automatically decimated.
-    stim : list of int | '<' | '>'
+    stim : list of int | '<' | '>' | None
         Channel-value correspondence when converting KIT trigger channels to a
         Neuromag-style stim channel. For '<', the largest values are assigned
         to the first channel (default). For '>', the largest values are
         assigned to the last channel. Can also be specified as a list of
-        trigger channel indexes.
+        trigger channel indexes. If None, no synthesized channel is generated.
     slope : '+' | '-'
         How to interpret values on KIT trigger channels when synthesizing a
         Neuromag-style stim channel. With '+', a positive slope (low-to-high)
@@ -72,21 +93,14 @@ class RawKIT(BaseRaw):
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event. If None, stim must also be set to None.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     stim_code : 'binary' | 'channel'
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -123,17 +137,11 @@ class RawKIT(BaseRaw):
             info, preload, last_samps=last_samps, filenames=[input_fname],
             raw_extras=self._raw_extras, verbose=verbose)
 
-        if isinstance(mrk, list):
-            mrk = [read_mrk(marker) if isinstance(marker, string_types)
-                   else marker for marker in mrk]
-            mrk = np.mean(mrk, axis=0)
-        if mrk is not None and elp is not None and hsp is not None:
-            dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
-            self.info['dig'] = dig_points
-            self.info['dev_head_t'] = dev_head_t
-        elif mrk is not None or elp is not None or hsp is not None:
-            raise ValueError('mrk, elp and hsp need to be provided as a group '
-                             '(all or none)')
+        self.info = _call_digitization(info=self.info,
+                                       mrk=mrk,
+                                       elp=elp,
+                                       hsp=hsp,
+                                       )
 
         logger.info('Ready.')
 
@@ -190,9 +198,7 @@ class RawKIT(BaseRaw):
         if self.preload:
             raise NotImplementedError("Can't change stim channel after "
                                       "loading data")
-        elif stim_code not in ('binary', 'channel'):
-            raise ValueError("stim_code=%r, needs to be 'binary' or 'channel'"
-                             % (stim_code,))
+        _check_option('stim_code', stim_code, ['binary', 'channel'])
 
         if stim is not None:
             if isinstance(stim, str):
@@ -354,9 +360,7 @@ class EpochsKIT(BaseEpochs):
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -376,21 +380,8 @@ class EpochsKIT(BaseEpochs):
                  reject_tmax=None, mrk=None, elp=None, hsp=None,
                  allow_unknown_format=False, verbose=None):  # noqa: D102
 
-        if isinstance(events, string_types):
+        if isinstance(events, str):
             events = read_events(events)
-        if isinstance(mrk, list):
-            mrk = [read_mrk(marker) if isinstance(marker, string_types)
-                   else marker for marker in mrk]
-            mrk = np.mean(mrk, axis=0)
-
-        if (mrk is not None and elp is not None and hsp is not None):
-            dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
-            self.info['dig'] = dig_points
-            self.info['dev_head_t'] = dev_head_t
-        elif (mrk is not None or elp is not None or hsp is not None):
-            err = ("mrk, elp and hsp need to be provided as a group (all or "
-                   "none)")
-            raise ValueError(err)
 
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
@@ -409,7 +400,7 @@ class EpochsKIT(BaseEpochs):
                             'average. Wrong reader.')
 
         if event_id is None:  # convert to int to make typing-checks happy
-            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+            event_id = {str(e): int(e) for e in np.unique(events[:, 2])}
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
@@ -425,6 +416,14 @@ class EpochsKIT(BaseEpochs):
             self.info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
+
+        # XXX: This should be unified with kitraw
+        self.info = _call_digitization(info=self.info,
+                                       mrk=mrk,
+                                       elp=elp,
+                                       hsp=hsp,
+                                       )
+
         logger.info('Ready.')
 
     def _read_kit_data(self):
@@ -458,78 +457,6 @@ class EpochsKIT(BaseEpochs):
         data = data.transpose((1, 0, 2))
 
         return data
-
-
-def _set_dig_kit(mrk, elp, hsp):
-    """Add landmark points and head shape data to the KIT instance.
-
-    Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
-    ALS coordinate system. This is converted to [m].
-
-    Parameters
-    ----------
-    mrk : None | str | array_like, shape = (5, 3)
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-    elp : None | str | array_like, shape = (8, 3)
-        Digitizer points representing the location of the fiducials and the
-        marker coils with respect to the digitized head shape, or path to a
-        file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
-        Digitizer head shape points, or path to head shape file. If more
-        than 10`000 points are in the head shape, they are automatically
-        decimated.
-
-    Returns
-    -------
-    dig_points : list
-        List of digitizer points for info['dig'].
-    dev_head_t : dict
-        A dictionary describe the device-head transformation.
-    """
-    if isinstance(hsp, string_types):
-        hsp = _read_dig_points(hsp)
-    n_pts = len(hsp)
-    if n_pts > KIT.DIG_POINTS:
-        hsp = _decimate_points(hsp, res=0.005)
-        n_new = len(hsp)
-        warn("The selected head shape contained {n_in} points, which is "
-             "more than recommended ({n_rec}), and was automatically "
-             "downsampled to {n_new} points. The preferred way to "
-             "downsample is using FastScan.".format(
-                 n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new))
-
-    if isinstance(elp, string_types):
-        elp_points = _read_dig_points(elp)
-        if len(elp_points) != 8:
-            raise ValueError("File %r should contain 8 points; got shape "
-                             "%s." % (elp, elp_points.shape))
-        elp = elp_points
-    elif len(elp) != 8:
-        raise ValueError("ELP should contain 8 points; got shape "
-                         "%s." % (elp.shape,))
-    if isinstance(mrk, string_types):
-        mrk = read_mrk(mrk)
-
-    hsp = apply_trans(als_ras_trans, hsp)
-    elp = apply_trans(als_ras_trans, elp)
-    mrk = apply_trans(als_ras_trans, mrk)
-
-    nasion, lpa, rpa = elp[:3]
-    nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-    elp = apply_trans(nmtrans, elp)
-    hsp = apply_trans(nmtrans, hsp)
-
-    # device head transform
-    trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
-
-    nasion, lpa, rpa = elp[:3]
-    elp = elp[3:]
-
-    dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp)
-    dev_head_t = Transform('meg', 'head', trans)
-
-    return dig_points, dev_head_t
 
 
 def get_kit_info(rawfile, allow_unknown_format):
@@ -653,7 +580,8 @@ def get_kit_info(rawfile, allow_unknown_format):
                 })
             elif channel_type in KIT.CHANNELS_MISC:
                 channel_no, = unpack('i', fid.read(KIT.INT))
-                name, = unpack('64s', fid.read(64))
+                # name, = unpack('64s', fid.read(64))
+                fid.seek(64, 1)
                 channels.append({
                     'type': channel_type,
                     'no': channel_no,
@@ -711,7 +639,8 @@ def get_kit_info(rawfile, allow_unknown_format):
         sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
         sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
         if acq_type == KIT.CONTINUOUS:
-            samples_count, = unpack('i', fid.read(KIT.INT))
+            # samples_count, = unpack('i', fid.read(KIT.INT))
+            fid.seek(KIT.INT, 1)
             sqd['n_samples'], = unpack('i', fid.read(KIT.INT))
         elif acq_type == KIT.EVOKED or acq_type == KIT.EPOCHS:
             sqd['frame_length'], = unpack('i', fid.read(KIT.INT))
@@ -740,9 +669,8 @@ def get_kit_info(rawfile, allow_unknown_format):
 
     # Create raw.info dict for raw fif object with SQD data
     info = _empty_info(float(sqd['sfreq']))
-    info.update(meas_date=create_time, lowpass=sqd['lowpass'],
-                highpass=sqd['highpass'], buffer_size_sec=1.,
-                kit_system_id=sysid)
+    info.update(meas_date=(create_time, 0), lowpass=sqd['lowpass'],
+                highpass=sqd['highpass'], kit_system_id=sysid)
 
     # Creates a list of dicts of meg channels for raw.info
     logger.info('Setting channel info structure...')
@@ -794,6 +722,7 @@ def get_kit_info(rawfile, allow_unknown_format):
     return info, sqd
 
 
+@fill_doc
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
                  allow_unknown_format=False, verbose=None):
@@ -828,22 +757,18 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    %(preload)s
     stim_code : 'binary' | 'channel'
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of RawKIT
+    raw : instance of RawKIT
         A Raw object containing KIT data.
 
     See Also
@@ -861,6 +786,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                   allow_unknown_format=allow_unknown_format, verbose=verbose)
 
 
+@fill_doc
 def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
                     hsp=None, allow_unknown_format=False, verbose=None):
     """Reader function for KIT epochs files.
@@ -895,9 +821,7 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

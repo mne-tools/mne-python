@@ -4,9 +4,9 @@
 
 .. _faq:
 
-==========================
-Frequently Asked Questions
-==========================
+================================
+Frequently Asked Questions (FAQ)
+================================
 
 .. contents:: Contents
    :local:
@@ -30,11 +30,11 @@ You can also chat with developers `on Gitter <https://gitter.im/mne-tools/mne-py
 I can't get Mayavi/3D plotting to work under Windows.
 -----------------------------------------------------
 If Mayavi plotting in Jupyter Notebooks doesn't work
-well, using the IPython magic ``%gui qt`` after importing MNE/Mayavi/PySurfer 
+well, using the IPython magic ``%gui qt`` after importing MNE/Mayavi/PySurfer
 should `help <https://github.com/ipython/ipython/issues/10384>`_.
-   
+
 .. code:: ipython
-   
+
    from mayavi import mlab
    %gui qt
 
@@ -46,11 +46,11 @@ How do I cite MNE?
 If you use the implementations provided by the MNE software in your research,
 you should cite:
 
-    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, L. Parkkonen, M. Hämäläinen, `MNE software for processing MEG and EEG data <http://www.ncbi.nlm.nih.gov/pubmed/24161808>`_, NeuroImage, Volume 86, 1 February 2014, Pages 446-460, ISSN 1053-8119, `[DOI] <https://doi.org/10.1016/j.neuroimage.2013.10.027>`__
+    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, L. Parkkonen, M. Hämäläinen, `MNE software for processing MEG and EEG data <https://www.ncbi.nlm.nih.gov/pubmed/24161808>`_, NeuroImage, Volume 86, 1 February 2014, Pages 446-460, ISSN 1053-8119, `[DOI] <https://doi.org/10.1016/j.neuroimage.2013.10.027>`__
 
 If you use the Python code you should cite as well:
 
-    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, R. Goj, M. Jas, T. Brooks, L. Parkkonen, M. Hämäläinen, `MEG and EEG data analysis with MNE-Python <http://journal.frontiersin.org/article/10.3389/fnins.2013.00267/abstract>`_, Frontiers in Neuroscience, Volume 7, 2013, ISSN 1662-453X, `[DOI] <https://doi.org/10.3389/fnins.2013.00267>`__
+    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, R. Goj, M. Jas, T. Brooks, L. Parkkonen, M. Hämäläinen, `MEG and EEG data analysis with MNE-Python <https://www.frontiersin.org/articles/10.3389/fnins.2013.00267/abstract>`_, Frontiers in Neuroscience, Volume 7, 2013, ISSN 1662-453X, `[DOI] <https://doi.org/10.3389/fnins.2013.00267>`__
 
 To cite specific versions of the software, you can use the DOIs provided by
 `Zenodo <https://zenodo.org/search?ln=en&p=mne-python>`_.
@@ -74,30 +74,6 @@ Try :ref:`using the latest master version <installing_master>` to
 see if the problem persists before reporting the bug, as it may have
 been fixed since the latest release.
 
-It is helpful to include system information with bug reports, so it can be
-useful to include the output of the :func:`mne.sys_info` command when
-reporting a bug, which should look something like this::
-
-    >>> import mne
-    >>> mne.sys_info()  # doctest:+SKIP
-    Platform:      Linux-4.2.0-27-generic-x86_64-with-debian-jessie-sid
-    Python:        2.7.11 |Continuum Analytics, Inc.| (default, Dec  6 2015, 18:08:32)  [GCC 4.4.7 20120313 (Red Hat 4.4.7-1)]
-    Executable:    /home/larsoner/miniconda/bin/python
-
-    mne:           0.12.dev0
-    numpy:         1.10.2 {lapack=mkl_lapack95_lp64, blas=mkl_intel_lp64}
-    scipy:         0.16.1
-    matplotlib:    1.5.1
-
-    sklearn:       Not found
-    nibabel:       Not found
-    nitime:        Not found
-    mayavi:        Not found
-    pandas:        Not found
-    pycuda:        Not found
-    skcuda:        Not found
-
-
 Why is it dangerous to "pickle" my MNE-Python objects and data for later use?
 -----------------------------------------------------------------------------
 `Pickling <https://docs.python.org/3/library/pickle.html>`_ data and
@@ -107,7 +83,7 @@ designed for stable persistence, and it is likely that you will not be
 able to read your data in the not-too-distant future. For details, see:
 
 - http://www.benfrederickson.com/dont-pickle-your-data/
-- http://stackoverflow.com/questions/21752259/python-why-pickle
+- https://stackoverflow.com/questions/21752259/python-why-pickle
 
 MNE-Python is designed to provide its own file saving formats
 (often based on the FIF standard) for its objects usually via a
@@ -154,8 +130,8 @@ cores via the ``n_jobs`` variable. However, functions like
 is built with linear algebra libraries that natively support multithreading:
 
 * `OpenBLAS <http://www.openblas.net/>`_
-* `Intel Math Kernel Library (MKL) <https://software.intel.com/en-us/intel-mkl>`_,
-  which uses `OpenMP <http://www.openmp.org/>`_
+* `Intel Math Kernel Library (MKL) <https://software.intel.com/en-us/mkl>`_,
+  which uses `OpenMP <https://www.openmp.org/>`_
 
 To control how many cores are used for linear-algebra-heavy functions like
 :func:`mne.preprocessing.maxwell_filter`, you can set the
@@ -189,7 +165,7 @@ implications:
   Using this function to resample data before forming :class:`mne.Epochs`
   for final analysis is generally discouraged because doing so effectively
   loses precision of (and jitters) the event timings, see
-  `this gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_ as
+  `this gist <https://gist.github.com/larsoner/01642cb3789992fbca59>`_ as
   a demonstration. However, resampling raw data can be useful for
   (at least):
 
@@ -262,19 +238,19 @@ Under the assumption that the baseline does not contain a systematic signal
 (time-locked to the event of interest), the whitened baseline signal should be
 follow a multivariate Gaussian distribution, i.e.,
 whitened baseline signals should be between -1.96 and 1.96 at a given time sample.
-Based on the same reasoning, the expected value for the global field power (GFP)
-is 1 (calculation of the GFP should take into account the true degrees of
-freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
+Based on the same reasoning, the expected value for the :term:`Global Field
+Power (GFP) <GFP>` is 1 (calculation of the :term:`GFP` should take into account the true
+degrees of freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
 
     >>> evoked = epochs.average() # doctest: +SKIP
     >>> evoked.plot_white(cov) # doctest: +SKIP
 
-This plot displays both, the whitened evoked signals for each channels and
-the whitened GFP. The numbers in the GFP panel represent the estimated rank of
-the data, which amounts to the effective degrees of freedom by which the
-squared sum across sensors is divided when computing the whitened GFP.
-The whitened GFP also helps detecting spurious late evoked components which
-can be the consequence of over- or under-regularization.
+This plot displays both, the whitened evoked signals for each channels and the
+whitened :term:`GFP`. The numbers in the :term:`GFP` panel represent the
+estimated rank of the data, which amounts to the effective degrees of freedom by
+which the squared sum across sensors is divided when computing the whitened
+:term:`GFP`. The whitened :term:`GFP` also helps detecting spurious late evoked
+components which can be the consequence of over- or under-regularization.
 
 Note that if data have been processed using signal space separation (SSS) [2]_,
 gradiometers and magnetometers will be displayed jointly because both are
@@ -290,34 +266,8 @@ For expert use cases or debugging the alternative estimators can also be compare
     >>> evoked = epochs.average() # doctest: +SKIP
     >>> evoked.plot_white(covs) # doctest: +SKIP
 
-This will plot the whitened evoked for the optimal estimator and display the GFPs
-for all estimators as separate lines in the related panel.
-
-Morphing data
-=============
-
-Should I morph my source estimates using ``morph`` or ``morph_precomputed``?
-----------------------------------------------------------------------------
-The two functions :func:`mne.SourceEstimate.morph` and
-:func:`mne.SourceEstimate.morph_precomputed` perform the same operation:
-taking surface-based source space data from one subject and
-morphing it to another using a smoothing procedure. However, they can
-take different amounts of time to perform the computation.
-
-To use :func:`mne.SourceEstimate.morph_precomputed`, you must first
-precompute a morphing matrix with :func:`mne.compute_morph_matrix` which
-can take some time, but then the actual morphing operation carried out by
-:func:`mne.SourceEstimate.morph_precomputed` is very fast, even for
-:class:`mne.SourceEstimate` objects with many time points. The method
-:func:`mne.SourceEstimate.morph`, by contrast, smooths the data by operating
-directly on the data, which can be **very slow** with many time points.
-If there are thousands of time points, then
-:func:`mne.SourceEstimate.morph_precomputed` will be much faster; if there
-are a few time points, then :func:`mne.SourceEstimate.morph` will be faster.
-For data sizes in between, we advise testing to determine which is best,
-although some developers choose to always use
-:func:`mne.SourceEstimate.morph_precomputed` since it will rarely take
-a long time.
+This will plot the whitened evoked for the optimal estimator and display the
+:term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
 
 References
 ----------

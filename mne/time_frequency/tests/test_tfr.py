@@ -1,24 +1,24 @@
-import numpy as np
+from itertools import product
 import os.path as op
-import warnings
 
-from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_true, assert_false, assert_equal, assert_raises
+import numpy as np
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
 import pytest
+import matplotlib.pyplot as plt
 
 import mne
 from mne import Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.io import read_raw_fif
-from mne.utils import _TempDir, run_tests_if_main, requires_h5py, grand_average
+from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
+                       requires_pandas, grand_average)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
                                     EpochsTFR)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click
-from itertools import product
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
+from mne.tests.test_epochs import assert_metadata_equal
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
@@ -41,8 +41,8 @@ def test_morlet():
     Wz = morlet(1000, [10], 2., zero_mean=True)
     W = morlet(1000, [10], 2., zero_mean=False)
 
-    assert_true(np.abs(np.mean(np.real(Wz[0]))) < 1e-5)
-    assert_true(np.abs(np.mean(np.real(W[0]))) > 1e-3)
+    assert (np.abs(np.mean(np.real(Wz[0]))) < 1e-5)
+    assert (np.abs(np.mean(np.real(W[0]))) > 1e-3)
 
 
 def test_time_frequency():
@@ -81,13 +81,13 @@ def test_time_frequency():
     evoked = epochs.average()
     power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
                               return_itc=False)
-    assert_raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
+    pytest.raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
     power_, itc_ = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                               use_fft=True, return_itc=True, decim=slice(0, 2))
     # Test picks argument and average parameter
-    assert_raises(ValueError, tfr_morlet, epochs, freqs=freqs,
+    pytest.raises(ValueError, tfr_morlet, epochs, freqs=freqs,
                   n_cycles=n_cycles, return_itc=True, average=False)
 
     power_picks, itc_picks = \
@@ -106,9 +106,9 @@ def test_time_frequency():
     assert_array_almost_equal(itc.data, itc_picks.data)
     assert_array_almost_equal(power.data, power_evoked.data)
     # complex output
-    assert_raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
+    pytest.raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
                   return_itc=False, average=True, output="complex")
-    assert_raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
+    pytest.raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
                   output="complex", average=False, return_itc=True)
     epochs_power_complex = tfr_morlet(epochs, freqs, n_cycles,
                                       output="complex", average=False,
@@ -127,29 +127,29 @@ def test_time_frequency():
 
     power = power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
 
-    assert_true('meg' in power)
-    assert_true('grad' in power)
-    assert_false('mag' in power)
-    assert_false('eeg' in power)
+    assert 'meg' in power
+    assert 'grad' in power
+    assert 'mag' not in power
+    assert 'eeg' not in power
 
-    assert_equal(power.nave, nave)
-    assert_equal(itc.nave, nave)
-    assert_true(power.data.shape == (len(picks), len(freqs), len(times)))
-    assert_true(power.data.shape == itc.data.shape)
-    assert_true(power_.data.shape == (len(picks), len(freqs), 2))
-    assert_true(power_.data.shape == itc_.data.shape)
-    assert_true(np.sum(itc.data >= 1) == 0)
-    assert_true(np.sum(itc.data <= 0) == 0)
+    assert power.nave == nave
+    assert itc.nave == nave
+    assert (power.data.shape == (len(picks), len(freqs), len(times)))
+    assert (power.data.shape == itc.data.shape)
+    assert (power_.data.shape == (len(picks), len(freqs), 2))
+    assert (power_.data.shape == itc_.data.shape)
+    assert (np.sum(itc.data >= 1) == 0)
+    assert (np.sum(itc.data <= 0) == 0)
 
     # grand average
     itc2 = itc.copy()
     itc2.info['bads'] = [itc2.ch_names[0]]  # test channel drop
     gave = grand_average([itc2, itc])
-    assert_equal(gave.data.shape, (itc2.data.shape[0] - 1,
-                                   itc2.data.shape[1],
-                                   itc2.data.shape[2]))
-    assert_equal(itc2.ch_names[1:], gave.ch_names)
-    assert_equal(gave.nave, 2)
+    assert gave.data.shape == (itc2.data.shape[0] - 1,
+                               itc2.data.shape[1],
+                               itc2.data.shape[2])
+    assert itc2.ch_names[1:] == gave.ch_names
+    assert gave.nave == 2
     itc2.drop_channels(itc2.info["bads"])
     assert_array_almost_equal(gave.data, itc2.data)
     itc2.data = np.ones(itc2.data.shape)
@@ -165,18 +165,18 @@ def test_time_frequency():
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=2, use_fft=False,
                             return_itc=True)
 
-    assert_true(power.data.shape == (len(picks), len(freqs), len(times)))
-    assert_true(power.data.shape == itc.data.shape)
-    assert_true(np.sum(itc.data >= 1) == 0)
-    assert_true(np.sum(itc.data <= 0) == 0)
+    assert (power.data.shape == (len(picks), len(freqs), len(times)))
+    assert (power.data.shape == itc.data.shape)
+    assert (np.sum(itc.data >= 1) == 0)
+    assert (np.sum(itc.data <= 0) == 0)
 
     tfr = tfr_morlet(epochs[0], freqs, use_fft=True, n_cycles=2, average=False,
                      return_itc=False).data[0]
-    assert_true(tfr.shape == (len(picks), len(freqs), len(times)))
+    assert (tfr.shape == (len(picks), len(freqs), len(times)))
     tfr2 = tfr_morlet(epochs[0], freqs, use_fft=True, n_cycles=2,
                       decim=slice(0, 2), average=False,
                       return_itc=False).data[0]
-    assert_true(tfr2.shape == (len(picks), len(freqs), 2))
+    assert (tfr2.shape == (len(picks), len(freqs), 2))
 
     single_power = tfr_morlet(epochs, freqs, 2, average=False,
                               return_itc=False).data
@@ -227,22 +227,27 @@ def test_time_frequency():
 
     # Test cwt modes
     Ws = morlet(512, [10, 20], n_cycles=2)
-    assert_raises(ValueError, cwt, data[0, :, :], Ws, mode='foo')
+    pytest.raises(ValueError, cwt, data[0, :, :], Ws, mode='foo')
     for use_fft in [True, False]:
         for mode in ['same', 'valid', 'full']:
             cwt(data[0], Ws, use_fft=use_fft, mode=mode)
 
+    # Test invalid frequency arguments
+    with pytest.raises(ValueError, match=" 'freqs' must be greater than 0"):
+        tfr_morlet(epochs, freqs=np.arange(0, 3), n_cycles=7)
+    with pytest.raises(ValueError, match=" 'freqs' must be greater than 0"):
+        tfr_morlet(epochs, freqs=np.arange(-4, -1), n_cycles=7)
+
     # Test decim parameter checks
-    assert_raises(TypeError, tfr_morlet, epochs, freqs=freqs,
+    pytest.raises(TypeError, tfr_morlet, epochs, freqs=freqs,
                   n_cycles=n_cycles, use_fft=True, return_itc=True,
                   decim='decim')
 
     # When convolving in time, wavelets must not be longer than the data
-    assert_raises(ValueError, cwt, data[0, :, :Ws[0].size - 1], Ws,
+    pytest.raises(ValueError, cwt, data[0, :, :Ws[0].size - 1], Ws,
                   use_fft=False)
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(UserWarning, match='one of the wavelets is longer'):
         cwt(data[0, :, :Ws[0].size - 1], Ws, use_fft=True)
-    assert_equal(len(w), 1)
 
     # Check for off-by-one errors when using wavelets with an even number of
     # samples
@@ -256,12 +261,12 @@ def test_dpsswavelet():
     Ws = _make_dpss(1000, freqs=freqs, n_cycles=freqs / 2., time_bandwidth=4.0,
                     zero_mean=True)
 
-    assert_true(len(Ws) == 3)  # 3 tapers expected
+    assert (len(Ws) == 3)  # 3 tapers expected
 
     # Check that zero mean is true
-    assert_true(np.abs(np.mean(np.real(Ws[0][0]))) < 1e-5)
+    assert (np.abs(np.mean(np.real(Ws[0][0]))) < 1e-5)
 
-    assert_true(len(Ws[0]) == len(freqs))  # As many wavelets as asked for
+    assert (len(Ws[0]) == len(freqs))  # As many wavelets as asked for
 
 
 @pytest.mark.slowtest
@@ -319,7 +324,7 @@ def test_tfr_multitaper():
     assert_equal(power_epochs_picked.data.shape, (3, 1, 7, 200))
     assert_equal(power_epochs_picked.ch_names, ['SIM0001'])
 
-    assert_raises(ValueError, tfr_multitaper, epochs,
+    pytest.raises(ValueError, tfr_multitaper, epochs,
                   freqs=freqs, n_cycles=freqs / 2.,
                   return_itc=True, average=False)
 
@@ -335,43 +340,64 @@ def test_tfr_multitaper():
     # the other is average of the squared magnitudes (epochs PSD)
     # so values shouldn't match, but shapes should
     assert_array_equal(power.data.shape, power_evoked.data.shape)
-    assert_raises(AssertionError, assert_array_almost_equal,
+    pytest.raises(AssertionError, assert_array_almost_equal,
                   power.data, power_evoked.data)
 
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
     fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]
-    assert_true(tmax > 0.3 and tmax < 0.7)
-    assert_false(np.any(itc.data < 0.))
-    assert_true(fmax > 40 and fmax < 60)
-    assert_true(power2.data.shape == (len(picks), len(freqs), 2))
-    assert_true(power2.data.shape == itc2.data.shape)
+    assert (tmax > 0.3 and tmax < 0.7)
+    assert not np.any(itc.data < 0.)
+    assert (fmax > 40 and fmax < 60)
+    assert (power2.data.shape == (len(picks), len(freqs), 2))
+    assert (power2.data.shape == itc2.data.shape)
 
     # Test decim parameter checks and compatibility between wavelets length
     # and instance length in the time dimension.
-    assert_raises(TypeError, tfr_multitaper, epochs, freqs=freqs,
+    pytest.raises(TypeError, tfr_multitaper, epochs, freqs=freqs,
                   n_cycles=freqs / 2., time_bandwidth=4.0, decim=(1,))
-    assert_raises(ValueError, tfr_multitaper, epochs, freqs=freqs,
+    pytest.raises(ValueError, tfr_multitaper, epochs, freqs=freqs,
                   n_cycles=1000, time_bandwidth=4.0)
+
+    # Test invalid frequency arguments
+    with pytest.raises(ValueError, match=" 'freqs' must be greater than 0"):
+        tfr_multitaper(epochs, freqs=np.arange(0, 3), n_cycles=7)
+    with pytest.raises(ValueError, match=" 'freqs' must be greater than 0"):
+        tfr_multitaper(epochs, freqs=np.arange(-4, -1), n_cycles=7)
 
 
 def test_crop():
     """Test TFR cropping."""
-    data = np.zeros((3, 2, 3))
-    times = np.array([.1, .2, .3])
-    freqs = np.array([.10, .20])
+    data = np.zeros((3, 4, 5))
+    times = np.array([.1, .2, .3, .4, .5])
+    freqs = np.array([.10, .20, .30, .40])
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
                            ['mag', 'mag', 'mag'])
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
-    tfr.crop(0.2, 0.3)
-    assert_array_equal(tfr.times, [0.2, 0.3])
-    assert_equal(tfr.data.shape[-1], 2)
+
+    tfr.crop(tmin=0.2)
+    assert_array_equal(tfr.times, [0.2, 0.3, 0.4, 0.5])
+    assert tfr.data.ndim == 3
+    assert tfr.data.shape[-1] == 4
+
+    tfr.crop(fmax=0.3)
+    assert_array_equal(tfr.freqs, [0.1, 0.2, 0.3])
+    assert tfr.data.ndim == 3
+    assert tfr.data.shape[-2] == 3
+
+    tfr.crop(tmin=0.3, tmax=0.4, fmin=0.1, fmax=0.2)
+    assert_array_equal(tfr.times, [0.3, 0.4])
+    assert tfr.data.ndim == 3
+    assert tfr.data.shape[-1] == 2
+    assert_array_equal(tfr.freqs, [0.1, 0.2])
+    assert tfr.data.shape[-2] == 2
 
 
 @requires_h5py
+@requires_pandas
 def test_io():
     """Test TFR IO capacities."""
-
+    from pandas import DataFrame
     tempdir = _TempDir()
     fname = op.join(tempdir, 'test-tfr.h5')
     data = np.zeros((3, 2, 3))
@@ -391,7 +417,7 @@ def test_io():
     assert_equal(tfr.comment, tfr2.comment)
     assert_equal(tfr.nave, tfr2.nave)
 
-    assert_raises(IOError, tfr.save, fname)
+    pytest.raises(IOError, tfr.save, fname)
 
     tfr.comment = None
     tfr.save(fname, overwrite=True)
@@ -404,28 +430,43 @@ def test_io():
     tfr3 = read_tfrs(fname, condition='test-A')
     assert_equal(tfr.comment, tfr3.comment)
 
-    assert_true(isinstance(tfr.info, mne.Info))
+    assert (isinstance(tfr.info, mne.Info))
 
     tfrs = read_tfrs(fname, condition=None)
     assert_equal(len(tfrs), 2)
     tfr4 = tfrs[1]
     assert_equal(tfr2.comment, tfr4.comment)
 
-    assert_raises(ValueError, read_tfrs, fname, condition='nonono')
-
+    pytest.raises(ValueError, read_tfrs, fname, condition='nonono')
     # Test save of EpochsTFR.
-    data = np.zeros((5, 3, 2, 3))
+    n_events = 5
+    data = np.zeros((n_events, 3, 2, 3))
+
+    # create fake metadata
+    rng = np.random.RandomState(42)
+    rt = np.round(rng.uniform(size=(n_events,)), 3)
+    trialtypes = np.array(['face', 'place'])
+    trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
+    meta = DataFrame(dict(RT=rt, Trial=trial))
+    # fake events and event_id
+    events = np.zeros([n_events, 3])
+    events[:, 0] = np.arange(n_events)
+    events[:, 2] = np.ones(n_events)
+    event_id = dict(a=1)
+
     tfr = EpochsTFR(info, data=data, times=times, freqs=freqs,
-                    comment='test', method='crazy-tfr')
+                    comment='test', method='crazy-tfr', events=events,
+                    event_id=event_id, metadata=meta)
     tfr.save(fname, True)
     read_tfr = read_tfrs(fname)[0]
     assert_array_equal(tfr.data, read_tfr.data)
+    assert_metadata_equal(tfr.metadata, read_tfr.metadata)
+    assert_array_equal(tfr.events, read_tfr.events)
+    assert_equal(tfr.event_id, read_tfr.event_id)
 
 
 def test_plot():
     """Test TFR plotting."""
-    import matplotlib.pyplot as plt
-
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
@@ -471,8 +512,6 @@ def test_plot():
 
 def test_plot_joint():
     """Test TFR joint plotting."""
-    import matplotlib.pyplot as plt
-
     raw = read_raw_fif(raw_fname)
     times = np.linspace(-0.1, 0.1, 200)
     n_freqs = 3
@@ -500,7 +539,7 @@ def test_plot_joint():
     timefreqs = ([(-100, 1)], tfr.times[1], [1],
                  [(tfr.times[1], tfr.freqs[1], tfr.freqs[1])])
     for these_timefreqs in timefreqs:
-        assert_raises(ValueError, tfr.plot_joint, these_timefreqs)
+        pytest.raises(ValueError, tfr.plot_joint, these_timefreqs)
 
     # test that the object is not internally modified
     tfr_orig = tfr.copy()
@@ -508,8 +547,12 @@ def test_plot_joint():
                    topomap_args=topomap_args)
     plt.close('all')
     assert_array_equal(tfr.data, tfr_orig.data)
-    assert_true(set(tfr.ch_names) == set(tfr_orig.ch_names))
-    assert_true(set(tfr.times) == set(tfr_orig.times))
+    assert set(tfr.ch_names) == set(tfr_orig.ch_names)
+    assert set(tfr.times) == set(tfr_orig.times)
+
+    # test tfr with picked channels
+    tfr.pick_channels(tfr.ch_names[:-1])
+    tfr.plot_joint(title='auto', colorbar=True, topomap_args=topomap_args)
 
 
 def test_add_channels():
@@ -527,24 +570,25 @@ def test_add_channels():
     tfr_stim = tfr.copy().pick_types(meg=False, stim=True)
     tfr_eeg_meg = tfr.copy().pick_types(meg=True, eeg=True)
     tfr_new = tfr_meg.copy().add_channels([tfr_eeg, tfr_stim])
-    assert_true(all(ch in tfr_new.ch_names
-                    for ch in tfr_stim.ch_names + tfr_meg.ch_names))
+    assert all(ch in tfr_new.ch_names
+               for ch in tfr_stim.ch_names + tfr_meg.ch_names)
     tfr_new = tfr_meg.copy().add_channels([tfr_eeg])
 
-    assert_true(ch in tfr_new.ch_names for ch in tfr.ch_names)
+    have_all = all(ch in tfr_new.ch_names
+                   for ch in tfr.ch_names if ch != 'STIM 001')
+    assert have_all
     assert_array_equal(tfr_new.data, tfr_eeg_meg.data)
-    assert_true(all(ch not in tfr_new.ch_names
-                    for ch in tfr_stim.ch_names))
+    assert all(ch not in tfr_new.ch_names for ch in tfr_stim.ch_names)
 
     # Now test errors
     tfr_badsf = tfr_eeg.copy()
     tfr_badsf.info['sfreq'] = 3.1415927
     tfr_eeg = tfr_eeg.crop(-.1, .1)
 
-    assert_raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
-    assert_raises(AssertionError, tfr_meg.add_channels, [tfr_eeg])
-    assert_raises(ValueError, tfr_meg.add_channels, [tfr_meg])
-    assert_raises(TypeError, tfr_meg.add_channels, tfr_badsf)
+    pytest.raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
+    pytest.raises(AssertionError, tfr_meg.add_channels, [tfr_eeg])
+    pytest.raises(ValueError, tfr_meg.add_channels, [tfr_meg])
+    pytest.raises(TypeError, tfr_meg.add_channels, tfr_badsf)
 
 
 def test_compute_tfr():
@@ -577,7 +621,7 @@ def test_compute_tfr():
          'avg_power_itc', 'avg_power', 'itc')):
         # Check exception
         if (func == tfr_array_multitaper) and (output == 'phase'):
-            assert_raises(NotImplementedError, func, data, sfreq=sfreq,
+            pytest.raises(NotImplementedError, func, data, sfreq=sfreq,
                           freqs=freqs, output=output)
             continue
 
@@ -596,32 +640,32 @@ def test_compute_tfr():
             assert_equal(np.complex, out.dtype)
         else:
             assert_equal(np.float, out.dtype)
-        assert_true(np.all(np.isfinite(out)))
+        assert (np.all(np.isfinite(out)))
 
     # Check errors params
     for _data in (None, 'foo', data[0]):
-        assert_raises(ValueError, _compute_tfr, _data, freqs, sfreq)
+        pytest.raises(ValueError, _compute_tfr, _data, freqs, sfreq)
     for _freqs in (None, 'foo', [[0]]):
-        assert_raises(ValueError, _compute_tfr, data, _freqs, sfreq)
+        pytest.raises(ValueError, _compute_tfr, data, _freqs, sfreq)
     for _sfreq in (None, 'foo'):
-        assert_raises(ValueError, _compute_tfr, data, freqs, _sfreq)
+        pytest.raises(ValueError, _compute_tfr, data, freqs, _sfreq)
     for key in ('output', 'method', 'use_fft', 'decim', 'n_jobs'):
         for value in (None, 'foo'):
             kwargs = {key: value}  # FIXME pep8
-            assert_raises(ValueError, _compute_tfr, data, freqs, sfreq,
+            pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
                           **kwargs)
 
     # No time_bandwidth param in morlet
-    assert_raises(ValueError, _compute_tfr, data, freqs, sfreq,
+    pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
                   method='morlet', time_bandwidth=1)
     # No phase in multitaper XXX Check ?
-    assert_raises(NotImplementedError, _compute_tfr, data, freqs, sfreq,
+    pytest.raises(NotImplementedError, _compute_tfr, data, freqs, sfreq,
                   method='multitaper', output='phase')
 
     # Inter-trial coherence tests
     out = _compute_tfr(data, freqs, sfreq, output='itc', n_cycles=2.)
-    assert_true(np.sum(out >= 1) == 0)
-    assert_true(np.sum(out <= 0) == 0)
+    assert np.sum(out >= 1) == 0
+    assert np.sum(out <= 0) == 0
 
     # Check decim shapes
     # 2: multiple of len(times) even
@@ -641,5 +685,72 @@ def test_compute_tfr():
             out = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
                                output='avg_power', n_cycles=2.)
             assert_array_equal(shape[1:], out.shape)
+
+
+@requires_pandas
+def test_getitem_epochsTFR():
+    """Test GetEpochsMixin in the context of EpochsTFR."""
+    from pandas import DataFrame
+    # Setup for reading the raw data and select a few trials
+    raw = read_raw_fif(raw_fname)
+    events = read_events(event_fname)
+    n_events = 10
+
+    # create fake metadata
+    rng = np.random.RandomState(42)
+    rt = rng.uniform(size=(n_events,))
+    trialtypes = np.array(['face', 'place'])
+    trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
+    meta = DataFrame(dict(RT=rt, Trial=trial))
+    event_id = dict(a=1, b=2, c=3, d=4)
+    epochs = Epochs(raw, events[:n_events], event_id=event_id, metadata=meta,
+                    decim=1)
+
+    freqs = np.arange(12., 17., 2.)  # define frequencies of interest
+    n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
+
+    # Choose time x (full) bandwidth product
+    time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
+    power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
+                           use_fft=True, time_bandwidth=time_bandwidth,
+                           return_itc=False, average=False, n_jobs=1)
+
+    # Check that power and epochs metadata is the same
+    assert_metadata_equal(epochs.metadata, power.metadata)
+    assert_metadata_equal(epochs[::2].metadata, power[::2].metadata)
+    assert_metadata_equal(epochs['RT < .5'].metadata,
+                          power['RT < .5'].metadata)
+
+    # Check that get power is functioning
+    assert_array_equal(power[3:6].data, power.data[3:6])
+    assert_array_equal(power[3:6].events, power.events[3:6])
+
+    indx_check = (power.metadata['Trial'] == 'face')
+    try:
+        indx_check = indx_check.to_numpy()
+    except Exception:
+        pass  # older Pandas
+    indx_check = indx_check.nonzero()
+    assert_array_equal(power['Trial == "face"'].events,
+                       power.events[indx_check])
+    assert_array_equal(power['Trial == "face"'].data,
+                       power.data[indx_check])
+
+    # Check that the wrong Key generates a Key Error for Metadata search
+    with pytest.raises(KeyError):
+        power['Trialz == "place"']
+
+    # Test length function
+    assert len(power) == n_events
+    assert len(power[3:6]) == 3
+
+    # Test iteration function
+    for ind, power_ep in enumerate(power):
+        assert_array_equal(power_ep, power.data[ind])
+        if ind == 5:
+            break
+
+    # Test that current state is maintained
+    assert_array_equal(power.next(), power.data[ind + 1])
 
 run_tests_if_main()

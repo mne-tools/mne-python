@@ -5,7 +5,6 @@
 import os
 import sys
 from unittest import SkipTest
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -19,8 +18,6 @@ mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
 
-warnings.simplefilter('always')
-
 
 def _check_ci():
     if os.getenv('TRAVIS', 'false').lower() == 'true' and \
@@ -31,7 +28,7 @@ def _check_ci():
 @requires_mayavi
 @traits_test
 def test_combine_markers_model():
-    """Test CombineMarkersModel Traits Model"""
+    """Test CombineMarkersModel Traits Model."""
     from mne.gui._marker_gui import CombineMarkersModel, CombineMarkersPanel
     tempdir = _TempDir()
     tgt_fname = os.path.join(tempdir, 'test.txt')
@@ -69,7 +66,7 @@ def test_combine_markers_model():
     mrk_io = read_mrk(tgt_fname)
     assert_array_equal(mrk_io, model.mrk3.points)
 
-    # exlude an individual marker
+    # exclude an individual marker
     model.mrk1.use = [1, 2, 3, 4]
     assert_array_equal(model.mrk3.points[0], model.mrk2.points[0])
     assert_array_equal(model.mrk3.points[1:], mrk_avg[1:])
@@ -83,9 +80,7 @@ def test_combine_markers_model():
     _check_ci()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     try:
-        with warnings.catch_warnings(record=True):  # traits warnings
-            warnings.simplefilter('always')
-            CombineMarkersPanel()
+        CombineMarkersPanel()
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
 

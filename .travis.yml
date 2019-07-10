@@ -1,80 +1,78 @@
 language: c
-dist: trusty
+dist: xenial
 sudo: false
 cache:
   apt: true
+  pip: true
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
+    # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
+    # https://github.com/xianyi/OpenBLAS/issues/731
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
-            PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar" OPTION=""
+            PIP_DEPENDENCIES="codecov nitime"
             TRAVIS_PYTHON_VERSION=3.6 CONDA_VERSION=">=4.3.27"
+            OPENBLAS_NUM_THREADS=1
 
 matrix:
     include:
         # No data + style testing
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx nose pytest pytest-cov"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar"
-               OPTION="--doctest-ignore-import-errors"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-timeout pytest-cov pytest-mock"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-faulthandler"
 
         # Linux
         - os: linux
           env: CONDA_ENVIRONMENT="environment.yml"
-               SPLIT=0
-        - os: linux
-          env: CONDA_ENVIRONMENT="environment.yml"
-               SPLIT=1
 
-        # OSX
+        # OSX conda
         - os: osx
           env: CONDA_ENVIRONMENT="environment.yml"
-              SPLIT=0
-        - os: osx
-          env: CONDA_ENVIRONMENT="environment.yml"
-              SPLIT=1
 
-        # 2.7 + non-default stim channel
+        # PIP + non-default stim channel
         - os: linux
-          env: CONDA_ENVIRONMENT="environment2.yml" MNE_STIM_CHANNEL=STI101
-               SPLIT=0
+          env: MNE_STIM_CHANNEL=STI101
+               PYTHON_VERSION=3.7
+          language: python
+          python: "3.7"
+          addons:
+            apt:
+              packages:
+                - qt5-default  # Qt 5.12 release needs this to avoid a missing library bug
+        # Old dependencies
         - os: linux
-          env: CONDA_ENVIRONMENT="environment2.yml" MNE_STIM_CHANNEL=STI101
-               SPLIT=1
-
-        # 2.7 Old dependencies
-        - os: linux
-          env: PYTHON_VERSION=2.7
-               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 nose pytest pytest-cov"
-               SPLIT=0
-        - os: linux
-          env: PYTHON_VERSION=2.7
-               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 nose pytest pytest-cov"
-               SPLIT=1
+          env: PYTHON_VERSION=3.5
+               CONDA_DEPENDENCIES="numpy=1.11 scipy=0.17 matplotlib=1.5 pandas=0.18 scikit-learn=0.18 pytest pytest-cov pytest-mock pytest-timeout"
 
         # Minimal
         - os: linux
           env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
-               SPLIT=0
-        - os: linux
-          env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
-               SPLIT=1
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov pytest-mock pytest-timeout"
+               PIP_DEPENDENCIES="pytest-faulthandler pytest-sugar"
 
 # Setup anaconda
 before_install:
     - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
-    - git clone https://github.com/astropy/ci-helpers.git
-    - source ci-helpers/travis/setup_conda.sh
-    - if [ ! -z $CONDA_ENVIRONMENT ]; then
-        pip uninstall --yes mne;
-      fi;
-    - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        pip install --upgrade pyqt5>=5.10;
-      fi;
+    - if [ -z "$CONDA_ENVIRONMENT" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
+        pip uninstall -y numpy;
+        pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --pre numpy scipy;
+        pip install vtk;
+        pip install $PIP_DEPENDENCIES;
+        pip install --upgrade -r requirements.txt;
+      else
+        git clone https://github.com/astropy/ci-helpers.git;
+        source ci-helpers/travis/setup_conda.sh;
+        if [ ! -z "$CONDA_ENVIRONMENT" ]; then
+          pip uninstall --yes mne;
+        fi;
+        if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+          pip install --upgrade pyqt5>=5.10 pylsl;
+        else
+          conda install -c tstenner pylsl;
+        fi;
+      fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
     - if [ "${DEPS}" == "" ]; then
         export MNE_ROOT="${PWD}/minimal_cmds";
@@ -134,10 +132,8 @@ install:
         ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg;
         ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc;
         cd ${MNE_DIR}/../;
-        COVERAGE=;
       else
         cd ${SRC_DIR};
-        COVERAGE=--with-coverage;
       fi;
 
 
@@ -152,14 +148,19 @@ script:
         CONDITION='not ultraslowtest';
       fi;
     - python -c "import mne; print(mne.sys_info())"
-    # Determine directories to test
+    # Determine directories to test (could use SPLIT=0 SPLIT=1 but currently
+    # we are fast enough, so disable it)
     - if [ -z ${SPLIT} ]; then
         USE_DIRS="mne/";
       else
         if [ "${SPLIT}" == "0" ]; then
           MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io";
-        else
+        elif [ "${SPLIT}" == "1" ]; then
           MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz";
+        elif [ "${SPLIT}" == "2" ]; then
+          MNE_DIRS=".";
+        else
+          MNE_DIRS="beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io";
         fi;
         USE_DIRS="";
         for DIR in ${MNE_DIRS}; do
@@ -170,8 +171,14 @@ script:
           fi;
         done;
       fi;
-    - echo py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
-    - py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
+    # Test run_tests_if_main
+    - if [ "${DEPS}" == "nodata" ]; then
+        pip uninstall -yq mne;
+        pip install -e .;
+        python mne/tests/test_evoked.py;
+      fi;
+    - echo pytest -m "${CONDITION}" ${USE_DIRS}
+    - pytest -m "${CONDITION}" ${USE_DIRS}
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;

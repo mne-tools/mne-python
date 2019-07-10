@@ -10,7 +10,7 @@ import numpy as np
 
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
@@ -24,8 +24,8 @@ def _read_header(fid):
     if version > 6 & ~np.bitwise_and(version, 6):
         version = version.byteswap().astype(np.uint32)
     else:
-        ValueError('Watchout. This does not seem to be a simple '
-                   'binary EGI file.')
+        raise ValueError('Watchout. This does not seem to be a simple '
+                         'binary EGI file.')
 
     def my_fread(*x, **y):
         return np.fromfile(*x, **y)[0]
@@ -49,7 +49,7 @@ def _read_header(fid):
     unsegmented = 1 if np.bitwise_and(version, 1) == 0 else 0
     precision = np.bitwise_and(version, 6)
     if precision == 0:
-        RuntimeError('Floating point precision is undefined.')
+        raise RuntimeError('Floating point precision is undefined.')
 
     if unsegmented:
         info.update(dict(n_categories=0,
@@ -98,7 +98,7 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     input_fname : str
         Path to the raw file. Files with an extension .mff are automatically
         considered to be EGI's native MFF format files.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -117,29 +117,20 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
        trigger. Defaults to None. If None, channels that have more than
        one event and the ``sync`` and ``TREV`` channels will be
        ignored.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
 
-        ..versionadded:: 0.11
-
+        .. versionadded:: 0.11
     channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%d'
+        Channel naming convention for the data channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %03d'.
+        prior to 0.14.0 was 'EEG %%03d'.
 
-         ..versionadded:: 0.14.0
-
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+         .. versionadded:: 0.14.0
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of RawEGI
+    raw : instance of RawEGI
         A Raw object containing EGI data.
 
     Notes
@@ -241,12 +232,11 @@ class RawEGI(BaseRaw):
             self.event_id = None
             self._new_trigger = None
         info = _empty_info(egi_info['samp_rate'])
-        info['buffer_size_sec'] = 1.  # reasonable default
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
-        info['meas_date'] = np.array([my_timestamp, 0], dtype=np.float32)
+        info['meas_date'] = (my_timestamp, 0)
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
@@ -266,11 +256,13 @@ class RawEGI(BaseRaw):
                              'unit': FIFF.FIFF_UNIT_NONE})
         info['chs'] = chs
         info._update_redundant()
-        _check_update_montage(info, montage)
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],
             filenames=[input_fname], last_samps=[egi_info['n_samples'] - 1],
             raw_extras=[egi_info], verbose=verbose)
+
+        if montage is not None:
+            self.set_montage(montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""

@@ -1,4 +1,3 @@
-from __future__ import print_function
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #
@@ -12,7 +11,6 @@ from scipy import linalg
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared, warn
 from ..time_frequency.stft import stft_norm1, stft_norm2, stft, istft
-from ..externals.six.moves import xrange as range
 
 
 def groups_norm2(A, n_orient):
@@ -230,7 +228,7 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
                             dgap_freq=10):
     """Solve L21 inverse problem with proximal iterations and FISTA."""
     n_sensors, n_times = M.shape
-    n_sensors, n_sources = G.shape
+    _, n_sources = G.shape
 
     if n_sources < n_sensors:
         gram = np.dot(G.T, G)
@@ -285,8 +283,8 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
             E.append(p_obj)
             logger.debug("p_obj : %s -- gap : %s" % (p_obj, gap))
             if gap < tol:
-                logger.debug('Convergence reached ! (gap: %s < %s)' % (gap,
-                             tol))
+                logger.debug('Convergence reached ! (gap: %s < %s)'
+                             % (gap, tol))
                 break
     return X, active_set, E
 
@@ -298,16 +296,15 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
     """Solve L21 inverse problem with coordinate descent."""
     from sklearn.linear_model.coordinate_descent import MultiTaskLasso
 
-    n_sensors, n_times = M.shape
-    n_sensors, n_sources = G.shape
-
-    if init is not None:
-        init = init.T
+    assert M.ndim == G.ndim and M.shape[0] == G.shape[0]
 
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol / sum_squared(M),
                          normalize=False, fit_intercept=False, max_iter=maxit,
                          warm_start=True)
-    clf.coef_ = init
+    if init is not None:
+        clf.coef_ = init.T
+    else:
+        clf.coef_ = np.zeros((G.shape[1], M.shape[1])).T
     clf.fit(G, M)
 
     X = clf.coef_.T
@@ -322,9 +319,6 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                            tol=1e-8, verbose=None, init=None, n_orient=1,
                            dgap_freq=10):
     """Solve L21 inverse problem with block coordinate descent."""
-    # First make G fortran for faster access to blocks of columns
-    G = np.asfortranarray(G)
-
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
     n_positions = n_sources // n_orient
@@ -342,30 +336,26 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     alpha_lc = alpha / lipschitz_constant
 
+    # First make G fortran for faster access to blocks of columns
+    G = np.asfortranarray(G)
+    # It is better to call gemm here
+    # so it is called only once
+    gemm = linalg.get_blas_funcs("gemm", [R.T, G[:, 0:n_orient]])
+    one_ovr_lc = 1. / lipschitz_constant
+
+    # assert that all the multiplied matrices are fortran contiguous
+    assert X.T.flags.f_contiguous
+    assert R.T.flags.f_contiguous
+    assert G.flags.f_contiguous
+    # storing list of contiguous arrays
+    list_G_j_c = []
+    for j in range(n_positions):
+        idx = slice(j * n_orient, (j + 1) * n_orient)
+        list_G_j_c.append(np.ascontiguousarray(G[:, idx]))
+
     for i in range(maxit):
-        for j in range(n_positions):
-            idx = slice(j * n_orient, (j + 1) * n_orient)
-
-            G_j = G[:, idx]
-            X_j = X[idx]
-
-            X_j_new = np.dot(G_j.T, R) / lipschitz_constant[j]
-
-            was_non_zero = np.any(X_j)
-            if was_non_zero:
-                R += np.dot(G_j, X_j)
-                X_j_new += X_j
-
-            block_norm = linalg.norm(X_j_new, 'fro')
-            if block_norm <= alpha_lc[j]:
-                X_j.fill(0.)
-                active_set[idx] = False
-            else:
-                shrink = np.maximum(1.0 - alpha_lc[j] / block_norm, 0.0)
-                X_j_new *= shrink
-                R -= np.dot(G_j, X_j_new)
-                X_j[:] = X_j_new
-                active_set[idx] = True
+        _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
+             alpha_lc, gemm, list_G_j_c)
 
         if (i + 1) % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
@@ -377,13 +367,72 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                          (i + 1, p_obj, gap, np.sum(active_set) / n_orient))
 
             if gap < tol:
-                logger.debug('Convergence reached ! (gap: %s < %s)' % (gap,
-                             tol))
+                logger.debug('Convergence reached ! (gap: %s < %s)'
+                             % (gap, tol))
                 break
 
     X = X[active_set]
 
     return X, active_set, E
+
+
+def _bcd(G, X, R, active_set, one_ovr_lc, n_orient, n_positions,
+         alpha_lc, gemm, list_G_j_c):
+    """Implement one full pass of BCD.
+
+    BCD stands for Block Coordinate Descent.
+    This function make use of scipy.linalg.get_blas_funcs to speed reasons.
+
+    Parameters
+    ----------
+    G : array, shape (n_sensors, n_active)
+        The gain matrix a.k.a. lead field.
+    X : array, shape (n_sources, n_times)
+        Sources, modified in place.
+    R : array, shape (n_sensors, n_times)
+        The residuals: R = M - G @ X, modified in place.
+    active_set : array of bool, shape (n_sources, )
+        Mask of active sources, modified in place.
+    one_ovr_lc : array, shape (n_positions, )
+        One over the lipschitz constants.
+    n_orient : int
+        Number of dipoles per positions (typically 1 or 3).
+    n_positions : int
+        Number of source positions.
+    alpha_lc: array, shape (n_positions, )
+        alpha * (Lipschitz constants).
+    gemm: callable
+        Low level blas function to fastly multiply matrix time matrix.
+    """
+    X_j_new = np.zeros_like(X[0:n_orient, :], order='C')
+
+    for j, G_j_c in enumerate(list_G_j_c):
+        idx = slice(j * n_orient, (j + 1) * n_orient)
+        G_j = G[:, idx]
+        X_j = X[idx]
+        gemm(alpha=one_ovr_lc[j], beta=0., a=R.T, b=G_j, c=X_j_new.T,
+             overwrite_c=True)
+        # X_j_new = G_j.T @ R
+        # Mathurin's trick to avoid checking all the entries
+        was_non_zero = X_j[0, 0] != 0
+        # was_non_zero = np.any(X_j)
+        if was_non_zero:
+            gemm(alpha=1., beta=1., a=X_j.T, b=G_j_c.T, c=R.T,
+                 overwrite_c=True)
+            # R += np.dot(G_j, X_j)
+            X_j_new += X_j
+        block_norm = sqrt(sum_squared(X_j_new))
+        if block_norm <= alpha_lc[j]:
+            X_j.fill(0.)
+            active_set[idx] = False
+        else:
+            shrink = max(1.0 - alpha_lc[j] / block_norm, 0.0)
+            X_j_new *= shrink
+            gemm(alpha=-1., beta=1., a=X_j_new.T, b=G_j_c.T, c=R.T,
+                 overwrite_c=True)
+            # R -= np.dot(G_j, X_j_new)
+            X_j[:] = X_j_new
+            active_set[idx] = True
 
 
 @verbose
@@ -405,9 +454,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         The number of iterations.
     tol : float
         Tolerance on dual gap for convergence checking.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -537,7 +584,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             # add sources if not last iteration
             if k < (maxit - 1):
                 idx_large_corr = np.argsort(groups_norm2(np.dot(G.T, R),
-                                            n_orient))
+                                                         n_orient))
                 new_active_idx = idx_large_corr[-active_set_size:]
                 if n_orient > 1:
                     new_active_idx = (n_orient * new_active_idx[:, None] +
@@ -592,9 +639,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         The number of iterations.
     tol : float
         Tolerance on dual gap for convergence checking.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -788,16 +833,16 @@ class _PhiT(object):
             z_ = np.array_split(z, np.cumsum(self.n_coefs)[:-1], axis=1)
             for i in range(self.n_dicts):
                 x_out += istft(z_[i].reshape(-1, self.n_freqs[i],
-                               self.n_steps[i]), self.tstep[i],
-                               self.n_times)
+                                             self.n_steps[i]),
+                               self.tstep[i], self.n_times)
             return x_out / np.sqrt(self.n_dicts)
 
 
 def norm_l21_tf(Z, phi, n_orient):
     """L21 norm for TF."""
     if Z.shape[0]:
-        l21_norm = np.sqrt(phi.norm(Z, ord=2).reshape(-1,
-                           n_orient).sum(axis=1))
+        l21_norm = np.sqrt(
+            phi.norm(Z, ord=2).reshape(-1, n_orient).sum(axis=1))
         l21_norm = l21_norm.sum()
     else:
         l21_norm = 0.
@@ -808,8 +853,8 @@ def norm_l1_tf(Z, phi, n_orient):
     """L1 norm for TF."""
     if Z.shape[0]:
         n_positions = Z.shape[0] // n_orient
-        Z_ = np.sqrt(np.sum((np.abs(Z) ** 2.).reshape((n_orient, -1),
-                     order='F'), axis=0))
+        Z_ = np.sqrt(np.sum(
+            (np.abs(Z) ** 2.).reshape((n_orient, -1), order='F'), axis=0))
         Z_ = Z_.reshape((n_positions, -1), order='F')
         l1_norm = phi.norm(Z_, ord=1).sum()
     else:
@@ -833,7 +878,7 @@ def norm_epsilon(Y, l1_ratio, phi):
     l1_ratio : float between 0 and 1
         Tradeoff between L2 and L1 regularization. When it is 0, no temporal
         regularization is applied.
-    phi : Instance of _Phi
+    phi : instance of _Phi
         The TF operator.
 
     Returns
@@ -870,7 +915,7 @@ def norm_epsilon(Y, l1_ratio, phi):
     weights = np.empty(len(Y), dtype=int)
     weights.fill(2)
     for i, w in enumerate(np.array_split(weights,
-                          np.cumsum(phi.n_coefs)[:-1])):
+                                         np.cumsum(phi.n_coefs)[:-1])):
         w[:phi.n_steps[i]] = 1
         w[-phi.n_steps[i]:] = 1
 
@@ -926,10 +971,11 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
         (consecutive rows of phi(np.dot(G.T, R))).
     """
     n_positions = G.shape[1] // n_orient
-    GTRPhi = np.abs(phi(np.dot(G.T, R))) ** 2
+    GTRPhi = np.abs(phi(np.dot(G.T, R)))
     # norm over orientations:
-    GTRPhi = np.sqrt(np.sum(GTRPhi.reshape((n_orient, -1), order='F'),
-                     axis=0)).reshape((n_positions, -1), order='F')
+    GTRPhi = GTRPhi.reshape((n_orient, -1), order='F')
+    GTRPhi = np.linalg.norm(GTRPhi, axis=0)
+    GTRPhi = GTRPhi.reshape((n_positions, -1), order='F')
     nu = 0.
     for idx in range(n_positions):
         GTRPhi_ = GTRPhi[idx]
@@ -1017,7 +1063,6 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
 
-    n_sensors, n_times = M.shape
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
 
@@ -1087,9 +1132,9 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                         Z[jj] = 0.0
                         active_set_j[:] = False
                     else:
-                        shrink = np.maximum(1.0 - alpha_space_lc[jj] /
-                                            np.maximum(row_norm,
-                                            alpha_space_lc[jj]), 0.0)
+                        shrink = np.maximum(
+                            1.0 - alpha_space_lc[jj] /
+                            np.maximum(row_norm, alpha_space_lc[jj]), 0.0)
                         Z_j_new *= shrink
                         Z[jj] = Z_j_new.reshape(-1, *shape_init[1:]).copy()
                         active_set_j[:] = True
@@ -1097,7 +1142,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
         if (ii + 1) % dgap_freq == 0:
             Zd = np.vstack([Z[pos] for pos in range(n_positions)
-                           if np.any(Z[pos])])
+                            if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
                 n_orient, d_obj)
@@ -1126,7 +1171,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                                          lipschitz_constant, phi, phiT,
                                          Z_init=None, n_orient=1, maxit=200,
-                                         tol=1e-8,  dgap_freq=10,
+                                         tol=1e-8, dgap_freq=10,
                                          verbose=None):
 
     n_sensors, n_times = M.shape
@@ -1145,8 +1190,8 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                 active_set[ii * n_orient:(ii + 1) * n_orient] = True
                 active.append(ii)
         if len(active):
-            Z.update(dict(zip(active, np.vsplit(Z_init[active_set],
-                     len(active)))))
+            Z.update(dict(zip(active,
+                              np.vsplit(Z_init[active_set], len(active)))))
 
     E = []
     candidates = range(n_positions)
@@ -1241,9 +1286,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         Return final duality gap.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

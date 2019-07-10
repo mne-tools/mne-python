@@ -11,7 +11,7 @@ import time
 import numbers
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator, is_classifier
-from ..utils import check_version, logger, warn
+from ..utils import check_version, logger, warn, fill_doc
 
 
 class LinearModel(BaseEstimator):
@@ -57,7 +57,10 @@ class LinearModel(BaseEstimator):
     def __init__(self, model=None):  # noqa: D102
         if model is None:
             from sklearn.linear_model import LogisticRegression
-            model = LogisticRegression()
+            if check_version('sklearn', '0.20'):
+                model = LogisticRegression(solver='liblinear')
+            else:
+                model = LogisticRegression()
 
         self.model = model
         self._estimator_type = getattr(model, "_estimator_type", None)
@@ -363,6 +366,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     return coef
 
 
+@fill_doc
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
                          cv=None, n_jobs=1, verbose=0, fit_params=None,
                          pre_dispatch='2*n_jobs'):
@@ -370,8 +374,9 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     Parameters
     ----------
-    estimator : estimator object implementing 'fit'
+    estimator : instance of sklearn.base.BaseEstimator
         The object to use to fit the data.
+        Must implement the 'fit' method.
     X : array-like, shape (n_samples, n_dimensional_features,)
         The data to fit. Can be, for example a list, or an array at least 2d.
     y : array-like, shape (n_samples, n_targets,)
@@ -384,6 +389,10 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
+        Note that when using an estimator which inherently returns
+        multidimensional output - in particular, SlidingEstimator
+        or GeneralizingEstimator - you should set the scorer
+        there, not here.
     cv : int, cross-validation generator | iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
@@ -397,10 +406,8 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         either binary or multiclass,
         :class:`sklearn.model_selection.StratifiedKFold` is used. In all
         other cases, :class:`sklearn.model_selection.KFold` is used.
-    n_jobs : integer, optional
-        The number of CPUs to use to do the computation. -1 means
-        'all CPUs'.
-    verbose : integer, optional
+    %(n_jobs)s
+    verbose : int, optional
         The verbosity level.
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.
@@ -467,8 +474,8 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = dict([(k, _index_param_value(X, v, train))
-                      for k, v in fit_params.items()])
+    fit_params = {k: _index_param_value(X, v, train)
+                  for k, v in fit_params.items()}
 
     if parameters is not None:
         estimator.set_params(**parameters)

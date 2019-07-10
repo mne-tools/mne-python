@@ -11,7 +11,8 @@ the label time course with the single trial source estimates to compute the
 connectivity.
 
 The result clearly shows how the activity in the visual label precedes more
-widespread activity (a postivive PSI means the label time course is leading).
+widespread activity (as a postivive PSI means the label time course is
+leading).
 
 References
 ----------

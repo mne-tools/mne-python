@@ -7,8 +7,8 @@ import numpy as np
 from scipy import linalg
 
 from ..defaults import _handle_default
-from ..io.pick import _pick_data_channels, _picks_by_type, pick_info
-from ..utils import verbose
+from ..io.pick import _picks_to_idx, _picks_by_type, pick_info
+from ..utils import verbose, _apply_scaling_array
 
 
 def _yule_walker(X, order=1):
@@ -48,15 +48,12 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
         an instance of Raw.
     order : int
         order of the FIR filter.
-    picks : array-like of int | None
-        indices of selected channels. If None, MEG and EEG channels are used.
+    %(picks_good_data)s
     tmin : float
         The beginning of time interval in seconds.
     tmax : float
         The end of time interval in seconds.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -65,14 +62,12 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
     a : ndarray
         Denominator filter coefficients
     """
-    from ..cov import _apply_scaling_array
     start, stop = None, None
     if tmin is not None:
         start = raw.time_as_index(tmin)[0]
     if tmax is not None:
         stop = raw.time_as_index(tmax)[0] + 1
-    if picks is None:
-        picks = _pick_data_channels(raw.info, exclude='bads')
+    picks = _picks_to_idx(raw.info, picks)
     data = raw[picks, start:stop][0]
     # rescale data to similar levels
     picks_list = _picks_by_type(pick_info(raw.info, picks))

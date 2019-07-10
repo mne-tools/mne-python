@@ -4,24 +4,20 @@
 
 import numpy as np
 import os.path as op
-import warnings
 import itertools
 from distutils.version import LooseVersion
 
-from numpy.testing import assert_raises, assert_allclose
+from numpy.testing import assert_allclose
+import pytest
+import matplotlib
+import matplotlib.pyplot as plt
 
-from mne import read_events, pick_types, Annotations
+from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
-from mne.io import read_raw_fif, read_raw_ctf
-from mne.utils import requires_version, run_tests_if_main
+from mne.io import read_raw_fif, read_raw_ctf, RawArray
+from mne.utils import run_tests_if_main
 from mne.viz.utils import _fake_click, _annotation_radio_clicked, _sync_onset
 from mne.viz import plot_raw, plot_sensors
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
 ctf_fname_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
@@ -36,7 +32,7 @@ def _get_raw():
     """Get raw data."""
     raw = read_raw_fif(raw_fname, preload=True)
     # Throws a warning about a changed unit.
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='unit'):
         raw.set_channel_types({raw.ch_names[0]: 'ias'})
     raw.pick_channels(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
@@ -49,11 +45,10 @@ def _get_events():
 
 
 def _annotation_helper(raw, events=False):
-    """Helper for testing interactive annotations."""
-    import matplotlib.pyplot as plt
+    """Test interactive annotations."""
     # Some of our checks here require modern mpl to work properly
     mpl_good_enough = LooseVersion(matplotlib.__version__) >= '2.0'
-    n_anns = 0 if raw.annotations is None else len(raw.annotations.onset)
+    n_anns = len(raw.annotations)
     plt.close('all')
 
     if events:
@@ -66,20 +61,25 @@ def _annotation_helper(raw, events=False):
     fig = raw.plot(events=events)
     assert len(plt.get_fignums()) == 1
     data_ax = fig.axes[0]
-    fig.canvas.key_press_event('a')  # annotation mode
+    with pytest.warns(None):  # on old mpl we warns about no modifications
+        fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
-    assert len(fig.axes[0].texts) == n_anns + n_events
+    # +2 from the scale bars
+    n_scale = 2
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     # modify description
     ann_fig = plt.gcf()
     for key in ' test':
         ann_fig.canvas.key_press_event(key)
-    ann_fig.canvas.key_press_event('enter')
+    with pytest.warns(None):  # old mpl
+        ann_fig.canvas.key_press_event('enter')
 
     ann_fig = plt.gcf()
     # XXX: _fake_click raises an error on Agg backend
     _annotation_radio_clicked('', ann_fig.radio, data_ax.selector)
 
     # draw annotation
+    fig.canvas.key_press_event('p')  # use snap mode
     _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
@@ -87,7 +87,7 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD_ test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
     assert_allclose(onset, want_onset)
@@ -117,11 +117,11 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD_ test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     fig.canvas.key_press_event('shift+right')
-    assert len(fig.axes[0].texts) == 0
+    assert len(fig.axes[0].texts) == n_scale
     fig.canvas.key_press_event('shift+left')
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
@@ -134,116 +134,169 @@ def _annotation_helper(raw, events=False):
     if mpl_good_enough:
         assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
         assert_allclose(raw.annotations.duration[n_anns], 5.0)
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events
+    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
-    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
-    fig.canvas.key_press_event('a')  # exit annotation mode
+    with pytest.warns(None):  # old mpl
+        _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
+                    kind='press')
+        fig.canvas.key_press_event('a')  # exit annotation mode
     assert len(raw.annotations.onset) == n_anns
-    assert len(fig.axes[0].texts) == n_anns + n_events
-    fig.canvas.key_press_event('shift+right')
-    assert len(fig.axes[0].texts) == 0
-    fig.canvas.key_press_event('shift+left')
-    assert len(fig.axes[0].texts) == n_anns + n_events
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
+    with pytest.warns(None):  # old mpl
+        fig.canvas.key_press_event('shift+right')
+    assert len(fig.axes[0].texts) == n_scale
+    with pytest.warns(None):  # old mpl
+        fig.canvas.key_press_event('shift+left')
+    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
+    plt.close('all')
+
+
+def _proj_status(ax):
+    return [l.get_visible() for l in ax.findobj(matplotlib.lines.Line2D)][::2]
+
+
+def test_scale_bar():
+    """Test scale bar for raw."""
+    sfreq = 1000.
+    t = np.arange(10000) / sfreq
+    data = np.sin(2 * np.pi * 10. * t)
+    # +/- 1000 fT, 400 fT/cm, 20 uV
+    data = data * np.array([[1000e-15, 400e-13, 20e-6]]).T
+    info = create_info(3, sfreq, ('mag', 'grad', 'eeg'))
+    raw = RawArray(data, info)
+    fig = raw.plot()
+    ax = fig.axes[0]
+    assert len(ax.texts) == 3  # our labels
+    for text, want in zip(ax.texts, ('800.0 fT/cm', '2000.0 fT', '40.0 uV')):
+        assert text.get_text().strip() == want
+    assert len(ax.lines) == 8  # green, data, nan, bars
+    for data, bar in zip(ax.lines[1:4], ax.lines[5:8]):
+        y = data.get_ydata()
+        y_lims = [y.min(), y.max()]
+        bar_lims = bar.get_ydata()
+        assert_allclose(y_lims, bar_lims, atol=1e-4)
     plt.close('all')
 
 
 def test_plot_raw():
     """Test plotting of raw data."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     events = _get_events()
     plt.close('all')  # ensure all are closed
-    with warnings.catch_warnings(record=True):
-        fig = raw.plot(events=events, show_options=True, order=[1, 7, 3],
-                       group_by='original')
-        # test mouse clicks
-        x = fig.get_axes()[0].lines[1].get_xdata().mean()
-        y = fig.get_axes()[0].lines[1].get_ydata().mean()
-        data_ax = fig.axes[0]
+    assert len(plt.get_fignums()) == 0
+    fig = raw.plot(events=events, order=[1, 7, 3], group_by='original')
+    assert len(plt.get_fignums()) == 1
 
-        _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
-        _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
-        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
-        _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-        _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
-        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
-        fig.canvas.button_press_event(1, 1, 1)  # outside any axes
-        fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-        fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
-        # sadly these fail when no renderer is used (i.e., when using Agg):
-        # ssp_fig = set(plt.get_fignums()) - set([fig.number])
-        # assert_equal(len(ssp_fig), 1)
-        # ssp_fig = plt.figure(list(ssp_fig)[0])
-        # ax = ssp_fig.get_axes()[0]  # only one axis is used
-        # t = [c for c in ax.get_children() if isinstance(c,
-        #      matplotlib.text.Text)]
-        # pos = np.array(t[0].get_position()) + 0.01
-        # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
-        # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
-        #  test keypresses
-        for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
-                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
-            fig.canvas.key_press_event(key)
-        fig = plot_raw(raw, events=events, group_by='selection')
-        for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=',
-                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
-                    'escape']:
-            fig.canvas.key_press_event(key)
-        # Color setting
-        assert_raises(KeyError, raw.plot, event_color={0: 'r'})
-        assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
-        annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
-                            [10, 10], ['test', 'test'], raw.info['meas_date'])
-        raw.annotations = annot
-        fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
-        plt.close('all')
-        for group_by, order in zip(['position', 'selection'],
-                                   [np.arange(len(raw.ch_names))[::-3],
-                                    [1, 2, 4, 6]]):
+    # make sure fig._mne_params is present
+    assert isinstance(fig._mne_params, dict)
+
+    # test mouse clicks
+    x = fig.get_axes()[0].lines[1].get_xdata().mean()
+    y = fig.get_axes()[0].lines[1].get_ydata().mean()
+    data_ax = fig.axes[0]
+
+    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
+    _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
+    _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+    _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+    _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
+    _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+    assert len(plt.get_fignums()) == 1
+    # open SSP window
+    _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5])
+    _fake_click(fig, fig.get_axes()[-1], [0.5, 0.5], kind='release')
+    assert len(plt.get_fignums()) == 2
+    ssp_fig = plt.figure(plt.get_fignums()[-1])
+    fig.canvas.button_press_event(1, 1, 1)  # outside any axes
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+
+    ax = ssp_fig.get_axes()[0]  # only one axis is used
+    assert _proj_status(ax) == [True] * 3
+    t = [c for c in ax.get_children() if isinstance(c, matplotlib.text.Text)]
+    pos = np.array(t[0].get_position()) + 0.01
+    _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
+    assert _proj_status(ax) == [False, True, True]
+    _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
+    assert _proj_status(ax) == [True] * 3
+    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all off
+    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
+    assert _proj_status(ax) == [False] * 3
+    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all on
+    _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
+    assert _proj_status(ax) == [True] * 3
+
+    # test keypresses
+    # test for group_by='original'
+    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd', 'd',
+                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
+        fig.canvas.key_press_event(key)
+
+    # test for group_by='selection'
+    fig = plot_raw(raw, events=events, group_by='selection')
+    for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd',
+                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+                'escape']:
+        fig.canvas.key_press_event(key)
+
+    # Color setting
+    pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
+    pytest.raises(TypeError, raw.plot, event_color={'foo': 'r'})
+    annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
+                        [10, 10], ['test', 'test'], raw.info['meas_date'])
+    with pytest.warns(RuntimeWarning, match='outside data range'):
+        raw.set_annotations(annot)
+    fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
+    plt.close('all')
+    for group_by, order in zip(['position', 'selection'],
+                               [np.arange(len(raw.ch_names))[::-3],
+                                [1, 2, 4, 6]]):
+        with pytest.warns(None):  # sometimes projection
             fig = raw.plot(group_by=group_by, order=order)
-            x = fig.get_axes()[0].lines[1].get_xdata()[10]
-            y = fig.get_axes()[0].lines[1].get_ydata()[10]
-            _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
-            fig.canvas.key_press_event('down')  # change selection
-            _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-            sel_fig = plt.figure(1)
-            topo_ax = sel_fig.axes[1]
-            _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
-                        xform='data')
-            fig.canvas.key_press_event('down')
-            fig.canvas.key_press_event('up')
-            fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
-            fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-            _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
-            _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
-                        kind='motion')
-            _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
-                        kind='motion')
-            _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
-                        kind='release')
+        x = fig.get_axes()[0].lines[1].get_xdata()[10]
+        y = fig.get_axes()[0].lines[1].get_ydata()[10]
+        _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
+        fig.canvas.key_press_event('down')  # change selection
+        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+        sel_fig = plt.figure(1)
+        topo_ax = sel_fig.axes[1]
+        _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
+                    xform='data')
+        fig.canvas.key_press_event('down')
+        fig.canvas.key_press_event('up')
+        fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+        fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+        _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
+        _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
+                    kind='motion')
+        _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
+                    kind='motion')
+        _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
+                    kind='release')
 
-            plt.close('all')
-        # test if meas_date has only one element
-        raw.info['meas_date'] = np.array([raw.info['meas_date'][0]],
-                                         dtype=np.int32)
-        raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
-                                      [5], ['bad'])
-        raw.plot(group_by='position', order=np.arange(8))
-        for fig_num in plt.get_fignums():
-            fig = plt.figure(fig_num)
-            if hasattr(fig, 'radio'):  # Get access to selection fig.
-                break
-        for key in ['down', 'up', 'escape']:
-            fig.canvas.key_press_event(key)
         plt.close('all')
+    # test if meas_date has only one element
+    raw.info['meas_date'] = (raw.info['meas_date'][0], 0)
+    annot = Annotations([1 + raw.first_samp / raw.info['sfreq']],
+                        [5], ['bad'])
+    with pytest.warns(RuntimeWarning, match='outside data range'):
+        raw.set_annotations(annot)
+    with pytest.warns(None):  # sometimes projection
+        raw.plot(group_by='position', order=np.arange(8))
+    for fig_num in plt.get_fignums():
+        fig = plt.figure(fig_num)
+        if hasattr(fig, 'radio'):  # Get access to selection fig.
+            break
+    for key in ['down', 'up', 'escape']:
+        fig.canvas.key_press_event(key)
+
+    plt.close('all')
 
 
 @testing.requires_testing_data
 def test_plot_raw_white():
     """Test plotting whitened raw data."""
-    import matplotlib.pyplot as plt
     raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
     raw.plot(noise_cov=cov_fname)
     plt.close('all')
@@ -252,11 +305,18 @@ def test_plot_raw_white():
 @testing.requires_testing_data
 def test_plot_ref_meg():
     """Test plotting ref_meg."""
-    import matplotlib.pyplot as plt
     raw_ctf = read_raw_ctf(ctf_fname_continuous).crop(0, 1).load_data()
     raw_ctf.plot()
     plt.close('all')
-    assert_raises(ValueError, raw_ctf.plot, group_by='selection')
+    pytest.raises(ValueError, raw_ctf.plot, group_by='selection')
+
+
+def test_plot_misc_auto():
+    """Test plotting of data with misc auto scaling."""
+    data = np.random.RandomState(0).randn(1, 1000)
+    raw = RawArray(data, create_info(1, 1000., 'misc'))
+    raw.plot()
+    plt.close('all')
 
 
 def test_plot_annotations():
@@ -266,50 +326,54 @@ def test_plot_annotations():
     _annotation_helper(raw)
     _annotation_helper(raw, events=True)
 
-    with warnings.catch_warnings(record=True):  # cut off
-        raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
+    annot = Annotations([42], [1], 'test', raw.info['meas_date'])
+    with pytest.warns(RuntimeWarning, match='expanding outside'):
+        raw.set_annotations(annot)
     _annotation_helper(raw)
+    plt.close('all')
 
 
-@requires_version('scipy', '0.10')
 def test_plot_raw_filtered():
     """Test filtering of raw plots."""
     raw = _get_raw()
-    assert_raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
-    assert_raises(ValueError, raw.plot, highpass=0)
-    assert_raises(ValueError, raw.plot, lowpass=1, highpass=1)
-    assert_raises(ValueError, raw.plot, lowpass=1, filtorder=0)
-    assert_raises(ValueError, raw.plot, clipping='foo')
+    with pytest.raises(ValueError, match='lowpass must be < Nyquist'):
+        raw.plot(lowpass=raw.info['sfreq'] / 2.)
+    with pytest.raises(ValueError, match='highpass must be > 0'):
+        raw.plot(highpass=0)
+    with pytest.raises(ValueError, match=r'lowpass \(1\) must be > highpass'):
+        raw.plot(lowpass=1, highpass=1)
+    with pytest.raises(ValueError, match=r'filtorder \(-1\) must be >= 0'):
+        raw.plot(lowpass=1, filtorder=-1)
+    with pytest.raises(ValueError, match="Invalid value for the 'clipping'"):
+        raw.plot(clipping='foo')
     raw.plot(lowpass=1, clipping='transparent')
     raw.plot(highpass=1, clipping='clamp')
-    raw.plot(highpass=1, lowpass=2, butterfly=True)
+    raw.plot(lowpass=40, butterfly=True, filtorder=0)
+    plt.close('all')
 
 
-@requires_version('scipy', '0.12')
 def test_plot_raw_psd():
     """Test plotting of raw psds."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
     raw.plot_psd(average=False)
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,
+    raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
                  spatial_colors=True)
     raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
                  n_overlap=0.1, average=False)
     plt.close('all')
     ax = plt.axes()
     # if ax is supplied:
-    assert_raises(ValueError, raw.plot_psd, ax=ax, average=True)
-    assert_raises(ValueError, raw.plot_psd, average=True, spatial_colors=True)
-    raw.plot_psd(tmax=np.inf, picks=picks, ax=ax, average=True)
+    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
+    raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
     plt.close('all')
     ax = plt.axes()
-    assert_raises(ValueError, raw.plot_psd, ax=ax, average=True)
+    pytest.raises(ValueError, raw.plot_psd, ax=ax, average=True)
     plt.close('all')
     ax = plt.subplots(2)[1]
-    raw.plot_psd(tmax=np.inf, ax=ax, average=True)
+    raw.plot_psd(tmax=None, ax=ax, average=True)
     plt.close('all')
     # topo psd
     ax = plt.subplot()
@@ -318,18 +382,17 @@ def test_plot_raw_psd():
     # with channel information not available
     for idx in range(len(raw.info['chs'])):
         raw.info['chs'][idx]['loc'] = np.zeros(12)
-    with warnings.catch_warnings(record=True):  # missing channel locations
+    with pytest.warns(RuntimeWarning, match='locations not available'):
         raw.plot_psd(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0
-    with warnings.catch_warnings(record=True) as w:
-        for dB, estimate in itertools.product((True, False),
-                                              ('power', 'amplitude')):
+    for dB, estimate in itertools.product((True, False),
+                                          ('power', 'amplitude')):
+        with pytest.warns(UserWarning, match='[Infinite|Zero]'):
             raw.plot_psd(average=True, dB=dB, estimate=estimate)
-    assert len(w) == 4
     # test reject_by_annotation
     raw = _get_raw()
-    raw.annotations = Annotations([1, 5], [3, 3], ['test', 'test'])
+    raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
 
@@ -343,8 +406,8 @@ def test_plot_raw_psd():
 
 def test_plot_sensors():
     """Test plotting of sensor array."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
+    plt.close('all')
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
     raw.plot_sensors('topomap', ch_type='mag',
@@ -354,9 +417,9 @@ def test_plot_sensors():
     raw.plot_sensors(ch_groups='position', axes=ax)
     raw.plot_sensors(ch_groups='selection', to_sphere=False)
     raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
-    assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
-    assert_raises(TypeError, plot_sensors, raw)  # needs to be info
-    assert_raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
+    pytest.raises(ValueError, raw.plot_sensors, ch_groups='asd')
+    pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
+    pytest.raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
     plt.close('all')
     fig, sels = raw.plot_sensors('select', show_names=True)
     ax = fig.axes[0]

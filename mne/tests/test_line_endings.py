@@ -4,10 +4,11 @@
 # License: BSD (3-clause)
 
 import os
-from nose.tools import assert_raises
 from unittest import SkipTest
 from os import path as op
 import sys
+
+import pytest
 
 from mne.utils import run_tests_if_main, _TempDir, _get_root_dir
 
@@ -27,7 +28,7 @@ skip_files = (
 
 
 def _assert_line_endings(dir_):
-    """Check line endings for a directory"""
+    """Check line endings for a directory."""
     if sys.platform == 'win32':
         raise SkipTest('Skipping line endings check on Windows')
     report = list()
@@ -56,17 +57,17 @@ def _assert_line_endings(dir_):
 
 
 def test_line_endings():
-    """Test line endings of mne-python"""
+    """Test line endings of mne-python."""
     tempdir = _TempDir()
     with open(op.join(tempdir, 'foo'), 'wb') as fid:
         fid.write('bad\r\ngood\n'.encode('ascii'))
     _assert_line_endings(tempdir)
     with open(op.join(tempdir, 'bad.py'), 'wb') as fid:
         fid.write(b'\x97')
-    assert_raises(AssertionError, _assert_line_endings, tempdir)
+    pytest.raises(AssertionError, _assert_line_endings, tempdir)
     with open(op.join(tempdir, 'bad.py'), 'wb') as fid:
         fid.write('bad\r\ngood\n'.encode('ascii'))
-    assert_raises(AssertionError, _assert_line_endings, tempdir)
+    pytest.raises(AssertionError, _assert_line_endings, tempdir)
     # now check mne
     _assert_line_endings(_get_root_dir())
 

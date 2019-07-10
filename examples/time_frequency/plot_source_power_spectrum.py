@@ -1,10 +1,10 @@
 """
-=========================================================
-Compute power spectrum densities of the sources with dSPM
-=========================================================
+======================================================
+Compute source power spectral density (PSD) in a label
+======================================================
 
-Returns an STC file containing the PSD (in dB) of each of the sources.
-
+Returns an STC file containing the PSD (in dB) of each of the sources
+within a label.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -43,7 +43,8 @@ label = mne.read_label(fname_label)
 
 stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                          tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
-                         pick_ori="normal", n_fft=n_fft, label=label)
+                         pick_ori="normal", n_fft=n_fft, label=label,
+                         dB=True)
 
 stc.save('psd_dSPM')
 

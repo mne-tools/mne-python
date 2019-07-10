@@ -1,12 +1,8 @@
 import sys
 from subprocess import Popen, PIPE
 
-from mne.utils import run_tests_if_main
-
 
 run_script = """
-from __future__ import print_function
-
 import sys
 import mne
 
@@ -14,7 +10,7 @@ out = []
 
 # check scipy
 ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
-                           'fftpack', 'lib', 'linalg',
+                           'fftpack', 'lib', 'linalg', 'fft',
                            'misc', 'sparse', 'version'])
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        if x.startswith('scipy.') and '__' not in x and
@@ -25,7 +21,7 @@ if len(bad) > 0:
     out.append('scipy submodules: %s' % list(bad))
 
 # check sklearn and others
-_sklearn = _pandas = _nose = _mayavi = _matplotlib = False
+_sklearn = _pandas = _mayavi = _matplotlib = False
 for x in sys.modules.keys():
     if x.startswith('sklearn') and not _sklearn:
         out.append('sklearn')
@@ -33,9 +29,6 @@ for x in sys.modules.keys():
     if x.startswith('pandas') and not _pandas:
         out.append('pandas')
         _pandas = True
-    if x.startswith('nose') and not _nose:
-        out.append('nose')
-        _nose = True
     if x.startswith('mayavi') and not _mayavi:
         out.append('mayavi')
         _mayavi = True
@@ -53,8 +46,5 @@ def test_module_nesting():
     proc = Popen([sys.executable, '-c', run_script], stdout=PIPE, stderr=PIPE)
     stdout, stderr = proc.communicate()
     stdout = stdout.decode('utf-8')
-    if proc.returncode:
-        raise AssertionError(stdout)
-
-
-run_tests_if_main()
+    stderr = stderr.decode('utf-8')
+    assert not proc.returncode, stdout + stderr

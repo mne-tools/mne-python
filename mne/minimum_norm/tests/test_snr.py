@@ -23,7 +23,7 @@ fname_evoked = op.join(s_path, 'sample_audvis-ave.fif')
 @testing.requires_testing_data
 @requires_mne
 def test_snr():
-    """Test SNR calculation"""
+    """Test SNR calculation."""
     tempdir = _TempDir()
     inv = read_inverse_operator(fname_inv)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]

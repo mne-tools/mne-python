@@ -7,13 +7,14 @@ from os import path
 import datetime
 import calendar
 
-from ...utils import logger
+from ...utils import logger, fill_doc
 from ..utils import _read_segments_file, _find_channels, _create_chs
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
 
+@fill_doc
 def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
                      emg=(), misc=(), preload=False, verbose=None):
     """Read Nicolet data as raw object.
@@ -29,7 +30,7 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
     ch_type : str
         Channel type to designate to the data channels. Supported data types
         include 'eeg', 'seeg'.
-    montage : str | None | instance of montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -48,19 +49,12 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(preload)s
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of Raw
+    raw : instance of Raw
         A Raw object containing the data.
 
     See Also
@@ -104,8 +98,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
                              int(time[0]), int(time[1]), int(sec), int(msec))
     info = _empty_info(header_info['sample_freq'])
-    info.update({'meas_date': calendar.timegm(date.utctimetuple()),
-                 'description': None, 'buffer_size_sec': 1.})
+    info['meas_date'] = (calendar.timegm(date.utctimetuple()), 0)
 
     if ch_type == 'eeg':
         ch_coil = FIFF.FIFFV_COIL_EEG
@@ -154,15 +147,8 @@ class RawNicolet(BaseRaw):
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(preload)s
+    %(verbose)s
 
     See Also
     --------
@@ -175,11 +161,11 @@ class RawNicolet(BaseRaw):
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg,
                                               emg, misc)
         last_samps = [header_info['num_samples'] - 1]
-        _check_update_montage(info, montage)
         super(RawNicolet, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format='int',
             verbose=verbose)
+        self.set_montage(montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""

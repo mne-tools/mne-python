@@ -8,11 +8,10 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
 
 import numpy as np
-from numpy.testing import assert_raises
 import pytest
+import matplotlib.pyplot as plt
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
                  read_dipole, SourceEstimate)
@@ -24,13 +23,6 @@ from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter, plot_csd)
 from mne.utils import requires_nibabel, run_tests_if_main, requires_version
 from mne.time_frequency import CrossSpectralDensity
-
-# Set our plotters to test mode
-import matplotlib
-from matplotlib import pyplot as plt
-matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -59,7 +51,6 @@ def _get_events():
 @requires_version('scipy', '0.16')
 def test_plot_filter():
     """Test filter plotting."""
-    import matplotlib.pyplot as plt
     l_freq, h_freq, sfreq = 2., 40., 1000.
     data = np.zeros(5000)
     freq = [0, 2, 40, 50, 500]
@@ -86,7 +77,7 @@ def test_plot_cov():
     """Test plotting of covariances."""
     raw = _get_raw()
     cov = read_cov(cov_fname)
-    with warnings.catch_warnings(record=True):  # bad proj
+    with pytest.warns(RuntimeWarning, match='projection'):
         fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
     plt.close('all')
 
@@ -95,9 +86,9 @@ def test_plot_cov():
 @requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours."""
-    assert_raises(IOError, plot_bem, subject='bad-subject',
+    pytest.raises(IOError, plot_bem, subject='bad-subject',
                   subjects_dir=subjects_dir)
-    assert_raises(ValueError, plot_bem, subject='sample',
+    pytest.raises(ValueError, plot_bem, subject='sample',
                   subjects_dir=subjects_dir, orientation='bad-ori')
     plot_bem(subject='sample', subjects_dir=subjects_dir,
              orientation='sagittal', slices=[25, 50])
@@ -118,18 +109,20 @@ def test_plot_events():
     plot_events(events, raw.info['sfreq'], raw.first_samp, equal_spacing=False)
     # Test plotting events without sfreq
     plot_events(events, first_samp=raw.first_samp)
-    warnings.simplefilter('always', UserWarning)
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(RuntimeWarning, match='will be ignored'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels)
+    with pytest.warns(RuntimeWarning, match='Color is not available'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     color=color)
+    with pytest.warns(RuntimeWarning, match='event .* missing'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels, color=color)
-        assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
+    with pytest.warns(RuntimeWarning, match='event .* missing'):
+        pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
                       raw.first_samp, event_id={'aud_l': 1}, color=color)
-        assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
-                      raw.first_samp, event_id={'aud_l': 111}, color=color)
+    pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
+                  raw.first_samp, event_id={'aud_l': 111}, color=color)
     plt.close('all')
 
 
@@ -146,10 +139,10 @@ def test_plot_source_spectrogram():
     stc_data = np.ones((n_verts, n_times))
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_source_spectrogram([stc, stc], [[1, 2], [3, 4]])
-    assert_raises(ValueError, plot_source_spectrogram, [], [])
-    assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
+    pytest.raises(ValueError, plot_source_spectrogram, [], [])
+    pytest.raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmin=0)
-    assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
+    pytest.raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmax=7)
     plt.close('all')
 

@@ -8,9 +8,10 @@ import os.path as op
 from ..base import BaseRaw
 from ..utils import _read_segments_file, _file_size
 from ..meas_info import create_info
-from ...utils import logger, verbose, warn
+from ...utils import logger, verbose, warn, fill_doc
 
 
+@fill_doc
 def read_raw_eximia(fname, preload=False, verbose=None):
     """Reader for an eXimia EEG file.
 
@@ -18,10 +19,8 @@ def read_raw_eximia(fname, preload=False, verbose=None):
     ----------
     fname : str
         Path to the eXimia data file (.nxe).
-    preload : bool
-        If True, all data are loaded at initialization.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(preload)s
+    %(verbose)s
 
     Returns
     -------
@@ -35,6 +34,7 @@ def read_raw_eximia(fname, preload=False, verbose=None):
     return RawEximia(fname, preload, verbose)
 
 
+@fill_doc
 class RawEximia(BaseRaw):
     """Raw object from an Eximia EEG file.
 
@@ -42,10 +42,8 @@ class RawEximia(BaseRaw):
     ----------
     fname : str
         Path to the eXimia data file (.nxe).
-    preload : bool
-        If True, all data are loaded at initialization.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(preload)s
+    %(verbose)s
 
     See Also
     --------
@@ -76,7 +74,6 @@ class RawEximia(BaseRaw):
         ch_types += ['eeg'] * n_eeg
         assert len(ch_names) == n_chan
         info = create_info(ch_names, sfreq, ch_types)
-        info.update(buffer_size_sec=1.)
         n_bytes = _file_size(fname)
         n_samples, extra = divmod(n_bytes, (n_chan * 2))
         if extra != 0:

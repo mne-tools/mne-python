@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
+# # Authors: MNE Developers
+#            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
+# License: BSD (3-clause)
+
 import hashlib
 import os.path as op
-import warnings
+
 
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from scipy import sparse
 
-from mne import Epochs, read_events, pick_info, pick_types
+from mne import Epochs, read_events, pick_info, pick_types, Annotations
 from mne.event import make_fixed_length_events
 from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
@@ -16,15 +21,14 @@ from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     anonymize_info)
 from mne.io.constants import FIFF
 from mne.io.write import DATE_NONE
-from mne.io.meas_info import (Info, create_info, _write_dig_points,
-                              _read_dig_points, _make_dig_points, _merge_info,
+from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
-                              _bad_chans_comp)
+                              _bad_chans_comp, _get_valid_units)
+from mne.digitization._utils import (_write_dig_points, _read_dig_points,
+                                     _make_dig_points,)
 from mne.io import read_raw_ctf
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, catch_logging
 from mne.channels.montage import read_montage, read_dig_montage
-
-warnings.simplefilter("always")  # ensure we can verify expected warnings
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -42,6 +46,14 @@ sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
 ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf.ds')
 
 
+def test_get_valid_units():
+    """Test the valid units."""
+    valid_units = _get_valid_units()
+    assert isinstance(valid_units, tuple)
+    assert all(isinstance(unit, str) for unit in valid_units)
+    assert "n/a" in valid_units
+
+
 def test_coil_trans():
     """Test loc<->coil_trans functions."""
     rng = np.random.RandomState(0)
@@ -54,11 +66,11 @@ def test_coil_trans():
 
 def test_make_info():
     """Test some create_info properties."""
-    n_ch = 1
+    n_ch = np.longlong(1)
     info = create_info(n_ch, 1000., 'eeg')
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
 
-    coil_types = set([ch['coil_type'] for ch in info['chs']])
+    coil_types = {ch['coil_type'] for ch in info['chs']}
     assert FIFF.FIFFV_COIL_EEG in coil_types
 
     pytest.raises(TypeError, create_info, ch_names='Test Ch', sfreq=1000)
@@ -67,7 +79,7 @@ def test_make_info():
                   ch_types=['eeg', 'eeg'])
     pytest.raises(TypeError, create_info, ch_names=[np.array([1])],
                   sfreq=1000)
-    pytest.raises(TypeError, create_info, ch_names=['Test Ch'], sfreq=1000,
+    pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types=np.array([1]))
     pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types='awesome')
@@ -100,6 +112,17 @@ def test_make_info():
     idents = [p['ident'] for p in info['dig']]
     assert (FIFF.FIFFV_POINT_NASION in idents)
     assert info['meas_date'] is None
+
+
+def test_duplicate_name_correction():
+    """Test duplicate channel names with running number."""
+    # When running number is possible
+    info = create_info(['A', 'A', 'A'], 1000., verbose='error')
+    assert info['ch_names'] == ['A-0', 'A-1', 'A-2']
+
+    # When running number is not possible
+    with pytest.raises(ValueError, match='Adding a running number'):
+        create_info(['A', 'A', 'A-0'], 1000., verbose='error')
 
 
 def test_fiducials_io():
@@ -148,7 +171,17 @@ def test_info():
         info_str = '%s' % obj.info
         assert len(info_str.split('\n')) == len(obj.info.keys()) + 2
         assert all(k in info_str for k in obj.info.keys())
-        assert '2002-12-03 19:01:10 GMT' in repr(obj.info), repr(obj.info)
+        rep = repr(obj.info)
+        assert '2002-12-03 19:01:10 GMT' in rep, rep
+        assert '146 items (3 Cardinal, 4 HPI, 61 EEG, 78 Extra)' in rep
+        dig_rep = repr(obj.info['dig'][0])
+        assert 'LPA' in dig_rep, dig_rep
+        assert '(-71.4, 0.0, 0.0) mm' in dig_rep, dig_rep
+        assert 'head frame' in dig_rep, dig_rep
+        # Test our BunchConstNamed support
+        for func in (str, repr):
+            assert '4 (FIFFV_COORD_HEAD)' == \
+                func(obj.info['dig'][0]['coord_frame'])
 
     # Test read-only fields
     info = raw.info.copy()
@@ -203,6 +236,7 @@ def test_read_write_info():
         info['gantry_angle'] = 0.  # Elekta supine position
     gantry_angle = info['gantry_angle']
 
+    meas_id = info['meas_id']
     write_info(temp_file, info)
     info = read_info(temp_file)
     assert info['proc_history'][0]['creator'] == creator
@@ -211,6 +245,9 @@ def test_read_write_info():
     assert info['gantry_angle'] == gantry_angle
     assert info['subject_info']['height'] == 2.3
     assert info['subject_info']['weight'] == 11.1
+    for key in ['secs', 'usecs', 'version']:
+        assert info['meas_id'][key] == meas_id[key]
+    assert_array_equal(info['meas_id']['machid'], meas_id['machid'])
 
     # Test that writing twice produces the same file
     m1 = hashlib.md5()
@@ -337,6 +374,20 @@ def test_merge_info():
     info_d['hpi_meas'] = [{'f1': 3, 'f2': 5}]
     pytest.raises(ValueError, _merge_info, [info_a, info_d])
 
+    info_0 = read_info(raw_fname)
+    info_0['bads'] = ['MEG 2443', 'EEG 053']
+    assert len(info_0['chs']) == 376
+    assert len(info_0['dig']) == 146
+    info_1 = create_info(["STI XXX"], info_0['sfreq'], ['stim'])
+    assert info_1['bads'] == []
+    info_out = _merge_info([info_0, info_1], force_update_to_first=True)
+    assert len(info_out['chs']) == 377
+    assert len(info_out['bads']) == 2
+    assert len(info_out['dig']) == 146
+    assert len(info_0['chs']) == 376
+    assert len(info_0['bads']) == 2
+    assert len(info_0['dig']) == 146
+
 
 def test_check_consistency():
     """Test consistency check of Info objects."""
@@ -369,10 +420,8 @@ def test_check_consistency():
 
     info2 = info.copy()
     info2['filename'] = 'foo'
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='filename'):
         info2._check_consistency()
-    assert len(w) == 1
-    assert (all('filename' in str(ww.message) for ww in w))
 
     # Silent type conversion to float
     info2 = info.copy()
@@ -390,11 +439,51 @@ def test_check_consistency():
     pytest.raises(RuntimeError, info2._check_consistency)
 
     # Duplicates appended with running numbers
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Channel names are not'):
         info3 = create_info(ch_names=['a', 'b', 'b', 'c', 'b'], sfreq=1000.)
-    assert len(w) == 1
-    assert (all('Channel names are not' in '%s' % ww.message for ww in w))
     assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
+
+
+def _is_anonymous(inst):
+    """Check all the anonymity fields.
+
+    inst is either a raw or epochs object.
+    """
+    from collections import namedtuple
+    anonymity_checks = namedtuple("anonymity_checks",
+                                  ["missing_subject_info",
+                                   "anonymous_file_id_secs",
+                                   "anonymous_file_id_usecs",
+                                   "anonymous_meas_id_secs",
+                                   "anonymous_meas_id_usecs",
+                                   "anonymous_meas_date",
+                                   "anonymous_annotations"])
+
+    if 'subject_info' not in inst.info.keys():
+        missing_subject_info = True
+    else:
+        missing_subject_info = inst.info['subject_info'] is None
+
+    anonymous_file_id_secs = inst.info['file_id']['secs'] == DATE_NONE[0]
+    anonymous_file_id_usecs = inst.info['file_id']['usecs'] == DATE_NONE[1]
+    anonymous_meas_id_secs = inst.info['meas_id']['secs'] == DATE_NONE[0]
+    anonymous_meas_id_usecs = inst.info['meas_id']['usecs'] == DATE_NONE[1]
+    if inst.info['meas_date'] is None:
+        anonymous_meas_date = True
+    else:
+        assert isinstance(inst.info['meas_date'], tuple)
+        anonymous_meas_date = inst.info['meas_date'] == DATE_NONE
+
+    anonymous_annotations = (hasattr(inst, 'annotations') and
+                             inst.annotations.orig_time is None)
+
+    return anonymity_checks(missing_subject_info,
+                            anonymous_file_id_secs,
+                            anonymous_file_id_usecs,
+                            anonymous_meas_id_secs,
+                            anonymous_meas_id_usecs,
+                            anonymous_meas_date,
+                            anonymous_annotations)
 
 
 def test_anonymize():
@@ -403,45 +492,37 @@ def test_anonymize():
 
     # Fake some subject data
     raw = read_raw_fif(raw_fname)
+    raw.set_annotations(Annotations(onset=[0, 1],
+                                    duration=[1, 1],
+                                    description='dummy',
+                                    orig_time=None))
     raw.info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
                                     first_name='bar', birthday=(1987, 4, 8),
                                     sex=0, hand=1)
 
-    orig_file_id = raw.info['file_id']['secs']
-    orig_meas_id = raw.info['meas_id']['secs']
+    # Test no error for incomplete info
+    info = raw.info.copy()
+    info.pop('file_id')
+    anonymize_info(info)
+
     # Test instance method
     events = read_events(event_name)
     epochs = Epochs(raw, events[:1], 2, 0., 0.1)
-    for inst in [raw, epochs]:
-        assert 'subject_info' in inst.info.keys()
-        assert inst.info['subject_info'] is not None
-        for key in ('file_id', 'meas_id'):
-            assert inst.info[key]['secs'] != DATE_NONE[0]
-            assert inst.info[key]['usecs'] != DATE_NONE[1]
-        assert tuple(inst.info['meas_date']) != DATE_NONE
-        inst.anonymize()
-        assert 'subject_info' not in inst.info.keys()
-        for key in ('file_id', 'meas_id'):
-            assert inst.info[key]['secs'] == DATE_NONE[0]
-            assert inst.info[key]['usecs'] == DATE_NONE[1]
-        assert inst.info['meas_date'] is None
+
+    assert not any(_is_anonymous(raw))
+    raw.anonymize()
+    assert all(_is_anonymous(raw))
+
+    assert not any(_is_anonymous(epochs)[:-1])  # epochs has no annotations
+    epochs.anonymize()
+    assert all(_is_anonymous(epochs)[:-1])
 
     # When we write out with raw.save, these get overwritten with the
     # new save time
     tempdir = _TempDir()
     out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
     raw.save(out_fname, overwrite=True)
-    raw = read_raw_fif(out_fname)
-    assert raw.info.get('subject_info') is None
-    assert raw.info['meas_date'] is None
-    # XXX mne.io.write.write_id necessarily writes secs
-    assert raw.info['file_id']['secs'] != orig_file_id
-    assert raw.info['meas_id']['secs'] != orig_meas_id
-
-    # Test no error for incomplete info
-    info = raw.info.copy()
-    info.pop('file_id')
-    anonymize_info(info)
+    assert all(_is_anonymous(read_raw_fif(out_fname)))
 
 
 @testing.requires_testing_data
@@ -495,13 +576,10 @@ def test_check_compensation_consistency():
         ret, missing = _bad_chans_comp(raw.info, pick_ch_names)
         assert ret == expected_result
         assert len(missing) == 17
-        if comp != 0:
-            with pytest.raises(RuntimeError,
-                               match='Compensation grade 1 has been applied'):
-                Epochs(raw, events, None, -0.2, 0.2, preload=False,
-                       picks=picks)
-        else:
-            Epochs(raw, events, None, -0.2, 0.2, preload=False, picks=picks)
+        with catch_logging() as log:
+            Epochs(raw, events, None, -0.2, 0.2, preload=False,
+                   picks=picks, verbose=True)
+            assert'Removing 5 compensators' in log.getvalue()
 
 
 run_tests_if_main()

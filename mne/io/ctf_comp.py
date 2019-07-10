@@ -14,7 +14,7 @@ from .tree import dir_tree_find
 from .write import start_block, end_block, write_int
 from .matrix import write_named_matrix, _read_named_matrix
 
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _pl
 
 
 def _add_kind(one):
@@ -41,7 +41,8 @@ def _calibrate_comp(comp, chs, row_names, col_names,
             p = ch_names.count(names[ii])
             if p != 1:
                 raise RuntimeError('Channel %s does not appear exactly once '
-                                   'in data' % names[ii])
+                                   'in data, found %d instance%s'
+                                   % (names[ii], p, _pl(p)))
             idx = ch_names.index(names[ii])
             val = chs[idx][mult_keys[0]] * chs[idx][mult_keys[1]]
             val = float(1. / val) if inv else float(val)
@@ -66,9 +67,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
     chs : list
         The list of channels from info['chs'] to match with
         compensators that are read.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

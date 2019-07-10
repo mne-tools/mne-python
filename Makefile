@@ -5,7 +5,7 @@
 PYTHON ?= python
 PYTESTS ?= py.test
 CTAGS ?= ctags
-CODESPELL_SKIPS ?= "*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii,*.pyc,*.doctree,*.pickle,*.inv,*.png,*.edf,*.touch,*.thickness,*.nofix,*.volume,*.defect_borders,*.mgh,lh.*,rh.*,COR-*,FreeSurferColorLUT.txt,*.examples,.xdebug_mris_calc,bad.segments,BadChannels,*.hist,empty_file,*.orig,*.js,*.map,*.ipynb,searchindex.dat,install_mne_c.rst,plot_*.rst,*.rst.txt,c_EULA.rst*,*.html"
+CODESPELL_SKIPS ?= "*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii,*.pyc,*.doctree,*.pickle,*.inv,*.png,*.edf,*.touch,*.thickness,*.nofix,*.volume,*.defect_borders,*.mgh,lh.*,rh.*,COR-*,FreeSurferColorLUT.txt,*.examples,.xdebug_mris_calc,bad.segments,BadChannels,*.hist,empty_file,*.orig,*.js,*.map,*.ipynb,searchindex.dat,install_mne_c.rst,plot_*.rst,*.rst.txt,c_EULA.rst*,*.html,gdf_encodes.txt,*.svg"
 CODESPELL_DIRS ?= mne/ doc/ tutorials/ examples/
 all: clean inplace test test-doc
 
@@ -37,6 +37,8 @@ sample_data:
 testing_data:
 	@python -c "import mne; mne.datasets.testing.data_path(verbose=True);"
 
+pytest: test
+
 test: in
 	rm -f .coverage
 	$(PYTESTS) -m 'not ultraslowtest' mne
@@ -65,7 +67,7 @@ test-no-sample-with-coverage: in testing_data
 	$(PYTESTS) --cov=mne --cov-report html:coverage
 
 test-doc: sample_data testing_data
-	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/
+	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/ --ignore=./doc/auto_examples --ignore=./doc/auto_tutorials --ignore=./doc/_build
 
 test-coverage: testing_data
 	rm -rf coverage .coverage
@@ -104,17 +106,24 @@ codespell-error:  # running on travis
 
 pydocstyle:
 	@echo "Running pydocstyle"
-	@pydocstyle
+	@pydocstyle mne
 
 docstring:
 	@echo "Running docstring tests"
 	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py
 
 check-manifest:
-	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data
+	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
+
+check-readme:
+	python setup.py check --restructuredtext --strict
+
+nesting:
+	@echo "Running import nesting tests"
+	@$(PYTESTS) mne/tests/test_import_nesting.py
 
 pep:
-	@$(MAKE) -k flake pydocstyle docstring codespell-error check-manifest
+	@$(MAKE) -k flake pydocstyle docstring codespell-error check-manifest nesting check-readme
 
 manpages:
 	@echo "I: generating manpages"
@@ -134,5 +143,4 @@ build-doc-stable:
 	cd doc; make clean
 	cd doc; DISPLAY=:1.0 xvfb-run -n 1 -s "-screen 0 1280x1024x24 -noreset -ac +extension GLX +render" make html_stable
 
-docstyle:
-	@pydocstyle
+docstyle: pydocstyle

@@ -1,3 +1,4 @@
+backed
 ons
 fro
 ang
@@ -8,6 +9,23 @@ sinc
 wan
 reord
 iff
+numer
+uint
 # for tempita
 delimeters
 delimeter
+nd
+cas
+thes
+ba
+ist
+theses
+od
+fo
+files'
+ser
+vas
+coo
+hist
+datas
+dof

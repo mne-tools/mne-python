@@ -4,26 +4,24 @@
 #
 # License: BSD (3-clause)
 
+import copy
 import glob
 import os
 import os.path as op
 import shutil
-import warnings
 
 import numpy as np
-from nose.tools import assert_true, assert_equal, assert_raises
+from numpy.testing import assert_equal
 import pytest
+from matplotlib import pyplot as plt
 
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
-from mne.report import Report
-from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       run_tests_if_main, traits_test)
+from mne.report import Report, open_report, _ReportScraper
+from mne.utils import (_TempDir, requires_mayavi, requires_nibabel, Bunch,
+                       run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
-
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -42,9 +40,12 @@ base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
-# Set our plotters to test mode
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
+def _get_example_figures():
+    """Create two example figures."""
+    fig1 = plt.plot([1, 2], [1, 2])[0].figure
+    fig2 = plt.plot([3, 4], [3, 4])[0].figure
+    return [fig1, fig2]
 
 
 @pytest.mark.slowtest
@@ -74,24 +75,22 @@ def test_render_report():
     raw.pick_channels(['MEG 0111', 'MEG 0121'])
     raw.del_proj()
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
-    epochs.save(epochs_fname)
+    epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
     epochs.average().crop(0.1, 0.2).save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
-    assert_true(len(w) >= 1)
-    assert_true(repr(report))
+    assert repr(report)
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
     for fname in fnames:
-        assert_true(op.basename(fname) in
-                    [op.basename(x) for x in report.fnames])
-        assert_true(''.join(report.html).find(op.basename(fname)) != -1)
+        assert (op.basename(fname) in
+                [op.basename(x) for x in report.fnames])
+        assert (''.join(report.html).find(op.basename(fname)) != -1)
 
     assert_equal(len(report.fnames), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
@@ -101,7 +100,7 @@ def test_render_report():
     report.data_path = tempdir
     fname = op.join(tempdir, 'report.html')
     report.save(fname=fname, open_browser=False)
-    assert_true(op.isfile(fname))
+    assert (op.isfile(fname))
     with open(fname, 'rb') as fid:
         html = fid.read().decode('utf-8')
     assert '(MaxShield on)' in html
@@ -111,40 +110,69 @@ def test_render_report():
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
-    assert_true(op.isfile(op.join(tempdir, 'report2.html')))
+    assert (op.isfile(op.join(tempdir, 'report2.html')))
 
     # Check overwriting file
     report.save(fname=op.join(tempdir, 'report.html'), open_browser=False,
                 overwrite=True)
-    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+    assert (op.isfile(op.join(tempdir, 'report.html')))
 
     # Check pattern matching with multiple patterns
     pattern = ['*raw.fif', '*eve.fif']
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, pattern=pattern)
-    assert_true(len(w) >= 1)
-    assert_true(repr(report))
+    assert (repr(report))
 
     fnames = glob.glob(op.join(tempdir, '*.raw')) + \
         glob.glob(op.join(tempdir, '*.raw'))
     for fname in fnames:
-        assert_true(op.basename(fname) in
-                    [op.basename(x) for x in report.fnames])
-        assert_true(''.join(report.html).find(op.basename(fname)) != -1)
+        assert (op.basename(fname) in
+                [op.basename(x) for x in report.fnames])
+        assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    assert_raises(ValueError, Report, image_format='foo')
-    assert_raises(ValueError, Report, image_format=None)
+    pytest.raises(ValueError, Report, image_format='foo')
+    pytest.raises(ValueError, Report, image_format=None)
 
     # SVG rendering
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
                     image_format='svg')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
 
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
+
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section('foo', 'caption', 'section')
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section(['foo'], 'caption', 'section')
+
+
+@testing.requires_testing_data
+def test_report_raw_psd_and_date():
+    """Test report raw PSD and DATE_NONE functionality."""
+    with pytest.raises(TypeError, match='dict'):
+        Report(raw_psd='foo')
+
+    tempdir = _TempDir()
+    raw = read_raw_fif(raw_fname).crop(0, 1.).load_data()
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    raw.save(raw_fname_new)
+    report = Report(raw_psd=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'PSD' in ''.join(report.html)
+    assert 'GMT' in ''.join(report.html)
+
+    # DATE_NONE functionality
+    report = Report()
+    raw.anonymize()
+    raw.save(raw_fname_new, overwrite=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'GMT' not in ''.join(report.html)
 
 
 @testing.requires_testing_data
@@ -153,18 +181,17 @@ def test_render_report():
 def test_render_add_sections():
     """Test adding figures/images to section."""
     tempdir = _TempDir()
-    import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions=['evoked response'], scale=1.2,
                                image_format='svg')
-    assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
+    pytest.raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
-    assert_raises(ValueError, report.add_figs_to_section, figs=fig,
+    pytest.raises(ValueError, report.add_figs_to_section, figs=fig,
                   captions=['foo'], scale=0, image_format='svg')
-    assert_raises(ValueError, report.add_figs_to_section, figs=fig,
+    pytest.raises(ValueError, report.add_figs_to_section, figs=fig,
                   captions=['foo'], scale=1e-10, image_format='svg')
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -178,10 +205,10 @@ def test_render_add_sections():
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
 
-    assert_raises(ValueError, report.add_images_to_section,
+    pytest.raises(ValueError, report.add_images_to_section,
                   fnames=[img_fname, img_fname], captions='H')
 
-    assert_raises(ValueError, report.add_images_to_section,
+    pytest.raises(ValueError, report.add_images_to_section,
                   fnames=['foobar.xxx'], captions='H')
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -191,7 +218,7 @@ def test_render_add_sections():
 
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
-    assert_true(repr(report))
+    assert (repr(report))
 
 
 @pytest.mark.slowtest
@@ -207,12 +234,13 @@ def test_render_mri():
         shutil.copyfile(a, b)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
-                            n_jobs=2)
+    report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
-    assert_true(repr(report))
+    assert repr(report)
+    report.add_bem_to_section('sample', caption='extra', section='foo',
+                              subjects_dir=subjects_dir, decim=30)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False,
+                overwrite=True)
 
 
 @testing.requires_testing_data
@@ -225,10 +253,7 @@ def test_render_mri_without_bem():
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        report.parse_folder(tempdir)
-    assert_true(len(w) >= 1)
+    report.parse_folder(tempdir, render_bem=False)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
@@ -243,33 +268,27 @@ def test_add_htmls_to_section():
     report.add_htmls_to_section(html, caption, section)
     idx = report._sectionlabels.index('report_' + section)
     html_compare = report.html[idx]
-    assert_true(html in html_compare)
-    assert_true(repr(report))
+    assert (html in html_compare)
+    assert (repr(report))
 
 
 def test_add_slider_to_section():
     """Test adding a slider with a series of images to mne report."""
     tempdir = _TempDir()
-    from matplotlib import pyplot as plt
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
-    figs = list()
-    figs.append(plt.figure())
-    plt.plot([1, 2, 3])
-    plt.close('all')
-    figs.append(plt.figure())
-    plt.plot([3, 2, 1])
-    plt.close('all')
-    report.add_slider_to_section(figs, section=section)
+    figs = _get_example_figures()
+    report.add_slider_to_section(figs, section=section, title='my title')
+    assert report.fnames[0] == 'my title-#-report_slider_section-#-custom'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
-    assert_raises(NotImplementedError, report.add_slider_to_section,
+    pytest.raises(NotImplementedError, report.add_slider_to_section,
                   [figs, figs])
-    assert_raises(ValueError, report.add_slider_to_section, figs, ['wug'])
-    assert_raises(TypeError, report.add_slider_to_section, figs, 'wug')
+    pytest.raises(ValueError, report.add_slider_to_section, figs, ['wug'])
+    pytest.raises(TypeError, report.add_slider_to_section, figs, 'wug')
     # need at least 2
-    assert_raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
+    pytest.raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
 
     # Smoke test that SVG w/unicode can be added
     report = Report()
@@ -287,13 +306,142 @@ def test_validate_input():
     comments = ['First letter of the alphabet.',
                 'Second letter of the alphabet',
                 'Third letter of the alphabet']
-    assert_raises(ValueError, report._validate_input, items, captions[:-1],
+    pytest.raises(ValueError, report._validate_input, items, captions[:-1],
                   section, comments=None)
-    assert_raises(ValueError, report._validate_input, items, captions, section,
+    pytest.raises(ValueError, report._validate_input, items, captions, section,
                   comments=comments[:-1])
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values
     assert_equal(len(comments_new), len(items))
+
+
+@requires_h5py
+def test_open_report():
+    """Test the open_report function."""
+    tempdir = _TempDir()
+    hdf5 = op.join(tempdir, 'report.h5')
+
+    # Test creating a new report through the open_report function
+    fig1 = _get_example_figures()[0]
+    with open_report(hdf5, subjects_dir=subjects_dir) as report:
+        assert report.subjects_dir == subjects_dir
+        assert report._fname == hdf5
+        report.add_figs_to_section(figs=fig1, captions=['evoked response'])
+    # Exiting the context block should have triggered saving to HDF5
+    assert op.exists(hdf5)
+
+    # Load the HDF5 version of the report and check equivalence
+    report2 = open_report(hdf5)
+    assert report2._fname == hdf5
+    assert report2.subjects_dir == report.subjects_dir
+    assert report2.html == report.html
+    assert report2.__getstate__() == report.__getstate__()
+    assert '_fname' not in report2.__getstate__()
+
+    # Check parameters when loading a report
+    pytest.raises(ValueError, open_report, hdf5, foo='bar')  # non-existing
+    pytest.raises(ValueError, open_report, hdf5, subjects_dir='foo')
+    open_report(hdf5, subjects_dir=subjects_dir)  # This should work
+
+
+def test_remove():
+    """Test removing figures from a report."""
+    r = Report()
+    fig1, fig2 = _get_example_figures()
+    r.add_figs_to_section(fig1, 'figure1', 'mysection')
+    r.add_slider_to_section([fig1, fig2], title='figure1',
+                            section='othersection')
+    r.add_figs_to_section(fig2, 'figure1', 'mysection')
+    r.add_figs_to_section(fig2, 'figure2', 'mysection')
+
+    # Test removal by caption
+    r2 = copy.deepcopy(r)
+    removed_index = r2.remove(caption='figure1')
+    assert removed_index == 2
+    assert len(r2.html) == 3
+    assert r2.html[0] == r.html[0]
+    assert r2.html[1] == r.html[1]
+    assert r2.html[2] == r.html[3]
+
+    # Test restricting to section
+    r2 = copy.deepcopy(r)
+    removed_index = r2.remove(caption='figure1', section='othersection')
+    assert removed_index == 1
+    assert len(r2.html) == 3
+    assert r2.html[0] == r.html[0]
+    assert r2.html[1] == r.html[2]
+    assert r2.html[2] == r.html[3]
+
+    # Test removal of empty sections
+    r2 = copy.deepcopy(r)
+    r2.remove(caption='figure1', section='othersection')
+    assert r2.sections == ['mysection']
+    assert r2._sectionvars == {'mysection': 'report_mysection'}
+
+
+def test_add_or_replace():
+    """Test replacing existing figures in a report."""
+    r = Report()
+    fig1, fig2 = _get_example_figures()
+    r.add_figs_to_section(fig1, 'duplicate', 'mysection')
+    r.add_figs_to_section(fig1, 'duplicate', 'mysection')
+    r.add_figs_to_section(fig1, 'duplicate', 'othersection')
+    r.add_figs_to_section(fig2, 'nonduplicate', 'mysection')
+    # By default, replace=False, so all figures should be there
+    assert len(r.html) == 4
+
+    old_r = copy.deepcopy(r)
+
+    # Re-add fig1 with replace=True, it should overwrite the last occurrence of
+    # fig1 in section 'mysection'.
+    r.add_figs_to_section(fig2, 'duplicate', 'mysection', replace=True)
+    assert len(r.html) == 4
+    assert r.html[1] != old_r.html[1]  # This figure should have changed
+    # All other figures should be the same
+    assert r.html[0] == old_r.html[0]
+    assert r.html[2] == old_r.html[2]
+    assert r.html[3] == old_r.html[3]
+
+
+def test_scraper(tmpdir):
+    """Test report scraping."""
+    r = Report()
+    fig1, fig2 = _get_example_figures()
+    r.add_figs_to_section(fig1, 'a', 'mysection')
+    r.add_figs_to_section(fig2, 'b', 'mysection')
+    # Mock a Sphinx + sphinx_gallery config
+    app = Bunch(builder=Bunch(srcdir=str(tmpdir),
+                              outdir=op.join(str(tmpdir), '_build', 'html')))
+    scraper = _ReportScraper()
+    scraper.app = app
+    gallery_conf = dict(src_dir=app.builder.srcdir, builder_name='html')
+    img_fname = op.join(app.builder.srcdir, 'auto_examples', 'images',
+                        'sg_img.png')
+    target_file = op.join(app.builder.srcdir, 'auto_examples', 'sg.py')
+    os.makedirs(op.dirname(img_fname))
+    os.makedirs(app.builder.outdir)
+    block_vars = dict(image_path_iterator=(img for img in [img_fname]),
+                      example_globals=dict(a=1), target_file=target_file)
+    # Nothing yet
+    block = None
+    rst = scraper(block, block_vars, gallery_conf)
+    assert rst == ''
+    # Still nothing
+    block_vars['example_globals']['r'] = r
+    rst = scraper(block, block_vars, gallery_conf)
+    # Once it's saved, add it
+    assert rst == ''
+    fname = op.join(str(tmpdir), 'my_html.html')
+    r.save(fname, open_browser=False)
+    rst = scraper(block, block_vars, gallery_conf)
+    out_html = op.join(app.builder.outdir, 'auto_examples', 'my_html.html')
+    assert not op.isfile(out_html)
+    os.makedirs(op.join(app.builder.outdir, 'auto_examples'))
+    scraper.copyfiles()
+    assert op.isfile(out_html)
+    assert rst.count('"') == 6
+    assert "<iframe" in rst
+    assert op.isfile(img_fname.replace('png', 'svg'))
 
 
 run_tests_if_main()

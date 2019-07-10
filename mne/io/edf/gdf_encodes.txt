@@ -1,0 +1,284 @@
+### Table of event codes. 
+# This table is also part of the specification of 
+# GDF v2.x http://arxiv.org/abs/cs.DB/0608052 and 
+# GDF v1.x http://pub.ist.ac.at/~schloegl/matlab/eeg/gdf4/TR_GDF.pdf
+# and part of the BioSig project http://biosig.sf.net/
+# Copyright (C) 2004-2015 Alois Schloegl <alois.schloegl@ist.ac.at>
+# 
+# BioSig is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# Version 3 of the License, or (at your option) any later version.
+#
+# Alternative license: 
+# This table of event codes can be used in any application 
+# (without the restrictions of GPL) under the condition that this table 
+# is not modified, changed, converted or transformed. No 
+# derivative of any kind are allowed. Suggestions for improvement 
+# and changes should be addressed to the author.  
+#
+### table of event codes: lines starting with # are omitted
+### add 0x8000 to indicate the end (i.e. offset) of an event
+#
+# Remark concering white space characters:
+# The character after the hexadecimal code (0x####) must be 
+# followed by a <TAB> (i.e. \x09), the remaining part 
+# may not contain any <TAB>.  
+#
+### 0x010_	EEG artifacts
+0x0101	artifact:EOG (blinks, fast, large amplitude)
+0x0102	artifact:ECG
+0x0103	artifact:EMG/Muscle
+0x0104	artifact:Movement
+0x0105	artifact:Failing Electrode
+0x0106	artifact:Sweat
+0x0107	artifact:50/60 Hz mains interference
+0x0108	artifact:breathing
+0x0109	artifact:pulse
+0x010a	artifact:EOG (slow, small amplitudes)
+#0x010f calibration 
+### 0x011_	EEG patterns
+0x0111	eeg:Sleep spindles
+0x0112	eeg:K-complexes
+0x0113	eeg:Saw-tooth waves
+0x0114	eeg:Idling EEG - eyes open
+0x0115	eeg:Idling EEG - eyes closed
+0x0116	eeg:spike
+0x0117	eeg:seizure
+#0x0118	eeg:Electrographic seizure
+#0x0119	eeg:Clinical seizure
+#0x011a	eeg:Subclinical seizure
+#0x011b	eeg:Stimulating for seizure
+### 0x012_	Stimulus for Evoked potentials
+0x0121	VEP: visual EP
+0x0122	AEP: auditory EP
+0x0123	SEP: somato-sensory EP
+0x012F	TMS: transcranial magnetic stimulation 
+### 0x013_	Stimulus for Steady State Evoked potentials
+0x0131	SSVEP
+0x0132	SSAEP
+0x0133	SSSEP
+### 0x014_	Response code
+0x0140	response code 0, or no response or false
+0x0141	response code 1, or correct response
+0x0142	response code 2
+0x0143	response code 3
+0x0144	Go, or response code 4
+0x0145	NoGo, or response code 5
+### 0x02__	Neural activity, patch clamp
+### 0x020_	Neural spikes, and spike trains
+0x0201	Spike, action potential (fiducial point)
+0x0202	Burst 
+0x0203	maximum slope time
+0x0204	peak time of spike
+### 0x021_	miniature post-synaptic events
+0x0211	EPSP - Excitatory Post-Synaptic Potentials
+0x0212	IPSP - Inhibitory Post-Synaptic Potentials
+0x0213	EPSC - Excitatory Post-Synaptic Currents
+0x0214	IPSC - Inhibitory Post-Synaptic Currents
+### 0x03__	BCI: Trigger, cues, classlabels
+0x0300	Start of Trial, Trigger at t=0s
+0x0301	class1, Left hand	- cue onset (BCI experiment)
+0x0302	class2, Right hand	- cue onset (BCI experiment)
+0x0303	class3, Foot, towards Right - cue onset (BCI experiment)
+0x0304	class4, Tongue		- cue onset (BCI experiment)
+0x0305	class5			- cue onset
+0x0306	class6, towards Down	- cue onset (BCI experiment)
+0x0307	class7			- cue onset
+0x0308	class8			- cue onset
+0x0309	class9, towards Left 	- cue onset
+0x030A	class10            	- cue onset
+0x030B	class11            	- cue onset
+0x030C	class12, towards Up 	- cue onset (BCI experiment)
+0x030D	Feedback (continuous) - onset (BCI experiment)
+0x030E	Feedback (discrete) - onset (BCI experiment)
+0x030F	cue unknown/undefined (used for BCI competition) 
+0x0311	Beep (accustic stimulus, BCI experiment)
+0x0312	Cross on screen (BCI experiment)
+0x0313	Flashing light
+#0x031b - 0x037f reserved for ASCII characters #27-#127
+0x0381	target hit, task successful, correct classification
+0x0382	target missed, task not reached, incorrect classification
+0x03ff	Rejection of whole trial
+### 0x040_	Respiratory Events
+0x0401	Obstructive apnea/Hypopnea event (OAHE)
+0x0402	RERA #(Respiratory Effort Related Arousal)
+0x0403	Central Apnea/Hypopnea Event (CAHE)
+0x0404	CS Breathing #(Cheyne-Stokes Breathing)
+0x0405	Hypoventilation 
+0x0406	Apnea  
+0x0407	Obstructive apnea
+0x0408	Central apnea  
+0x0409	Mixed apnea  
+0x040A	Hypopnea  
+0x040B	Periodic Breathing  
+0x040C	Limb movement 
+0x040D	PLMS
+0x040E	(time of) maximum inspiration 
+0x040F	Start of inspiration, (end of expiration) 
+### 0x041_	Sleep stages according to Rechtschaffen&Kales and AASM'07
+0x0410	Sleep stage Wake
+0x0411	Sleep stage 1
+0x0412	Sleep stage 2
+0x0413	Sleep stage 3
+0x0414	Sleep stage 4
+0x0415	Sleep stage REM
+0x0416	Sleep stage ?
+0x0417	Movement time
+0x0418	Bruxism
+0x0419	RBD #(Rapid eye movement sleep behaviour disorder)
+0x041A	RMD #(Sleep related rhythmic movement disorder)
+0x041B	Sleep stage N
+0x041C	Sleep stage N1
+0x041D	Sleep stage N2
+0x041E	Sleep stage N3
+### 0x042_	Sleep
+0x0420	Lights on 
+#0x8420	Lights off
+### 0x043_ 	Eye movements
+#0x0430	[obsolete] merged with 0x0115
+0x0431	eyes left
+0x0432	eyes right
+0x0433	eyes up
+0x0434	eyes down
+0x0435	horizontal eye movement
+0x0436	vertical eye movement
+0x0437	eye rotation (clockwise)
+0x0438	eye rotation (counterclockwise)
+0x0439	eye blinks
+#0x043f	[obsolete] merged with 0x0114
+### 0x044_ 	muscle activity (for checking on EEG artifacts)
+0x0441	left hand movement
+0x0442	right hand movement
+0x0443	head movement
+0x0444	tongue movement
+0x0445	swallowing
+0x0446	biting, chewing, teeth griding 
+0x0447	foot movement
+#0x0448	foot (right) movement
+0x0449	arm movement
+0x044a	arm (right) movement
+### 0x050_	ECG events
+0x0501	ecg:Fiducial point of QRS complex
+0x0502	ecg:P-wave-onset, MDC_ECG_TIME_START_P
+#0x8502	ecg:P-wave-end, MDC_ECG_TIME_END_P
+0x0503	ecg:Q-wave-onset, QRS-onset, MDC_ECG_TIME_START_QRS
+#0x8503 ecg:Q-wave-peak, Q-wave-end
+0x0504	ecg:R-point
+0x0505	ecg:S-wave-onset, S-wave-peak
+#0x8505	ecg:S-wave-end, J-point, QRS-end, MDC_ECG_TIME_END_QRS
+0x0506	ecg:T-wave-onset, MDC_ECG_TIME_START_T
+#0x8506	ecg:T-wave-end, MDC_ECG_TIME_END_T
+0x0507	ecg:U-wave-onset
+#0x8507	ecg:U-wave-end
+#
+# related but non-concordant definitions can be found in
+# - WFDB/MIT-BIH http://www.physionet.org/physiotools/wfdb/lib/ecgcodes.h
+# - SCP-ECG http://www.centc251.org/TCmeet/doclist/TCdoc02/N02-015-prEN1064.pdf
+# - FEF/Vital/11073 p.83
+# IHSNE binary annotation segment file
+#   http://thew-project.org/THEWFileFormat.htm
+#   http://thew-project.org/papers/ishneAnn.pdf
+# Unification is desired
+#
+# see also 0x2000-0x22ff: 
+#   
+#
+### 0x058_	ergometric events 
+0x0580	start
+0x0581	 25 Watt
+0x0582	 50 Watt
+0x0583	 75 Watt
+0x0584	100 Watt
+0x0585	125 Watt
+0x0586	150 Watt
+0x0587	175 Watt
+0x0588	200 Watt
+0x0589	225 Watt
+0x058a	250 Watt
+0x058b	275 Watt
+0x058c	300 Watt
+0x058d	325 Watt
+0x058e	350 Watt
+#0x8580  end
+### 0x100_	neural spikes 
+#
+### 0x2000-22ff	reserved for ECG events (see HL7 10102 Annotated ECG)
+#
+### 0x00__	user specific events
+# Often, 1-127 are used for stimulus codes, and 129-255 for response code.
+# the use of the following types is discouraged, because of possible ambiguities. 
+#0x0000	empty event, reserved for special use
+0x0001	condition 1
+0x0002	condition 2
+0x0003	condition 3
+0x0004	condition 4
+0x0005	condition 5
+0x0006	condition 6
+0x0007	condition 7
+0x0008	condition 8
+0x0009	condition 9
+0x000a	condition 10
+0x000b	condition 11
+0x000c	condition 12
+0x000d	condition 13
+0x000e	condition 14
+0x000f	condition 15
+0x0010	condition 16
+0x0011	condition 17
+0x0012	condition 18
+0x0013	condition 19
+0x0014	condition 20
+0x0015	condition 21
+0x0016	condition 22
+0x0017	condition 23
+0x0018	condition 24
+0x0019	condition 25
+0x001a	condition 26
+0x0020	condition 32
+#
+0x002f	condition 47
+0x0030	condition 48
+0x0031	condition 49
+0x0032	condition 50
+0x0033	condition 51
+0x0034	condition 52
+0x0035	condition 53
+0x0036	condition 54
+0x0037	condition 55
+0x0038	condition 56
+0x0039	condition 57
+0x003a	condition 58
+0x003b	condition 59
+0x003c	condition 60
+0x003d	condition 61
+0x003e	condition 62
+0x003f	condition 63
+0x0040	condition 64
+0x0041	condition 65
+0x0042	condition 66
+0x0046	condition 70
+0x0051	condition 81
+0x0052	condition 82
+0x0053	condition 83
+0x005b	condition 91
+0x005c	condition 92
+0x005d	condition 93
+0x0060	condition 96
+0x0063	condition 99
+0x0080	condition 128
+0x0081	condition 129
+0x0082	condition 130
+0x0084	condition 131
+0x0085	condition 132
+0x0086	condition 133
+0x0087	condition 134
+0x00a6	condition 166
+0x00a7	condition 167
+0x00a8	condition 168
+0x00a9	condition 169
+### 0x4___	up to 4096 different stimuli
+### 0x7f__	special codes
+0x7ffe	start of a new segment (after a break)
+0x7fff	non-equidistant sampling value
+# 

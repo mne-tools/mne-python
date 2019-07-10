@@ -1,5 +1,5 @@
 """
-.. _ex_read_events:
+.. _ex-read-events:
 
 =====================
 Reading an event file

@@ -1,10 +1,11 @@
 from itertools import product
+
+import pytest
+from numpy.testing import assert_array_almost_equal
+import numpy as np
+
 from mne.stats.parametric import (f_mway_rm, f_threshold_mway_rm,
                                   _map_effects)
-from nose.tools import assert_raises, assert_true
-from numpy.testing import assert_array_almost_equal
-
-import numpy as np
 
 # hardcoded external test results, manually transferred
 test_external = {
@@ -30,7 +31,7 @@ test_external = {
 
 
 def generate_data(n_subjects, n_conditions):
-    """generate testing data"""
+    """Generate testing data."""
     rng = np.random.RandomState(42)
     data = rng.randn(n_subjects * n_conditions).reshape(
         n_subjects, n_conditions)
@@ -38,26 +39,27 @@ def generate_data(n_subjects, n_conditions):
 
 
 def test_map_effects():
-    """ Test ANOVA effects parsing"""
+    """Test ANOVA effects parsing."""
     selection, names = _map_effects(n_factors=2, effects='A')
-    assert_true(names, ['A'])
+    assert names == ['A']
 
     selection, names = _map_effects(n_factors=2, effects=['A', 'A:B'])
-    assert_true(names, ['A', 'A:B'])
+    assert names == ['A', 'A:B']
 
     selection, names = _map_effects(n_factors=3, effects='A*B')
-    assert_true(names, ['A', 'B', 'A:B'])
+    assert names == ['A', 'B', 'A:B']
 
+    # XXX this might be wrong?
     selection, names = _map_effects(n_factors=3, effects='A*C')
-    assert_true(names, ['A', 'B', 'A:B', 'C', 'A:C', 'B:C', 'A:B:C'])
+    assert names == ['A', 'B', 'A:B', 'C', 'A:C']
 
-    assert_raises(ValueError, _map_effects, n_factors=2, effects='C')
+    pytest.raises(ValueError, _map_effects, n_factors=2, effects='C')
 
-    assert_raises(ValueError, _map_effects, n_factors=27, effects='all')
+    pytest.raises(ValueError, _map_effects, n_factors=27, effects='all')
 
 
 def test_f_twoway_rm():
-    """ Test 2-way anova """
+    """Test 2-way anova."""
     rng = np.random.RandomState(42)
     iter_params = product([4, 10], [2, 15], [4, 6, 8],
                           ['A', 'B', 'A:B'],
@@ -72,20 +74,20 @@ def test_f_twoway_rm():
         data = rng.random_sample([n_subj, n_levels, n_obs])
         fvals, pvals = f_mway_rm(data, _effects[n_levels], effects,
                                  correction=correction)
-        assert_true((fvals >= 0).all())
+        assert (fvals >= 0).all()
         if pvals.any():
-            assert_true(((0 <= pvals) & (1 >= pvals)).all())
+            assert ((0 <= pvals) & (1 >= pvals)).all()
         n_effects = len(_map_effects(n_subj, effects)[0])
-        assert_true(fvals.size == n_obs * n_effects)
+        assert fvals.size == n_obs * n_effects
         if n_effects == 1:  # test for principle of least surprise ...
-            assert_true(fvals.ndim == 1)
+            assert fvals.ndim == 1
 
         fvals_ = f_threshold_mway_rm(n_subj, _effects[n_levels], effects)
-        assert_true((fvals_ >= 0).all())
-        assert_true(fvals_.size == n_effects)
+        assert (fvals_ >= 0).all()
+        assert fvals_.size == n_effects
 
     data = rng.random_sample([n_subj, n_levels, 1])
-    assert_raises(ValueError, f_mway_rm, data, _effects[n_levels],
+    pytest.raises(ValueError, f_mway_rm, data, _effects[n_levels],
                   effects='C', correction=correction)
     data = rng.random_sample([n_subj, n_levels, n_obs, 3])
     # check for dimension handling

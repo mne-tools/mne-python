@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Show measurement info from .fif file.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne show_info sample_audvis_raw.fif
+    $ mne show_info sample_audvis_raw.fif
+
 """
 
 # Authors : Alexandre Gramfort, Ph.D.
@@ -29,6 +32,7 @@ def run():
     info = mne.io.read_info(fname)
     print("File : %s" % fname)
     print(info)
+
 
 is_main = (__name__ == '__main__')
 if is_main:

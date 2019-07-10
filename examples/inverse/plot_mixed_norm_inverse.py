@@ -82,11 +82,11 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
                       subjects_dir=subjects_dir, mode='orthoview',
                       idx='amplitude')
 
-# # Plot dipole locations of all dipoles with MRI slices
-# for dip in dipoles:
-#     plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
-#                           subjects_dir=subjects_dir, mode='orthoview',
-#                           idx='amplitude')
+# Plot dipole locations of all dipoles with MRI slices
+for dip in dipoles:
+    plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
+                          subjects_dir=subjects_dir, mode='orthoview',
+                          idx='amplitude')
 
 ###############################################################################
 # Plot residual
@@ -109,8 +109,10 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
 
 ###############################################################################
 # Morph onto fsaverage brain and view
-stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',
-                          grade=None, sparse=True, subjects_dir=subjects_dir)
+morph = mne.compute_source_morph(stc, subject_from='sample',
+                                 subject_to='fsaverage', spacing=None,
+                                 sparse=True, subjects_dir=subjects_dir)
+stc_fsaverage = morph.apply(stc)
 src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 

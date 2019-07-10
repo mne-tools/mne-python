@@ -26,14 +26,13 @@ def _safe_del_key(dict_, key):
         del dict_[key]
 
 
-@verbose
 def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
                       average, filter_length, n_jobs, ch_name,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
                       filter_method, iir_params, return_drop_log, copy,
-                      verbose):
+                      meg, verbose):
     """Compute SSP/PCA projections for ECG or EOG artifacts."""
     raw = raw.copy() if copy else raw
     del copy
@@ -126,10 +125,10 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     if average:
         evoked = epochs.average()
         ev_projs = compute_proj_evoked(evoked, n_grad=n_grad, n_mag=n_mag,
-                                       n_eeg=n_eeg)
+                                       n_eeg=n_eeg, meg=meg)
     else:
         ev_projs = compute_proj_epochs(epochs, n_grad=n_grad, n_mag=n_mag,
-                                       n_eeg=n_eeg, n_jobs=n_jobs)
+                                       n_eeg=n_eeg, n_jobs=n_jobs, meg=meg)
 
     for p in ev_projs:
         p['desc'] = mode + "-" + p['desc']
@@ -147,9 +146,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                                                eeg=50e-6, eog=250e-6),
                      flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
-                     tstart=0., qrs_threshold='auto', filter_method='fft',
+                     tstart=0., qrs_threshold='auto', filter_method='fir',
                      iir_params=None, copy=True, return_drop_log=False,
-                     verbose=None):
+                     meg='separate', verbose=None):
     """Compute SSP/PCA projections for ECG artifacts.
 
     .. note:: raw data will be loaded if it is not already.
@@ -178,8 +177,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         Compute SSP after averaging. Default is True.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     ch_name : string (or None)
         Channel to use for ECG detection (Required if no ECG found).
     reject : dict | None
@@ -205,7 +203,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).
     filter_method : str
-        Method for filtering ('iir' or 'fft').
+        Method for filtering ('iir' or 'fir').
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
@@ -216,9 +214,14 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         If True, return the drop log.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    meg : str
+        Can be 'separate' (default) or 'combined' to compute projectors
+        for magnetometers and gradiometers separately or jointly.
+        If 'combined', ``n_mag == n_grad`` is required and the number of
+        projectors computed for MEG will be ``n_mag``.
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
@@ -246,7 +249,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart,
         qrs_threshold, filter_method, iir_params, return_drop_log, copy,
-        verbose)
+        meg, verbose)
 
 
 @verbose
@@ -256,9 +259,9 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                                  eog=np.inf), flat=None, bads=[],
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
-                     eog_h_freq=10, tstart=0., filter_method='fft',
+                     eog_h_freq=10, tstart=0., filter_method='fir',
                      iir_params=None, ch_name=None, copy=True,
-                     return_drop_log=False, verbose=None):
+                     return_drop_log=False, meg='separate', verbose=None):
     """Compute SSP/PCA projections for EOG artifacts.
 
     .. note:: raw data must be preloaded.
@@ -287,8 +290,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Compute SSP after averaging. Default is True.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     reject : dict | None
         Epoch rejection configuration (see Epochs).
     flat : dict | None
@@ -308,7 +310,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     tstart : float
         Start artifact detection after tstart seconds.
     filter_method : str
-        Method for filtering ('iir' or 'fft').
+        Method for filtering ('iir' or 'fir').
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
@@ -321,9 +323,14 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         If True, return the drop log.
 
         .. versionadded:: 0.15
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    meg : str
+        Can be 'separate' (default) or 'combined' to compute projectors
+        for magnetometers and gradiometers separately or jointly.
+        If 'combined', ``n_mag == n_grad`` is required and the number of
+        projectors computed for MEG will be ``n_mag``.
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
@@ -350,4 +357,5 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         'EOG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
         l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
         bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
-        'auto', filter_method, iir_params, return_drop_log, copy, verbose)
+        'auto', filter_method, iir_params, return_drop_log, copy, meg,
+        verbose)

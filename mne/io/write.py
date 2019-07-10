@@ -15,7 +15,6 @@ from scipy import linalg, sparse
 from .constants import FIFF
 from ..utils import logger
 from ..externals.jdcal import jcal2jd
-from ..externals.six import string_types, b
 
 
 # We choose a "magic" date to store (because meas_date is obligatory)
@@ -42,7 +41,7 @@ def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
 
 def _get_split_size(split_size):
     """Convert human-readable bytes to machine-readable bytes."""
-    if isinstance(split_size, string_types):
+    if isinstance(split_size, str):
         exp = dict(MB=20, GB=30).get(split_size[-2:], None)
         if exp is None:
             raise ValueError('split_size has to end with either'
@@ -116,7 +115,7 @@ def write_julian(fid, kind, data):
 
 def write_string(fid, kind, data):
     """Write a string tag."""
-    str_data = data.encode('utf-8')  # Use unicode or bytes depending on Py2/3
+    str_data = data.encode('latin1')
     data_size = len(str_data)  # therefore compute size here
     my_dtype = '>a'  # py2/3 compatible on writing -- don't ask me why
     if data_size > 0:
@@ -194,6 +193,46 @@ def write_int_matrix(fid, kind, mat):
     check_fiff_length(fid)
 
 
+def write_complex_float_matrix(fid, kind, mat):
+    """Write complex 64 matrix tag."""
+    FIFFT_MATRIX = 1 << 30
+    FIFFT_MATRIX_COMPLEX_FLOAT = FIFF.FIFFT_COMPLEX_FLOAT | FIFFT_MATRIX
+
+    data_size = 4 * 2 * mat.size + 4 * (mat.ndim + 1)
+
+    fid.write(np.array(kind, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_MATRIX_COMPLEX_FLOAT, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(mat, dtype='>c8').tostring())
+
+    dims = np.empty(mat.ndim + 1, dtype=np.int32)
+    dims[:mat.ndim] = mat.shape[::-1]
+    dims[-1] = mat.ndim
+    fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
+
+
+def write_complex_double_matrix(fid, kind, mat):
+    """Write complex 128 matrix tag."""
+    FIFFT_MATRIX = 1 << 30
+    FIFFT_MATRIX_COMPLEX_DOUBLE = FIFF.FIFFT_COMPLEX_DOUBLE | FIFFT_MATRIX
+
+    data_size = 8 * 2 * mat.size + 4 * (mat.ndim + 1)
+
+    fid.write(np.array(kind, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_MATRIX_COMPLEX_DOUBLE, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(mat, dtype='>c16').tostring())
+
+    dims = np.empty(mat.ndim + 1, dtype=np.int32)
+    dims[:mat.ndim] = mat.shape[::-1]
+    dims[-1] = mat.ndim
+    fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
+
+
 def get_machid():
     """Get (mostly) unique machine ID.
 
@@ -202,7 +241,7 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = b('%012x' % uuid.getnode())  # byte conversion for Py3
+    mac = b'%012x' % uuid.getnode()  # byte conversion for Py3
     mac = re.findall(b'..', mac)  # split string
     mac += [b'00', b'00']  # add two more fields
 
@@ -260,7 +299,7 @@ def start_file(fname, id_=None):
     id_ : dict | None
         ID to use for the FIFF_FILE_ID.
     """
-    if isinstance(fname, string_types):
+    if isinstance(fname, str):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much
@@ -345,7 +384,7 @@ def write_ch_info(fid, ch):
     #   Finally channel name
     ch_name = ch['ch_name'][:15]
     fid.write(np.array(ch_name, dtype='>c').tostring())
-    fid.write(b('\0') * (16 - len(ch_name)))
+    fid.write(b'\0' * (16 - len(ch_name)))
 
 
 def write_dig_points(fid, dig, block=False, coord_frame=None):

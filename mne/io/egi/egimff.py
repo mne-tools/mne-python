@@ -4,19 +4,18 @@ import datetime
 import os.path as op
 import time
 from xml.dom.minidom import parse
-import dateutil.parser
 
 import numpy as np
 
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains, _block_r)
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..utils import _create_chs
 from ...utils import verbose, logger, warn
-from ...annotations import Annotations, _sync_onset
+from ...annotations import _sync_onset
 
 
 def _read_mff_header(filepath):
@@ -83,7 +82,8 @@ def _read_mff_header(filepath):
         pns_types = []
         pns_units = []
         for sensor in sensors:
-            sn = sensor.getElementsByTagName('number')[0].firstChild.data
+            # sensor number:
+            # sensor.getElementsByTagName('number')[0].firstChild.data
             name = sensor.getElementsByTagName('name')[0].firstChild.data
             unit_elem = sensor.getElementsByTagName('unit')[0].firstChild
             unit = ''
@@ -119,6 +119,25 @@ def _read_mff_header(filepath):
     return summaryinfo
 
 
+class _FixedOffset(datetime.tzinfo):
+    """Fixed offset in minutes east from UTC.
+
+    Adapted from the official Python documentation.
+    """
+
+    def __init__(self, offset):
+        self._offset = datetime.timedelta(minutes=offset)
+
+    def utcoffset(self, dt):
+        return self._offset
+
+    def tzname(self, dt):
+        return 'MFF'
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+
 def _read_header(input_fname):
     """Obtain the headers from the file package mff.
 
@@ -135,7 +154,15 @@ def _read_header(input_fname):
     mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
-    time_n = dateutil.parser.parse(mff_hdr['date'])
+    # This should be equivalent to the following, but no need for external dep:
+    # import dateutil.parser
+    # time_n = dateutil.parser.parse(mff_hdr['date'])
+    dt = mff_hdr['date'][:26]
+    assert mff_hdr['date'][-6] in ('+', '-')
+    sn = -1 if mff_hdr['date'][-6] == '-' else 1  # +
+    tz = [sn * int(t) for t in (mff_hdr['date'][-5:-3], mff_hdr['date'][-2:])]
+    time_n = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
+    time_n = time_n.replace(tzinfo=_FixedOffset(60 * tz[0] + tz[1]))
     info = dict(
         version=version,
         year=int(time_n.strftime('%Y')),
@@ -217,22 +244,16 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
        trigger. Defaults to None. If None, channels that have more than
        one event and the ``sync`` and ``TREV`` channels will be
        ignored.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     channel_naming : str
         Channel naming convention for the data channels. Defaults to 'E%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
         prior to 0.14.0 was 'EEG %03d'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of RawMff
+    raw : instance of RawMff
         A Raw object containing EGI mff data.
 
     Notes
@@ -254,7 +275,7 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
 
-    ..versionadded:: 0.15.0
+    .. versionadded:: 0.15.0
     """
     return RawMff(input_fname, montage, eog, misc, include, exclude,
                   preload, channel_naming, verbose)
@@ -340,12 +361,11 @@ class RawMff(BaseRaw):
             self.event_id = None
             event_codes = []
         info = _empty_info(egi_info['sfreq'])
-        info['buffer_size_sec'] = 1.  # reasonable default
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
-        info['meas_date'] = np.array([my_timestamp, 0], dtype=np.float32)
+        info['meas_date'] = (my_timestamp, 0)
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
@@ -389,7 +409,6 @@ class RawMff(BaseRaw):
 
         info['chs'] = chs
         info._update_redundant()
-        _check_update_montage(info, montage)
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
@@ -404,6 +423,9 @@ class RawMff(BaseRaw):
             info, preload=preload, orig_format='float', filenames=[file_bin],
             last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
             verbose=verbose)
+
+        if montage is not None:
+            self.set_montage(montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
@@ -436,7 +458,7 @@ class RawMff(BaseRaw):
         # Number of channels to be read from EEG
         n_data1_channels = len(eeg_chans)
 
-        # Number of channels expected in the EEG binay file
+        # Number of channels expected in the EEG binary file
         n_eeg_channels = n_channels
 
         # Get starting/stopping block/samples
@@ -497,6 +519,7 @@ class RawMff(BaseRaw):
                     # First block read, skip to the offset:
                     block_data = block_data[:, offset_samples:]
                     samples_read = samples_read - offset_samples
+                    offset_samples = 0
                 if samples_to_read < samples_read:
                     # Last block to read, skip the last samples
                     block_data = block_data[:, :samples_to_read]
@@ -507,7 +530,7 @@ class RawMff(BaseRaw):
 
                 # take into account events
                 if len(egi_events) > 0:
-                    e_chs = egi_events[:, s_start:s_end]
+                    e_chs = egi_events[:, start + s_start:start + s_end]
                     block_data = np.vstack([block_data, e_chs])
 
                 data_view = data[:n_data1_channels, s_start:s_end]
@@ -553,11 +576,10 @@ class RawMff(BaseRaw):
                     if samples_to_read == 1 and fid.tell() == file_size:
                         # We are in the presence of the EEG bug
                         # fill with zeros and break the loop
-                        data_view = data[n_data1_channels:, -1] = 0
+                        data[n_data1_channels:, -1] = 0
                         warn('This file has the EGI PSG sample bug')
-                        if self.annotations is None:
-                            self.annotations = Annotations((), (), ())
                         an_start = current_data_sample
+                        # XXX : use of _sync_onset should live in annotations
                         self.annotations.append(
                             _sync_onset(self, an_start / self.info['sfreq']),
                             1 / self.info['sfreq'], 'BAD_EGI_PSG')
@@ -578,6 +600,7 @@ class RawMff(BaseRaw):
                         # First block read, skip to the offset:
                         block_data = block_data[:, offset_samples:]
                         samples_read = samples_read - offset_samples
+                        offset_samples = 0
 
                     if samples_to_read < samples_read:
                         # Last block to read, skip the last samples
@@ -591,5 +614,6 @@ class RawMff(BaseRaw):
                     _mult_cal_one(data_view, block_data[:n_pns_channels],
                                   pns_idx,
                                   cals[n_data1_channels:], mult)
+                    del data_view
                     samples_to_read = samples_to_read - samples_read
                     current_data_sample = current_data_sample + samples_read

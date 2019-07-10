@@ -3,13 +3,12 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
-import matplotlib
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
-from nose.tools import assert_equal, assert_raises, assert_true
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_equal)
 import pytest
+import matplotlib.pyplot as plt
 
 from mne import find_events, Epochs, pick_types, channels
 from mne.io import read_raw_fif
@@ -17,10 +16,6 @@ from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
 from mne.utils import requires_version, run_tests_if_main
-
-matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests might throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -38,29 +33,71 @@ def test_long_names():
     assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
 
 
+def test_array_copy():
+    """Test copying during construction."""
+    info = create_info(1, 1000.)
+    data = np.empty((1, 1000))
+    # 'auto' (default)
+    raw = RawArray(data, info)
+    assert raw._data is data
+    assert raw.info is not info
+    raw = RawArray(data.astype(np.float32), info)
+    assert raw._data is not data
+    assert raw.info is not info
+    # 'info' (more restrictive)
+    raw = RawArray(data, info, copy='info')
+    assert raw._data is data
+    assert raw.info is not info
+    with pytest.raises(ValueError, match="data copying was not .* copy='info"):
+        RawArray(data.astype(np.float32), info, copy='info')
+    # 'data'
+    raw = RawArray(data, info, copy='data')
+    assert raw._data is not data
+    assert raw.info is info
+    # 'both'
+    raw = RawArray(data, info, copy='both')
+    assert raw._data is not data
+    assert raw.info is not info
+    raw = RawArray(data.astype(np.float32), info, copy='both')
+    assert raw._data is not data
+    assert raw.info is not info
+    # None
+    raw = RawArray(data, info, copy=None)
+    assert raw._data is data
+    assert raw.info is info
+    with pytest.raises(ValueError, match='data copying was not .* copy=None'):
+        RawArray(data.astype(np.float32), info, copy=None)
+
+
 @pytest.mark.slowtest
 @requires_version('scipy', '0.12')
 def test_array_raw():
     """Test creating raw from array."""
-    import matplotlib.pyplot as plt
     # creating
     raw = read_raw_fif(fif_fname).crop(2, 5)
     data, times = raw[:, :]
     sfreq = raw.info['sfreq']
     ch_names = [(ch[4:] if 'STI' not in ch else ch)
                 for ch in raw.info['ch_names']]  # change them, why not
-    # del raw
     types = list()
     for ci in range(101):
         types.extend(('grad', 'grad', 'mag'))
     types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
     types.extend(['stim'] * 9)
     types.extend(['eeg'] * 60)
+    picks = np.concatenate([pick_types(raw.info)[::20],
+                            pick_types(raw.info, meg=False, stim=True),
+                            pick_types(raw.info, meg=False, eeg=True)[::20]])
+    del raw
+    data = data[picks]
+    ch_names = np.array(ch_names)[picks].tolist()
+    types = np.array(types)[picks].tolist()
+    types.pop(-1)
     # wrong length
-    assert_raises(ValueError, create_info, ch_names, sfreq, types)
+    pytest.raises(ValueError, create_info, ch_names, sfreq, types)
     # bad entry
     types.append('foo')
-    assert_raises(KeyError, create_info, ch_names, sfreq, types)
+    pytest.raises(KeyError, create_info, ch_names, sfreq, types)
     types[-1] = 'eog'
     # default type
     info = create_info(ch_names, sfreq)
@@ -72,23 +109,23 @@ def test_array_raw():
     data2, times2 = raw2[:, :]
     assert_allclose(data, data2)
     assert_allclose(times, times2)
-    assert_true('RawArray' in repr(raw2))
-    assert_raises(TypeError, RawArray, info, data)
+    assert ('RawArray' in repr(raw2))
+    pytest.raises(TypeError, RawArray, info, data)
 
     # filtering
     picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
     kwargs = dict(fir_design='firwin', picks=picks)
-    raw_lp.filter(None, 4.0, h_trans_bandwidth=4., n_jobs=2, **kwargs)
+    raw_lp.filter(None, 4.0, h_trans_bandwidth=4., **kwargs)
     raw_hp = raw2.copy()
-    raw_hp.filter(16.0, None, l_trans_bandwidth=4., n_jobs=2, **kwargs)
+    raw_hp.filter(16.0, None, l_trans_bandwidth=4., **kwargs)
     raw_bp = raw2.copy()
     raw_bp.filter(8.0, 12.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
                   **kwargs)
     raw_bs = raw2.copy()
     raw_bs.filter(16.0, 4.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
-                  n_jobs=2, **kwargs)
+                  **kwargs)
     data, _ = raw2[picks, :]
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]
@@ -100,20 +137,16 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd(tmax=np.inf, average=True, n_fft=1024, spatial_colors=False)
+    raw2.plot_psd(tmax=2., average=True, n_fft=1024, spatial_colors=False)
     plt.close('all')
 
     # epoching
     events = find_events(raw2, stim_channel='STI 014')
     events[:, 2] = 1
-    assert_true(len(events) > 2)
+    assert len(events) > 2
     epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
-    epochs.plot_drop_log()
-    epochs.plot()
     evoked = epochs.average()
-    evoked.plot(time_unit='s')
     assert_equal(evoked.nave, len(events) - 1)
-    plt.close('all')
 
     # complex data
     rng = np.random.RandomState(0)

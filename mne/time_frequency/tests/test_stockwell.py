@@ -4,11 +4,11 @@
 # License : BSD 3-clause
 
 import os.path as op
-import warnings
 
-from nose.tools import assert_true, assert_equal
+import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_equal)
 
 from scipy import fftpack
 
@@ -38,12 +38,12 @@ def test_stockwell_ctf():
 
 
 def test_stockwell_check_input():
-    """Test input checker for stockwell"""
+    """Test input checker for stockwell."""
     # check for data size equal and unequal to a power of 2
 
     for last_dim in (127, 128):
         data = np.zeros((2, 10, last_dim))
-        with warnings.catch_warnings(record=True):  # 127 < n_fft
+        with pytest.warns(None):  # n_fft sometimes
             x_in, n_fft, zero_pad = _check_input_st(data, None)
 
         assert_equal(x_in.shape, (2, 10, 128))
@@ -52,7 +52,7 @@ def test_stockwell_check_input():
 
 
 def test_stockwell_st_no_zero_pad():
-    """Test stockwell power itc"""
+    """Test stockwell power itc."""
     data = np.zeros((20, 128))
     start_f = 1
     stop_f = 10
@@ -87,7 +87,7 @@ def test_stockwell_core():
     assert_equal(st_pulse.shape[-1], len(pulse))
     st_max_freq = freqs[st_pulse.max(axis=1).argmax(axis=0)]  # max freq
     assert_allclose(st_max_freq, pulse_freq, atol=1.0)
-    assert_true(onset < t[st_pulse.max(axis=0).argmax(axis=0)] < offset)
+    assert (onset < t[st_pulse.max(axis=0).argmax(axis=0)] < offset)
 
     # test inversion to FFT, by averaging local spectra, see eq. 5 in
     # Moukadem, A., Bouguila, Z., Ould Abdeslam, D. and Alain Dieterlen.
@@ -112,24 +112,25 @@ def test_stockwell_api():
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3])
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
-        with warnings.catch_warnings(record=True):  # zero papdding
+        with pytest.warns(RuntimeWarning, match='padding'):
             power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
                                        return_itc=True)
         if fmax is not None:
-            assert_true(power.freqs.max() <= fmax)
-        with warnings.catch_warnings(record=True):  # padding
+            assert (power.freqs.max() <= fmax)
+        with pytest.warns(RuntimeWarning, match='padding'):
             power_evoked = tfr_stockwell(epochs.average(), fmin=fmin,
                                          fmax=fmax, return_itc=False)
         # for multitaper these don't necessarily match, but they seem to
         # for stockwell... if this fails, this maybe could be changed
         # just to check the shape
         assert_array_almost_equal(power_evoked.data, power.data)
-    assert_true(isinstance(power, AverageTFR))
-    assert_true(isinstance(itc, AverageTFR))
+    assert (isinstance(power, AverageTFR))
+    assert (isinstance(itc, AverageTFR))
     assert_equal(power.data.shape, itc.data.shape)
-    assert_true(itc.data.min() >= 0.0)
-    assert_true(itc.data.max() <= 1.0)
-    assert_true(np.log(power.data.max()) * 20 <= 0.0)
-    assert_true(np.log(power.data.max()) * 20 <= 0.0)
+    assert (itc.data.min() >= 0.0)
+    assert (itc.data.max() <= 1.0)
+    assert (np.log(power.data.max()) * 20 <= 0.0)
+    assert (np.log(power.data.max()) * 20 <= 0.0)
+
 
 run_tests_if_main()

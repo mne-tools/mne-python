@@ -3,24 +3,21 @@
 # License: Simplified BSD
 
 import os.path as op
-import warnings
+
 import numpy as np
-from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_allclose
+import pytest
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
-                           _validate_if_list_of_axes)
+                           _validate_if_list_of_axes, _get_color_list,
+                           _setup_vmin_vmax, center_cmap)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif
 from mne.event import read_events
 from mne.epochs import Epochs
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -28,15 +25,30 @@ cov_fname = op.join(base_dir, 'test-cov.fif')
 ev_fname = op.join(base_dir, 'test_raw-eve.fif')
 
 
+def test_setup_vmin_vmax_warns():
+    """Test that _setup_vmin_vmax warns properly."""
+    expected_msg = r'\(min=0.0, max=1\) range.*minimum of data is -1'
+    with pytest.warns(UserWarning, match=expected_msg):
+        _setup_vmin_vmax(data=[-1, 0], vmin=None, vmax=None, norm=True)
+
+
+def test_get_color_list():
+    """Test getting a colormap from rcParams."""
+    colors = _get_color_list()
+    assert isinstance(colors, list)
+    colors_no_red = _get_color_list(annotations=True)
+    assert '#ff0000' not in colors_no_red
+
+
 def test_mne_analyze_colormap():
     """Test mne_analyze_colormap."""
-    assert_raises(ValueError, mne_analyze_colormap, [0])
-    assert_raises(ValueError, mne_analyze_colormap, [-1, 1, 2])
-    assert_raises(ValueError, mne_analyze_colormap, [0, 2, 1])
+    pytest.raises(ValueError, mne_analyze_colormap, [0])
+    pytest.raises(ValueError, mne_analyze_colormap, [-1, 1, 2])
+    pytest.raises(ValueError, mne_analyze_colormap, [0, 2, 1])
 
 
 def test_compare_fiff():
-    import matplotlib.pyplot as plt
+    """Test compare_fiff."""
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
     plt.close('all')
 
@@ -44,7 +56,6 @@ def test_compare_fiff():
 def test_clickable_image():
     """Test the ClickableImage class."""
     # Gen data and create clickable image
-    import matplotlib.pyplot as plt
     im = np.random.RandomState(0).randn(100, 100)
     clk = ClickableImage(im)
     clicks = [(12, 8), (46, 48), (10, 24)]
@@ -53,11 +64,11 @@ def test_clickable_image():
     for click in clicks:
         _fake_click(clk.fig, clk.ax, click, xform='data')
     assert_allclose(np.array(clicks), np.array(clk.coords))
-    assert_true(len(clicks) == len(clk.coords))
+    assert (len(clicks) == len(clk.coords))
 
     # Exporting to layout
     lt = clk.to_layout()
-    assert_true(lt.pos.shape[0] == len(clicks))
+    assert (lt.pos.shape[0] == len(clicks))
     assert_allclose(lt.pos[1, 0] / lt.pos[2, 0],
                     clicks[1][0] / float(clicks[2][0]))
     clk.plot_clicks()
@@ -66,7 +77,6 @@ def test_clickable_image():
 
 def test_add_background_image():
     """Test adding background image to a figure."""
-    import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
     for ii in range(2):
         f, axs = plt.subplots(1, 2)
@@ -81,20 +91,20 @@ def test_add_background_image():
         if ii == 0:
             ax_im = add_background_image(f, im)
             return
-            assert_true(ax_im.get_aspect() == 'auto')
+            assert (ax_im.get_aspect() == 'auto')
             for ax in axs:
-                assert_true(ax.get_aspect() == 1)
+                assert (ax.get_aspect() == 1)
         else:
             # Background with changing aspect
             ax_im_asp = add_background_image(f, im, set_ratios='auto')
-            assert_true(ax_im_asp.get_aspect() == 'auto')
+            assert (ax_im_asp.get_aspect() == 'auto')
             for ax in axs:
-                assert_true(ax.get_aspect() == 'auto')
+                assert (ax.get_aspect() == 'auto')
         plt.close('all')
 
     # Make sure passing None as image returns None
     f, axs = plt.subplots(1, 2)
-    assert_true(add_background_image(f, None) is None)
+    assert (add_background_image(f, None) is None)
     plt.close('all')
 
 
@@ -110,40 +120,55 @@ def test_auto_scale():
                              ('stim', 'auto')])
 
         # Test for wrong inputs
-        assert_raises(ValueError, inst.plot, scalings='foo')
-        assert_raises(ValueError, _compute_scalings, 'foo', inst)
+        with pytest.raises(ValueError, match=r".*scalings.*'foo'.*"):
+            inst.plot(scalings='foo')
 
         # Make sure compute_scalings doesn't change anything not auto
         scalings_new = _compute_scalings(scalings_def, inst)
-        assert_true(scale_grad == scalings_new['grad'])
-        assert_true(scalings_new['eeg'] != 'auto')
+        assert (scale_grad == scalings_new['grad'])
+        assert (scalings_new['eeg'] != 'auto')
 
-    assert_raises(ValueError, _compute_scalings, scalings_def, rand_data)
+    with pytest.raises(ValueError, match='Must supply either Raw or Epochs'):
+        _compute_scalings(scalings_def, rand_data)
     epochs = epochs[0].load_data()
     epochs.pick_types(eeg=True, meg=False)
-    assert_raises(ValueError, _compute_scalings,
-                  dict(grad='auto'), epochs)
 
 
 def test_validate_if_list_of_axes():
     """Test validation of axes."""
-    import matplotlib.pyplot as plt
     fig, ax = plt.subplots(2, 2)
-    assert_raises(ValueError, _validate_if_list_of_axes, ax)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax)
     ax_flat = ax.ravel()
     ax = ax.ravel().tolist()
     _validate_if_list_of_axes(ax_flat)
     _validate_if_list_of_axes(ax_flat, 4)
-    assert_raises(ValueError, _validate_if_list_of_axes, ax_flat, 5)
-    assert_raises(ValueError, _validate_if_list_of_axes, ax, 3)
-    assert_raises(ValueError, _validate_if_list_of_axes, 'error')
-    assert_raises(ValueError, _validate_if_list_of_axes, ['error'] * 2)
-    assert_raises(ValueError, _validate_if_list_of_axes, ax[0])
-    assert_raises(ValueError, _validate_if_list_of_axes, ax, 3)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat, 5)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
+    pytest.raises(ValueError, _validate_if_list_of_axes, 'error')
+    pytest.raises(ValueError, _validate_if_list_of_axes, ['error'] * 2)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax[0])
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
     ax_flat[2] = 23
-    assert_raises(ValueError, _validate_if_list_of_axes, ax_flat)
+    pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat)
     _validate_if_list_of_axes(ax, 4)
     plt.close('all')
+
+
+def test_center_cmap():
+    """Test centering of colormap."""
+    from matplotlib.colors import LinearSegmentedColormap
+    from matplotlib.pyplot import Normalize
+    cmap = center_cmap(cm.get_cmap("RdBu"), -5, 10)
+
+    assert isinstance(cmap, LinearSegmentedColormap)
+
+    # get new colors for values -5 (red), 0 (white), and 10 (blue)
+    new_colors = cmap(Normalize(-5, 10)([-5, 0, 10]))
+    # get original colors for 0 (red), 0.5 (white), and 1 (blue)
+    reference = cm.RdBu([0., 0.5, 1.])
+    assert_allclose(new_colors, reference)
+    # new and old colors at 0.5 must be different
+    assert not np.allclose(cmap(0.5), reference[1])
 
 
 run_tests_if_main()

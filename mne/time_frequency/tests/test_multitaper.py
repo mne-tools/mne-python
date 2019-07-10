@@ -1,5 +1,4 @@
 from distutils.version import LooseVersion
-import warnings
 
 import numpy as np
 import pytest
@@ -15,14 +14,13 @@ from mne import create_info
 @requires_nitime
 def test_dpss_windows():
     """Test computation of DPSS windows."""
-
     import nitime as ni
     N = 1000
     half_nbw = 4
     Kmax = int(2 * half_nbw)
 
     dpss, eigs = dpss_windows(N, half_nbw, Kmax, low_bias=False)
-    with warnings.catch_warnings(record=True):  # conversions
+    with pytest.warns(None):  # conversions
         dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax)
 
     assert_array_almost_equal(dpss, dpss_ni)
@@ -30,7 +28,7 @@ def test_dpss_windows():
 
     dpss, eigs = dpss_windows(N, half_nbw, Kmax, interp_from=200,
                               low_bias=False)
-    with warnings.catch_warnings(record=True):  # conversions
+    with pytest.warns(None):  # conversions
         dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax,
                                                       interp_from=200)
 
@@ -56,7 +54,7 @@ def test_multitaper_psd():
             psd, freqs = psd_multitaper(raw, adaptive=adaptive,
                                         n_jobs=n_jobs,
                                         normalization=norm)
-            with warnings.catch_warnings(record=True):  # nitime integers
+            with pytest.warns(None):  # nitime integers
                 freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
                     data, sfreq, adaptive=adaptive, jackknife=False)
             assert_array_almost_equal(psd, psd_ni, decimal=4)

@@ -6,20 +6,18 @@ import copy
 import os
 from os import path as op
 import shutil
-import warnings
 
 import numpy as np
 from numpy import array_equal
-from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
 from mne import pick_types
-# from mne.tests.common import assert_dig_allclose
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.compensator import get_current_comp
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import _TempDir, run_tests_if_main, _clean_names, catch_logging
+from mne.utils import run_tests_if_main, _clean_names, catch_logging
 from mne.datasets import testing, spm_face
 from mne.io.constants import FIFF
 
@@ -49,18 +47,17 @@ ctf_fnames = tuple(sorted(block_sizes.keys()))
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_read_ctf():
-    """Test CTF reader"""
-    temp_dir = _TempDir()
+def test_read_ctf(tmpdir):
+    """Test CTF reader."""
+    temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
 
     # Create a dummy .eeg file so we can test our reading/application of it
     os.mkdir(op.join(temp_dir, 'randpos'))
     ctf_eeg_fname = op.join(temp_dir, 'randpos', ctf_fname_catch)
     shutil.copytree(op.join(ctf_dir, ctf_fname_catch), ctf_eeg_fname)
-    with warnings.catch_warnings(record=True) as w:  # reclassified ch
+    with pytest.warns(RuntimeWarning, match='RMSP .* changed to a MISC ch'):
         raw = _test_raw_reader(read_raw_ctf, directory=ctf_eeg_fname)
-    assert all('MISC channel' in str(ww.message) for ww in w)
     picks = pick_types(raw.info, meg=False, eeg=True)
     pos = np.random.RandomState(42).randn(len(picks), 3)
     fake_eeg_fname = op.join(ctf_eeg_fname, 'catch-alp-good-f.eeg')
@@ -75,9 +72,8 @@ def test_read_ctf():
                 '%0.5f' % x for x in 100 * pos[ii])  # convert to cm
             fid.write(('\t'.join(args) + '\n').encode('ascii'))
     pos_read_old = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
-    with warnings.catch_warnings(record=True) as w:  # reclassified channel
+    with pytest.warns(RuntimeWarning, match='RMSP .* changed to a MISC ch'):
         raw = read_raw_ctf(ctf_eeg_fname)  # read modified data
-    assert all('MISC channel' in str(ww.message) for ww in w)
     pos_read = np.array([raw.info['chs'][p]['loc'][:3] for p in picks])
     assert_allclose(apply_trans(raw.info['ctf_head_t'], pos), pos_read,
                     rtol=1e-5, atol=1e-5)
@@ -91,7 +87,7 @@ def test_read_ctf():
     shutil.copytree(ctf_eeg_fname, ctf_no_hc_fname)
     remove_base = op.join(ctf_no_hc_fname, op.basename(ctf_fname_catch[:-3]))
     os.remove(remove_base + '.hc')
-    with warnings.catch_warnings(record=True):  # no coord tr
+    with pytest.warns(RuntimeWarning, match='MISC channel'):
         pytest.raises(RuntimeError, read_raw_ctf, ctf_no_hc_fname)
     os.remove(remove_base + '.eeg')
     shutil.copy(op.join(ctf_dir, 'catch-alp-good-f.ds_nohc_raw.fif'),
@@ -101,20 +97,15 @@ def test_read_ctf():
     use_fnames = [op.join(ctf_dir, c) for c in ctf_fnames]
     for fname in use_fnames:
         raw_c = read_raw_fif(fname + '_raw.fif', preload=True)
-        with warnings.catch_warnings(record=True) as w:  # reclassified ch
+        with pytest.warns(None):  # sometimes matches "MISC channel"
             raw = read_raw_ctf(fname)
-        assert all('MISC channel' in str(ww.message) for ww in w)
 
         # check info match
         assert_array_equal(raw.ch_names, raw_c.ch_names)
         assert_allclose(raw.times, raw_c.times)
         assert_allclose(raw._cals, raw_c._cals)
-        for key in ('version', 'usecs'):
-            assert_equal(raw.info['meas_id'][key], raw_c.info['meas_id'][key])
-        py_time = raw.info['meas_id']['secs']
-        c_time = raw_c.info['meas_id']['secs']
-        max_offset = 24 * 60 * 60  # probably overkill but covers timezone
-        assert c_time - max_offset <= py_time <= c_time
+        assert (raw.info['meas_id']['version'] ==
+                raw_c.info['meas_id']['version'] + 1)
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)
@@ -123,16 +114,15 @@ def test_read_ctf():
                     'events', 'experimenter', 'highpass', 'line_freq',
                     'lowpass', 'nchan', 'proj_id', 'proj_name',
                     'projs', 'sfreq', 'subject_info'):
-            assert_equal(raw.info[key], raw_c.info[key], key)
+            assert raw.info[key] == raw_c.info[key], key
         if op.basename(fname) not in single_trials:
             # We don't force buffer size to be smaller like MNE-C
-            assert_equal(raw.info['buffer_size_sec'],
-                         raw_c.info['buffer_size_sec'])
-        assert_equal(len(raw.info['comps']), len(raw_c.info['comps']))
+            assert raw.buffer_size_sec == raw_c.buffer_size_sec
+        assert len(raw.info['comps']) == len(raw_c.info['comps'])
         for c1, c2 in zip(raw.info['comps'], raw_c.info['comps']):
             for key in ('colcals', 'rowcals'):
                 assert_allclose(c1[key], c2[key])
-            assert_equal(c1['save_calibrated'], c2['save_calibrated'])
+            assert c1['save_calibrated'] == c2['save_calibrated']
             for key in ('row_names', 'col_names', 'nrow', 'ncol'):
                 assert_array_equal(c1['data'][key], c2['data'][key])
             assert_allclose(c1['data']['data'], c2['data']['data'], atol=1e-7,
@@ -140,7 +130,7 @@ def test_read_ctf():
         assert_allclose(raw.info['hpi_results'][0]['coord_trans']['trans'],
                         raw_c.info['hpi_results'][0]['coord_trans']['trans'],
                         rtol=1e-5, atol=1e-7)
-        assert_equal(len(raw.info['chs']), len(raw_c.info['chs']))
+        assert len(raw.info['chs']) == len(raw_c.info['chs'])
         for ii, (c1, c2) in enumerate(zip(raw.info['chs'], raw_c.info['chs'])):
             for key in ('kind', 'scanno', 'unit', 'ch_name', 'unit_mul',
                         'range', 'coord_frame', 'coil_type', 'logno'):
@@ -149,7 +139,7 @@ def test_read_ctf():
                         key in ('kind', 'unit', 'coord_frame', 'coil_type',
                                 'logno'):
                     continue  # XXX see below...
-                assert_equal(c1[key], c2[key], err_msg=key)
+                assert c1[key] == c2[key], key
             for key in ('cal',):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
@@ -175,8 +165,8 @@ def test_read_ctf():
 
         # Make sure all digitization points are in the MNE head coord frame
         for p in raw.info['dig']:
-            assert_equal(p['coord_frame'], FIFF.FIFFV_COORD_HEAD,
-                         err_msg='dig points must be in FIFF.FIFFV_COORD_HEAD')
+            assert p['coord_frame'] == FIFF.FIFFV_COORD_HEAD, \
+                'dig points must be in FIFF.FIFFV_COORD_HEAD'
 
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
             raw.info['dig'] = raw.info['dig'][:-10]
@@ -192,9 +182,9 @@ def test_read_ctf():
         # so let's check tricky cases based on sample boundaries
         rng = np.random.RandomState(0)
         pick_ch = rng.permutation(np.arange(len(raw.ch_names)))[:10]
-        bnd = int(round(raw.info['sfreq'] * raw.info['buffer_size_sec']))
-        assert_equal(bnd, raw._raw_extras[0]['block_size'])
-        assert_equal(bnd, block_sizes[op.basename(fname)])
+        bnd = int(round(raw.info['sfreq'] * raw.buffer_size_sec))
+        assert bnd == raw._raw_extras[0]['block_size']
+        assert bnd == block_sizes[op.basename(fname)]
         slices = (slice(0, bnd), slice(bnd - 1, bnd), slice(3, bnd),
                   slice(3, 300), slice(None))
         if len(raw.times) >= 2 * bnd:  # at least two complete blocks
@@ -206,10 +196,15 @@ def test_read_ctf():
             assert_allclose(raw_read[pick_ch, sl_time][0],
                             raw_c[pick_ch, sl_time][0])
         # all data / preload
-        with warnings.catch_warnings(record=True) as w:  # reclassified ch
+        with pytest.warns(None):  # sometimes MISC
             raw = read_raw_ctf(fname, preload=True)
-        assert all('MISC channel' in str(ww.message) for ww in w)
-        assert_allclose(raw[:][0], raw_c[:][0])
+        assert_allclose(raw[:][0], raw_c[:][0], atol=1e-15)
+        # test bad segment annotations
+        if 'testdata_ctf_short.ds' in fname:
+            assert 'bad' in raw.annotations.description[0]
+            assert_allclose(raw.annotations.onset, [2.15])
+            assert_allclose(raw.annotations.duration, [0.0225])
+
     pytest.raises(TypeError, read_raw_ctf, 1)
     pytest.raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
     # test ignoring of system clock
@@ -222,11 +217,10 @@ def test_read_ctf():
 def test_rawctf_clean_names():
     """Test RawCTF _clean_names method."""
     # read test data
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='ref channel RMSP did not'):
         raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
         raw_cleaned = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch),
                                    clean_names=True)
-    assert any('MEG ref channel RMSP did not' in str(ww.message) for ww in w)
     test_channel_names = _clean_names(raw.ch_names)
     test_info_comps = copy.deepcopy(raw.info['comps'])
 
@@ -261,7 +255,7 @@ def test_read_spm_ctf():
                         'SPM_CTF_MEG_example_faces1_3D.ds')
     raw = read_raw_ctf(raw_fname)
     extras = raw._raw_extras[0]
-    assert_equal(extras['n_samp'], raw.n_times)
+    assert extras['n_samp'] == raw.n_times
     assert extras['n_samp'] != extras['n_samp_tot']
 
     # Test that LPA, nasion and RPA are correct.
@@ -276,29 +270,36 @@ def test_read_spm_ctf():
 
 
 @testing.requires_testing_data
-def test_saving_picked():
+@pytest.mark.parametrize('comp_grade', [0, 1])
+def test_saving_picked(tmpdir, comp_grade):
     """Test saving picked CTF instances."""
-    temp_dir = _TempDir()
+    temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
     raw.crop(0, 1).load_data()
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info['comps']) == 5
     pick_kwargs = dict(meg=True, ref_meg=False, verbose=True)
+
+    raw.apply_gradient_compensation(comp_grade)
     with catch_logging() as log:
         raw_pick = raw.copy().pick_types(**pick_kwargs)
     assert len(raw.info['comps']) == 5
     assert len(raw_pick.info['comps']) == 0
     log = log.getvalue()
     assert 'Removing 5 compensators' in log
-    raw_pick.save(out_fname)  # should work
-    read_raw_fif(out_fname)
-    read_raw_fif(out_fname, preload=True)
-    # If comp is applied, picking should error
-    raw.apply_gradient_compensation(1)
-    assert raw.compensation_grade == get_current_comp(raw.info) == 1
-    with pytest.raises(RuntimeError, match='Compensation grade 1 has been'):
-        raw.copy().pick_types(**pick_kwargs)
+    raw_pick.save(out_fname, overwrite=True)  # should work
+    raw2 = read_raw_fif(out_fname)
+    assert (raw_pick.ch_names == raw2.ch_names)
+    assert_array_equal(raw_pick.times, raw2.times)
+    assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
+                    atol=1e-20)  # atol is very small but > 0
+
+    raw2 = read_raw_fif(out_fname, preload=True)
+    assert (raw_pick.ch_names == raw2.ch_names)
+    assert_array_equal(raw_pick.times, raw2.times)
+    assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
+                    atol=1e-20)  # atol is very small but > 0
 
 
 run_tests_if_main()

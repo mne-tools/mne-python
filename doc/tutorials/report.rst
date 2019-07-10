@@ -10,10 +10,10 @@ sample data set provided with MNE.
 First ensure that the files you want to render follow the filename conventions
 defined by MNE:
 
-==================   ====================================================
+==================   ==============================================================
 Data object          Filename convention (ends with)
-==================   ====================================================
-raw                  -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz)
+==================   ==============================================================
+raw                  -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
 events               -eve.fif(.gz)
 epochs               -epo.fif(.gz)
 evoked               -ave.fif(.gz)
@@ -21,7 +21,7 @@ covariance           -cov.fif(.gz)
 trans                -trans.fif(.gz)
 forward              -fwd.fif(.gz)
 inverse              -inv.fif(.gz)
-==================   ====================================================
+==================   ==============================================================
 
 The command line interface
 --------------------------
@@ -91,7 +91,7 @@ Generate the report::
     >>> path = sample.data_path(verbose=False)
     >>> fname_evoked = path + '/MEG/sample/sample_audvis-ave.fif'
     >>> report = Report(fname_evoked, verbose=True)
-    Embedding : jquery-1.10.2.min.js
+    Embedding : jquery.js
     Embedding : jquery-ui.min.js
     Embedding : bootstrap.min.js
     Embedding : jquery-ui.min.css
@@ -151,5 +151,22 @@ The MNE report command internally manages the sections so that plots belonging t
 are rendered consecutively. Within a section, the plots are ordered in the same order that they were
 added using the `add_figs_to_section` command. Each section is identified by a toggle button in the navigation
 bar of the report which can be used to show or hide the contents of the section.
+
+Saving to HTML is a write-only operation, meaning that we cannot read an
+``.html`` file back as a :class:`mne.Report` object. In order to be able to
+read it back, we can save it as an HDF5 file::
+
+    >>> from mne import open_report
+    >>> report.save('report.h5', overwrite=True) # doctest: +SKIP
+    >>> open_report('report.h5') # doctest: +SKIP
+
+This allows us to have multiple scripts that add figures to the same report. To
+make this even easier, :class:`mne.Report` can be used as a context manager,
+allowing you to do this::
+
+    >>> with open_report('report.h5') as report:  # Creates a new report if 'report.h5' doesn't exist # doctest: +SKIP
+    >>>    report.add_figs_to_section(fig, captions='Left Auditory', section='evoked', replace=True) # doctest: +SKIP
+    >>>    report.save('report.html', overwrite=True)  # Update the HTML page # doctest: +SKIP
+    >>> # Updated report is automatically saved back to 'report.h5' upon leaving the block
 
 That's it!

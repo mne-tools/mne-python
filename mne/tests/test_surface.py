@@ -1,22 +1,22 @@
-from __future__ import print_function
 import os
 import os.path as op
-import numpy as np
-import warnings
 from shutil import copyfile
+
+import numpy as np
 from scipy import sparse
-from nose.tools import assert_true, assert_raises
+
 import pytest
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne.datasets import testing
-from mne import read_surface, write_surface, decimate_surface
+from mne import read_surface, write_surface, decimate_surface, pick_types
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
-from mne.utils import (_TempDir, requires_mayavi, requires_tvtk,
+from mne.utils import (_TempDir, requires_mayavi, requires_tvtk, catch_logging,
                        run_tests_if_main, object_diff, traits_test)
 from mne.io import read_info
+from mne.io.constants import FIFF
 from mne.transforms import _get_trans
 
 data_path = testing.data_path(download=False)
@@ -24,7 +24,6 @@ subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
 
-warnings.simplefilter('always')
 rng = np.random.RandomState(0)
 
 
@@ -40,9 +39,24 @@ def test_helmet():
     fname_trans = op.join(base_dir, 'tests', 'data',
                           'sample-audvis-raw-trans.txt')
     trans = _get_trans(fname_trans)[0]
-    for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
-        helmet = get_meg_helmet_surf(read_info(fname), trans)
-        assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
+    new_info = read_info(fname_raw)
+    artemis_info = new_info.copy()
+    for pick in pick_types(new_info):
+        new_info['chs'][pick]['coil_type'] = 9999
+        artemis_info['chs'][pick]['coil_type'] = \
+            FIFF.FIFFV_COIL_ARTEMIS123_GRAD
+    for info, n, name in [(read_info(fname_raw), 304, '306m'),
+                          (read_info(fname_kit_raw), 304, 'KIT'),
+                          (read_info(fname_bti_raw), 304, 'Magnes'),
+                          (read_info(fname_ctf_raw), 342, 'CTF'),
+                          (new_info, 102, 'unknown'),
+                          (artemis_info, 102, 'ARTEMIS123')
+                          ]:
+        with catch_logging() as log:
+            helmet = get_meg_helmet_surf(info, trans, verbose=True)
+        log = log.getvalue()
+        assert name in log
+        assert_equal(len(helmet['rr']), n)
         assert_equal(len(helmet['rr']), len(helmet['nn']))
 
 
@@ -51,18 +65,21 @@ def test_head():
     """Test loading the head surface."""
     surf_1 = get_head_surf('sample', subjects_dir=subjects_dir)
     surf_2 = get_head_surf('sample', 'head', subjects_dir=subjects_dir)
-    assert_true(len(surf_1['rr']) < len(surf_2['rr']))  # BEM vs dense head
-    assert_raises(TypeError, get_head_surf, subject=None,
+    assert len(surf_1['rr']) < len(surf_2['rr'])  # BEM vs dense head
+    pytest.raises(TypeError, get_head_surf, subject=None,
                   subjects_dir=subjects_dir)
 
 
-def test_huge_cross():
+def test_fast_cross_3d():
     """Test cross product with lots of elements."""
     x = rng.rand(100000, 3)
     y = rng.rand(1, 3)
     z = np.cross(x, y)
     zz = fast_cross_3d(x, y)
     assert_array_equal(z, zz)
+    # broadcasting and non-2D
+    zz = fast_cross_3d(x[:, np.newaxis], y[0])
+    assert_array_equal(z, zz[:, 0])
 
 
 def test_compute_nearest():
@@ -111,7 +128,7 @@ def test_make_morph_maps():
             ('fsaverage_ds', 'sample_ds', False),
             ('fsaverage_ds', 'fsaverage_ds', True)):
         # trigger the creation of morph-maps dir and create the map
-        with warnings.catch_warnings(record=True):
+        with pytest.warns(None):
             mmap = read_morph_map(subject_from, subject_to, tempdir,
                                   xhemi=xhemi)
         mmap2 = read_morph_map(subject_from, subject_to, subjects_dir,
@@ -123,10 +140,10 @@ def test_make_morph_maps():
             assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
     # This will also trigger creation, but it's trivial
-    with warnings.catch_warnings(record=True):
+    with pytest.warns(None):
         mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
-        assert_true((mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0)
+        assert (mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0
 
 
 @testing.requires_testing_data
@@ -138,11 +155,10 @@ def test_io_surface():
     fname_tri = op.join(data_path, 'subjects', 'fsaverage', 'surf',
                         'lh.inflated')
     for fname in (fname_quad, fname_tri):
-        with warnings.catch_warnings(record=True) as w:
+        with pytest.warns(None):  # no volume info
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
-        assert_true(all('No volume info' in str(ww.message) for ww in w))
         write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info)
-        with warnings.catch_warnings(record=True) as w:  # No vol info
+        with pytest.warns(None):  # no volume info
             c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
                                                     read_metadata=True)
         assert_array_equal(pts, c_pts)
@@ -158,8 +174,8 @@ def test_read_curv():
                          'lh.inflated')
     bin_curv = read_curvature(fname_curv)
     rr = read_surface(fname_surf)[0]
-    assert_true(len(bin_curv) == len(rr))
-    assert_true(np.logical_or(bin_curv == 0, bin_curv == 1).all())
+    assert len(bin_curv) == len(rr)
+    assert np.logical_or(bin_curv == 0, bin_curv == 1).all()
 
 
 @requires_tvtk
@@ -174,10 +190,10 @@ def test_decimate_surface():
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, 0]])
     for n_tri in [4, 3, 2]:  # quadric decimation creates even numbered output.
         _, this_tris = decimate_surface(points, tris, n_tri)
-        assert_true(len(this_tris) == n_tri if not n_tri % 2 else 2)
+        assert len(this_tris) == n_tri if not n_tri % 2 else 2
     nirvana = 5
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, nirvana]])
-    assert_raises(ValueError, decimate_surface, points, tris, n_tri)
+    pytest.raises(ValueError, decimate_surface, points, tris, n_tri)
 
 
 run_tests_if_main()
