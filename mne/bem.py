@@ -867,19 +867,20 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
 
 
 @verbose
-def get_fitting_dig(info, dig_kinds='auto', verbose=None):
+def get_fitting_dig(info, dig_kinds='auto', exclude_frontal=True,
+                    verbose=None):
     """Get digitization points suitable for sphere fitting.
 
     Parameters
     ----------
     info : instance of Info
         The measurement info.
-    dig_kinds : list of str | str
-        Kind of digitization points to use in the fitting. These can be any
-        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
-        be 'auto' (default), which will use only the 'extra' points if
-        enough (more than 10) are available, and if not, uses 'extra' and
-        'eeg' points.
+    %(dig_kinds)s
+    exclude_frontal : bool
+        If True, exclude points that have both negative Z values
+        (below the nasion) and positivy Y values (in front of the LPA/RPA).
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Returns
@@ -923,7 +924,9 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
                            'contact mne-python developers')
 
     # exclude some frontal points (nose etc.)
-    hsp = np.array([p for p in hsp if not (p[2] < -1e-6 and p[1] > 1e-6)])
+    if exclude_frontal:
+        hsp = [p for p in hsp if not (p[2] < -1e-6 and p[1] > 1e-6)]
+    hsp = np.array(hsp)
 
     if len(hsp) <= 10:
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]

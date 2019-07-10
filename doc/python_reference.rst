@@ -548,6 +548,7 @@ Forward Modeling
    apply_forward
    apply_forward_raw
    average_forward_solutions
+   check_coreg
    convert_forward_solution
    forward.compute_depth_prior
    forward.compute_orient_prior

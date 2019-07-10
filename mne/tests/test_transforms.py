@@ -18,7 +18,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             _topo_to_sph, _average_quats,
                             _SphericalSurfaceWarp as SphericalSurfaceWarp,
                             rotation3d_align_z_axis, _read_fs_xfm,
-                            _write_fs_xfm, check_coreg)
+                            _write_fs_xfm)
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -375,14 +375,5 @@ def test_fs_xfm():
         with pytest.raises(ValueError, match='Could not find'):
             _read_fs_xfm(fname_out)
 
-
-@testing.requires_testing_data
-def test_check_coreg():
-    """Test the trans obtained by coregistration."""
-    info = read_info(test_fif_fname)
-    dists = check_coreg(fname, info, 'sample', subjects_dir)
-    assert dists.shape == (146,)
-    assert 0.002 < np.mean(dists) < 0.003  # between 2 and 3mm
-    assert np.sum(dists > 0.03) == 1  # one outlier
 
 run_tests_if_main()

@@ -72,6 +72,9 @@ print('Distance from head origin to MEG origin: %0.1f mm'
       % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
 print('Distance from head origin to MRI origin: %0.1f mm'
       % (1000 * np.linalg.norm(trans['trans'][:3, 3])))
+dists = mne.check_coreg(raw.info, trans, 'sample', subjects_dir=subjects_dir)
+print('Distance from %s digitized points to head surface: %0.1f mm'
+      % (len(dists), 1000 * np.mean(dists)))
 
 ###############################################################################
 # Coordinate frame definitions
