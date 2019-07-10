@@ -77,6 +77,8 @@ Bug
 
 - Fix :func:`mne.Evoked.decimate` not setting ``inst.first`` and ``inst.last`` properly by `Marijn van Vliet`_
 
+- Fix :func:`mne.io.read_raw_brainvision` not handling ``Event`` markers created by PyCorder correctly by `Richard Höchenberger`_
+
 API
 ~~~
 
@@ -3348,7 +3350,7 @@ of commits):
 
 .. _Andrea Brovelli: http://www.int.univ-amu.fr/_BROVELLI-Andrea_?lang=en
 
-.. _Richard Höchenberger: http://hoechenberger.name
+.. _Richard Höchenberger: https://github.com/hoechenberger
 
 .. _Matt Boggess: https://github.com/mattboggess
 
