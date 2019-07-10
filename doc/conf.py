@@ -65,6 +65,7 @@ extensions = [
     'numpydoc',
     'gen_commands',
     'sphinx_bootstrap_theme',
+    'sphinx_bootstrap_divs',
 ]
 
 linkcheck_ignore = [

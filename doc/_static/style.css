@@ -291,6 +291,12 @@ h4.list-group-item-heading {
       display:block !important;
   }
 }
+details.example_details summary {
+    font-weight: bold;
+}
+.panel {
+    margin-bottom: 3px;
+}
 
 .skinnytable {
     width: auto;
