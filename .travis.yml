@@ -22,11 +22,11 @@ matrix:
 
         # Linux
         - os: linux
-          env: CONDA_ENV="environment_Linux.yml"
+          env: CONDA_ENV="environment_base.yml"
 
         # OSX conda
         - os: osx
-          env: CONDA_ENV="environment_macOS.yml"
+          env: CONDA_ENV="environment_base.yml"
 
         # PIP + non-default stim channel
         - os: linux
@@ -65,9 +65,12 @@ before_install:
         source ci-helpers/travis/setup_conda.sh;
         if [ ! -z "$CONDA_ENV" ]; then
           source deactivate;
-          conda env update -f $CONDA_ENV;
+          conda env update --file $CONDA_ENV;
           pip uninstall -yq mne;
           pip install codecov nitime;
+          if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+￼            pip install "pyqt5>=5.10";
+          fi;
         fi;
       fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script

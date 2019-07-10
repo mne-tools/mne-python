@@ -95,26 +95,30 @@ Installing MNE-Python and its dependencies
 Once you have Anaconda installed, the easiest way to install
 MNE-Python with all dependencies is update your base Anaconda environment:
 
+.. _base environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_base.yml
+
 .. collapse:: |linux| Linux
 
-   Use `the Linux environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_Linux.yml>`__, e.g.::
+   Use the `base environment file`_, e.g.::
 
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_Linux.yml
-       $ conda env update -f environment_Linux.yml
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_base.yml
+       $ conda env update --file environment_base.yml
 
 .. collapse:: |apple| macOS
 
-   Use `the macOS environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml>`__, e.g.::
+   Use the `base environment file`_ and then update PyQt using :samp:`pip`, e.g.::
 
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml
-       $ conda env update -f environment_macOS.yml
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_base.yml
+       $ conda env update --file environment_base.yml
+       $ pip install "PyQt5>=5.10"
 
 .. collapse:: |windows| Windows
 
-   - Download `the Windows environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml>`__
+   - Download the `base environment file`_
    - Open an Anaconda command prompt
    - :samp:`cd` to the directory where you downloaded the file
-   - Run :samp:`conda env update -f environment_Windows.yml`
+   - Run :samp:`conda env update --file environment_base.yml`
+
 
 If you prefer an isolated Anaconda environment, instead of using
 :samp:`conda update` to modify your base environment above, you can instead create

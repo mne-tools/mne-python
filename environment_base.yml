@@ -1,4 +1,4 @@
-name: base
+name: mne
 channels:
 - defaults
 dependencies:
@@ -48,4 +48,3 @@ dependencies:
   - python-picard
   - pylsl>=1.12
   - panel
-  - pyqt5>=5.10
