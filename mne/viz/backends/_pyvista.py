@@ -49,8 +49,6 @@ class _Renderer(_BaseRenderer):
     ----------
     plotter: pyvista.Plotter
         Main PyVista access point.
-    off_screen: bool
-        State of the offscreen.
     name: str
         Name of the window.
     """
@@ -58,22 +56,27 @@ class _Renderer(_BaseRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="PyVista Scene", show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
-        self.off_screen = False
         self.display = None
         self.inside_notebook = _check_notebook()
         self.smooth_shading = True
+        kwargs = dict()
         if MNE_3D_BACKEND_TEST_DATA:
-            self.off_screen = True
+            self.plotter_class = pyvista.Plotter
+            kwargs['off_screen'] = True
+        else:
+            self.plotter_class = pyvista.BackgroundPlotter
+            kwargs['title'] = name
+
         if fig is None:
-            self.plotter = pyvista.BackgroundPlotter(
-                title=name, window_size=size, off_screen=self.off_screen)
+            kwargs['window_size'] = size
+            self.plotter = self.plotter_class(**kwargs)
             self.plotter.background_color = bgcolor
             # this is a hack to avoid using a deleled ren_win
             self.plotter._window_size = size
         else:
             # import basic properties
-            self.plotter = pyvista.BackgroundPlotter(
-                window_size=fig._window_size, off_screen=fig.off_screen)
+            kwargs['window_size'] = fig._window_size
+            self.plotter = self.plotter_class(**kwargs)
             # import background
             self.plotter.background_color = fig.background_color
             # import actors
@@ -82,6 +85,8 @@ class _Renderer(_BaseRenderer):
             # import camera
             self.plotter.camera_position = fig.camera_position
             self.plotter.reset_camera()
+            # save window_size
+            self.plotter._window_size = fig._window_size
         self.plotter.hide_axes()
 
     def scene(self):
