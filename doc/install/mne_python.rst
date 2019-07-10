@@ -93,19 +93,50 @@ Installing MNE-Python and its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Once you have Anaconda installed, the easiest way to install
-MNE-Python is to download the conda environment file for your operating system:
+MNE-Python with all dependencies is update your base Anaconda environment:
 
+.. collapse:: |linux| Linux
+   :class: info
 
-- |linux| `Linux <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_Linux.yml>`__
-- |apple| `macOS <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml>`__
-- |windows| `Windows <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_Windows.yml>`__
+   Use `the Linux environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_Linux.yml>`__, e.g.::
 
-And then update your base Anaconda environment to have the required dependencies::
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_Linux.yml
+       $ conda env update -f environment_Linux.yml
 
-    $ conda env update -f environment_Linux.yml  # or _macOS.yml / _Windows.yml
+.. collapse:: |apple| macOS
+   :class: info
 
-If you prefer to work with isolated environments, you can also instead install
-to a dedicated environment (e.g., with :samp:`conda env create -n mne -f ...`).
+   Use `the macOS environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml>`__, e.g.::
+
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml
+       $ conda env update -f environment_macOS.yml
+
+.. collapse:: |windows| Windows
+   :class: info
+
+   - Download `the Windows environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml>`__
+   - Open an Anaconda command prompt
+   - :samp:`cd` to the directory where you downloaded the file
+   - Run :samp:`conda env update -f environment_Windows.yml`
+
+If you prefer an isolated Anaconda environment, instead of using
+:samp:`conda update` to modify your base environment above, you can instead create
+a new dedicated environment with :samp:`conda env create -n mne -f ...`.
+
+.. javascript below adapted from nilearn
+
+.. raw:: html
+
+    <script type="text/javascript">
+    var OSName="linux-linux";
+    if (navigator.userAgent.indexOf("Win")!=-1) OSName="windows-windows";
+    if (navigator.userAgent.indexOf("Mac")!=-1) OSName="apple-macos";
+    $(document).ready(function(){
+        var element = document.getElementById("collapse_" + OSName);
+        element.className += " in";
+        element.setAttribute("aria-expanded", "true");
+    });
+    </script>
 
 Testing MNE-Python installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
