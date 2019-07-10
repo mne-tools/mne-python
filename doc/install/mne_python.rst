@@ -121,13 +121,12 @@ MNE-Python with all dependencies is update your base Anaconda environment:
 
 .. raw:: html
 
-   <div width="100%" height="0 px" style="margin: 0 0 30px;"></div>
+   <div width="100%" height="0 px" style="margin: 0 0 15px;"></div>
 
-.. details:: |folder| If you prefer an isolated Anaconda environment...
-
-   Instead of using :samp:`conda env update` to modify your base environment,
-   you can create a new dedicated environment with
-   :samp:`conda env create -n mne --file environment.yml`.
+If you prefer an isolated Anaconda environment, instead of using\
+:samp:`conda env update` to modify your "base" environment,
+you can create a new dedicated environment with
+:samp:`conda env create --name mne --file environment.yml`.
 
 .. javascript below adapted from nilearn
 

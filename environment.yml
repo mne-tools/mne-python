@@ -2,7 +2,7 @@ name: base
 channels:
 - defaults
 dependencies:
-- python
+- python>=3.5
 - pip
 - mkl
 - numpy
