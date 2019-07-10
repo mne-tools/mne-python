@@ -417,13 +417,9 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         focalpoint = np.array(figure.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
 
-    if azimuth is None:
-        azimuth = _rad2deg(phi)
-    else:
+    if azimuth is not None:
         phi = _deg2rad(azimuth)
-    if elevation is None:
-        elevation = _rad2deg(theta)
-    else:
+    if elevation is not None:
         theta = _deg2rad(elevation)
     if distance is not None:
         r = distance
