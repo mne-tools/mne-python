@@ -59,21 +59,20 @@ class _Renderer(_BaseRenderer):
                  name="PyVista Scene", show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         self.off_screen = False
-        self.name = name
         self.display = None
         self.inside_notebook = _check_notebook()
         self.smooth_shading = True
         if MNE_3D_BACKEND_TEST_DATA:
             self.off_screen = True
         if fig is None:
-            self.plotter = pyvista.Plotter(
-                window_size=size, off_screen=self.off_screen)
+            self.plotter = pyvista.BackgroundPlotter(
+                title=name, window_size=size, off_screen=self.off_screen)
             self.plotter.background_color = bgcolor
             # this is a hack to avoid using a deleled ren_win
             self.plotter._window_size = size
         else:
             # import basic properties
-            self.plotter = pyvista.Plotter(
+            self.plotter = pyvista.BackgroundPlotter(
                 window_size=fig._window_size, off_screen=fig.off_screen)
             # import background
             self.plotter.background_color = fig.background_color
@@ -83,6 +82,7 @@ class _Renderer(_BaseRenderer):
             # import camera
             self.plotter.camera_position = fig.camera_position
             self.plotter.reset_camera()
+        self.plotter.hide_axes()
 
     def scene(self):
         if self.inside_notebook:
@@ -303,7 +303,7 @@ class _Renderer(_BaseRenderer):
                                         position_x=0.15, width=0.7)
 
     def show(self):
-        self.display = self.plotter.show(title=self.name)
+        self.display = self.plotter.show()
         return self.display
 
     def close(self):
