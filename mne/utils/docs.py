@@ -196,15 +196,15 @@ depth : None | float | dict
 # Forward
 docdict['on_missing'] = """
 on_missing : str
-        Behavior when ``stc`` has vertices that are not in ``fwd``.
-        Can be "ignore", "warn"", or "raise"."""
+    Behavior when ``stc`` has vertices that are not in ``fwd``.
+    Can be "ignore", "warn"", or "raise"."""
 docdict['dig_kinds'] = """
 dig_kinds : list of str | str
-        Kind of digitization points to use in the fitting. These can be any
-        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
-        be 'auto' (default), which will use only the 'extra' points if
-        enough (more than 10) are available, and if not, uses 'extra' and
-        'eeg' points.
+    Kind of digitization points to use in the fitting. These can be any
+    combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
+    be 'auto' (default), which will use only the 'extra' points if
+    enough (more than 10) are available, and if not, uses 'extra' and
+    'eeg' points.
 """
 docdict['exclude_frontal'] = """
 exclude_frontal : bool
