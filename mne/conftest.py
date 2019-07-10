@@ -67,6 +67,7 @@ def pytest_configure(config):
     # This is only necessary until sklearn updates their wheels for NumPy 1.16
     ignore:numpy.ufunc size changed:RuntimeWarning
     ignore:.*mne-realtime.*:DeprecationWarning
+    ignore:.*imp.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
