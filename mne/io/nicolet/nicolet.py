@@ -154,7 +154,8 @@ class RawNicolet(BaseRaw):
     """
 
     def __init__(self, input_fname, ch_type, montage='deprecated', eog=(),
-                 ecg=(), emg=(), misc=(), preload=False, verbose=None):  # noqa: D102
+                 ecg=(), emg=(), misc=(), preload=False,
+                 verbose=None):  # noqa: D102
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg,
                                               emg, misc)
