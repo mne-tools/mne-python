@@ -31,4 +31,4 @@ conduct`_.
 .. _`pull request`: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
 
 .. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
-.. _`contributing guide`: https://mne-tools.github.io/dev/contributing.html
+.. _`contributing guide`: https://mne-tools.github.io/stable/install/contributing.html
