@@ -173,6 +173,9 @@ def test_plot_epochs_image():
     # test order=callable
     epochs.plot_image(picks=[0, 1],
                       order=lambda times, data: np.arange(len(data))[::-1])
+    # test deprecation
+    with pytest.warns(DeprecationWarning, match='group_by="type" is no longe'):
+        epochs.plot_image(group_by='type')
     # test warning
     with pytest.warns(RuntimeWarning, match='Only one channel in group'):
         epochs.plot_image(picks=[1], combine='mean')

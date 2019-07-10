@@ -195,6 +195,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     from scipy.ndimage import gaussian_filter1d
     from .. import EpochsArray
 
+    # deprecations
+    if group_by == 'type':
+        warn('group_by="type" is no longer supported; combining by channel '
+             'type is now default behavior when "picks" is None or a (list '
+             'of) channel type string(s). Setting "group_by=None" instead.',
+             category=DeprecationWarning)
+        group_by = None
+
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
     if set(units) != set(scalings):
