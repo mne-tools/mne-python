@@ -18,7 +18,8 @@ import copy
 import numpy as np
 
 from ..defaults import _handle_default
-from ..utils import verbose, get_config, set_config, logger, warn, fill_doc
+from ..utils import (verbose, get_config, set_config, logger, warn, fill_doc,
+                     check_version)
 from ..io.meas_info import create_info
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
@@ -379,14 +380,17 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         shape = (3, 10)
         for this_group in group_by:
             this_fig = figure(this_group)
+            kwargs = dict()
+            if check_version('matplotlib', '2.2'):
+                kwargs['fig'] = this_fig  # unavailable on earlier mpl
             subplot2grid(shape, (0, 0), colspan=colspan, rowspan=rowspan,
-                         fig=this_fig)
+                         **kwargs)
             if evoked:
                 subplot2grid(shape, (2, 0), colspan=colspan, rowspan=1,
-                             fig=this_fig)
+                             **kwargs)
             if colorbar:
                 subplot2grid(shape, (0, 9), colspan=1, rowspan=rowspan,
-                             fig=this_fig)
+                             **kwargs)
             axes[this_group] = this_fig.axes
 
     # got a Figure instance
