@@ -20,7 +20,7 @@ from ...annotations import Annotations
 
 
 from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
-                     CNTEventType3)
+                     _compute_robust_event_table_position, CNTEventType3)
 
 
 def _read_annotations_cnt(fname, data_format='int16'):
@@ -46,7 +46,6 @@ def _read_annotations_cnt(fname, data_format='int16'):
     # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
     SETUP_NCHANNELS_OFFSET = 370
     SETUP_RATE_OFFSET = 376
-    SETUP_EVENTTABLEPOS_OFFSET = 886
 
     def _translating_function(offset, n_channels, event_type,
                               data_format=data_format):
@@ -64,8 +63,8 @@ def _read_annotations_cnt(fname, data_format='int16'):
         fid.seek(SETUP_RATE_OFFSET)
         (sfreq,) = np.frombuffer(fid.read(2), dtype='<u2')
 
-        fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
-        (event_table_pos,) = np.frombuffer(fid.read(4), dtype='<i4')
+        event_table_pos = _compute_robust_event_table_position(
+            fid=fid, data_format=data_format)
 
     with open(fname, 'rb') as fid:
         teeg = _read_teeg(fid, teeg_offset=event_table_pos)
@@ -230,8 +229,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
         fid.seek(2, 1)
         highcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
 
-        fid.seek(886)
-        event_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+        event_offset = _compute_robust_event_table_position(
+            fid=fid, data_format=data_format
+        )
+        fid.seek(890)
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
 
@@ -253,14 +254,18 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
         else:
             n_bytes = 2 if data_format == 'int16' else 4
             n_samples = data_size // (n_bytes * n_channels)
+
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         if cnt_info['channel_offset'] > 1:
             cnt_info['channel_offset'] //= n_bytes
         else:
             cnt_info['channel_offset'] = 1
-        ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
-                                               list())
+
+        ch_names, cals, baselines, chs, pos = (
+            list(), list(), list(), list(), list()
+        )
+
         bads = list()
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
