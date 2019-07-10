@@ -87,7 +87,7 @@ conda to ``/home/user/anaconda3``)::
     Anaconda install tips (`Stack Overflow`_ results are often helpful)
     to fix these or other problems when ``conda`` does not work.
 
-.. _environment_file:
+.. _standard_instructions:
 
 Installing MNE-Python and its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -95,34 +95,39 @@ Installing MNE-Python and its dependencies
 Once you have Anaconda installed, the easiest way to install
 MNE-Python with all dependencies is update your base Anaconda environment:
 
-.. _base environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_base.yml
+.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
 
 .. collapse:: |linux| Linux
 
-   Use the `base environment file`_, e.g.::
+   Use the base `environment file`_, e.g.::
 
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_base.yml
-       $ conda env update --file environment_base.yml
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ conda env update --file environment.yml
 
 .. collapse:: |apple| macOS
 
-   Use the `base environment file`_ and then update PyQt using :samp:`pip`, e.g.::
+   Use the base `environment file`_ and then update PyQt using :samp:`pip`, e.g.::
 
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_base.yml
-       $ conda env update --file environment_base.yml
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ conda env update --file environment.yml
        $ pip install "PyQt5>=5.10"
 
 .. collapse:: |windows| Windows
 
-   - Download the `base environment file`_
+   - Download the base `environment file`_
    - Open an Anaconda command prompt
    - :samp:`cd` to the directory where you downloaded the file
-   - Run :samp:`conda env update --file environment_base.yml`
+   - Run :samp:`conda env update --file environment.yml`
 
+.. raw:: html
 
-If you prefer an isolated Anaconda environment, instead of using
-:samp:`conda update` to modify your base environment above, you can instead create
-a new dedicated environment with :samp:`conda env create -n mne -f ...`.
+   <div width="100%" height="0 px" style="margin: 0 0 30px;"></div>
+
+.. details:: |folder| If you prefer an isolated Anaconda environment...
+
+   Instead of using :samp:`conda env update` to modify your base environment,
+   you can create a new dedicated environment with
+   :samp:`conda env create -n mne --file environment.yml`.
 
 .. javascript below adapted from nilearn
 
