@@ -22,11 +22,11 @@ matrix:
 
         # Linux
         - os: linux
-          env: CONDA_ENV="environment_base.yml"
+          env: CONDA_ENV="environment.yml"
 
         # OSX conda
         - os: osx
-          env: CONDA_ENV="environment_base.yml"
+          env: CONDA_ENV="environment.yml"
 
         # PIP + non-default stim channel
         - os: linux
