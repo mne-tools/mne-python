@@ -21,7 +21,6 @@ from mne.transforms import (invert_transform, _get_trans,
                             _write_fs_xfm)
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
 fname_eve = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc_raw-eve.fif')
