@@ -32,7 +32,8 @@ montage = data_path + "/EEGLAB/test_chans.locs"
 
 event_id = {"rt": 1, "square": 2}  # must be specified for str events
 eog = {"FPz", "EOG1", "EOG2"}
-raw = mne.io.read_raw_eeglab(fname, eog=eog, montage=montage)
+raw = mne.io.read_raw_eeglab(fname, eog=eog)
+raw.set_montage(montage)
 events = mne.events_from_annotations(raw, event_id)[0]
 
 ###############################################################################
