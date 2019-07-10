@@ -1092,7 +1092,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     hticks = list()
     for tick in hscroll_ticks:
         hticks.append(epoch_times.flat[np.abs(epoch_times - tick).argmin()])
-    hlabels = [x / n_times + 1 for x in hticks]
+    hlabels = [x // n_times + 1 for x in hticks]
     ax_hscroll.set_xticks(hticks)
     ax_hscroll.set_xticklabels(hlabels)
 
