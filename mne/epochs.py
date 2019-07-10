@@ -1065,14 +1065,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                    colorbar=True, order=None, show=True, units=None,
                    scalings=None, cmap=None, fig=None, axes=None,
                    overlay_times=None, combine=None, group_by=None,
-                   evoked=True, ts_args=dict(), title=None):
+                   evoked=True, ts_args=None, title=None, clear=False):
         return plot_epochs_image(self, picks=picks, sigma=sigma, vmin=vmin,
                                  vmax=vmax, colorbar=colorbar, order=order,
                                  show=show, units=units, scalings=scalings,
                                  cmap=cmap, fig=fig, axes=axes,
                                  overlay_times=overlay_times, combine=combine,
                                  group_by=group_by, evoked=evoked,
-                                 ts_args=ts_args, title=title)
+                                 ts_args=ts_args, title=title, clear=clear)
 
     @verbose
     def drop(self, indices, reason='USER', verbose=None):
