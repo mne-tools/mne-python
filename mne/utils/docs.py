@@ -326,6 +326,17 @@ spatial_colors : bool
     Whether to use spatial colors. Only used when ``average=False``.
 """
 
+# Montage
+docdict["montage_deprecated"] = """
+montage : str | None | instance of Montage
+    Path or instance of montage containing electrode positions.
+    If None, sensor locations are (0,0,0). See the documentation of
+    :func:`mne.channels.read_montage` for more information.
+
+    DEPRECATED in version 0.19
+    Use the `set_montage` method.
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)

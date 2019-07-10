@@ -9,14 +9,15 @@ import calendar
 
 from ...utils import logger, fill_doc
 from ..utils import _read_segments_file, _find_channels, _create_chs
+from ..utils import _deprecate_montage
 from ..base import BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
 
 @fill_doc
-def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
-                     emg=(), misc=(), preload=False, verbose=None):
+def read_raw_nicolet(input_fname, ch_type, montage='deprecated', eog=(),
+                     ecg=(), emg=(), misc=(), preload=False, verbose=None):
     """Read Nicolet data as raw object.
 
     Note: This reader takes data files with the extension ``.data`` as an
@@ -128,10 +129,7 @@ class RawNicolet(BaseRaw):
     ch_type : str
         Channel type to designate to the data channels. Supported data types
         include 'eeg', 'seeg'.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
@@ -155,8 +153,9 @@ class RawNicolet(BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
 
-    def __init__(self, input_fname, ch_type, montage=None, eog=(), ecg=(),
-                 emg=(), misc=(), preload=False, verbose=None):  # noqa: D102
+    def __init__(self, input_fname, ch_type, montage='deprecated', eog=(),
+                 ecg=(), emg=(), misc=(), preload=False,
+                 verbose=None):  # noqa: D102
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg,
                                               emg, misc)
@@ -165,7 +164,8 @@ class RawNicolet(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format='int',
             verbose=verbose)
-        self.set_montage(montage)
+
+        _deprecate_montage(self, "read_raw_nicolet", montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
