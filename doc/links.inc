@@ -204,7 +204,6 @@
 
 .. installation links
 
-.. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
 .. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
