@@ -66,6 +66,7 @@ before_install:
         if [ ! -z "$CONDA_ENV" ]; then
           source deactivate;
           conda env update -f $CONDA_ENV;
+          pip uninstall mne;
           pip install codecov nitime;
         fi;
       fi
