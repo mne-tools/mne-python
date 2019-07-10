@@ -1445,7 +1445,7 @@ def check_coreg(info, trans, subject, subjects_dir=None, dig_kinds='auto',
 
     See Also
     --------
-    get_fitting_dig
+    mne.bem.get_fitting_dig
 
     Notes
     -----
