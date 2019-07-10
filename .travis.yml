@@ -55,7 +55,7 @@ before_install:
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
     - if [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
-        pip uninstall -y numpy;
+        pip uninstall -yq numpy;
         pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --pre numpy scipy;
         pip install vtk;
         pip install $PIP_DEPENDENCIES;
@@ -66,7 +66,7 @@ before_install:
         if [ ! -z "$CONDA_ENV" ]; then
           source deactivate;
           conda env update -f $CONDA_ENV;
-          pip uninstall mne;
+          pip uninstall -yq mne;
           pip install codecov nitime;
         fi;
       fi

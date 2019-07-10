@@ -96,7 +96,6 @@ Once you have Anaconda installed, the easiest way to install
 MNE-Python with all dependencies is update your base Anaconda environment:
 
 .. collapse:: |linux| Linux
-   :class: info
 
    Use `the Linux environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_Linux.yml>`__, e.g.::
 
@@ -104,7 +103,6 @@ MNE-Python with all dependencies is update your base Anaconda environment:
        $ conda env update -f environment_Linux.yml
 
 .. collapse:: |apple| macOS
-   :class: info
 
    Use `the macOS environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml>`__, e.g.::
 
@@ -112,7 +110,6 @@ MNE-Python with all dependencies is update your base Anaconda environment:
        $ conda env update -f environment_macOS.yml
 
 .. collapse:: |windows| Windows
-   :class: info
 
    - Download `the Windows environment file <https://raw.githubusercontent.com/mne-tools/mne-python/master/environment_macOS.yml>`__
    - Open an Anaconda command prompt
