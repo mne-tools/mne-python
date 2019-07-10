@@ -13,7 +13,7 @@
 
 from collections import Counter
 from functools import partial
-import copy
+from copy import deepcopy
 
 import numpy as np
 
@@ -247,7 +247,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ch_names = np.array(epochs.ch_names)[picks].tolist()
             key = _set_title_multiple_electrodes(None, combine, ch_names)
             group_by = {key: picks}
-
+    else:
+        group_by = deepcopy(group_by)
     # check for heterogeneous sensor type combinations / "combining" 1 channel
     for this_group, these_picks in group_by.items():
         this_ch_type = np.array(ch_types)[np.in1d(picks, these_picks)]
@@ -1329,7 +1330,7 @@ def _plot_update_epochs_proj(params, bools=None):
     """Deal with proj changed."""
     if bools is not None:
         inds = np.where(bools)[0]
-        params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
+        params['info']['projs'] = [deepcopy(params['projs'][ii])
                                    for ii in inds]
         params['proj_bools'] = bools
     epochs = params['epochs']
