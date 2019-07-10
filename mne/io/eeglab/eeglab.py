@@ -157,14 +157,9 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory). Note that
-        preload=False will be effective only if the data is stored in a
-        separate binary file.
+    %(preload)s
+        Note that preload=False will be effective only if the data is stored
+        in a separate binary file.
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -270,12 +265,9 @@ class RawEEGLAB(BaseRaw):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard
-        drive (slower, requires less memory).
+    %(preload)s
+        Note that preload=False will be effective only if the data is stored
+        in a separate binary file.
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is

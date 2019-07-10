@@ -54,9 +54,7 @@ class RawBrainVision(BaseRaw):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    %(preload)s
     %(verbose)s
 
     See Also
@@ -802,9 +800,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    %(preload)s
     %(verbose)s
 
     Returns

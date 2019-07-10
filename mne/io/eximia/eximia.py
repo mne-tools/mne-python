@@ -19,8 +19,7 @@ def read_raw_eximia(fname, preload=False, verbose=None):
     ----------
     fname : str
         Path to the eXimia data file (.nxe).
-    preload : bool
-        If True, all data are loaded at initialization.
+    %(preload)s
     %(verbose)s
 
     Returns
@@ -43,8 +42,7 @@ class RawEximia(BaseRaw):
     ----------
     fname : str
         Path to the eXimia data file (.nxe).
-    preload : bool
-        If True, all data are loaded at initialization.
+    %(preload)s
     %(verbose)s
 
     See Also
