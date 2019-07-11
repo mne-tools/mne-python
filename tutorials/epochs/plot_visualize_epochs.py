@@ -19,7 +19,9 @@ raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
-epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5)
+epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
+                    preload=True)
+del raw
 
 ###############################################################################
 # This tutorial focuses on visualization of epoched data. All of the functions
