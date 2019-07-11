@@ -160,6 +160,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                   coil_type=FIFF.FIFFV_COIL_NONE)
         del k
         chs.append(ch)
+
+        # XXX: this looks like setting up the montage
         # Create the channel position information
         if cch['sensor_type_index'] in (CTF.CTFV_REF_MAG_CH,
                                         CTF.CTFV_REF_GRAD_CH,

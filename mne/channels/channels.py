@@ -182,6 +182,7 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'ecog': FIFF.FIFFV_ECOG_CH,
                'hbo': FIFF.FIFFV_FNIRS_CH,
                'hbr': FIFF.FIFFV_FNIRS_CH}
+
 _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'eeg': FIFF.FIFF_UNIT_V,
                'emg': FIFF.FIFF_UNIT_V,
@@ -476,6 +477,17 @@ class SetChannelsMixin(object):
                          set_dig=set_dig)
         else:
             self.info['dig'] = montage
+            # self.set_channel_types(bla)
+            # self._set_channel_positions(bla)
+
+            # eeg_montage = [x for x in montage if x['kind'] == _human2fiff['eeg']]
+            eeg_montage = [x for x in montage if x['kind'] == 3]
+            for ch, digpoint in zip(self.info['chs'], eeg_montage):
+                ch['kind'] = digpoint['kind']
+                ch['coord_frame'] = digpoint['coord_frame']
+                ch['loc'] = np.pad(digpoint['r'], (0, 9), 'constant',
+                                   constant_values=0)
+
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,

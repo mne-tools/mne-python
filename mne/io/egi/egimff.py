@@ -191,6 +191,7 @@ def _read_header(input_fname):
     return info
 
 
+# XXX: This looks like reading a montage
 def _read_locs(filepath, chs, egi_info):
     """Read channel locations."""
     fname = op.join(filepath, 'coordinates.xml')

@@ -312,7 +312,7 @@ def test_set_montage():
     from mne.io import RawArray
     from mne.utils import object_diff
 
-    ch_names = ['EEG {id:03d}'.format(id=id) for id in range(1, 62)]
+    ch_names = ['EEG {id:03d}'.format(id=id) for id in range(61)]
     raw = RawArray(data=np.empty([len(ch_names), 1]),
                    info=create_info(ch_names=ch_names, sfreq=1))
     original_raw = (read_raw_fif(raw_fname, preload=False)
@@ -330,7 +330,28 @@ def test_set_montage():
     raw.set_montage(dig)
 
     assert raw.info['dig'] == EXPECTED_DIG
-    assert object_diff(raw.info['chs'], EXPECTED_CHS) == ''
+
+    # assert object_diff(raw.info['chs'], EXPECTED_CHS) == ''
+    EXPECTED_NAME = [ch['ch_name'] for ch in EXPECTED_CHS]
+    EXPECTED_LOC = np.array([ch['loc'] for ch in EXPECTED_CHS])
+    EXPECTED_KIND = [ch['kind'] for ch in EXPECTED_CHS]
+    EXPECTED_COORD_REF = [ch['coord_frame'] for ch in EXPECTED_CHS]
+
+    actual_loc = np.array([ch['loc'] for ch in raw.info['chs']])
+
+    actual_names = [ch['ch_name'] for ch in raw.info['chs']]
+    actual_kind = [ch['kind'] for ch in raw.info['chs']]
+    actual_coord_ref = [ch['coord_frame'] for ch in raw.info['chs']]
+
+    xx = actual_loc[-3:, :]
+    yy = EXPECTED_LOC[-3:, :]
+
+    import pdb; pdb.set_trace()
+    assert_array_equal(actual_loc, EXPECTED_LOC)
+    assert_array_equal(actual_kind, EXPECTED_KIND)
+    assert_array_equal(actual_coord_ref, EXPECTED_COORD_REF)
+
+
 
 
 run_tests_if_main()

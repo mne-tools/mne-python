@@ -220,6 +220,7 @@ def _create_event_metadata(ft_struct):
     return metadata
 
 
+# XXX: this looks like setting a mdig and ontage
 def _process_channel_eeg(cur_ch, elec):
     """Convert EEG channel from FieldTrip to MNE.
 

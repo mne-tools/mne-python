@@ -171,6 +171,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     info['chs'] = []
     info['bads'] = []
 
+    # XXX: This looks like setting up the montage
     for i, chan in enumerate(header_info['channels']):
         # build chs struct
         t = {'cal': float(chan['scaling']), 'ch_name': chan['name'],
