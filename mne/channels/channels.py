@@ -477,16 +477,22 @@ class SetChannelsMixin(object):
                          set_dig=set_dig)
         else:
             self.info['dig'] = montage
-            # self.set_channel_types(bla)
-            # self._set_channel_positions(bla)
 
-            # eeg_montage = [x for x in montage if x['kind'] == _human2fiff['eeg']]
-            eeg_montage = [x for x in montage if x['kind'] == 3]
+            eeg_montage = [x for x in montage
+                           if x['kind'] == FIFF.FIFFV_POINT_EEG]
+            # remove the first EEG which is the reference
+            ref_pos = eeg_montage[0]['r']
+            eeg_montage = eeg_montage[1:]
+
             for ch, digpoint in zip(self.info['chs'], eeg_montage):
-                ch['kind'] = digpoint['kind']
+                ch['kind'] = _human2fiff['eeg']
+                ch['unit'] = FIFF.FIFF_UNIT_V
+                ch['coil_type'] = FIFF.FIFFV_COIL_EEG
                 ch['coord_frame'] = digpoint['coord_frame']
-                ch['loc'] = np.pad(digpoint['r'], (0, 9), 'constant',
-                                   constant_values=0)
+                ch['loc'] = np.zeros(12)
+                ch['loc'][:3] = digpoint['r']
+                ch['loc'][3:6] = ref_pos
+                ch['loc'][[7, 11]] = 1.  # not clear why
 
         return self
 
