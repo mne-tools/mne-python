@@ -550,6 +550,7 @@ Forward Modeling
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   dig_mri_distances
    forward.compute_depth_prior
    forward.compute_orient_prior
    forward.restrict_forward_to_label

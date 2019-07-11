@@ -34,6 +34,8 @@ Changelog
 
 - Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
 
+- Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
+
 - Add scale bars for data channels in :func:`mne.io.Raw.plot` by `Eric Larson`_
 
 - Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
