@@ -272,6 +272,18 @@ def test_resample_scipy():
                 assert_allclose(x_p5, x_p5_sp, atol=1e-12, err_msg=err_msg)
 
 
+@pytest.mark.parametrize('n_jobs', (2, 'cuda'))
+def test_n_jobs(n_jobs):
+    """Test resampling against SciPy."""
+    x = np.random.RandomState(0).randn(4, 100)
+    y1 = resample(x, 2, 1, n_jobs=1)
+    y2 = resample(x, 2, 1, n_jobs=n_jobs)
+    assert_allclose(y1, y2)
+    y1 = filter_data(x, 100., 0, 40, n_jobs=1)
+    y2 = filter_data(x, 100., 0, 40, n_jobs=n_jobs)
+    assert_allclose(y1, y2)
+
+
 def test_resamp_stim_channel():
     """Test resampling of stim channels."""
     # Downsampling
