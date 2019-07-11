@@ -200,7 +200,8 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
                FIFF.FIFF_UNIT_MOL: 'M',
-               FIFF.FIFF_UNIT_NONE: 'NA'}
+               FIFF.FIFF_UNIT_NONE: 'NA',
+               FIFF.FIFF_UNIT_CEL: 'C'}
 
 
 def _check_set(ch, projs, ch_type):
