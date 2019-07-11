@@ -21,6 +21,7 @@ from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
+from ..digitization import Digitization
 
 
 def _get_meg_system(info):
@@ -465,8 +466,16 @@ class SetChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         from .montage import _set_montage
-        _set_montage(self.info, montage, update_ch_names=False,
-                     set_dig=set_dig)
+        from ..channels import Montage, DigMontage
+
+        _validate_type(montage, item_name='montage',
+                       types=(Montage, DigMontage, Digitization, str))
+
+        if type(montage) in (Montage, DigMontage, str):
+            _set_montage(self.info, montage, update_ch_names=False,
+                         set_dig=set_dig)
+        else:
+            self.info['dig'] = montage
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
