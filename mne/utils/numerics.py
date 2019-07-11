@@ -287,7 +287,9 @@ def random_permutation(n_samples, random_state=None):
         Randomly permuted sequence between 0 and n-1.
     """
     rng = check_random_state(random_state)
-    idx = rng.rand(n_samples)
+    # This can't just be rng.permutation(n_samples) because it's not identical
+    # to what MATLAB produces
+    idx = rng.uniform(size=n_samples)
     randperm = np.argsort(idx)
     return randperm
 

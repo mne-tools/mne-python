@@ -716,10 +716,10 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
         # to prevent positive/negative equivalent collisions
         use_samples = n_samples - (tail == 0)
         while ii < n_permutations - 1:
-            signs = tuple((rng.rand(use_samples) < 0.5).astype(int))
+            signs = tuple((rng.uniform(size=use_samples) < 0.5).astype(int))
             if signs not in hashes:
                 orders[ii, :use_samples] = signs
-                if tail == 0 and rng.rand() < 0.5:
+                if tail == 0 and rng.uniform() < 0.5:
                     # To undo the non-flipping of the last subject in the
                     # tail == 0 case, half the time we use the positive
                     # last subject, half the time negative last subject

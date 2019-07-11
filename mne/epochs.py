@@ -44,7 +44,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin
 from .event import _read_events_fif, make_fixed_length_events
-from .fixes import _get_args
+from .fixes import _get_args, rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
@@ -1065,14 +1065,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                    colorbar=True, order=None, show=True, units=None,
                    scalings=None, cmap=None, fig=None, axes=None,
                    overlay_times=None, combine=None, group_by=None,
-                   evoked=True, ts_args=dict(), title=None):
+                   evoked=True, ts_args=None, title=None, clear=False):
         return plot_epochs_image(self, picks=picks, sigma=sigma, vmin=vmin,
                                  vmax=vmax, colorbar=colorbar, order=order,
                                  show=show, units=units, scalings=scalings,
                                  cmap=cmap, fig=fig, axes=axes,
                                  overlay_times=overlay_times, combine=combine,
                                  group_by=group_by, evoked=evoked,
-                                 ts_args=ts_args, title=title)
+                                 ts_args=ts_args, title=title, clear=clear)
 
     @verbose
     def drop(self, indices, reason='USER', verbose=None):
@@ -2032,7 +2032,18 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 def equalize_epoch_counts(epochs_list, method='mintime'):
     """Equalize the number of trials in multiple Epoch instances.
 
-    It tries to make the remaining epochs occurring as close as possible in
+    Parameters
+    ----------
+    epochs_list : list of Epochs instances
+        The Epochs instances to equalize trial counts for.
+    method : str
+        If 'truncate', events will be truncated from the end of each event
+        list. If 'mintime', timing differences between each event list will be
+        minimized.
+
+    Notes
+    -----
+    This tries to make the remaining epochs occurring as close as possible in
     time. This method works based on the idea that if there happened to be some
     time-varying (like on the scale of minutes) noise characteristics during
     a recording, they could be compensated for (to some extent) in the
@@ -2042,20 +2053,9 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     other one had [3.5, 4.5, 120.5, 121.5], it would remove events at times
     [1, 2] in the first epochs and not [120, 121].
 
-    Note that this operates on the Epochs instances in-place.
-
-    Example:
-
-        equalize_epoch_counts(epochs1, epochs2)
-
-    Parameters
-    ----------
-    epochs_list : list of Epochs instances
-        The Epochs instances to equalize trial counts for.
-    method : str
-        If 'truncate', events will be truncated from the end of each event
-        list. If 'mintime', timing differences between each event list will be
-        minimized.
+    Examples
+    --------
+    >>> equalize_epoch_counts([epochs1, epochs2])  # doctest: +SKIP
     """
     if not all(isinstance(e, BaseEpochs) for e in epochs_list):
         raise ValueError('All inputs must be Epochs instances')
@@ -2517,7 +2517,7 @@ def bootstrap(epochs, random_state=None):
     rng = check_random_state(random_state)
     epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
-    idx = rng.randint(0, n_events, n_events)
+    idx = rng_uniform(rng)(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
     return epochs_bootstrap
 

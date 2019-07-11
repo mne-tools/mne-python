@@ -30,7 +30,7 @@ from mne.epochs import (
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
                        requires_version, catch_logging, _FakeNoPandas,
-                       assert_meg_snr)
+                       assert_meg_snr, check_version)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -1387,9 +1387,13 @@ def test_bootstrap():
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     preload=True, reject=reject, flat=flat)
-    epochs2 = bootstrap(epochs, random_state=0)
-    assert (len(epochs2.events) == len(epochs.events))
-    assert (epochs._data.shape == epochs2._data.shape)
+    random_states = [0]
+    if check_version('numpy', '1.17'):
+        random_states += [np.random.default_rng(0)]
+    for random_state in random_states:
+        epochs2 = bootstrap(epochs, random_state=random_state)
+        assert (len(epochs2.events) == len(epochs.events))
+        assert (epochs._data.shape == epochs2._data.shape)
 
 
 def test_epochs_copy():

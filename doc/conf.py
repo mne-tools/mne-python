@@ -518,6 +518,7 @@ numpydoc_xref_aliases = {
     'FilterEstimator': 'mne.decoding.FilterEstimator',
     'EMS': 'mne.decoding.EMS', 'CSP': 'mne.decoding.CSP',
     'Beamformer': 'mne.beamformer.Beamformer',
+    'Transform': 'mne.transforms.Transform',
 }
 numpydoc_xref_ignore = {
     # words
@@ -537,7 +538,7 @@ numpydoc_xref_ignore = {
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision',
+    'RawBrainVision', 'RawCurry',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
