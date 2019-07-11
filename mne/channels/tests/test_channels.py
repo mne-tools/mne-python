@@ -23,6 +23,7 @@ from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
 from mne.datasets import testing
+from mne.digitization._utils import _read_dig_fif
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -302,6 +303,20 @@ def test_drop_channels():
     raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
     pytest.raises(ValueError, raw.drop_channels, ["MEG 0111", 5])
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
+
+
+def test_set_montage():
+    """Test setting a montage using Digitization."""
+    from mne.io.open import fiff_open
+    from mne import create_info
+    from mne.io import RawArray
+    f, tree = fiff_open(raw_fname)[:2]
+    with f as fid:
+        dig = _read_dig_fif(fid, tree)
+
+    info = create_info(ch_names=42, sfreq=1)
+    raw = RawArray(np.empty([42, 1]), info)
+    raw.set_montage(dig)
 
 
 run_tests_if_main()
