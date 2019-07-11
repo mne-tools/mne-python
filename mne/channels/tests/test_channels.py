@@ -18,14 +18,14 @@ from mne.channels import (rename_channels, read_ch_connectivity,
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
-                    read_raw_eeglab)
+                    read_raw_eeglab, __file__ as _mne_io)
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
 from mne.datasets import testing
 from mne.digitization._utils import _read_dig_fif
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+base_dir = op.join(op.dirname(_mne_io), 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
@@ -310,13 +310,27 @@ def test_set_montage():
     from mne.io.open import fiff_open
     from mne import create_info
     from mne.io import RawArray
+    from mne.utils import object_diff
+
+    ch_names = ['EEG {id:03d}'.format(id=id) for id in range(1, 62)]
+    raw = RawArray(data=np.empty([len(ch_names), 1]),
+                   info=create_info(ch_names=ch_names, sfreq=1))
+    original_raw = (read_raw_fif(raw_fname, preload=False)
+                    .crop(0, 0.01)
+                    .load_data()
+                    .pick_types(meg=False, eeg=True))
+
+    EXPECTED_CHS = original_raw.info['chs']
+    EXPECTED_DIG = original_raw.info['dig']
+
     f, tree = fiff_open(raw_fname)[:2]
     with f as fid:
         dig = _read_dig_fif(fid, tree)
 
-    info = create_info(ch_names=42, sfreq=1)
-    raw = RawArray(np.empty([42, 1]), info)
     raw.set_montage(dig)
+
+    assert raw.info['dig'] == EXPECTED_DIG
+    assert object_diff(raw.info['chs'], EXPECTED_CHS) == ''
 
 
 run_tests_if_main()
