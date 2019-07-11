@@ -12,8 +12,10 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 import vtk
-import pyvista
 import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import pyvista
 import numpy as np
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
