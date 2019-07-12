@@ -28,6 +28,15 @@ verbose : bool, str, int, or None
     and :ref:`Logging documentation <tut_logging>` for more)."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
+# Preload
+docdict['preload'] = """
+preload : bool or str (default False)
+    Preload data into memory for data manipulation and faster indexing.
+    If True, the data will be preloaded into memory (fast, requires
+    large amount of memory). If preload is a string, preload is the
+    file name of a memory-mapped file which is used to store the data
+    on the hard drive (slower, requires less memory)."""
+
 # General plotting
 docdict["show"] = """
 show : bool
@@ -196,8 +205,22 @@ depth : None | float | dict
 # Forward
 docdict['on_missing'] = """
 on_missing : str
-        Behavior when ``stc`` has vertices that are not in ``fwd``.
-        Can be "ignore", "warn"", or "raise"."""
+    Behavior when ``stc`` has vertices that are not in ``fwd``.
+    Can be "ignore", "warn"", or "raise"."""
+docdict['dig_kinds'] = """
+dig_kinds : list of str | str
+    Kind of digitization points to use in the fitting. These can be any
+    combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
+    be 'auto' (default), which will use only the 'extra' points if
+    enough (more than 10) are available, and if not, uses 'extra' and
+    'eeg' points.
+"""
+docdict['exclude_frontal'] = """
+exclude_frontal : bool
+    If True, exclude points that have both negative Z values
+    (below the nasion) and positivy Y values (in front of the LPA/RPA).
+"""
+
 
 # Simulation
 docdict['interp'] = """
@@ -240,6 +263,14 @@ seed : None | int | instance of ~numpy.random.mtrand.RandomState
     obtained from the operating system (see
     :class:`~numpy.random.mtrand.RandomState` for details). Default is
     ``None``.
+"""
+
+# Visualization
+docdict['combine'] = """
+combine : None | str | callable
+    How to combine information across channels. If a :class:`str`, must be
+    one of 'mean', 'median', 'std' (standard deviation) or 'gfp' (global
+    field power).
 """
 
 # PSD plotting
@@ -307,6 +338,17 @@ line_alpha : float | None
 docdict["plot_psd_spatial_colors"] = """
 spatial_colors : bool
     Whether to use spatial colors. Only used when ``average=False``.
+"""
+
+# Montage
+docdict["montage_deprecated"] = """
+montage : str | None | instance of Montage
+    Path or instance of montage containing electrode positions.
+    If None, sensor locations are (0,0,0). See the documentation of
+    :func:`mne.channels.read_montage` for more information.
+
+    DEPRECATED in version 0.19
+    Use the `set_montage` method.
 """
 
 # Finalize

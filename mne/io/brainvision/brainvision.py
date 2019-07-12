@@ -25,7 +25,7 @@ from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw
-from ..utils import _read_segments_file, _mult_cal_one
+from ..utils import _read_segments_file, _mult_cal_one, _deprecate_montage
 from ...annotations import Annotations, read_annotations
 
 
@@ -37,11 +37,7 @@ class RawBrainVision(BaseRaw):
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        read sensor locations from header file if present, otherwise (0, 0, 0).
-        See the documentation of :func:`mne.channels.read_montage` for more
-        information.
+    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
@@ -54,9 +50,7 @@ class RawBrainVision(BaseRaw):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    %(preload)s
     %(verbose)s
 
     See Also
@@ -65,7 +59,7 @@ class RawBrainVision(BaseRaw):
     """
 
     @verbose
-    def __init__(self, vhdr_fname, montage=None,
+    def __init__(self, vhdr_fname, montage='deprecated',
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, verbose=None):  # noqa: D107
         # Channel info and events
@@ -103,8 +97,7 @@ class RawBrainVision(BaseRaw):
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
 
-        if montage is not None:
-            self.set_montage(montage)
+        _deprecate_montage(self, "read_raw_brainvision", montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -533,7 +526,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage
-    if cfg.has_section('Coordinates') and montage is None:
+    if cfg.has_section('Coordinates') and montage in (None, 'deprecated'):
         from ...transforms import _sph_to_cart
         from ...channels.montage import Montage
         montage_pos = list()
@@ -777,7 +770,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
 
 @fill_doc
-def read_raw_brainvision(vhdr_fname, montage=None,
+def read_raw_brainvision(vhdr_fname, montage='deprecated',
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, verbose=None):
     """Reader for Brain Vision EEG file.
@@ -786,10 +779,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list or tuple of str
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file
@@ -802,9 +792,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    %(preload)s
     %(verbose)s
 
     Returns
@@ -822,7 +810,8 @@ def read_raw_brainvision(vhdr_fname, montage=None,
                           verbose=verbose)
 
 
-_BV_EVENT_IO_OFFSETS = {'Stimulus/S': 0, 'Response/R': 1000, 'Optic/O': 2000}
+_BV_EVENT_IO_OFFSETS = {'Event/': 0, 'Stimulus/S': 0, 'Response/R': 1000,
+                        'Optic/O': 2000}
 _OTHER_ACCEPTED_MARKERS = {
     'New Segment/': 99999, 'SyncStatus/Sync On': 99998
 }

@@ -301,8 +301,7 @@ aud_evoked = aud_epochs.average()
 vis_evoked = vis_epochs.average()
 
 mne.viz.plot_compare_evokeds(dict(auditory=aud_evoked, visual=vis_evoked),
-                             show_legend='upper left',
-                             show_sensors='upper right')
+                             legend='upper left', show_sensors='upper right')
 
 ###############################################################################
 # We can also get a more detailed view of each :class:`~mne.Evoked` object

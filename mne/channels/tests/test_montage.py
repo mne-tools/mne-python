@@ -9,14 +9,19 @@ import pytest
 
 import numpy as np
 from scipy.io import savemat
+from copy import deepcopy
+from functools import partial
 
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
                            assert_array_less, assert_equal)
-from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
-                                  get_builtin_montages)
-from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
+
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
+from mne.channels import (Montage, read_montage, read_dig_montage,
+                          get_builtin_montages)
+from mne.channels.montage import _set_montage
+from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
+                       object_diff)
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
@@ -26,7 +31,8 @@ from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
-                    read_fiducials)
+                    read_raw_cnt, read_raw_edf, read_raw_nicolet, read_raw_bdf,
+                    read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
 
 from mne.datasets import testing
 
@@ -37,15 +43,26 @@ egi_raw_fname = op.join(data_path, 'montage', 'egi_dig_test.raw')
 egi_fif_fname = op.join(data_path, 'montage', 'egi_dig_raw.fif')
 locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
+eeglab_fname = op.join(data_path, 'EEGLAB', 'test_raw.set')
+bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
+bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
+egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
+cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+io_dir = op.dirname(_mne_io_file)
 kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
 elp = op.join(kit_dir, 'test_elp.txt')
 hsp = op.join(kit_dir, 'test_hsp.txt')
 hpi = op.join(kit_dir, 'test_mrk.sqd')
 bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+edf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test.edf')
+bdf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test_bdf_eeglab.mat')
+egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
+vhdr_path = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 ctf_fif_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
+                        'test_nicolet_raw.data')
 
 
 def test_fiducials():
@@ -559,5 +576,114 @@ def _check_roundtrip(montage, fname):
                             getattr(montage_read, kind), err_msg=kind)
     assert_equal(montage_read.coord_frame, 'head')
 
+
+def _fake_montage(ch_names):
+    return Montage(
+        pos=np.random.RandomState(42).randn(len(ch_names), 3),
+        ch_names=ch_names,
+        kind='foo',
+        selection=np.arange(len(ch_names))
+    )
+
+
+cnt_ignore_warns = [
+    pytest.mark.filterwarnings(
+        'ignore:.*Could not parse meas date from the header. Setting to None.'
+    ),
+    pytest.mark.filterwarnings((
+        'ignore:.*Could not define the number of bytes automatically.'
+        ' Defaulting to 2.')
+    ),
+]
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('read_raw,fname', [
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname,
+                 id='nicolet'),
+    pytest.param(read_raw_eeglab, eeglab_fname, id='eeglab'),
+    pytest.param(read_raw_edf, edf_path, id='edf'),
+    pytest.param(read_raw_bdf, bdf_path,
+                 marks=pytest.mark.xfail(raises=NotImplementedError),
+                 id='bdf 1'),
+    pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
+    pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+    pytest.param(read_raw_egi, egi_fname1, id='egi mff'),
+    pytest.param(read_raw_egi, egi_fname2,
+                 marks=pytest.mark.filterwarnings('ignore:.*than one event'),
+                 id='egi raw'),
+    pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
+                 cnt_fname, marks=cnt_ignore_warns, id='cnt'),
+    pytest.param(read_raw_brainvision, vhdr_path, id='brainvision'),
+])
+def test_montage_when_reading_and_setting(read_raw, fname):
+    """Test montage.
+
+    This is a regression test to help refactor Digitization.
+    """
+    with pytest.deprecated_call():
+        raw_none = read_raw(fname, montage=None, preload=False)
+    # raw_none_copy = deepcopy(raw_none)
+    montage = _fake_montage(raw_none.info['ch_names'])
+
+    with pytest.deprecated_call():
+        raw_montage = read_raw(fname, montage=montage, preload=False)
+
+    raw_none.set_montage(montage)
+
+    # Check that reading with montage or setting the montage is the same
+    assert_array_equal(raw_none.get_data(), raw_montage.get_data())
+    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
+    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('read_raw,fname', [
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname,
+                 marks=pytest.mark.skip,
+                 id='nicolet'),
+    pytest.param(read_raw_eeglab, eeglab_fname,
+                 marks=pytest.mark.skip,
+                 id='eeglab'),
+    pytest.param(read_raw_edf, edf_path, id='edf'),
+    pytest.param(read_raw_bdf, bdf_path,
+                 marks=pytest.mark.xfail(raises=NotImplementedError),
+                 id='bdf 1'),
+    pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
+    pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+    pytest.param(read_raw_egi, egi_fname1,
+                 marks=pytest.mark.skip,
+                 id='egi mff'),
+    pytest.param(read_raw_egi, egi_fname2,
+                 marks=pytest.mark.filterwarnings('ignore:.*than one event'),
+                 id='egi raw'),
+    pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
+                 cnt_fname,
+                 marks=[*cnt_ignore_warns, pytest.mark.skip],
+                 id='cnt'),
+    pytest.param(read_raw_brainvision, vhdr_path,
+                 marks=pytest.mark.skip,
+                 id='brainvision'),
+])
+def test_montage_when_reading_and_setting_more(read_raw, fname):
+    """Test montage.
+
+    This is a regression test to help refactor Digitization.
+    """
+    with pytest.deprecated_call():
+        raw_none = read_raw(fname, montage=None, preload=False)
+    raw_none_copy = deepcopy(raw_none)
+
+    # check consistency between reading and setting with montage=None
+    assert raw_none_copy.info['dig'] is None
+    original_chs = deepcopy(raw_none_copy.info['chs'])
+    original_loc = np.array([ch['loc'] for ch in original_chs])
+    assert_array_equal(original_loc, np.zeros_like(original_loc))
+
+    raw_none_copy.set_montage(montage=None)
+    loc = np.array([ch['loc'] for ch in raw_none_copy.info['chs']])
+    assert_array_equal(loc, np.full_like(loc, np.NaN))
 
 run_tests_if_main()

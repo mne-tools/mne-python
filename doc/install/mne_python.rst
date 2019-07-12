@@ -87,36 +87,61 @@ conda to ``/home/user/anaconda3``)::
     Anaconda install tips (`Stack Overflow`_ results are often helpful)
     to fix these or other problems when ``conda`` does not work.
 
+.. _standard_instructions:
+
 Installing MNE-Python and its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Once you have Anaconda installed, the easiest way to install
-MNE-Python is to use the provided `environment file`_ to install MNE-Python
-and its dependencies into a new conda environment::
+MNE-Python with all dependencies is update your base Anaconda environment:
 
-    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
-    $ conda env create -f environment.yml
+.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
 
-You can also use a web browser to download the required `environment file`_ if
-you do not have ``curl``. Then you should activate the environment::
+.. collapse:: |linux| Linux
 
-    $ conda activate mne
+   Use the base `environment file`_, e.g.::
 
-You can activate the environment (``conda activate mne``) each time you
-open a terminal, or add this activation command in your ``~/.bashrc`` or
-``~/.profile`` so that it happens automatically. You should now see that
-``python`` points to the one from your MNE environment::
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ conda env update --file environment.yml
 
-    $ which python
-    /home/user/anaconda3/envs/mne/bin/python
+.. collapse:: |apple| macOS
 
-.. admonition:: |apple| macOS
-    :class: note
+   Use the base `environment file`_ and then update PyQt using :samp:`pip`, e.g.::
 
-    If you are on macOS, you need to manually update PyQt5 in the environment.
-    This step is not needed on Linux, and even breaks things on Windows. ::
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ conda env update --file environment.yml
+       $ pip install "PyQt5>=5.10"
 
-        $ pip install --upgrade "pyqt5>=5.10"
+.. collapse:: |windows| Windows
+
+   - Download the base `environment file`_
+   - Open an Anaconda command prompt
+   - :samp:`cd` to the directory where you downloaded the file
+   - Run :samp:`conda env update --file environment.yml`
+
+.. raw:: html
+
+   <div width="100%" height="0 px" style="margin: 0 0 15px;"></div>
+
+If you prefer an isolated Anaconda environment, instead of using\
+:samp:`conda env update` to modify your "base" environment,
+you can create a new dedicated environment with
+:samp:`conda env create --name mne --file environment.yml`.
+
+.. javascript below adapted from nilearn
+
+.. raw:: html
+
+    <script type="text/javascript">
+    var OSName="linux-linux";
+    if (navigator.userAgent.indexOf("Win")!=-1) OSName="windows-windows";
+    if (navigator.userAgent.indexOf("Mac")!=-1) OSName="apple-macos";
+    $(document).ready(function(){
+        var element = document.getElementById("collapse_" + OSName);
+        element.className += " in";
+        element.setAttribute("aria-expanded", "true");
+    });
+    </script>
 
 Testing MNE-Python installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -131,7 +156,7 @@ MNE-Python and its dependencies. Typical output looks like this::
 
     Platform:      Linux-4.18.0-13-generic-x86_64-with-debian-buster-sid
     Python:        3.6.8 |Anaconda, Inc.| (default, Dec 30 2018, 01:22:34)  [GCC 7.3.0]
-    Executable:    /home/travis/miniconda/envs/test/bin/python
+    Executable:    /home/travis/miniconda/bin/python
     CPU:           x86_64: 48 cores
     Memory:        62.7 GB
 

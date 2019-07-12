@@ -200,7 +200,8 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
                FIFF.FIFF_UNIT_MOL: 'M',
-               FIFF.FIFF_UNIT_NONE: 'NA'}
+               FIFF.FIFF_UNIT_NONE: 'NA',
+               FIFF.FIFF_UNIT_CEL: 'C'}
 
 
 def _check_set(ch, projs, ch_type):
@@ -443,8 +444,7 @@ class SetChannelsMixin(object):
         rename_channels(self.info, mapping)
 
     @verbose
-    def set_montage(self, montage, set_dig=True, update_ch_names=False,
-                    verbose=None):
+    def set_montage(self, montage, set_dig=True, verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
@@ -456,11 +456,6 @@ class SetChannelsMixin(object):
             in addition to the channel positions (``info['chs'][idx]['loc']``).
 
             .. versionadded: 0.15
-        update_ch_names : bool
-            If True, overwrite the info channel names with the ones from
-            montage. Defaults to False.
-
-            .. versionadded: 0.19
         %(verbose_meth)s
 
         Notes
@@ -470,7 +465,7 @@ class SetChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         from .montage import _set_montage
-        _set_montage(self.info, montage, update_ch_names=update_ch_names,
+        _set_montage(self.info, montage, update_ch_names=False,
                      set_dig=set_dig)
         return self
 

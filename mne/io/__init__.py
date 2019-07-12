@@ -34,6 +34,7 @@ from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
+from .curry import read_raw_curry
 from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf, find_edf_events
 from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit
@@ -62,8 +63,8 @@ __all__ = [
     read_epochs_fieldtrip, read_epochs_kit, read_evoked_fieldtrip,
     read_fiducials, read_info, read_raw_artemis123, read_raw_bdf,
     read_raw_brainvision, read_raw_bti, read_raw_cnt, read_raw_ctf,
-    read_raw_edf, read_raw_eeglab, read_raw_egi, read_raw_eximia,
-    read_raw_fieldtrip, read_raw_fif, read_raw_gdf, read_raw_kit,
-    read_raw_nicolet, set_bipolar_reference, set_eeg_reference, show_fiff,
-    write_fiducials, write_info,
+    read_raw_curry, read_raw_edf, read_raw_eeglab, read_raw_egi,
+    read_raw_eximia, read_raw_fieldtrip, read_raw_fif, read_raw_gdf,
+    read_raw_kit, read_raw_nicolet, set_bipolar_reference, set_eeg_reference,
+    show_fiff, write_fiducials, write_info,
 ]

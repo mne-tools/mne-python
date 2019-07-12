@@ -637,7 +637,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         self._remove_kernel_sens_data_()
 
         o_sfreq = 1.0 / self.tstep
-        self.data = resample(self.data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
+        data = self.data
+        if data.dtype == np.float32:
+            data = data.astype(np.float64)
+        self.data = resample(data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
 
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq

@@ -6,7 +6,6 @@
 
 import os.path as op
 from os import unlink
-import warnings
 import shutil
 
 import numpy as np
@@ -16,7 +15,6 @@ import pytest
 from tempfile import NamedTemporaryFile
 
 from mne.utils import _TempDir, run_tests_if_main
-from mne.utils.numerics import object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -62,33 +60,6 @@ vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
-
-
-@pytest.mark.parametrize('montage', [montage, 'biosemi32'])
-def test_same_behaviour_in_init_and_set_montage(montage):
-    """Test that __init__ and set_montage lead to equal results."""
-    with pytest.warns(RuntimeWarning) as init_warns:
-        warnings.warn('dummy', RuntimeWarning)
-        raw_montage = read_raw_brainvision(vhdr_path, montage=montage)
-
-    raw_none = read_raw_brainvision(vhdr_path, montage=None)
-    assert raw_none.info['dig'] is None
-
-    with pytest.warns(RuntimeWarning) as set_montage_warns:
-        warnings.warn('dummy', RuntimeWarning)
-        raw_none.set_montage(montage)
-
-    # Assert equal objects
-    for key in ['chs', 'dig']:
-        diff = object_diff(raw_none.info[key], raw_montage.info[key])
-        assert diff == ''
-
-    # Assert equal warnings
-    assert len(init_warns) == len(set_montage_warns)
-    for ii in range(len(init_warns)):
-        msg_a = init_warns[ii].message.args[0]
-        msg_b = set_montage_warns[ii].message.args[0]
-        assert msg_a == msg_b
 
 
 def test_orig_units(recwarn):
@@ -491,9 +462,9 @@ def test_read_vhdr_annotations_and_events():
          6629., 7629., 7699.]
     )
     expected_annot_description = [
-        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
-        'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255', 'Stimulus/S253',
-        'Stimulus/S255', 'Response/R255', 'Stimulus/S254', 'Stimulus/S255',
+        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Event/254',
+        'Stimulus/S255', 'Event/254', 'Stimulus/S255', 'Stimulus/S253',
+        'Stimulus/S255', 'Response/R255', 'Event/254', 'Stimulus/S255',
         'SyncStatus/Sync On', 'Optic/O  1'
     ]
     expected_events = np.stack([
@@ -503,7 +474,7 @@ def test_read_vhdr_annotations_and_events():
          2001],
     ]).astype('int64').T
     expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
-                         'Stimulus/S255': 255, 'Stimulus/S254': 254,
+                         'Stimulus/S255': 255, 'Event/254': 254,
                          'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
                          'Optic/O  1': 2001}
 

@@ -27,8 +27,7 @@ info_long_fields = ('hpi_meas', )
 
 system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
                             'CNT': partial(mne.io.read_raw_cnt,
-                                           stim_channel=False,
-                                           montage=None),
+                                           stim_channel=False),
                             'CTF': partial(mne.io.read_raw_ctf,
                                            clean_names=True),
                             'BTI': partial(mne.io.read_raw_bti,

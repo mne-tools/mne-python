@@ -6,10 +6,9 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_less)
 import pytest
 from scipy.signal import resample as sp_resample, butter, freqz
-from scipy.fftpack import fft, fftfreq
 
 from mne import create_info
-from mne.fixes import _sosfreqz
+from mne.fixes import _sosfreqz, fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
@@ -251,7 +250,7 @@ def test_resample():
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
     # make sure we cast to array if necessary
-    assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
+    assert_array_equal(resample([0., 0.], 2, 1), [0., 0., 0., 0.])
 
 
 @requires_version('scipy', '1.0')  # earlier versions have a Nyquist bug
@@ -478,8 +477,10 @@ def test_filter_auto():
     # degenerate conditions
     pytest.raises(ValueError, filter_data, x, -sfreq, 1, 10)
     pytest.raises(ValueError, filter_data, x, sfreq, 1, sfreq * 0.75)
-    pytest.raises(TypeError, filter_data, x.astype(np.float32), sfreq, None,
-                  10, filter_length='auto', h_trans_bandwidth='auto', **kwargs)
+    with pytest.raises(ValueError, match='Data to be filtered must be real'):
+        filter_data(x.astype(np.float32), sfreq, None, 10)
+    with pytest.raises(ValueError, match='Data to be filtered must be real'):
+        filter_data(1j, 1000., None, 40.)
 
 
 def test_cuda_fir():
@@ -535,12 +536,7 @@ def test_cuda_resampling():
                               window=window)
                 assert_allclose(a1, a2, rtol=1e-7, atol=1e-14)
     assert_array_almost_equal(a1, a2, 14)
-    assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda'), [0., 0., 0., 0.])
-    assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda'),
-                       [0., 0., 0., 0.])
-    from mne.cuda import _cuda_capable  # allow above funs to set it
-    if not _cuda_capable:
-        pytest.skip('CUDA not enabled')
+    assert_array_equal(resample(np.zeros(2), 2, 1, n_jobs='cuda'), np.zeros(4))
 
 
 def test_detrend():

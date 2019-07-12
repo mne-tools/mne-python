@@ -15,11 +15,11 @@ from math import sqrt
 
 import numpy as np
 from scipy import linalg
-from scipy.fftpack import fft, ifft
 
 from .multitaper import dpss_windows
 
 from ..baseline import rescale
+from ..fixes import fft, ifft
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
