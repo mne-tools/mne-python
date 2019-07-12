@@ -99,7 +99,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     filteog = filter_data(
         eog[indexmax], sampling_rate, l_freq, h_freq, None,
         filter_length, 0.5, 0.5, phase='zero-double', fir_window='hann',
-        fir_design='firwin2', verbose=verbose)
+        fir_design='firwin2')
 
     # detecting eog blinks and generating event file
 
