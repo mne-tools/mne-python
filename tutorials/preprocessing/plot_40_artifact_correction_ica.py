@@ -37,7 +37,7 @@ raw.filter(1., None, n_jobs=1, fir_design='firwin')
 
 ###############################################################################
 # Before applying artifact correction please learn about your actual artifacts
-# by reading :ref:`tut-artifact-detection`.
+# by reading :ref:`tut-artifact-overview`.
 #
 # .. warning:: ICA is sensitive to low-frequency drifts and therefore
 #              requires the data to be high-pass filtered prior to fitting.

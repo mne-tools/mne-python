@@ -128,12 +128,12 @@ this package. You can also find a gallery of these examples in the
     .. toctree::
         :maxdepth: 1
 
-        auto_tutorials/preprocessing/plot_artifacts_detection.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_filtering.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_rejection.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_ssp.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_ica.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_maxwell_filtering.rst
+        auto_tutorials/preprocessing/plot_10_preprocessing_overview.rst
+        auto_tutorials/preprocessing/plot_30_filtering_resampling.rst
+        auto_tutorials/preprocessing/plot_20_rejecting_bad_data.rst
+        auto_tutorials/preprocessing/plot_50_artifact_correction_ssp.rst
+        auto_tutorials/preprocessing/plot_40_artifact_correction_ica.rst
+        auto_tutorials/preprocessing/plot_60_maxwell_filtering_sss.rst
 
 
     .. details:: Examples
