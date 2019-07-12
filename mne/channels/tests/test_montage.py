@@ -731,6 +731,7 @@ def test_setting_hydrocel_montage():
 
     montage = read_montage('GSN-HydroCel-32')
     ch_names = [name for name in montage.ch_names if name.startswith('E')]
+    montage.pos /= 1e3
 
     raw = RawArray(
         data=np.empty([len(ch_names), 1]),
