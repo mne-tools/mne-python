@@ -64,9 +64,8 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # considered artifactual. For example, if a researcher is primarily interested
 # in the sensory response to a stimulus, but the experimental paradigm involves
 # a behavioral response (such as button press), the neural activity associated
-# with the planning and executing the behavioral response could be considered
-# an artifact relative to signal of interest (i.e., the evoked sensory
-# response).
+# with the planning and executing the button press could be considered an
+# artifact relative to signal of interest (i.e., the evoked sensory response).
 #
 # .. note::
 #     Artifacts of the same genesis may appear different in recordings made by
@@ -80,28 +79,28 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # There are 3 basic options when faced with artifacts in your recordings:
 #
 # 1. *Ignore* the artifact and carry on with analysis
-# 2. *Exclude* the corrupted portion of the data and analyze the rest
+# 2. *Exclude* the corrupted portion of the data and analyze the remaining data
 # 3. *Repair* the artifact by suppressing artifactual part of the recording
-#    while leaving the signal of interest intact
+#    while (hopefully) leaving the signal of interest intact
 #
 # There are many different approaches to repairing artifacts, and MNE-Python
 # includes a variety of tools for artifact repair, including digital filtering,
 # independent components analysis (ICA), Maxwell filtering / signal-space
 # separation (SSS), and signal-space projection (SSP). Separate tutorials
-# demonstrate each of these techniques for artifact repair. Of course, before
-# you can choose any of these strategies you must first *detect* the artifacts,
-# which is the topic of the next section.
+# demonstrate each of these techniques for artifact repair. Many of the
+# artifact repair techniques work on both continuous (raw) data and on data
+# that has already been epoched (though not necessarily equally well); some can
+# be applied to `memory-mapped`_ data while others require the data to be
+# copied into RAM. Of course, before you can choose any of these strategies you
+# must first *detect* the artifacts, which is the topic of the next section.
 #
 #
 # Artifact detection
 # ^^^^^^^^^^^^^^^^^^
 #
-# MNE-Python includes many tools for automated detection of some types of
-# artifacts (though you can of course visually inspect your data to identify
-# and annotate artifacts as well). Many of the techniques work on both
-# continuous (raw) data and on data that has already been epoched (though not
-# necessarily equally well); some can be applied to `memory-mapped`_ data while
-# others require the data to be copied into RAM.
+# MNE-Python includes a few tools for automated detection of certain artifacts
+# (such as heartbeats and blinks), but of course you can always visually
+# inspect your data to identify and annotate artifacts as well.
 #
 # We saw in :ref:`the introductory tutorial <tut-overview>` that the example
 # data includes :term:`SSP projectors <projector>`, so before we look at
@@ -145,8 +144,8 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
 # Power line noise
 # ~~~~~~~~~~~~~~~~
 #
-# Power line artifacts easiest to see on plots of the spectrum, so we'll use
-# :meth:`~mne.io.Raw.plot_psd` to illustrate.
+# Power line artifacts are easiest to see on plots of the spectrum, so we'll
+# use :meth:`~mne.io.Raw.plot_psd` to illustrate.
 
 fig = raw.plot_psd(tmax=np.inf, fmax=250, average=True)
 for ax in fig.axes[:2]:
@@ -182,6 +181,7 @@ for ax in fig.axes[:2]:
 # show just the MEG channels, since EEG channels are less strongly affected by
 # heartbeat artifacts:
 
+# sphinx_gallery_thumbnail_number = 3
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 ecg_epochs.plot_image(picks=['mag', 'grad'], combine='mean')
 
@@ -191,11 +191,14 @@ ecg_epochs.plot_image(picks=['mag', 'grad'], combine='mean')
 # we saw in an earlier section. You can also get a quick look at the
 # ECG-related field pattern across sensors by averaging the ECG epochs together
 # via the :meth:`~mne.Epochs.average` method, and then using the
-# :meth:`~mne.Evoked.plot_joint` or :meth:`mne.Evoked.plot_topomap` methods:
+# :meth:`mne.Evoked.plot_topomap` method:
 
-# sphinx_gallery_thumbnail_number = 6
 avg_ecg_epochs = ecg_epochs.average()
-avg_ecg_epochs.plot_joint(picks='mag')
+
+###############################################################################
+# Here again we can visualize the spatial pattern of the associated field at
+# various times relative to the peak of the EOG response:
+
 avg_ecg_epochs.plot_topomap(times=np.linspace(-0.05, 0.05, 11))
 
 ###############################################################################
@@ -222,9 +225,9 @@ eog_epochs.average().plot_topomap(times=np.linspace(-0.1, 0.1, 9))
 # Familiarizing yourself with typical artifact patterns and magnitudes is a
 # crucial first step in assessing the efficacy of later attempts to repair
 # those artifacts. A good rule of thumb is that the artifact amplitudes should
-# be orders of magnitude larger than your signal of interest, and there should
-# be several occurrences of such events, in order to find signal decompositions
-# that effectively estimate and repair the artifacts.
+# be orders of magnitude larger than your signal of interest — and there should
+# be several occurrences of such events — in order to find signal
+# decompositions that effectively estimate and repair the artifacts.
 #
 # Several other tutorials in this section illustrate the various tools for
 # artifact repair, and discuss the pros and cons of each technique, for
