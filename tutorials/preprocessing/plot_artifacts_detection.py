@@ -1,137 +1,245 @@
+# -*- coding: utf-8 -*-
 """
-.. _tut-artifact-detection:
+.. _tut-artifact-overview:
 
-Introduction to artifacts and artifact detection
-================================================
+Overview of artifact detection
+==============================
 
-Since MNE supports the data of many different acquisition systems, the
-particular artifacts in your data might behave very differently from the
-artifacts you can observe in our tutorials and examples.
+This tutorial covers the basics of artifact detection, and introduces the
+artifact detection tools available in MNE-Python.
 
-Therefore you should be aware of the different approaches and of
-the variability of artifact rejection (automatic/manual) procedures described
-onwards. At the end consider always to visually inspect your data
-after artifact rejection or correction.
+.. contents:: Page contents
+   :local:
+   :depth: 2
 
-Background: what is an artifact?
---------------------------------
-
-Artifacts are signal interference that can be
-endogenous (biological) and exogenous (environmental).
-Typical biological artifacts are head movements, eye blinks
-or eye movements, heart beats. The most common environmental
-artifact is due to the power line, the so-called *line noise*.
-
-How to handle artifacts?
-------------------------
-
-MNE deals with artifacts by first identifying them, and subsequently removing
-them. Detection of artifacts can be done visually, or using automatic routines
-(or a combination of both). After you know what the artifacts are, you need
-remove them. This can be done by:
-
-    - *ignoring* the piece of corrupted data
-    - *fixing* the corrupted data
-
-For the artifact detection the functions MNE provides depend on whether
-your data is continuous (Raw) or epoch-based (Epochs) and depending on
-whether your data is stored on disk or already in memory.
-
-Detecting the artifacts without reading the complete data into memory allows
-you to work with datasets that are too large to fit in memory all at once.
-Detecting the artifacts in continuous data allows you to apply filters
-(e.g. a band-pass filter to zoom in on the muscle artifacts on the temporal
-channels) without having to worry about edge effects due to the filter
-(i.e. filter ringing). Having the data in memory after segmenting/epoching is
-however a very efficient way of browsing through the data which helps
-in visualizing. So to conclude, there is not a single most optimal manner
-to detect the artifacts: it just depends on the data properties and your
-own preferences.
-
-In this tutorial we show how to detect artifacts visually and automatically.
-For how to correct artifacts by rejection see :ref:`tut-artifact-rejection`.
-To discover how to correct certain artifacts by filtering see
-:ref:`tut-filter-resample` and to learn how to correct artifacts
-with subspace methods like SSP and ICA see
-:ref:`tut-artifact-ssp` and :ref:`tut-artifact-ica`.
-
-
-Artifacts Detection
--------------------
-
-This tutorial discusses a couple of major artifacts that most analyses
-have to deal with and demonstrates how to detect them.
-
+We begin as always by importing the necessary Python modules and loading some
+:ref:`example data <sample-dataset>`:
 """
+
+import os
 import numpy as np
-
 import mne
-from mne.datasets import sample
-from mne.preprocessing import create_ecg_epochs, create_eog_epochs
 
-# getting some data ready
-data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
-
+sample_data_folder = mne.datasets.sample.data_path()
+sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                    'sample_audvis_raw.fif')
+raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 ###############################################################################
-# Low frequency drifts and line noise
-
-(raw.copy().pick_types(meg='mag')
-           .del_proj(0)
-           .plot(duration=60, n_channels=100, remove_dc=False))
-
-###############################################################################
-# we see high amplitude undulations in low frequencies, spanning across tens of
-# seconds
-
-raw.plot_psd(tmax=np.inf, fmax=250)
-
-###############################################################################
-# On MEG sensors we see narrow frequency peaks at 60, 120, 180, 240 Hz,
-# related to line noise.
-# But also some high amplitude signals between 25 and 32 Hz, hinting at other
-# biological artifacts such as ECG. These can be most easily detected in the
-# time domain using MNE helper functions
+# What are artifacts?
+# ^^^^^^^^^^^^^^^^^^^
 #
-# See :ref:`tut-filter-resample`.
-
-###############################################################################
-# ECG
-# ---
+# Artifacts are parts of the recorded signal that arise from sources other than
+# the source of interest (i.e., neuronal activity in the brain). As such,
+# artifacts are a form of interference or noise relative to the signal of
+# interest. There are many possible causes of such interference, for example:
 #
-# finds ECG events, creates epochs, averages and plots
-
-average_ecg = create_ecg_epochs(raw).average()
-print('We found %i ECG events' % average_ecg.nave)
-joint_kwargs = dict(ts_args=dict(time_unit='s'),
-                    topomap_args=dict(time_unit='s'))
-average_ecg.plot_joint(**joint_kwargs)
-
-###############################################################################
-# we can see typical time courses and non dipolar topographies
-# not the order of magnitude of the average artifact related signal and
-# compare this to what you observe for brain signals
-
-###############################################################################
-# EOG
-# ---
-
-average_eog = create_eog_epochs(raw).average()
-print('We found %i EOG events' % average_eog.nave)
-average_eog.plot_joint(**joint_kwargs)
-
-###############################################################################
-# Knowing these artifact patterns is of paramount importance when
-# judging about the quality of artifact removal techniques such as SSP or ICA.
-# As a rule of thumb you need artifact amplitudes orders of magnitude higher
-# than your signal of interest and you need a few of such events in order
-# to find decompositions that allow you to estimate and remove patterns related
-# to artifacts.
+# - Environmental artifacts
+#     - Persistent oscillations centered around the `AC power line frequency`_
+#       (typically 50 or 60 Hz)
+#     - Brief signal jumps due to building vibration (such as a door slamming)
+#     - Electromagnetic field noise from nearby elevators, cell phones, the
+#       geomagnetic field, etc.
 #
-# Consider the following tutorials for correcting this class of artifacts:
-# - :ref:`tut-filter-resample`
-# - :ref:`tut-artifact-ica`
+# - Instrumentation artifacts
+#     - Electromagnetic interference from stimulus presentation (such as EEG
+#       sensors picking up the field generated by unshielded headphones)
+#     - Continuous oscillations at specific frequencies used by head position
+#       indicator (HPI) coils
+#     - Random high-amplitude fluctuations (or alternatively, constant zero
+#       signal) in a single channel due to sensor malfunction (e.g., in surface
+#       electrodes, poor scalp contact)
+#
+# - Biological artifacts
+#     - Periodic `QRS`_-like signal patterns (especially in magnetometer
+#       channels) due to electrical activity of the heart
+#     - Short step-like deflections (especially in frontal EEG channels) due to
+#       eye movements
+#     - Large transient deflections (especially in frontal EEG channels) due to
+#       blinking
+#     - Brief bursts of high frequency fluctuations across several channels due
+#       to the muscular activity during swallowing
+#
+# There are also some cases where signals from within the brain can be
+# considered artifactual. For example, if a researcher is primarily interested
+# in the sensory response to a stimulus, but the experimental paradigm involves
+# a behavioral response (such as button press), the neural activity associated
+# with the planning and executing the behavioral response could be considered
+# an artifact relative to signal of interest (i.e., the evoked sensory
+# response).
+#
+# .. note::
+#     Artifacts of the same genesis may appear different in recordings made by
+#     different EEG or MEG systems, due to differences in sensor design (e.g.,
+#     passive vs. active EEG electrodes; axial vs. planar gradiometers, etc).
+#
+#
+# What to do about artifacts
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# There are 3 basic options when faced with artifacts in your recordings:
+#
+# 1. *Ignore* the artifact and carry on with analysis
+# 2. *Exclude* the corrupted portion of the data and analyze the rest
+# 3. *Repair* the artifact by suppressing artifactual part of the recording
+#    while leaving the signal of interest intact
+#
+# There are many different approaches to repairing artifacts, and MNE-Python
+# includes a variety of tools for artifact repair, including digital filtering,
+# independent components analysis (ICA), Maxwell filtering / signal-space
+# separation (SSS), and signal-space projection (SSP). Separate tutorials
+# demonstrate each of these techniques for artifact repair. Of course, before
+# you can choose any of these strategies you must first *detect* the artifacts,
+# which is the topic of the next section.
+#
+#
+# Artifact detection
+# ^^^^^^^^^^^^^^^^^^
+#
+# MNE-Python includes many tools for automated detection of some types of
+# artifacts (though you can of course visually inspect your data to identify
+# and annotate artifacts as well). Many of the techniques work on both
+# continuous (raw) data and on data that has already been epoched (though not
+# necessarily equally well); some can be applied to `memory-mapped`_ data while
+# others require the data to be copied into RAM.
+#
+# We saw in :ref:`the introductory tutorial <tut-overview>` that the example
+# data includes :term:`SSP projectors <projector>`, so before we look at
+# artifacts let's set aside the projectors in a separate variable and then
+# remove them from the :class:`~mne.io.Raw` object using the
+# :meth:`~mne.io.Raw.del_proj` method, so that we can inspect our data in it's
+# original, raw state:
+
+ssp_projectors = raw.info['projs']
+raw.del_proj()
+
+###############################################################################
+# Low-frequency drifts
+# ~~~~~~~~~~~~~~~~~~~~
+#
+# Low-frequency drifts are most readily detected by visual inspection using the
+# basic :meth:`~mne.io.Raw.plot` method, though it is helpful to plot a
+# relatively long time span and to disable channel-wise DC shift correction.
+# Here we plot 60 seconds and show all the magnetometer channels:
+
+mag_channels = mne.pick_types(raw.info, meg='mag')
+raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
+         remove_dc=False)
+
+###############################################################################
+# Low-frequency drifts are readily removed by high-pass filtering at a fairly
+# low cutoff frequency (the wavelength of the drifts seen above is probably
+# around 20 seconds, so in this case a cutoff of 0.1 Hz would probably suppress
+# most of the drift).
+#
+# .. TODO: An example of slow-drift removal is shown in {crossref to filter
+#    tutorial}.
+#    (raw.copy()
+#        .load_data()
+#        .filter(l_freq=0.1, h_freq=None)
+#        .plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
+#              remove_dc=False)
+#     )
+#
+#
+# Power line noise
+# ~~~~~~~~~~~~~~~~
+#
+# Power line artifacts easiest to see on plots of the spectrum, so we'll use
+# :meth:`~mne.io.Raw.plot_psd` to illustrate.
+
+fig = raw.plot_psd(tmax=np.inf, fmax=250, average=True)
+for ax in fig.axes[:2]:
+    freqs = ax.lines[-1].get_xdata()
+    psds = ax.lines[-1].get_ydata()
+    for freq in (60, 120, 180, 240):
+        idx = np.searchsorted(freqs, freq)
+        ax.arrow(x=freqs[idx], y=psds[idx] + 18, dx=0, dy=-12, color='red',
+                 width=0.1, head_width=3, length_includes_head=True)
+
+
+###############################################################################
+# Here we see narrow frequency peaks at 60, 120, 180, and 240 Hz — the power
+# line frequency of the USA (where the sample data was recorded) and its 2nd,
+# 3rd, and 4th harmonics. Other peaks (between 25 and 32 Hz, and the second
+# harmonic of those) are probably related to the heartbeat, which is more
+# easily seen in the time domain using a dedicated heartbeat detection function
+# as described in the next section.
+#
+#
+# Heartbeat artifacts (ECG)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# MNE-Python includes a dedicated function
+# :func:`~mne.preprocessing.find_ecg_events` in the :mod:`mne.preprocessing`
+# submodule, for detecting heartbeat artifacts from either dedicated ECG
+# channels or from magnetometers (if no ECG channel is present). Additionally,
+# the function :func:`~mne.preprocessing.create_ecg_epochs` will call
+# :func:`~mne.preprocessing.find_ecg_events` under the hood, and use the
+# resulting events array to extract epochs centered around the detected
+# heartbeat artifacts. Here we create those epochs, then show an image plot of
+# the detected ECG artifacts along with the average ERF across artifacts. We'll
+# show just the MEG channels, since EEG channels are less strongly affected by
+# heartbeat artifacts:
+
+ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
+ecg_epochs.plot_image(picks=['mag', 'grad'], combine='mean')
+
+###############################################################################
+# The horizontal streaks in the magnetometer image plot reflect the fact that
+# the heartbeat artifacts are superimposed on low-frequency drifts like the one
+# we saw in an earlier section. You can also get a quick look at the
+# ECG-related field pattern across sensors by averaging the ECG epochs together
+# via the :meth:`~mne.Epochs.average` method, and then using the
+# :meth:`~mne.Evoked.plot_joint` or :meth:`mne.Evoked.plot_topomap` methods:
+
+# sphinx_gallery_thumbnail_number = 6
+avg_ecg_epochs = ecg_epochs.average()
+avg_ecg_epochs.plot_joint(picks='mag')
+avg_ecg_epochs.plot_topomap(times=np.linspace(-0.05, 0.05, 11))
+
+###############################################################################
+# Ocular artifacts (EOG)
+# ~~~~~~~~~~~~~~~~~~~~~~
+#
+# Similar to the ECG detection and epoching methods described above, MNE-Python
+# also includes functions for detecting and extracting ocular artifacts:
+# :func:`~mne.preprocessing.find_eog_events` and
+# :func:`~mne.preprocessing.create_eog_epochs`. Once again we'll use the
+# higher-level convenience function that automatically finds the artifacts and
+# extracts them in to an :class:`~mne.Epochs` object in one step. Unlike the
+# heartbeat artifacts seen above, ocular artifacts are usually most prominent
+# in the EEG channels:
+
+eog_epochs = mne.preprocessing.create_eog_epochs(raw)
+eog_epochs.plot_image(picks='eeg', combine='mean')
+eog_epochs.average().plot_topomap(times=np.linspace(-0.1, 0.1, 9))
+
+###############################################################################
+# Summary
+# ^^^^^^^
+#
+# Familiarizing yourself with typical artifact patterns and magnitudes is a
+# crucial first step in assessing the efficacy of later attempts to repair
+# those artifacts. A good rule of thumb is that the artifact amplitudes should
+# be orders of magnitude larger than your signal of interest, and there should
+# be several occurrences of such events, in order to find signal decompositions
+# that effectively estimate and repair the artifacts.
+#
+# Several other tutorials in this section illustrate the various tools for
+# artifact repair, and discuss the pros and cons of each technique, for
+# example:
+#
 # - :ref:`tut-artifact-ssp`
+# - :ref:`tut-artifact-ica`
+# - :ref:`tut-artifact-sss`
+#
+# There are also tutorials on general-purpose preprocessing steps such as
+# :ref:`filtering and resampling <tut-filter-resample>` and :ref:`excluding
+# bad channels or spans of data <tut-artifact-rejection>`.
+#
+# .. LINKS
+#
+# _`AC power line frequency`: https://en.wikipedia.org/wiki/Mains_electricity
+# _`QRS`: https://en.wikipedia.org/wiki/QRS_complex
+# _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file
