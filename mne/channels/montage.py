@@ -809,8 +809,6 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         if not _contains_ch_type(info, 'eeg'):
             raise ValueError('No EEG channels found.')
 
-        sensors_found = []
-
         # If there are no name collisions, match channel names in a case
         # insensitive manner.
         montage_lower = [ch_name.lower() for ch_name in montage.ch_names]
@@ -834,20 +832,19 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             ch_idx = info_ch_names.index(ch_name)
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
             info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-            sensors_found.append(ch_idx)
             dig[ch_idx] = pos
         if set_dig:
             info['dig'] = _make_dig_points(
                 nasion=montage.nasion, lpa=montage.lpa, rpa=montage.rpa,
                 dig_ch_pos=dig)
-        if len(sensors_found) == 0:
+        if len(dig) == 0:
             raise ValueError('None of the sensors defined in the montage were '
                              'found in the info structure. Check the channel '
                              'names.')
 
         eeg_sensors = pick_types(info, meg=False, ref_meg=False, eeg=True,
                                  exclude=[])
-        not_found = np.setdiff1d(eeg_sensors, sensors_found)
+        not_found = np.setdiff1d(eeg_sensors, list(dig.keys()))
         if len(not_found) > 0:
             not_found_names = [info['ch_names'][ch] for ch in not_found]
             warn('The following EEG sensors did not have a position '
