@@ -67,25 +67,30 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                                   sampling_rate=raw.info['sfreq'],
                                   first_samp=raw.first_samp,
                                   filter_length=filter_length,
-                                  tstart=tstart, thresh=thresh)
+                                  tstart=tstart, thresh=thresh,
+                                  verbose=verbose)
     # Map times to corresponding samples.
     eog_events[:, 0] = np.round(times[eog_events[:, 0] -
                                       raw.first_samp]).astype(int)
     return eog_events
 
 
+@verbose
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
-                     filter_length='10s', tstart=0., thresh=None):
+                     filter_length='10s', tstart=0., thresh=None,
+                     verbose=None):
     """Find EOG events."""
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
+    # hardcode verbose=False to suppress filter param messages (since this
+    # filter is not under user control)
     fmax = np.minimum(45, sampling_rate / 2.0 - 0.75)  # protect Nyquist
     filteog = np.array([filter_data(
         x, sampling_rate, 2, fmax, None, filter_length, 0.5, 0.5,
-        phase='zero-double', fir_window='hann', fir_design='firwin2')
-        for x in eog])
+        phase='zero-double', fir_window='hann', fir_design='firwin2',
+        verbose=False) for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
@@ -94,7 +99,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     filteog = filter_data(
         eog[indexmax], sampling_rate, l_freq, h_freq, None,
         filter_length, 0.5, 0.5, phase='zero-double', fir_window='hann',
-        fir_design='firwin2')
+        fir_design='firwin2', verbose=verbose)
 
     # detecting eog blinks and generating event file
 
