@@ -1,4 +1,6 @@
 """
+.. _tut-artifact-sss:
+
 =======================================
 Artifact correction with Maxwell filter
 =======================================
