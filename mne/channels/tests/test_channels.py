@@ -310,7 +310,6 @@ def test_set_montage():
     from mne.io.open import fiff_open
     from mne import create_info
     from mne.io import RawArray
-    from mne.utils import object_diff
 
     ch_names = ['EEG {id:03d}'.format(id=id) for id in range(1, 61)]
     raw = RawArray(data=np.empty([len(ch_names), 1]),

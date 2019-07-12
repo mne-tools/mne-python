@@ -837,7 +837,6 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         chans_cfg = cfg['chs']
         chans = [dict() for _ in chans_cfg]
 
-    # XXX: this looks like setting up the montage
     # transfer channel info from config to channel info
     for ch, ch_cfg in zip(chans, chans_cfg):
         ch['upb'] = ch_cfg['units_per_bit']
