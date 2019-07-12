@@ -470,9 +470,10 @@ class SetChannelsMixin(object):
         from ..channels import Montage, DigMontage
 
         _validate_type(montage, item_name='montage',
-                       types=(Montage, DigMontage, Digitization, str))
+                       types=(Montage, DigMontage, Digitization,
+                              str, type(None)))
 
-        if type(montage) in (Montage, DigMontage, str):
+        if isinstance(montage, (Montage, DigMontage, str, type(None))):
             _set_montage(self.info, montage, update_ch_names=False,
                          set_dig=set_dig)
         else:
