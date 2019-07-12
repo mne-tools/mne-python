@@ -51,6 +51,8 @@ Changelog
 Bug
 ~~~
 
+- Fix order of ``info['dig']`` that was alphabetical based on channel names and not following the channel order when using :meth:`mne.io.Raw.set_montage` and a :class:`mne.channels.Montage` object by `Joan Massich`_ and `Alex Gramfort`_.
+
 - Fix reading CNT files larger than 2Gb by `Joan Massich`_
 
 - Fix formula for effective number of averages in :func:`mne.combine_evoked` when ``weights='equal'`` by `Daniel McCloy`_.
