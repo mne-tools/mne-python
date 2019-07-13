@@ -39,7 +39,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 print(raw.info['bads'])
 
 ###############################################################################
-# Here you can see that the :file:`.fiff` file we loaded from disk must have
+# Here you can see that the :file:`.fif` file we loaded from disk must have
 # been keeping track of channels marked as "bad" — which is good news, because
 # it means any changes we make to the list of bad channels will be preserved
 # if we save our data at intermediate stages and re-load it later. In the case
@@ -48,6 +48,7 @@ print(raw.info['bads'])
 # we'll use the :func:`~mne.pick_channels_regexp` function to narrow down which
 # channels we see:
 
+# sphinx_gallery_thumbnail_number = 2
 for pattern in (r'MEG 24..', r'EEG 05.'):
     picks = mne.pick_channels_regexp(raw.ch_names, regexp=pattern)
     raw.plot(order=picks, n_channels=len(picks))
@@ -74,6 +75,7 @@ raw.info['bads'] = original_bads     # change the whole list at once
 
 ###############################################################################
 # .. sidebar:: Blocking execution
+#
 #     If you want to build an interactive bad-channel-marking step into an
 #     analysis script, be sure to include the parameter ``block=True`` in your
 #     call to ``raw.plot()`` or ``epochs.plot()``. This will pause the script
@@ -96,6 +98,47 @@ raw.info['bads'] = original_bads     # change the whole list at once
 # ``exclude=[]`` (or some other list of channels to exclude).
 #
 #
+# When to look for bad channels
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# You can start looking for bad channels during the experiment session when the
+# data is being acquired. If you notice any flat or excessively noisy channels,
+# you can note them in your experiment log or protocol sheet. If your system
+# computes on-line averages, these can be a good way to spot bad channels as
+# well. After the data has been collected, you can do a more thorough check for
+# bad channels by browsing the raw data using :meth:`mne.io.Raw.plot`, with any
+# projectors or ICA applied. Finally, you can compute off-line averages (again
+# with projectors, ICA, and EEG referencing disabled) to look for channels with
+# unusual properties.
+#
+# Remember, marking bad channels should be done as early as possible in the
+# analysis pipeline. When bad channels are marked in a :class:`~mne.io.Raw`
+# object, the markings will be automatically transferred through the chain of
+# derived object types: including :class:`~mne.Epochs` and :class:`~mne.Evoked`
+# objects, but also :class:`noise covariance <mne.Covariance>` objects,
+# :class:`forward solution computations <mne.Forward>`, and
+# :class:`inverse operators <mne.minimum_norm.InverseOperator>`.
+#
+#
+# Why mark bad channels at all?
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# Many analysis computations can be strongly affected by the presence of bad
+# channels. For example, a malfunctioning channel with completely flat signal
+# will have zero channel variance, which will cause noise estimates to be
+# unrealistically low. This low noise estimate will lead to a strong channel
+# weight in the estimate of cortical current, and because the channel is flat,
+# the magnitude of cortical current estimates will shrink dramatically.
+#
+# Conversely, very noisy channels can also cause problems. For example, they
+# can lead to too many epochs being discarded based on signal amplitude
+# rejection thresholds, which in turn can lead to less robust estimation of the
+# noise covariance across sensors. Noisy channels can also interfere with
+# :term:`SSP <projector>` computations, because the projectors will be
+# spatially biased in the direction of the noisy channel, which can cause
+# adjacent good channels to be suppressed.
+#
+#
 # Interpolating bad channels
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -114,7 +157,7 @@ raw.info['bads'] = original_bads     # change the whole list at once
 # at the good locations. Mathematical details are presented in
 # :ref:`channel_interpolation`. Interpolation of MEG channels uses the field
 # mapping algorithms used in computing the :ref:`forward solution
-# <tut_forward>`.
+# <tut-forward>`.
 #
 #
 # Interpolation in MNE-Python
@@ -126,11 +169,9 @@ raw.info['bads'] = original_bads     # change the whole list at once
 # channels, respectively (there is a corresponding method
 # :meth:`mne.Epochs.interpolate_bads` that works for :class:`~mne.Epochs`
 # objects). To illustrate how it works, we'll start by cropping the raw object
-# to just three seconds for easier plotting, then create ``interp_raw`` with
-# interpolated channels:
+# to just three seconds for easier plotting:
 
 raw.crop(tmin=0, tmax=3).load_data()
-raw_interp = raw.copy().interpolate_bads()
 
 ###############################################################################
 # By default, :meth:`~mne.io.Raw.interpolate_bads` will clear out
