@@ -776,10 +776,18 @@ def _plot_func(src_tfr, src_tfr_ref):
     import matplotlib.pyplot as plt
     import numpy as np
     fig = plt.figure(figsize=(2, 1))
-    fig.add_subplot(2, 1, 1)
-    plt.imshow(np.squeeze(src_tfr_ref), cmap='hot', interpolation='nearest')
-    fig.add_subplot(2, 1, 2)
-    plt.imshow(np.squeeze(src_tfr.data), cmap='hot', interpolation='nearest')
+    ax1 = fig.add_subplot(2, 1, 1)
+    plt.imshow(np.squeeze(src_tfr_ref), cmap='hot', vmin=0, vmax=250, interpolation='nearest')
+    ax1.set_xlabel('samples')
+    ax1.set_ylabel('dipoles')
+    ax1.set_title("source_induced_power Morlet (method=MNE)")
+    plt.colorbar()
+    ax2 = fig.add_subplot(2, 1, 2)
+    plt.imshow(np.squeeze(src_tfr), cmap='hot', vmin=0, vmax=250, interpolation='nearest')
+    ax2.set_xlabel('samples')
+    ax2.set_ylabel('dipoles')
+    ax2.set_title("SourceTFR Morlet (method=MNE)")
+    plt.colorbar()
     plt.show()
 
 
@@ -796,8 +804,10 @@ def test_induced_power_equivalence():
     raw = read_raw_fif(fname_data)
     events = find_events(raw, stim_channel='STI 014')
     inverse_operator = read_inverse_operator(fname_inv)
+
+    method = "MNE"
     inv = prepare_inverse_operator(inverse_operator, nave=1,
-                                   lambda2=1. / 9., method="dSPM")
+                                   lambda2=1. / 9., method=method)
     raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
     # picks MEG gradiometers
     picks = pick_types(raw.info, meg=True, eeg=False, eog=True,
@@ -806,25 +816,29 @@ def test_induced_power_equivalence():
     event_id = 1
     events3 = events[:3]  # take 3 events to keep the computation time low
     epochs = Epochs(raw, events3, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
+                    baseline=(None, None), reject=dict(grad=4000e-13, eog=150e-6),
                     preload=True)
+    epochs = epochs.pick("meg")
+
+
 
     # Compute a source estimate per frequency band
     bands = dict(alpha=[10, 10])
     label = read_label(fname_label)
     l2 = 0.1111111111111111
 
-    stc = apply_inverse_epochs(epochs, inv, lambda2=l2,
-                               label=label, pick_ori="vector")[0]
+    stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
+                               label=label, prepared=False, pick_ori="normal")[0]
 
     freqs = np.array([10])
     # assert equal data
-    src_tfr = tfr_morlet(stc, freqs=freqs, n_cycles=2, use_fft=True, return_itc=False)
+    src_tfr = tfr_morlet(stc, freqs=freqs, n_cycles=2, use_fft=True, return_itc=False, decim=1)
 
-    src_tfr_ref, _ = source_induced_power(epochs, inv, freqs=freqs, lambda2=l2, decim=1,
+    src_tfr_ref, _ = source_induced_power(epochs, inv, freqs=freqs, method=method, lambda2=l2, decim=1,
                                           n_cycles=2, use_fft=True, pca=False,
-                                          label=label, prepared=True, baseline=None)
-    _plot_func(src_tfr, src_tfr_ref)
+                                          label=label, prepared=False, baseline=None, pick_ori='normal')
+    _plot_func(src_tfr.data * 1e20, src_tfr_ref * 1e20)
+
 
 
 def test_source_tfr_morlet():
@@ -889,6 +903,6 @@ def test_source_tfr_morlet():
                                           n_cycles=2, use_fft=False, pca=False,
                                           label=label, prepared=True)
 
-    _plot_func(src_tfr, src_tfr_ref)
+    _plot_func(src_tfr.data, src_tfr_ref)
 
 # run_tests_if_main()

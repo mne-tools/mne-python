@@ -224,6 +224,9 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 
         tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
 
+        for i, n in enumerate([np.real(tfr_), np.imag(tfr_)]):  # !!!remove
+            print("COMPLEX STUFF: ", i, n)  # !!!remove
+
         for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
             sol = np.dot(K, t)
 
@@ -239,7 +242,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 
             if is_free_ori:
                 logger.debug('combining the current components...')
-                sol = combine_xyz(sol, square=with_power)
+                sol = combine_xyz(sol, square=True)
             elif with_power:
                 sol *= sol
             tfr_f += sol

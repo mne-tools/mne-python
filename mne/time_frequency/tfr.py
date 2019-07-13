@@ -629,25 +629,30 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     if isinstance(inst, SourceEstimate):
         out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
                            output=output, decim=decim, **tfr_params)
-    elif isinstance(inst, VectorSourceEstimate):
-        print("DATA SHAPE For Vector:  ", data[:, :, 0, :].shape)  # !!!remove this
-        out = np.empty((3, 33, 1, 211))
-        for i in range(3):
-            x = _compute_tfr(data[:, :, 0, :], freqs, 1 / inst.tstep, method=method,
-                             output=output, decim=decim, **tfr_params)
-            y = _compute_tfr(data[:, :, 1, :], freqs, 1 / inst.tstep, method=method,
-                             output=output, decim=decim, **tfr_params)
-            z = _compute_tfr(data[:, :, 2, :], freqs, 1 / inst.tstep, method=method,
-                             output=output, decim=decim, **tfr_params)
+        # elif isinstance(inst, VectorSourceEstimate):
+        #    print("DATA SHAPE For Vector:  ", data[:, :, 0, :].shape)  # !!!remove this
+        #    out = np.empty((1, 33, 1, 211))
+        #    x = _compute_tfr(data[:, :, 0, :], freqs, 1 / inst.tstep, method=method,
+        #                         output="complex", decim=decim, **tfr_params)
+        #    y = _compute_tfr(data[:, :, 1, :], freqs, 1 / inst.tstep, method=method,
+        #                         output="complex", decim=decim, **tfr_params)
+        #    z = _compute_tfr(data[:, :, 2, :], freqs, 1 / inst.tstep, method=method,
+        #                         output="complex", decim=decim, **tfr_params)
 
-            if np.iscomplexobj(x):
-                x, y, z = np.abs(x), np.abs(y), np.abs(z)
-            comb = x ** 2
-            comb += y ** 2
-            comb += z ** 2
-            out = np.sqrt(comb)
+        #    for i, func in enumerate([np.real, np.imag]):
 
-            print("DATA SHAPE For Vector:  ", out.shape)
+        #        sol_x = func(x)
+        #        sol_y = func(y)
+        #        sol_z = func(z)
+
+        #        comb = sol_x ** 2
+        #        comb += sol_y ** 2
+        #        comb += sol_z ** 2
+        #        print("SHAPE OF COMB: ", comb.shape)
+        # out = np.sqrt(comb)
+        #        out += comb
+
+        print("DATA SHAPE For Vector:  ", out.shape)
     else:
         out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                            output=output, decim=decim, **tfr_params)
@@ -658,7 +663,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         from ..source_tfr import SourceTFR
         print("OUT DIMENSIONS = ", out.shape)  # !!! remove
         print("out.shape = ", out.shape)  # !!! remove#
-        # out = np.squeeze(out, axis = 0)
+        #out = np.squeeze(out, axis = 0)
         return SourceTFR(out, inst.vertices, tmin=inst.tmin,
                          tstep=inst.tstep, subject=inst.subject)
 
