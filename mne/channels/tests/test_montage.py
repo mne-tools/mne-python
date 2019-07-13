@@ -257,7 +257,7 @@ def test_montage():
     # sfp files seem to have Nz, T9, and T10 as fiducials:
     # https://github.com/mne-tools/mne-python/pull/4482#issuecomment-321980611
 
-    kinds = ['test_fid.hpts',  'test_fid.sfp']
+    kinds = ['test_fid.hpts', 'test_fid.sfp']
 
     for kind, input_str in zip(kinds, input_strs):
         fname = op.join(tempdir, kind)
@@ -740,6 +740,7 @@ def test_setting_hydrocel_montage():
 
     # test info['chs']
     _slice = [name.startswith('E') for name in montage.ch_names]
+    _slice = np.array(_slice, dtype=bool)
     EXPECTED_CHS_POS = montage.pos[_slice, :]  # Shall this be in the same units as info['dig'] ??  # noqa
     actual_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']])
     assert_array_equal(actual_pos, EXPECTED_CHS_POS)
