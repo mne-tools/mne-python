@@ -181,7 +181,7 @@ for ax in fig.axes[:2]:
 # show just the MEG channels, since EEG channels are less strongly affected by
 # heartbeat artifacts:
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 4
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 ecg_epochs.plot_image(picks=['mag', 'grad'], combine='mean')
 
