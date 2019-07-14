@@ -22,6 +22,51 @@ with warnings.catch_warnings():
     import pyvista
 
 
+class _Figure(object):
+    def __init__(self, plotter=None,
+                 plotter_class=pyvista.BackgroundPlotter,
+                 display=None,
+                 title='PyVista Scene',
+                 size=(600, 600),
+                 background_color=(0., 0., 0.),
+                 smooth_shading=True,
+                 off_screen=False,
+                 notebook=False):
+        self.plotter = plotter
+        self.plotter_class = plotter_class
+        self.display = display
+        self.background_color = background_color
+        self.smooth_shading = smooth_shading
+        self.notebook = notebook
+
+        self.store = dict()
+        self.store['title'] = title
+        self.store['window_size'] = size
+        self.store['off_screen'] = off_screen
+
+    def build(self):
+        if self.notebook:
+            self.plotter_class = pyvista.Plotter
+
+        if self.plotter_class == pyvista.Plotter:
+            self.store.pop('title', None)
+        elif self.plotter_class == pyvista.BackgroundPlotter:
+            self.store.pop('off_screen', None)
+
+        if self.plotter is None:
+            plotter = self.plotter_class(**self.store)
+            plotter.background_color = self.background_color
+        else:
+            plotter = self.plotter_class(**self.store)
+            plotter.background_color = self.plotter.background_color
+            for actor in self.plotter.renderer.GetActors():
+                plotter.renderer.AddActor(actor)
+            plotter.camera_position = self.plotter.camera_position
+            plotter.reset_camera()
+        self.plotter = plotter
+        return self.plotter
+
+
 class _Projection(object):
     """Class storing projection information.
 
@@ -58,51 +103,29 @@ class _Renderer(_BaseRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="PyVista Scene", show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
-        self.display = None
-        self.inside_notebook = _check_notebook()
-        self.smooth_shading = True
-        kwargs = dict()
-        if MNE_3D_BACKEND_TEST_DATA:
-            self.plotter_class = pyvista.Plotter
-            kwargs['off_screen'] = True
-        else:
-            self.plotter_class = pyvista.BackgroundPlotter
-            kwargs['title'] = name
-
         if fig is None:
-            kwargs['window_size'] = size
-            self.plotter = self.plotter_class(**kwargs)
-            self.plotter.background_color = bgcolor
-            # this is a hack to avoid using a deleled ren_win
-            self.plotter._window_size = size
+            self.figure = _Figure(title=name, size=size,
+                                  background_color=bgcolor,
+                                  notebook=_check_notebook())
         else:
-            # import basic properties
-            kwargs['window_size'] = fig._window_size
-            self.plotter = self.plotter_class(**kwargs)
-            # import background
-            self.plotter.background_color = fig.background_color
-            # import actors
-            for actor in fig.renderer.GetActors():
-                self.plotter.renderer.AddActor(actor)
-            # import camera
-            self.plotter.camera_position = fig.camera_position
-            self.plotter.reset_camera()
-            # save window_size
-            self.plotter._window_size = fig._window_size
+            self.figure = fig
+
+        if MNE_3D_BACKEND_TEST_DATA:
+            self.figure.plotter_class = pyvista.Plotter
+            self.figure.store['off_screen'] = True
+
+        self.plotter = self.figure.build()
         self.plotter.hide_axes()
 
     def scene(self):
-        if self.inside_notebook:
-            return self.display
-        else:
-            return self.plotter
+        return self.figure
 
     def set_interactive(self):
         self.plotter.enable_terrain_style()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
-        smooth_shading = self.smooth_shading
+        smooth_shading = self.figure.smooth_shading
         vertices = np.c_[x, y, z]
         n_vertices = len(vertices)
         triangles = np.c_[np.full(len(triangles), 3), triangles]
@@ -148,7 +171,7 @@ class _Renderer(_BaseRenderer):
                                   line_width=line_width,
                                   cmap=cmap,
                                   opacity=opacity,
-                                  smooth_shading=self.smooth_shading)
+                                  smooth_shading=self.figure.smooth_shading)
 
     def surface(self, surface, color=None, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -170,7 +193,7 @@ class _Renderer(_BaseRenderer):
                                   opacity=opacity,
                                   cmap=cmap,
                                   backface_culling=backface_culling,
-                                  smooth_shading=self.smooth_shading)
+                                  smooth_shading=self.figure.smooth_shading)
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
@@ -186,7 +209,7 @@ class _Renderer(_BaseRenderer):
                                            factor=scale, geom=geom),
                                   color=color, opacity=opacity,
                                   backface_culling=backface_culling,
-                                  smooth_shading=self.smooth_shading)
+                                  smooth_shading=self.figure.smooth_shading)
 
     def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
@@ -210,7 +233,8 @@ class _Renderer(_BaseRenderer):
                                       color=color,
                                       show_scalar_bar=False,
                                       cmap=cmap,
-                                      smooth_shading=self.smooth_shading)
+                                      smooth_shading=self.
+                                      figure.smooth_shading)
         return tube
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
@@ -240,7 +264,8 @@ class _Renderer(_BaseRenderer):
                                       color=color,
                                       opacity=opacity,
                                       backface_culling=backface_culling,
-                                      smooth_shading=self.smooth_shading)
+                                      smooth_shading=self.figure.
+                                      smooth_shading)
             elif mode == "cone":
                 cone = vtk.vtkConeSource()
                 if glyph_height is not None:
@@ -259,7 +284,8 @@ class _Renderer(_BaseRenderer):
                                       color=color,
                                       opacity=opacity,
                                       backface_culling=backface_culling,
-                                      smooth_shading=self.smooth_shading)
+                                      smooth_shading=self.figure.
+                                      smooth_shading)
 
             elif mode == "cylinder":
                 cylinder = vtk.vtkCylinderSource()
@@ -284,7 +310,8 @@ class _Renderer(_BaseRenderer):
                                       color=color,
                                       opacity=opacity,
                                       backface_culling=backface_culling,
-                                      smooth_shading=self.smooth_shading)
+                                      smooth_shading=self.figure.
+                                      smooth_shading)
 
     def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         with warnings.catch_warnings():
@@ -310,8 +337,8 @@ class _Renderer(_BaseRenderer):
                                         position_x=0.15, width=0.7)
 
     def show(self):
-        self.display = self.plotter.show()
-        return self.display
+        self.figure.display = self.plotter.show()
+        return self.scene()
 
     def close(self):
         self.plotter.close()
