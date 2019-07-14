@@ -154,9 +154,9 @@ def test_plot_evoked_field(renderer):
             assert isinstance(fig, mayavi.core.scene.Scene)
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-@pytest.mark.slowtest  # can be slow on OSX
 def test_plot_alignment(tmpdir, renderer):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
