@@ -345,7 +345,7 @@ def test_plot_psd_epochs_ctf():
         with pytest.warns(UserWarning, match=err_str):
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
-    epochs.plot_psd()
+    epochs.plot_psd(spatial_colors=False, average=False)
     plt.close('all')
 
 
