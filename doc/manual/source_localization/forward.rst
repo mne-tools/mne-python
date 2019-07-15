@@ -30,7 +30,7 @@ Except for the *Sensor coordinates*, all of the
 coordinate systems are Cartesian and have the "RAS" (Right-Anterior-Superior)
 orientation, *i.e.*, the :math:`x` axis
 points to the right, the :math:`y` axis
-to the front, and the :math:`z` axis up.
+to the front, and the :math:`z` axis up. In some MNE-Python objects (e.g., :class:`~mne.Forward`, :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is encoded as a constant integer value. The meaning of those integers is determined `in the source code <https://github.com/mne-tools/mne-python/blob/master/mne/io/constants.py#L186-L197>`__.
 
 .. _CHDFFJIJ:
 
@@ -77,7 +77,7 @@ to MRI data are:
 
     The FreeSurfer surface data are expressed in this coordinate system. The
     origin of this coordinate system is at the center of the conformed
-    FreeSurfer MRI volumes (usually 256 x 256 x 256 isotropic 1-mm3  voxels)
+    FreeSurfer MRI volume (usually 256 x 256 x 256 isotropic 1-mm3  voxels)
     and the axes are oriented along the axes of this volume. The BEM
     surface and the locations of the sources in the source space are
     usually expressed in this coordinate system in the fif files. In
@@ -103,12 +103,12 @@ to MRI data are:
     The definition of this coordinate system is discussed, e.g. ,
     in  http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach. This
     transformation is determined during the FreeSurfer reconstruction
-    process.
+    process. These coordinates are in MNI305 space.
 
 **FreeSurfer Talairach coordinates**
 
     The problem with the MNI Talairach coordinates is that the linear MNI
-    Talairach transform does matched the brains completely to the Talairach
+    Talairach transform does not match the brains completely to the Talairach
     brain. This is probably because the Talairach atlas brain is a rather
     odd shape, and as a result, it is difficult to match a standard brain
     to the atlas brain using an affine transform. As a result, the MNI
@@ -139,8 +139,8 @@ files. Generally,
 		1
 	        \end{bmatrix} = \begin{bmatrix}
 		R_{11} & R_{12} & R_{13} & x_0 \\
-		R_{13} & R_{13} & R_{13} & y_0 \\
-		R_{13} & R_{13} & R_{13} & z_0 \\
+		R_{21} & R_{22} & R_{23} & y_0 \\
+		R_{31} & R_{32} & R_{33} & z_0 \\
 		0 & 0 & 0 & 1
 	        \end{bmatrix} \begin{bmatrix}
 		x_1 \\
@@ -149,10 +149,10 @@ files. Generally,
 		1
 	        \end{bmatrix}\ ,
 
-where :math:`x_k`,:math:`y_k`,and :math:`z_k` are the location
+where :math:`x_k`, :math:`y_k`,and :math:`z_k` are the location
 coordinates in two coordinate systems, :math:`T_{12}` is
 the coordinate transformation from coordinate system "1" to "2",
-:math:`x_0`, :math:`y_0`,and :math:`z_0` is the location of the origin
+:math:`x_0`, :math:`y_0`, and :math:`z_0` is the location of the origin
 of coordinate system "1" in coordinate system "2",
 and :math:`R_{jk}` are the elements of the rotation
 matrix relating the two coordinate systems. The coordinate transformations

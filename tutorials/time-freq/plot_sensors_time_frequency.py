@@ -50,7 +50,7 @@ epochs.resample(150., npad='auto')  # resample to reduce computation time
 
 ###############################################################################
 # Let's first check out all channel types by averaging across epochs.
-epochs.plot_psd(fmin=2., fmax=40.)
+epochs.plot_psd(fmin=2., fmax=40., average=True, spatial_colors=False)
 
 ###############################################################################
 # Now let's take a look at the spatial distributions of the PSD.

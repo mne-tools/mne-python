@@ -78,18 +78,34 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
+        if isinstance(color, np.ndarray) and color.ndim > 1:
+            if color.shape[1] == 3:
+                vertex_color = np.c_[color, np.ones(len(color))] * 255.0
+            else:
+                vertex_color = color * 255.0
+            # create a lookup table to enable one color per vertex
+            scalars = np.arange(len(color))
+            color = None
+        else:
+            scalars = None
+            vertex_color = None
         with warnings.catch_warnings(record=True):  # traits
             surface = self.mlab.triangular_mesh(x, y, z, triangles,
                                                 color=color,
+                                                scalars=scalars,
                                                 opacity=opacity,
                                                 figure=self.fig,
                                                 **kwargs)
+            if vertex_color is not None:
+                surface.module_manager.scalar_lut_manager.lut.table = \
+                    vertex_color
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
-            return surface
+        return surface
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False):
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
             cont = self.mlab.pipeline.contour_surface(
@@ -98,8 +114,11 @@ class _Renderer(_BaseRenderer):
             cont.module_manager.scalar_lut_manager.lut.table = colormap
 
     def surface(self, surface, color=None, opacity=1.0,
-                vmin=None, vmax=None, colormap=None, scalars=None,
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False, scalars=None,
                 backface_culling=False):
+        if normalized_colormap:
+            colormap = colormap * 255.0
         # Make a solid surface
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
@@ -126,6 +145,29 @@ class _Renderer(_BaseRenderer):
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
 
+    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+             scalars=None, vmin=None, vmax=None, colormap='RdBu',
+             normalized_colormap=False, reverse_lut=False):
+        if scalars is None:
+            surface = self.mlab.plot3d([origin[:, 0], destination[:, 0]],
+                                       [origin[:, 1], destination[:, 1]],
+                                       [origin[:, 2], destination[:, 2]],
+                                       tube_radius=radius,
+                                       color=color,
+                                       figure=self.fig)
+        else:
+            surface = self.mlab.plot3d([origin[:, 0], destination[:, 0]],
+                                       [origin[:, 1], destination[:, 1]],
+                                       [origin[:, 2], destination[:, 2]],
+                                       [scalars[:, 0], scalars[:, 1]],
+                                       tube_radius=radius,
+                                       vmin=vmin,
+                                       vmax=vmax,
+                                       colormap=colormap,
+                                       figure=self.fig)
+        surface.module_manager.scalar_lut_manager.reverse_lut = reverse_lut
+        return surface
+
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
@@ -151,10 +193,19 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text(x, y, text, width=width, color=color,
                            figure=self.fig)
+
+    def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
+        with warnings.catch_warnings(record=True):  # traits
+            self.mlab.text3d(x, y, z, text, scale=scale, color=color,
+                             figure=self.fig)
+
+    def scalarbar(self, source, title=None, n_labels=4):
+        with warnings.catch_warnings(record=True):  # traits
+            self.mlab.scalarbar(source, title=title, nb_labels=n_labels)
 
     def show(self):
         if self.fig is not None:
@@ -165,10 +216,9 @@ class _Renderer(_BaseRenderer):
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
-        with warnings.catch_warnings(record=True):  # traits
-            with SilenceStdout():  # setting roll
-                self.mlab.view(azimuth, elevation, distance,
-                               focalpoint=focalpoint, figure=self.fig)
+        _set_3d_view(figure=self.fig, azimuth=azimuth,
+                     elevation=elevation, distance=distance,
+                     focalpoint=focalpoint)
 
     def screenshot(self):
         with warnings.catch_warnings(record=True):  # traits
@@ -289,3 +339,25 @@ def _get_view_to_display_matrix(scene):
                                  [0.,            0.,   1.,        0.],
                                  [0.,            0.,   0.,        1.]])
     return view_to_disp_mat
+
+
+def _close_all():
+    from mayavi import mlab
+    mlab.close(all=True)
+
+
+def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
+    from mayavi import mlab
+    with warnings.catch_warnings(record=True):  # traits
+        with SilenceStdout():
+            mlab.view(azimuth, elevation, distance,
+                      focalpoint=focalpoint, figure=figure)
+            mlab.draw(figure)
+
+
+def _set_3d_title(figure, title, size=40):
+    from mayavi import mlab
+    text = mlab.title(text=title, figure=figure)
+    text.property.vertical_justification = 'top'
+    text.property.font_size = size
+    mlab.draw(figure)

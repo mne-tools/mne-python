@@ -307,6 +307,24 @@ def _get_dpss():
 
 
 ###############################################################################
+# Triaging FFT functions to get fast pocketfft
+
+try:
+    from scipy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
+except ImportError:
+    from numpy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
+
+
+###############################################################################
+# NumPy Generator
+
+def rng_uniform(rng):
+    """Get the unform/randint from the rng."""
+    # prefer Generator.integers, fall back to RandomState.randint
+    return getattr(rng, 'integers', getattr(rng, 'randint', None))
+
+
+###############################################################################
 # Backporting scipy.signal.sosfiltfilt (0.18)
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
@@ -489,7 +507,6 @@ def minimum_phase(h):
         pass
     else:
         return minimum_phase(h)
-    from scipy.fftpack import fft, ifft
     h = np.asarray(h)
     if np.iscomplexobj(h):
         raise ValueError('Complex filters not supported')

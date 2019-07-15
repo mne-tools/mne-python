@@ -25,7 +25,7 @@ fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 def test_data():
     """Test reading raw cnt files."""
     with pytest.warns(RuntimeWarning, match='number of bytes'):
-        raw = _test_raw_reader(read_raw_cnt, montage=None, input_fname=fname,
+        raw = _test_raw_reader(read_raw_cnt, input_fname=fname,
                                eog='auto', misc=['NA1', 'LEFT_EAR'])
 
     # make sure we use annotations event if we synthesized stim

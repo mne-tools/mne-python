@@ -7,6 +7,7 @@
 from copy import deepcopy
 from distutils.version import LooseVersion
 from functools import partial
+from io import BytesIO
 import os.path as op
 import pickle
 
@@ -22,13 +23,14 @@ from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  write_evokeds, create_info, make_fixed_length_events,
                  combine_evoked)
 from mne.baseline import rescale
+from mne.fixes import rfft, rfftfreq
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
                        requires_version, catch_logging, _FakeNoPandas,
-                       assert_meg_snr)
+                       assert_meg_snr, check_version)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -463,12 +465,12 @@ def test_savgol_filter():
     pytest.raises(RuntimeError, epochs.savgol_filter, 10.)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
     epochs.pick_types(meg='grad')
-    freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
-    data = np.abs(np.fft.rfft(epochs.get_data()))
+    freqs = rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(rfft(epochs.get_data()))
     pass_mask = (freqs <= h_freq / 2. - 5.)
     stop_mask = (freqs >= h_freq * 2 + 5.)
     epochs.savgol_filter(h_freq)
-    data_filt = np.abs(np.fft.rfft(epochs.get_data()))
+    data_filt = np.abs(rfft(epochs.get_data()))
     # decent in pass-band
     assert_allclose(np.mean(data[:, :, pass_mask], 0),
                     np.mean(data_filt[:, :, pass_mask], 0),
@@ -487,15 +489,15 @@ def test_filter(tmpdir):
     pytest.raises(RuntimeError, epochs.savgol_filter, 10.)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
     epochs.pick_types(meg='grad')
-    freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
-    data_fft = np.abs(np.fft.rfft(epochs.get_data()))
+    freqs = rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data_fft = np.abs(rfft(epochs.get_data()))
     pass_mask = (freqs <= h_freq / 2. - 5.)
     stop_mask = (freqs >= h_freq * 2 + 5.)
     epochs_orig = epochs.copy()
     epochs.filter(None, h_freq)
     assert epochs.info['lowpass'] == h_freq
     data_filt = epochs.get_data()
-    data_filt_fft = np.abs(np.fft.rfft(data_filt))
+    data_filt_fft = np.abs(rfft(data_filt))
     # decent in pass-band
     assert_allclose(np.mean(data_filt_fft[:, :, pass_mask], 0),
                     np.mean(data_fft[:, :, pass_mask], 0),
@@ -1385,9 +1387,13 @@ def test_bootstrap():
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     preload=True, reject=reject, flat=flat)
-    epochs2 = bootstrap(epochs, random_state=0)
-    assert (len(epochs2.events) == len(epochs.events))
-    assert (epochs._data.shape == epochs2._data.shape)
+    random_states = [0]
+    if check_version('numpy', '1.17'):
+        random_states += [np.random.default_rng(0)]
+    for random_state in random_states:
+        epochs2 = bootstrap(epochs, random_state=random_state)
+        assert (len(epochs2.events) == len(epochs.events))
+        assert (epochs._data.shape == epochs2._data.shape)
 
 
 def test_epochs_copy():
@@ -2677,6 +2683,29 @@ def test_epochs_drop_selection(fname, preload):
     selection = np.round(epochs.get_data()[:, 0].max(axis=-1) / scale)
     selection = selection.astype(int) - 1
     assert_array_equal(selection, epochs.selection)
+
+
+@pytest.mark.parametrize('kind', ('file', 'bytes'))
+@pytest.mark.parametrize('preload', (True, False))
+def test_file_like(kind, preload, tmpdir):
+    """Test handling with file-like objects."""
+    tempdir = str(tmpdir)
+    raw = mne.io.RawArray(np.random.RandomState(0).randn(100, 10000),
+                          mne.create_info(100, 1000.))
+    events = mne.make_fixed_length_events(raw, 1)
+    epochs = mne.Epochs(raw, events, preload=preload)
+    fname = op.join(tempdir, 'test-epo.fif')
+    epochs.save(fname, overwrite=True)
+
+    with open(fname, 'rb') as file_fid:
+        fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
+        assert not fid.closed
+        assert not file_fid.closed
+        with pytest.raises(ValueError, match='preload must be used with file'):
+            read_epochs(fid, preload=False)
+        assert not fid.closed
+        assert not file_fid.closed
+    assert file_fid.closed
 
 
 run_tests_if_main()

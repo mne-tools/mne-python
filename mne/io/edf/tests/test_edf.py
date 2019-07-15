@@ -31,6 +31,7 @@ from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
 from mne.io.meas_info import _kind_dict as _KIND_DICT
 
+
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')

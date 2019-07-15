@@ -29,12 +29,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
         Path to the data file (extension ``.bin``). The header file with the
         same file name stem and an extension ``.txt`` is expected to be found
         in the same directory.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     %(verbose)s
     pos_fname : str or None (default None)
         If not None, load digitized head points from this file
@@ -300,12 +295,7 @@ class RawArtemis123(BaseRaw):
     ----------
     input_fname : str
         Path to the Artemis123 data file (ending in ``'.bin'``).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     %(verbose)s
 
     See Also

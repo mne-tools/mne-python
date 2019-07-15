@@ -473,6 +473,9 @@ def _find_kit_layout(info, n_grads):
     elif n_grads == 160:
         return 'KIT-160'
 
+    elif n_grads == 125:
+        return 'KIT-125'
+
     elif n_grads > 157:
         return 'KIT-AD'
 
@@ -892,7 +895,7 @@ def _merge_grad_data(data, method='rms'):
     elif method == 'rms':
         data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
     else:
-        raise ValueError('method must be "rms" or "mean, got %s.' % method)
+        raise ValueError('method must be "rms" or "mean", got %s.' % method)
     return data.reshape(data.shape[:1] + orig_shape[1:])
 
 

@@ -4,12 +4,13 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
-from scipy.fftpack import ifftshift, fftfreq
 
+from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import get_sosfiltfilt, minimum_phase, _sosfreqz
+from .fixes import (get_sosfiltfilt, minimum_phase, _sosfreqz, irfft,
+                    ifftshift, fftfreq)
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
@@ -262,9 +263,7 @@ def _filter_attenuation(h, freq, gain):
 
 def _prep_for_filtering(x, copy, picks=None):
     """Set up array as 2D for filtering ease."""
-    if x.dtype != np.float64:
-        raise TypeError("Arrays passed for filtering must have a dtype of "
-                        "np.float64, got type %s" % (x.dtype,))
+    x = _check_filterable(x)
     if copy is True:
         x = x.copy()
     orig_shape = x.shape
@@ -810,8 +809,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     :ref:`disc-filtering` and :ref:`tut-filter-resample` and
     :func:`mne.filter.create_filter`.
     """
-    if not isinstance(data, np.ndarray):
-        raise ValueError('data must be an array')
+    data = _check_filterable(data)
     iir_params, method = _check_method(method, iir_params)
     filt = create_filter(
         data, sfreq, l_freq, h_freq, filter_length, l_trans_bandwidth,
@@ -1329,6 +1327,14 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     return x - datafit, rm_freqs
 
 
+def _check_filterable(x, kind='filtered'):
+    x = np.asanyarray(x)
+    if x.dtype != np.float64:
+        raise ValueError('Data to be %s must be real floating, got %s'
+                         % (kind, x.dtype,))
+    return x
+
+
 @verbose
 def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
              pad='reflect_limited', verbose=None):
@@ -1383,7 +1389,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         raise TypeError(err)
 
     # make sure our arithmetic will work
-    x = np.asanyarray(x)
+    x = _check_filterable(x, 'resampled')
     ratio = float(up) / down
     if axis < 0:
         axis = x.ndim + axis
@@ -1754,7 +1760,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
 
     # If we have data supplied, do a sanity check
     if x is not None:
-        x = np.asanyarray(x)
+        x = _check_filterable(x)
         len_x = x.shape[-1]
         if method != 'fir':
             filter_length = len_x
@@ -1839,7 +1845,8 @@ class FilterMixin(object):
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
-               pad='edge', verbose=None):
+               skip_by_annotation=('edge', 'bad_acq_skip'), pad='edge',
+               verbose=None):
         """Filter a subset of channels.
 
         Parameters
@@ -1856,19 +1863,34 @@ class FilterMixin(object):
         %(phase)s
         %(fir_window)s
         %(fir_design)s
+        skip_by_annotation : str | list of str
+            If a string (or list of str), any annotation segment that begins
+            with the given string will not be included in filtering, and
+            segments on either side of the given excluded annotated segment
+            will be filtered separately (i.e., as independent signals).
+            The default (``('edge', 'bad_acq_skip')`` will separately filter
+            any segments that were concatenated by :func:`mne.concatenate_raws`
+            or :meth:`mne.io.Raw.append`, or separated during acquisition.
+            To disable, provide an empty list. Only used if ``inst`` is raw.
+
+            .. versionadded:: 0.16.
         %(pad-fir)s
-            The default is ``'edge'``, which pads with the edge values of each
-            vector.
         %(verbose_meth)s
 
         Returns
         -------
-        inst : instance of Epochs or Evoked
+        inst : instance of Epochs, Evoked, or Raw
             The filtered data.
 
         See Also
         --------
         mne.filter.create_filter
+        mne.Evoked.savgol_filter
+        mne.io.Raw.notch_filter
+        mne.io.Raw.resample
+        mne.filter.create_filter
+        mne.filter.filter_data
+        mne.filter.construct_iir_filter
 
         Notes
         -----
@@ -1894,23 +1916,45 @@ class FilterMixin(object):
                   ``len(picks) * n_times`` additional time points need to
                   be temporaily stored in memory.
 
+        For more information, see the tutorials
+        :ref:`disc-filtering` and :ref:`tut-filter-resample` and
+        :func:`mne.filter.create_filter`.
+
         .. versionadded:: 0.15
         """
+        from .io.base import BaseRaw
         _check_preload(self, 'inst.filter')
         if pad is None and method != 'iir':
             pad = 'edge'
         update_info, picks = _filt_check_picks(self.info, picks,
                                                l_freq, h_freq)
-        filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
-                    filter_length, l_trans_bandwidth, h_trans_bandwidth,
-                    n_jobs, method, iir_params, copy=False, phase=phase,
-                    fir_window=fir_window, fir_design=fir_design, pad=pad)
+        if isinstance(self, BaseRaw):
+            # Deal with annotations
+            onsets, ends = _annotations_starts_stops(
+                self, skip_by_annotation, 'skip_by_annotation', invert=True)
+            logger.info('Filtering raw data in %d contiguous segment%s'
+                        % (len(onsets), _pl(onsets)))
+        else:
+            onsets, ends = np.array([0]), np.array([self._data.shape[1]])
+        max_idx = (ends - onsets).argmax()
+        for si, (start, stop) in enumerate(zip(onsets, ends)):
+            # Only output filter params once (for info level), and only warn
+            # once about the length criterion (longest segment is too short)
+            use_verbose = verbose if si == max_idx else 'error'
+            filter_data(
+                self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
+                picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
+                n_jobs, method, iir_params, copy=False, phase=phase,
+                fir_window=fir_window, fir_design=fir_design, pad=pad,
+                verbose=use_verbose)
+        # update info if filter is applied to all data channels,
+        # and it's not a band-stop filter
         _filt_update_info(self.info, update_info, l_freq, h_freq)
         return self
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
-                 pad='edge', verbose=None):
+                 pad='edge', verbose=None):  # lgtm
         """Resample data.
 
         .. note:: Data must be loaded.
@@ -1944,27 +1988,32 @@ class FilterMixin(object):
         artifacts. This is dataset dependent -- check your data!
         """
         from .epochs import BaseEpochs
+        from .evoked import Evoked
+        # Should be guaranteed by our inheritance, and the fact that
+        # mne.io.base.BaseRaw overrides this method
+        assert isinstance(self, (BaseEpochs, Evoked))
+
         _check_preload(self, 'inst.resample')
+
         sfreq = float(sfreq)
         o_sfreq = self.info['sfreq']
         self._data = resample(self._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs, pad=pad)
         self.info['sfreq'] = float(sfreq)
+        lowpass = self.info.get('lowpass')
+        lowpass = np.inf if lowpass is None else lowpass
+        self.info['lowpass'] = min(lowpass, sfreq / 2.)
         new_times = (np.arange(self._data.shape[-1], dtype=np.float) /
                      sfreq + self.times[0])
         # adjust indirectly affected variables
         if isinstance(self, BaseEpochs):
             self._set_times(new_times)
             self._raw_times = self.times
-        else:
+        else:  # isinstance(self, Evoked)
             self.times = new_times
             self.first = int(self.times[0] * self.info['sfreq'])
             self.last = len(self.times) + self.first - 1
         return self
-
-
-class HilbertMixin(object):
-    """Object for Epoch/Evoked/Raw Hilbert transformations."""
 
     @verbose
     def apply_hilbert(self, picks=None, envelope=False, n_jobs=1, n_fft='auto',
@@ -2178,7 +2227,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
         freq_resp[start:stop] *= np.cos(np.pi / 4. * k) ** 2
         freq_resp[stop:] = 0.0
     # Get the time-domain version of this signal
-    h = np.fft.irfft(freq_resp, n=2 * len(freq_resp) - 1)
+    h = irfft(freq_resp, n=2 * len(freq_resp) - 1)
     h = np.roll(h, n_freqs - 1)  # center the impulse like a linear-phase filt
     return h
 

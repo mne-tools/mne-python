@@ -462,9 +462,9 @@ def test_read_vhdr_annotations_and_events():
          6629., 7629., 7699.]
     )
     expected_annot_description = [
-        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
-        'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255', 'Stimulus/S253',
-        'Stimulus/S255', 'Response/R255', 'Stimulus/S254', 'Stimulus/S255',
+        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Event/254',
+        'Stimulus/S255', 'Event/254', 'Stimulus/S255', 'Stimulus/S253',
+        'Stimulus/S255', 'Response/R255', 'Event/254', 'Stimulus/S255',
         'SyncStatus/Sync On', 'Optic/O  1'
     ]
     expected_events = np.stack([
@@ -474,7 +474,7 @@ def test_read_vhdr_annotations_and_events():
          2001],
     ]).astype('int64').T
     expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
-                         'Stimulus/S255': 255, 'Stimulus/S254': 254,
+                         'Stimulus/S255': 255, 'Event/254': 254,
                          'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
                          'Optic/O  1': 2001}
 
@@ -518,5 +518,19 @@ def test_automatic_vmrk_sfreq_recovery():
     assert_array_equal(read_annotations(vmrk_path, sfreq='auto'),
                        read_annotations(vmrk_path, sfreq=1000.0))
 
+
+@testing.requires_testing_data
+def test_event_id_stability_when_save_and_fif_reload(tmpdir):
+    """Test load events from brainvision annotations when read_raw_fif."""
+    fname = op.join(str(tmpdir), 'bv-raw.fif')
+    raw = read_raw_brainvision(vhdr_path, eog=eog)
+    original_events, original_event_id = events_from_annotations(raw)
+
+    raw.save(fname)
+    raw = read_raw_fif(fname)
+    events, event_id = events_from_annotations(raw)
+
+    assert event_id == original_event_id
+    assert_array_equal(events, original_events)
 
 run_tests_if_main()

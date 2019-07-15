@@ -7,8 +7,8 @@
 #
 # License: Simplified BSD
 
-import importlib
 from contextlib import contextmanager
+import importlib
 import sys
 
 from ._utils import _get_backend_based_on_env_and_defaults, VALID_3D_BACKENDS
@@ -24,10 +24,16 @@ except NameError:
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
-if MNE_3D_BACKEND == 'mayavi':
-    from ._pysurfer_mayavi import _Renderer, _Projection  # lgtm # noqa: F401
-elif MNE_3D_BACKEND == 'pyvista':
-    from ._pyvista import _Renderer, _Projection  # lgtm # noqa: F401
+_fromlist = ('_Renderer', '_Projection', '_close_all')
+_name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
+if MNE_3D_BACKEND in VALID_3D_BACKENDS:
+    # This is (hopefully) the equivalent to:
+    #    from ._whatever_name import ...
+    _mod = importlib.__import__(
+        _name_map[MNE_3D_BACKEND], {'__name__': __name__},
+        level=1, fromlist=_fromlist)
+    for key in _fromlist:
+        locals()[key] = getattr(_mod, key)
 
 
 def set_3d_backend(backend_name):
@@ -61,12 +67,12 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+
        | :func:`plot_evoked_field`            | ✓      | ✓       |
        +--------------------------------------+--------+---------+
-       | :func:`snapshot_brain_montage`       | ✓      | ✓       |
+       | :func:`plot_sensors_connectivity`    | ✓      |         |
        +--------------------------------------+--------+---------+
-       | :func:`plot_evoked_field`            | ✓      |         |
+       | :func:`snapshot_brain_montage`       | ✓      | -       |
        +--------------------------------------+--------+---------+
        +--------------------------------------+--------+---------+
-       | **3D feature:**                                         +
+       | **3D feature:**                                         |
        +--------------------------------------+--------+---------+
        | Large data                           | ✓      | ✓       |
        +--------------------------------------+--------+---------+
@@ -76,9 +82,9 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+
        | Jupyter notebook                     | ✓      | ✓       |
        +--------------------------------------+--------+---------+
-       | Interactivity in Jupyter notebook    | ✓      |         |
+       | Interactivity in Jupyter notebook    | ✓      | ✓       |
        +--------------------------------------+--------+---------+
-       | Smooth shading                       | ✓      |         |
+       | Smooth shading                       | ✓      | ✓       |
        +--------------------------------------+--------+---------+
        | Subplotting                          | ✓      |         |
        +--------------------------------------+--------+---------+
@@ -102,7 +108,6 @@ def get_3d_backend():
     backend_used : str
         The 3d backend currently in use.
     """
-    global MNE_3D_BACKEND
     return MNE_3D_BACKEND
 
 
@@ -137,3 +142,59 @@ def _use_test_3d_backend(backend_name):
         if backend_name == 'pyvista':
             MNE_3D_BACKEND_TEST_DATA = True
         yield
+
+
+def set_3d_view(figure, azimuth=None, elevation=None,
+                focalpoint=None, distance=None):
+    """Configure the view of the given scene.
+
+    Parameters
+    ----------
+    figure:
+        The scene which is modified.
+    azimuth: float
+        The azimuthal angle of the view.
+    elevation: float
+        The zenith angle of the view.
+    focalpoint: tuple, shape (3,)
+        The focal point of the view: (x, y, z).
+    distance: float
+        The distance to the focal point.
+    """
+    _mod._set_3d_view(figure=figure, azimuth=azimuth,
+                      elevation=elevation, focalpoint=focalpoint,
+                      distance=distance)
+
+
+def set_3d_title(figure, title, size=40):
+    """Configure the title of the given scene.
+
+    Parameters
+    ----------
+    figure:
+        The scene which is modified.
+    title:
+        The title of the scene.
+    size: int
+        The size of the title.
+    """
+    _mod._set_3d_title(figure=figure, title=title, size=size)
+
+
+def create_3d_figure(size, bgcolor=(0, 0, 0)):
+    """Return an empty figure based on the current 3d backend.
+
+    Parameters
+    ----------
+    size: tuple
+        The dimensions of the 3d figure (width, height).
+    bgcolor: tuple
+        The color of the background.
+
+    Returns
+    -------
+    figure:
+        The requested empty scene.
+    """
+    renderer = _mod._Renderer(size=size, bgcolor=bgcolor)
+    return renderer.scene()

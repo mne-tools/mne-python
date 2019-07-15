@@ -1,7 +1,7 @@
 from math import ceil
 import numpy as np
-from scipy.fftpack import fft, ifft, fftfreq
 
+from ..fixes import fft, ifft, fftfreq
 from ..utils import logger, verbose
 
 

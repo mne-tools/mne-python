@@ -12,14 +12,15 @@ from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
-                     _deprecate_stim_channel, _synthesize_stim_channel)
+                     _deprecate_stim_channel, _synthesize_stim_channel,
+                     _deprecate_montage)
 from ..meas_info import _empty_info
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ...annotations import Annotations
 
 
 from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
-                     CNTEventType3)
+                     _compute_robust_event_table_position, CNTEventType3)
 
 
 def _read_annotations_cnt(fname, data_format='int16'):
@@ -45,7 +46,6 @@ def _read_annotations_cnt(fname, data_format='int16'):
     # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
     SETUP_NCHANNELS_OFFSET = 370
     SETUP_RATE_OFFSET = 376
-    SETUP_EVENTTABLEPOS_OFFSET = 886
 
     def _translating_function(offset, n_channels, event_type,
                               data_format=data_format):
@@ -63,8 +63,8 @@ def _read_annotations_cnt(fname, data_format='int16'):
         fid.seek(SETUP_RATE_OFFSET)
         (sfreq,) = np.frombuffer(fid.read(2), dtype='<u2')
 
-        fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
-        (event_table_pos,) = np.frombuffer(fid.read(4), dtype='<i4')
+        event_table_pos = _compute_robust_event_table_position(
+            fid=fid, data_format=data_format)
 
     with open(fname, 'rb') as fid:
         teeg = _read_teeg(fid, teeg_offset=event_table_pos)
@@ -94,9 +94,9 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
 
 @fill_doc
-def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
-                 data_format='auto', date_format='mm/dd/yy', preload=False,
-                 stim_channel=False, verbose=None):
+def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
+                 emg=(), data_format='auto', date_format='mm/dd/yy',
+                 preload=False, stim_channel=False, verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
@@ -115,11 +115,7 @@ def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
     ----------
     input_fname : str
         Path to the data file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        xy sensor locations are read from the header (``x_coord`` and
-        ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
-        of :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list | tuple | 'auto' | 'header'
         Names of channels or list of indices that should be designated
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
@@ -142,12 +138,7 @@ def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
         Defaults to 'auto'.
     date_format : 'mm/dd/yy' | 'dd/mm/yy'
         Format of date in the header. Defaults to 'mm/dd/yy'.
-    preload : bool | str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
         future warning.
@@ -238,8 +229,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
         fid.seek(2, 1)
         highcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
 
-        fid.seek(886)
-        event_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+        event_offset = _compute_robust_event_table_position(
+            fid=fid, data_format=data_format
+        )
+        fid.seek(890)
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
 
@@ -261,14 +254,18 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
         else:
             n_bytes = 2 if data_format == 'int16' else 4
             n_samples = data_size // (n_bytes * n_channels)
+
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         if cnt_info['channel_offset'] > 1:
             cnt_info['channel_offset'] //= n_bytes
         else:
             cnt_info['channel_offset'] = 1
-        ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
-                                               list())
+
+        ch_names, cals, baselines, chs, pos = (
+            list(), list(), list(), list(), list()
+        )
+
         bads = list()
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
@@ -394,12 +391,7 @@ class RawCNT(BaseRaw):
         Defaults to 'auto'.
     date_format : 'mm/dd/yy' | 'dd/mm/yy'
         Format of date in the header. Defaults to 'mm/dd/yy'.
-    preload : bool | str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
         future warning.
@@ -417,8 +409,8 @@ class RawCNT(BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
 
-    def __init__(self, input_fname, montage=None, eog=(), misc=(), ecg=(),
-                 emg=(), data_format='auto', date_format='mm/dd/yy',
+    def __init__(self, input_fname, montage='deprecated', eog=(), misc=(),
+                 ecg=(), emg=(), data_format='auto', date_format='mm/dd/yy',
                  preload=False, stim_channel=False,
                  verbose=None):  # noqa: D102
 
@@ -432,7 +424,6 @@ class RawCNT(BaseRaw):
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
                                        data_format, _date_format, stim_channel)
         last_samps = [cnt_info['n_samples'] - 1]
-        _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
@@ -440,6 +431,8 @@ class RawCNT(BaseRaw):
         data_format = 'int32' if cnt_info['n_bytes'] == 4 else 'int16'
         self.set_annotations(
             _read_annotations_cnt(input_fname, data_format=data_format))
+
+        _deprecate_montage(self, "read_raw_cnt", montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

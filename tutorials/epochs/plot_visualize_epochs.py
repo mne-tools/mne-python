@@ -19,7 +19,9 @@ raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
-epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5)
+epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
+                    preload=True)
+del raw
 
 ###############################################################################
 # This tutorial focuses on visualization of epoched data. All of the functions
@@ -79,13 +81,11 @@ epochs.plot_image(278, cmap='interactive', sigma=1., vmin=-250, vmax=250)
 ###############################################################################
 # We can also give an overview of all channels by calculating  the global
 # field power (or other other aggregation methods). However, combining
-# multiple channel types (e.g., MEG and EEG) in this way is not sensible.
-# Instead, we can use the ``group_by`` parameter. Setting ``group_by`` to
-# 'type' combines channels by type.
-# ``group_by`` can also be used to group channels into arbitrary groups, e.g.
-# regions of interests, by providing a dictionary containing
-# group name -> channel indices mappings.
-epochs.plot_image(combine='gfp', group_by='type', sigma=2., cmap="YlGnBu_r")
+# multiple channel types (e.g., MEG and EEG) in this way is not sensible, so
+# by default if you don't specify specific channel picks the
+# :meth:`~mne.Epochs.plot_image` method will generate a separate figure for
+# each channel type.
+epochs.plot_image(combine='gfp', sigma=2., cmap="YlGnBu_r")
 
 ###############################################################################
 # You also have functions for plotting channelwise information arranged into a

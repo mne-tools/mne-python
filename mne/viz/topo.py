@@ -431,7 +431,9 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     plt.connect('motion_notify_event', _cursor_vline)
     plt.connect('axes_leave_event', _rm_cursor)
 
-    _setup_ax_spines(ax, vline, tmin, tmax)
+    ymin, ymax = ax.get_ylim()
+    # don't pass vline or hline here (this fxn doesn't do hvline_color):
+    _setup_ax_spines(ax, [], tmin, tmax, ymin, ymax, hline=False)
     ax.figure.set_facecolor('k' if hvline_color == 'w' else 'w')
     ax.spines['bottom'].set_color(hvline_color)
     ax.spines['left'].set_color(hvline_color)

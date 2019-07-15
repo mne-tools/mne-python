@@ -7,6 +7,8 @@ Contributing to MNE-Python
    :local:
    :depth: 2
 
+.. highlight:: console
+
 .. NOTE: this first section (up until "overview of contribution process") is
    basically a copy/paste of CONTRIBUTING.rst from the repository root, with
    one sentence deleted to avoid self-referential linking. Changes made here
@@ -92,9 +94,7 @@ computer:
 
 
 Once git is installed, the only absolutely necessary configuration step is
-identifying yourself and your contact info:
-
-.. code-block:: console
+identifying yourself and your contact info::
 
    $ git config --global user.name "Your Name"
    $ git config --global user.email you@yourdomain.example.com
@@ -105,9 +105,7 @@ emails with a GitHub account, so if you initially set them up with different
 emails, just add the local email to the GitHub account.
 
 Sooner or later, git is going to ask you what text editor you want it to use
-when writing commit messages, so you might as well configure that now too:
-
-.. code-block:: console
+when writing commit messages, so you might as well configure that now too::
 
    $ git config --global core.editor emacs    # or vim, or nano, or subl, or...
 
@@ -144,22 +142,15 @@ Once you have a working Python environment, the first step is to `clone`_ the
 MNE-Python repository from your remote fork, and also connect the local copy to
 the ``upstream`` version of the codebase, so you can stay up-to-date with
 changes from other contributors. First, edit these two variables for your
-situation:
-
-.. code-block:: console
+situation::
 
     $ INSTALL_LOCATION="/opt"
     $ GITHUB_USERNAME="new_mne_contributor"
 
-Then make a local clone of your remote fork (``origin``):
-
-.. code-block:: console
+Then make a local clone of your remote fork (``origin``)::
 
     $ cd $INSTALL_LOCATION
     $ git clone https://github.com/$GITHUB_USERNAME/mne-python.git
-
-Finally, set up a link between your local clone and the official repository
-(``upstream``):
 
 .. sidebar:: Remote URLs in git
 
@@ -173,32 +164,21 @@ Finally, set up a link between your local clone and the official repository
     <github-ssh>` you'll see a third kind of remote URL for connecting to
     GitHub using SSH.
 
-.. code-block:: console
+Finally, set up a link between your local clone and the official repository
+(``upstream``)::
 
     $ cd mne-python
     $ git remote add upstream git://github.com/mne-tools/mne-python.git
     $ git fetch --all
 
-Next, use the `environment file`_ provided in the root of the MNE-Python
-repository to set up your local development environment. This will install all
-of the dependencies needed for running MNE-Python. The environment name "mne"
-is built-in to the environment file, so we'll override that on the command line
-by passing our preferred name ("mnedev") after the ``-n`` flag. See ``conda env
-create --help`` for more info.
-
-.. code-block:: console
-
-    $ conda env create -n mnedev -f environment.yml
-    $ conda activate mnedev
-
-The environment file installed the *stable* version of MNE-Python, so next
-we'll remove that and replace it with the *development* version (the clone we
-just created with git):
-
-.. code-block:: console
+Next, set up your local development environment using the
+:ref:`standard instructions <standard_instructions>`. This will install all
+of the dependencies needed for running MNE-Python. The environment file installs the
+*stable* version of MNE-Python, so next we'll remove that and replace it with the *development*
+version (the clone we just created with git)::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
-    $ pip uninstall -y mne               # or: conda remove --force mne
+    $ pip uninstall -y mne
     $ pip install -e .
 
 The command ``pip install -e .`` installs a python module into the current
@@ -210,9 +190,7 @@ be reflected the next time you open a Python interpreter and ``import mne``
 
 Finally, we'll add a few dependencies that are not needed for running
 MNE-Python, but are needed for locally running our test suite or building our
-documentation:
-
-.. code-block:: console
+documentation::
 
     $ pip install sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome memory_profiler
     $ conda install sphinx-autobuild doc8  # linter packages for reStructuredText (optional)
@@ -263,9 +241,7 @@ of the working ``upstream`` codebase. Therefore, if you want to add a new
 feature, you should first synchronize your local ``master`` branch with the
 ``upstream`` repository, then create a new branch based off of ``master`` and
 `check it out`_ so that any changes you make will exist on that new branch
-(instead of on ``master``):
-
-.. code-block:: console
+(instead of on ``master``)::
 
     $ git checkout master            # switch to local master branch
     $ git fetch upstream             # get the current state of the remote upstream repo
@@ -292,17 +268,13 @@ unit tests in another commit, and changes to the documentation in a third
 commit.  Git makes this easy(ish) with something called the `stage`_ (or
 *staging area*). After you've made some changes to the codebase, you'll have
 what git calls "unstaged changes", which will show up with the `status`_
-command:
-
-.. code-block:: console
+command::
 
     $ git status    # see what state the local copy of the codebase is in
 
 Those unstaged changes can be `added`_ to the stage one by one, by either
 adding a whole file's worth of changes, or by adding only certain lines
-interactively:
-
-.. code-block:: console
+interactively::
 
     $ git add mne/some_file.py      # add all the changes you made to this file
     $ git add mne/some_new_file.py  # add a completely new file in its entirety
@@ -316,16 +288,12 @@ commit them to the current branch with the `commit`_ command. If you just type
 use so that you can write a *commit message* — a short description of the
 changes you've grouped together in this commit. You can bypass the text editor
 by passing a commit message on the command line with the ``-m`` flag. For
-example, if your first commit adds a new feature, your commit message might be:
-
-.. code-block:: console
+example, if your first commit adds a new feature, your commit message might be::
 
     $ git commit -m 'ENH: adds feature X to the Epochs class'
 
 Once you've made the commit, the stage is now empty, and you can repeat the
-cycle, adding the unit tests and documentation changes:
-
-.. code-block:: console
+cycle, adding the unit tests and documentation changes::
 
     $ git add mne/tests/some_testing_file.py
     $ git commit -m 'add test of new feature X of the Epochs class'
@@ -338,9 +306,7 @@ When you're done, it's time to run the test suite to make sure your changes
 haven't broken any existing functionality, and to make sure your new test
 covers the lines of code you've added (see :ref:`run-tests` and
 :ref:`build-docs`, below). Once everything looks good, it's time to push your
-changes to your fork:
-
-.. code-block:: console
+changes to your fork::
 
     $ # push local changes to remote branch origin/new-feature-x
     $ # (this will create the remote branch if it doesn't already exist)
@@ -380,9 +346,7 @@ through the process.
 Once you have set up GitHub to use SSH authentication, you should change the
 addresses of your MNE-Python GitHub remotes, from ``https://`` addresses to
 ``git@`` addresses, so that git knows to connect via SSH instead of HTTPS. For
-example:
-
-.. code-block:: console
+example::
 
     $ git remote -v  # show existing remote addresses
     $ git remote set-url origin git@github.com:$GITHUB_USERNAME/mne-python.git
@@ -416,14 +380,83 @@ Avoid API changes when possible
 Changes to the public API (e.g., class/function/method names and signatures)
 should not be made lightly, as they can break existing user scripts. Changes to
 the API require a deprecation cycle (with warnings) so that users have time to
-adapt their code before API changes become default behavior. See
-:class:`mne.utils.deprecated` for usage. Bug fixes (when something isn't doing
-what it says it will do) do not require a deprecation cycle.
+adapt their code before API changes become default behavior. See :ref:`the
+deprecation section <deprecating>` and :class:`mne.utils.deprecated` for
+instructions. Bug fixes (when something isn't doing what it says it will do) do
+not require a deprecation cycle.
 
 Note that any new API elements should be added to the master reference;
 classes, functions, methods, and attributes cannot be cross-referenced unless
 they are included in the :doc:`python_reference`
 (:file:`doc/python_reference.rst`).
+
+
+.. _deprecating:
+
+Deprecate with a decorator or a warning
+---------------------------------------
+
+MNE-Python has a :func:`~mne.utils.deprecated` decorator for classes and
+functions that will be removed in a future version:
+
+.. code-block:: python
+
+    from mne.utils import deprecated
+
+    @deprecated('my_function is deprecated and will be removed in 0.XX; please '
+                'use my_new_function instead.')
+    def my_function():
+       return 'foo'
+
+If you need to deprecate a parameter, use :func:`mne.utils.warn`. For example,
+to rename a parameter from ``old_param`` to ``new_param`` you can do something
+like this:
+
+.. code-block:: python
+
+    from mne.utils import warn
+
+    def my_other_function(new_param=None, old_param=None):
+        if old_param is not None:
+            depr_message = ('old_param is deprecated and will be replaced by '
+                            'new_param in 0.XX.')
+            if new_param is None:
+                new_param = old_param
+                warn(depr_message, DeprecationWarning)
+            else:
+                warn(depr_message + ' Since you passed values for both '
+                     'old_param and new_param, old_param will be ignored.',
+                     DeprecationWarning)
+        # Do whatever you have to do with new_param
+        return 'foo'
+
+When deprecating, you should also add corresponding test(s) to the relevant
+test file(s), to make sure that the warning(s) are being issued in the
+conditions you expect:
+
+.. code-block:: python
+
+    # test deprecation warning for function
+    with pytest.warns(DeprecationWarning, match='my_function is deprecated'):
+        my_function()
+
+    # test deprecation warning for parameter
+    with pytest.warns(DeprecationWarning, match='values for both old_param'):
+        my_other_function(new_param=1, old_param=2)
+    with pytest.warns(DeprecationWarning, match='old_param is deprecated and'):
+        my_other_function(old_param=2)
+
+You should also search the codebase for any cases where the deprecated function
+or parameter are being used internally, and update them immediately (don't wait
+to the *end* of the deprecation cycle to do this). Later, at the end of the
+deprecation period when the stated release is being prepared:
+
+- delete the deprecated functions
+- remove the deprecated parameters (along with the conditional branches of
+  ``my_other_function`` that handle the presence of ``old_param``)
+- remove the deprecation tests
+- double-check for any other tests that relied on the deprecated test or
+  parameter, and (if found) update them to use the new function / parameter.
 
 
 Describe your changes in the changelog
@@ -459,9 +492,7 @@ objects (e.g., :class:`~mne.io.Raw` objects with short durations and few
 channels). You can also check which lines are missed by the tests, then modify
 existing tests (or write new ones) to target the missed lines. Here's an
 example that reports which lines within ``mne.viz`` are missed when running
-``test_evoked.py`` and ``test_topo.py``:
-
-.. code-block:: console
+``test_evoked.py`` and ``test_topo.py``::
 
     $ pytest --cov=mne.viz --cov-report=term-missing mne/viz/tests/test_evoked.py mne/viz/tests/test_topo.py
 
@@ -480,9 +511,7 @@ in `PEP 8`_. We also check for common coding errors (such as variables that are
 defined but never used). We allow very few exceptions to these guidelines, and
 use tools such as pep8_, pyflakes_, and flake8_ to check code style
 automatically. From the :file:`mne-python` root directory, you can check for
-style violations by running:
-
-.. code-block:: console
+style violations by running::
 
     $ make flake
 
@@ -510,9 +539,7 @@ In most cases imitating existing docstrings will be sufficient, but consult the
 embedding example code, citing references, or including rendered mathematics.
 Private function/method docstrings may be brief for simple functions/methods,
 but complete docstrings are appropriate when private functions/methods are
-relatively complex. To run some basic tests on documentation, you can use:
-
-.. code-block:: console
+relatively complex. To run some basic tests on documentation, you can use::
 
     $ pytest mne/tests/test_docstring_parameters.py
     $ make docstyle
@@ -614,9 +641,7 @@ to both visualization functions and tutorials/examples.
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Running the full test suite is as simple as running
-
-.. code-block:: console
+Running the full test suite is as simple as running ::
 
     $ make test
 
@@ -631,20 +656,18 @@ Running the full test suite is as simple as running
 
 from the ``mne-python`` root folder. Testing the entire module can be quite
 slow, however, so to run individual tests while working on a new feature, you
-can run, e.g.:
-
-.. code-block:: console
+can run, e.g.::
 
     $ pytest mne/tests/test_evoked.py:test_io_evoked --verbose
 
-Or alternatively:
-
-.. code-block:: console
+Or alternatively::
 
     $ pytest mne/tests/test_evoked.py -k test_io_evoked --verbose
 
 Make sure you have the testing dataset, which you can get by running this in
-a Python interpreter::
+a Python interpreter:
+
+.. code-block:: python
 
     >>> mne.datasets.testing.data_path(verbose=True)  # doctest: +SKIP
 
@@ -665,9 +688,7 @@ changes in a pull request.
 
 You can build the documentation locally using `GNU Make`_ with
 :file:`doc/Makefile`. From within the :file:`doc` directory, you can test
-formatting and linking by running:
-
-.. code-block:: console
+formatting and linking by running::
 
     $ make html_dev-noplot
 
@@ -772,7 +793,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _MNE-Python GitHub: https://github.com/mne-tools/mne-python
 .. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
-.. _environment file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
 
 .. git installation

@@ -24,17 +24,95 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
+
+- Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
+
+- Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna` _
+
+- Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
+
+- Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
+
+- Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
+
+- Add scale bars for data channels in :func:`mne.io.Raw.plot` by `Eric Larson`_
+
+- Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
+- Change the behavior of :meth:`mne.io.Raw.plot` for ``scalings='auto'`` and ``remove_dc=True`` to compute the scalings on the data with DC removed by `Clemens Brunner`_
+
+- Allow creating annotations within existing annotations in :func:`mne.io.Raw.plot` by default (the old snapping behavior can be toggled by pressing 'p') by `Clemens Brunner`_
+
+- Add a new :func:`mne.viz.plot_sensors_connectivity` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
+
+- Add re-referencing functionality for ecog and seeg channel types in :func:`mne.set_eeg_reference` by `Keith Doelling`_
+
 Bug
 ~~~
 
+- Fix order of ``info['dig']`` that was alphabetical based on channel names and not following the channel order when using :meth:`mne.io.Raw.set_montage` and a :class:`mne.channels.Montage` object by `Joan Massich`_ and `Alex Gramfort`_.
+
+- Fix reading CNT files larger than 2Gb by `Joan Massich`_
+
+- Fix formula for effective number of averages in :func:`mne.combine_evoked` when ``weights='equal'`` by `Daniel McCloy`_.
+
+- Fix bug in :func:`mne.simulation.simulate_stc` to avoid empty stc if label vertices and source space do not intersect, by `Kostiantyn Maksymenko`_
+
+- Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
+
+- Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
+
+- Fix :func:`mne.Evoked.resample` and :func:`mne.Epochs.resample` not setting ``inst.info['lowpass']`` properly by `Eric Larson`_
+
+- Fix checks when constructing volumetric and surface source spaces with :func:`mne.setup_volume_source_space` and :func:`mne.setup_source_space`, respectively, by `Eric Larson`_
+
 - Fix bug in handling of :class:`mne.Evoked` types that were not produced by MNE-Python (e.g., alternating average) by `Eric Larson`_
+
+- Fix bug in :func:`mne.read_source_estimate` where vector volumetric source estimates could not be read by `Eric Larson`_
 
 - Fix bug in :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.tf_mixed_norm` where ``weights`` was supplied but ``weights_min`` was not, by `Eric Larson`_
 
+- Fix bug in :func:`mne.set_eeg_reference` where non-EEG channels could be re-referenced by default if there were no EEG channels present, by `Eric Larson`_
+
 - Fix bug in :func:`mne.io.Raw.plot` when using HiDPI displays and the MacOSX backend of matplotlib by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_compare_evokeds` when using Neuromag 122 system by `Eric Larson`_
+
+- Fix bug in :func:`mne.Epochs.plot_psd` when some channels had zero/infinite ``psd`` values causing erroneous error messages by `Luke Bloy`_
+
+- Fix :func:`mne.Evoked.decimate` not setting ``inst.first`` and ``inst.last`` properly by `Marijn van Vliet`_
+
+- Fix :func:`mne.io.read_raw_brainvision` not handling ``Event`` markers created by PyCorder correctly by `Richard Höchenberger`_
 
 API
 ~~~
+
+
+- Deprecate ``montage`` parameter in favor of the ``set_montage`` method in all EEG data readers :func:`mne.io.read_raw_cnt`, :func:`mne.io.read_raw_egi`, :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_gdf`, :func:`mne.io.read_raw_nicolet`, :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Alex Gramfort`_
+
+- New parameter ``clear`` in :func:`mne.viz.plot_epochs_image` for clearing pre-existing axes before plotting into them by `Daniel McCloy`_
+
+- :func:`mne.viz.plot_epochs_image` no longer supports ``group_by='type'`` — combining by channel type is now the default when ``picks`` is a channel type string; to get individual plots for each channel, pass ``picks`` as a list of channel names or indices by `Daniel McCloy`_
+
+- New parameter ``combine`` in :func:`mne.viz.plot_compare_evokeds` for specifying method to combine information across channels by `Daniel McCloy`_
+
+- The ``gfp`` parameter of :func:`mne.viz.plot_compare_evokeds` is deprecated; use ``combine='gfp'`` instead by `Daniel McCloy`_
+
+- The ``truncate_yaxis='max_ticks'`` parameter of :func:`mne.viz.plot_compare_evokeds` is deprecated; use ``truncate_yaxis='auto'`` instead by `Daniel McCloy`_
+
+- The ``truncate_xaxis`` and ``truncate_yaxis`` parameters of :func:`mne.viz.plot_compare_evokeds` now perform one-sided truncation unless both are ``True`` by `Daniel McCloy`_
+
+- The ``show_legend`` parameter of :func:`mne.viz.plot_compare_evokeds` is renamed to ``legend`` by `Daniel McCloy`_
+
+- :func:`mne.viz.plot_compare_evokeds` always returns a list of figures even when a single figure is generated by `Daniel McCloy`_
+
+- Deprecate ``average=True`` and ``spatial_colors=False`` for :func:`mne.Epochs.plot_psd` by `Jeff Hanna`_
+
+- :func:`mne.io.read_raw_brainvision` no longer raises an error when there are inconsistencies between ``info['chs']`` and ``montage`` but warns instead by `Joan Massich`_
+
+- Add ``update_ch_names`` parameter to :meth:`mne.io.Raw.set_montage` to allow updating the channel names based on the montage by `Joan Massich`_
+
 
 .. _changes_0_18:
 
@@ -171,6 +249,8 @@ Changelog
 - Add option ``ids = None`` in :func:`mne.event.shift_time_events` for considering all events by `Nikolas Chalas`_ and `Joan Massich`_
 
 - Add ``mne.realtime.MockLSLStream`` to simulate an LSL stream for testing and examples by `Teon Brooks`_
+
+- Add support for file-like objects in :func:`mne.read_epochs` as long as preloading is used by `Paul Roujansky`_
 
 Bug
 ~~~
@@ -349,7 +429,7 @@ Changelog
 
 - Add ability to read and write beamformers with :func:`mne.beamformer.read_beamformer` and :class:`mne.beamformer.Beamformer.save` by `Eric Larson`_
 
-- Add resting-state source power spectral estimation example :ref:`sphx_glr_auto_examples_datasets_plot_opm_rest_data.py` by `Eric Larson`_, `Denis Engemann`_, and `Luke Bloy`_
+- Add resting-state source power spectral estimation example ``sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`` by `Eric Larson`_, `Denis Engemann`_, and `Luke Bloy`_
 
 - Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
 
@@ -990,7 +1070,6 @@ Changelog
 
 BUG
 ~~~
-
 - Fixed a bug when creating spherical volumetric grid source spaces in :func:`setup_volume_source_space` by improving the minimum-distance computations, which in general will decrease the number of used source space points by `Eric Larson`_
 
 - Fix bug in :meth:`mne.io.read_raw_brainvision` read .vhdr files with ANSI codepage by `Okba Bekhelifi`_ and `Alex Gramfort`_
@@ -1089,6 +1168,8 @@ BUG
 
 API
 ~~~
+- Removed the ``mne.datasets.megsim`` dataset because it was taken down by its host (MRN). Use the :mod:`mne.simulation` functions instead, by `Eric Larson`_
+
 - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
 
 - ICA channel names have now been reformatted to start from zero, e.g. ``"ICA000"``, to match indexing schemes in :class:`mne.preprocessing.ICA` and related functions, by `Stefan Repplinger`_ and `Eric Larson`_
@@ -3208,8 +3289,6 @@ of commits):
 
 .. _Lukas Breuer: http://www.researchgate.net/profile/Lukas_Breuer
 
-.. _Federico Raimondo: https://github.com/fraimondo
-
 .. _Alan Leggitt: https://github.com/leggitta
 
 .. _Marijn van Vliet: https://github.com/wmvanvliet
@@ -3296,7 +3375,7 @@ of commits):
 
 .. _Andrea Brovelli: http://www.int.univ-amu.fr/_BROVELLI-Andrea_?lang=en
 
-.. _Richard Höchenberger: http://hoechenberger.name
+.. _Richard Höchenberger: https://github.com/hoechenberger
 
 .. _Matt Boggess: https://github.com/mattboggess
 
@@ -3403,3 +3482,7 @@ of commits):
 .. _Alexander Kovrig: https://github.com/OpenSatori
 
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
+
+.. _Thomas Radman: https://github.com/tradman
+
+.. _Paul Roujansky: https://github.com/paulroujansky

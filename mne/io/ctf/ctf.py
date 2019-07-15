@@ -21,6 +21,8 @@ from .trans import _make_ctf_coord_trans_set
 from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
 
+from ...digitization.base import _format_dig_points
+
 
 @fill_doc
 def read_raw_ctf(directory, system_clock='truncate', preload=False,
@@ -36,12 +38,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
         the data file when the system clock drops to zero, and use "ignore"
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
@@ -77,12 +74,7 @@ class RawCTF(BaseRaw):
         the data file when the system clock drops to zero, and use "ignore"
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
@@ -116,6 +108,7 @@ class RawCTF(BaseRaw):
         # Compose a structure which makes fiff writing a piece of cake
         info = _compose_meas_info(res4, coils, coord_trans, eeg)
         info['dig'] += digs
+        info['dig'] = _format_dig_points(info['dig'])
         info['bads'] += _read_bad_chans(directory, info)
 
         # Determine how our data is distributed across files

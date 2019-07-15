@@ -3,12 +3,15 @@
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 # License: BSD (3-clause)
-import types
-import numpy as np
+from functools import partial
 import os
+import types
+
+import numpy as np
+import pytest
+
 import mne
 
-from functools import partial
 
 info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'meas_date', 'highpass', 'lowpass', 'subject_info',
@@ -24,8 +27,7 @@ info_long_fields = ('hpi_meas', )
 
 system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
                             'CNT': partial(mne.io.read_raw_cnt,
-                                           stim_channel=False,
-                                           montage=None),
+                                           stim_channel=False),
                             'CTF': partial(mne.io.read_raw_ctf,
                                            clean_names=True),
                             'BTI': partial(mne.io.read_raw_bti,
@@ -121,7 +123,11 @@ def get_raw_data(system, drop_extra_chs=False):
     if system == 'eximia':
         crop -= 0.5 * (1.0 / raw_data.info['sfreq'])
     raw_data.crop(0, crop)
-    raw_data.set_eeg_reference([])
+    if any([type_ in raw_data for type_ in ['eeg', 'ecog', 'seeg']]):
+        raw_data.set_eeg_reference([])
+    else:
+        with pytest.raises(ValueError, match='No EEG, ECoG or sEEG channels'):
+            raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
     raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])

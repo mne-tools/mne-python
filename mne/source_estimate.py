@@ -340,18 +340,19 @@ def read_source_estimate(fname, subject=None):
                            'subject name from the file "%s'
                            % (subject, kwargs['subject']))
 
+    vector = kwargs['data'].ndim == 3
     if ftype in ('volume', 'discrete'):
-        stc = VolSourceEstimate(**kwargs)
+        klass = VolVectorSourceEstimate if vector else VolSourceEstimate
     elif ftype == 'mixed':
-        stc = MixedSourceEstimate(**kwargs)
+        if vector:
+            # XXX we should really support this at some point
+            raise NotImplementedError('Vector mixed source estimates not yet '
+                                      'supported')
+        klass = MixedSourceEstimate
     else:
         assert ftype == 'surface'
-        if kwargs['data'].ndim == 3:
-            stc = VectorSourceEstimate(**kwargs)
-        else:
-            stc = SourceEstimate(**kwargs)
-
-    return stc
+        klass = VectorSourceEstimate if vector else SourceEstimate
+    return klass(**kwargs)
 
 
 def _get_src_type(src, vertices, warn_text=None):
@@ -415,7 +416,7 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
                     subject=subject)
     elif src_type == 'mixed':
         # make a mixed source estimate
-        if vector:
+        if vector:  # XXX this should be supported someday
             raise RuntimeError('Vector source estimates for mixed source '
                                'spaces are not supported yet')
         stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
@@ -636,7 +637,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         self._remove_kernel_sens_data_()
 
         o_sfreq = 1.0 / self.tstep
-        self.data = resample(self.data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
+        data = self.data
+        if data.dtype == np.float32:
+            data = data.astype(np.float64)
+        self.data = resample(data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
 
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq

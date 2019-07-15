@@ -18,8 +18,8 @@ import re
 import numpy as np
 
 from ...utils import verbose, logger, warn
-from ..utils import _blk_read_lims
-from ..base import BaseRaw, _check_update_montage
+from ..utils import _blk_read_lims, _deprecate_montage
+from ..base import BaseRaw
 from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
@@ -83,10 +83,7 @@ class RawEDF(BaseRaw):
     ----------
     input_fname : str
         Path to the EDF, EDF+ or BDF file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -111,12 +108,7 @@ class RawEDF(BaseRaw):
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
@@ -172,7 +164,6 @@ class RawEDF(BaseRaw):
                                                stim_channel, eog, misc,
                                                exclude, preload)
         logger.info('Creating raw.info structure...')
-        _check_update_montage(info, montage)
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
@@ -191,6 +182,8 @@ class RawEDF(BaseRaw):
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
+
+        _deprecate_montage(self, "read_raw_edf", montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -214,10 +207,7 @@ class RawGDF(BaseRaw):
     ----------
     input_fname : str
         Path to the GDF file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -234,12 +224,7 @@ class RawGDF(BaseRaw):
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
@@ -263,7 +248,6 @@ class RawGDF(BaseRaw):
                                                stim_channel, eog, misc,
                                                exclude, preload)
         logger.info('Creating raw.info structure...')
-        _check_update_montage(info, montage)
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
@@ -278,6 +262,8 @@ class RawGDF(BaseRaw):
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
+
+        _deprecate_montage(self, "read_raw_gdf", montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -394,8 +380,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
                         # it forces edge artifacts to appear at
                         # each buffer boundary :(
                         # it can also be very slow...
-                        ch_data = resample(ch_data, buf_len, n_samps[ci],
-                                           npad=0, axis=-1)
+                        ch_data = resample(
+                            ch_data.astype(np.float64), buf_len, n_samps[ci],
+                            npad=0, axis=-1)
                 assert ch_data.shape == (len(ch_data), buf_len)
                 data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
 
@@ -1159,7 +1146,7 @@ def _find_tal_idx(ch_names):
 
 
 @fill_doc
-def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
+def read_raw_edf(input_fname, montage='deprecated', eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for EDF or EDF+ files.
 
@@ -1167,10 +1154,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     ----------
     input_fname : str
         Path to the EDF or EDF+ file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -1195,12 +1179,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
@@ -1245,7 +1224,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
 
 
 @fill_doc
-def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
+def read_raw_bdf(input_fname, montage='deprecated', eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for BDF files.
 
@@ -1253,10 +1232,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
     ----------
     input_fname : str
         Path to the BDF file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -1281,12 +1257,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes
@@ -1341,7 +1312,7 @@ def read_raw_bdf(input_fname, montage=None, eog=None, misc=None,
 
 
 @fill_doc
-def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
+def read_raw_gdf(input_fname, montage='deprecated', eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for GDF files.
 
@@ -1369,12 +1340,7 @@ def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing. If
-        True, data will be preloaded into memory (fast, but requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard drive
-        (slower, but requires less memory).
+    %(preload)s
     %(verbose)s
 
     Notes

@@ -14,7 +14,9 @@ from .pick import pick_types, pick_channels
 from .base import BaseRaw
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
-from ..utils import logger, warn, verbose, _validate_type, _check_preload
+from ..utils import (logger, warn, verbose, _validate_type, _check_preload,
+                     _check_option)
+from ..defaults import DEFAULTS
 
 
 def _copy_channel(inst, ch_name, new_ch_name):
@@ -97,6 +99,11 @@ def _apply_reference(inst, ref_from, ref_to=None):
 
     if ref_to is None:
         ref_to = [inst.ch_names[i] for i in eeg_idx]
+        extra = 'EEG channels found'
+    else:
+        extra = 'channels supplied'
+    if len(ref_to) == 0:
+        raise ValueError('No %s to apply the reference to' % (extra,))
 
     # After referencing, existing SSPs might not be valid anymore.
     projs_to_remove = []
@@ -132,8 +139,12 @@ def _apply_reference(inst, ref_from, ref_to=None):
 
     # Compute reference
     if len(ref_from) > 0:
-        ref_from = pick_channels(inst.ch_names, ref_from)
-        ref_to = pick_channels(inst.ch_names, ref_to)
+        # this is guaranteed below, but we should avoid the crazy pick_channels
+        # behavior that [] gives all. Also use ordered=True just to make sure
+        # that all supplied channels actually exist.
+        assert len(ref_to) > 0
+        ref_from = pick_channels(inst.ch_names, ref_from, ordered=True)
+        ref_to = pick_channels(inst.ch_names, ref_to, ordered=True)
 
         data = inst._data
         ref_data = data[..., ref_from, :].mean(-2, keepdims=True)
@@ -257,7 +268,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
 
 @verbose
 def set_eeg_reference(inst, ref_channels='average', copy=True,
-                      projection=False, verbose=None):
+                      projection=False, ch_type='auto', verbose=None):
     """Specify which reference to use for EEG data.
 
     By default, MNE-Python will automatically re-reference the EEG signal to
@@ -313,6 +324,12 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         the average reference is directly applied to the data.
         If ``ref_channels`` is not ``'average'``, ``projection`` must be set to
         ``False`` (the default in this case).
+    ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
+        The name of the channel type to apply the reference to. If 'auto', the
+        first channel type of eeg, ecog or seeg that is found (in that order)
+        will be selected.
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Returns
@@ -348,11 +365,11 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     """
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
 
-    if ref_channels != 'average' and projection:
-        raise ValueError('Setting projection=True is only supported for '
-                         'ref_channels="average".')
-
-    if ref_channels == 'average' and projection:  # average reference projector
+    if projection:  # average reference projector
+        if ref_channels != 'average':
+            raise ValueError('Setting projection=True is only supported for '
+                             'ref_channels="average", got %r.'
+                             % (ref_channels,))
         if _has_eeg_average_ref_proj(inst.info['projs']):
             warn('An average reference projection was already added. The data '
                  'has been left untouched.')
@@ -378,20 +395,39 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
     inst = inst.copy() if copy else inst
 
+    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg'))
+    # if ch_type is 'auto', search through list to find first reasonable
+    # reference-able channel type.
+    possible_types = ['eeg', 'ecog', 'seeg']
+    if ch_type == 'auto':
+        for type_ in possible_types:
+            if type_ in inst:
+                ch_type = type_
+                logger.info('%s channel type selected for '
+                            're-referencing' % DEFAULTS['titles'][type_])
+                break
+        # if auto comes up empty, or the user specifies a bad ch_type.
+        else:
+            raise ValueError('No EEG, ECoG or sEEG channels found '
+                             'to rereference.')
+
+    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
+    eeg_idx = pick_types(inst.info, **ch_dict)
+    ch_sel = [inst.ch_names[i] for i in eeg_idx]
+
     if ref_channels == 'average' and not projection:  # apply average reference
         logger.info('Applying average reference.')
-        eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
-        ref_from = [inst.ch_names[i] for i in eeg_idx]
-        ref_channels = ref_from
+        ref_channels = ch_sel
 
     if ref_channels == []:
         logger.info('EEG data marked as already having the desired reference. '
                     'Preventing automatic future re-referencing to an average '
                     'reference.')
     else:
-        logger.info('Applying a custom EEG reference.')
+        logger.info('Applying a custom %s '
+                    'reference.' % DEFAULTS['titles'][type_])
 
-    return _apply_reference(inst, ref_channels)
+    return _apply_reference(inst, ref_channels, ch_sel)
 
 
 @verbose

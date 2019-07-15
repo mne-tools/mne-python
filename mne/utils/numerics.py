@@ -287,7 +287,9 @@ def random_permutation(n_samples, random_state=None):
         Randomly permuted sequence between 0 and n-1.
     """
     rng = check_random_state(random_state)
-    idx = rng.rand(n_samples)
+    # This can't just be rng.permutation(n_samples) because it's not identical
+    # to what MATLAB produces
+    idx = rng.uniform(size=n_samples)
     randperm = np.argsort(idx)
     return randperm
 
@@ -703,6 +705,14 @@ def _sort_keys(x):
     return keys
 
 
+def _array_equal_nan(a, b):
+    try:
+        np.testing.assert_array_equal(a, b)
+    except AssertionError:
+        return False
+    return True
+
+
 def object_diff(a, b, pre=''):
     """Compute all differences between two python variables.
 
@@ -712,7 +722,7 @@ def object_diff(a, b, pre=''):
         Currently supported: dict, list, tuple, ndarray, int, str, bytes,
         float, StringIO, BytesIO.
     b : object
-        Must be same type as x1.
+        Must be same type as ``a``.
     pre : str
         String to prepend to each line.
 
@@ -734,7 +744,8 @@ def object_diff(a, b, pre=''):
             if key not in k2s:
                 out += pre + ' right missing key %s\n' % key
             else:
-                out += object_diff(a[key], b[key], pre + '[%s]' % repr(key))
+                out += object_diff(a[key], b[key],
+                                   pre=(pre + '[%s]' % repr(key)))
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
@@ -748,7 +759,7 @@ def object_diff(a, b, pre=''):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if not np.array_equal(a, b):
+        if not _array_equal_nan(a, b):
             out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():

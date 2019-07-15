@@ -1,8 +1,8 @@
-name: mne
+name: base
 channels:
 - defaults
 dependencies:
-- python<3.7
+- python>=3.5
 - pip
 - mkl
 - numpy
@@ -34,8 +34,8 @@ dependencies:
 - pip:
   - mne
   - vtk
-  - pyvista
-  - https://api.github.com/repos/enthought/mayavi/zipball/e2569be1096be3deecb15f8fa8581a3ae3fb77d3
+  - pyvista>=0.20.3
+  - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel
@@ -47,3 +47,4 @@ dependencies:
   - codespell
   - python-picard
   - pylsl>=1.12
+  - panel

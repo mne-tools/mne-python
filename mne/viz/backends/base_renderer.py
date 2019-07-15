@@ -52,12 +52,18 @@ class _BaseRenderer(metaclass=ABCMeta):
             If True, enable backface culling on the mesh.
         kwargs: args
             The arguments to pass to triangular_mesh
+
+        Returns
+        -------
+        surface:
+            Handle of the mesh in the scene.
         """
         pass
 
     @abstractclassmethod
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
-                vmin=None, vmax=None, colormap=None):
+                vmin=None, vmax=None, colormap=None,
+                normalized_colormap=False):
         """Add a contour in the scene.
 
         Parameters
@@ -135,6 +141,46 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
+    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+             scalars=None, vmin=None, vmax=None, colormap='RdBu',
+             normalized_colormap=False, reverse_lut=False):
+        """Add tube in the scene.
+
+        Parameters
+        ----------
+        origin: array, shape(n_lines, 3)
+            The coordinates of the first end of the tube(s).
+        destination: array, shape(n_lines, 3)
+            The coordinates of the other end of the tube(s).
+        radius: float
+            The radius of the tube(s).
+        color: tuple
+            The color of the tube(s): (red, green, blue).
+        scalars: array, shape (n_quivers,) | None
+            The optional scalar data to use.
+        vmin: float | None
+            vmin is used to scale the colormap.
+            If None, the min of the data will be used
+        vmax: float | None
+            vmax is used to scale the colormap.
+            If None, the max of the data will be used
+        colormap:
+            The colormap to use.
+        opacity: float
+            The opacity of the tube(s).
+        backface_culling: bool
+            If True, enable backface culling on the tube(s).
+        reverse_lut: bool
+            If True, reverse the lookup table.
+
+        Returns
+        -------
+        surface:
+            Handle of the tube in the scene.
+        """
+        pass
+
+    @abstractclassmethod
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
@@ -181,8 +227,8 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def text(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
-        """Add test in the scene.
+    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+        """Add 2d text in the scene.
 
         Parameters
         ----------
@@ -196,6 +242,42 @@ class _BaseRenderer(metaclass=ABCMeta):
             The width of the text.
         color: tuple
             The color of the text.
+        """
+        pass
+
+    @abstractclassmethod
+    def text3d(self, x, y, z, text, width, color=(1.0, 1.0, 1.0)):
+        """Add 2d text in the scene.
+
+        Parameters
+        ----------
+        x: float
+            The X component to use as position of the text.
+        y: float
+            The Y component to use as position of the text.
+        z: float
+            The Z component to use as position of the text.
+        text: str
+            The content of the text.
+        width: float
+            The width of the text.
+        color: tuple
+            The color of the text.
+        """
+        pass
+
+    @abstractclassmethod
+    def scalarbar(self, source, title=None, n_labels=4):
+        """Add a scalar bar in the scene.
+
+        Parameters
+        ----------
+        source:
+            The object of the scene used for the colormap.
+        title: str | None
+            The title of the scalar bar.
+        n_labels: int | None
+            The number of labels to display on the scalar bar.
         """
         pass
 
