@@ -34,7 +34,7 @@ def load_module(name, path):
     return mod
 
 
-def get_optparser(cmdpath, usage=None, prog=None, version=None):
+def get_optparser(cmdpath, usage=None, prog_prefix='mne', version=None):
     """Create OptionParser with cmd specific settings (e.g., prog value)."""
     # Fetch description
     mod = load_module('__temp', cmdpath)
@@ -46,15 +46,13 @@ def get_optparser(cmdpath, usage=None, prog=None, version=None):
         if len(doc_lines) > 1:
             epilog = '\n'.join(doc_lines[1:])
 
-    # Set prog without command name for now
-    if prog is None:
-        prog = 'mne'
-
-    # Get the name of the command and update prog with that name
+    # Get the name of the command
     command = os.path.basename(cmdpath)
     command, _ = os.path.splitext(command)
-    command = command[len(prog) + 1:]  # +1 is for `_` character
-    prog += ' {}'.format(command)
+    command = command[len(prog_prefix) + 1:]  # +1 is for `_` character
+
+    # Set prog
+    prog = prog_prefix + ' {}'.format(command)
 
     # Set version
     if version is None:
