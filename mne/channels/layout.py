@@ -427,6 +427,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
         return generate_2d_layout(xy, ch_names=info['ch_names'], name='custom',
                                   normalize=False)
 
+    print(layout_name)
     layout = read_layout(layout_name)
     if not is_old_vv:
         layout.names = _clean_names(layout.names, remove_whitespace=True)
@@ -472,14 +473,14 @@ def _find_kit_layout(info, n_grads):
                                   "about adding it." % info['kit_system_id'])
     elif n_grads == 160:
         return 'KIT-160'
-<<<<<<< HEAD
-        
-    elif n_grads > 157 and n_grads != 160:
-=======
+
+    elif n_grads == 125:
+        return 'KIT-125'
 
     elif n_grads > 157:
->>>>>>> mne-tools/master
         return 'KIT-AD'
+
+
 
     # channels which are on the left hemisphere for NY and right for UMD
     test_chs = ('MEG  13', 'MEG  14', 'MEG  15', 'MEG  16', 'MEG  25',
