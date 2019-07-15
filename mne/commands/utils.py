@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 
 import os
-import re
 from optparse import OptionParser
 
 import mne
@@ -37,12 +36,6 @@ def load_module(name, path):
 
 def get_optparser(cmdpath, usage=None, prog=None, version=None):
     """Create OptionParser with cmd specific settings (e.g., prog value)."""
-    command = os.path.basename(cmdpath)
-    if re.match('mne_(.*).py', command):
-        command = command[4:-3]
-    elif re.match('mne_(.*).pyc', command):
-        command = command[4:-4]
-
     # Fetch description
     mod = load_module('__temp', cmdpath)
     if mod.__doc__:
@@ -53,9 +46,15 @@ def get_optparser(cmdpath, usage=None, prog=None, version=None):
         if len(doc_lines) > 1:
             epilog = '\n'.join(doc_lines[1:])
 
-    # Set prog
+    # Set prog without command name for now
     if prog is None:
-        prog = 'mne {}'.format(command)
+        prog = 'mne'
+
+    # Get the name of the command and update prog with that name
+    command = os.path.basename(cmdpath)
+    command, _ = os.path.splitext(command)
+    command = command[len(prog) + 1:]  # +1 is for `_` character
+    prog += ' {}'.format(command)
 
     # Set version
     if version is None:
