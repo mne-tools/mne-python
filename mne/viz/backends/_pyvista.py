@@ -446,9 +446,9 @@ def _get_camera_direction(focalpoint, position):
 
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
-    position = np.array(figure.camera_position[0])
+    position = np.array(figure.plotter.camera_position[0])
     if focalpoint is None:
-        focalpoint = np.array(figure.camera_position[1])
+        focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
 
     if azimuth is not None:
@@ -462,11 +462,11 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         r * np.cos(phi) * np.sin(theta),
         r * np.sin(phi) * np.sin(theta),
         r * np.cos(theta)]
-    figure.camera_position = [
+    figure.plotter.camera_position = [
         position, focalpoint, [0, 0, 1]]
 
 
 def _set_3d_title(figure, title, size=40):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
-        figure.add_text(title, font_size=32, color=(1.0, 1.0, 1.0))
+        figure.plotter.add_text(title, font_size=32, color=(1.0, 1.0, 1.0))
