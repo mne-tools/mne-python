@@ -11,6 +11,11 @@ from functools import partial
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
+from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
                  compute_proj_evoked, find_layout)
@@ -27,13 +32,9 @@ from mne.utils import run_tests_if_main
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_check_outlines, _onselect, plot_topomap,
-                             plot_psds_topomap)
+                             plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
 
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -50,9 +51,6 @@ layout = read_layout('Vectorview-all')
 
 def test_plot_topomap_interactive():
     """Test interactive topomap projection plotting."""
-    import matplotlib.pyplot as plt
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-    from matplotlib.figure import Figure
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     evoked.pick_types(meg='mag')
     evoked.info['projs'] = []
@@ -105,7 +103,6 @@ def test_plot_topomap_interactive():
 @testing.requires_testing_data
 def test_plot_projs_topomap():
     """Test plot_projs_topomap."""
-    import matplotlib.pyplot as plt
     projs = read_proj(ecg_fname)
     info = read_info(raw_fname)
     fast_test = {"res": 8, "contours": 0, "sensors": False}
@@ -129,8 +126,6 @@ def test_plot_projs_topomap():
 @testing.requires_testing_data
 def test_plot_topomap():
     """Test topomap plotting."""
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Circle
     # evoked
     res = 8
     fast_test = dict(res=res, contours=0, sensors=False, time_unit='s')
@@ -157,6 +152,25 @@ def test_plot_topomap():
 
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
+
+    # extrapolation to the edges of the convex hull or the head circle
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
+                        contours=[-100, 0, 100], time_unit='ms',
+                        extrapolate='local')
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
+                        contours=[-100, 0, 100], time_unit='ms',
+                        extrapolate='head')
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
+                        contours=[-100, 0, 100], time_unit='ms',
+                        extrapolate='head', outlines='skirt')
+
+    # extrapolation options when < 4 channels:
+    temp_data = np.random.random(3)
+    picks = channel_indices_by_type(evoked.info)['mag'][:3]
+    info_sel = pick_info(evoked.info, picks)
+    plot_topomap(temp_data, info_sel, extrapolate='local', res=res)
+    plot_topomap(temp_data, info_sel, extrapolate='head', res=res)
+
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
     plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
@@ -196,9 +210,11 @@ def test_plot_topomap():
     subplot = [x for x in p.get_children() if 'Subplot' in str(type(x))]
     assert len(subplot) >= 1, [type(x) for x in p.get_children()]
     subplot = subplot[0]
-    assert (all('MEG' not in x.get_text()
-                for x in subplot.get_children()
-                if isinstance(x, matplotlib.text.Text)))
+
+    have_all = all('MEG' not in x.get_text()
+                   for x in subplot.get_children()
+                   if isinstance(x, matplotlib.text.Text))
+    assert have_all
 
     # Plot array
     for ch_type in ('mag', 'grad'):
@@ -364,8 +380,6 @@ def test_plot_topomap():
 
 def test_plot_tfr_topomap():
     """Test plotting of TFR data."""
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
     raw = read_raw_fif(raw_fname)
     times = np.linspace(-0.1, 0.1, 200)
     res = 8
@@ -379,12 +393,12 @@ def test_plot_tfr_topomap():
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
                      res=res, contours=0)
 
-    eclick = mpl.backend_bases.MouseEvent('button_press_event',
-                                          plt.gcf().canvas, 0, 0, 1)
+    eclick = matplotlib.backend_bases.MouseEvent(
+        'button_press_event', plt.gcf().canvas, 0, 0, 1)
     eclick.xdata = eclick.ydata = 0.1
     eclick.inaxes = plt.gca()
-    erelease = mpl.backend_bases.MouseEvent('button_release_event',
-                                            plt.gcf().canvas, 0.9, 0.9, 1)
+    erelease = matplotlib.backend_bases.MouseEvent(
+        'button_release_event', plt.gcf().canvas, 0.9, 0.9, 1)
     erelease.xdata = 0.3
     erelease.ydata = 0.2
     pos = [[0.11, 0.11], [0.25, 0.5], [0.0, 0.2], [0.2, 0.39]]
@@ -422,6 +436,24 @@ def test_ctf_plotting():
     evoked.plot_topomap()
 
 
+@pytest.mark.slowtest  # can be slow on OSX
+@testing.requires_testing_data
+def test_plot_arrowmap():
+    """Test arrowmap plotting."""
+    evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                          baseline=(None, 0))
+    with pytest.raises(ValueError, match='Multiple channel types'):
+        plot_arrowmap(evoked.data[:, 0], evoked.info)
+    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
+    with pytest.raises(ValueError, match='Multiple channel types'):
+        plot_arrowmap(evoked_eeg.data[:, 0], evoked.info)
+    evoked_mag = evoked.copy().pick_types(meg='mag')
+    evoked_grad = evoked.copy().pick_types(meg='grad')
+    plot_arrowmap(evoked_mag.data[:, 0], evoked_mag.info)
+    plot_arrowmap(evoked_grad.data[:, 0], evoked_grad.info,
+                  info_to=evoked_mag.info)
+
+
 @testing.requires_testing_data
 def test_plot_topomap_neuromag122():
     """Test topomap plotting."""
@@ -450,5 +482,6 @@ def test_plot_topomap_neuromag122():
     plot_projs_topomap([proj], info=evoked.info, **fast_test)
     plot_projs_topomap([proj], layout=layout, **fast_test)
     pytest.raises(RuntimeError, plot_projs_topomap, [proj], **fast_test)
+
 
 run_tests_if_main()

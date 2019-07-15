@@ -6,16 +6,14 @@
 
 import numpy as np
 
-from .utils import logger, verbose
+from .utils import logger, verbose, _check_option
 
 
 def _log_rescale(baseline, mode='mean'):
     """Log the rescaling method."""
     if baseline is not None:
-        valid_modes = ('logratio', 'ratio', 'zscore', 'mean', 'percent',
-                       'zlogratio')
-        if mode not in valid_modes:
-            raise Exception('mode should be any of : %s' % (valid_modes, ))
+        _check_option('mode', mode, ['logratio', 'ratio', 'zscore', 'mean',
+                                     'percent', 'zlogratio'])
         msg = 'Applying baseline correction (mode: %s)' % mode
     else:
         msg = 'No baseline correction applied'
@@ -61,9 +59,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
         Whether to return a new instance or modify in place.
     picks : list of int | None
         Data to process along the axis=-2 (None, default, processes all).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

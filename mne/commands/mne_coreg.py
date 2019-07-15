@@ -3,7 +3,12 @@
 
 """Open the coregistration GUI.
 
-example usage:  $ mne coreg
+Examples
+--------
+.. code-block:: console
+
+    $ mne coreg
+
 """
 
 import os.path as op
@@ -72,6 +77,9 @@ def run():
                       help='Scale factor for the scene.')
     parser.add_option('--verbose', action='store_true', dest='verbose',
                       help='Turn on verbose mode.')
+    parser.add_option('--simple-rendering', action='store_false',
+                      dest='advanced_rendering',
+                      help='Use simplified OpenGL rendering')
 
     options, args = parser.parse_args()
 
@@ -107,7 +115,9 @@ def run():
             orient_to_surface=options.orient_to_surface,
             scale_by_distance=options.scale_by_distance,
             mark_inside=options.mark_inside, interaction=options.interaction,
-            scale=options.scale, verbose=options.verbose)
+            scale=options.scale,
+            advanced_rendering=options.advanced_rendering,
+            verbose=options.verbose)
     if is_main:
         sys.exit(0)
 

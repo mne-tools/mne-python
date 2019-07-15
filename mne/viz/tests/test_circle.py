@@ -7,17 +7,13 @@
 
 import numpy as np
 import pytest
+import matplotlib.pyplot as plt
 
 from mne.viz import plot_connectivity_circle, circular_layout
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 
 def test_plot_connectivity_circle():
     """Test plotting connectivity circle."""
-    import matplotlib.pyplot as plt
     node_order = ['frontalpole-lh', 'parsorbitalis-lh',
                   'lateralorbitofrontal-lh', 'rostralmiddlefrontal-lh',
                   'medialorbitofrontal-lh', 'parstriangularis-lh',

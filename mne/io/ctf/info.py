@@ -75,7 +75,7 @@ def _convert_time(date_str, time_str):
     """Convert date and time strings to float time."""
     for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
         try:
-            date = strptime(date_str, fmt)
+            date = strptime(date_str.strip(), fmt)
         except ValueError:
             pass
         else:

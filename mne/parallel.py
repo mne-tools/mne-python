@@ -4,7 +4,6 @@
 #
 # License: Simplified BSD
 
-from .externals.six import string_types
 import logging
 import os
 
@@ -19,8 +18,8 @@ else:
 
 
 @verbose
-def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
-                  total=None, verbose=None):
+def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
+                  total=None, prefer=None, verbose=None):
     """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
@@ -44,9 +43,12 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         jobs. This should only be used when directly iterating, not when
         using ``split_list`` or :func:`np.array_split`.
         If None (default), do not add a progress bar.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG
+    prefer : str | None
+        If str, can be "processes" or "threads". See :class:`joblib.Parallel`.
+        Ignored if the joblib version is too old to support this.
+
+        .. versionadded:: 0.18
+    %(verbose)s INFO or DEBUG
         will print parallel status, others will not.
 
     Returns
@@ -79,7 +81,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
 
         cache_dir = get_config('MNE_CACHE_DIR', None)
-        if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':
+        if isinstance(max_nbytes, str) and max_nbytes == 'auto':
             max_nbytes = get_config('MNE_MEMMAP_MIN_SIZE', None)
 
         if max_nbytes is not None:
@@ -97,6 +99,8 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         # create keyword arguments for Parallel
         kwargs = {'verbose': 5 if should_print and total is None else 0}
         kwargs['pre_dispatch'] = pre_dispatch
+        if 'prefer' in p_args:
+            kwargs['prefer'] = prefer
 
         if joblib_mmap:
             if cache_dir is None:
@@ -137,7 +141,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
     if not isinstance(n_jobs, int):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
-        elif not isinstance(n_jobs, string_types) or n_jobs != 'cuda':
+        elif not isinstance(n_jobs, str) or n_jobs != 'cuda':
             raise ValueError('n_jobs must be an integer, or "cuda"')
         # else, we have n_jobs='cuda' and this is okay, so do nothing
     elif _force_serial:

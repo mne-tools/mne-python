@@ -14,9 +14,9 @@ import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_evokeds, SourceMorph, compute_source_morph,
                  read_source_morph, read_source_estimate,
-                 read_forward_solution, grade_to_vertices, morph_data,
+                 read_forward_solution, grade_to_vertices,
                  setup_volume_source_space, make_forward_solution,
-                 make_sphere_model, make_ad_hoc_cov)
+                 make_sphere_model, make_ad_hoc_cov, VolVectorSourceEstimate)
 from mne.datasets import testing
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
@@ -215,6 +215,11 @@ def test_surface_vector_source_morph():
     stc_surf.subject = None
     assert isinstance(source_morph_surf.apply(stc_surf), SourceEstimate)
 
+    # degenerate
+    stc_vol = read_source_estimate(fname_vol, 'sample')
+    with pytest.raises(ValueError, match='stc_from was type'):
+        source_morph_surf.apply(stc_vol)
+
 
 @requires_h5py
 @requires_nibabel()
@@ -295,8 +300,17 @@ def test_volume_source_morph():
     # check morph
     stc_vol_morphed = source_morph_vol.apply(stc_vol)
 
+    # vector
+    stc_vol_vec = VolVectorSourceEstimate(
+        np.tile(stc_vol.data[:, np.newaxis], (1, 3, 1)), stc_vol.vertices,
+        0, 1)
+    stc_vol_vec_morphed = source_morph_vol.apply(stc_vol_vec)
+    assert isinstance(stc_vol_vec_morphed, VolVectorSourceEstimate)
+    for ii in range(3):
+        assert_allclose(stc_vol_vec_morphed.data[:, ii], stc_vol_morphed.data)
+
     # check output as NIfTI
-    assert isinstance(source_morph_vol.apply(stc_vol, output='nifti2'),
+    assert isinstance(source_morph_vol.apply(stc_vol_vec, output='nifti2'),
                       nib.Nifti2Image)
 
     # check for subject_from mismatch
@@ -347,7 +361,7 @@ def test_volume_source_morph():
         source_morph_vol.apply(stc_vol, output=1)
     with pytest.raises(ValueError, match='subject_from does not match'):
         compute_source_morph(src=src, subject_from='42')
-    with pytest.raises(ValueError, match='output must be one of'):
+    with pytest.raises(ValueError, match='output'):
         source_morph_vol.apply(stc_vol, output='42')
     with pytest.raises(TypeError, match='subject_to must'):
         compute_source_morph(src, 'sample', None,
@@ -357,6 +371,10 @@ def test_volume_source_morph():
     # before checking if the actual voxel size error will raise.
     with pytest.raises(ValueError, match='Cannot infer original voxel size'):
         stc_vol.as_volume(inverse_operator_vol['src'], mri_resolution=4)
+
+    stc_surf = read_source_estimate(fname_stc, 'sample')
+    with pytest.raises(ValueError, match='stc_from was type'):
+        source_morph_vol.apply(stc_surf)
 
 
 @pytest.mark.slowtest
@@ -374,13 +392,9 @@ def test_morph_stc_dense():
                        [0, len(stc_to.times) - 1])
 
     # After dep change this to:
-    # stc_to1 = compute_source_morph(
-    #     subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
-    #     subjects_dir=subjects_dir).apply(stc_from)
-    with pytest.deprecated_call():
-        stc_to1 = stc_from.morph(
-            subject_to=subject_to, grade=3, smooth=12,
-            subjects_dir=subjects_dir)
+    stc_to1 = compute_source_morph(
+        subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
+        subjects_dir=subjects_dir).apply(stc_from)
     assert_allclose(stc_to.data, stc_to1.data, atol=1e-5)
 
     mean_from = stc_from.data.mean(axis=0)
@@ -395,19 +409,8 @@ def test_morph_stc_dense():
         morph = compute_source_morph(
             stc_from, subject_from, subject_to, spacing=None, smooth=1,
             subjects_dir=subjects_dir)
-    # after deprecation change this to:
-    # stc_to5 = morph.apply(stc_from)
-    with pytest.deprecated_call():
-        stc_to5 = stc_from.morph_precomputed(
-            morph_mat=morph.morph_mat, subject_to=subject_to,
-            vertices_to=morph.vertices_to)
+    stc_to5 = morph.apply(stc_from)
     assert stc_to5.data.shape[0] == 163842 + 163842
-    # after deprecation delete this
-    with pytest.deprecated_call():
-        stc_to6 = morph_data(
-            subject_from, subject_to, stc_from, grade=None, smooth=1,
-            subjects_dir=subjects_dir)
-    assert_allclose(stc_to6.data, stc_to5.data)
 
     # Morph vector data
     stc_vec = _real_vec_stc()

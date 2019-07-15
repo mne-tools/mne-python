@@ -14,3 +14,14 @@ uint
 # for tempita
 delimeters
 delimeter
+nd
+cas
+thes
+ba
+ist
+theses
+od
+fo
+files'
+ser
+vas

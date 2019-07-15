@@ -16,7 +16,7 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.17.dev0'
+__version__ = '0.19.dev0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
@@ -48,8 +48,7 @@ from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       make_forward_dipole, use_coil_def)
 from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               SourceEstimate, VectorSourceEstimate,
-                              VolSourceEstimate, morph_data,
-                              morph_data_precomputed,
+                              VolSourceEstimate, VolVectorSourceEstimate,
                               grade_to_tris,
                               spatial_src_connectivity,
                               spatial_tris_connectivity,
@@ -58,7 +57,7 @@ from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               spatio_temporal_src_connectivity,
                               spatio_temporal_tris_connectivity,
                               spatio_temporal_dist_connectivity,
-                              save_stc_as_volume, extract_label_time_course)
+                              extract_label_time_course)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf)
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
@@ -76,7 +75,8 @@ from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,
 from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked
 from .label import (read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
-                    BiHemiLabel, read_labels_from_annot, write_labels_to_annot, random_parcellation)
+                    BiHemiLabel, read_labels_from_annot, write_labels_to_annot,
+                    random_parcellation, morph_labels, labels_to_stc)
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,
                     scale_source_space)
@@ -88,6 +88,9 @@ from .selection import read_selection
 from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
 from .channels import equalize_channels, rename_channels, find_layout
 from .report import Report, open_report
+
+from .io import read_epochs_fieldtrip, read_evoked_fieldtrip
+from .rank import compute_rank
 
 from . import beamformer
 from . import channels
@@ -104,6 +107,7 @@ from . import externals
 from . import io
 from . import filter
 from . import gui
+from . import inverse_sparse
 from . import minimum_norm
 from . import preprocessing
 from . import simulation
@@ -111,7 +115,6 @@ from . import stats
 from . import time_frequency
 from . import viz
 from . import decoding
-from . import realtime
 
 # initialize logging
 set_log_level(None, False)

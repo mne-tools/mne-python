@@ -2,15 +2,15 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
 from collections import Counter
 from copy import deepcopy
 import datetime
+from io import BytesIO
 import operator
-import os.path as op
-import re
 
 import numpy as np
 from scipy import linalg
@@ -27,13 +27,15 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import _to_const
 from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff, _validate_type
-from .. import __version__
-from ..externals.six import b, BytesIO, string_types, text_type
 from .compensator import get_current_comp
 
+# XXX: most probably the functions needing this, should go somewhere else
+from ..digitization.base import _dig_kind_proper, _dig_kind_rev, _dig_kind_ints
+from ..digitization._utils import _read_dig_fif
+
+b = bytes  # alias
 
 _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
@@ -54,6 +56,61 @@ _kind_dict = dict(
 )
 
 
+def _get_valid_units():
+    """Get valid units according to the International System of Units (SI).
+
+    The International System of Units (SI, [1]_) is the default system for
+    describing units in the Brain Imaging Data Structure (BIDS). For more
+    information, see the BIDS specification [2]_ and the appendix "Units"
+    therein.
+
+    References
+    ----------
+    [1] .. https://en.wikipedia.org/wiki/International_System_of_Units
+    [2] .. https://bids-specification.readthedocs.io/en/stable/
+
+    """
+    valid_prefix_names = ['yocto', 'zepto', 'atto', 'femto', 'pico', 'nano',
+                          'micro', 'milli', 'centi', 'deci', 'deca', 'hecto',
+                          'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
+                          'zetta', 'yotta']
+    valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', u'µ', 'm', 'c', 'd',
+                            'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
+    valid_unit_names = ['metre', 'kilogram', 'second', 'ampere', 'kelvin',
+                        'mole', 'candela', 'radian', 'steradian', 'hertz',
+                        'newton', 'pascal', 'joule', 'watt', 'coulomb', 'volt',
+                        'farad', 'ohm', 'siemens', 'weber', 'tesla', 'henry',
+                        'degree Celsius', 'lumen', 'lux', 'becquerel', 'gray',
+                        'sievert', 'katal']
+    valid_unit_symbols = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd', 'rad', 'sr',
+                          'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', u'Ω', 'S',
+                          'Wb', 'T', 'H', u'°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv',
+                          'kat']
+
+    # Valid units are all possible combinations of either prefix name or prefix
+    # symbol together with either unit name or unit symbol. E.g., nV for
+    # nanovolt
+    valid_units = []
+    valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_names
+                     for unit in valid_unit_names])
+    valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_names
+                     for unit in valid_unit_symbols])
+    valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_symbols
+                     for unit in valid_unit_names])
+    valid_units += ([''.join([prefix, unit]) for prefix in valid_prefix_symbols
+                     for unit in valid_unit_symbols])
+
+    # units are also valid without a prefix
+    valid_units += valid_unit_names
+    valid_units += valid_unit_symbols
+
+    # we also accept "n/a" as a unit, which is the default missing value in
+    # BIDS
+    valid_units += ["n/a"]
+
+    return tuple(valid_units)
+
+
 def _summarize_str(st):
     """Make summary string."""
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
@@ -67,6 +124,35 @@ def _stamp_to_dt(stamp):
         stamp.append(0)
     return (datetime.datetime.utcfromtimestamp(stamp[0]) +
             datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
+
+
+def _unique_channel_names(ch_names):
+    """Ensure unique channel names."""
+    FIFF_CH_NAME_MAX_LENGTH = 15
+    unique_ids = np.unique(ch_names, return_index=True)[1]
+    if len(unique_ids) != len(ch_names):
+        dups = {ch_names[x]
+                for x in np.setdiff1d(range(len(ch_names)), unique_ids)}
+        warn('Channel names are not unique, found duplicates for: '
+             '%s. Applying running numbers for duplicates.' % dups)
+        for ch_stem in dups:
+            overlaps = np.where(np.array(ch_names) == ch_stem)[0]
+            # We need an extra character since we append '-'.
+            # np.ceil(...) is the maximum number of appended digits.
+            n_keep = (FIFF_CH_NAME_MAX_LENGTH - 1 -
+                      int(np.ceil(np.log10(len(overlaps)))))
+            n_keep = min(len(ch_stem), n_keep)
+            ch_stem = ch_stem[:n_keep]
+            for idx, ch_idx in enumerate(overlaps):
+                ch_name = ch_stem + '-%s' % idx
+                if ch_name not in ch_names:
+                    ch_names[ch_idx] = ch_name
+                else:
+                    raise ValueError('Adding a running number for a '
+                                     'duplicate resulted in another '
+                                     'duplicate name %s' % ch_name)
+
+    return ch_names
 
 
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
@@ -213,7 +299,7 @@ class Info(dict):
         unit : int
             The unit to use, e.g. ``FIFF_UNIT_T_M``.
         unit_mul : int
-            Unit multipliers, most commontly ``FIFF_UNITM_NONE``.
+            Unit multipliers, most commonly ``FIFF_UNITM_NONE``.
 
     * ``comps`` list of dict:
 
@@ -229,16 +315,9 @@ class Info(dict):
         save_calibrated : bool
             Were the compensation data saved in calibrated form.
 
-    * ``dig`` dict:
+    * ``dig`` list:
 
-        kind : int
-            Digitization kind, e.g. ``FIFFV_POINT_EXTRA``.
-        ident : int
-            Identifier.
-        r : ndarary, shape (3,)
-            Position.
-        coord_frame : int
-            Coordinate frame, e.g. ``FIFFV_COORD_HEAD``.
+        See :class:`~mne.digitization.DigPoint`.
 
     * ``events`` list of dict:
 
@@ -420,6 +499,13 @@ class Info(dict):
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
+            elif k == 'dig' and v is not None:
+                counts = Counter(d['kind'] for d in v)
+                counts = ['%d %s' % (counts[ii],
+                                     _dig_kind_proper[_dig_kind_rev[ii]])
+                          for ii in _dig_kind_ints if ii in counts]
+                counts = (' (%s)' % (', '.join(counts))) if len(counts) else ''
+                entr = '%d items%s' % (len(v), counts)
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
                             ('%s' % v if v is not None else None))
@@ -474,26 +560,13 @@ class Info(dict):
         self._check_ch_name_length()
 
         # make sure channel names are unique
-        unique_ids = np.unique(self['ch_names'], return_index=True)[1]
-        if len(unique_ids) != self['nchan']:
-            dups = set(self['ch_names'][x]
-                       for x in np.setdiff1d(range(self['nchan']), unique_ids))
-            warn('Channel names are not unique, found duplicates for: '
-                 '%s. Applying running numbers for duplicates.' % dups)
-            for ch_stem in dups:
-                overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
-                n_keep = min(len(ch_stem),
-                             14 - int(np.ceil(np.log10(len(overlaps)))))
-                ch_stem = ch_stem[:n_keep]
-                for idx, ch_idx in enumerate(overlaps):
-                    ch_name = ch_stem + '-%s' % idx
-                    assert ch_name not in self['ch_names']
-                    self['ch_names'][ch_idx] = ch_name
-                    self['chs'][ch_idx]['ch_name'] = ch_name
+        self['ch_names'] = _unique_channel_names(self['ch_names'])
+        for idx, ch_name in enumerate(self['ch_names']):
+            self['chs'][idx]['ch_name'] = ch_name
 
         if 'filename' in self:
-            warn('the "filename" key is misleading\
-                 and info should not have it')
+            warn('the "filename" key is misleading '
+                 'and info should not have it')
 
     def _check_ch_name_length(self):
         """Check that channel names are sufficiently short."""
@@ -518,7 +591,9 @@ def _simplify_info(info):
     chs = [{key: ch[key]
             for key in ('ch_name', 'kind', 'unit', 'coil_type', 'loc')}
            for ch in info['chs']]
-    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
+    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'],
+                    projs=info['projs'],
+                    custom_ref_applied=info['custom_ref_applied'])
     sub_info._update_redundant()
     return sub_info
 
@@ -531,9 +606,7 @@ def read_fiducials(fname, verbose=None):
     ----------
     fname : str
         The filename to read.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -581,11 +654,10 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
     coord_frame : int
         The coordinate frame of the points (one of
         mne.io.constants.FIFF.FIFFV_COORD_...).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
-    write_dig(fname, pts, coord_frame)
+    from ..digitization._utils import write_dig as ff
+    ff(fname, pts, coord_frame)
 
 
 def write_dig(fname, pts, coord_frame=None):
@@ -603,215 +675,8 @@ def write_dig(fname, pts, coord_frame=None):
         here. Can be None (default) if the points could have varying
         coordinate frames.
     """
-    if coord_frame is not None:
-        coord_frame = _to_const(coord_frame)
-        pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
-        bad_frames = pts_frames - set((coord_frame,))
-        if len(bad_frames) > 0:
-            raise ValueError(
-                'Points have coord_frame entries that are incompatible with '
-                'coord_frame=%i: %s.' % (coord_frame, str(tuple(bad_frames))))
-
-    with start_file(fname) as fid:
-        write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
-        end_file(fid)
-
-
-def _read_dig_fif(fid, meas_info):
-    """Read digitizer data from a FIFF file."""
-    isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
-    dig = None
-    if len(isotrak) == 0:
-        logger.info('Isotrak not found')
-    elif len(isotrak) > 1:
-        warn('Multiple Isotrak found')
-    else:
-        isotrak = isotrak[0]
-        dig = []
-        for k in range(isotrak['nent']):
-            kind = isotrak['directory'][k].kind
-            pos = isotrak['directory'][k].pos
-            if kind == FIFF.FIFF_DIG_POINT:
-                tag = read_tag(fid, pos)
-                dig.append(tag.data)
-                dig[-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-    return dig
-
-
-def _read_dig_points(fname, comments='%', unit='auto'):
-    """Read digitizer data from a text file.
-
-    If fname ends in .hsp or .esp, the function assumes digitizer files in [m],
-    otherwise it assumes space-delimited text files in [mm].
-
-    Parameters
-    ----------
-    fname : str
-        The filepath of space delimited file with points, or a .mat file
-        (Polhemus FastTrak format).
-    comments : str
-        The character used to indicate the start of a comment;
-        Default: '%'.
-    unit : 'auto' | 'm' | 'cm' | 'mm'
-        Unit of the digitizer files (hsp and elp). If not 'm', coordinates will
-        be rescaled to 'm'. Default is 'auto', which assumes 'm' for *.hsp and
-        *.elp files and 'mm' for *.txt files, corresponding to the known
-        Polhemus export formats.
-
-    Returns
-    -------
-    dig_points : np.ndarray, shape (n_points, 3)
-        Array of dig points in [m].
-    """
-    if unit not in ('auto', 'm', 'mm', 'cm'):
-        raise ValueError('unit must be one of "auto", "m", "mm", or "cm"')
-
-    _, ext = op.splitext(fname)
-    if ext == '.elp' or ext == '.hsp':
-        with open(fname) as fid:
-            file_str = fid.read()
-        value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
-        coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
-        if ext == '.hsp':
-            coord_pattern = '^' + coord_pattern
-        points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
-                                                      re.MULTILINE)]
-        dig_points = np.array(points_str, dtype=float)
-    elif ext == '.mat':  # like FastScan II
-        from scipy.io import loadmat
-        dig_points = loadmat(fname)['Points'].T
-    else:
-        dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
-        if unit == 'auto':
-            unit = 'mm'
-        if dig_points.shape[1] > 3:
-            warn('Found %d columns instead of 3, using first 3 for XYZ '
-                 'coordinates' % (dig_points.shape[1],))
-            dig_points = dig_points[:, :3]
-
-    if dig_points.shape[-1] != 3:
-        err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
-        raise ValueError(err)
-
-    if unit == 'mm':
-        dig_points /= 1000.
-    elif unit == 'cm':
-        dig_points /= 100.
-
-    return dig_points
-
-
-def _write_dig_points(fname, dig_points):
-    """Write points to text file.
-
-    Parameters
-    ----------
-    fname : str
-        Path to the file to write. The kind of file to write is determined
-        based on the extension: '.txt' for tab separated text file.
-    dig_points : numpy.ndarray, shape (n_points, 3)
-        Points.
-    """
-    _, ext = op.splitext(fname)
-    dig_points = np.asarray(dig_points)
-    if (dig_points.ndim != 2) or (dig_points.shape[1] != 3):
-        err = ("Points must be of shape (n_points, 3), "
-               "not %s" % (dig_points.shape,))
-        raise ValueError(err)
-
-    if ext == '.txt':
-        with open(fname, 'wb') as fid:
-            version = __version__
-            now = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-            fid.write(b("% Ascii 3D points file created by mne-python version "
-                        "{version} at {now}\n".format(version=version,
-                                                      now=now)))
-            fid.write(b("% {N} 3D points, "
-                        "x y z per line\n".format(N=len(dig_points))))
-            np.savetxt(fid, dig_points, delimiter='\t', newline='\n')
-    else:
-        msg = "Unrecognized extension: %r. Need '.txt'." % ext
-        raise ValueError(msg)
-
-
-def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     extra_points=None, dig_ch_pos=None):
-    """Construct digitizer info for the info.
-
-    Parameters
-    ----------
-    nasion : array-like | numpy.ndarray, shape (3,) | None
-        Point designated as the nasion point.
-    lpa : array-like |  numpy.ndarray, shape (3,) | None
-        Point designated as the left auricular point.
-    rpa : array-like |  numpy.ndarray, shape (3,) | None
-        Point designated as the right auricular point.
-    hpi : array-like | numpy.ndarray, shape (n_points, 3) | None
-        Points designated as head position indicator points.
-    extra_points : array-like | numpy.ndarray, shape (n_points, 3)
-        Points designed as the headshape points.
-    dig_ch_pos : dict
-        Dict of EEG channel positions.
-
-    Returns
-    -------
-    dig : list
-        List of digitizer points to be added to the info['dig'].
-    """
-    dig = []
-    if lpa is not None:
-        lpa = np.asarray(lpa)
-        if lpa.shape != (3,):
-            raise ValueError('LPA should have the shape (3,) instead of %s'
-                             % (lpa.shape,))
-        dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    if nasion is not None:
-        nasion = np.asarray(nasion)
-        if nasion.shape != (3,):
-            raise ValueError('Nasion should have the shape (3,) instead of %s'
-                             % (nasion.shape,))
-        dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    if rpa is not None:
-        rpa = np.asarray(rpa)
-        if rpa.shape != (3,):
-            raise ValueError('RPA should have the shape (3,) instead of %s'
-                             % (rpa.shape,))
-        dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    if hpi is not None:
-        hpi = np.asarray(hpi)
-        if hpi.ndim != 2 or hpi.shape[1] != 3:
-            raise ValueError('HPI should have the shape (n_points, 3) instead '
-                             'of %s' % (hpi.shape,))
-        for idx, point in enumerate(hpi):
-            dig.append({'r': point, 'ident': idx + 1,
-                        'kind': FIFF.FIFFV_POINT_HPI,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    if extra_points is not None:
-        extra_points = np.asarray(extra_points)
-        if extra_points.shape[1] != 3:
-            raise ValueError('Points should have the shape (n_points, 3) '
-                             'instead of %s' % (extra_points.shape,))
-        for idx, point in enumerate(extra_points):
-            dig.append({'r': point, 'ident': idx + 1,
-                        'kind': FIFF.FIFFV_POINT_EXTRA,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    if dig_ch_pos is not None:
-        keys = sorted(dig_ch_pos.keys())
-        try:  # use the last 3 as int if possible (e.g., EEG001->1)
-            idents = [int(key[-3:]) for key in keys]
-        except ValueError:  # and if any conversion fails, simply use arange
-            idents = np.arange(1, len(keys) + 1)
-        for key, ident in zip(keys, idents):
-            dig.append({'r': dig_ch_pos[key], 'ident': ident,
-                        'kind': FIFF.FIFFV_POINT_EEG,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    return dig
+    from ..digitization._utils import write_dig as ff
+    return ff(fname, pts, coord_frame=None)
 
 
 @verbose
@@ -822,9 +687,7 @@ def read_info(fname, verbose=None):
     ----------
     fname : str
         File name.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -878,9 +741,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         If True, clean info['bads'] before running consistency check.
         Should only be needed for old files where we did not check bads
         before saving.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1115,7 +976,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             kind = hpi_meas['directory'][k].kind
             pos = hpi_meas['directory'][k].pos
             if kind == FIFF.FIFF_CREATOR:
-                hm['creator'] = text_type(read_tag(fid, pos).data)
+                hm['creator'] = str(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_SFREQ:
                 hm['sfreq'] = float(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_NCHAN:
@@ -1163,16 +1024,16 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 si['id'] = int(tag.data)
             elif kind == FIFF.FIFF_SUBJ_HIS_ID:
                 tag = read_tag(fid, pos)
-                si['his_id'] = text_type(tag.data)
+                si['his_id'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_LAST_NAME:
                 tag = read_tag(fid, pos)
-                si['last_name'] = text_type(tag.data)
+                si['last_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_FIRST_NAME:
                 tag = read_tag(fid, pos)
-                si['first_name'] = text_type(tag.data)
+                si['first_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_MIDDLE_NAME:
                 tag = read_tag(fid, pos)
-                si['middle_name'] = text_type(tag.data)
+                si['middle_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_BIRTH_DAY:
                 tag = read_tag(fid, pos)
                 si['birthday'] = tag.data
@@ -1203,7 +1064,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 hs['ncoil'] = int(tag.data)
             elif kind == FIFF.FIFF_EVENT_CHANNEL:
                 tag = read_tag(fid, pos)
-                hs['event_channel'] = text_type(tag.data)
+                hs['event_channel'] = str(tag.data)
             hpi_coils = dir_tree_find(hpi_subsystem, FIFF.FIFFB_HPI_COIL)
             hc = []
             for coil in hpi_coils:
@@ -1611,7 +1472,7 @@ def _merge_info_values(infos, key, verbose=None):
             logger.info('Found multiple StringIO instances. '
                         'Setting value to `None`')
             return None
-        elif isinstance(list(unique_values)[0], string_types):
+        elif isinstance(list(unique_values)[0], str):
             logger.info('Found multiple filenames. '
                         'Setting value to `None`')
             return None
@@ -1640,9 +1501,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         If True, force the fields for objects in `info` will be updated
         to match those in the first item. Use at your own risk, as this
         may overwrite important metadata.
-    verbose : bool, str, int, or NonIe
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1659,8 +1518,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     for this_info in infos:
         info['chs'].extend(this_info['chs'])
     info._update_redundant()
-    duplicates = set([ch for ch in info['ch_names']
-                      if info['ch_names'].count(ch) > 1])
+    duplicates = {ch for ch in info['ch_names']
+                  if info['ch_names'].count(ch) > 1}
     if len(duplicates) > 0:
         msg = ("The following channels are present in more than one input "
                "measurement info objects: %s" % list(duplicates))
@@ -1745,9 +1604,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         digitizer information will be updated. A list of unique montages,
         can be specified and applied to the info. See also the documentation of
         :func:`mne.channels.read_montage` for more information.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1786,11 +1643,13 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     nchan = len(ch_names)
     if ch_types is None:
         ch_types = ['misc'] * nchan
-    if isinstance(ch_types, string_types):
+    if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
-    if len(ch_types) != nchan:
+    ch_types = np.atleast_1d(np.array(ch_types, np.str))
+    if ch_types.ndim != 1 or len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length '
-                         '(%s != %s)' % (len(ch_types), nchan))
+                         '(%s != %s) for ch_types=%s'
+                         % (len(ch_types), nchan, ch_types))
     info = _empty_info(sfreq)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         _validate_type(name, 'str', "each entry in ch_names")
@@ -1813,7 +1672,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         for montage_ in montage:
             if isinstance(montage_, (Montage, DigMontage)):
                 _set_montage(info, montage_)
-            elif isinstance(montage_, string_types):
+            elif isinstance(montage_, str):
                 montage_ = read_montage(montage_)
                 _set_montage(info, montage_)
             else:

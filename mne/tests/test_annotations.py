@@ -4,6 +4,7 @@
 
 from datetime import datetime
 from itertools import repeat
+from collections import OrderedDict
 
 import os.path as op
 
@@ -17,17 +18,20 @@ import numpy as np
 import mne
 from mne import create_info, read_annotations, events_from_annotations
 from mne import Epochs, Annotations
-from mne.utils import run_tests_if_main, _TempDir
+from mne.utils import (run_tests_if_main, _TempDir, requires_version,
+                       catch_logging)
+from mne.utils import assert_and_remove_boundary_annot, _raw_annot
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.io.tests.test_raw import _raw_annot
-from mne.annotations import _sync_onset, _handle_meas_date
-from mne.annotations import read_brainstorm_annotations
+from mne.annotations import (_sync_onset, _handle_meas_date,
+                             _read_annotations_txt_parse_header)
 from mne.datasets import testing
 
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
+
+first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
 
 
 def test_basics():
@@ -60,14 +64,14 @@ def test_basics():
     assert_array_equal(raw2.annotations.onset, onset + offset)
     assert id(raw2.annotations) != id(annot)
     concatenate_raws([raw, raw2])
-    raw.annotations.delete(-1)  # remove boundary annotations
-    raw.annotations.delete(-1)
-
+    assert_and_remove_boundary_annot(raw)
     assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
 
-    # Test combining with RawArray and orig_times
+
+def test_raw_array_orig_times():
+    """Test combining with RawArray and orig_times."""
     data = np.random.randn(2, 1000) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
@@ -83,23 +87,31 @@ def test_basics():
     raw.set_annotations(Annotations([1.], [.5], 'x', None))
     raws.append(raw)
     raw = concatenate_raws(raws, verbose='debug')
-    boundary_idx = np.where(raw.annotations.description == 'BAD boundary')[0]
-    assert len(boundary_idx) == 3
-    raw.annotations.delete(boundary_idx)
-    boundary_idx = np.where(raw.annotations.description == 'EDGE boundary')[0]
-    assert len(boundary_idx) == 3
-    raw.annotations.delete(boundary_idx)
+    assert_and_remove_boundary_annot(raw, 3)
     assert_array_equal(raw.annotations.onset, [124., 125., 134., 135.,
                                                144., 145., 154.])
     raw.annotations.delete(2)
     assert_array_equal(raw.annotations.onset, [124., 125., 135., 144.,
                                                145., 154.])
     raw.annotations.append(5, 1.5, 'y')
-    assert_array_equal(raw.annotations.onset, [124., 125., 135., 144.,
-                                               145., 154.,   5.])
-    assert_array_equal(raw.annotations.duration, [.5, .5, .5, .5, .5, .5, 1.5])
-    assert_array_equal(raw.annotations.description, ['x', 'x', 'x', 'x', 'x',
-                                                     'x', 'y'])
+    assert_array_equal(raw.annotations.onset,
+                       [5., 124., 125., 135., 144., 145., 154.])
+    assert_array_equal(raw.annotations.duration,
+                       [1.5, .5, .5, .5, .5, .5, .5])
+    assert_array_equal(raw.annotations.description,
+                       ['y', 'x', 'x', 'x', 'x', 'x', 'x'])
+
+    # These three things should be equivalent
+    expected_orig_time = (raw.info['meas_date'][0] +
+                          raw.info['meas_date'][1] / 1000000)
+    for empty_annot in (
+            Annotations([], [], [], expected_orig_time),
+            Annotations([], [], [], None),
+            None):
+        raw.set_annotations(empty_annot)
+        assert isinstance(raw.annotations, Annotations)
+        assert len(raw.annotations) == 0
+        assert raw.annotations.orig_time == expected_orig_time
 
 
 def test_crop():
@@ -133,9 +145,7 @@ def test_crop():
                                       verbose='debug')
     assert_allclose(raw_concat.times, raw.times)
     assert_allclose(raw_concat[:][0], raw[:][0], atol=1e-20)
-    # Get rid of the boundary events
-    raw_concat.annotations.delete(-1)
-    raw_concat.annotations.delete(-1)
+    assert_and_remove_boundary_annot(raw_concat)
     # Ensure we annotations survive round-trip crop->concat
     assert_array_equal(raw_concat.annotations.description,
                        raw.annotations.description)
@@ -152,8 +162,7 @@ def test_crop():
     raw2.set_annotations(Annotations([2.], [3], 'BAD', None))
     expected_onset = [45., 2. + raw._last_time]
     raw = concatenate_raws([raw, raw2])
-    raw.annotations.delete(-1)  # remove boundary annotations
-    raw.annotations.delete(-1)
+    assert_and_remove_boundary_annot(raw)
     assert_array_almost_equal(raw.annotations.onset, expected_onset, decimal=2)
 
     # Test IO
@@ -171,6 +180,7 @@ def test_crop():
     annot = read_annotations(fname)
     assert isinstance(annot, Annotations)
     assert len(annot) == 0
+    annot.crop()  # test if cropping empty annotations doesn't raise an error
     # Test that empty annotations can be saved with an object
     fname = op.join(tempdir, 'test_raw.fif')
     raw.set_annotations(annot)
@@ -183,6 +193,36 @@ def test_crop():
     raw_read = read_raw_fif(fname)
     assert raw_read.annotations is not None  # XXX to be fixed in #5416
     assert len(raw_read.annotations.onset) == 0  # XXX to be fixed in #5416
+
+
+@first_samps
+def test_chunk_duration(first_samp):
+    """Test chunk_duration."""
+    # create dummy raw
+    raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
+                   info=create_info(ch_names=10, sfreq=1.),
+                   first_samp=first_samp)
+    raw.info['meas_date'] = 0
+    raw.set_annotations(Annotations(description='foo', onset=[0],
+                                    duration=[10], orig_time=None))
+
+    # expected_events = [[0, 0, 1], [0, 0, 1], [1, 0, 1], [1, 0, 1], ..
+    #                    [9, 0, 1], [9, 0, 1]]
+    expected_events = np.atleast_2d(np.repeat(range(10), repeats=2)).T
+    expected_events = np.insert(expected_events, 1, 0, axis=1)
+    expected_events = np.insert(expected_events, 2, 1, axis=1)
+    expected_events[:, 0] += first_samp
+
+    events, events_id = events_from_annotations(raw, chunk_duration=.5,
+                                                use_rounding=False)
+    assert_array_equal(events, expected_events)
+
+    # test chunk durations that do not fit equally in annotation duration
+    expected_events = np.zeros((3, 3))
+    expected_events[:, -1] = 1
+    expected_events[:, 0] = np.arange(0, 9, step=3) + first_samp
+    events, events_id = events_from_annotations(raw, chunk_duration=3.)
+    assert_array_equal(events, expected_events)
 
 
 def test_crop_more():
@@ -203,14 +243,7 @@ def test_crop_more():
     assert_allclose(raw_concat.times, raw.times)
     assert_allclose(raw_concat[:][0], raw[:][0])
     assert raw_concat.first_samp == raw.first_samp
-    boundary_idx = np.where(
-        raw_concat.annotations.description == 'BAD boundary')[0]
-    assert len(boundary_idx) == 2
-    raw_concat.annotations.delete(boundary_idx)
-    boundary_idx = np.where(
-        raw_concat.annotations.description == 'EDGE boundary')[0]
-    assert len(boundary_idx) == 2
-    raw_concat.annotations.delete(boundary_idx)
+    assert_and_remove_boundary_annot(raw_concat, 2)
     assert len(raw_concat.annotations) == 4
     assert_array_equal(raw_concat.annotations.description,
                        raw.annotations.description)
@@ -225,23 +258,18 @@ def test_crop_more():
 def test_read_brainstorm_annotations():
     """Test reading for Brainstorm events file."""
     fname = op.join(data_dir, 'events_sample_audvis_raw_bst.mat')
-    annot = read_brainstorm_annotations(fname)
+    annot = read_annotations(fname)
     assert len(annot) == 238
     assert annot.onset.min() > 40  # takes into account first_samp
     assert np.unique(annot.description).size == 5
 
-    # Now test with orig_time
-    orig_time = np.array([1038942070, 720100], dtype=np.int32)
-    annot = read_brainstorm_annotations(fname, orig_time=orig_time)
-    orig_time_as_scalar = orig_time[0] + orig_time[1] / 1000000.
-    assert annot.orig_time == orig_time_as_scalar
 
-
-def test_raw_reject():
+@first_samps
+def test_raw_reject(first_samp):
     """Test raw data getter with annotation reject."""
     sfreq = 100.
     info = create_info(['a', 'b', 'c', 'd', 'e'], sfreq, ch_types='eeg')
-    raw = RawArray(np.ones((5, 15000)), info)
+    raw = RawArray(np.ones((5, 15000)), info, first_samp=first_samp)
     with pytest.warns(RuntimeWarning, match='outside the data range'):
         raw.set_annotations(Annotations([2, 100, 105, 148],
                                         [2, 8, 5, 8], 'BAD'))
@@ -287,12 +315,14 @@ def test_raw_reject():
     assert_array_almost_equal(times, _sync_onset(raw, onsets, True))
 
 
-def test_annotation_filtering():
+@first_samps
+def test_annotation_filtering(first_samp):
     """Test that annotations work properly with filtering."""
     # Create data with just a DC component
     data = np.ones((1, 1000))
     info = create_info(1, 1000., 'eeg')
-    raws = [RawArray(data * (ii + 1), info) for ii in range(4)]
+    raws = [RawArray(data * (ii + 1), info, first_samp=first_samp)
+            for ii in range(4)]
     kwargs_pass = dict(l_freq=None, h_freq=50., fir_design='firwin')
     kwargs_stop = dict(l_freq=50., h_freq=None, fir_design='firwin')
     # lowpass filter, which should not modify the data
@@ -318,8 +348,17 @@ def test_annotation_filtering():
     # here the 1-3 second window should be skipped
     raw = raws_concat.copy()
     raw.annotations.append(1., 2., 'foo')
-    raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
-               skip_by_annotation='foo')
+    with catch_logging() as log:
+        raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
+                   skip_by_annotation='foo', verbose='info')
+    log = log.getvalue()
+    assert '2 contiguous segments' in log
+    raw.annotations.append(2., 1., 'foo')  # shouldn't change anything
+    with catch_logging() as log:
+        raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
+                   skip_by_annotation='foo', verbose='info')
+    log = log.getvalue()
+    assert '2 contiguous segments' in log
     # our filter will zero out anything not skipped:
     mask = np.concatenate((np.zeros(1000), np.ones(2000), np.zeros(1000)))
     expected_data = raws_concat[0][0][0] * mask
@@ -351,11 +390,12 @@ def test_annotation_filtering():
     assert_allclose(raw_filt[:][0], expected, atol=1e-14)
 
 
-def test_annotation_omit():
+@first_samps
+def test_annotation_omit(first_samp):
     """Test raw.get_data with annotations."""
     data = np.concatenate([np.ones((1, 1000)), 2 * np.ones((1, 1000))], -1)
     info = create_info(1, 1000., 'eeg')
-    raw = RawArray(data, info)
+    raw = RawArray(data, info, first_samp=first_samp)
     raw.set_annotations(Annotations([0.5], [1], ['bad']))
     expected = raw[0][0]
     assert_allclose(raw.get_data(reject_by_annotation=None), expected)
@@ -509,6 +549,11 @@ def test_events_from_annot_in_raw_objects():
     assert_array_equal(events[:, 0], events3[:, 0])
     assert set(event_id.keys()) == set(event_id3.keys())
 
+    # ensure that these actually got sorted properly
+    expected_event_id = {
+        desc: idx + 1 for idx, desc in enumerate(sorted(event_id.keys()))}
+    assert event_id3 == expected_event_id
+
     first = np.unique(events3[:, 2])
     second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
     assert_array_equal(first, second)
@@ -538,6 +583,20 @@ def test_events_from_annot_in_raw_objects():
     with pytest.raises(ValueError, match='not find any of the events'):
         events_from_annotations(raw, regexp='not_there')
 
+    with pytest.raises(ValueError, match='Invalid input event_id'):
+        events_from_annotations(raw, event_id='wrong')
+
+    # concat does not introduce BAD or EDGE
+    raw_concat = concatenate_raws([raw.copy(), raw.copy()])
+    _, event_id = events_from_annotations(raw_concat)
+    assert isinstance(event_id, dict)
+    assert len(event_id) > 0
+    for kind in ('BAD', 'EDGE'):
+        assert '%s boundary' % kind in raw_concat.annotations.description
+        for key in event_id.keys():
+            assert kind not in key
+
+    # remove all events
     raw.set_annotations(None)
     events7, _ = events_from_annotations(raw)
     assert_array_equal(events7, np.empty((0, 3), dtype=int))
@@ -640,6 +699,264 @@ def test_event_id_function_using_custom_function():
 
     assert_array_equal(events, expected_events)
     assert event_id == expected_event_id
+
+
+# Test for IO with .csv files
+
+
+def _assert_annotations_equal(a, b):
+    assert_array_equal(a.onset, b.onset)
+    assert_array_equal(a.duration, b.duration)
+    assert_array_equal(a.description, b.description)
+    assert a.orig_time == b.orig_time
+
+
+@pytest.fixture(scope='session')
+def dummy_annotation_csv_file(tmpdir_factory):
+    """Create csv file for testing."""
+    content = ("onset,duration,description\n"
+               "2002-12-03 19:01:11.720100,1.0,AA\n"
+               "2002-12-03 19:01:20.720100,2.425,BB")
+
+    fname = tmpdir_factory.mktemp('data').join('annotations.csv')
+    fname.write(content)
+    return fname
+
+
+@pytest.fixture(scope='session')
+def dummy_broken_annotation_csv_file(tmpdir_factory):
+    """Create csv file for testing."""
+    content = ("onset,duration,description\n"
+               "1.,1.0,AA\n"
+               "3.,2.425,BB")
+
+    fname = tmpdir_factory.mktemp('data').join('annotations_broken.csv')
+    fname.write(content)
+    return fname
+
+
+@requires_version('pandas', '0.16')
+def test_io_annotation_csv(dummy_annotation_csv_file,
+                           dummy_broken_annotation_csv_file,
+                           tmpdir_factory):
+    """Test CSV input/output."""
+    annot = read_annotations(str(dummy_annotation_csv_file))
+    assert annot.orig_time == 1038942071.7201
+    assert_array_equal(annot.onset, np.array([0., 9.], dtype=np.float32))
+    assert_array_almost_equal(annot.duration, [1., 2.425])
+    assert_array_equal(annot.description, ['AA', 'BB'])
+
+    # Now test writing
+    fname = str(tmpdir_factory.mktemp('data').join('annotations.csv'))
+    annot.save(fname)
+    annot2 = read_annotations(fname)
+    _assert_annotations_equal(annot, annot2)
+
+    # Now without an orig_time
+    annot.orig_time = None
+    annot.save(fname)
+    annot2 = read_annotations(fname)
+    _assert_annotations_equal(annot, annot2)
+
+    # Test broken .csv that does not use timestamps
+    with pytest.warns(RuntimeWarning, match='save your CSV as a TXT'):
+        annot2 = read_annotations(str(dummy_broken_annotation_csv_file))
+
+
+# Test for IO with .txt files
+
+@pytest.fixture(scope='session')
+def dummy_annotation_txt_file(tmpdir_factory):
+    """Create txt file for testing."""
+    content = ("3.14, 42, AA \n"
+               "6.28, 48, BB")
+
+    fname = tmpdir_factory.mktemp('data').join('annotations.txt')
+    fname.write(content)
+    return fname
+
+
+def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory):
+    """Test TXT input/output."""
+    annot = read_annotations(str(dummy_annotation_txt_file))
+    assert annot.orig_time is None
+    assert_array_equal(annot.onset, [3.14, 6.28])
+    assert_array_equal(annot.duration, [42., 48])
+    assert_array_equal(annot.description, ['AA', 'BB'])
+
+    # Now test writing
+    fname = str(tmpdir_factory.mktemp('data').join('annotations.txt'))
+    annot.save(fname)
+    annot2 = read_annotations(fname)
+    _assert_annotations_equal(annot, annot2)
+
+    # Now with an orig_time
+    annot.orig_time = 1038942071.7201
+    annot.save(fname)
+    annot2 = read_annotations(fname)
+    _assert_annotations_equal(annot, annot2)
+
+
+@pytest.fixture(scope='session')
+def dummy_annotation_txt_header(tmpdir_factory):
+    """Create txt header."""
+    content = ("# A something \n"
+               "# orig_time : 42\n"
+               "# orig_time : 2002-12-03 19:01:11.720100\n"
+               "# orig_time : 42\n"
+               "# C\n"
+               "Done")
+    fname = tmpdir_factory.mktemp('data').join('header.txt')
+    fname.write(content)
+    return str(fname)
+
+
+@pytest.mark.parametrize('meas_date, out', [
+    pytest.param('toto', 0, id='invalid string'),
+    pytest.param(None, 0, id='None'),
+    pytest.param(42, 42.0, id='Scalar'),
+    pytest.param(3.14, 3.14, id='Float'),
+    pytest.param((3, 140000), 3.14, id='Scalar touple'),
+    pytest.param('2002-12-03 19:01:11.720100', 1038942071.7201,
+                 id='valid iso8601 string'),
+    pytest.param('2002-12-03T19:01:11.720100', 0,
+                 id='invalid iso8601 string')])
+def test_handle_meas_date(meas_date, out):
+    """Test meas date formats."""
+    assert _handle_meas_date(meas_date) == out
+
+
+def test_read_annotation_txt_header(dummy_annotation_txt_header):
+    """Test TXT orig_time recovery."""
+    orig_time = _read_annotations_txt_parse_header(dummy_annotation_txt_header)
+    assert orig_time == 1038942071.7201
+
+
+@pytest.fixture(scope='session')
+def dummy_annotation_txt_file_with_orig_time(tmpdir_factory):
+    """Create TXT annotations with header."""
+    content = ("# MNE-Annotations\n"
+               "# orig_time : 2002-12-03 19:01:11.720100\n"
+               "# onset, duration, description\n"
+               "3.14, 42, AA \n"
+               "6.28, 48, BB")
+
+    fname = tmpdir_factory.mktemp('data').join('annotations.txt')
+    fname.write(content)
+    return fname
+
+
+def test_read_annotation_txt_orig_time(
+        dummy_annotation_txt_file_with_orig_time):
+    """Test TXT input/output."""
+    annot = read_annotations(str(dummy_annotation_txt_file_with_orig_time))
+    assert annot.orig_time == 1038942071.7201
+    assert_array_equal(annot.onset, [3.14, 6.28])
+    assert_array_equal(annot.duration, [42., 48])
+    assert_array_equal(annot.description, ['AA', 'BB'])
+
+
+def test_annotations_simple_iteration():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ELEMENTS_TYPE = (np.float64, np.float64, np.str_)
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    for ii, elements in enumerate(annot[:2]):
+        assert isinstance(elements, OrderedDict)
+        expected_values = (ii, ii, str(ii))
+        for elem, expected_type, expected_value in zip(elements.values(),
+                                                       EXPECTED_ELEMENTS_TYPE,
+                                                       expected_values):
+            assert np.isscalar(elem)
+            assert type(elem) == expected_type
+            assert elem == expected_value
+
+
+@requires_version('numpy', '1.12')
+def test_annotations_slices():
+    """Test indexing Annotations."""
+    NUM_ANNOT = 5
+    EXPECTED_ONSETS = EXPECTED_DURATIONS = [x for x in range(NUM_ANNOT)]
+    EXPECTED_DESCS = [x.__repr__() for x in range(NUM_ANNOT)]
+
+    annot = Annotations(onset=EXPECTED_ONSETS,
+                        duration=EXPECTED_DURATIONS,
+                        description=EXPECTED_DESCS,
+                        orig_time=None)
+
+    # Indexing returns a copy. So this has no effect in annot
+    annot[0]['onset'] = 42
+    annot[0]['duration'] = 3.14
+    annot[0]['description'] = 'foobar'
+
+    annot[:1].onset[0] = 42
+    annot[:1].duration[0] = 3.14
+    annot[:1].description[0] = 'foobar'
+
+    # Slicing with single element returns a dictionary
+    for ii in EXPECTED_ONSETS:
+        assert annot[ii] == dict(zip(['onset', 'duration',
+                                      'description', 'orig_time'],
+                                     [ii, ii, str(ii), None]))
+
+    # Slices should give back Annotations
+    for current in (annot[slice(0, None, 2)],
+                    annot[[bool(ii % 2) for ii in range(len(annot))]],
+                    annot[:1],
+                    annot[[0, 2, 2]],
+                    annot[(0, 2, 2)],
+                    annot[np.array([0, 2, 2])],
+                    annot[1::2],
+                    ):
+        assert isinstance(current, Annotations)
+        assert len(current) != len(annot)
+
+    for bad_ii in [len(EXPECTED_ONSETS), 42, 'foo']:
+        with pytest.raises(IndexError):
+            annot[bad_ii]
+
+
+def test_sorting():
+    """Test annotation sorting."""
+    annot = Annotations([10, 20, 30], [1, 2, 3], 'BAD')
+    # assert_array_equal(annot.onset, [0, 5, 10])
+    annot.append([5, 15, 25, 35], 0.5, 'BAD')
+    onset = list(range(5, 36, 5))
+    duration = list(annot.duration)
+    assert_array_equal(annot.onset, onset)
+    assert_array_equal(annot.duration, duration)
+    annot.append([10, 10], [0.1, 9], 'BAD')  # 0.1 should be before, 9 after
+    want_before = onset.index(10)
+    duration.insert(want_before, 0.1)
+    duration.insert(want_before + 2, 9)
+    onset.insert(want_before, 10)
+    onset.insert(want_before, 10)
+    assert_array_equal(annot.onset, onset)
+    assert_array_equal(annot.duration, duration)
+
+
+def test_date_none(tmpdir):
+    """Test that DATE_NONE is used properly."""
+    # Regression test for gh-5908
+    n_chans = 139
+    n_samps = 20
+    data = np.random.random_sample((n_chans, n_samps))
+    ch_names = ['E{}'.format(x) for x in range(n_chans)]
+    ch_types = ['eeg'] * n_chans
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
+    assert info['meas_date'] is None
+    raw = RawArray(data=data, info=info)
+    fname = op.join(str(tmpdir), 'test-raw.fif')
+    raw.save(fname)
+    raw_read = read_raw_fif(fname, preload=True)
+    assert raw_read.info['meas_date'] is None
 
 
 run_tests_if_main()

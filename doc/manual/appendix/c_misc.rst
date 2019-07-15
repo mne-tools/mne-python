@@ -1,3 +1,5 @@
+.. _c_legacy_misc:
+
 Miscellaneous C functionality
 =============================
 

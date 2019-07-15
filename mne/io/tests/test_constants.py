@@ -14,6 +14,8 @@ from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
+commit = 'a3feddb3011335586d50bc40d1c4e36cea20913f'  # mne-tools/fiff-constants
+
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
 tag_dups = (3501, 3507)  # in both MEGIN and MNE files
@@ -23,10 +25,14 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
-# XXX These should all probably be added to the FIFF constants
-_missing_names = (
-    'FIFFV_COIL_POINT_MAGNETOMETER_X',
-    'FIFFV_COIL_POINT_MAGNETOMETER_Y',
+_tag_ignore_names = (  # for fiff-constants pending updates
+)
+_ignore_incomplete_enums = (  # XXX eventually we could complete these
+    'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
+    'dacq_system', 'diffusion_param', 'gantry_type', 'map_surf',
+    'mne_lin_proj', 'mne_ori', 'mri_format', 'mri_pixel', 'proj_by',
+    'tags', 'type', 'iod', 'volume_type', 'vol_type',
+    'coil',  # Especially these!  3015, 3025
 )
 # not in coil_def.dat but in DictionaryTypes:enum(coil)
 _missing_coil_def = (
@@ -42,9 +48,7 @@ _missing_coil_def = (
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
     3014,   # Vectorview SQ20950N planar gradiometer
-    3015,   # MEG-MRI proto system planar gradiometer
     3021,   # VV prototype wirewound magnetometer
-    3025,   # MEG-MRI proto system magnetometer
 )
 # explicit aliases in constants.py
 _aliases = dict(
@@ -67,8 +71,8 @@ def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
-    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/'
-                '1407dc312384577bd0f4cdd0036958b4da60ff26', dest)
+    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
+                commit, dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
@@ -212,9 +216,9 @@ def test_constants(tmpdir):
     unknowns = list()
 
     # Assert that all our constants are in the FIF def
+    assert 'FIFFV_SSS_JOB_NOTHING' in dir(FIFF)
     for name in sorted(dir(FIFF)):
-        if name.startswith('_') or name in _dir_ignore_names or \
-                name in _missing_names:
+        if name.startswith('_') or name in _dir_ignore_names:
             continue
         check = None
         val = getattr(FIFF, name)
@@ -242,7 +246,7 @@ def test_constants(tmpdir):
             elif name.startswith('FIFFV_SUBJ_'):
                 check = name.split('_')[2].lower()
             elif name in ('FIFFV_POINT_LPA', 'FIFFV_POINT_NASION',
-                          'FIFFV_POINT_RPA'):
+                          'FIFFV_POINT_RPA', 'FIFFV_POINT_INION'):
                 check = 'cardinal_point'
             else:
                 for check in used_enums:
@@ -251,13 +255,15 @@ def test_constants(tmpdir):
                 else:
                     raise RuntimeError('Could not find %s' % (name,))
             assert check in used_enums, name
+            if 'SSS' in check:
+                raise RuntimeError
         elif name.startswith('FIFF_UNIT'):  # units and multipliers
             check = name.split('_')[1].lower()
         elif name.startswith('FIFF_'):
             check = 'tags'
         else:
             unknowns.append((name, val))
-        if check is not None:
+        if check is not None and name not in _tag_ignore_names:
             assert val in fif[check], '%s: %s, %s' % (check, val, name)
             if val in con[check]:
                 msg = "%s='%s'  ?" % (name, con[check][val])
@@ -268,13 +274,17 @@ def test_constants(tmpdir):
     assert len(unknowns) == 0, 'Unknown types\n\t%s' % unknowns
 
     # Assert that all the FIF defs are in our constants
-    for key in sorted(set(fif.keys()) - set(['defines'])):
+    assert set(fif.keys()) == set(con.keys())
+    for key in sorted(set(fif.keys()) - {'defines'}):
         this_fif, this_con = fif[key], con[key]
         assert len(set(this_fif.keys())) == len(this_fif)
         assert len(set(this_con.keys())) == len(this_con)
-        assert set(con.keys()) - set(fif.keys()) == set()
-        missing = sorted(set(fif.keys()) - set(con.keys()))
-        assert missing == [], key
+        missing_from_con = sorted(set(this_con.keys()) - set(this_fif.keys()))
+        assert missing_from_con == [], key
+        if key not in _ignore_incomplete_enums:
+            missing_from_fif = sorted(set(this_fif.keys()) -
+                                      set(this_con.keys()))
+            assert missing_from_fif == [], key
 
     # Assert that `coil_def.dat` has accurate descriptions of all enum(coil)
     coil_def = _read_coil_defs()

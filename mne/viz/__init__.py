@@ -1,6 +1,6 @@
 """Visualization routines."""
 
-from .topomap import (plot_evoked_topomap, plot_projs_topomap,
+from .topomap import (plot_evoked_topomap, plot_projs_topomap, plot_arrowmap,
                       plot_ica_components, plot_tfr_topomap, plot_topomap,
                       plot_epochs_psd_topomap, plot_layout)
 from .topo import plot_topo_image_epochs, iter_topography
@@ -24,3 +24,5 @@ from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
                   _plot_sources_raw, _plot_sources_epochs, plot_ica_properties)
 from .montage import plot_montage
+from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend)
+from . import backends

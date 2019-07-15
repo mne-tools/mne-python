@@ -7,12 +7,12 @@
 
 import copy
 import os.path as op
-import matplotlib
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
+import matplotlib.pyplot as plt
 
 from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
                           find_layout)
@@ -24,7 +24,6 @@ from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
 from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
-matplotlib.use('Agg')  # for testing don't use X server
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
@@ -185,7 +184,6 @@ def test_make_grid_layout():
 
 def test_find_layout():
     """Test finding layout."""
-    import matplotlib.pyplot as plt
     pytest.raises(ValueError, find_layout, _get_test_info(), ch_type='meep')
 
     sample_info = read_info(fif_fname)

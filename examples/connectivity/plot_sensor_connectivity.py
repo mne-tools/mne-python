@@ -102,7 +102,7 @@ for val, nodes in zip(con_val, con_nodes):
     points.module_manager.scalar_lut_manager.reverse_lut = True
 
 
-mlab.scalarbar(title='Phase Lag Index (PLI)', nb_labels=4)
+mlab.scalarbar(points, title='Phase Lag Index (PLI)', nb_labels=4)
 
 # Add the sensor names for the connections shown
 nodes_shown = list(set([n[0] for n in con_nodes] +

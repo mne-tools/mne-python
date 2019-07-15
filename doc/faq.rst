@@ -46,11 +46,11 @@ How do I cite MNE?
 If you use the implementations provided by the MNE software in your research,
 you should cite:
 
-    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, L. Parkkonen, M. Hämäläinen, `MNE software for processing MEG and EEG data <http://www.ncbi.nlm.nih.gov/pubmed/24161808>`_, NeuroImage, Volume 86, 1 February 2014, Pages 446-460, ISSN 1053-8119, `[DOI] <https://doi.org/10.1016/j.neuroimage.2013.10.027>`__
+    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, L. Parkkonen, M. Hämäläinen, `MNE software for processing MEG and EEG data <https://www.ncbi.nlm.nih.gov/pubmed/24161808>`_, NeuroImage, Volume 86, 1 February 2014, Pages 446-460, ISSN 1053-8119, `[DOI] <https://doi.org/10.1016/j.neuroimage.2013.10.027>`__
 
 If you use the Python code you should cite as well:
 
-    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, R. Goj, M. Jas, T. Brooks, L. Parkkonen, M. Hämäläinen, `MEG and EEG data analysis with MNE-Python <http://journal.frontiersin.org/article/10.3389/fnins.2013.00267/abstract>`_, Frontiers in Neuroscience, Volume 7, 2013, ISSN 1662-453X, `[DOI] <https://doi.org/10.3389/fnins.2013.00267>`__
+    - A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, R. Goj, M. Jas, T. Brooks, L. Parkkonen, M. Hämäläinen, `MEG and EEG data analysis with MNE-Python <https://www.frontiersin.org/articles/10.3389/fnins.2013.00267/abstract>`_, Frontiers in Neuroscience, Volume 7, 2013, ISSN 1662-453X, `[DOI] <https://doi.org/10.3389/fnins.2013.00267>`__
 
 To cite specific versions of the software, you can use the DOIs provided by
 `Zenodo <https://zenodo.org/search?ln=en&p=mne-python>`_.
@@ -83,7 +83,7 @@ designed for stable persistence, and it is likely that you will not be
 able to read your data in the not-too-distant future. For details, see:
 
 - http://www.benfrederickson.com/dont-pickle-your-data/
-- http://stackoverflow.com/questions/21752259/python-why-pickle
+- https://stackoverflow.com/questions/21752259/python-why-pickle
 
 MNE-Python is designed to provide its own file saving formats
 (often based on the FIF standard) for its objects usually via a
@@ -130,8 +130,8 @@ cores via the ``n_jobs`` variable. However, functions like
 is built with linear algebra libraries that natively support multithreading:
 
 * `OpenBLAS <http://www.openblas.net/>`_
-* `Intel Math Kernel Library (MKL) <https://software.intel.com/en-us/intel-mkl>`_,
-  which uses `OpenMP <http://www.openmp.org/>`_
+* `Intel Math Kernel Library (MKL) <https://software.intel.com/en-us/mkl>`_,
+  which uses `OpenMP <https://www.openmp.org/>`_
 
 To control how many cores are used for linear-algebra-heavy functions like
 :func:`mne.preprocessing.maxwell_filter`, you can set the
@@ -165,7 +165,7 @@ implications:
   Using this function to resample data before forming :class:`mne.Epochs`
   for final analysis is generally discouraged because doing so effectively
   loses precision of (and jitters) the event timings, see
-  `this gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_ as
+  `this gist <https://gist.github.com/larsoner/01642cb3789992fbca59>`_ as
   a demonstration. However, resampling raw data can be useful for
   (at least):
 
@@ -238,19 +238,19 @@ Under the assumption that the baseline does not contain a systematic signal
 (time-locked to the event of interest), the whitened baseline signal should be
 follow a multivariate Gaussian distribution, i.e.,
 whitened baseline signals should be between -1.96 and 1.96 at a given time sample.
-Based on the same reasoning, the expected value for the global field power (GFP)
-is 1 (calculation of the GFP should take into account the true degrees of
-freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
+Based on the same reasoning, the expected value for the :term:`Global Field
+Power (GFP) <GFP>` is 1 (calculation of the :term:`GFP` should take into account the true
+degrees of freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
 
     >>> evoked = epochs.average() # doctest: +SKIP
     >>> evoked.plot_white(cov) # doctest: +SKIP
 
-This plot displays both, the whitened evoked signals for each channels and
-the whitened GFP. The numbers in the GFP panel represent the estimated rank of
-the data, which amounts to the effective degrees of freedom by which the
-squared sum across sensors is divided when computing the whitened GFP.
-The whitened GFP also helps detecting spurious late evoked components which
-can be the consequence of over- or under-regularization.
+This plot displays both, the whitened evoked signals for each channels and the
+whitened :term:`GFP`. The numbers in the :term:`GFP` panel represent the
+estimated rank of the data, which amounts to the effective degrees of freedom by
+which the squared sum across sensors is divided when computing the whitened
+:term:`GFP`. The whitened :term:`GFP` also helps detecting spurious late evoked
+components which can be the consequence of over- or under-regularization.
 
 Note that if data have been processed using signal space separation (SSS) [2]_,
 gradiometers and magnetometers will be displayed jointly because both are
@@ -266,8 +266,8 @@ For expert use cases or debugging the alternative estimators can also be compare
     >>> evoked = epochs.average() # doctest: +SKIP
     >>> evoked.plot_white(covs) # doctest: +SKIP
 
-This will plot the whitened evoked for the optimal estimator and display the GFPs
-for all estimators as separate lines in the related panel.
+This will plot the whitened evoked for the optimal estimator and display the
+:term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
 
 References
 ----------

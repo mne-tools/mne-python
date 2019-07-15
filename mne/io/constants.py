@@ -3,24 +3,9 @@
 #
 # License: BSD (3-clause)
 
+from ..utils._bunch import BunchConstNamed
 
-class Bunch(dict):
-    """Dictionnary-like object thatexposes its keys as attributes."""
-
-    def __init__(self, **kwargs):  # noqa: D102
-        dict.__init__(self, kwargs)
-        self.__dict__ = self
-
-
-class BunchConst(Bunch):
-    """Class to prevent us from re-defining constants (DRY)."""
-
-    def __setattr__(self, attr, val):  # noqa: D105
-        if attr != '__dict__' and hasattr(self, attr):
-            raise AttributeError('Attribute "%s" already set' % attr)
-        super(BunchConst, self).__setattr__(attr, val)
-
-FIFF = BunchConst()
+FIFF = BunchConstNamed()
 
 #
 # FIFF version number in use
@@ -281,16 +266,19 @@ FIFF.FIFF_REF_PATH           = 1101
 FIFF.FIFFV_ASPECT_AVERAGE       = 100  # Normal average of epochs
 FIFF.FIFFV_ASPECT_STD_ERR       = 101  # Std. error of mean
 FIFF.FIFFV_ASPECT_SINGLE        = 102  # Single epoch cut out from the continuous data
-FIFF.FIFFV_ASPECT_SUBAVERAGE    = 103
+FIFF.FIFFV_ASPECT_SUBAVERAGE    = 103  # Partial average (subaverage)
 FIFF.FIFFV_ASPECT_ALTAVERAGE    = 104  # Alternating subaverage
 FIFF.FIFFV_ASPECT_SAMPLE        = 105  # A sample cut out by graph
 FIFF.FIFFV_ASPECT_POWER_DENSITY = 106  # Power density spectrum
 FIFF.FIFFV_ASPECT_DIPOLE_WAVE   = 200  # Dipole amplitude curve
+
 #
 # BEM surface IDs
 #
 FIFF.FIFFV_BEM_SURF_ID_UNKNOWN    = -1
+FIFF.FIFFV_BEM_SURF_ID_NOT_KNOWN  = 0
 FIFF.FIFFV_BEM_SURF_ID_BRAIN      = 1
+FIFF.FIFFV_BEM_SURF_ID_CSF        = 2
 FIFF.FIFFV_BEM_SURF_ID_SKULL      = 3
 FIFF.FIFFV_BEM_SURF_ID_HEAD       = 4
 
@@ -320,17 +308,21 @@ FIFF.FIFFV_MNE_SURF_LEFT_HEMI     = 101
 FIFF.FIFFV_MNE_SURF_RIGHT_HEMI    = 102
 FIFF.FIFFV_MNE_SURF_MEG_HELMET    = 201               # Use this irrespective of the system
 #
-#   These relate to the Isotrak data
+#   These relate to the Isotrak data (enum(point))
 #
 FIFF.FIFFV_POINT_CARDINAL = 1
 FIFF.FIFFV_POINT_HPI      = 2
 FIFF.FIFFV_POINT_EEG      = 3
 FIFF.FIFFV_POINT_ECG      = FIFF.FIFFV_POINT_EEG
 FIFF.FIFFV_POINT_EXTRA    = 4
-
+FIFF.FIFFV_POINT_HEAD     = 5  # Point on the surface of the head
+#
+# Cardinal point types (enum(cardinal_point))
+#
 FIFF.FIFFV_POINT_LPA = 1
 FIFF.FIFFV_POINT_NASION = 2
 FIFF.FIFFV_POINT_RPA = 3
+FIFF.FIFFV_POINT_INION = 4
 #
 #   SSP
 #
@@ -584,7 +576,6 @@ FIFF.FIFFV_MNE_SIGNAL_COV           = 4         # This will be potentially emplo
 FIFF.FIFFV_MNE_DEPTH_PRIOR_COV      = 5         # The depth weighting prior
 FIFF.FIFFV_MNE_ORIENT_PRIOR_COV     = 6         # The orientation prior
 
-FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF  = 10        # Linear projection related to EEG average reference
 #
 # Output map types
 #
@@ -623,6 +614,30 @@ FIFF.FIFFV_PROJ_ITEM_DIP_FIX        = 2
 FIFF.FIFFV_PROJ_ITEM_DIP_ROT        = 3
 FIFF.FIFFV_PROJ_ITEM_HOMOG_GRAD     = 4
 FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD    = 5
+FIFF.FIFFV_PROJ_ITEM_EEG_AVREF      = 10  # Linear projection related to EEG average reference
+FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF  = FIFF.FIFFV_PROJ_ITEM_EEG_AVREF  # backward compat alias
+#
+# SSS job options
+#
+FIFF.FIFFV_SSS_JOB_NOTHING          = 0   # No SSS, just copy input to output
+FIFF.FIFFV_SSS_JOB_CTC              = 1   # No SSS, only cross-talk correction
+FIFF.FIFFV_SSS_JOB_FILTER           = 2   # Spatial maxwell filtering
+FIFF.FIFFV_SSS_JOB_VIRT             = 3   # Transform data to another sensor array
+FIFF.FIFFV_SSS_JOB_HEAD_POS         = 4   # Estimate head positions, no SSS
+FIFF.FIFFV_SSS_JOB_MOVEC_FIT        = 5   # Estimate and compensate head movement
+FIFF.FIFFV_SSS_JOB_MOVEC_QUA        = 6   # Compensate head movement from previously estimated head positions
+FIFF.FIFFV_SSS_JOB_REC_ALL          = 7   # Reconstruct inside and outside signals
+FIFF.FIFFV_SSS_JOB_REC_IN           = 8   # Reconstruct inside signals
+FIFF.FIFFV_SSS_JOB_REC_OUT          = 9   # Reconstruct outside signals
+FIFF.FIFFV_SSS_JOB_ST               = 10  # Spatio-temporal maxwell filtering
+FIFF.FIFFV_SSS_JOB_TPROJ            = 11  # Temporal projection, no SSS
+FIFF.FIFFV_SSS_JOB_XSSS             = 12  # Cross-validation SSS
+FIFF.FIFFV_SSS_JOB_XSUB             = 13  # Cross-validation subtraction, no SSS
+FIFF.FIFFV_SSS_JOB_XWAV             = 14  # Cross-validation noise waveforms
+FIFF.FIFFV_SSS_JOB_NCOV             = 15  # Noise covariance estimation
+FIFF.FIFFV_SSS_JOB_SCOV             = 16  # SSS sample covariance estimation
+#}
+
 #
 # Additional coordinate frames
 #
@@ -647,7 +662,7 @@ FIFF.FIFFV_MNE_COORD_KIT_HEAD    = FIFF.FIFFV_MNE_COORD_CTF_HEAD
 #   FWD Types
 #
 
-FWD = BunchConst()
+FWD = BunchConstNamed()
 
 FWD.COIL_UNKNOWN                 = 0
 FWD.COILC_UNKNOWN                = 0
@@ -707,6 +722,7 @@ FIFF.FIFF_UNIT_NONE = -1
 #
 # SI base units
 #
+FIFF.FIFF_UNIT_UNITLESS = 0
 FIFF.FIFF_UNIT_M   = 1  # meter
 FIFF.FIFF_UNIT_KG  = 2  # kilogram
 FIFF.FIFF_UNIT_SEC = 3  # second
@@ -725,6 +741,7 @@ FIFF.FIFF_UNIT_CD  = 9  # candela
 #
 # SI derived units
 #
+FIFF.FIFF_UNIT_MOL_M3 = 10  # mol/m^3
 FIFF.FIFF_UNIT_HZ  = 101  # hertz
 FIFF.FIFF_UNIT_N   = 102  # Newton
 FIFF.FIFF_UNIT_PA  = 103  # pascal
@@ -754,6 +771,7 @@ FIFF.FIFF_UNIT_AM_M3 = 204  # Am/m^3
 FIFF.FIFF_UNITM_E    = 18
 FIFF.FIFF_UNITM_PET  = 15
 FIFF.FIFF_UNITM_T    = 12
+FIFF.FIFF_UNITM_GIG  = 9
 FIFF.FIFF_UNITM_MEG  = 6
 FIFF.FIFF_UNITM_K    = 3
 FIFF.FIFF_UNITM_H    = 2
@@ -788,8 +806,6 @@ FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 
 FIFF.FIFFV_COIL_POINT_MAGNETOMETER   = 2000  # Simple point magnetometer
 FIFF.FIFFV_COIL_AXIAL_GRAD_5CM       = 2001  # Generic axial gradiometer
-FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X = 2002  # Simple point magnetometer, x-direction
-FIFF.FIFFV_COIL_POINT_MAGNETOMETER_Y = 2003  # Simple point magnetometer, y-direction
 
 FIFF.FIFFV_COIL_VV_PLANAR_W        = 3011  # VV prototype wirewound planar sensor
 FIFF.FIFFV_COIL_VV_PLANAR_T1       = 3012  # Vectorview SQ20483N planar gradiometer
@@ -857,6 +873,7 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 # MNE epochs bookkeeping
 FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
 FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
+FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT   = 3802  # rejection and flat params
 
 # MNE annotations
 FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block

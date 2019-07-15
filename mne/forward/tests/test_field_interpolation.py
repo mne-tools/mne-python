@@ -17,7 +17,6 @@ from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
 from mne import read_evokeds, pick_types, make_fixed_length_events, Epochs
 from mne.io import read_raw_fif
-from mne.externals.six.moves import zip
 from mne.utils import run_tests_if_main
 
 

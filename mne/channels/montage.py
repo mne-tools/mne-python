@@ -9,27 +9,25 @@
 #
 # License: Simplified BSD
 
-from collections import Iterable
+from collections.abc import Iterable
 import os
 import os.path as op
 
 import numpy as np
+from pandas import read_csv
 import xml.etree.ElementTree as ElementTree
 
 from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
-from ..io.meas_info import (_make_dig_points, _read_dig_points, _read_dig_fif,
-                            write_dig)
+from ..digitization._utils import (_make_dig_points, _read_dig_points,
+                                   _read_dig_fif, write_dig)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
-                     _clean_names)
-
-from ..externals.six import string_types
-from ..externals.six.moves import map
+                     _clean_names, _check_option)
 
 from .layout import _pol_to_cart, _cart_to_sph
 
@@ -135,9 +133,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     path : str | None
         The path of the folder containing the montage file. Defaults to the
         mne/channels/data/montages folder in your mne-python installation.
-    unit : 'm' | 'cm' | 'mm'
-        Unit of the input file. If not 'm' (default), coordinates will be
-        rescaled to 'm'.
+    unit : 'm' | 'cm' | 'mm' | 'auto'
+        Unit of the input file. When 'auto' the montage is normalized to
+        a sphere of radius equal to the average brain size. Defaults to 'auto'.
     transform : bool
         If True, points will be transformed to Neuromag space. The fidicuals,
         'nasion', 'lpa', 'rpa' must be specified in the montage file. Useful
@@ -212,6 +210,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     .. versionadded:: 0.9.0
     """
+    _check_option('unit', unit, ['mm', 'cm', 'm', 'auto'])
+
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
@@ -266,7 +266,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                     break
                 pos.append(list(map(float, line.split())))
             for line in fid:
-                if not line or not set(line) - set([' ']):
+                if not line or not set(line) - {' '}:
                     break
                 ch_names_.append(line.strip(' ').strip('\n'))
         pos = np.array(pos) * scale_factor
@@ -316,8 +316,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         ch_names_ = data['name'].astype(str).tolist()
         pos = np.vstack((data['x'], data['y'], data['z'])).T
     elif ext in ('.loc', '.locs', '.eloc'):
-        ch_names_ = np.loadtxt(fname, dtype='S4',
-                               usecols=[3]).astype(str).tolist()
+        ch_names_ = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
         topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
         sph = _topo_to_sph(topo)
         pos = _sph_to_cart(sph)
@@ -336,12 +335,16 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                          kind)
     selection = np.arange(len(pos))
 
-    if unit == 'mm':
+    if unit == 'auto':  # rescale to 0.085
+        pos -= np.mean(pos, axis=0)
+        pos = 0.085 * (pos / np.linalg.norm(pos, axis=1).mean())
+    elif unit == 'mm':
         pos /= 1e3
     elif unit == 'cm':
         pos /= 1e2
-    elif unit != 'm':
-        raise ValueError("'unit' should be either 'm', 'cm', or 'mm'.")
+    elif unit == 'm':  # montage is supposed to be in m
+        pass
+
     names_lower = [name.lower() for name in list(ch_names_)]
     fids = {key: pos[names_lower.index(fid_names[ii])]
             if fid_names[ii] in names_lower else None
@@ -445,7 +448,7 @@ class DigMontage(object):
         self.rpa = rpa
         self.dev_head_t = dev_head_t
         self.dig_ch_pos = dig_ch_pos
-        if not isinstance(coord_frame, string_types) or \
+        if not isinstance(coord_frame, str) or \
                 coord_frame not in _str_to_frame:
             raise ValueError('coord_frame must be one of %s, got %s'
                              % (sorted(_str_to_frame.keys()), coord_frame))
@@ -553,8 +556,13 @@ def _check_frame(d, frame_str):
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
+<<<<<<< HEAD
                      unit='auto', fif=None, egi=None, bvct=None, transform=True,
                      dev_head_t=False):
+=======
+                     unit='auto', fif=None, egi=None, bvct=None, csv=None,
+                     transform=True, dev_head_t=False):
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
     r"""Read subject-specific digitization montage from a file.
 
     Parameters
@@ -600,11 +608,23 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
         .. versionadded:: 0.14
 
+<<<<<<< HEAD
     bvct : srt | None
+=======
+    bvct : str | None
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
         BVCT XML coordinates file from which to read digitization locations.
         (BrainVision)
         If str (filename), all other arguments are ignored.
 
+<<<<<<< HEAD
+=======
+    csv : str | None
+        csv coordinates file from which to read digitization locations.
+        Generated by Localite PinPoint digitization system
+        If str (filename), all other arguments are ignored.
+
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
     transform : bool
         If True (default), points will be transformed to Neuromag space
         using :meth:`DigMontage.transform_to_head`.
@@ -642,8 +662,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         if dev_head_t or not transform:
             raise ValueError('transform must be True and dev_head_t must be '
                              'False for FIF dig montage')
+<<<<<<< HEAD
         if not all(x is None for x in (hsp, hpi, elp, point_names, egi, bvct)):
             raise ValueError('hsp, hpi, elp, point_names, egi, bvct must all be '
+=======
+        if not all(x is None for x in (hsp, hpi, elp, point_names, egi, bvct, csv)):
+            raise ValueError('hsp, hpi, elp, point_names, egi, bvct, csv must all be '
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
                              'None if fif is not None')
         _check_fname(fif, overwrite='read', must_exist=True)
         # Load the dig data
@@ -677,8 +702,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         elp = np.array(elp) if len(elp) else None
         coord_frame = 'head'
     elif egi is not None:
+<<<<<<< HEAD
         if not all(x is None for x in (hsp, hpi, elp, point_names, fif, bvct)):
             raise ValueError('hsp, hpi, elp, point_names, fif, bvct must all be '
+=======
+        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, bvct, csv)):
+            raise ValueError('hsp, hpi, elp, point_names, fif, bvct, csv must all be '
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
                              'None if egi is not None')
         _check_fname(egi, overwrite='read', must_exist=True)
 
@@ -724,8 +754,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         coord_frame = 'unknown'
 
     elif bvct is not None:
+<<<<<<< HEAD
         if not all(x is None for x in (hsp, hpi, elp, point_names, fif, egi)):
             raise ValueError('hsp, hpi, elp, point_names, fif, egi must all be '
+=======
+        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, egi, csv)):
+            raise ValueError('hsp, hpi, elp, point_names, fif, egi, csv must all be '
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
                              'None if bvct is not None')
         _check_fname(bvct, overwrite='read', must_exist=True)
 
@@ -761,6 +796,47 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
         fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
         coord_frame = 'unknown'
+<<<<<<< HEAD
+=======
+    elif csv is not None:
+        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, egi, bvct)):
+            raise ValueError('hsp, hpi, elp, point_names, fif, egi, bvct must all be '
+                             'None if bvct is not None')
+        _check_fname(csv, overwrite='read', must_exist=True)
+
+        sensors = read_csv(csv)
+
+        fids = {}
+        dig_ch_pos = {}
+
+        fid_name_map = {'Nasion': 'nasion','RPA': 'rpa','LPA': 'lpa'}
+
+        scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
+        if unit not in scale:
+            raise ValueError("Unit needs to be one of %s, not %r" %
+                             (sorted(scale.keys()), unit))
+
+        for index, s in sensors.iterrows():
+            name = s['id']
+            fid = name in fid_name_map
+            coordinates = np.array([float(s['x']),
+                                    float(s['y']),
+                                    float(s['z'])])
+
+            coordinates *= scale[unit]
+            
+            # Fiducials
+            if fid:
+                fid_name = fid_name_map[name]
+                fids[fid_name] = coordinates
+            # EEG Channels
+            else:
+                dig_ch_pos[name] = coordinates
+
+        fids = [fids[key] if key in fids else np.array([0, 0, 0])
+                for key in ('nasion', 'lpa', 'rpa')]
+        coord_frame = 'unknown'
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
     else:
         fids = [None] * 3
         dig_ch_pos = None
@@ -770,13 +846,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                              (sorted(scale.keys()), unit))
 
         # HSP
-        if isinstance(hsp, string_types):
+        if isinstance(hsp, str):
             hsp = _read_dig_points(hsp, unit=unit)
         elif hsp is not None:
             hsp *= scale[unit]
 
         # HPI
-        if isinstance(hpi, string_types):
+        if isinstance(hpi, str):
             ext = op.splitext(hpi)[-1]
             if ext in ('.txt', '.mat'):
                 hpi = _read_dig_points(hpi, unit='m')
@@ -789,7 +865,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                                  'supported.' % ext)
 
         # ELP
-        if isinstance(elp, string_types):
+        if isinstance(elp, str):
             elp = _read_dig_points(elp, unit=unit)
         elif elp is not None and scale[unit]:
             elp *= scale[unit]
@@ -832,7 +908,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     -----
     This function will change the info variable in place.
     """
-    if isinstance(montage, string_types):  # load builtin montage
+    if isinstance(montage, str):  # load builtin montage
         montage = read_montage(montage)
 
     if isinstance(montage, Montage):

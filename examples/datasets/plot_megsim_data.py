@@ -1,4 +1,6 @@
 """
+.. _ex-megsim:
+
 ===========================================
 MEGSIM experimental and simulation datasets
 ===========================================
@@ -48,5 +50,6 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 evoked.plot(time_unit='s')
 
 # Compare to the simulated data (use verbose='error' b/c of naming)
-evoked_sim = read_evokeds(evoked_fnames[0], condition=0, verbose='error')
+evoked_sim = read_evokeds(evoked_fnames[0], condition=0, verbose='error',
+                          baseline=(None, 0))
 evoked_sim.plot(time_unit='s')

@@ -46,7 +46,7 @@ raw_clean.plot(order=order, n_channels=10)
 
 ###############################################################################
 # We can also look at the effect on single-trial phantom localization.
-# See the :ref:`sphx_glr_auto_tutorials_plot_brainstorm_phantom_elekta.py`
+# See the :ref:`tut-brainstorm-elekta-phantom`
 # for more information. Here we use a version that does single-trial
 # localization across the 17 trials are in our 10-second window:
 
@@ -58,8 +58,8 @@ def compute_bias(raw):
                         baseline=(None, -0.01), preload=True, verbose=False)
     sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None,
                                    verbose=False)
-    cov = mne.compute_covariance(epochs, tmax=0, method='shrunk',
-                                 verbose=False)
+    cov = mne.compute_covariance(epochs, tmax=0, method='oas',
+                                 rank=None, verbose=False)
     idx = epochs.time_as_index(0.036)[0]
     data = epochs.get_data()[:, :, idx].T
     evoked = mne.EvokedArray(data, epochs.info, tmin=0.)

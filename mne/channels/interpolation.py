@@ -101,7 +101,7 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
         inst._data[:, bads_idx, :] = einsum(
             'ij,xjy->xiy', interpolation, inst._data[:, goods_idx, :])
     else:
-        raise ValueError('Inputs of type {0} are not supported'
+        raise ValueError('Inputs of type {} are not supported'
                          .format(type(inst)))
 
 
@@ -146,18 +146,18 @@ def _interpolate_bads_eeg(inst, verbose=None):
         warn('Your spherical fit is poor, interpolation results are '
              'likely to be inaccurate.')
 
-    logger.info('Computing interpolation matrix from {0} sensor '
+    logger.info('Computing interpolation matrix from {} sensor '
                 'positions'.format(len(pos_good)))
 
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
-    logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
+    logger.info('Interpolating {} sensors'.format(len(pos_bad)))
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 
 @verbose
 def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
-                          verbose=None):
+                          verbose=None, ref_meg=False):
     """Interpolate bad channels from data in good channels.
 
     Parameters
@@ -172,14 +172,14 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'``, which means a head-digitization-based origin
         fit. Default is ``(0., 0., 0.04)``.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
+    ref_meg : bool
+        Should always be False; only exists for testing purpose.
     """
     picks_meg = pick_types(inst.info, meg=True, eeg=False,
-                           ref_meg=True, exclude=[])
+                           ref_meg=ref_meg, exclude=[])
     picks_good = pick_types(inst.info, meg=True, eeg=False,
-                            ref_meg=True, exclude='bads')
+                            ref_meg=ref_meg, exclude='bads')
     meg_ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     bads_meg = [ch for ch in inst.info['bads'] if ch in meg_ch_names]
 

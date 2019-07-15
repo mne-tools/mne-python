@@ -6,12 +6,11 @@
 
 import numpy as np
 
-from .peak_finder import peak_finder
+from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
 from ..utils import logger, verbose, _pl
 from ..filter import filter_data
 from ..epochs import Epochs
-from ..externals.six import string_types
 
 
 @verbose
@@ -40,9 +39,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         Whether to omit data that is annotated as bad.
     thresh : float
         Threshold to trigger EOG event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -124,7 +121,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
 def _get_eog_channel_index(ch_name, inst):
     """Get EOG channel index."""
-    if isinstance(ch_name, string_types):
+    if isinstance(ch_name, str):
         # Check if multiple EOG Channels
         if ',' in ch_name:
             ch_name = ch_name.split(',')
@@ -173,9 +170,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         The argument is mandatory if the dataset contains no EOG channels.
     event_id : int
         The index to assign to found events
-    picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels
-        are used).
+    %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
@@ -219,9 +214,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         .. versionadded:: 0.14.0
     thresh : float
         Threshold to trigger EOG event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

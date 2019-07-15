@@ -7,9 +7,10 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-from ..utils import check_random_state, logger, verbose
+from ..utils import check_random_state, logger, verbose, fill_doc
 
 
+@fill_doc
 def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     """Find the largest singular value for the matrix kron(C.T, A).
 
@@ -23,8 +24,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
         An array
     max_iter : int
         Maximum number of iterations
-    random_state : int | RandomState | None
-        Random state for random number generation
+    %(random_state)s
 
     Returns
     -------
@@ -83,9 +83,7 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
         The tolerance on convergence.
     n_orient : int
         The number of orientations (1 for fixed and 3 otherwise).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

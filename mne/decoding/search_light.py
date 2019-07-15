@@ -8,9 +8,10 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
 from ..parallel import parallel_func
 from ..utils import (_validate_type, array_split_idx, ProgressBar,
-                     verbose)
+                     verbose, fill_doc)
 
 
+@fill_doc
 class SlidingEstimator(BaseEstimator, TransformerMixin):
     """Search Light.
 
@@ -22,20 +23,17 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     ----------
     base_estimator : object
         The base estimator to iteratively fit on a subset of the dataset.
-    scoring : callable, string, defaults to None
+    scoring : callable, string, default None
         Score function (or loss function) with signature
         ``score_func(y, y_pred, **kwargs)``.
         Note that the predict_method is automatically identified if scoring is
         a string (e.g. scoring="roc_auc" calls predict_proba) but is not
         automatically set if scoring is a callable (e.g.
         scoring=sklearn.metrics.roc_auc_score).
-    n_jobs : int, optional (default=1)
+    %(n_jobs)s
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -420,6 +418,7 @@ def _check_method(estimator, method):
     return method
 
 
+@fill_doc
 class GeneralizingEstimator(SlidingEstimator):
     """Generalization Light.
 
@@ -437,13 +436,10 @@ class GeneralizingEstimator(SlidingEstimator):
         a string (e.g. scoring="roc_auc" calls predict_proba) but is not
         automatically set if scoring is a callable (e.g.
         scoring=sklearn.metrics.roc_auc_score).
-    n_jobs : int, optional (default=1)
+    %(n_jobs)s
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
     """
 
     def __repr__(self):  # noqa: D105

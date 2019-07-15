@@ -13,6 +13,7 @@ import shutil
 import numpy as np
 from numpy.testing import assert_equal
 import pytest
+from matplotlib import pyplot as plt
 
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
@@ -21,10 +22,6 @@ from mne.report import Report, open_report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
                        run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
-
-import matplotlib
-from matplotlib import pyplot as plt
-matplotlib.use('Agg')  # for testing don't use X server
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -43,9 +40,12 @@ base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
-# Two example figures
-fig1 = plt.plot([1, 2], [1, 2])[0].figure
-fig2 = plt.plot([3, 4], [3, 4])[0].figure
+
+def _get_example_figures():
+    """Create two example figures."""
+    fig1 = plt.plot([1, 2], [1, 2])[0].figure
+    fig2 = plt.plot([3, 4], [3, 4])[0].figure
+    return [fig1, fig2]
 
 
 @pytest.mark.slowtest
@@ -75,7 +75,7 @@ def test_render_report():
     raw.pick_channels(['MEG 0111', 'MEG 0121'])
     raw.del_proj()
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
-    epochs.save(epochs_fname)
+    epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
     epochs.average().crop(0.1, 0.2).save(evoked_fname)
@@ -142,6 +142,11 @@ def test_render_report():
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section('foo', 'caption', 'section')
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section(['foo'], 'caption', 'section')
+
 
 @testing.requires_testing_data
 def test_report_raw_psd_and_date():
@@ -176,7 +181,6 @@ def test_report_raw_psd_and_date():
 def test_render_add_sections():
     """Test adding figures/images to section."""
     tempdir = _TempDir()
-    import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -233,6 +237,10 @@ def test_render_mri():
     report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
     assert repr(report)
+    report.add_bem_to_section('sample', caption='extra', section='foo',
+                              subjects_dir=subjects_dir, decim=30)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False,
+                overwrite=True)
 
 
 @testing.requires_testing_data
@@ -267,12 +275,12 @@ def test_add_htmls_to_section():
 def test_add_slider_to_section():
     """Test adding a slider with a series of images to mne report."""
     tempdir = _TempDir()
-    from matplotlib import pyplot as plt
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
-    figs = [fig1, fig2]
-    report.add_slider_to_section(figs, section=section)
+    figs = _get_example_figures()
+    report.add_slider_to_section(figs, section=section, title='my title')
+    assert report.fnames[0] == 'my title-#-report_slider_section-#-custom'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
     pytest.raises(NotImplementedError, report.add_slider_to_section,
@@ -314,6 +322,7 @@ def test_open_report():
     hdf5 = op.join(tempdir, 'report.h5')
 
     # Test creating a new report through the open_report function
+    fig1 = _get_example_figures()[0]
     with open_report(hdf5, subjects_dir=subjects_dir) as report:
         assert report.subjects_dir == subjects_dir
         assert report._fname == hdf5
@@ -321,7 +330,7 @@ def test_open_report():
     # Exiting the context block should have triggered saving to HDF5
     assert op.exists(hdf5)
 
-    # Load the HDF5 version of the report and check equivalency
+    # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
     assert report2._fname == hdf5
     assert report2.subjects_dir == report.subjects_dir
@@ -338,8 +347,10 @@ def test_open_report():
 def test_remove():
     """Test removing figures from a report."""
     r = Report()
+    fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'figure1', 'mysection')
-    r.add_figs_to_section(fig1, 'figure1', 'othersection')
+    r.add_slider_to_section([fig1, fig2], title='figure1',
+                            section='othersection')
     r.add_figs_to_section(fig2, 'figure1', 'mysection')
     r.add_figs_to_section(fig2, 'figure2', 'mysection')
 
@@ -371,6 +382,7 @@ def test_remove():
 def test_add_or_replace():
     """Test replacing existing figures in a report."""
     r = Report()
+    fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'duplicate', 'mysection')
     r.add_figs_to_section(fig1, 'duplicate', 'mysection')
     r.add_figs_to_section(fig1, 'duplicate', 'othersection')

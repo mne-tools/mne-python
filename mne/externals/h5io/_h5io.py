@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import json
 import sys
 import tempfile
 from shutil import rmtree
@@ -59,7 +60,7 @@ def _create_pandas_dataset(fname, root, key, title, data):
 
 
 def write_hdf5(fname, data, overwrite=False, compression=4,
-               title='h5io', slash='error'):
+               title='h5io', slash='error', use_json=False):
     """Write python object to HDF5 format using h5py
 
     Parameters
@@ -83,6 +84,9 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
         Whether to replace forward-slashes ('/') in any key found nested within
         keys in data. This does not apply to the top level name (title).
         If 'error', '/' is not allowed in any lower-level keys.
+    use_json : bool
+        To accelerate the read and write performance of small dictionaries and
+        lists they can be combined to JSON objects and stored as strings.
     """
     h5py = _check_h5py()
     mode = 'w'
@@ -104,7 +108,8 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
             del fid[title]
         cleanup_data = []
         _triage_write(title, data, fid, comp_kw, str(type(data)),
-                      cleanup_data=cleanup_data, slash=slash, title=title)
+                      cleanup_data, slash=slash, title=title,
+                      use_json=use_json)
 
     # Will not be empty if any extra data to be written
     for data in cleanup_data:
@@ -116,7 +121,8 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
 
 
 def _triage_write(key, value, root, comp_kw, where,
-                  cleanup_data=[], slash='error', title=None):
+                  cleanup_data, slash='error', title=None,
+                  use_json=False):
     if key != title and '/' in key:
         if slash == 'error':
             raise ValueError('Found a key with "/", '
@@ -128,7 +134,11 @@ def _triage_write(key, value, root, comp_kw, where,
         else:
             raise ValueError("slash must be one of ['error', 'replace'")
 
-    if isinstance(value, dict):
+    if use_json and isinstance(value, (list, dict)) and \
+            json_compatible(value, slash=slash):
+        value = np.frombuffer(json.dumps(value).encode('utf-8'), np.uint8)
+        _create_titled_dataset(root, key, 'json', value, comp_kw)
+    elif isinstance(value, dict):
         sub_root = _create_titled_group(root, key, 'dict')
         for key, sub_value in value.items():
             if not isinstance(key, string_types):
@@ -163,7 +173,14 @@ def _triage_write(key, value, root, comp_kw, where,
             title = 'ascii'
         _create_titled_dataset(root, key, title, value, comp_kw)
     elif isinstance(value, np.ndarray):
-        _create_titled_dataset(root, key, 'ndarray', value)
+        if not (value.dtype == np.dtype('object') and
+                len(set([sub.dtype for sub in value])) == 1):
+            _create_titled_dataset(root, key, 'ndarray', value)
+        else:
+            ma_index, ma_data = multiarray_dump(value)
+            sub_root = _create_titled_group(root, key, 'multiarray')
+            _create_titled_dataset(sub_root, 'index', 'ndarray', ma_index)
+            _create_titled_dataset(sub_root, 'data', 'ndarray', ma_data)
     elif sparse is not None and isinstance(value, sparse.csc_matrix):
         sub_root = _create_titled_group(root, key, 'csc_matrix')
         _triage_write('data', value.data, sub_root, comp_kw,
@@ -296,6 +313,10 @@ def _triage_read(node, slash='ignore'):
             filename = node.file.filename
             with HDFStore(filename, 'r') as tmpf:
                 data = read_hdf(tmpf, rootname)
+        elif type_str == 'multiarray':
+            ma_index = _triage_read(node.get('index', None), slash=slash)
+            ma_data = _triage_read(node.get('data', None), slash=slash)
+            data = multiarray_load(ma_index, ma_data)
         else:
             raise NotImplementedError('Unknown group type: {0}'
                                       ''.format(type_str))
@@ -312,6 +333,9 @@ def _triage_read(node, slash='ignore'):
         decoder = 'utf-8' if type_str == 'unicode' else 'ASCII'
         cast = text_type if type_str == 'unicode' else str
         data = cast(np.array(node).tostring().decode(decoder))
+    elif type_str == 'json':
+        node_unicode = str(np.array(node).tostring().decode('utf-8'))
+        data = json.loads(node_unicode)
     elif type_str == 'None':
         data = None
     else:
@@ -487,3 +511,87 @@ def list_file_contents(h5file):
         if not isinstance(h5file, h5py.File):
             raise TypeError(err.format(type(h5file)))
         _list_file_contents(h5file)
+
+
+def json_compatible(obj, slash='error'):
+    if isinstance(obj, (string_types, int, float, bool, type(None))):
+        return True
+    elif isinstance(obj, list):
+        return all([json_compatible(item) for item in obj])
+    elif isinstance(obj, dict):
+        _check_keys_in_dict(obj, slash=slash)
+        return all([json_compatible(item) for item in obj.values()])
+    else:
+        return False
+
+
+def _check_keys_in_dict(obj, slash='error'):
+    for key in obj.keys():
+        if '/' in key:
+            key_prev = key
+            if slash == 'error':
+                raise ValueError('Found a key with "/", '
+                                 'this is not allowed if slash == error')
+            elif slash == 'replace':
+                # Auto-replace keys with proper values
+                for key_spec, val_spec in special_chars.items():
+                    key = key.replace(val_spec, key_spec)
+                obj[key] = obj.pop(key_prev)
+            else:
+                raise ValueError("slash must be one of ['error', 'replace'")
+
+
+##############################################################################
+# Arrays with mixed dimensions
+def _validate_object_array(array):
+    if not (array.dtype == np.dtype('object') and
+            len(set([sub.dtype for sub in array])) == 1):
+        raise TypeError('unsupported array type')
+
+
+def _shape_list(array):
+    return [np.shape(sub) for sub in array]
+
+
+def _validate_sub_shapes(shape_lst):
+    if not all([shape_lst[0][1:] == t[1:] for t in shape_lst]):
+        raise ValueError('shape does not match!')
+
+
+def _array_index(shape_lst):
+    return [t[0] for t in shape_lst]
+
+
+def _index_sum(index_lst):
+    index_sum_lst = []
+    for step in index_lst:
+        if index_sum_lst != []:
+            index_sum_lst.append(index_sum_lst[-1] + step)
+        else:
+            index_sum_lst.append(step)
+    return index_sum_lst
+
+
+def _merge_array(array):
+    merged_lst = []
+    for sub in array:
+        merged_lst += sub.tolist()
+    return np.array(merged_lst)
+
+
+def multiarray_dump(array):
+    _validate_object_array(array)
+    shape_lst = _shape_list(array)
+    _validate_sub_shapes(shape_lst=shape_lst)
+    index_sum = _index_sum(index_lst=_array_index(shape_lst=shape_lst))
+    return index_sum, _merge_array(array=array)
+
+
+def multiarray_load(index, array_merged):
+    array_restore = []
+    i_prev = 0
+    for i in index[:-1]:
+        array_restore.append(array_merged[i_prev:i])
+        i_prev = i
+    array_restore.append(array_merged[i_prev:])
+    return np.array(array_restore)

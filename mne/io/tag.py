@@ -3,15 +3,15 @@
 #
 # License: BSD (3-clause)
 
-import gzip
 from functools import partial
+import gzip
 import os
 import struct
 
 import numpy as np
+from scipy import sparse
 
 from .constants import FIFF
-from ..externals.six import text_type
 from ..externals.jdcal import jd2jcal
 
 
@@ -109,9 +109,12 @@ def read_big(fid, size=None):
     # buf_size is chosen as a largest working power of 2 (16 MB):
     buf_size = 16777216
     if size is None:
-        # it's not possible to get .gz uncompressed file size
+        # it's not possible to get .gz uncompressed or file-like file size
         if not isinstance(fid, gzip.GzipFile):
-            size = os.fstat(fid.fileno()).st_size - fid.tell()
+            try:
+                size = os.fstat(fid.fileno()).st_size - fid.tell()
+            except Exception:  # e.g., io.UnsupportedOperation: fileno
+                pass
 
     if size is not None:
         # Use pre-buffering method
@@ -280,7 +283,6 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                             % matrix_type)
         data.shape = dims
     elif matrix_coding in (_matrix_coding_CCS, _matrix_coding_RCS):
-        from scipy import sparse
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
@@ -343,7 +345,7 @@ def _read_string(fid, tag, shape, rlims):
     """Read a string tag."""
     # Always decode to ISO 8859-1 / latin1 (FIFF standard).
     d = _frombuffer_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
-    return text_type(d.tostring().decode('latin1', 'ignore'))
+    return str(d.tostring().decode('latin1', 'ignore'))
 
 
 def _read_complex_float(fid, tag, shape, rlims):

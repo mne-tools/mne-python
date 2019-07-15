@@ -11,18 +11,26 @@ import numpy as np
 from scipy.io import savemat
 
 from numpy.testing import (assert_array_equal, assert_almost_equal,
+<<<<<<< HEAD
 						   assert_allclose, assert_array_almost_equal,
 						   assert_array_less, assert_equal)
 from mne.tests.common import assert_dig_allclose
 from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
 								  get_builtin_montages)
 from mne.utils import _TempDir, run_tests_if_main
+=======
+                           assert_allclose, assert_array_almost_equal,
+                           assert_array_less, assert_equal)
+from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
+                                  get_builtin_montages)
+from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
-from mne.io.meas_info import _read_dig_points
+from mne.digitization._utils import _read_dig_points
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
@@ -448,6 +456,7 @@ def test_set_dig_montage():
 
 @testing.requires_testing_data
 def test_fif_dig_montage():
+<<<<<<< HEAD
 	"""Test FIF dig montage support."""
 	dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
 
@@ -498,6 +507,56 @@ def test_fif_dig_montage():
 	pytest.raises(RuntimeError, montage.save, fname_temp)  # must be head coord
 	montage = read_dig_montage(hsp, hpi, elp, names)
 	_check_roundtrip(montage, fname_temp)
+=======
+    """Test FIF dig montage support."""
+    dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+
+    # test round-trip IO
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test.fif')
+    _check_roundtrip(dig_montage, fname_temp)
+
+    # Make a BrainVision file like the one the user would have had
+    raw_bv = read_raw_brainvision(bv_fname, preload=True)
+    raw_bv_2 = raw_bv.copy()
+    mapping = dict()
+    for ii, ch_name in enumerate(raw_bv.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 1,)
+    raw_bv.rename_channels(mapping)
+    for ii, ch_name in enumerate(raw_bv_2.ch_names):
+        mapping[ch_name] = 'EEG%03d' % (ii + 33,)
+    raw_bv_2.rename_channels(mapping)
+    raw_bv.add_channels([raw_bv_2])
+
+    for ii in range(2):
+        if ii == 1:
+            dig_montage.transform_to_head()  # should have no meaningful effect
+
+        # Set the montage
+        raw_bv.set_montage(dig_montage)
+
+        # Check the result
+        evoked = read_evokeds(evoked_fname)[0]
+
+        assert_equal(len(raw_bv.ch_names), len(evoked.ch_names) - 1)
+        for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs'][:-1]):
+            assert_equal(ch_py['ch_name'],
+                         ch_c['ch_name'].replace('EEG ', 'EEG'))
+            # C actually says it's unknown, but it's not (?):
+            # assert_equal(ch_py['coord_frame'], ch_c['coord_frame'])
+            assert_equal(ch_py['coord_frame'], FIFF.FIFFV_COORD_HEAD)
+            c_loc = ch_c['loc'].copy()
+            c_loc[c_loc == 0] = np.nan
+            assert_allclose(ch_py['loc'], c_loc, atol=1e-7)
+        assert_dig_allclose(raw_bv.info, evoked.info)
+
+    # Roundtrip of non-FIF start
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+    pytest.raises(RuntimeError, montage.save, fname_temp)  # must be head coord
+    montage = read_dig_montage(hsp, hpi, elp, names)
+    _check_roundtrip(montage, fname_temp)
+>>>>>>> 54bc9356cf5e2edbcbed6c5e5e3bbec09b0188a0
 
 
 @testing.requires_testing_data

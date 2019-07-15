@@ -3,8 +3,7 @@
 HF-SEF dataset
 ==============
 
-This example looks at high frequency SEF responses.
-
+This example looks at high-frequency SEF responses.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)
 #

@@ -3,8 +3,7 @@
 Time-frequency beamforming using DICS
 =====================================
 
-Compute DICS source power [1]_ in a grid of time-frequency windows and
-display results.
+Compute DICS source power [1]_ in a grid of time-frequency windows.
 
 References
 ----------

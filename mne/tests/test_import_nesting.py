@@ -1,12 +1,8 @@
 import sys
 from subprocess import Popen, PIPE
 
-from mne.utils import run_tests_if_main
-
 
 run_script = """
-from __future__ import print_function
-
 import sys
 import mne
 
@@ -50,8 +46,5 @@ def test_module_nesting():
     proc = Popen([sys.executable, '-c', run_script], stdout=PIPE, stderr=PIPE)
     stdout, stderr = proc.communicate()
     stdout = stdout.decode('utf-8')
-    if proc.returncode:
-        raise AssertionError(stdout)
-
-
-run_tests_if_main()
+    stderr = stderr.decode('utf-8')
+    assert not proc.returncode, stdout + stderr
