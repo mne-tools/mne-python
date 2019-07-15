@@ -780,13 +780,13 @@ def _plot_func(src_tfr, src_tfr_ref):
     plt.imshow(np.squeeze(src_tfr_ref), cmap='hot', vmin=0, vmax=250, interpolation='nearest')
     ax1.set_xlabel('samples')
     ax1.set_ylabel('dipoles')
-    ax1.set_title("source_induced_power Morlet (method=MNE)")
+    ax1.set_title("source_induced_power Morlet")
     plt.colorbar()
     ax2 = fig.add_subplot(2, 1, 2)
     plt.imshow(np.squeeze(src_tfr), cmap='hot', vmin=0, vmax=250, interpolation='nearest')
     ax2.set_xlabel('samples')
     ax2.set_ylabel('dipoles')
-    ax2.set_title("SourceTFR Morlet (method=MNE)")
+    ax2.set_title("SourceTFR Morlet")
     plt.colorbar()
     plt.show()
 
@@ -805,9 +805,10 @@ def test_induced_power_equivalence():
     events = find_events(raw, stim_channel='STI 014')
     inverse_operator = read_inverse_operator(fname_inv)
 
-    method = "MNE"
+    method = "dSPM"
+    l2 = 0.1111111111111111
     inv = prepare_inverse_operator(inverse_operator, nave=1,
-                                   lambda2=1. / 9., method=method)
+                                   lambda2=l2, method=method)
     raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
     # picks MEG gradiometers
     picks = pick_types(raw.info, meg=True, eeg=False, eog=True,
@@ -823,21 +824,22 @@ def test_induced_power_equivalence():
 
 
     # Compute a source estimate per frequency band
-    bands = dict(alpha=[10, 10])
     label = read_label(fname_label)
-    l2 = 0.1111111111111111
+
 
     stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
                                label=label, prepared=False, pick_ori="normal")[0]
 
     freqs = np.array([10])
     # assert equal data
-    src_tfr = tfr_morlet(stc, freqs=freqs, n_cycles=2, use_fft=True, return_itc=False, decim=1)
+    src_tfr = tfr_morlet(stc, freqs=freqs, n_cycles=2, use_fft=True, return_itc=False, decim=1, output='power',
+                         zero_mean=False)
 
     src_tfr_ref, _ = source_induced_power(epochs, inv, freqs=freqs, method=method, lambda2=l2, decim=1,
                                           n_cycles=2, use_fft=True, pca=False,
-                                          label=label, prepared=False, baseline=None, pick_ori='normal')
-    _plot_func(src_tfr.data * 1e20, src_tfr_ref * 1e20)
+                                          label=label, prepared=False, baseline=None, pick_ori='normal',
+                                          zero_mean=False)
+    _plot_func(src_tfr.data, src_tfr_ref)
 
 
 

@@ -280,6 +280,7 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
     logger.info('Computing source power ...')
 
     Ws = morlet(Fs, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
+    print("MORLET FOR SOURCE INDUCED::", Ws)  # !!!remove
 
     n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_source_tfrs(data=data, K=K, sel=sel, Ws=Ws,

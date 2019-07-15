@@ -1122,10 +1122,10 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                 sol *= noise_norm
         else:
             # Linear inverse: do computation here or delayed
-            if len(sel) < K.shape[1]:
-                sol = (K, e[sel])
-            else:
-                sol = np.dot(K, e[sel])
+            # if len(sel) < K.shape[0]:
+            sol = (K, e[sel])
+            # else:
+            #    sol = np.dot(K, e[sel])
 
         src_type = _get_src_type(inverse_operator['src'], vertno)
         stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
