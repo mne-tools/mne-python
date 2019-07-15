@@ -1,11 +1,11 @@
-"""Some utility functions for commands (e.g. for cmdline handling)."""
+"""Some utility functions for commands (e.g., for cmdline handling)."""
 
 # Authors: Yaroslav Halchenko <debian@onerussian.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
 import os
-import re
 from optparse import OptionParser
 
 import mne
@@ -25,6 +25,7 @@ def load_module(name, path):
     -------
     mod : module
         Imported module.
+
     """
     from importlib.util import spec_from_file_location, module_from_spec
     spec = spec_from_file_location(name, path)
@@ -33,14 +34,8 @@ def load_module(name, path):
     return mod
 
 
-def get_optparser(cmdpath, usage=None):
-    """Create OptionParser with cmd specific settings (e.g. prog value)."""
-    command = os.path.basename(cmdpath)
-    if re.match('mne_(.*).py', command):
-        command = command[4:-3]
-    elif re.match('mne_(.*).pyc', command):
-        command = command[4:-4]
-
+def get_optparser(cmdpath, usage=None, prog_prefix='mne', version=None):
+    """Create OptionParser with cmd specific settings (e.g., prog value)."""
     # Fetch description
     mod = load_module('__temp', cmdpath)
     if mod.__doc__:
@@ -51,10 +46,22 @@ def get_optparser(cmdpath, usage=None):
         if len(doc_lines) > 1:
             epilog = '\n'.join(doc_lines[1:])
 
+    # Get the name of the command
+    command = os.path.basename(cmdpath)
+    command, _ = os.path.splitext(command)
+    command = command[len(prog_prefix) + 1:]  # +1 is for `_` character
+
+    # Set prog
+    prog = prog_prefix + ' {}'.format(command)
+
+    # Set version
+    if version is None:
+        version = mne.__version__
+
     # monkey patch OptionParser to not wrap epilog
     OptionParser.format_epilog = lambda self, formatter: self.epilog
-    parser = OptionParser(prog="mne %s" % command,
-                          version=mne.__version__,
+    parser = OptionParser(prog=prog,
+                          version=version,
                           description=description,
                           epilog=epilog, usage=usage)
 
