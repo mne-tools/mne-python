@@ -2805,6 +2805,8 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
                  zooms, show_all, scatter_points, color, highlight_color):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
     point = points[idx]
     xidx, yidx, zidx = np.round(point).astype(int)
     xslice = data[xidx][::-1]
@@ -2820,8 +2822,10 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     ori = ori[idx]
     if color is None:
         color = 'y' if show_all else 'r'
+    color = np.array(color_converter.to_rgba(color))
+    highlight_color = np.array(color_converter.to_rgba(highlight_color))
     if show_all:
-        colors = np.repeat(color, len(points))
+        colors = np.repeat(color[np.newaxis], len(points), axis=0)
         colors[idx] = highlight_color
         size = np.repeat(5, len(points))
         size[idx] = 20
