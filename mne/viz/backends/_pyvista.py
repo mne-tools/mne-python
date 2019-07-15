@@ -345,7 +345,7 @@ class _Renderer(_BaseRenderer):
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
-        _set_3d_view(self.plotter, azimuth=azimuth, elevation=elevation,
+        _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint)
 
     def screenshot(self):
