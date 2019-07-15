@@ -135,6 +135,7 @@ KIT.DIG_POINTS = 10000
 # -----------------
 # KIT recording system is encoded in the SQD file as integer:
 KIT.SYSTEM_MQ_ADULT = 345  # Macquarie Dept of Cognitive Science, 2006 -
+KIT.SYSTEM_MQ_CHILD = 403  # Macquarie Dept of Cognitive Science, 2006 -
 KIT.SYSTEM_AS = 260  # Academia Sinica at Taiwan
 KIT.SYSTEM_AS_2008 = 261  # Academia Sinica, 2008 or 2009 -
 KIT.SYSTEM_NYU_2008 = 32  # NYU-NY, July 7, 2008 -
@@ -151,6 +152,7 @@ KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
     KIT.SYSTEM_AS_2008: 'KIT-AS-2008',
     KIT.SYSTEM_MQ_ADULT: 'KIT-160',
+    KIT.SYSTEM_MQ_CHILD: 'KIT-125',
     KIT.SYSTEM_NYU_2008: 'KIT-157',
     KIT.SYSTEM_NYU_2009: 'KIT-157',
     KIT.SYSTEM_NYU_2010: 'KIT-157',
@@ -163,7 +165,8 @@ KIT_LAYOUT = {
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
-    KIT.SYSTEM_MQ_ADULT: 'Macquarie Dept of Cognitive Science, 2006-',
+    KIT.SYSTEM_MQ_ADULT: 'Macquarie Dept of Cognitive Science (Adult), 2006-',
+    KIT.SYSTEM_MQ_CHILD: 'Macquarie Dept of Cognitive Science (Child), 2006-',
     KIT.SYSTEM_AS: 'Academia Sinica, -2008',
     KIT.SYSTEM_AS_2008: 'Academia Sinica, 2008-',
     KIT.SYSTEM_NYU_2008: 'NYU New York, 2008-9',
