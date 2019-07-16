@@ -224,9 +224,6 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 
         tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
 
-        for i, n in enumerate([np.real(tfr_), np.imag(tfr_)]):  # !!!remove
-            print("COMPLEX STUFF: ", i, n)  # !!!remove
-
         for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
             sol = np.dot(K, t)
 
@@ -242,7 +239,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 
             if is_free_ori:
                 logger.debug('combining the current components...')
-                sol = combine_xyz(sol, square=True)
+                sol = combine_xyz(sol, square=with_power)
             elif with_power:
                 sol *= sol
             tfr_f += sol
@@ -280,7 +277,6 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
     logger.info('Computing source power ...')
 
     Ws = morlet(Fs, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
-    print("MORLET FOR SOURCE INDUCED::", Ws)  # !!!remove
 
     n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_source_tfrs(data=data, K=K, sel=sel, Ws=Ws,
@@ -385,7 +381,8 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
         use_fft=use_fft, pick_ori=pick_ori, pca=pca, n_jobs=n_jobs,
-        prepared=False, method_params=method_params)
+        method_params=method_params, zero_mean=zero_mean,
+        prepared=prepared)
 
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
