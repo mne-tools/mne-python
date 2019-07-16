@@ -150,12 +150,10 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
 
             t_win = this_n_cycles / float(f)
             t = np.arange(0., t_win, 1.0 / sfreq)
-            print("twin, sfreq = ", t_win, sfreq)  # !!! remove
             # Making sure wavelets are centered before tapering
             oscillation = np.exp(2.0 * 1j * np.pi * f * (t - t_win / 2.))
 
             # Get dpss tapers
-            print("t.shape = ", t.shape)  # !!! remove
             tapers, conc = dpss_windows(t.shape[0], time_bandwidth / 2.,
                                         n_taps)
 
@@ -504,8 +502,6 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     else:
         tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
 
-    print("MORLET FOR TFR::", Ws)  # !!!remove
-
     # Loops across tapers.
     for W in Ws:
         coefs = _cwt(X, W, mode, decim=decim, use_fft=use_fft)
@@ -599,16 +595,12 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
     from ..epochs import BaseEpochs
-    from ..source_estimate import VectorSourceEstimate, SourceEstimate, _BaseSourceEstimate
+    from ..source_estimate import SourceEstimate, _BaseSourceEstimate
 
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
 
-    # if isinstance(inst, VectorSourceEstimate): # !!!change this back
-    #    data = np.expand_dims(np.linalg.norm(inst.data, axis=1), axis=0)
-    #    print("THIS IS THE SHAPE AFTER NORMING: ", data.shape)  # !!! remove this
-    # elif not (isinstance(inst, _BaseSourceEstimate)):
     if not (isinstance(inst, _BaseSourceEstimate)):
         info = inst.info
         info, data = _prepare_picks(info, data, picks, axis=1)
@@ -627,36 +619,9 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    print("DATA SHAPE BEFORE COMPUTE TFR:  ", data.shape)  # !!!remove this
     if isinstance(inst, _BaseSourceEstimate):
         out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
                            output=output, decim=decim, **tfr_params)
-        """
-    elif isinstance(inst, VectorSourceEstimate):
-            print("DATA SHAPE For Vector:  ", data[:, :, :, :].shape)  # !!!remove this
-            out = np.empty((1, 33, 1, 211))
-            x = _compute_tfr(data[:, :, 0, :], freqs, 1 / inst.tstep, method=method,
-                                 output="complex", decim=decim, **tfr_params)
-            y = _compute_tfr(data[:, :, 1, :], freqs, 1 / inst.tstep, method=method,
-                                 output="complex", decim=decim, **tfr_params)
-            z = _compute_tfr(data[:, :, 2, :], freqs, 1 / inst.tstep, method=method,
-                                 output="complex", decim=decim, **tfr_params)
-
-
-            for i, func in enumerate([np.real, np.imag]):
-                sol_x = func(x)
-                sol_y = func(y)
-                sol_z = func(z)
-
-                comb = sol_x ** 2
-                comb += sol_y ** 2
-                comb += sol_z ** 2
-                print("SHAPE OF COMB: ", comb.shape)
-                #comb = np.sqrt(comb)
-                out += comb
-
-            print("DATA SHAPE For Vector:  ", out.shape)
-            """
     else:
         out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                            output=output, decim=decim, **tfr_params)
@@ -2197,7 +2162,6 @@ def _get_data(inst, return_itc):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..source_estimate import _BaseSourceEstimate
-    print("TYPE OF THE THING", type(inst))  # !!! remove
     if not isinstance(inst, (BaseEpochs, Evoked, _BaseSourceEstimate)):
         raise TypeError('inst must be Epochs, Evoked, or any SourceEstimate')
     if isinstance(inst, BaseEpochs):
