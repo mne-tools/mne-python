@@ -731,7 +731,7 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
 
     # compute center of mass
     c_of_mass = imaffine.transform_centers_of_mass(
-        mri_to, affine, mri_from, affine)
+        mri_to, affine, mri_from, mri_from_affine)
 
     # set up Affine Registration
     affreg = imaffine.AffineRegistration(
