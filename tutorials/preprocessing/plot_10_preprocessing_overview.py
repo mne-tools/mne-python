@@ -131,15 +131,6 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
 # around 20 seconds, so in this case a cutoff of 0.1 Hz would probably suppress
 # most of the drift).
 #
-# .. TODO: An example of slow-drift removal is shown in {crossref to filter
-#    tutorial}.
-#    (raw.copy()
-#        .load_data()
-#        .filter(l_freq=0.1, h_freq=None)
-#        .plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
-#              remove_dc=False)
-#     )
-#
 #
 # Power line noise
 # ~~~~~~~~~~~~~~~~
