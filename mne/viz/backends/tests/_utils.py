@@ -14,7 +14,8 @@ def has_pyvista():
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
-            import pyvista  # noqa: F401return True
+            import pyvista  # noqa: F401
+        return True
     except ImportError:
         return False
 
