@@ -62,3 +62,8 @@ def test_envelope_correlation():
         envelope_correlation(data, 1.)
     with pytest.raises(ValueError, match='Combine option'):
         envelope_correlation(data, 'foo')
+
+    corr_plain = envelope_correlation(data, combine=None, orthogonalize=False)
+    assert np.min(corr_plain) < 0
+    assert len(np.unique(np.diag(corr_plain))) == 1
+    assert np.unique(np.diag(corr_plain))[0] == 1.
