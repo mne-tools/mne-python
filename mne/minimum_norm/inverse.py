@@ -1069,7 +1069,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
                               prepared=False, method_params=None,
-                              verbose=None):
+                              full_data=True, verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'])
@@ -1122,7 +1122,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                 sol *= noise_norm
         else:
             # Linear inverse: do computation here or delayed
-            if len(sel) < K.shape[1]:
+            if not full_data:
                 sol = (K, e[sel])
             else:
                 sol = np.dot(K, e[sel])
@@ -1141,7 +1141,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
                          return_generator=False, prepared=False,
-                         method_params=None, verbose=None):
+                         method_params=None, full_data=True, verbose=None):
     """Apply inverse operator to Epochs.
 
     Parameters
@@ -1177,6 +1177,14 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
+    full_data : bool
+        If True, the full data is returned. If False, data is stored as a tuple
+        of smaller arrays in order to save memory. In this case, the full data
+        field will be automatically constructed when stc.data is called for the
+        first time. `full_data=False` is only implemented for fixed
+        orientations. Defaults to True.
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Returns
@@ -1192,7 +1200,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(
         epochs, inverse_operator, lambda2, method=method, label=label,
         nave=nave, pick_ori=pick_ori, verbose=verbose, prepared=prepared,
-        method_params=method_params)
+        method_params=method_params, full_data=full_data)
 
     if not return_generator:
         # return a list
