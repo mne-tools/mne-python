@@ -39,6 +39,8 @@ raw.crop(tmax=60).load_data()
 # time relative to which the annotation onsets should be interpreted.
 #
 #
+# .. _tut-section-programmatic-annotations:
+#
 # Creating annotations programmatically
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

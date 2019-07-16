@@ -200,6 +200,8 @@ fig.subplots_adjust(right=0.7)  # make room for the legend
 # proceeding with epoching as described in the next section.
 #
 #
+# .. _tut-section-overview-epoching:
+#
 # Epoching continuous data
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
