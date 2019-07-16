@@ -46,10 +46,11 @@ events = mne.read_events(events_file)
 # In the interactive ``raw.plot()`` window, the annotation controls can be
 # opened by pressing :kbd:`a`. Here, new annotation labels can be created or
 # existing annotation labels can be selected for use.
-#
-# .. image:: ../../_static/annotation-controls-default.png
-#    :alt: screenshot of MNE-Python annotation controls window
-#
+
+fig = raw.plot()
+fig.canvas.key_press_event('a')
+
+###############################################################################
 # .. sidebar:: Annotating good spans
 #
 #     The default "BAD\_" prefix for new labels can be removed simply by
