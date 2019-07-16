@@ -2756,7 +2756,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
               'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
               'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
               'show_all': show_all, 'scatter_points': scatter_points,
-              'color': color, 'highlight_color': 'highlight_color'}
+              'color': color, 'highlight_color': highlight_color}
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
