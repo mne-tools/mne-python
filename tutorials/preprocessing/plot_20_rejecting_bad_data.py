@@ -1,5 +1,5 @@
 """
-.. _tut-artifact-rejection:
+.. _tut-reject-data-spans:
 
 Rejecting bad data spans
 ========================

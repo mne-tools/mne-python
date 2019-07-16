@@ -230,7 +230,8 @@ eog_epochs.average().plot_topomap(times=np.linspace(-0.1, 0.1, 9))
 #
 # There are also tutorials on general-purpose preprocessing steps such as
 # :ref:`filtering and resampling <tut-filter-resample>` and :ref:`excluding
-# bad channels or spans of data <tut-artifact-rejection>`.
+# bad channels <tut-bad-channels>` or :ref:`spans of data
+# <tut-reject-data-spans>`.
 #
 # .. LINKS
 #

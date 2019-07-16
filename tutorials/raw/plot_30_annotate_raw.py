@@ -174,7 +174,7 @@ raw.plot(start=2, duration=6)
 # for finding heartbeat and blink artifacts
 # (:func:`~mne.preprocessing.find_ecg_events`,
 # :func:`~mne.preprocessing.find_eog_events`), and creation of epoched data
-# from continuous data (:class:`mne.Epochs`). See :ref:`tut-artifact-rejection`
+# from continuous data (:class:`mne.Epochs`). See :ref:`tut-reject-data-spans`
 # for details.
 #
 #
