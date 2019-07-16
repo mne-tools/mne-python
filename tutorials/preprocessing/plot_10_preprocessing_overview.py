@@ -234,6 +234,6 @@ eog_epochs.average().plot_topomap(times=np.linspace(-0.1, 0.1, 9))
 #
 # .. LINKS
 #
-# _`AC power line frequency`: https://en.wikipedia.org/wiki/Mains_electricity
-# _`QRS`: https://en.wikipedia.org/wiki/QRS_complex
-# _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file
+# .. _`AC power line frequency`: https://en.wikipedia.org/wiki/Mains_electricity
+# .. _`QRS`: https://en.wikipedia.org/wiki/QRS_complex
+# .. _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file
