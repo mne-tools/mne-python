@@ -160,7 +160,7 @@ flat_criteria = dict(mag=1e-15,          # 1 fT
 epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, reject_tmax=0,
                     reject=reject_criteria, flat=flat_criteria,
                     reject_by_annotation=False, preload=True)
-epochs.plot_drop_log(color='0.5')
+epochs.plot_drop_log()
 
 ###############################################################################
 # Notice that we've passed ``reject_by_annotation=False`` above, in order to
@@ -172,7 +172,7 @@ epochs.plot_drop_log(color='0.5')
 
 epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, reject_tmax=0,
                     reject=reject_criteria, flat=flat_criteria, preload=True)
-epochs.plot_drop_log(color='0.5')
+epochs.plot_drop_log()
 
 ###############################################################################
 # More importantly, note that *many* more epochs are rejected (~20% instead of
@@ -187,13 +187,27 @@ epochs.plot_drop_log(color='0.5')
 print(epochs.drop_log)
 
 ###############################################################################
-# Finally, it should be noted that just like channels marked as bad, "dropped"
-# epochs are not actually deleted from the :class:`~mne.Epochs` object right
-# away. Instead, they are only deleted when the user calls the
-# :meth:`~mne.Epochs.drop_bad` method. If ``reject`` and/or ``flat`` criteria
-# have already been provided to the epochs constructor,
-# :meth:`~mne.Epochs.drop_bad` can be used without arguments to simply delete
-# the epochs already marked for removal:
+# Finally, it should be noted that "dropped" epochs are not necessarily deleted
+# from the :class:`~mne.Epochs` object right away. Above, we forced the
+# dropping to happen when we created the :class:`~mne.Epochs` object by using
+# the ``preload=True`` parameter. If we had not done that, the
+# :class:`~mne.Epochs` object would have been `memory-mapped`_ (not loaded into
+# RAM), in which case the criteria for dropping epochs are stored, and the
+# actual dropping happens when the :class:`~mne.Epochs` data are finally loaded
+# and used. There are several ways this can get triggered, such as:
+#
+# - explicitly loading the data into RAM with the :meth:`~mne.Epochs.load_data`
+#   method
+# - plotting the data (:meth:`~mne.Epochs.plot`,
+#   :meth:`~mne.Epochs.plot_image`, etc)
+# - using the :meth:`~mne.Epochs.average` method to create an
+#   :class:`~mne.Evoked` object
+#
+# You can also trigger dropping with the :meth:`~mne.Epochs.drop_bad` method;
+# if ``reject`` and/or ``flat`` criteria have already been provided to the
+# epochs constructor, :meth:`~mne.Epochs.drop_bad` can be used without
+# arguments to simply delete the epochs already marked for removal (if the
+# epochs have already been dropped, nothing further will happen):
 
 epochs.drop_bad()
 
@@ -220,4 +234,5 @@ print(epochs.drop_log)
 #
 # .. LINKS
 #
+# .. _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file
 # .. _`autoreject package`: http://autoreject.github.io/
