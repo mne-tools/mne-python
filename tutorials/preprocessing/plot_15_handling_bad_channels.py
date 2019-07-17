@@ -17,6 +17,7 @@ data:
 """
 
 import os
+from copy import deepcopy
 import numpy as np
 import mne
 
@@ -79,7 +80,7 @@ raw.plot(order=picks, n_channels=len(picks))
 # ``raw.info['bads']`` directly; it's an ordinary Python :class:`list` so the
 # usual list methods will work:
 
-original_bads = raw.info['bads']
+original_bads = deepcopy(raw.info['bads'])
 raw.info['bads'].append('EEG 050')               # add a single channel
 raw.info['bads'].extend(['EEG 051', 'EEG 052'])  # add a list of channels
 bad_chan = raw.info['bads'].pop(-1)  # remove the last entry in the list
