@@ -30,7 +30,8 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 #
 # Sometimes individual channels malfunction and provide data that is too noisy
 # to be usable. MNE-Python makes it easy to remove bad channels from the
-# analysis stream without actually deleting the data in those channels, by
+# analysis stream without actually deleting the data in those channels. It does
+# this by
 # keeping track of the bad channel indices in a list and looking at that list
 # when doing analysis or plotting tasks. The list of bad channels is stored in
 # the `'bads'` field of the :class:`~mne.Info` object that is attached to
@@ -41,27 +42,37 @@ print(raw.info['bads'])
 ###############################################################################
 # Here you can see that the :file:`.fif` file we loaded from disk must have
 # been keeping track of channels marked as "bad" — which is good news, because
-# it means any changes we make to the list of bad channels will be preserved
-# if we save our data at intermediate stages and re-load it later. In the case
-# of the example data, you can see why those channels were marked bad by
-# using the standard :meth:`~mne.io.Raw.plot` method; to make it easier to see
-# we'll use the :func:`~mne.pick_channels_regexp` function to narrow down which
-# channels we see:
+# it means any changes we make to the list of bad channels will be preserved if
+# we save our data at intermediate stages and re-load it later. Since we saw
+# above that ``EEG 053`` is one of the bad channels, let's look at it alongside
+# some other EEG channels to see what's bad about it. We can do this using the
+# standard :meth:`~mne.io.Raw.plot` method, and instead of listing the channel
+# names one by one (``['EEG 050', 'EEG 051', ...]``) we'll use a `regular
+# expression`_ to pick all the EEG channels between 050 and 059 with the
+# :func:`~mne.pick_channels_regexp` function (the ``.`` is a wildcard
+# character):
 
-# sphinx_gallery_thumbnail_number = 2
-for pattern in (r'MEG 24..', r'EEG 05.'):
-    picks = mne.pick_channels_regexp(raw.ch_names, regexp=pattern)
-    raw.plot(order=picks, n_channels=len(picks))
+picks = mne.pick_channels_regexp(raw.ch_names, regexp='EEG 05.')
+raw.plot(order=picks, n_channels=len(picks))
+
+###############################################################################
+# We can do the same thing for the bad MEG channel (``MEG 2443``). Since we
+# know that Neuromag systems (like the one used to record the example data) use
+# the last digit of the MEG channel number to indicate sensor type, here our
+# `regular expression`_ will pick all the channels that start with 2 and end
+# with 3:
+
+picks = mne.pick_channels_regexp(raw.ch_names, regexp='MEG 2..3')
+raw.plot(order=picks, n_channels=len(picks))
 
 ###############################################################################
 # Notice first of all that the channels marked as "bad" are plotted in a light
 # gray color in a layer behind the other channels, to make it easy to
-# distinguish them from "good" channels. The plots make it clear that `EEG 053`
-# is not picking up scalp potentials at all, and `MEG 2443` looks like it's
-# picking up a lot *more* than its neighbors — its signal is at least an order
-# of magnitude greater than the other MEG channels. Regardless of what is
-# causing the problems, neither are realistic reflections of the
-# electrophysiological signals we expect, so it makes sense to exclude them.
+# distinguish them from "good" channels. The plots make it clear that ``EEG
+# 053`` is not picking up scalp potentials at all, and ``MEG 2443`` looks like
+# it's picking up a lot *more* than its neighbors — its signal is a few orders
+# of magnitude greater than the other MEG channels, making it a clear candidate
+# for exclusion.
 #
 # If you want to change which channels are marked as bad, you can edit
 # ``raw.info['bads']`` directly; it's an ordinary Python :class:`list` so the
@@ -80,7 +91,8 @@ raw.info['bads'] = original_bads     # change the whole list at once
 #     analysis script, be sure to include the parameter ``block=True`` in your
 #     call to ``raw.plot()`` or ``epochs.plot()``. This will pause the script
 #     while the plot is open, giving you time to mark bad channels before
-#     subsequent analysis or plotting steps are executed.
+#     subsequent analysis or plotting steps are executed. This can be
+#     especially helpful if your script loops over multiple subjects.
 #
 # You can also interactively toggle whether a channel is marked "bad" in the
 # plot windows of ``raw.plot()`` or ``epochs.plot()`` by clicking on the
@@ -109,15 +121,28 @@ raw.info['bads'] = original_bads     # change the whole list at once
 # bad channels by browsing the raw data using :meth:`mne.io.Raw.plot`, with any
 # projectors or ICA applied. Finally, you can compute off-line averages (again
 # with projectors, ICA, and EEG referencing disabled) to look for channels with
-# unusual properties.
+# unusual properties. Here's an example of ERP/F plots where the bad channels
+# were not properly marked:
+
+raw2 = raw.copy()
+raw2.info['bads'] = []
+events = mne.find_events(raw2, stim_channel='STI 014')
+epochs = mne.Epochs(raw2, events=events)['2'].average().plot()
+
+###############################################################################
+# The bad EEG channel is not so obvious, but the bad gradiometer is easy to
+# see.
 #
 # Remember, marking bad channels should be done as early as possible in the
 # analysis pipeline. When bad channels are marked in a :class:`~mne.io.Raw`
 # object, the markings will be automatically transferred through the chain of
 # derived object types: including :class:`~mne.Epochs` and :class:`~mne.Evoked`
 # objects, but also :class:`noise covariance <mne.Covariance>` objects,
-# :class:`forward solution computations <mne.Forward>`, and
-# :class:`inverse operators <mne.minimum_norm.InverseOperator>`.
+# :class:`forward solution computations <mne.Forward>`, :class:`inverse
+# operators <mne.minimum_norm.InverseOperator>`, etc. If you don't notice the
+# badness until later stages of your analysis pipeline, you'll probably need to
+# go back and re-run the pipeline, so it's a good investment of time to
+# carefully explore the data for bad channels early on.
 #
 #
 # Why mark bad channels at all?
@@ -136,7 +161,10 @@ raw.info['bads'] = original_bads     # change the whole list at once
 # noise covariance across sensors. Noisy channels can also interfere with
 # :term:`SSP <projector>` computations, because the projectors will be
 # spatially biased in the direction of the noisy channel, which can cause
-# adjacent good channels to be suppressed.
+# adjacent good channels to be suppressed. ICA is corrupted by noisy channels
+# for similar reasons. On the other hand, when performing machine learning
+# analyses, bad channels may have limited, if any impact (i.e., bad channels
+# will be uninformative and therefore ignored / deweighted by the algorithm).
 #
 #
 # Interpolating bad channels
@@ -198,12 +226,29 @@ grad_data = raw.copy().pick_types(meg='grad', exclude=[])
 grad_data_interp = grad_data.copy().interpolate_bads(reset_bads=False)
 
 for data in (grad_data, grad_data_interp):
-    data.plot(butterfly=True, color='#00000011', bad_color='r')
+    data.plot(butterfly=True, color='#00000009', bad_color='r')
 
 ###############################################################################
+# Summary
+# ^^^^^^^
+#
+# Bad channel exclusion or interpolation is an important step in EEG/MEG
+# preprocessing. MNE-Python provides tools for marking and interpolating bad
+# channels; the list of which channels are marked as "bad" is propogated
+# automatically through later stages of processing. For an even more automated
+# approach to bad channel detection and interpolation, consider using the
+# `autoreject package`_, which interfaces well with MNE-Python-based pipelines.
+#
+#
 # References
 # ^^^^^^^^^^
 #
 # .. [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989).
 #        Spherical splines for scalp potential and current density mapping.
 #        *Electroencephalography Clinical Neurophysiology* 72(2):184-187.
+#
+#
+# .. LINKS
+#
+# .. _`regular expression`: https://www.regular-expressions.info/
+# .. _`autoreject package`: http://autoreject.github.io/

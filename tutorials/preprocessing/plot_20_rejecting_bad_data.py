@@ -91,12 +91,15 @@ fig.canvas.key_press_event('a')
 # :func:`~mne.preprocessing.find_ecg_events` (although that tutorial mostly
 # relied on their higher-level wrappers
 # :func:`~mne.preprocessing.create_eog_epochs` and
-# :func:`~mne.preprocessing.create_ecg_epochs`). Here, we make use of the
-# lower-level artifact detection function to get an events array telling us
-# where the blinks are, then automatically add "bad_blink" annotations around
-# them. We'll start the annotations 250 ms before the blink and end them 250 ms
-# after it:
+# :func:`~mne.preprocessing.create_ecg_epochs`). Here, for demonstration
+# purposes, we make use of the lower-level artifact detection function to get
+# an events array telling us where the blinks are, then automatically add
+# "bad_blink" annotations around them (this is not necessary when using
+# :func:`~mne.preprocessing.create_eog_epochs`, it is done here just to show
+# how annotations are added non-interactively). We'll start the annotations
+# 250 ms before the blink and end them 250 ms after it:
 
+# sphinx_gallery_thumbnail_number = 3
 eog_events = mne.preprocessing.find_eog_events(raw)
 onsets = eog_events[:, 0] / raw.info['sfreq'] - 0.25
 durations = [0.5] * len(eog_events)
@@ -207,3 +210,14 @@ stronger_reject_criteria = dict(mag=2000e-15,     # 2000 fT
 
 epochs.drop_bad(reject=stronger_reject_criteria)
 print(epochs.drop_log)
+
+###############################################################################
+# Note that a complementary Python module, the `autoreject package`_, uses
+# machine learning to find optimal rejection criteria, and is designed to
+# integrate smoothly with MNE-Python workflows. This can be a considerable
+# time-saver when working with heterogeneous datasets.
+#
+#
+# .. LINKS
+#
+# .. _`autoreject package`: http://autoreject.github.io/
