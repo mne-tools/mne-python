@@ -28,6 +28,6 @@ neo
 xlrd
 pydocstyle
 flake8
-https://github.com/GuillaumeFavelier/pyvista/zipball/background_plotter_offscreen
+https://github.com/GuillaumeFavelier/pyvista/zipball/test_sphinx
 pylsl>=1.12
 panel

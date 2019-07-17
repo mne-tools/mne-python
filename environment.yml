@@ -34,7 +34,7 @@ dependencies:
 - pip:
   - mne
   - vtk
-  - https://github.com/GuillaumeFavelier/pyvista/zipball/background_plotter_offscreen
+  - https://github.com/GuillaumeFavelier/pyvista/zipball/test_sphinx
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
