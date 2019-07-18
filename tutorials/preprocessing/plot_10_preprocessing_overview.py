@@ -139,6 +139,7 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
 # use :meth:`~mne.io.Raw.plot_psd` to illustrate.
 
 fig = raw.plot_psd(tmax=np.inf, fmax=250, average=True)
+# add some arrows at 60 Hz and its harmonics:
 for ax in fig.axes[:2]:
     freqs = ax.lines[-1].get_xdata()
     psds = ax.lines[-1].get_ydata()
@@ -151,7 +152,7 @@ for ax in fig.axes[:2]:
 ###############################################################################
 # Here we see narrow frequency peaks at 60, 120, 180, and 240 Hz — the power
 # line frequency of the USA (where the sample data was recorded) and its 2nd,
-# 3rd, and 4th harmonics. Other peaks (between 25 and 32 Hz, and the second
+# 3rd, and 4th harmonics. Other peaks (around 25 to 30 Hz, and the second
 # harmonic of those) are probably related to the heartbeat, which is more
 # easily seen in the time domain using a dedicated heartbeat detection function
 # as described in the next section.
@@ -169,12 +170,12 @@ for ax in fig.axes[:2]:
 # resulting events array to extract epochs centered around the detected
 # heartbeat artifacts. Here we create those epochs, then show an image plot of
 # the detected ECG artifacts along with the average ERF across artifacts. We'll
-# show just the MEG channels, since EEG channels are less strongly affected by
-# heartbeat artifacts:
+# show all three channel types, even though EEG channels are less strongly
+# affected by heartbeat artifacts:
 
 # sphinx_gallery_thumbnail_number = 4
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
-ecg_epochs.plot_image(picks=['mag', 'grad'], combine='mean')
+ecg_epochs.plot_image(combine='mean')
 
 ###############################################################################
 # The horizontal streaks in the magnetometer image plot reflect the fact that
@@ -203,10 +204,10 @@ avg_ecg_epochs.plot_topomap(times=np.linspace(-0.05, 0.05, 11))
 # higher-level convenience function that automatically finds the artifacts and
 # extracts them in to an :class:`~mne.Epochs` object in one step. Unlike the
 # heartbeat artifacts seen above, ocular artifacts are usually most prominent
-# in the EEG channels:
+# in the EEG channels, but we'll still show all three channel types:
 
 eog_epochs = mne.preprocessing.create_eog_epochs(raw)
-eog_epochs.plot_image(picks='eeg', combine='mean')
+eog_epochs.plot_image(combine='mean')
 eog_epochs.average().plot_topomap(times=np.linspace(-0.1, 0.1, 9))
 
 ###############################################################################
