@@ -430,8 +430,10 @@ def _get_view_to_display_matrix(size):
 
 
 def _close_all():
-    from pyvista import close_all
-    close_all()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        from pyvista import close_all
+        close_all()
 
 
 def _check_notebook():
