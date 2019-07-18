@@ -131,15 +131,6 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
 # around 20 seconds, so in this case a cutoff of 0.1 Hz would probably suppress
 # most of the drift).
 #
-# .. TODO: An example of slow-drift removal is shown in {crossref to filter
-#    tutorial}.
-#    (raw.copy()
-#        .load_data()
-#        .filter(l_freq=0.1, h_freq=None)
-#        .plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
-#              remove_dc=False)
-#     )
-#
 #
 # Power line noise
 # ~~~~~~~~~~~~~~~~
@@ -181,7 +172,7 @@ for ax in fig.axes[:2]:
 # show just the MEG channels, since EEG channels are less strongly affected by
 # heartbeat artifacts:
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 4
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 ecg_epochs.plot_image(picks=['mag', 'grad'], combine='mean')
 
@@ -239,10 +230,12 @@ eog_epochs.average().plot_topomap(times=np.linspace(-0.1, 0.1, 9))
 #
 # There are also tutorials on general-purpose preprocessing steps such as
 # :ref:`filtering and resampling <tut-filter-resample>` and :ref:`excluding
-# bad channels or spans of data <tut-artifact-rejection>`.
+# bad channels <tut-bad-channels>` or :ref:`spans of data
+# <tut-reject-data-spans>`.
 #
 # .. LINKS
 #
-# _`AC power line frequency`: https://en.wikipedia.org/wiki/Mains_electricity
-# _`QRS`: https://en.wikipedia.org/wiki/QRS_complex
-# _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file
+# .. _`AC power line frequency`:
+#    https://en.wikipedia.org/wiki/Mains_electricity
+# .. _`QRS`: https://en.wikipedia.org/wiki/QRS_complex
+# .. _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file
