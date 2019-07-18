@@ -31,6 +31,7 @@ from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.time_frequency import csd_morlet
 from mne.beamformer import make_dics, apply_dics_csd
+from mne.viz import set_3d_backend
 
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
@@ -266,6 +267,7 @@ power_approach1, f = apply_dics_csd(csd_signal, filters_approach1)
 power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 # Plot the DICS power maps for both approaches.
+set_3d_backend("mayavi")
 for approach, power in enumerate([power_approach1, power_approach2], 1):
     brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both',
                        figure=approach + 1, size=600)

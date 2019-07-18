@@ -14,7 +14,7 @@ across the cortical surface.
 # License: BSD (3-clause)
 
 import mne
-from mne.viz import create_3d_figure
+from mne.viz import create_3d_figure, use_3d_backend
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, point_spread_function
 
@@ -62,15 +62,17 @@ stc_psf_meg, _ = point_spread_function(
 # stc_psf_eegmeg.save('psf_eegmeg')
 # stc_psf_meg.save('psf_meg')
 
-time_label = "EEGMEG %d"
-brain_eegmeg = stc_psf_eegmeg.plot(hemi='rh', subjects_dir=subjects_dir,
-                                   time_label=time_label,
-                                   figure=create_3d_figure(size=(500, 500)))
+with use_3d_backend("mayavi"):
+    time_label = "EEGMEG %d"
+    brain_eegmeg = stc_psf_eegmeg.plot(hemi='rh', subjects_dir=subjects_dir,
+                                       time_label=time_label,
+                                       figure=create_3d_figure(
+                                           size=(500, 500)))
 
-time_label = "MEG %d"
-brain_meg = stc_psf_meg.plot(hemi='rh', subjects_dir=subjects_dir,
-                             time_label=time_label,
-                             figure=create_3d_figure(size=(500, 500)))
+    time_label = "MEG %d"
+    brain_meg = stc_psf_meg.plot(hemi='rh', subjects_dir=subjects_dir,
+                                 time_label=time_label,
+                                 figure=create_3d_figure(size=(500, 500)))
 
 # The PSF is centred around the right auditory cortex label,
 # but clearly extends beyond it.
