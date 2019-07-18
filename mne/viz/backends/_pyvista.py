@@ -42,7 +42,9 @@ class _Figure(object):
         self.store['off_screen'] = off_screen
 
     def build(self):
-        from pyvista import Plotter, BackgroundPlotter
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            from pyvista import Plotter, BackgroundPlotter
 
         if self.plotter_class is None:
             self.plotter_class = BackgroundPlotter
@@ -112,7 +114,9 @@ class _Renderer(_BaseRenderer):
             self.figure = fig
 
         if MNE_3D_BACKEND_TEST_DATA:
-            from pyvista import Plotter
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                from pyvista import Plotter
             self.figure.plotter_class = Plotter
             self.figure.store['off_screen'] = True
 
