@@ -322,8 +322,6 @@ try:
     # Do not pop up any mayavi windows while running the
     # examples. These are very annoying since they steal the focus.
     mlab.options.offscreen = True
-    import pyvista
-    pyvista.OFF_SCREEN = True
 except Exception:
     scrapers = ('matplotlib',)
     report_scraper = None
@@ -332,7 +330,7 @@ else:
     from traits.api import push_exception_handler
     push_exception_handler(reraise_exceptions=True)
     report_scraper = mne.report._ReportScraper()
-    scrapers = ('matplotlib', 'mayavi', 'pyvista', report_scraper)
+    scrapers = ('matplotlib', 'mayavi', report_scraper)
 
 
 def setup(app):
