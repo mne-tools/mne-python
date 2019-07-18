@@ -17,14 +17,11 @@ import vtk
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import pyvista
 
 
 class _Figure(object):
     def __init__(self, plotter=None,
-                 plotter_class=pyvista.BackgroundPlotter,
+                 plotter_class=None,
                  display=None,
                  title='PyVista Scene',
                  size=(600, 600),
@@ -45,12 +42,16 @@ class _Figure(object):
         self.store['off_screen'] = off_screen
 
     def build(self):
-        if self.notebook:
-            self.plotter_class = pyvista.Plotter
+        from pyvista import Plotter, BackgroundPlotter
 
-        if self.plotter_class == pyvista.Plotter:
+        if self.plotter_class is None:
+            self.plotter_class = BackgroundPlotter
+        if self.notebook:
+            self.plotter_class = Plotter
+
+        if self.plotter_class == Plotter:
             self.store.pop('title', None)
-        elif self.plotter_class == pyvista.BackgroundPlotter:
+        elif self.plotter_class == BackgroundPlotter:
             self.store.pop('off_screen', None)
 
         if self.plotter is None:
@@ -94,7 +95,7 @@ class _Renderer(_BaseRenderer):
 
     Attributes
     ----------
-    plotter: pyvista.Plotter
+    plotter: Plotter
         Main PyVista access point.
     name: str
         Name of the window.
@@ -111,7 +112,8 @@ class _Renderer(_BaseRenderer):
             self.figure = fig
 
         if MNE_3D_BACKEND_TEST_DATA:
-            self.figure.plotter_class = pyvista.Plotter
+            from pyvista import Plotter
+            self.figure.plotter_class = Plotter
             self.figure.store['off_screen'] = True
 
         self.plotter = self.figure.build()
@@ -125,13 +127,14 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
-        smooth_shading = self.figure.smooth_shading
-        vertices = np.c_[x, y, z]
-        n_vertices = len(vertices)
-        triangles = np.c_[np.full(len(triangles), 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            pd = pyvista.PolyData(vertices, triangles)
+            from pyvista import PolyData
+            smooth_shading = self.figure.smooth_shading
+            vertices = np.c_[x, y, z]
+            n_vertices = len(vertices)
+            triangles = np.c_[np.full(len(triangles), 3), triangles]
+            pd = PolyData(vertices, triangles)
             if len(color) == n_vertices:
                 if color.shape[1] == 3:
                     scalars = np.c_[color, np.ones(n_vertices)]
@@ -156,14 +159,15 @@ class _Renderer(_BaseRenderer):
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False):
-        cmap = _get_colormap_from_array(colormap, normalized_colormap)
-        vertices = np.array(surface['rr'])
-        triangles = np.array(surface['tris'])
-        n_triangles = len(triangles)
-        triangles = np.c_[np.full(n_triangles, 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            pd = pyvista.PolyData(vertices, triangles)
+            from pyvista import PolyData
+            cmap = _get_colormap_from_array(colormap, normalized_colormap)
+            vertices = np.array(surface['rr'])
+            triangles = np.array(surface['tris'])
+            n_triangles = len(triangles)
+            triangles = np.c_[np.full(n_triangles, 3), triangles]
+            pd = PolyData(vertices, triangles)
             pd.point_arrays['scalars'] = scalars
             self.plotter.add_mesh(pd.contour(isosurfaces=contours,
                                              rng=(vmin, vmax)),
@@ -177,14 +181,15 @@ class _Renderer(_BaseRenderer):
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
                 backface_culling=False):
-        cmap = _get_colormap_from_array(colormap, normalized_colormap)
-        vertices = np.array(surface['rr'])
-        triangles = np.array(surface['tris'])
-        n_triangles = len(triangles)
-        triangles = np.c_[np.full(n_triangles, 3), triangles]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            pd = pyvista.PolyData(vertices, triangles)
+            from pyvista import PolyData
+            cmap = _get_colormap_from_array(colormap, normalized_colormap)
+            vertices = np.array(surface['rr'])
+            triangles = np.array(surface['tris'])
+            n_triangles = len(triangles)
+            triangles = np.c_[np.full(n_triangles, 3), triangles]
+            pd = PolyData(vertices, triangles)
             if scalars is not None:
                 pd.point_arrays['scalars'] = scalars
             self.plotter.add_mesh(mesh=pd, color=color,
@@ -197,14 +202,15 @@ class _Renderer(_BaseRenderer):
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
-        sphere = vtk.vtkSphereSource()
-        sphere.SetThetaResolution(resolution)
-        sphere.SetPhiResolution(resolution)
-        sphere.Update()
-        geom = sphere.GetOutput()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            pd = pyvista.PolyData(center)
+            from pyvista import PolyData
+            sphere = vtk.vtkSphereSource()
+            sphere.SetThetaResolution(resolution)
+            sphere.SetPhiResolution(resolution)
+            sphere.Update()
+            geom = sphere.GetOutput()
+            pd = PolyData(center)
             self.plotter.add_mesh(pd.glyph(orient=False, scale=False,
                                            factor=scale, geom=geom),
                                   color=color, opacity=opacity,
@@ -214,11 +220,12 @@ class _Renderer(_BaseRenderer):
     def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
-        cmap = _get_colormap_from_array(colormap, normalized_colormap)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
+            from pyvista import Line
+            cmap = _get_colormap_from_array(colormap, normalized_colormap)
             for (pointa, pointb) in zip(origin, destination):
-                line = pyvista.Line(pointa, pointb)
+                line = Line(pointa, pointb)
                 if scalars is not None:
                     line.point_arrays['scalars'] = scalars[0, :]
                     scalars = 'scalars'
@@ -241,16 +248,17 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
-        factor = scale
-        vectors = np.c_[u, v, w]
-        points = np.vstack(np.c_[x, y, z])
-        n_points = len(points)
-        offset = np.arange(n_points) * 3
-        cell_type = np.full(n_points, vtk.VTK_VERTEX)
-        cells = np.c_[np.full(n_points, 1), range(n_points)]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            grid = pyvista.UnstructuredGrid(offset, cells, cell_type, points)
+            from pyvista import UnstructuredGrid
+            factor = scale
+            vectors = np.c_[u, v, w]
+            points = np.vstack(np.c_[x, y, z])
+            n_points = len(points)
+            offset = np.arange(n_points) * 3
+            cell_type = np.full(n_points, vtk.VTK_VERTEX)
+            cells = np.c_[np.full(n_points, 1), range(n_points)]
+            grid = UnstructuredGrid(offset, cells, cell_type, points)
             grid.point_arrays['vec'] = vectors
             if scale_mode == "scalar":
                 grid.point_arrays['mag'] = np.array(scalars)
@@ -418,7 +426,8 @@ def _get_view_to_display_matrix(size):
 
 
 def _close_all():
-    pyvista.close_all()
+    from pyvista import close_all
+    close_all()
 
 
 def _check_notebook():
