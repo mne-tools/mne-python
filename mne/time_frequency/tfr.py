@@ -542,7 +542,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         tfrs /= n_epochs
 
     # Normalization by number of taper
-    #tfrs /= len(Ws) #!!! NOT IN SOURE INDUCED
+    tfrs /= len(Ws)
     return tfrs
 
 
@@ -595,7 +595,9 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
     from ..epochs import BaseEpochs
-    from ..source_estimate import SourceEstimate, _BaseSourceEstimate
+    from ..source_estimate import SourceEstimate, VolSourceEstimate, VectorSourceEstimate, VolVectorSourceEstimate, \
+        _BaseSourceEstimate
+    from ..source_tfr import SourceTFR
 
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
@@ -619,22 +621,35 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    if isinstance(inst, _BaseSourceEstimate):
+    if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
         out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
                            output=output, decim=decim, **tfr_params)
+    elif isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+        print("SHAPEY SHAPE:", data.shape)  # !!!remove
+        out = np.empty([data.shape[1], data.shape[2], len(freqs), data.shape[3]])
+        out = np.asfortranarray(out)
+        print("IS IT STILL A FORTR: ARR?  ", np.isfortran(out))
+        for i in range(3):
+            out[:, i, :, :] = _compute_tfr(data[:, :, i, :], freqs, 1 / inst.tstep,
+                                           method=method, output=output, decim=decim,
+                                           **tfr_params)
+            print("IS IT REALLY COMPLEX: ", out[0, 0, 0, 0])  # !!! remove
+            print("IS IT STILL A FORTR: ARR?  ", np.isfortran(out))
     else:
         out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                            output=output, decim=decim, **tfr_params)
+
     times = inst.times[decim].copy()
 
+    print("OUT DIMENSIONS = ", out.shape)  # !!! remove
     # TODO integrate this correctly
-    if isinstance(inst, _BaseSourceEstimate):
-        from ..source_tfr import SourceTFR
+    if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
         print("OUT DIMENSIONS = ", out.shape)  # !!! remove
-        print("out.shape = ", out.shape)  # !!! remove#
-        #out = np.squeeze(out, axis = 0)
         return SourceTFR(out, inst.vertices, tmin=inst.tmin,
                          tstep=inst.tstep, subject=inst.subject)
+    elif isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+        return SourceTFR(out, inst.vertices, tmin=inst.tmin,
+                         tstep=inst.tstep, subject=inst.subject, vector=True)
 
     if average:
         if return_itc:

@@ -3,7 +3,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import pytest
 import matplotlib.pyplot as plt
 
@@ -19,9 +19,6 @@ from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click
 from mne.tests.test_epochs import assert_metadata_equal
-import os.path as op
-import pytest
-import numpy as np
 from mne.datasets import testing
 from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
@@ -42,6 +39,13 @@ data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
 event_fname = op.join(data_path, 'test-eve.fif')
 raw_ctf_fname = op.join(data_path, 'test_ctf_raw.fif')
+
+testing_path = testing.data_path(download=False)
+stc_inv_fname = op.join(testing_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+stc_raw_fname = op.join(testing_path, 'MEG', 'sample',
+                        'sample_audvis_trunc_raw.fif')
+stc_label_fname = op.join(testing_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
 def test_tfr_ctf():
@@ -772,139 +776,50 @@ def test_getitem_epochsTFR():
     assert_array_equal(power.next(), power.data[ind + 1])
 
 
-def _plot_func(src_tfr, src_tfr_ref):
-    import matplotlib.pyplot as plt
-    import numpy as np
-    fig = plt.figure(figsize=(2, 1))
-    ax1 = fig.add_subplot(2, 1, 1)
-    plt.imshow(np.squeeze(src_tfr_ref), cmap='hot', vmin=0, vmax=250, interpolation='nearest')
-    ax1.set_xlabel('samples')
-    ax1.set_ylabel('dipoles')
-    ax1.set_title("source_induced_power Morlet")
-    plt.colorbar()
-    ax2 = fig.add_subplot(2, 1, 2)
-    plt.imshow(np.squeeze(src_tfr), cmap='hot', vmin=0, vmax=250, interpolation='nearest')
-    ax2.set_xlabel('samples')
-    ax2.set_ylabel('dipoles')
-    ax2.set_title("SourceTFR Morlet")
-    plt.colorbar()
-    plt.show()
+# TODO: Be careful! kernel data (full_data=False) is accepted but still transformed to full_data during the tfr
+@testing.requires_testing_data
+@pytest.mark.parametrize('method', ['dSPM', 'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA'
+@pytest.mark.parametrize('n_epochs', [1, 1])  # , 3
+@pytest.mark.parametrize('n_cycles', [1, 3])
+@pytest.mark.parametrize('decim', [1, 3])
+@pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
+@pytest.mark.parametrize('full_data', [True, False])
+@pytest.mark.parametrize('use_fft', [True, False])
+@pytest.mark.parametrize('zero_mean', [True, False])
+def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, decim, zero_mean):
+    method = "MNE"
+    pick_ori = "vector"
+    full_data = True
+    n_epochs = 1
+    n_cycles = 2
+    use_fft = True
+    decim = 1
+    zero_mean = False
 
-
-def test_induced_power_equivalence():
-    data_path = testing.data_path(download=False)
-    fname_inv = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
-    fname_data = op.join(data_path, 'MEG', 'sample',
-                         'sample_audvis_trunc_raw.fif')
-    fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+    raw = read_raw_fif(stc_raw_fname)
     tmin, tmax, event_id = -0.2, 0.5, 1
-
-    # Setup for reading the raw data
-    raw = read_raw_fif(fname_data)
     events = find_events(raw, stim_channel='STI 014')
-    inverse_operator = read_inverse_operator(fname_inv)
+    events3 = events[:n_epochs]  # take 3 events to keep the computation time low
+    epochs = Epochs(raw, events3, tmin=tmin, tmax=tmax, preload=True)
 
-    method = "dSPM"
-    l2 = 0.1111111111111111
-    inv = prepare_inverse_operator(inverse_operator, nave=1,
-                                   lambda2=l2, method=method)
-    raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
-    # picks MEG gradiometers
-    picks = pick_types(raw.info, meg=True, eeg=False, eog=True,
-                       stim=False, exclude='bads')
-    # Load condition 1
-    event_id = 1
-    events3 = events[:3]  # take 3 events to keep the computation time low
-    epochs = Epochs(raw, events3, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, None), reject=dict(grad=4000e-13, eog=150e-6),
-                    preload=True)
-    epochs = epochs.pick("meg")
+    inv = read_inverse_operator(stc_inv_fname)
+    label = read_label(stc_label_fname)
 
-
-
-    # Compute a source estimate per frequency band
-    label = read_label(fname_label)
-
+    l2 = 1. / 9.
+    freqs = np.array([10, 12, 14, 16])
 
     stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                               label=label, prepared=False, pick_ori="normal")[0]
+                               pick_ori=pick_ori, full_data=full_data,
+                               label=label, prepared=False)[0]
+    stfr = tfr_morlet(stc, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                      zero_mean=zero_mean, return_itc=False, output='power')
 
-    freqs = np.array([10])
-    # assert equal data
-    src_tfr = tfr_morlet(stc, freqs=freqs, n_cycles=2, use_fft=True, return_itc=False, decim=1, output='power',
-                         zero_mean=False)
+    stfr_ref, _ = source_induced_power(epochs, inv, lambda2=l2, method=method,
+                                       pick_ori=pick_ori, label=label,
+                                       prepared=False, freqs=freqs, n_cycles=n_cycles,
+                                       use_fft=use_fft, decim=decim, zero_mean=zero_mean,
+                                       baseline=None, pca=False)
 
-    src_tfr_ref, _ = source_induced_power(epochs, inv, freqs=freqs, method=method, lambda2=l2, decim=1,
-                                          n_cycles=2, use_fft=True, pca=False,
-                                          label=label, prepared=False, baseline=None, pick_ori='normal',
-                                          zero_mean=False)
-    _plot_func(src_tfr.data, src_tfr_ref)
+    assert_allclose(stfr.data, stfr_ref)
 
-
-
-def test_source_tfr_morlet():
-
-    data_path = testing.data_path(download=False)
-    fname_inv = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
-    fname_data = op.join(data_path, 'MEG', 'sample',
-                         'sample_audvis_trunc_raw.fif')
-    fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
-    tmin, tmax, event_id = -0.2, 0.5, 1
-
-    # Setup for reading the raw data
-    raw = read_raw_fif(fname_data)
-    events = find_events(raw, stim_channel='STI 014')
-    inverse_operator = read_inverse_operator(fname_inv)
-    inv = prepare_inverse_operator(inverse_operator, nave=1,
-                                   lambda2=1. / 9., method="dSPM")
-
-    raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
-
-    # picks MEG gradiometers
-    picks = pick_types(raw.info, meg=True, eeg=False, eog=True,
-                       stim=False, exclude='bads')
-
-    # Load condition 1
-    event_id = 1
-    events3 = events[:3]  # take 3 events to keep the computation time low
-    epochs = Epochs(raw, events3, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
-                    preload=True)
-
-    # Compute a source estimate per frequency band
-    bands = dict(alpha=[10, 10])
-    label = read_label(fname_label)
-
-    stc = apply_inverse_epochs(epochs, inv, lambda2=0.1111111111111111, label=label)[0]
-
-    # assert return_itc error
-    with pytest.raises(ValueError, match="return_itc must be False"):
-        tfr_morlet(stc, np.arange(1, 30, 3), 5,
-                   use_fft=True, return_itc=True, decim=1,
-                   n_jobs=1, picks=None, average=True, verbose=None)
-        tfr_multitaper(stc, np.arange(1, 30, 3), 5,
-                       use_fft=True, return_itc=True, decim=1,
-                       n_jobs=1, picks=None, average=True, verbose=None)
-
-    freqs = np.array([10, 12, 14])
-
-    # TODO:
-
-    # try to feed a SourceEstimate into TFR morlet
-    data1 = tfr_morlet(stc, freqs, 1, return_itc=False)
-
-    # try to feed SourceEstimate into TFR multitaper
-    data2 = tfr_multitaper(stc, freqs, 1, return_itc=False)
-
-    # assert equal data
-    src_tfr = tfr_morlet(stc, freqs=[10], n_cycles=2, use_fft=False, return_itc=False)
-
-    src_tfr_ref, _ = source_induced_power(epochs, inv, freqs=[10],
-                                          n_cycles=2, use_fft=False, pca=False,
-                                          label=label, prepared=True)
-
-    _plot_func(src_tfr.data, src_tfr_ref)
-
-# run_tests_if_main()
+#run_tests_if_main()

@@ -129,7 +129,7 @@ def test_stfr_attributes():
     data = stfr.data[:, :, np.newaxis, :]
     with pytest.raises(ValueError, match='3 dimensions for SourceTFR'):
         SourceTFR(data, stfr.vertices)
-    stfr = SourceTFR(data[:, :, 0, 0], stfr.vertices, 0, 1)
+    stfr = SourceTFR(data[:, :, :, 0], stfr.vertices, 0, 1)
     assert stfr.data.shape == (data.shape[0], data.shape[1], 1)
 
 

@@ -61,15 +61,24 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, verbose=None):  # noqa: D102
+                 subject=None, vector=False, epochs=False, verbose=None):  # noqa: D102
 
         if not (isinstance(vertices, np.ndarray) or
                 isinstance(vertices, list)):
             raise ValueError('Vertices must be a numpy array or a list of '
                              'arrays')
 
-        self._data_ndim = 3
         self._src_type = 'SourceTFR'
+        self._data_ndim = 3
+        self._isvector = vector
+        self._isepochs = epochs
+
+        if self._isvector:
+            self._data_ndim += 1
+        if self._isepochs:
+            self._data_ndim += 1
+
+        print("DATA DIM", self._data_ndim)
 
         kernel, sens_data = None, None
         if isinstance(data, tuple):
@@ -83,7 +92,11 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             if sens_data.ndim != self._data_ndim:
                 raise ValueError('The sensor data must have %s dimensions, got '
                                  '%s' % (self._data_ndim, sens_data.ndim,))
+            if self._isvector:
+                raise ValueError('Vector Representation is not supported for '
+                                 'data=(kernel, sens_data) ')
 
+        # TODO: Make sure this is supported, or else construct the full data instead
         if isinstance(vertices, list):
             vertices = [np.asarray(v, int) for v in vertices]
             if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
@@ -102,12 +115,18 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             if data.shape[0] != n_src:
                 raise ValueError('Number of vertices (%i) and stfr.shape[0] '
                                  '(%i) must match' % (n_src, data.shape[0]))
-            if data.ndim == self._data_ndim - 1:  # allow upbroadcasting
-                data = data[..., np.newaxis]
             if data.ndim != self._data_ndim:
                 raise ValueError('Data (shape %s) must have %s dimensions for '
-                                 '%s' % (data.shape, self._data_ndim,
-                                         self.__class__.__name__))
+                                 'SourceTFR with vector=%s and epochs=%s'
+                                 % (data.shape, self._data_ndim,
+                                    self._isvector, self._isepochs))
+            # TODO: Discuss which of the data shapes should represent vector
+            # TODO: Cover this!
+            if self._isvector and data.shape[1] != 3:
+                raise ValueError('If vector=True, stfr.shape[1] must be 3. '
+                                 'Got shape[1] == %s' % (data.shape[1]))
+
+
 
         self._data = data
         self._tmin = tmin

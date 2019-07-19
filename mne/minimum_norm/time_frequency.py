@@ -214,16 +214,24 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
     # phase lock
     plv_e = np.zeros(shape, dtype=np.complex) if with_plv else None
     n_sources, _, n_times = shape
+
+    print("TFR BEFORE: ", data)  # !!! remove
+    # data = np.sqrt(data ** 2)
+    print("TFR AFTER: ", data)  # !!! remove
+
     for f, w in enumerate(Ws):
+
+        print("DATA AND SHAPE SHAPE", data.shape, shape)  #!!! remove
         tfr_ = cwt(data, [w], use_fft=use_fft, decim=decim)
         tfr_ = np.asfortranarray(tfr_.reshape(len(data), -1))
+        print("DATA AND SHAPE SHAPE NOW: ", tfr_.shape, data.shape, shape)  # !!! remove
 
         # phase lock and power at freq f
         if with_plv:
             plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
 
         tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
-
+        print("DATA AND SHAPE SHAPE AND K SHAPE NOW: ", tfr_.shape, data.shape, shape, K.shape)  # !!! remove
         for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
             sol = np.dot(K, t)
 
@@ -237,6 +245,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
                 else:  # imag
                     plv_f += 1j * sol_pick_normal
 
+            print("!!!THIS GOT CAALED: <>", is_free_ori)  # !!! remove
             if is_free_ori:
                 logger.debug('combining the current components...')
                 sol = combine_xyz(sol, square=with_power)
@@ -295,6 +304,8 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
     else:
         plv = None
 
+    # FIXME: The following lines cause several Errors. One, when calling with method 'eLORETA'
+    #FIXME: The other Error occurs for pick_ori='vector'
     if method != "MNE":
         power *= noise_norm.ravel()[:, None, None] ** 2
 
