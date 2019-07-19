@@ -31,7 +31,7 @@ from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.time_frequency import csd_morlet
 from mne.beamformer import make_dics, apply_dics_csd
-from mne.viz import set_3d_backend
+from mne.viz import use_3d_backend
 
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
@@ -222,10 +222,11 @@ brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
 brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
 # Rotate the view and add a title.
-fig = brain._figures[0][0]
-mne.viz.set_3d_view(fig, azimuth=0, elevation=0, distance=550,
-                    focalpoint=[0, 0, 0])
-mne.viz.set_3d_title(fig, 'MNE-dSPM inverse (RMS)')
+with use_3d_backend("mayavi"):
+    fig = brain._figures[0][0]
+    mne.viz.set_3d_view(fig, azimuth=0, elevation=0, distance=550,
+                        focalpoint=[0, 0, 0])
+    mne.viz.set_3d_title(fig, 'MNE-dSPM inverse (RMS)')
 
 ###############################################################################
 # We will now compute the cortical power map at 10 Hz. using a DICS beamformer.
@@ -267,20 +268,20 @@ power_approach1, f = apply_dics_csd(csd_signal, filters_approach1)
 power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 # Plot the DICS power maps for both approaches.
-set_3d_backend("mayavi")
-for approach, power in enumerate([power_approach1, power_approach2], 1):
-    brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both',
-                       figure=approach + 1, size=600)
+with use_3d_backend("mayavi"):
+    for approach, power in enumerate([power_approach1, power_approach2], 1):
+        brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both',
+                           figure=approach + 1, size=600)
 
-    # Indicate the true locations of the source activity on the plot.
-    brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
-    brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
+        # Indicate the true locations of the source activity on the plot.
+        brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
+        brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
-    # Rotate the view and add a title.
-    fig = brain._figures[0][0]
-    mne.viz.set_3d_view(fig, azimuth=0, elevation=0, distance=550,
-                        focalpoint=[0, 0, 0])
-    mne.viz.set_3d_title(fig, 'DICS power map, approach %d' % approach)
+        # Rotate the view and add a title.
+        fig = brain._figures[0][0]
+        mne.viz.set_3d_view(fig, azimuth=0, elevation=0, distance=550,
+                            focalpoint=[0, 0, 0])
+        mne.viz.set_3d_title(fig, 'DICS power map, approach %d' % approach)
 
 ###############################################################################
 # Excellent! All methods found our two simulated sources. Of course, with a
