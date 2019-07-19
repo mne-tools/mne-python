@@ -28,6 +28,6 @@ neo
 xlrd
 pydocstyle
 flake8
-pyvista>=0.21.1
+https://github.com/GuillaumeFavelier/pyvista/zipball/test_sphinx
 pylsl>=1.12
 panel
