@@ -59,14 +59,7 @@ class _Figure(object):
         if self.plotter is None:
             plotter = self.plotter_class(**self.store)
             plotter.background_color = self.background_color
-        else:
-            plotter = self.plotter_class(**self.store)
-            plotter.background_color = self.plotter.background_color
-            for actor in self.plotter.renderer.GetActors():
-                plotter.renderer.AddActor(actor)
-            plotter.camera_position = self.plotter.camera_position
-            plotter.reset_camera()
-        self.plotter = plotter
+            self.plotter = plotter
         return self.plotter
 
 
@@ -462,23 +455,31 @@ def _get_camera_direction(focalpoint, position):
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
     position = np.array(figure.plotter.camera_position[0])
-    if focalpoint is None:
-        focalpoint = np.array(figure.plotter.camera_position[1])
+    focalpoint = np.array(figure.plotter.camera_position[1])
     r, theta, phi, fp = _get_camera_direction(focalpoint, position)
 
     if azimuth is not None:
         phi = _deg2rad(azimuth)
     if elevation is not None:
         theta = _deg2rad(elevation)
+
+    renderer = figure.plotter.renderer
+    bounds = np.array(renderer.ComputeVisiblePropBounds())
     if distance is not None:
         r = distance
+    else:
+        r = max(bounds[1::2] - bounds[::2]) * 2.0
+
+    cen = (bounds[1::2] + bounds[::2]) * 0.5
+    if focalpoint is not None:
+        cen = np.asarray(focalpoint)
 
     position = [
         r * np.cos(phi) * np.sin(theta),
         r * np.sin(phi) * np.sin(theta),
         r * np.cos(theta)]
     figure.plotter.camera_position = [
-        position, focalpoint, [0, 0, 1]]
+        position, cen, [0, 0, 1]]
 
 
 def _set_3d_title(figure, title, size=40):
