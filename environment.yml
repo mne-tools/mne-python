@@ -34,7 +34,7 @@ dependencies:
 - pip:
   - mne
   - vtk
-  - pyvista>=0.21.1
+  - https://github.com/GuillaumeFavelier/pyvista/zipball/test_sphinx
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
