@@ -13,11 +13,11 @@ DEFAULTS = dict(
                gof='k', bio='k', ecog='k', hbo='darkblue', hbr='b'),
     units=dict(mag='fT', grad='fT/cm', eeg='uV', eog='uV', ecg='uV', emg='uV',
                misc='AU', seeg='mV', dipole='nAm', gof='GOF', bio='uV',
-               ecog='uV', hbo='uM', hbr='uM'),
+               ecog='uV', hbo='uM', hbr='uM', ref_meg='fT'),
     # scalings for the units
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6, emg=1e6, ecg=1e6,
                   misc=1.0, seeg=1e3, dipole=1e9, gof=1.0, bio=1e6, ecog=1e6,
-                  hbo=1e6, hbr=1e6),
+                  hbo=1e6, hbr=1e6, ref_meg=1e15),
     # rough guess for a good plot
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                            ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc='auto',
@@ -33,6 +33,7 @@ DEFAULTS = dict(
     titles=dict(mag='Magnetometers', grad='Gradiometers', eeg='EEG', eog='EOG',
                 ecg='ECG', emg='EMG', misc='misc', seeg='sEEG', bio='BIO',
                 dipole='Dipole', ecog='ECoG', hbo='Oxyhemoglobin',
+                ref_meg='Reference Magnetometers',
                 hbr='Deoxyhemoglobin', gof='Goodness of fit'),
     mask_params=dict(marker='o',
                      markerfacecolor='w',

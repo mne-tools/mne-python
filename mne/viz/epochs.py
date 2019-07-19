@@ -558,8 +558,8 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     return fig
 
 
-def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
-                  color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
+def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
+                  color=(0.8, 0.8, 0.8), width=0.8, ignore=('IGNORED',),
                   show=True):
     """Show the channel stats based on a drop_log from Epochs.
 
@@ -590,29 +590,34 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     """
     import matplotlib.pyplot as plt
     from ..epochs import _drop_log_stats
-    perc = _drop_log_stats(drop_log, ignore)
+    percent = _drop_log_stats(drop_log, ignore)
+    if percent < threshold:
+        logger.info('Percent dropped epochs < supplied threshold; not '
+                    'plotting drop log.')
+        return
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
-    fig = plt.figure()
-    if perc < threshold or len(ch_names) == 0:
-        plt.text(0, 0, 'No drops')
+    counts = np.array(list(scores.values()))
+    # init figure, handle easy case (no drops)
+    fig, ax = plt.subplots()
+    ax.set_title('{}: {:.1f}%'.format(subject, percent))
+    if len(ch_names) == 0:
+        ax.text(0.5, 0.5, 'No drops', ha='center', fontsize=14)
         return fig
-    n_used = 0
-    for d in drop_log:  # "d" is the list of drop reasons for each epoch
-        if len(d) == 0 or any(ch not in ignore for ch in d):
-            n_used += 1  # number of epochs not ignored
-    counts = 100 * np.array(list(scores.values()), dtype=float) / n_used
-    n_plot = min(n_max_plot, len(ch_names))
-    order = np.flipud(np.argsort(counts))
-    plt.title('%s: %0.1f%%' % (subject, perc))
-    x = np.arange(n_plot)
-    plt.bar(x, counts[order[:n_plot]], color=color, width=width)
-    plt.xticks(x + width / 2.0, ch_names[order[:n_plot]], rotation=45,
-               horizontalalignment='right')
-    plt.tick_params(axis='x', which='major', labelsize=10)
-    plt.ylabel('% of epochs rejected')
-    plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
-    plt.grid(True, axis='y')
+    # count epochs that aren't fully caught by `ignore`
+    n_used = sum([any(ch not in ignore for ch in d) or len(d) == 0
+                  for d in drop_log])
+    # calc plot values
+    n_bars = min(n_max_plot, len(ch_names))
+    x = np.arange(n_bars)
+    y = 100 * counts / n_used
+    order = np.flipud(np.argsort(y))
+    ax.bar(x, y[order[:n_bars]], color=color, width=width, align='center')
+    ax.set_xticks(x)
+    ax.set_xticklabels(ch_names[order[:n_bars]], rotation=45, size=10,
+                       horizontalalignment='right')
+    ax.set_ylabel('% of epochs rejected')
+    ax.grid(axis='y')
     tight_layout(pad=1, fig=fig)
     plt_show(show)
     return fig
