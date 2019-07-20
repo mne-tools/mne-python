@@ -16,7 +16,7 @@ jobs:
     OPENBLAS_NUM_THREADS: 1
     AZURE_CI_WINDOWS: 'true'
     PYTHON_VERSION: '3.7'
-    CONDA_VERSION: '4.5.10'
+    CONDA_VERSION: '4.7.5'
   strategy:
     maxParallel: 4
     matrix:
