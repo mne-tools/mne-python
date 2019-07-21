@@ -326,7 +326,8 @@ def test_plot_compare_evokeds():
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
     plot_compare_evokeds([red, blue], picks=[0],
                          ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
-    plot_compare_evokeds([list(evoked_dict.values())], picks=[0], ci=_parametric_ci)
+    plot_compare_evokeds([list(evoked_dict.values())], picks=[0],
+                         ci=_parametric_ci)
     # smoke test for tmin >= 0 (from mailing list)
     red.crop(0.01, None)
     assert len(red.times) > 2
