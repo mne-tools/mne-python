@@ -26,6 +26,7 @@ from mne.viz.evoked import plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
 from mne.io.constants import FIFF
+from ..stats.parametric import _parametric_ci
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -261,7 +262,6 @@ def test_plot_compare_evokeds():
                          truncate_yaxis=False)
     plot_compare_evokeds(evoked, ylim=dict(mag=(-50, 50)), truncate_yaxis=True)
     plt.close('all')
-<<<<<<< HEAD
     # test styles
     plot_compare_evokeds(evoked_dict, colors=['b', 'r', 'g'],
                          linestyles=[':', '-', '--'], split_legend=True)
@@ -276,48 +276,6 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=1, vis=2))
     plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
                          linestyles=['-', ':', '--'])
-=======
-    # `evoked` must contain Evokeds
-    pytest.raises(TypeError, plot_compare_evokeds, [[1, 2], [3, 4]])
-    # `ci` must be float or None
-    pytest.raises(TypeError, plot_compare_evokeds, contrast, ci='err')
-    # test all-positive ylim
-    contrast["red/stim"], contrast["blue/stim"] = red, blue
-    plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
-                         ylim=dict(mag=(1, 10)), truncate_yaxis='max_ticks',
-                         show_sensors=False, show_legend=False)
-    plt.close('all')
-
-    # sequential colors
-    evokeds = (evoked, blue, red)
-    contrasts = {"a{}/b".format(ii): ev for ii, ev in
-                 enumerate(evokeds)}
-    colors = {"a" + str(ii): ii for ii, _ in enumerate(evokeds)}
-    contrasts["a1/c"] = evoked.copy()
-    for split in (True, False):
-        for linestyles in (["-"], {"b": "-", "c": ":"}):
-            plot_compare_evokeds(
-                contrasts, colors=colors, picks=[0], cmap='Reds',
-                split_legend=split, linestyles=linestyles,
-                ci=False, show_sensors=False)
-    colors = {"a" + str(ii): ii / len(evokeds)
-              for ii, _ in enumerate(evokeds)}
-    plot_compare_evokeds(
-        contrasts, colors=colors, picks=[0], cmap='Reds',
-        split_legend=split, linestyles=linestyles, ci=False,
-        show_sensors=False)
-    red.info["chs"][0]["loc"][:2] = 0  # test plotting channel at zero
-    plot_compare_evokeds([[red, blue]], picks=[0],
-                         ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
-    plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
-                         split_legend=None)
-    plot_compare_evokeds([list(evokeds)], picks=[0], ci=_parametric_ci)
-    with pytest.raises(ValueError, match="If `split_legend` is True"):
-        plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    with pytest.raises(ValueError, match='Please supply colors manually'):
-        plot_compare_evokeds([red] * 20)
-    with pytest.raises(ValueError, match='must specify the colors'):
-        plot_compare_evokeds(contrasts, cmap='summer')
     plt.close('all')
     # test deprecation
     with pytest.warns(DeprecationWarning, match='"gfp" is deprecated'):
@@ -366,8 +324,9 @@ def test_plot_compare_evokeds():
         assert len(fig.axes[0].lines) == len(evoked_dict)
     # old tests
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
-    plot_compare_evokeds(red, picks=[0],
+    plot_compare_evokeds([red, blue], picks=[0],
                          ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
+    plot_compare_evokeds([list(evokeds)], picks=[0], ci=_parametric_ci)
     # smoke test for tmin >= 0 (from mailing list)
     red.crop(0.01, None)
     assert len(red.times) > 2

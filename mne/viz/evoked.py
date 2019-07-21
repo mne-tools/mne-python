@@ -1968,7 +1968,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     ci : float | bool | callable | None
         Confidence band around each ERP/F time series. If ``False`` or ``None``
         no confidence band is drawn. If :class:`float`, ``ci`` must be between
-        0 and 1, and will set the threshold for a bootstrap estimation of the
+        0 and 1, and will set the threshold for a bootstrap
+        (single plot)/parametric (when ``axes=='topo'``)  estimation of the
         confidence band; ``True`` is equivalent to setting a threshold of 0.95
         (i.e., the 95%% confidence band is drawn). If a callable, it must take
         a single array (n_observations × n_times) as input and return upper and
