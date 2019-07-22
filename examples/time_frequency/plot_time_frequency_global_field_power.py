@@ -58,9 +58,10 @@ from mne.stats import _bootstrap_ci
 ###############################################################################
 # Set parameters
 data_path = somato.data_path()
-subj = 'sub-01'
+subj = '01'
+task = 'somato'
 raw_fname = op.join(data_path, subj, 'meg',
-                    '{}_task-somato_meg.fif'.format(subj))
+                    'sub-{}_task-{}_meg.fif'.format(subj, task))
 
 # let's explore some frequency bands
 iter_freqs = [

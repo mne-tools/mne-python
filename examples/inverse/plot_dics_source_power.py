@@ -14,7 +14,7 @@ References
 ----------
 .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
        interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
-"""  # noqa: E501
+"""
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #         Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
@@ -34,9 +34,10 @@ print(__doc__)
 ###############################################################################
 # Reading the raw data and creating epochs:
 data_path = somato.data_path()
-subj = 'sub-01'
-raw_fname = op.join(data_path, subj, 'meg',
-                    '{}_task-somato_meg.fif'.format(subj))
+subj = '01'
+task = 'somato'
+raw_fname = op.join(data_path, 'sub-{}'.format(subj), 'meg',
+                    'sub-{}_task-{}_meg.fif'.format(subj, task))
 
 raw = mne.io.read_raw_fif(raw_fname)
 
@@ -49,9 +50,9 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
                     preload=True)
 
 # Read forward operator and point to freesurfer subject directory
-fname_fwd = op.join(data_path, 'derivatives', 'mne_forward_model', subj,
-                    'somato-meg-oct-6-fwd.fif')
-subjects_dir = op.join(data_path, 'derivatives', 'freesurfer')
+fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subj),
+                    'sub-{}_task-{}-fwd.fif'.format(subj, task))
+subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
 
 fwd = mne.read_forward_solution(fname_fwd)
 
