@@ -302,4 +302,25 @@ def test_saving_picked(tmpdir, comp_grade):
                     atol=1e-20)  # atol is very small but > 0
 
 
+# @ requires not test_data but brainstorm data.
+def test_markers_as_annotations():
+    """Test reading CTF markers as annotations."""
+    from mne import find_events
+    from mne.datasets.brainstorm import bst_raw
+    from mne.io.ctf.markers import Markers
+    from collections import Counter
+
+    data_path = bst_raw.data_path()
+    raw_path = (data_path + '/MEG/bst_raw/' +
+                'subj001_somatosensory_20111109_01_AUX-f.ds')
+
+    raw = read_raw_ctf(raw_path, preload=True)
+    events  = find_events(raw)
+    mm = Markers(raw_path)
+
+    assert [len(mm[kk]) for kk in mm.keys()] == [103, 99]
+    assert Counter(events[:,2]) == {2: 102, 1: 98}
+
+
+
 run_tests_if_main()
