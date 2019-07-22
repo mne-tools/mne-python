@@ -8,13 +8,14 @@ import numpy as np
 
 from ..filter import next_fast_len
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import verbose, _check_combine
+from ..utils import verbose, _check_combine, _check_option
 
 
 @verbose
 def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
                          verbose=None):
     """Compute the envelope correlation.
+
     Parameters
     ----------
     data : array-like, shape=(n_epochs, n_signals, n_times) | generator
@@ -29,14 +30,18 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
         Default is 'mean'. Can be None to return without combining.
         If callable, it must accept one positional input.
         For example::
+
             combine = lambda data: np.median(data, axis=0)
+
     orthogonalize : 'pairwise' | False
         Whether to orthogonalize with the pairwise method or not.
         Defaults to 'pairwise'. Note that when False,
         the correlation matrix will not be returned with
         absolute values.
 
+        .. versionadded:: 0.19
     %(verbose)s
+
     Returns
     -------
     corr : ndarray, shape ([n_epochs, ]n_nodes, n_nodes)
@@ -58,6 +63,7 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
            resting-state networks depend on the mediating frequency band.
            Neuroimage 174:57–68
     """
+    _check_option('orthogonalize', orthogonalize, (False, 'pairwise'))
     from scipy.signal import hilbert
     n_nodes = None
     if combine is not None:
@@ -101,8 +107,8 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
         corr = np.empty((n_nodes, n_nodes))
         for li, label_data in enumerate(epoch_data):
             if orthogonalize is False:  # the new code
-                label_data_orth = label_data
-                label_data_orth_std = data_mag_std[li]
+                label_data_orth = data_mag
+                label_data_orth_std = data_mag_std
             else:
                 label_data_orth = (label_data * data_conj_scaled).imag
                 label_data_orth -= np.mean(label_data_orth, axis=-1,
@@ -116,8 +122,9 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
         if orthogonalize is not False:
             # Make it symmetric (it isn't at this point)
             corr = np.abs(corr)
-            corrs.append((corr.T + corr) / 2.)
-            del corr
+            corr = (corr.T + corr) / 2.
+        corrs.append(corr)
+        del corr
 
     corr = fun(corrs)
     return corr
