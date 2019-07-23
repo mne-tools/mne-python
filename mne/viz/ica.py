@@ -47,7 +47,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    exclude : None
+    exclude : 'deprecated'
         The ``exclude`` parameter is deprecated and will be removed in version
         0.20; specify excluded components using the ``ICA.exclude`` attribute
         instead.
@@ -84,7 +84,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     from ..evoked import Evoked
     from ..epochs import BaseEpochs
 
-    if exclude is not None:
+    if exclude != 'deprecated':
         warn('The ``exclude`` parameter is deprecated and will be removed in '
              'version 0.20; specify excluded components using the '
              '``ICA.exclude`` attribute instead.', DeprecationWarning)
