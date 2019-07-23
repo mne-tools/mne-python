@@ -47,9 +47,10 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    exclude : array-like of int
-        The components marked for exclusion. If None (default), ICA.exclude
-        will be used.
+    exclude : None
+        The ``exclude`` parameter is deprecated and will be removed in version
+        0.20; specify excluded components using the ``ICA.exclude`` attribute
+        instead.
     start : int
         X-axis start index. If None, from the beginning.
     stop : int
@@ -83,10 +84,11 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     from ..evoked import Evoked
     from ..epochs import BaseEpochs
 
-    if exclude is None:
-        exclude = ica.exclude
-    elif len(ica.exclude) > 0:
-        exclude = np.union1d(ica.exclude, exclude)
+    if exclude is not None:
+        warn('The ``exclude`` parameter is deprecated and will be removed in '
+             'version 0.20; specify excluded components using the '
+             '``ICA.exclude`` attribute instead.', DeprecationWarning)
+    exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, 'all')
 
     if isinstance(inst, BaseRaw):
