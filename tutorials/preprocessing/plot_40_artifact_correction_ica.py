@@ -139,7 +139,9 @@ ica.plot_scores(scores, exclude=eog_inds)  # look at r scores of components
 # we can see that only one component is highly correlated and that this
 # component got detected by our correlation analysis (red).
 
-ica.plot_sources(eog_average, exclude=eog_inds)  # look at source time course
+ica.exclude = eog_inds
+ica.plot_sources(eog_average)  # look at source time course
+ica.exclude = []               # reset exclude list for now until we're sure
 
 ###############################################################################
 # We can take a look at the properties of that component, now using the
@@ -260,7 +262,8 @@ reference_ica.plot_components()
 # Which one is the bad EOG component?
 # Here we rely on our previous detection algorithm. You would need to decide
 # yourself if no automatic detection was available.
-reference_ica.plot_sources(eog_average, exclude=eog_inds)
+reference_ica.exclude = eog_inds
+reference_ica.plot_sources(eog_average)
 
 ###############################################################################
 # Indeed it looks like an EOG, also in the average time course.
