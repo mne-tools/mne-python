@@ -326,9 +326,61 @@ def test_fieldtrip_stuff():
     from scipy.io import loadmat
     from mne.io.ctf import __file__ as _ctf_file
 
-    data = loadmat(op.join(op.dirname(_ctf_file), 'fieldtrip.mat'))
+    fname = op.join(op.dirname(_ctf_file), 'fieldtrip.mat')
+    data = loadmat(fname)
     LATENCIES = data['event']
     hdr = data['hdr']
+    mrk = data['mrk']
+
+    # for i=1:mrk.number_markers
+    #   for j=1:mrk.number_samples(i)
+    #     % determine the location of the marker, expressed in samples
+    #     trialnum = mrk.trial_times{i}(j,1);
+    #     synctime = mrk.trial_times{i}(j,2);
+    #     begsample = (trialnum-1)*hdr.nSamples + 1;    % of the trial, relative to the start of the datafile
+    #     endsample = (trialnum  )*hdr.nSamples;        % of the trial, relative to the start of the datafile
+    #     offset    = round(synctime*hdr.Fs);           % this is the offset (in samples) relative to time t=0 for this trial
+    #     offset    = offset + hdr.nSamplesPre;         % and time t=0 corrsponds with the nSamplesPre'th sample
+    #     % store this marker as an event
+    #     event(end+1).type    = mrk.marker_names{i};
+    #     event(end ).value    = [];
+    #     event(end ).sample   = begsample + offset;
+    #     event(end ).duration = 0;
+    #     event(end ).offset   = offset;
+    #   end
+    # end
+
+    mrk_number_markers = 2
+    mrk_number_samples = [103, 99]
+    hdr_nSamples = 1800  # hdr[0,0]['nSamples'][0,0]
+    hdr_Fs = 1200  # hdr[0,0]['Fs'][0,0]
+    hdr_nSamplesPre = 180  # hdr[0,0]['nSamplesPre'][0,0]
+
+    event_sample = []
+    event_offset = []
+    event_type = []
+    for i in range(mrk_number_markers):
+        for j in range(mrk_number_samples[i]):
+            trialnum = mrk[0, 0]['trial_times'][0, i][j, 0]
+            synctime = mrk[0, 0]['trial_times'][0, i][j, 1]
+            begsample = (trialnum-1) * hdr_nSamples + 1
+            endsample = (trialnum  ) * hdr_nSamples
+            offset    = round(synctime * hdr_Fs) + hdr_nSamplesPre
+
+            event_type.append(mrk[0, 0]['marker_names'][0, i][0])
+            event_sample.append(begsample + offset)
+            event_offset.append(offset)
+
+
+    EXPECTED_TYPE = [str(l[0]) for l in LATENCIES[:]['type'][0]]
+    EXPECTED_SAMPLE = [int(l[0]) for l in LATENCIES[:]['sample'][0]]
+    EXPECTED_OFFSET = [int(l[0]) for l in LATENCIES[:]['offset'][0]]
+
+    assert event_type == EXPECTED_TYPE
+    assert event_sample == EXPECTED_SAMPLE
+    assert event_offset == EXPECTED_OFFSET
+
+    # import pdb; pdb.set_trace()
 
 
 run_tests_if_main()
