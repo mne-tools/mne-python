@@ -661,7 +661,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
                 label = ', '.join(label.split('/'))
             ax.set_title('(%s)' % label)
         ax.set_xlabel('ICA components')
-        ax.set_xlim(0, len(this_scores))
+        ax.set_xlim(-0.6, len(this_scores) - 0.4)
 
     tight_layout(fig=fig)
     plt_show(show)
