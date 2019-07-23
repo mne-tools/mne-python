@@ -322,5 +322,13 @@ def test_markers_as_annotations():
     assert Counter(events[:,2]) == {2: 102, 1: 98}
 
 
+def test_fieldtrip_stuff():
+    from scipy.io import loadmat
+    from mne.io.ctf import __file__ as _ctf_file
+
+    data = loadmat(op.join(op.dirname(_ctf_file), 'fieldtrip.mat'))
+    LATENCIES = data['event']
+    hdr = data['hdr']
+
 
 run_tests_if_main()
