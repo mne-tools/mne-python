@@ -96,6 +96,7 @@ Bug
 API
 ~~~
 
+- Deprecate ``exclude`` parameter in :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources`, instead always use the ``exclude`` attribute of the ICA object by `Daniel McCloy`_.
 
 - Deprecate ``montage`` parameter in favor of the ``set_montage`` method in all EEG data readers :func:`mne.io.read_raw_cnt`, :func:`mne.io.read_raw_egi`, :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_gdf`, :func:`mne.io.read_raw_nicolet`, :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Alex Gramfort`_
 
