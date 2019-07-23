@@ -28,7 +28,7 @@ from ..utils import _reject_data_segments
 
 
 @fill_doc
-def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
+def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False):
     """Plot estimated latent sources given the unmixing matrix.
