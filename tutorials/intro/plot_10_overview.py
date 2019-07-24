@@ -31,7 +31,7 @@ import mne
 # MNE-Python data structures are based around the FIF file format from
 # Neuromag, but there are reader functions for :ref:`a wide variety of other
 # data formats <data-formats>`. MNE-Python also has interfaces to a
-# variety of :doc:`publicly available datasets <../../manual/datasets_index>`,
+# variety of :ref:`publicly available datasets <datasets>`,
 # which MNE-Python can download and manage for you.
 #
 # We'll start this tutorial by loading one of the example datasets (called

@@ -47,8 +47,8 @@ import mne
 # reader functions for :ref:`a wide variety of other data formats
 # <data-formats>` as well.
 #
-# There are also :doc:`several other example datasets
-# <../../manual/datasets_index>` that can be downloaded with just a few lines
+# There are also :ref:`several other example datasets
+# <datasets>` that can be downloaded with just a few lines
 # of code. Functions for downloading example datasets are in the
 # :mod:`mne.datasets` submodule; here we'll use
 # :func:`mne.datasets.sample.data_path` to download the ":ref:`sample-dataset`"

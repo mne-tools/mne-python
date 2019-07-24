@@ -1,6 +1,6 @@
 """Functions for fetching remote datasets.
 
-See `datasets`_ for more information.
+See :ref:`datasets` for more information.
 """
 
 from . import fieldtrip_cmc
