@@ -28,9 +28,6 @@ from ...annotations import Annotations, events_from_annotations
 from ._utils import _load_gdf_events_lut
 
 
-GDF_EVENTS_LUT = _load_gdf_events_lut()
-
-
 @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
             ' in 0.19. Please use `mne.events_from_annotations` instead')
 def find_edf_events(raw):
@@ -239,6 +236,8 @@ class RawGDF(BaseRaw):
     mne.io.read_raw_gdf : Recommended way to read GDF files.
     """
 
+    GDF_EVENTS_LUT = _load_gdf_events_lut()
+
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
@@ -277,8 +276,7 @@ class RawGDF(BaseRaw):
                 ' in 0.19. Please use `mne.events_from_annotations` instead')
     def find_edf_events(self):
         return events_from_annotations(self)
-
-
+        
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
     # BDF
@@ -1437,8 +1435,7 @@ def _get_annotations_gdf(edf_info, sfreq):
     if events is not None and events[1].shape[0] > 0:
         onset = events[1] / sfreq
         duration = events[4] / sfreq
-        desc = [GDF_EVENTS_LUT[key]
-                if key in GDF_EVENTS_LUT else 'Unknown'
+        desc = [RawGDF.GDF_EVENTS_LUT[key]
+                if key in RawGDF.GDF_EVENTS_LUT else 'Undefined('+key+')'
                 for key in events[2]]
-
     return onset, duration, desc
