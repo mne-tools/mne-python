@@ -203,6 +203,8 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                   width=1.0, decim=1, return_itc=False, n_jobs=1,
                   verbose=None):
+    from ..source_estimate import _BaseSourceEstimate
+    from ..source_tfr import SourceTFR
     """Time-Frequency Representation (TFR) using Stockwell Transform.
 
     Parameters
@@ -248,21 +250,31 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     -----
     .. versionadded:: 0.9.0
     """
+
     # verbose dec is used b/c subfunctions are verbose
     data = _get_data(inst, return_itc)
-    picks = _pick_data_channels(inst.info)
-    info = pick_info(inst.info, picks)
-    data = data[:, picks, :]
     n_jobs = check_n_jobs(n_jobs)
-    power, itc, freqs = tfr_array_stockwell(data, sfreq=info['sfreq'],
+    times = inst.times[::decim].copy()
+    nave = len(data)
+    if isinstance(inst, _BaseSourceEstimate):
+        power, itc, freqs = tfr_array_stockwell(data, sfreq=inst.sfreq,
+                                                fmin=fmin, fmax=fmax, n_fft=n_fft,
+                                                width=width, decim=decim,
+                                                return_itc=return_itc,
+                                                n_jobs=n_jobs)
+        return SourceTFR(power, inst.vertices, tmin=inst.tmin,
+                         tstep=inst.tstep, subject=inst.subject)
+    else:
+        picks = _pick_data_channels(inst.info)
+        data = data[:, picks, :]
+        info = pick_info(inst.info, picks)
+        power, itc, freqs = tfr_array_stockwell(data, sfreq=info['sfreq'],
                                             fmin=fmin, fmax=fmax, n_fft=n_fft,
                                             width=width, decim=decim,
                                             return_itc=return_itc,
                                             n_jobs=n_jobs)
-    times = inst.times[::decim].copy()
-    nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave, method='stockwell-power')
-    if return_itc:
-        out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
+        out = AverageTFR(info, power, times, freqs, nave, method='stockwell-power')
+        if return_itc:
+            out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
                                freqs.copy(), nave, method='stockwell-itc'))
-    return out
+        return out

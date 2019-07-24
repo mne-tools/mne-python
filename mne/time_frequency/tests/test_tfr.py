@@ -16,7 +16,7 @@ from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
                                     EpochsTFR)
-from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
+from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet, tfr_stockwell
 from mne.viz.utils import _fake_click
 from mne.tests.test_epochs import assert_metadata_equal
 from mne.datasets import testing
@@ -776,10 +776,21 @@ def test_getitem_epochsTFR():
     assert_array_equal(power.next(), power.data[ind + 1])
 
 
+def assert_kernel_exists(inst, should_exist):
+    if should_exist:
+        assert not inst._kernel_removed
+        assert isinstance(inst._sens_data, np.ndarray)
+        assert isinstance(inst._kernel, np.ndarray)
+    else:
+        assert inst._kernel is None
+        assert inst._sens_data is None
+
+
 # TODO: Be careful! kernel data (full_data=False) is accepted but still transformed to full_data during the tfr
 @testing.requires_testing_data
-@pytest.mark.parametrize('method', ['dSPM', 'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA'
-@pytest.mark.parametrize('n_epochs', [1, 1])  # , 3
+@pytest.mark.parametrize('method', ['dSPM',
+                                    'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA' ['dSPM', 'MNE', 'sLORETA', 'eLORETA']
+@pytest.mark.parametrize('n_epochs', [1, 3])  # , 3
 @pytest.mark.parametrize('n_cycles', [1, 3])
 @pytest.mark.parametrize('decim', [1, 3])
 @pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
@@ -788,7 +799,7 @@ def test_getitem_epochsTFR():
 @pytest.mark.parametrize('zero_mean', [True, False])
 def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, decim, zero_mean):
     method = "MNE"
-    pick_ori = "vector"
+    pick_ori = "normal"
     full_data = True
     n_epochs = 1
     n_cycles = 2
@@ -820,6 +831,91 @@ def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs,
                                        use_fft=use_fft, decim=decim, zero_mean=zero_mean,
                                        baseline=None, pca=False)
 
-    assert_allclose(stfr.data, stfr_ref)
+    assert_kernel_exists(stfr, not full_data)
+    assert_allclose(stfr.get_data(), stfr_ref)
+
+
+# TODO: Be careful! kernel data (full_data=False) is accepted but still transformed to full_data during the tfr
+@testing.requires_testing_data
+@pytest.mark.parametrize('method', ['dSPM',
+                                    'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA' ['dSPM', 'MNE', 'sLORETA', 'eLORETA']
+@pytest.mark.parametrize('n_epochs', [1, 1])  # , 3
+@pytest.mark.parametrize('n_cycles', [1, 3])
+@pytest.mark.parametrize('decim', [1, 3])
+@pytest.mark.parametrize('time_bandwidth', [4.0, 3.2])
+@pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
+@pytest.mark.parametrize('full_data', [True, False])
+@pytest.mark.parametrize('use_fft', [True, False])
+def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, decim, time_bandwidth):
+    method = "MNE"
+    pick_ori = "normal"
+    full_data = False
+    n_epochs = 1
+    n_cycles = 2
+    use_fft = True
+    decim = 1
+    time_bandwidth = 4
+
+    raw = read_raw_fif(stc_raw_fname)
+    tmin, tmax, event_id = -0.2, 0.5, 1
+    events = find_events(raw, stim_channel='STI 014')
+    events3 = events[:n_epochs]  # take 3 events to keep the computation time low
+    epochs = Epochs(raw, events3, tmin=tmin, tmax=tmax, preload=True)
+
+    inv = read_inverse_operator(stc_inv_fname)
+    label = read_label(stc_label_fname)
+
+    l2 = 1. / 9.
+    freqs = np.array([10, 12, 14, 16])
+
+    stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
+                               pick_ori=pick_ori, full_data=full_data,
+                               label=label, prepared=False)[0]
+
+    stfr = tfr_multitaper(stc, freqs, n_cycles, time_bandwidth, use_fft, return_itc=False,
+                          decim=decim, average=False)
+
+    assert_kernel_exists(stfr, not full_data)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('method', ['dSPM',
+                                    'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA' ['dSPM', 'MNE', 'sLORETA', 'eLORETA']
+@pytest.mark.parametrize('n_epochs', [1, 1])  # , 3
+@pytest.mark.parametrize('n_fft', [230, 520])
+@pytest.mark.parametrize('width', [1.0, 2.9])
+@pytest.mark.parametrize('decim', [1, 3])
+@pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
+@pytest.mark.parametrize('full_data', [True, False])
+def test_source_stockwell(method, pick_ori, full_data, n_epochs, n_fft, width, decim):
+    method = "MNE"
+    pick_ori = "normal"
+    full_data = False
+    n_epochs = 1
+    n_fft = 2 ** 8
+    width = 1.0
+    decim = 1
+
+    raw = read_raw_fif(stc_raw_fname)
+    tmin, tmax, event_id = -0.2, 0.5, 1
+    events = find_events(raw, stim_channel='STI 014')
+    events3 = events[:n_epochs]  # take 3 events to keep the computation time low
+    epochs = Epochs(raw, events3, tmin=tmin, tmax=tmax, preload=True)
+
+    inv = read_inverse_operator(stc_inv_fname)
+    label = read_label(stc_label_fname)
+
+    l2 = 1. / 9.
+    fmin = 10
+    fmax = 16
+
+    stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
+                               pick_ori=pick_ori, full_data=full_data,
+                               label=label, prepared=False)[0]
+
+    stfr = tfr_stockwell(stc, fmin, fmax, n_fft, width, decim, return_itc=False)
+
+    assert_kernel_exists(stfr, not full_data)
+
 
 #run_tests_if_main()

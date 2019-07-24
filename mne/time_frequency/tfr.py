@@ -334,6 +334,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     """
     # Check data
     epoch_data = np.asarray(epoch_data)
+    print("TFR SHAPE OF THE FOLLOWING DATA: ", epoch_data.shape)  # !!! remove
+    print("TFR DATA before at start of compute tfr: ", epoch_data)  # !!! remove
     if epoch_data.ndim != 3:
         raise ValueError('epoch_data must be of shape '
                          '(n_epochs, n_chans, n_times)')
@@ -376,6 +378,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     # Parallel computation
     parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
 
+    print("TFR SHAPE OF THE FOLLOWING DATA: ", epoch_data.shape)  # !!! remove
+    print("TFR DATA in _compute_tfr, before tfr_loop: ", epoch_data)  # !!! remove
     # Parallelization is applied across channels.
     tfrs = parallel(
         my_cwt(channel, Ws, output, use_fft, 'same', decim)
@@ -388,6 +392,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     if ('avg_' not in output) and ('itc' not in output):
         # This is to enforce that the first dimension is for epochs
         out = out.transpose(1, 0, 2, 3)
+    print("TFR SHAPE OF THE FOLLOWING DATA: ", out.shape)  # !!! remove
+    print("TFR DATA at the end of _compute_tfr: ", out)  # !!! remove
     return out
 
 
@@ -543,6 +549,9 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
     # Normalization by number of taper
     tfrs /= len(Ws)
+
+    print("TFR DAT AT THE END OF TFR LOOP: ", tfrs[:4, :4])
+
     return tfrs
 
 
@@ -598,10 +607,15 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     from ..source_estimate import SourceEstimate, VolSourceEstimate, VectorSourceEstimate, VolVectorSourceEstimate, \
         _BaseSourceEstimate
     from ..source_tfr import SourceTFR
+    # TODO: CLEAN UP ALL THE CASES
 
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
-    data = _get_data(inst, return_itc)
+    if isinstance(inst, _BaseSourceEstimate) and inst._sens_data is not None:
+        # TODO: Handle newaxis better or: Get this into _get_data()
+        data = inst._sens_data[np.newaxis, :, :]
+    else:
+        data = _get_data(inst, return_itc)
 
     if not (isinstance(inst, _BaseSourceEstimate)):
         info = inst.info
@@ -622,19 +636,35 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                              ' with average=False')
 
     if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
-        out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
+        if inst._sens_data is not None:
+            out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
+                               output='complex', decim=decim, **tfr_params)
+        else:
+            out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
                            output=output, decim=decim, **tfr_params)
+
     elif isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
         print("SHAPEY SHAPE:", data.shape)  # !!!remove
-        out = np.empty([data.shape[1], data.shape[2], len(freqs), data.shape[3]])
-        out = np.asfortranarray(out)
-        print("IS IT STILL A FORTR: ARR?  ", np.isfortran(out))
-        for i in range(3):
-            out[:, i, :, :] = _compute_tfr(data[:, :, i, :], freqs, 1 / inst.tstep,
-                                           method=method, output=output, decim=decim,
-                                           **tfr_params)
-            print("IS IT REALLY COMPLEX: ", out[0, 0, 0, 0])  # !!! remove
-            print("IS IT STILL A FORTR: ARR?  ", np.isfortran(out))
+        # out = np.empty([data.shape[1], data.shape[2], len(freqs), data.shape[3]])
+        # out = np.asfortranarray(out)
+        # print("IS IT STILL A FORTR: ARR?  ", np.isfortran(out))
+        print("TFR SHAPE OF THE FOLLOWING DATA: ", data.shape)  # !!! remove
+        print("TFR DATA before _compute_tfr: ", data)  # !!! remove
+        grg = np.reshape(data, [data.shape[0], data.shape[1] * data.shape[2], data.shape[3]])
+        se = _compute_tfr(grg, freqs, 1 / inst.tstep,
+                          method=method, output=output, decim=decim,
+                          **tfr_params)
+        out = np.reshape(se, [data.shape[1], data.shape[2], len(freqs), data.shape[3]])
+        # for i in range(3):
+        #    pow = _compute_tfr(data[:, :, i, :], freqs, 1 / inst.tstep,
+        #                                   method=method, output=output, decim=decim,
+        #                                   **tfr_params)
+        #    f = _compute_tfr(data[:, :, i, :], freqs, 1 / inst.tstep,
+        #                     method=method, output='complex', decim=decim,
+        #                     **tfr_params)
+        #    out[:, i, :, :] = pow  #np.sqrt(pow / f * f.conj())
+        #    print("IS IT REALLY COMPLEX: ", out[0, 0, 0, 0])  # !!! remove
+        #    print("IS IT STILL A FORTR: ARR?  ", np.isfortran(out))
     else:
         out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                            output=output, decim=decim, **tfr_params)
@@ -645,9 +675,14 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     # TODO integrate this correctly
     if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
         print("OUT DIMENSIONS = ", out.shape)  # !!! remove
+        out = np.squeeze(out)
+        if inst._sens_data is not None:
+            out = (inst._kernel, out)
         return SourceTFR(out, inst.vertices, tmin=inst.tmin,
-                         tstep=inst.tstep, subject=inst.subject)
+                         tstep=inst.tstep, subject=inst.subject, output=output)
     elif isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+        print("TFR SHAPE OF THE FOLLOWING DATA: ", out.shape)  # !!! remove
+        print("TFR DATA in tfr_aux before gettin SourceTFR: ", out)  # !!! remove
         return SourceTFR(out, inst.vertices, tmin=inst.tmin,
                          tstep=inst.tstep, subject=inst.subject, vector=True)
 

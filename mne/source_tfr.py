@@ -61,7 +61,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, vector=False, epochs=False, verbose=None):  # noqa: D102
+                 subject=None, vector=False, epochs=False, output=None, verbose=None):  # noqa: D102
 
         if not (isinstance(vertices, np.ndarray) or
                 isinstance(vertices, list)):
@@ -72,6 +72,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         self._data_ndim = 3
         self._isvector = vector
         self._isepochs = epochs
+        self._output = output
 
         if self._isvector:
             self._data_ndim += 1
@@ -246,16 +247,29 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         self.tstep = 1.0 / sfreq
         return self
 
-    @property
-    def data(self):
-        """Numpy array of SourceTFR data."""
+    @verbose
+    def get_data(self):
+        """create the SourceTFR data field.
+
+        Parameters
+        ----------
+        %(verbose_meth)s
+
+        Returns
+        -------
+        data : The source level time-frequency transformed data.
+
+        """
         if self._data is None:
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
             self._remove_kernel_sens_data_()
+            if self._output in ['power', 'avg_power']:
+                self._data = (self._data * self._data.conj()).real
         return self._data
 
-    @data.setter
+    # TODO: change this accordingly
+    # @data.setter
     def data(self, value):
         value = np.asarray(value)
         if self._data is not None and value.ndim != self._data.ndim:
