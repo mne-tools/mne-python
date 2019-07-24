@@ -690,7 +690,19 @@ def _cart_to_sph(cart):
 
 
 def _sph_to_cart(sph):
-    """Convert spherical coordinates to Cartesion coordinates."""
+    """Convert spherical coordinates to Cartesion coordinates.
+
+    Parameters
+    ----------
+    sph_pts : ndarray, shape (n_points, 3)
+        Array containing points in spherical coordinates (rad, azimuth, polar)
+
+    Returns
+    -------
+    cart_pts : ndarray, shape (n_points, 3)
+        Array containing points in Cartesian coordinates (x, y, z)
+
+    """
     assert sph.ndim == 2 and sph.shape[1] == 3
     sph = np.atleast_2d(sph)
     out = np.empty((len(sph), 3))

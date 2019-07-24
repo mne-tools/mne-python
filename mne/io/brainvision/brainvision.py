@@ -525,7 +525,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                               else FIFF.FIFF_UNIT_NONE)
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
-    # create montage
+    # create montage: 'Coordinates' section in VHDR file corresponds to "BVEF"
+    # BrainVision Electrode File. The data are based on BrainVision Analyzer
+    # coordinate system: Defined between standard electrode positions: X-axis
+    # from T7 to T8, Y-axis from Oz to Fpz, Z-axis orthogonal from XY-plane
+    # through Cz, fit to a sphere if idealized (when radius=1), specified in mm
     if cfg.has_section('Coordinates') and montage in (None, 'deprecated'):
         from ...transforms import _sph_to_cart
         from ...channels.montage import Montage
@@ -535,11 +539,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         for ch in cfg.items('Coordinates'):
             ch_name = ch_dict[ch[0]]
             montage_names.append(ch_name)
-            radius, theta, phi = [float(c) for c in ch[1].split(',')]
             # 1: radius, 2: theta, 3: phi
+            rad, theta, phi = [float(c) for c in ch[1].split(',')]
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
-            pos = _sph_to_cart(np.array([[radius * 85., az, pol]]))[0]
+            # Coordinates could be "idealized" (spherical head model)
+            if set(rad) == set([1]):
+                # scale up to realistic head radius (8.5cm == 85mm)
+                rad = [r_ * 85. for r_ in rad]
+            pos = _sph_to_cart(np.array([[rad, az, pol]]))[0]
             if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)
             montage_pos.append(pos)
