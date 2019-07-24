@@ -85,9 +85,10 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     from ..epochs import BaseEpochs
 
     if exclude != 'deprecated':
-        warn('The ``exclude`` parameter is deprecated and will be removed in '
-             'version 0.20; specify excluded components using the '
-             '``ICA.exclude`` attribute instead.', DeprecationWarning)
+        warn('The "exclude" parameter is deprecated and will be removed in '
+             'version 0.20; specify excluded components using the ICA.exclude '
+             'attribute instead. Provided value of {} will be ignored; falling'
+             ' back to ICA.exclude'.format(exclude), DeprecationWarning)
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, 'all')
 
