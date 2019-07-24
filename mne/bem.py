@@ -257,11 +257,11 @@ def _check_complete_surface(surf, copy=False, incomplete='raise'):
     surf = complete_surface_info(surf, copy=copy, verbose=False)
     fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
     if len(fewer) > 0:
-        msg = ('Surface %s has topological defects: %d / %d '
-               'vertices have fewer than three neighboring '
-               'triangles [%s]' % (_surf_name[surf['id']],
-                                   len(fewer), surf['ntri'],
-                                   ', '.join(str(f) for f in fewer)))
+        msg = ('Surface %s has topological defects: %d / %d vertices have '
+               'fewer than three neighboring triangles [%s]\n\n'
+               'Consider using --force' % (_surf_name[surf['id']],
+                                           len(fewer), surf['ntri'],
+                                           ', '.join(str(f) for f in fewer)))
         if incomplete == 'raise':
             raise RuntimeError(msg)
         else:
