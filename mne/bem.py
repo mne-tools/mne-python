@@ -260,7 +260,7 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
         msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
                'have fewer than three neighboring triangles [{}]{}'
                .format(_surf_name[surf['id']], len(fewer), surf['ntri'],
-                       ', '.join(str(f) for f in fewer)), extra)
+                       ', '.join(str(f) for f in fewer), extra))
         if incomplete == 'raise':
             raise RuntimeError(msg)
         else:
