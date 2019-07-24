@@ -544,9 +544,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
             # Coordinates could be "idealized" (spherical head model)
-            if set(rad) == set([1]):
+            if rad == 1:
                 # scale up to realistic head radius (8.5cm == 85mm)
-                rad = [r_ * 85. for r_ in rad]
+                rad *= 85.
             pos = _sph_to_cart(np.array([[rad, az, pol]]))[0]
             if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)
