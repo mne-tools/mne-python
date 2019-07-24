@@ -1,4 +1,5 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -196,17 +197,18 @@ def test_montage():
         elp=[[-48.20043, 57.55106, 39.86971], [0.0, 60.73848, 59.4629],
              [48.1426, 57.58403, 39.89198], [41.64599, 66.91489, 31.8278]],
         hpts=[[-95, -3, -3], [-1, -1., -3.], [-2, -2, 2.], [0, 0, 0]],
-        bvef=[[-26.266444, 80.839803, 5.204748e-15],
-              [3.680313e-15, 60.104076, 60.104076],
-              [-46.325632, 57.207392, 42.500000],
-              [-68.766444, 49.961746, 5.204748e-15]],
+        bvef=[[-2.62664445e-02,  8.08398039e-02,  5.20474890e-18],
+              [3.68031324e-18,  6.01040764e-02,  6.01040764e-02],
+              [-4.63256329e-02,  5.72073923e-02,  4.25000000e-02],
+              [-6.87664445e-02,  4.99617464e-02,  5.20474890e-18]],
     )
     for key, text in inputs.items():
         kind = key.split('_')[-1]
         fname = op.join(tempdir, 'test.' + kind)
         with open(fname, 'w') as fid:
             fid.write(text)
-        montage = read_montage(fname)
+        unit = 'mm' if kind == 'bvef' else 'm'
+        montage = read_montage(fname, unit=unit)
         if kind in ('sfp', 'txt'):
             assert ('very_very_very_long_name' in montage.ch_names)
         assert_equal(len(montage.ch_names), 4)
@@ -231,6 +233,11 @@ def test_montage():
             assert_array_less(distance_from_centroid, 0.2)
             assert_array_less(0.01, distance_from_centroid)
         assert_array_almost_equal(poss[key], montage.pos, 4, err_msg=key)
+
+    # Bvef is either auto or mm in terms of "units"
+    with pytest.raises(ValueError, match='be "auto" or "mm" for .bvef files.'):
+        bvef_file = op.join(tempdir, 'test.' + 'bvef')
+        read_montage(bvef_file, unit='m')
 
     # Test reading in different letter case.
     ch_names = ["F3", "FZ", "F4", "FC3", "FCz", "FC4", "C3", "CZ", "C4", "CP3",
