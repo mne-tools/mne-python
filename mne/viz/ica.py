@@ -58,7 +58,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
         X-axis stop index. If None, next 20 are shown, in case of evoked to the
         end.
     title : str | None
-        The figure title. If None a default is provided.
+        The window title. If None a default is provided.
     show : bool
         Show figure if True.
     block : bool
