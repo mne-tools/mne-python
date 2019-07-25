@@ -689,7 +689,7 @@ def _cart_to_sph(cart):
     return out
 
 
-def _sph_to_cart(sph):
+def _sph_to_cart(sph_pts):
     """Convert spherical coordinates to Cartesion coordinates.
 
     Parameters
@@ -703,14 +703,14 @@ def _sph_to_cart(sph):
         Array containing points in Cartesian coordinates (x, y, z)
 
     """
-    assert sph.ndim == 2 and sph.shape[1] == 3
-    sph = np.atleast_2d(sph)
-    out = np.empty((len(sph), 3))
-    out[:, 2] = sph[:, 0] * np.cos(sph[:, 2])
-    xy = sph[:, 0] * np.sin(sph[:, 2])
-    out[:, 0] = xy * np.cos(sph[:, 1])
-    out[:, 1] = xy * np.sin(sph[:, 1])
-    return out
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
+    sph_pts = np.atleast_2d(sph_pts)
+    cart_pts = np.empty((len(sph_pts), 3))
+    cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
+    xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])
+    cart_pts[:, 0] = xy * np.cos(sph_pts[:, 1])
+    cart_pts[:, 1] = xy * np.sin(sph_pts[:, 1])
+    return cart_pts
 
 
 def _get_n_moments(order):
