@@ -32,6 +32,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _plot_masked_image, _trim_ticks)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
+from ..utils.check import _check_all_same_type_nested
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -1881,6 +1882,23 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     return title
 
 
+def _get_evokeds_from_epochs(instances, Epochs):
+    """Transform a dict of lists of Epochs into a dict of lists of Evokeds."""
+    if all(isinstance(content[0], Epochs) for content in instances.values()):
+        print(instances)
+        instances = {key: list(epochs[key].iter_evoked())
+                     for key, epochs in instances.items()}
+    elif all([all(isinstance(content, Epochs) for sublist in instances.values()
+                  for content in sublist)]):
+        instances = {key: [epochs[key].average() for epochs in epochs_list]
+                     for key, epochs_list in instances.items()}
+    else:
+        raise ValueError("All entries in `evokeds` must be Epochs (or Evokeds)"
+                         " or lists of Epochs (or Evokeds), got multiple"
+                         " types!")
+    return instances
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
@@ -2099,6 +2117,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     """
     import matplotlib.pyplot as plt
     from ..evoked import Evoked, _check_evokeds_ch_names_times
+    from ..epochs import Epochs
 
     # deprecations
     if gfp is not None:
@@ -2121,6 +2140,15 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     if not isinstance(evokeds, dict):
         raise TypeError('"evokeds" must be a dict, list, or instance of '
                         'mne.Evoked; got {}'.format(type(evokeds).__name__))
+
+    _check_all_same_type_nested(evokeds, legal_types=(Epochs, Evoked))
+
+    thing = [thing for thing in evokeds.values()][0]
+    if isinstance(thing, Epochs):
+        evokeds = _get_evokeds_from_epochs(evokeds, Epochs)
+    elif isinstance(thing, (list, tuple)) and isinstance(thing[0], Epochs):
+        evokeds = _get_evokeds_from_epochs(evokeds, Epochs)
+
     evokeds = deepcopy(evokeds)  # avoid modifying dict outside function scope
     for cond, evoked in evokeds.items():
         _validate_type(cond, 'str', 'Conditions')

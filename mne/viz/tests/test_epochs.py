@@ -18,7 +18,7 @@ from mne import (read_events, Epochs, pick_types, read_cov, create_info,
 from mne.channels import read_layout
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.utils import run_tests_if_main
-from mne.viz import plot_drop_log
+from mne.viz import plot_drop_log, plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
@@ -136,6 +136,20 @@ def test_plot_epochs_basic(capsys):
     assert 'out of bounds' not in err
     fig.canvas.close_event()
     assert len(epochs) == 6
+    plt.close('all')
+
+
+def test_plot_epochs_compare_evokeds():
+    """Test epoch plotting."""
+    epochs = _get_epochs().load_data()
+    # test that plot_compare_evokeds can plot epochs objects
+    plot_compare_evokeds({cond: epochs.pick_types(meg='mag')
+                          for cond in epochs.event_id})
+    plot_compare_evokeds({cond: [epochs.pick_types(meg='mag'),
+                                 epochs.pick_types(meg='mag')]
+                          for cond in epochs.event_id})
+    pytest.raises(ValueError, plot_compare_evokeds, {
+        "1": epochs.average(), "2": epochs})
     plt.close('all')
 
 
