@@ -151,21 +151,21 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
 # those artifacts to be captured in the first few dimensions of the PCA
 # decomposition that happens before the ICA. Therefore, we probably don't need
-# a huge number of components to do a good job of isolating our artifacts. As a
-# first guess, we'll run ICA with only the first 15 PCA components — a fairly
-# small number given that our data has over 300 channels, but it will run
-# quickly and we will able to tell easily whether it worked or not (because we
-# already know what the EOG / ECG artifacts should look like). When analyzing
-# your own data on a machine with good computing power, 30 or more components
-# is probably more appropriate.
+# a huge number of components to do a good job of isolating our artifacts
+# (though it is usually preferable to include more components for a more
+# accurate solution). As a first guess, we'll run ICA with only the first 15
+# PCA components — a very small number given that our data has over 300
+# channels, but it will run quickly and we will able to tell easily whether it
+# worked or not (because we already know what the EOG / ECG artifacts should
+# look like).
 #
-# .. sidebar:: ICA ignores the time domain
+# .. sidebar:: Ignoring the time domain
 #
-#     ICA finds patterns across channels, but ignores the time domain. This
-#     means you can compute ICA on discontinuous :class:`~mne.Epochs` or
-#     :class:`~mne.Evoked` objects (not just continuous :class:`~mne.io.Raw`
-#     objects), or only use every Nth sample by passing the ``decim`` parameter
-#     to ``ICA.fit()``.
+#     The ICA algorithms implemented in MNE-Python find patterns across
+#     channels, but ignore the time domain. This means you can compute ICA on
+#     discontinuous :class:`~mne.Epochs` or :class:`~mne.Evoked` objects (not
+#     just continuous :class:`~mne.io.Raw` objects), or only use every Nth
+#     sample by passing the ``decim`` parameter to ``ICA.fit()``.
 #
 # ICA fitting involves some randomness (e.g., the components may get a sign
 # flip on different runs, or may not always be returned in the same order), so
