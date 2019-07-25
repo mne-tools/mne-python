@@ -6,6 +6,7 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: Simplified BSD
 
@@ -134,9 +135,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         mne/channels/data/montages folder in your mne-python installation.
     unit : 'm' | 'cm' | 'mm' | 'auto'
         Unit of the input file. When 'auto' the montage is normalized to
-        a sphere of radius equal to the average brain size. Defaults to 'auto'.
+        a sphere with a radius capturing the average head size (8.5cm).
+        Defaults to 'auto'.
     transform : bool
-        If True, points will be transformed to Neuromag space. The fidicuals,
+        If True, points will be transformed to Neuromag space. The fiducials,
         'nasion', 'lpa', 'rpa' must be specified in the montage file. Useful
         for points captured using Polhemus FastSCAN. Default is False.
 
@@ -278,7 +280,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         ch_names_ = data[:, 0].tolist()
         az = np.deg2rad(data[:, 2].astype(float))
         pol = np.deg2rad(data[:, 1].astype(float))
-        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
+        rad = np.ones(len(az))  # spherical head model
+        rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
+        pos = _sph_to_cart(np.array([rad, az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
         try:  # newer version
@@ -305,7 +309,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         az = np.deg2rad(np.array([h if a >= 0. else 180 + h
                                   for h, a in zip(horiz, az)]))
         pol = radius * np.pi
-        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
+        rad = np.ones(len(az))  # spherical head model
+        rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
+        pos = _sph_to_cart(np.array([rad, az, pol]).T)
     elif ext == '.hpts':
         # MNE-C specified format for generic digitizer data
         fid_names = ['1', '2', '3']
@@ -322,19 +328,31 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
     elif ext == '.bvef':
         # 'BrainVision Electrodes File' format
+        # Based on BrainVision Analyzer coordinate system: Defined between
+        # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
+        # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
+        # idealized (when radius=1), specified in millimeters
+        if unit not in ['auto', 'mm']:
+            raise ValueError('`unit` must be "auto" or "mm" for .bvef files.')
         root = ElementTree.parse(fname).getroot()
         ch_names_ = [s.text for s in root.findall("./Electrode/Name")]
         theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
         pol = np.deg2rad(np.array(theta))
         phi = [float(s.text) for s in root.findall("./Electrode/Phi")]
         az = np.deg2rad(np.array(phi))
-        pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
+        rad = [float(s.text) for s in root.findall("./Electrode/Radius")]
+        rad = np.array(rad)  # specified in mm
+        if set(rad) == set([1]):
+            # idealized montage (spherical head model), scale up to realistic
+            # head radius (8.5cm == 85mm)
+            rad = np.array(rad) * 85.
+        pos = _sph_to_cart(np.array([rad, az, pol]).T)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
     selection = np.arange(len(pos))
 
-    if unit == 'auto':  # rescale to 0.085
+    if unit == 'auto':  # rescale to realistic head radius in meters: 0.085
         pos -= np.mean(pos, axis=0)
         pos = 0.085 * (pos / np.linalg.norm(pos, axis=1).mean())
     elif unit == 'mm':
