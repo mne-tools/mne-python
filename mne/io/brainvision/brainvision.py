@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Conversion tool from Brain Vision EEG to FIF."""
-
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
