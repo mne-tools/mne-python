@@ -536,6 +536,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         montage_pos = list()
         montage_names = list()
         to_misc = list()
+        # Go through channels
         for ch in cfg.items('Coordinates'):
             ch_name = ch_dict[ch[0]]
             montage_names.append(ch_name)
@@ -551,6 +552,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)
             montage_pos.append(pos)
+        # Make a montage, normalizing from BrainVision units "mm" to "m", the
+        # unit used for montages in MNE
+        montage_pos = np.array(montage_pos) / 1e3
         montage_sel = np.arange(len(montage_pos))
         montage = Montage(montage_pos, montage_names, 'Brainvision',
                           montage_sel)
