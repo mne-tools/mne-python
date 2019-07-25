@@ -646,7 +646,7 @@ def _magnetic_dipole_field_vec(rrs, coils, too_close='raise'):
     else:
         rmags, cosmags, ws, bins = _concatenate_coils(coils)
     del coils
-    fwd = np.empty((3 * len(rrs), bins[-1] + 1))
+    fwd = np.empty((3 * len(rrs), bins[-1] + 1), order='F')
     for ri, rr in enumerate(rrs):
         diff = rmags - rr
         dist2 = np.sum(diff * diff, axis=1)[:, np.newaxis]
