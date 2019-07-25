@@ -60,6 +60,7 @@ extensions = [
     'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
+    'sphinx.ext.graphviz',
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
     'numpydoc',
