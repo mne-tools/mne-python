@@ -1581,7 +1581,7 @@ class ICA(ContainsMixin):
                                    figsize=figsize, show=show, reject=reject)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
-    def plot_sources(self, inst, picks=None, exclude=None, start=None,
+    def plot_sources(self, inst, picks=None, exclude='deprecated', start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False):
         return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,
