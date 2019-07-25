@@ -138,7 +138,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         a sphere with a radius capturing the average head size (8.5cm).
         Defaults to 'auto'.
     transform : bool
-        If True, points will be transformed to Neuromag space. The fidicuals,
+        If True, points will be transformed to Neuromag space. The fiducials,
         'nasion', 'lpa', 'rpa' must be specified in the montage file. Useful
         for points captured using Polhemus FastSCAN. Default is False.
 
