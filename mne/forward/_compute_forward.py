@@ -779,8 +779,8 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
                          coils_list=coils_list, ccoils_list=ccoils_list))
 
 
-@verbose
-def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
+@fill_doc
+def _compute_forwards_meeg(rr, fd, n_jobs, silent=False):
     """Compute MEG and EEG forward solutions for all sensor types.
 
     Parameters
@@ -790,7 +790,9 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
     fd : dict
         Dict containing forward data after update in _prep_field_computation
     %(n_jobs)s
-    %(verbose)s
+    silent : bool
+        If True, don't emit logger.info.
+        This saves time over ``verbose`` when this function is called a lot.
 
     Returns
     -------
@@ -816,9 +818,10 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
         info = fd['infos'][ci]
 
         # Do the actual forward calculation for a list MEG/EEG sensors
-        logger.info('Computing %s at %d source location%s '
-                    '(free orientations)...'
-                    % (coil_type.upper(), len(rr), _pl(rr)))
+        if not silent:
+            logger.info('Computing %s at %d source location%s '
+                        '(free orientations)...'
+                        % (coil_type.upper(), len(rr), _pl(rr)))
         # Calculate forward solution using spherical or BEM model
         B = fun(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
                 coil_type)

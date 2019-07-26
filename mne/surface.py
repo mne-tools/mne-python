@@ -184,7 +184,7 @@ def fast_cross_3d(x, y):
     """Compute cross product between list of 3D vectors.
 
     Much faster than np.cross() when the number of cross products
-    becomes large (>500). This is because np.cross() methods become
+    becomes large (>= 500). This is because np.cross() methods become
     less memory efficient at this stage.
 
     Parameters
@@ -207,13 +207,15 @@ def fast_cross_3d(x, y):
     assert y.ndim >= 1
     assert x.shape[-1] == 3
     assert y.shape[-1] == 3
-    if max(x.size, y.size) >= 1500:
-        a = x[..., 1] * y[..., 2] - x[..., 2] * y[..., 1]
-        b = x[..., 2] * y[..., 0] - x[..., 0] * y[..., 2]
-        c = x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]
-        # Once we bump to NumPy 1.10, np.stack simplifies this
-        return np.concatenate([
-            a[..., np.newaxis], b[..., np.newaxis], c[..., np.newaxis]], -1)
+    if max(x.size, y.size) >= 500:
+        out = np.empty(np.broadcast(x, y).shape)
+        np.multiply(x[..., 1], y[..., 2], out=out[:, 0])
+        out[:, 0] -= x[..., 2] * y[..., 1]
+        np.multiply(x[..., 2], y[..., 0], out=out[:, 1])
+        out[:, 1] -= x[..., 0] * y[..., 2]
+        np.multiply(x[..., 0], y[..., 1], out=out[:, 2])
+        out[:, 2] -= x[..., 1] * y[..., 0]
+        return out
     else:
         return np.cross(x, y)
 
