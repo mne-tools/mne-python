@@ -283,10 +283,15 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     dB: bool
         Whether to plot spectrum in dB. Defaults to True.
     plot_std: bool | float
-        Whether to plot standard deviation in ERP/ERF and spectrum plots.
-        Defaults to True, which plots one standard deviation above/below.
-        If set to float allows to control how many standard deviations are
-        plotted. For example 2.5 will plot 2.5 standard deviation above/below.
+        Whether to plot standard deviation/confidence intervals in ERP/ERF and
+        spectrum plots.
+        Defaults to True, which plots one standard deviation above/below for
+        the spectrum. If set to float allows to control how many standard
+        deviations are plotted for the spectrum. For example 2.5 will plot 2.5
+        standard deviation above/below.
+        For the ERP/ERF, by default, plot the 95 percent parametric confidence
+        interval is calculated. To change this, use ``ci`` in ``ts_args`` in
+        ``image_args`` (see below).
     topomap_args : dict | None
         Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
         additional arguments. Defaults to None.
@@ -347,10 +352,17 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=5)
         fig = axes[0].get_figure()
+
     psd_args = dict() if psd_args is None else psd_args
     topomap_args = dict() if topomap_args is None else topomap_args
     image_args = dict() if image_args is None else image_args
     image_args["ts_args"] = dict(truncate_xaxis=False, show_sensors=False)
+    if plot_std:
+        from ..stats.parametric import _parametric_ci
+        image_args["ts_args"]["ci"] = _parametric_ci
+    elif "ts_args" not in image_args or "ci" not in image_args["ts_args"]:
+        image_args["ts_args"]["ci"] = False
+
     for item_name, item in (("psd_args", psd_args),
                             ("topomap_args", topomap_args),
                             ("image_args", image_args)):

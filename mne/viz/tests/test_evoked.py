@@ -26,6 +26,7 @@ from mne.viz.evoked import plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
 from mne.io.constants import FIFF
+from mne.stats.parametric import _parametric_ci
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -323,8 +324,10 @@ def test_plot_compare_evokeds():
         assert len(fig.axes[0].lines) == len(evoked_dict)
     # old tests
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
-    plot_compare_evokeds(red, picks=[0],
+    plot_compare_evokeds([red, blue], picks=[0],
                          ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
+    plot_compare_evokeds([list(evoked_dict.values())], picks=[0],
+                         ci=_parametric_ci)
     # smoke test for tmin >= 0 (from mailing list)
     red.crop(0.01, None)
     assert len(red.times) > 2
