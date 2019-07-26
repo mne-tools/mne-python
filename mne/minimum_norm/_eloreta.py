@@ -8,7 +8,7 @@ from scipy import linalg
 
 from ..defaults import _handle_default
 from ..fixes import _safe_svd
-from ..utils import warn, logger
+from ..utils import warn, logger, _dgesdd_lwork, _repeated_pinv2
 
 
 # For the reference implementation of eLORETA (force_equal=False),
@@ -113,6 +113,7 @@ def _compute_eloreta_inv(G, W, n_orient, n_nzero, lambda2, force_equal):
     """Invert weights and compute M."""
     W_inv = np.empty_like(W)
     n_src = W_inv.shape[0]
+    lwork = _dgesdd_lwork((3, 3))
     if n_orient == 1 or force_equal:
         W_inv[:] = 1. / W
     else:
@@ -120,7 +121,7 @@ def _compute_eloreta_inv(G, W, n_orient, n_nzero, lambda2, force_equal):
             # Here we use a single-precision-suitable `rcond` (given our
             # 3x3 matrix size) because the inv could be saved in single
             # precision.
-            W_inv[ii] = linalg.pinv2(W[ii], rcond=1e-7)
+            W_inv[ii] = _repeated_pinv2(W[ii], lwork, rcond=1e-7)
 
     # Weight the gain matrix
     W_inv_Gt = np.empty_like(G).T

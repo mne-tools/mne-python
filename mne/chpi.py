@@ -48,7 +48,8 @@ from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
-                    _check_option)
+                    _check_option, _dgesdd_lwork, _repeated_svd,
+                    ddot, dgemm, dgemv)
 
 # Eventually we should add:
 #   hpicons
@@ -373,7 +374,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
 
 
 def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close,
-                               dot, gemv, gemm, gesdd, lwork):
+                               lwork):
     """Project data onto right eigenvectors of whitened forward."""
     if method == 'forward':
         fwd = _magnetic_dipole_field_vec(x[np.newaxis, :], coils, too_close)
@@ -383,37 +384,22 @@ def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close,
         # is why the :3 is on the SVD below
         fwd = _sss_basis(dict(origin=x, int_order=1, ext_order=0), coils).T
     # Here we use .T to get scale to Fortran order, which speeds things up
-    fwd = gemm(alpha=1., a=fwd, b=scale.T)  # np.dot(fwd, scale.T)
-    _, _, one, info = gesdd(fwd, compute_uv=True, lwork=lwork,
-                            full_matrices=False, overwrite_a=True)
-    if info > 0:
-        raise linalg.LinAlgError("SVD did not converge")
-    if info < 0:
-        raise ValueError('illegal value in %d-th argument of internal gesdd'
-                         % -info)
-    one = gemv(alpha=1, a=one, x=B)
-    Bm2 = dot(one, one)
+    fwd = dgemm(alpha=1., a=fwd, b=scale.T)  # np.dot(fwd, scale.T)
+    one = _repeated_svd(fwd, lwork, overwrite_a=True)[2]
+    one = dgemv(alpha=1, a=one, x=B)
+    Bm2 = ddot(one, one)
     return B2 - Bm2
 
 
 def _fit_magnetic_dipole(B_orig, x0, coils, scale, method, too_close):
     """Fit a single bit of data (x0 = pos)."""
     from scipy.optimize import fmin_cobyla
-    # We will operate on B-like matrices
-    gemm = linalg.get_blas_funcs("gemm", (B_orig,))
-    gemv = linalg.get_blas_funcs("gemv", (B_orig,))
-    dot = linalg.get_blas_funcs("dot", (B_orig,))
-    gesdd, lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (B_orig,))
-    lwork = linalg.decomp_svd._compute_lwork(
-        lwork, 3, B_orig.shape[0], compute_uv=True, full_matrices=False)
-    # actually do the math
-    B = gemv(alpha=1, a=scale, x=B_orig)  # np.dot(scale, B_orig)
-    B2 = dot(B, B)
+    B = dgemv(alpha=1, a=scale, x=B_orig)  # np.dot(scale, B_orig)
+    B2 = ddot(B, B)  # np.dot(B, B)
+    lwork = _dgesdd_lwork((3, B_orig.shape[0]))
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
                         coils=coils, scale=scale, method=method,
-                        too_close=too_close,
-                        dot=dot, gemv=gemv,
-                        gemm=gemm, gesdd=gesdd, lwork=lwork)
+                        too_close=too_close, lwork=lwork)
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-4, rhoend=1e-5, disp=False)
     return x, 1. - objective(x) / B2
 
