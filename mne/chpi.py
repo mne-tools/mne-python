@@ -48,7 +48,7 @@ from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
-                    _check_option, _gesdd_lwork, _repeated_svd,
+                    _check_option, _svd_lwork, _repeated_svd,
                     ddot, dgemm, dgemv)
 
 # Eventually we should add:
@@ -396,7 +396,7 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method, too_close):
     from scipy.optimize import fmin_cobyla
     B = dgemv(alpha=1, a=scale, x=B_orig)  # np.dot(scale, B_orig)
     B2 = ddot(B, B)  # np.dot(B, B)
-    lwork = _gesdd_lwork((3, B_orig.shape[0]))
+    lwork = _svd_lwork((3, B_orig.shape[0]))
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
                         coils=coils, scale=scale, method=method,
                         too_close=too_close, lwork=lwork)

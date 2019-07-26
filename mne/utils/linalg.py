@@ -24,6 +24,7 @@ inputs will be memcopied.
 
 import numpy as np
 from scipy import linalg
+from scipy.linalg import LinAlgError
 
 
 _d = np.empty(0, np.float64)
@@ -32,36 +33,45 @@ dgemm = linalg.get_blas_funcs('gemm', (_d,))
 zgemm = linalg.get_blas_funcs('gemm', (_z,))
 dgemv = linalg.get_blas_funcs('gemv', (_d,))
 ddot = linalg.get_blas_funcs('dot', (_d,))
-dgesdd, dgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_d,))
-zgesdd, zgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_z,))
-dgeev, dgeev_lwork = linalg.get_lapack_funcs(('geev', 'geev_lwork'), (_d,))
-zgeev, zgeev_lwork = linalg.get_lapack_funcs(('geev', 'geev_lwork'), (_z,))
 _I = np.cast['F'](1j)
 
+###############################################################################
+# linalg.svd and linalg.pinv2
+dgesdd, dgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_d,))
+dgesvd, dgesvd_lwork = linalg.get_lapack_funcs(('gesvd', 'gesvd_lwork'), (_d,))
+zgesdd, zgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_z,))
+zgesvd, zgesvd_lwork = linalg.get_lapack_funcs(('gesvd', 'gesvd_lwork'), (_z,))
 
-def _gesdd_lwork(shape, dtype=np.float64):
+
+def _svd_lwork(shape, dtype=np.float64):
     """Set up SVD calculations on identical-shape float64/complex128 arrays."""
     if dtype == np.float64:
-        gesdd_lwork = dgesdd_lwork
+        gesdd_lwork, gesvd_lwork = dgesdd_lwork, dgesvd_lwork
     else:
         assert dtype == np.complex128
-        gesdd_lwork = zgesdd_lwork
-    lwork = linalg.decomp_svd._compute_lwork(
+        gesdd_lwork, gesvd_lwork = zgesdd_lwork, zgesvd_lwork
+    sdd_lwork = linalg.decomp_svd._compute_lwork(
         gesdd_lwork, *shape, compute_uv=True, full_matrices=False)
-    return lwork
+    svd_lwork = linalg.decomp_svd._compute_lwork(
+        gesvd_lwork, *shape, compute_uv=True, full_matrices=False)
+    return (sdd_lwork, svd_lwork)
 
 
 def _repeated_svd(x, lwork, overwrite_a=False):
     """Mimic scipy.linalg.svd, avoid lwork and get_lapack_funcs overhead."""
     if x.dtype == np.float64:
-        gesdd = dgesdd
+        gesdd, gesvd = dgesdd, zgesdd
     else:
         assert x.dtype == np.complex128
-        gesdd = zgesdd
-    u, s, v, info = gesdd(x, compute_uv=True, lwork=lwork,
+        gesdd, gesvd = zgesdd, zgesvd
+    u, s, v, info = gesdd(x, compute_uv=True, lwork=lwork[0],
                           full_matrices=False, overwrite_a=True)
     if info > 0:
-        raise linalg.LinAlgError("SVD did not converge")
+        # Fall back to slower gesvd, sometimes gesdd fails
+        u, s, v, info = gesvd(x, compute_uv=True, lwork=lwork[1],
+                              full_matrices=False, overwrite_a=True)
+    if info > 0:
+        raise LinAlgError("SVD did not converge")
     if info < 0:
         raise ValueError('illegal value in %d-th argument of internal gesdd'
                          % -info)
@@ -83,7 +93,14 @@ def _repeated_pinv2(x, lwork, rcond=None):
     return B
 
 
-def _geev_lwork(shape, dtype=np.float64):
+###############################################################################
+# linalg.eig
+
+dgeev, dgeev_lwork = linalg.get_lapack_funcs(('geev', 'geev_lwork'), (_d,))
+zgeev, zgeev_lwork = linalg.get_lapack_funcs(('geev', 'geev_lwork'), (_z,))
+
+
+def _eig_lwork(shape, dtype=np.float64):
     """Set up SVD calculations on identical-shape float64/complex128 arrays."""
     if dtype == np.float64:
         geev_lwork = dgeev_lwork
@@ -98,30 +115,64 @@ def _geev_lwork(shape, dtype=np.float64):
 def _repeated_eig(a, lwork, overwrite_a=False):
     """Mimic scipy.linalg.eig, avoid lwork and get_lapack_funcs overhead."""
     if a.dtype == np.float64:
-        geev = dgeev
+        wr, wi, vl, vr, info = dgeev(
+            a, lwork=lwork, compute_vl=False, compute_vr=True,
+            overwrite_a=overwrite_a)
+        w = wr + _I * wi
+        need_complex = np.any(wi)
     else:
         assert a.dtype == np.complex128
-        geev = zgeev
-    a1 = a
-    if len(a1.shape) != 2 or a1.shape[0] != a1.shape[1]:
-        raise ValueError('expected square matrix')
-    if geev.typecode in 'cz':
-        w, vl, vr, info = geev(
-            a1, lwork=lwork, compute_vl=False, compute_vr=True,
+        w, vl, vr, info = zgeev(
+            a, lwork=lwork, compute_vl=False, compute_vr=True,
             overwrite_a=overwrite_a)
-    else:
-        wr, wi, vl, vr, info = geev(
-            a1, lwork=lwork, compute_vl=False, compute_vr=True,
-            overwrite_a=overwrite_a)
-        t = {'f': 'F', 'd': 'D'}[wr.dtype.char]
-        w = wr + _I * wi
+        need_complex = False
     linalg.decomp._check_info(
         info, 'eig algorithm (geev)',
         positive='did not converge (only eigenvalues '
                  'with order >= %d have converged)')
-
-    only_real = np.all(w.imag == 0.0)
-    if not (geev.typecode in 'cz' or only_real):
+    if need_complex:
         t = w.dtype.char
         vr = linalg.decomp._make_complex_eigvecs(w, vr, t)
     return w, vr
+
+
+###############################################################################
+# linalg.inv
+
+dgetrf, dgetri, dgetri_lwork = linalg.get_lapack_funcs(
+    ('getrf', 'getri', 'getri_lwork'), (_d,))
+zgetrf, zgetri, zgetri_lwork = linalg.get_lapack_funcs(
+    ('getrf', 'getri', 'getri_lwork'), (_z,))
+
+
+def _inv_lwork(shape, dtype=np.float64):
+    if dtype == np.float64:
+        getri_lwork = dgetri_lwork
+    else:
+        assert dtype == np.complex128
+        getri_lwork = zgetri_lwork
+    return linalg.lapack._compute_lwork(getri_lwork, shape[0])
+
+
+def _repeated_inv(a, lwork, overwrite_a=False):
+    if a.dtype == np.float64:
+        getrf, getri = dgetrf, dgetri
+    else:
+        assert a.dtype == np.complex128
+        getrf, getri = zgetrf, zgetri
+    lu, piv, info = getrf(a, overwrite_a=overwrite_a)
+    if info == 0:
+        # XXX: the following line fixes curious SEGFAULT when
+        # benchmarking 500x500 matrix inverse. This seems to
+        # be a bug in LAPACK ?getri routine because if lwork is
+        # minimal (when using lwork[0] instead of lwork[1]) then
+        # all tests pass. Further investigation is required if
+        # more such SEGFAULTs occur.
+        lwork = int(1.01 * lwork)
+        inv_a, info = getri(lu, piv, lwork=lwork, overwrite_lu=1)
+    if info > 0:
+        raise LinAlgError("singular matrix")
+    if info < 0:
+        raise ValueError('illegal value in %d-th argument of internal '
+                         'getrf|getri' % -info)
+    return inv_a
