@@ -35,6 +35,7 @@ dgemv = linalg.get_blas_funcs('gemv', (_d,))
 ddot = linalg.get_blas_funcs('dot', (_d,))
 _I = np.cast['F'](1j)
 
+
 ###############################################################################
 # linalg.svd and linalg.pinv2
 dgesdd, dgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_d,))
@@ -64,12 +65,13 @@ def _repeated_svd(x, lwork, overwrite_a=False):
     else:
         assert x.dtype == np.complex128
         gesdd, gesvd = zgesdd, zgesvd
+    # this has to use overwrite_a=False in case we need to fall back to gesvd
     u, s, v, info = gesdd(x, compute_uv=True, lwork=lwork[0],
-                          full_matrices=False, overwrite_a=True)
+                          full_matrices=False, overwrite_a=False)
     if info > 0:
         # Fall back to slower gesvd, sometimes gesdd fails
         u, s, v, info = gesvd(x, compute_uv=True, lwork=lwork[1],
-                              full_matrices=False, overwrite_a=True)
+                              full_matrices=False, overwrite_a=overwrite_a)
     if info > 0:
         raise LinAlgError("SVD did not converge")
     if info < 0:

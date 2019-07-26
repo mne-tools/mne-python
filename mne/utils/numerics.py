@@ -21,6 +21,7 @@ from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
+from .linalg import _svd_lwork, _repeated_svd, dgemm, zgemm
 from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import deprecated, fill_doc
 
@@ -86,7 +87,7 @@ def _compute_row_norms(data):
     return norms
 
 
-def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
+def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
     """Compute a regularized pseudoinverse of a square matrix.
 
     Regularization is performed by adding a constant value to each diagonal
@@ -140,7 +141,9 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
 
     # Decompose the matrix
-    U, s, V = _safe_svd(x)
+    if svd_lwork is None:
+        svd_lwork = _svd_lwork(x.shape, x.dtype)
+    U, s, V = _repeated_svd(x, lwork=svd_lwork)
 
     # Estimate the rank before regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -148,7 +151,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
     # Decompose the matrix again after regularization
     loading_factor = reg * np.mean(s)
-    U, s, V = _safe_svd(x + loading_factor * np.eye(len(x)))
+    U, s, V = _repeated_svd(x + loading_factor * np.eye(len(x)),
+                            lwork=svd_lwork)
 
     # Estimate the rank after regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -179,7 +183,13 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
 
     # Compute the pseudo inverse
-    x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
+    U *= s_inv
+    if U.dtype == np.float64:
+        gemm = dgemm
+    else:
+        assert U.dtype == np.complex128
+        gemm = zgemm
+    x_inv = gemm(1., U, V).T
 
     if rank is None or rank == 'full':
         return x_inv, loading_factor, rank_before

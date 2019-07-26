@@ -107,7 +107,7 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
 
 
 def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk,
-                        inv_lwork, eig_lwork):
+                        svd_lwork, inv_lwork, eig_lwork):
     """Compute the normalized weights in max-power orientation.
 
     Uses Eq. 4.47 from [1]_.
@@ -126,6 +126,8 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk,
         The source normal.
     sk : ndarray, shape (3,)
         The source prior.
+    svd_lwork : int
+        The svd lwork value.
     inv_lwork : int
         The inv lwork value.
     eig_lwork : int
@@ -146,7 +148,8 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk,
     if reduce_rank:
         # Use pseudo inverse computation setting smallest
         # component to zero if the leadfield is not full rank
-        norm = _reg_pinv(norm_inv, rank=norm_inv.shape[0] - 1)[0]
+        norm = _reg_pinv(norm_inv, rank=norm_inv.shape[0] - 1,
+                         svd_lwork=svd_lwork)[0]
     else:
         # Use straight inverse with full rank leadfield
         try:
@@ -165,7 +168,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk,
     # Determine orientation of max power
     assert power.dtype in (np.float64, np.complex128)  # LCMV, DICS
     eig_vals, eig_vecs = _repeated_eig(power, eig_lwork)
-    if not np.iscomplex(power).any() and np.iscomplex(eig_vecs).any():
+    if not np.iscomplexobj(power) and np.iscomplexobj(eig_vecs):
         raise ValueError('The eigenspectrum of the leadfield at this voxel is '
                          'complex. Consider reducing the rank of the '
                          'leadfield by using reduce_rank=True.')
@@ -250,7 +253,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             # In this case, take a shortcut to compute the filter
             Wk[:] = _normalized_weights(
                 Wk, Gk, Cm_inv_sq, reduce_rank, nn[k], sk,
-                inv_lwork, eig_lwork)
+                svd_lwork, inv_lwork, eig_lwork)
         else:
             # Compute power at the source
             Ck = np.dot(Wk, Gk)
