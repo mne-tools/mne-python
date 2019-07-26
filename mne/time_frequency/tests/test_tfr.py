@@ -3,7 +3,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import pytest
 import matplotlib.pyplot as plt
 
@@ -769,6 +769,13 @@ def _epochs_generator(ep_start, ep_stop):
         yield _prepare_epochs(cur_ep, cur_ep + 1)
 
 
+def _assert_tfr_equal(actual, desired):
+    assert_allclose(actual.times, desired.times)
+    assert_allclose(actual.data, desired.data)
+    if isinstance(actual, AverageTFR):
+        assert_equal(actual.nave, desired.nave)
+
+
 @pytest.mark.parametrize('return_itc, average', [[True, True], [False, False], [False, True]])
 def test_tfr_with_lists(return_itc, average):
     epochs_ref = _prepare_epochs(0, 5)
@@ -782,16 +789,13 @@ def test_tfr_with_lists(return_itc, average):
     tfr_list = tfr_morlet(epochs_list, freqs, n_cycles, return_itc=return_itc, average=average)
     tfr_gen = tfr_morlet(epochs_gen, freqs, n_cycles, return_itc=return_itc, average=average)
 
-    from numpy.testing import assert_allclose
-
     if isinstance(tfr_ref, AverageTFR):
-        assert_allclose(tfr_list.data, tfr_ref.data)
-        assert_allclose(tfr_gen.data, tfr_ref.data)
+        _assert_tfr_equal(tfr_list, tfr_ref)
+        _assert_tfr_equal(tfr_gen, tfr_ref)
     else:
-        for ind, obj in enumerate(tfr_ref):
-            assert_allclose(tfr_list[ind].data, tfr_ref[ind].data)
-            assert_allclose(tfr_gen[ind].data, tfr_ref[ind].data)
-
+        for index, _ in enumerate(tfr_ref):
+            _assert_tfr_equal(tfr_list[index], tfr_ref[index])
+            _assert_tfr_equal(tfr_gen[index], tfr_ref[index])
 
 
 run_tests_if_main()

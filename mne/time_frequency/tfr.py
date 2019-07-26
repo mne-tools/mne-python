@@ -680,7 +680,10 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             power, itc = out.real, out.imag
         else:
             power = out
-        nave = len(data)
+        if isinstance(inst, list) or isgenerator(inst):
+            nave = ind + 1
+        else:
+            nave = len(data)
         out = AverageTFR(info, power, times, freqs, nave,
                          method='%s-power' % method)
         if return_itc:
