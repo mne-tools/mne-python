@@ -139,7 +139,14 @@ ecg_evoked.plot_joint()
 ###############################################################################
 # Before we run the ICA, an important step is filtering the data to remove
 # low-frequency drifts, which can negatively affect the quality of the ICA fit.
-# A 1 Hz cutoff frequency is recommended; we'll keep a copy of the unfiltered
+# The slow drifts are problematic because they reduce the independence of the
+# assumed-to-be-independent sources (e.g., during a slow upward drift, the
+# neural, heartbeat, blink, and other muscular sources will all tend to have
+# higher values), making it harder for the algorithm to find an accurate
+# solution. A high-pass filter with 1 Hz cutoff frequency is recommended.
+# However, because filtering is a linear operation, the ICA solution found from
+# the filtered signal can be applied to the unfiltered signal (See [2]_ for
+# more information), so we'll keep a copy of the unfiltered
 # :class:`~mne.io.Raw` object around so we can apply the ICA solution to it
 # later.
 
@@ -197,8 +204,10 @@ ica.plot_components()
 ###############################################################################
 # Here we can pretty clearly see that the first component (``ICA000``) captures
 # the EOG signal quite well, and the second component (``ICA001``) looks a lot
-# like a heartbeat. In the remaining sections, we'll look at different ways of
-# choosing which ICs to exclude prior to reconstructing the sensor signals.
+# like `a heartbeat <qrs_>_` (for more info on visually identifying Indepenent
+# Components, `this EEGLAB tutorial`_ is a good resource). In the remaining
+# sections, we'll look at different ways of choosing which ICs to exclude prior
+# to reconstructing the sensor signals.
 #
 #
 # Selecting ICA components manually
@@ -245,9 +254,10 @@ ica.exclude = [0, 1]  # indices chosen based on various plots above
 
 ###############################################################################
 # Now that the exclusions have been set, we can reconstruct the sensor signals
-# with artifacts removed using the :meth:`~mne.preprocessing.ICA.apply` method.
-# Plotting the original raw data alongside the reconstructed data shows that
-# the heartbeat and blink artifacts are repaired.
+# with artifacts removed using the :meth:`~mne.preprocessing.ICA.apply` method
+# (remember, we're applying the ICA solution from the *filtered* data to the
+# original *unfiltered* signal). Plotting the original raw data alongside the
+# reconstructed data shows that the heartbeat and blink artifacts are repaired.
 
 # ica.apply() changes the Raw object in-place, so let's make a copy first:
 reconst_raw = raw.copy()
@@ -308,9 +318,10 @@ ica.plot_sources(eog_evoked)
 # channels only reflect EOG and not brain dynamics in the prefrontal cortex (or
 # you must not care about those prefrontal signals).
 #
-# For ECG, it is easier: :meth:`~mne.preprocessing.ICA.find_bads_ecg` uses
-# cross-channel averaging to estimate a virtual ECG channel, so it is usually
-# not necessary to pass a specific channel name.
+# For ECG, it is easier: :meth:`~mne.preprocessing.ICA.find_bads_ecg` can use
+# cross-channel averaging of magnetometer or gradiometer channels to construct
+# a virtual ECG channel, so if you have MEG channels it is usually not
+# necessary to pass a specific channel name.
 # :meth:`~mne.preprocessing.ICA.find_bads_ecg` also has two options for its
 # ``method`` parameter: ``'ctps'`` (cross-trial phase statistics) and
 # ``'correlation'`` (Pearson correlation between data and ECG channel).
@@ -389,7 +400,7 @@ del raw, filt_raw, ica, new_ica
 # within it to use as a template.
 #
 # Since our sample dataset only contains data from one subject, we'll use a
-# different dataset with multiple subjects: the EEGBCI dataset [2]_ [3]_. The
+# different dataset with multiple subjects: the EEGBCI dataset [3]_ [4]_. The
 # dataset has 109 subjects, we'll just download one run (a left/right hand
 # movement task) from each of the first 4 subjects:
 
@@ -492,11 +503,16 @@ print(template_eog_component)
 #        Analysis by Preconditioning With Hessian Approximations. IEEE
 #        Transactions on Signal Processing 66:4040–4049
 #
-# .. [2] Schalk G, McFarland DJ, Hinterberger T, Birbaumer N, Wolpaw JR (2004).
+# .. [2] Winkler I, Debener S, Müller K-R, Tangermann M (2015). On the
+#        influence of high-pass filtering on ICA-based artifact reduction in
+#        EEG-ERP. Proceedings of EMBC-2015, 4101–4105.
+#        https://doi.org/10.1109/EMBC.2015.7319296
+#
+# .. [3] Schalk G, McFarland DJ, Hinterberger T, Birbaumer N, Wolpaw JR (2004).
 #        BCI2000: A General-Purpose Brain-Computer Interface (BCI) System. IEEE
 #        TBME 51(6):1034-1043
 #
-# .. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
+# .. [4] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
 #        Mietus JE, Moody GB, Peng C-K, Stanley HE (2000). PhysioBank,
 #        PhysioToolkit, and PhysioNet: Components of a New Research Resource
 #        for Complex Physiologic Signals. Circulation 101(23):e215-e220
@@ -511,3 +527,5 @@ print(template_eog_component)
 # .. _`scikit-learn`: https://scikit-learn.org
 # .. _`random seed`: https://en.wikipedia.org/wiki/Random_seed
 # .. _`regular expression`: https://www.regular-expressions.info/
+# .. _`qrs`: https://en.wikipedia.org/wiki/QRS_complex
+# .. _`this EEGLAB tutorial`: https://labeling.ucsd.edu/tutorial/labels

@@ -310,6 +310,7 @@ intersphinx_mapping = {
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
     'dipy': ('http://nipy.org/dipy', None),
     'mne_realtime': ('https://mne-tools.github.io/mne-realtime', None),
+    'picard': ('https://pierreablin.github.io/picard/', None),
 }
 
 ##############################################################################

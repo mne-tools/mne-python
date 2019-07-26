@@ -272,7 +272,10 @@ class ICA(ContainsMixin):
     Standard Infomax can be quite sensitive to differences in floating point
     arithmetic. Extended Infomax seems to be more stable in this respect,
     enhancing reproducibility and stability of results; use Extended Infomax
-    via ``method='infomax', fit_params=dict(extended=True)``.
+    via ``method='infomax', fit_params=dict(extended=True)``. Allowed entries
+    in ``fit_params`` are determined by the various algorithm implementations:
+    see :class:`~sklearn.decomposition.FastICA`, :func:`~picard.picard`,
+    :func:`~mne.preprocessing.infomax`.
 
     Reducing the tolerance (set in `fit_params`) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
