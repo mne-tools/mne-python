@@ -542,7 +542,17 @@ def _sphere_field(rrs, coils, sphere):
         # Check for a dipole at the origin
         if np.sqrt(np.dot(rr, rr)) <= 1e-10:
             continue
-        this_poss = rmags - sphere['r0']
+        xx = _fast_pot(rr, sphere['r0'], rmags, cosmags, ws)
+        B[3 * ri:3 * ri + 3] = [np.bincount(bins, x, n_coils) for x in xx.T]
+    B *= _MAG_FACTOR
+    return B
+
+
+try:
+    import numba
+except ImportError:
+    def _fast_pot(rr, r0, rmags, cosmags, ws):
+        this_poss = rmags - r0
 
         # Vector from dipole to the field point
         a_vec = this_poss - rr
@@ -563,10 +573,41 @@ def _sphere_field(rrs, coils, sphere):
         v2 = fast_cross_3d(rr[np.newaxis, :], this_poss)
         xx = ((good * ws)[:, np.newaxis] *
               (v1 / F[:, np.newaxis] + v2 * g[:, np.newaxis]))
-        zz = np.array([np.bincount(bins, x, n_coils) for x in xx.T])
-        B[3 * ri:3 * ri + 3, :] = zz
-    B *= _MAG_FACTOR
-    return B
+        return xx
+else:
+    @numba.jit(nopython=True, nogil=True, fastmath=True)
+    def _cross(x, y):
+        return np.array([x[1] * y[2] - x[2] * y[1],
+                         x[2] * y[0] - x[0] * y[2],
+                         x[0] * y[1] - x[1] * y[0]])
+
+    @numba.jit(nopython=True, nogil=True, fastmath=True)
+    def _fast_pot(rr, r0, rmags, cosmags, ws):
+        xx = np.zeros((len(rmags), 3))
+        for ii in range(len(rmags)):
+            this_pos = rmags[ii] - r0
+            cm = cosmags[ii]
+            w = ws[ii]
+
+            # Vector from dipole to the field point
+            a_vec = this_pos - rr
+            a = np.sqrt(np.dot(a_vec, a_vec))  # XXX norm?
+            r = np.sqrt(np.dot(this_pos, this_pos))
+            rr0 = np.dot(this_pos, rr)
+            ar = (r * r) - rr0
+            ar0 = ar / a
+            F = a * (r * a + ar)
+            gr = (a * a) / r + ar0 + 2.0 * (a + r)
+            g0 = a + 2 * r + ar0
+            # Compute the dot products needed
+            re = np.dot(this_pos, cm)
+            r0e = np.dot(rr, cm)
+            g = (g0 * r0e - gr * re) / (F * F)
+            if (a > 0) or (r > 0) or ((a * r) + 1 > 1e-5):
+                v1 = _cross(rr, cm)
+                v2 = _cross(rr, this_pos)
+                xx[ii] = w * (v1 / F + v2 * g)
+        return xx
 
 
 def _eeg_spherepot_coil(rrs, coils, sphere):

@@ -1,6 +1,7 @@
 numpy
 scipy
 matplotlib
+numba
 mayavi
 pyqt5
 pyqt5-sip
