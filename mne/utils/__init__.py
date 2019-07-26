@@ -51,5 +51,6 @@ from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _mask_to_onsets_offsets, _array_equal_nan)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas)
-from .linalg import (_dgesdd_lwork, _repeated_svd, _repeated_pinv2,
-                     dgesdd, dgemm, dgemv, ddot)
+from .linalg import (_gesdd_lwork, _repeated_svd, _repeated_pinv2,
+                     _geev_lwork, _repeated_eig,
+                     dgesdd, dgemm, zgemm, dgemv, ddot)

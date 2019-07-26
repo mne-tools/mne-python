@@ -17,7 +17,8 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl)
+                     _pl, _gesdd_lwork, _repeated_pinv2,
+                     _geev_lwork, _repeated_eig)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -104,7 +105,7 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
             orient_std)
 
 
-def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
+def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk, lwork):
     """Compute the normalized weights in max-power orientation.
 
     Uses Eq. 4.47 from [1]_.
@@ -123,6 +124,8 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
         The source normal.
     sk : ndarray, shape (3,)
         The source prior.
+    lwork : int
+        The geev lwork value.
 
     Returns
     -------
@@ -156,7 +159,8 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
     power = np.dot(norm, np.dot(Wk, Gk))
 
     # Determine orientation of max power
-    eig_vals, eig_vecs = linalg.eig(power)
+    assert power.dtype in (np.float64, np.complex128)  # LCMV, DICS
+    eig_vals, eig_vecs = _repeated_eig(power, lwork)
     if not np.iscomplex(power).any() and np.iscomplex(eig_vecs).any():
         raise ValueError('The eigenspectrum of the leadfield at this voxel is '
                          'complex. Consider reducing the rank of the '
@@ -230,6 +234,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
     logger.info('Computing beamformer filters for %d source%s'
                 % (n_sources, _pl(n_sources)))
+    gesdd_lwork = _gesdd_lwork((3, 3), Cm.dtype)
+    geev_lwork = _geev_lwork((3, 3), Cm.dtype)
     for k in range(n_sources):
         this_sl = slice(n_orient * k, n_orient * k + n_orient)
         Wk, Gk, sk = W[this_sl], G[:, this_sl], orient_std[this_sl]
@@ -238,7 +244,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 weight_norm in ['unit-noise-gain', 'nai']):
             # In this case, take a shortcut to compute the filter
             Wk[:] = _normalized_weights(
-                Wk, Gk, Cm_inv_sq, reduce_rank, nn[k], sk)
+                Wk, Gk, Cm_inv_sq, reduce_rank, nn[k], sk, geev_lwork)
         else:
             # Compute power at the source
             Ck = np.dot(Wk, Gk)
@@ -253,7 +259,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 elif inversion == 'matrix':
                     # Invert for all dipoles simultaneously using matrix
                     # inversion.
-                    norm = linalg.pinv2(Ck)
+                    assert Ck.shape == (3, 3)
+                    norm = _repeated_pinv2(Ck, gesdd_lwork)
                 # Reapply source covariance after inversion
                 norm *= sk
                 norm *= sk[:, np.newaxis]
