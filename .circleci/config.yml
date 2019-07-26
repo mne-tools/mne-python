@@ -66,9 +66,9 @@ jobs:
               sudo apt-get install qt5-default
 
         - run:
-          name: Install graphviz
-          command: |
-            sudo apt-get install graphviz
+            name: Install graphviz
+            command: |
+              sudo apt-get install graphviz
 
         - run:
             name: Get Python running
