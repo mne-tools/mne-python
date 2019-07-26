@@ -9,6 +9,7 @@ import numpy as np
 from scipy import linalg
 
 from ..rank import compute_rank
+from ..io.meas_info import _simplify_info
 from ..io.pick import pick_channels_cov, pick_info
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
@@ -123,6 +124,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     # check number of sensor types present in the data and ensure a noise cov
+    info = _simplify_info(info)
     noise_cov, _ = _check_one_ch_type('lcmv', info, forward,
                                       data_cov, noise_cov)
     # XXX we need this extra picking step (can't just rely on minimum norm's

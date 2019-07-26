@@ -621,6 +621,10 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
     return B
 
 
+def _triage_coils(coils):
+    return coils if isinstance(coils, tuple) else _concatenate_coils(coils)
+
+
 # #############################################################################
 # MAGNETIC DIPOLE (e.g. CHPI)
 
@@ -641,10 +645,7 @@ def _magnetic_dipole_field_vec(rrs, coils, too_close='raise'):
     #                                   axis=1)[:, np.newaxis] -
     #                 dist2 * this_coil['cosmag']) / dist5
     #         fwd[3*ri:3*ri+3, k] = 1e-7 * np.dot(this_coil['w'], sum_)
-    if isinstance(coils, tuple):
-        rmags, cosmags, ws, bins = coils
-    else:
-        rmags, cosmags, ws, bins = _concatenate_coils(coils)
+    rmags, cosmags, ws, bins = _triage_coils(coils)
     del coils
     fwd = np.empty((3 * len(rrs), bins[-1] + 1), order='F')
     for ri, rr in enumerate(rrs):
