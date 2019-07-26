@@ -156,13 +156,6 @@ class ICA(ContainsMixin):
         ``ICA.exclude``). If :class:`int` or :class:`float`, ``n_components_ ≤
         n_pca_components ≤ max_pca_components`` must hold. If ``None``,
         ``max_pca_components`` will be used. Defaults to ``None``.
-
-        This parameter separates question of how many ICA components to
-        estimate from the question of how much to reduce the dimensionality of
-        the signal. By setting a high value for ``n_pca_components``,
-        relatively little dimensionality reduction will occur when the signal
-        is reconstructed, regardless of the value of ``n_components`` (the
-        number of ICA components estimated).
     noise_cov : None | instance of Covariance
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") prior to the whitening
@@ -245,7 +238,13 @@ class ICA(ContainsMixin):
     step introduces the option to reduce the dimensionality of the data, both
     prior to fitting the ICA (with the ``max_pca_components`` parameter) and
     prior to reconstructing the sensor signals (with the ``n_pca_components``
-    parameter).
+    parameter). In this way, we separate the question of how many ICA
+    components to estimate from the question of how much to reduce the
+    dimensionality of the signal. For example: by setting high values for
+    ``max_pca_components`` and ``n_pca_components``, relatively little
+    dimensionality reduction will occur when the signal is reconstructed,
+    regardless of the value of ``n_components`` (the number of ICA components
+    estimated).
 
     .. note:: Commonly used for reasons of i) computational efficiency and
               ii) additional noise reduction, it is a matter of current debate
