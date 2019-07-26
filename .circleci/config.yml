@@ -66,6 +66,11 @@ jobs:
               sudo apt-get install qt5-default
 
         - run:
+          name: Install graphviz
+          command: |
+            sudo apt-get install graphviz
+
+        - run:
             name: Get Python running
             command: |
               pip install --user --upgrade --progress-bar off pip numpy vtk
