@@ -102,8 +102,8 @@ class use_log_level(object):
         The level to use.
     """
 
-    def __init__(self, verbose):  # noqa: D102
-        self.level = verbose
+    def __init__(self, level):  # noqa: D102
+        self.level = level
 
     def __enter__(self):  # noqa: D105
         self.old_level = set_log_level(self.level, True)
