@@ -203,7 +203,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                   width=1.0, decim=1, return_itc=False, n_jobs=1,
                   verbose=None):
-    from ..source_estimate import _BaseSourceEstimate
+    from ..source_estimate import SourceEstimate, VolSourceEstimate
     from ..source_tfr import SourceTFR
     """Time-Frequency Representation (TFR) using Stockwell Transform.
 
@@ -256,12 +256,17 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     n_jobs = check_n_jobs(n_jobs)
     times = inst.times[::decim].copy()
     nave = len(data)
-    if isinstance(inst, _BaseSourceEstimate):
+    # TODO: Make sure the itc stuff is handled accordingly. + clean this up
+    if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
+        if inst._sens_data is not None:
+            data = inst._sens_data
         power, itc, freqs = tfr_array_stockwell(data, sfreq=inst.sfreq,
                                                 fmin=fmin, fmax=fmax, n_fft=n_fft,
                                                 width=width, decim=decim,
                                                 return_itc=return_itc,
                                                 n_jobs=n_jobs)
+        if inst._sens_data is not None:
+            power = (inst._kernel, power)
         return SourceTFR(power, inst.vertices, tmin=inst.tmin,
                          tstep=inst.tstep, subject=inst.subject)
     else:

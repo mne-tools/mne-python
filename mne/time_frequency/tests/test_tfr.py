@@ -776,17 +776,28 @@ def test_getitem_epochsTFR():
     assert_array_equal(power.next(), power.data[ind + 1])
 
 
-def assert_kernel_exists(inst, should_exist):
-    if should_exist:
+def assert_kernel_removed(inst, should_be_removed):
+    """Check if the kernel was removed properly."""
+    if should_be_removed:
+        assert inst._kernel is None
+        assert inst._sens_data is None
+    else:
         assert not inst._kernel_removed
         assert isinstance(inst._sens_data, np.ndarray)
         assert isinstance(inst._kernel, np.ndarray)
-    else:
-        assert inst._kernel is None
-        assert inst._sens_data is None
 
 
-# TODO: Be careful! kernel data (full_data=False) is accepted but still transformed to full_data during the tfr
+def _prepare_epochs(n_epochs):
+    raw = read_raw_fif(stc_raw_fname)
+    tmin, tmax, event_id = -0.2, 0.5, 1
+    events = find_events(raw, stim_channel='STI 014')
+    sel_events = events[:n_epochs]
+    epochs = Epochs(raw, sel_events, tmin=tmin, tmax=tmax, preload=True)
+
+    return epochs
+
+
+# TODO: for 'vectors' ori, tfr averaged over all 3 vecs is the same, but distributed differently between vectors. find out the reason for this.
 @testing.requires_testing_data
 @pytest.mark.parametrize('method', ['dSPM',
                                     'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA' ['dSPM', 'MNE', 'sLORETA', 'eLORETA']
@@ -807,12 +818,7 @@ def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs,
     decim = 1
     zero_mean = False
 
-    raw = read_raw_fif(stc_raw_fname)
-    tmin, tmax, event_id = -0.2, 0.5, 1
-    events = find_events(raw, stim_channel='STI 014')
-    events3 = events[:n_epochs]  # take 3 events to keep the computation time low
-    epochs = Epochs(raw, events3, tmin=tmin, tmax=tmax, preload=True)
-
+    epochs = _prepare_epochs(n_epochs)
     inv = read_inverse_operator(stc_inv_fname)
     label = read_label(stc_label_fname)
 
@@ -831,19 +837,17 @@ def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs,
                                        use_fft=use_fft, decim=decim, zero_mean=zero_mean,
                                        baseline=None, pca=False)
 
-    assert_kernel_exists(stfr, not full_data)
+    assert_kernel_removed(stfr, full_data)
     assert_allclose(stfr.get_data(), stfr_ref)
 
 
-# TODO: Be careful! kernel data (full_data=False) is accepted but still transformed to full_data during the tfr
 @testing.requires_testing_data
-@pytest.mark.parametrize('method', ['dSPM',
-                                    'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA' ['dSPM', 'MNE', 'sLORETA', 'eLORETA']
-@pytest.mark.parametrize('n_epochs', [1, 1])  # , 3
+@pytest.mark.parametrize('method', ['dSPM', 'MNE', 'sLORETA', 'eLORETA'])
+@pytest.mark.parametrize('n_epochs', [1])  # , 3
 @pytest.mark.parametrize('n_cycles', [1, 3])
 @pytest.mark.parametrize('decim', [1, 3])
 @pytest.mark.parametrize('time_bandwidth', [4.0, 3.2])
-@pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
+@pytest.mark.parametrize('pick_ori', ['normal', 'vector'])  # , 'vector'
 @pytest.mark.parametrize('full_data', [True, False])
 @pytest.mark.parametrize('use_fft', [True, False])
 def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, decim, time_bandwidth):
@@ -856,12 +860,7 @@ def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, de
     decim = 1
     time_bandwidth = 4
 
-    raw = read_raw_fif(stc_raw_fname)
-    tmin, tmax, event_id = -0.2, 0.5, 1
-    events = find_events(raw, stim_channel='STI 014')
-    events3 = events[:n_epochs]  # take 3 events to keep the computation time low
-    epochs = Epochs(raw, events3, tmin=tmin, tmax=tmax, preload=True)
-
+    epochs = _prepare_epochs(n_epochs)
     inv = read_inverse_operator(stc_inv_fname)
     label = read_label(stc_label_fname)
 
@@ -875,14 +874,19 @@ def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, de
     stfr = tfr_multitaper(stc, freqs, n_cycles, time_bandwidth, use_fft, return_itc=False,
                           decim=decim, average=False)
 
-    assert_kernel_exists(stfr, not full_data)
+    assert_kernel_removed(stfr, full_data)
+
+    ref_shape = (stc.shape[0], len(freqs), stc.shape[-1])
+    assert_equal(stfr.shape, ref_shape)
+    assert_equal(stfr.times, stc.times)
+    assert_equal(stfr.tmin, stc.tmin)
+
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('method', ['dSPM',
-                                    'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA' ['dSPM', 'MNE', 'sLORETA', 'eLORETA']
-@pytest.mark.parametrize('n_epochs', [1, 1])  # , 3
-@pytest.mark.parametrize('n_fft', [230, 520])
+@pytest.mark.parametrize('method', ['dSPM', 'MNE', 'sLORETA', 'eLORETA'])
+@pytest.mark.parametrize('n_epochs', [1])  # , 3
+@pytest.mark.parametrize('n_fft', [2 ** 8, 2 ** 9])
 @pytest.mark.parametrize('width', [1.0, 2.9])
 @pytest.mark.parametrize('decim', [1, 3])
 @pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
@@ -896,12 +900,7 @@ def test_source_stockwell(method, pick_ori, full_data, n_epochs, n_fft, width, d
     width = 1.0
     decim = 1
 
-    raw = read_raw_fif(stc_raw_fname)
-    tmin, tmax, event_id = -0.2, 0.5, 1
-    events = find_events(raw, stim_channel='STI 014')
-    events3 = events[:n_epochs]  # take 3 events to keep the computation time low
-    epochs = Epochs(raw, events3, tmin=tmin, tmax=tmax, preload=True)
-
+    epochs = _prepare_epochs(n_epochs)
     inv = read_inverse_operator(stc_inv_fname)
     label = read_label(stc_label_fname)
 
@@ -915,7 +914,12 @@ def test_source_stockwell(method, pick_ori, full_data, n_epochs, n_fft, width, d
 
     stfr = tfr_stockwell(stc, fmin, fmax, n_fft, width, decim, return_itc=False)
 
-    assert_kernel_exists(stfr, not full_data)
+    assert_kernel_removed(stfr, full_data)
+
+    ref_shape = (stc.shape[0], 5, stc.shape[-1])
+    assert_equal(stfr.shape, ref_shape)
+    assert_equal(stfr.times, stc.times)
+    assert_equal(stfr.tmin, stc.tmin)
 
 
-#run_tests_if_main()
+run_tests_if_main()
