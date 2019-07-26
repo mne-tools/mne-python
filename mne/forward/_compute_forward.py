@@ -201,7 +201,8 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     # potential approximation
 
     # Process each of the surfaces
-    rmags, cosmags, ws, bins = _concatenate_coils(coils)
+    rmags, cosmags, ws, bins = _triage_coils(coils)
+    del coils
     lens = np.cumsum(np.r_[0, [len(s['rr']) for s in bem['surfs']]])
     sol = np.zeros((bins[-1] + 1, bem['solution'].shape[1]))
 
@@ -426,10 +427,9 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
 
     # Only MEG coils are sensitive to the primary current distribution.
     if coil_type == 'meg':
-        # Primary current contribution (can be calc. in coil/dipole coords)
         parallel, p_fun, _ = parallel_func(_do_prim_curr, n_jobs)
-        pcc = np.concatenate(parallel(p_fun(rr, c)
-                                      for c in nas(coils, n_jobs)), axis=1)
+        pcc = np.concatenate(parallel(p_fun(r, coils)
+                                      for r in nas(rr, n_jobs)), axis=0)
         B += pcc
         B *= _MAG_FACTOR
     return B
@@ -453,13 +453,23 @@ def _do_prim_curr(rr, coils):
     pc : ndarray, shape (n_sources, n_MEG_sensors)
         Primary current for set of MEG coils due to all sources
     """
-    pc = np.empty((len(rr) * 3, len(coils)))
-    for ci, c in enumerate(coils):
-        # For all integration points, multiply by weights, sum across pts
-        # and then flatten
-        pc[:, ci] = np.sum(c['w'] * _bem_inf_fields(rr, c['rmag'],
-                                                    c['cosmag']), 2).ravel()
+    rmags, cosmags, ws, bins = _triage_coils(coils)
+    n_coils = bins[-1] + 1
+    del coils
+    pc = np.empty((len(rr) * 3, n_coils))
+    for start, stop in _rr_bounds(rr, chunk=1):
+        p = _bem_inf_fields(rr[start:stop], rmags, cosmags)
+        p *= ws
+        p.shape = (3 * (stop - start), -1)
+        pc[3 * start:3 * stop] = [np.bincount(bins, pp, bins[-1] + 1)
+                                  for pp in p]
     return pc
+
+
+def _rr_bounds(rr, chunk=200):
+    # chunk data nicely
+    bounds = np.concatenate([np.arange(0, len(rr), chunk), [len(rr)]])
+    return zip(bounds[:-1], bounds[1:])
 
 
 def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
@@ -488,13 +498,12 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     # B = np.dot(v0s, sol)
 
     # We chunk the source mri_rr's in order to save memory
-    bounds = np.concatenate([np.arange(0, len(mri_rr), 200), [len(mri_rr)]])
     B = np.empty((len(mri_rr) * 3, sol.shape[1]))
-    for bi in range(len(bounds) - 1):
+    for start, stop in _rr_bounds(mri_rr):
         # v0 in Hamalainen et al., 1989 == v_inf in Mosher, et al., 1999
-        v0s = _bem_inf_pots(mri_rr[bounds[bi]:bounds[bi + 1]], bem_rr, mri_Q)
+        v0s = _bem_inf_pots(mri_rr[start:stop], bem_rr, mri_Q)
         v0s = v0s.reshape(-1, v0s.shape[2])
-        B[3 * bounds[bi]:3 * bounds[bi + 1]] = np.dot(v0s, sol)
+        B[3 * start:3 * stop] = np.dot(v0s, sol)
     return B
 
 
@@ -520,12 +529,14 @@ def _sphere_field(rrs, coils, sphere):
     The formulas have been manipulated for efficient computation
     by Matti Hamalainen, February 1990
     """
-    rmags, cosmags, ws, bins = _concatenate_coils(coils)
+    rmags, cosmags, ws, bins = _triage_coils(coils)
+    del coils
+    n_coils = bins[-1] + 1
 
     # Shift to the sphere model coordinates
     rrs = rrs - sphere['r0']
 
-    B = np.zeros((3 * len(rrs), len(coils)))
+    B = np.zeros((3 * len(rrs), n_coils))
     for ri, rr in enumerate(rrs):
         # Check for a dipole at the origin
         if np.sqrt(np.dot(rr, rr)) <= 1e-10:
@@ -551,7 +562,7 @@ def _sphere_field(rrs, coils, sphere):
         v2 = fast_cross_3d(rr[np.newaxis, :], this_poss)
         xx = ((good * ws)[:, np.newaxis] *
               (v1 / F[:, np.newaxis] + v2 * g[:, np.newaxis]))
-        zz = np.array([np.bincount(bins, x, bins[-1] + 1) for x in xx.T])
+        zz = np.array([np.bincount(bins, x, n_coils) for x in xx.T])
         B[3 * ri:3 * ri + 3, :] = zz
     B *= _MAG_FACTOR
     return B
@@ -559,12 +570,14 @@ def _sphere_field(rrs, coils, sphere):
 
 def _eeg_spherepot_coil(rrs, coils, sphere):
     """Calculate the EEG in the sphere model."""
-    rmags, cosmags, ws, bins = _concatenate_coils(coils)
+    rmags, cosmags, ws, bins = _triage_coils(coils)
+    n_coils = bins[-1] + 1
+    del coils
 
     # Shift to the sphere model coordinates
     rrs = rrs - sphere['r0']
 
-    B = np.zeros((3 * len(rrs), len(coils)))
+    B = np.zeros((3 * len(rrs), n_coils))
     for ri, rr in enumerate(rrs):
         # Only process dipoles inside the innermost sphere
         if np.sqrt(np.dot(rr, rr)) >= sphere['layers'][0]['rad']:
@@ -708,6 +721,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     if len(set(fwd_data['coil_types'])) != len(fwd_data['coil_types']):
         raise RuntimeError('Non-unique sensor types found')
     compensators, solutions, csolutions = [], [], []
+    coils_list, ccoils_list = [], []
     for coil_type, coils, ccoils, info in zip(fwd_data['coil_types'],
                                               fwd_data['coils_list'],
                                               fwd_data['ccoils_list'],
@@ -739,6 +753,11 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
                 if coil_type == 'eeg':
                     logger.info('Using the equivalent source approach in the '
                                 'homogeneous sphere for EEG')
+            coils = _triage_coils(coils)
+            if ccoils is not None and len(ccoils) > 0:
+                ccoils = _triage_coils(ccoils)
+        coils_list.append(coils)
+        ccoils_list.append(ccoils)
         compensators.append(compensator)
         solutions.append(solution)
         csolutions.append(csolution)
@@ -756,7 +775,8 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     #    csolutions (compensation for solution)
     fwd_data.update(dict(bem_rr=bem_rr, mri_Q=mri_Q, head_mri_t=head_mri_t,
                          compensators=compensators, solutions=solutions,
-                         csolutions=csolutions, fun=fun))
+                         csolutions=csolutions, fun=fun,
+                         coils_list=coils_list, ccoils_list=ccoils_list))
 
 
 @verbose
