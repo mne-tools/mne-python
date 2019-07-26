@@ -25,6 +25,7 @@ inputs will be memcopied.
 import numpy as np
 from scipy import linalg
 from scipy.linalg import LinAlgError
+from scipy._lib._util import _asarray_validated
 
 
 _d = np.empty(0, np.float64)
@@ -178,3 +179,33 @@ def _repeated_inv(a, lwork, overwrite_a=False):
         raise ValueError('illegal value in %d-th argument of internal '
                          'getrf|getri' % -info)
     return inv_a
+
+
+###############################################################################
+# linalg.eigh
+
+dsyevd, = linalg.get_lapack_funcs(('syevd',), (_d,))
+zheevd, = linalg.get_lapack_funcs(('heevd',), (_z,))
+
+
+def eigh(a, overwrite_a=False, check_finite=True):
+    """Efficient wrapper for eigh."""
+    # We use SYEVD, see https://github.com/scipy/scipy/issues/9212
+    if check_finite:
+        a = _asarray_validated(a, check_finite=check_finite)
+    if a.dtype == np.float64:
+        evr, driver = dsyevd, 'syevd'
+    else:
+        assert a.dtype == np.complex128
+        evr, driver = zheevd, 'heevd'
+    w, v, info = evr(a, lower=1, overwrite_a=overwrite_a)
+    if info == 0:
+        return w, v
+    if info < 0:
+        raise ValueError('illegal value in argument %d of internal %s'
+                         % (-info, driver))
+    else:
+        raise LinAlgError("internal fortran routine failed to converge: "
+                          "%i off-diagonal elements of an "
+                          "intermediate tridiagonal form did not converge"
+                          " to zero." % info)
