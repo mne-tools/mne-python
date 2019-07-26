@@ -204,7 +204,7 @@ ica.plot_components()
 ###############################################################################
 # Here we can pretty clearly see that the first component (``ICA000``) captures
 # the EOG signal quite well, and the second component (``ICA001``) looks a lot
-# like `a heartbeat <qrs_>_` (for more info on visually identifying Indepenent
+# like `a heartbeat <qrs_>_` (for more info on visually identifying Independent
 # Components, `this EEGLAB tutorial`_ is a good resource). In the remaining
 # sections, we'll look at different ways of choosing which ICs to exclude prior
 # to reconstructing the sensor signals.
