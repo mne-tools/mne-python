@@ -8,7 +8,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 import mne
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray
+from mne import Epochs, read_events, pick_types, create_info, EpochsArray, find_events
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
                        requires_pandas, grand_average)
@@ -752,5 +752,46 @@ def test_getitem_epochsTFR():
 
     # Test that current state is maintained
     assert_array_equal(power.next(), power.data[ind + 1])
+
+
+def _prepare_epochs(ep_start, ep_stop):
+    raw = read_raw_fif(raw_fname)
+    tmin, tmax, event_id = -0.2, 0.5, 1
+    events = find_events(raw, stim_channel='STI 014')
+    sel_events = events[ep_start:ep_stop]
+    epochs = Epochs(raw, sel_events, tmin=tmin, tmax=tmax, preload=True)
+
+    return epochs
+
+
+def _epochs_generator(ep_start, ep_stop):
+    for cur_ep in range(ep_start, ep_stop):
+        yield _prepare_epochs(cur_ep, cur_ep + 1)
+
+
+@pytest.mark.parametrize('return_itc, average', [[True, True], [False, False], [False, True]])
+def test_tfr_with_lists(return_itc, average):
+    epochs_ref = _prepare_epochs(0, 5)
+    epochs_list = [_prepare_epochs(cur_ep, cur_ep + 1) for cur_ep in range(0, 5)]
+    epochs_gen = _epochs_generator(0, 5)
+
+    freqs = [10, 12]
+    n_cycles = 2
+
+    tfr_ref = tfr_morlet(epochs_ref, freqs, n_cycles, return_itc=return_itc, average=average)
+    tfr_list = tfr_morlet(epochs_list, freqs, n_cycles, return_itc=return_itc, average=average)
+    tfr_gen = tfr_morlet(epochs_gen, freqs, n_cycles, return_itc=return_itc, average=average)
+
+    from numpy.testing import assert_allclose
+
+    if isinstance(tfr_ref, AverageTFR):
+        assert_allclose(tfr_list.data, tfr_ref.data)
+        assert_allclose(tfr_gen.data, tfr_ref.data)
+    else:
+        for ind, obj in enumerate(tfr_ref):
+            assert_allclose(tfr_list[ind].data, tfr_ref[ind].data)
+            assert_allclose(tfr_gen[ind].data, tfr_ref[ind].data)
+
+
 
 run_tests_if_main()
