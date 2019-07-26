@@ -780,7 +780,8 @@ def _assert_tfr_equal(actual, desired):
 
 
 @pytest.mark.parametrize('return_itc, average', [[True, True], [False, False], [False, True]])
-def test_tfr_with_lists(return_itc, average):
+@pytest.mark.parametrize('func', [tfr_morlet, tfr_multitaper])
+def test_tfr_with_lists(return_itc, average, func):
     """Test whether tfr_morlet works the same for lists as for epochs."""
     epochs_ref = _prepare_epochs(0, 3)
     epochs_list = [_prepare_epochs(cur_ep, cur_ep + 1) for cur_ep in range(0, 3)]
@@ -789,17 +790,17 @@ def test_tfr_with_lists(return_itc, average):
     freqs = [10, 12]
     n_cycles = 2
 
-    tfr_ref = tfr_morlet(epochs_ref, freqs, n_cycles, return_itc=return_itc, average=average)
-    tfr_list = tfr_morlet(epochs_list, freqs, n_cycles, return_itc=return_itc, average=average)
-    tfr_gen = tfr_morlet(epochs_gen, freqs, n_cycles, return_itc=return_itc, average=average)
+    tfr_ref = func(epochs_ref, freqs, n_cycles, return_itc=return_itc, average=average)
+    tfr_list = func(epochs_list, freqs, n_cycles, return_itc=return_itc, average=average)
+    tfr_gen = func(epochs_gen, freqs, n_cycles, return_itc=return_itc, average=average)
 
-    if isinstance(tfr_ref, AverageTFR):
-        _assert_tfr_equal(tfr_list, tfr_ref)
-        _assert_tfr_equal(tfr_gen, tfr_ref)
-    else:
+    if return_itc is True:
         for index, _ in enumerate(tfr_ref):
             _assert_tfr_equal(tfr_list[index], tfr_ref[index])
             _assert_tfr_equal(tfr_gen[index], tfr_ref[index])
+    else:
+        _assert_tfr_equal(tfr_list, tfr_ref)
+        _assert_tfr_equal(tfr_gen, tfr_ref)
 
 
 run_tests_if_main()

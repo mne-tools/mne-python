@@ -11,6 +11,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 
 from copy import deepcopy
 from functools import partial
+from inspect import isgenerator
 from math import sqrt
 
 import numpy as np
@@ -597,8 +598,21 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     from ..epochs import BaseEpochs
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
-    data = _get_data(inst, return_itc)
-    info = inst.info
+
+    if isinstance(inst, list) or isgenerator(inst):
+        for ind, obj in enumerate(inst):
+
+            if ind == 0:
+                data = _get_data(obj, return_itc)
+                info = obj.info
+                times = obj.times[decim].copy()
+            else:
+                data = np.append(data, _get_data(obj, return_itc), axis=0)
+
+    else:
+        data = _get_data(inst, return_itc)
+        info = inst.info
+        times = inst.times[decim].copy()
 
     info, data = _prepare_picks(info, data, picks, axis=1)
     del picks
@@ -618,7 +632,6 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 
     out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                        output=output, decim=decim, **tfr_params)
-    times = inst.times[decim].copy()
 
     if average:
         if return_itc:
@@ -633,6 +646,8 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                                    method='%s-itc' % method))
     else:
         power = out
+        if isinstance(inst, list) or isgenerator(inst):
+            inst = obj
         if isinstance(inst, BaseEpochs):
             meta = deepcopy(inst._metadata)
             evs = deepcopy(inst.events)
