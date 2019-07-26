@@ -67,7 +67,7 @@ docstring_ignores = [
 char_limit = 800  # XX eventually we should probably get this lower
 docstring_length_ignores = [
     'mne.filter.construct_iir_filter::iir_params',
-    'mne.preprocessing.ICA::n_pca_components',
+    'mne.preprocessing.ica.ICA.__init__::n_pca_components',
 ]
 tab_ignores = [
 ]
