@@ -593,6 +593,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     return tfrs
 
 
+
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
     from ..epochs import BaseEpochs
@@ -613,8 +614,6 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                              ' with average=False')
 
     if isinstance(inst, list) or isgenerator(inst):
-
-        # TODO: Next part is highly similar to inside _compute_tfr. Factor it out!
         for ind, obj in enumerate(inst):
             data = _get_data(obj, return_itc)
             info = obj.info
@@ -623,6 +622,12 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             tfr = _compute_tfr(data, freqs, info['sfreq'], method=method,
                                output='complex', decim=decim, **tfr_params)
 
+            if ind == 0:
+                times = obj.times[decim].copy()
+                if 'itc' in output:
+                    plf = np.zeros(tfr.shape, dtype=complex)
+
+            # TODO: This is copied from _time_frequency_loop. Make a function of it
             # Transform complex values
             if output in ['power', 'avg_power']:
                 tfr = (tfr * tfr.conj()).real  # power
@@ -630,16 +635,10 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                 tfr = np.angle(tfr)
             elif output == 'avg_power_itc':
                 tfr_abs = np.abs(tfr)
-                if ind == 0:
-                    plf = tfr / tfr_abs  # phase
-                else:
-                    plf += tfr / tfr_abs  # phase
+                plf += tfr / tfr_abs  # phase
                 tfr = tfr_abs ** 2  # power
             elif output == 'itc':
-                if ind == 0:
-                    plf = tfr / np.abs(tfr)  # phase
-                else:
-                    plf += tfr / np.abs(tfr)  # phase
+                plf += tfr / np.abs(tfr)  # phase
                 continue  # not need to stack anything else than plf
 
             # Stack or add
@@ -650,8 +649,6 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                     out += tfr
                 else:
                     out = np.append(out, tfr, axis=0)
-
-            times = obj.times[decim].copy()
 
         # Compute inter trial coherence
         if output == 'avg_power_itc':
@@ -664,7 +661,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             out /= ind + 1
             out = np.squeeze(out, axis=0)
 
-    else:
+    else:  # standard procedure if data is no list
         data = _get_data(inst, return_itc)
         info = inst.info
         info, data = _prepare_picks(info, data, picks, axis=1)
@@ -672,7 +669,6 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 
         out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                            output=output, decim=decim, **tfr_params)
-
         times = inst.times[decim].copy()
 
     if average:

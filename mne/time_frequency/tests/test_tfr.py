@@ -755,6 +755,7 @@ def test_getitem_epochsTFR():
 
 
 def _prepare_epochs(ep_start, ep_stop):
+    """Load data and create and Epochs object from it."""
     raw = read_raw_fif(raw_fname)
     tmin, tmax, event_id = -0.2, 0.5, 1
     events = find_events(raw, stim_channel='STI 014')
@@ -765,11 +766,13 @@ def _prepare_epochs(ep_start, ep_stop):
 
 
 def _epochs_generator(ep_start, ep_stop):
+    """Create a generator object of epochs"""
     for cur_ep in range(ep_start, ep_stop):
         yield _prepare_epochs(cur_ep, cur_ep + 1)
 
 
 def _assert_tfr_equal(actual, desired):
+    """Assert equality of some TFR attributes-"""
     assert_allclose(actual.times, desired.times)
     assert_allclose(actual.data, desired.data)
     if isinstance(actual, AverageTFR):
@@ -778,9 +781,10 @@ def _assert_tfr_equal(actual, desired):
 
 @pytest.mark.parametrize('return_itc, average', [[True, True], [False, False], [False, True]])
 def test_tfr_with_lists(return_itc, average):
-    epochs_ref = _prepare_epochs(0, 5)
-    epochs_list = [_prepare_epochs(cur_ep, cur_ep + 1) for cur_ep in range(0, 5)]
-    epochs_gen = _epochs_generator(0, 5)
+    """Test whether tfr_morlet works the same for lists as for epochs."""
+    epochs_ref = _prepare_epochs(0, 3)
+    epochs_list = [_prepare_epochs(cur_ep, cur_ep + 1) for cur_ep in range(0, 3)]
+    epochs_gen = _epochs_generator(0, 3)
 
     freqs = [10, 12]
     n_cycles = 2
