@@ -11,7 +11,6 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 
 from copy import deepcopy
 from functools import partial
-from inspect import isgenerator
 from math import sqrt
 
 import numpy as np
@@ -593,12 +592,16 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     return tfrs
 
 
-
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
     from ..epochs import BaseEpochs
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
+    data = _get_data(inst, return_itc)
+    info = inst.info
+
+    info, data = _prepare_picks(info, data, picks, axis=1)
+    del picks
 
     if average:
         if output == 'complex':
@@ -613,73 +616,16 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    if isinstance(inst, list) or isgenerator(inst):
-        for ind, obj in enumerate(inst):
-            data = _get_data(obj, return_itc)
-            info = obj.info
-            info, data = _prepare_picks(info, data, picks, axis=1)
-
-            tfr = _compute_tfr(data, freqs, info['sfreq'], method=method,
-                               output='complex', decim=decim, **tfr_params)
-
-            if ind == 0:
-                times = obj.times[decim].copy()
-                if 'itc' in output:
-                    plf = np.zeros(tfr.shape, dtype=complex)
-
-            # TODO: This is copied from _time_frequency_loop. Make a function of it
-            # Transform complex values
-            if output in ['power', 'avg_power']:
-                tfr = (tfr * tfr.conj()).real  # power
-            elif output == 'phase':
-                tfr = np.angle(tfr)
-            elif output == 'avg_power_itc':
-                tfr_abs = np.abs(tfr)
-                plf += tfr / tfr_abs  # phase
-                tfr = tfr_abs ** 2  # power
-            elif output == 'itc':
-                plf += tfr / np.abs(tfr)  # phase
-                continue  # not need to stack anything else than plf
-
-            # Stack or add
-            if ind == 0:
-                out = np.array(tfr, dtype=complex)
-            else:
-                if ('avg_' in output) or ('itc' in output):
-                    out += tfr
-                else:
-                    out = np.append(out, tfr, axis=0)
-
-        # Compute inter trial coherence
-        if output == 'avg_power_itc':
-            out += 1j * np.abs(plf)
-        elif output == 'itc':
-            out += np.abs(plf)
-
-        if ('avg_' in output) or ('itc' in output):
-            # we can't use len(inst) to average, because of generators
-            out /= ind + 1
-            out = np.squeeze(out, axis=0)
-
-    else:  # standard procedure if data is no list
-        data = _get_data(inst, return_itc)
-        info = inst.info
-        info, data = _prepare_picks(info, data, picks, axis=1)
-        del picks
-
-        out = _compute_tfr(data, freqs, info['sfreq'], method=method,
-                           output=output, decim=decim, **tfr_params)
-        times = inst.times[decim].copy()
+    out = _compute_tfr(data, freqs, info['sfreq'], method=method,
+                       output=output, decim=decim, **tfr_params)
+    times = inst.times[decim].copy()
 
     if average:
         if return_itc:
             power, itc = out.real, out.imag
         else:
             power = out
-        if isinstance(inst, list) or isgenerator(inst):
-            nave = ind + 1
-        else:
-            nave = len(data)
+        nave = len(data)
         out = AverageTFR(info, power, times, freqs, nave,
                          method='%s-power' % method)
         if return_itc:
