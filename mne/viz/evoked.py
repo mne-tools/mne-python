@@ -1891,7 +1891,7 @@ def _convert_epochs_to_evoked_for_pce(instances, Epochs):
                       for content in sublist)]):
             instances = {key: [epochs[key].average() for epochs in epochs_list]
                          for key, epochs_list in instances.items()}
-    except Exception:
+    except TypeError:
         raise TypeError("All entries in `evokeds` must be Epochs (or Evokeds)"
                          " or lists of Epochs (or Evokeds), got multiple"
                          " types!")

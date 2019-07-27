@@ -981,7 +981,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_compare_evokeds)
     def plot_compare_evokeds(self, conditions=None, **kwargs):
-        """TBD"""
+        """
+        Additional parameters
+        ---------------------
+        conditions : None | str | list of str
+            The conditions to plot. Must all be present (potentially partially,
+            i.e. as HED tags) in the epochs object.
+        """
         if conditions is None:
             conditions = self.event_id.keys()
         elif isinstance(conditions, str):
