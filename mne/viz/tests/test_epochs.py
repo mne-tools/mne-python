@@ -148,8 +148,9 @@ def test_plot_epochs_compare_evokeds():
     plot_compare_evokeds({cond: [epochs.pick_types(meg='mag'),
                                  epochs.pick_types(meg='mag')]
                           for cond in epochs.event_id})
-    pytest.raises(ValueError, plot_compare_evokeds, {
-        "1": epochs.average(), "2": epochs})
+    epochs.plot_compare_evokeds()
+    with pytest.raises(TypeError, match='got multiple types'):
+        plot_compare_evokeds({"1": epochs.average(), "2": epochs})
     plt.close('all')
 
 

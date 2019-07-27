@@ -32,7 +32,6 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _plot_masked_image, _trim_ticks)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
-from ..utils.check import _check_all_same_type_nested
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -1882,18 +1881,18 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     return title
 
 
-def _get_evokeds_from_epochs(instances, Epochs):
-    """Transform a dict of lists of Epochs into a dict of lists of Evokeds."""
-    if all(isinstance(content[0], Epochs) for content in instances.values()):
-        print(instances)
-        instances = {key: list(epochs[key].iter_evoked())
-                     for key, epochs in instances.items()}
-    elif all([all(isinstance(content, Epochs) for sublist in instances.values()
-                  for content in sublist)]):
-        instances = {key: [epochs[key].average() for epochs in epochs_list]
-                     for key, epochs_list in instances.items()}
-    else:
-        raise ValueError("All entries in `evokeds` must be Epochs (or Evokeds)"
+def _convert_epochs_to_evoked_for_pce(instances, Epochs):
+    """Transform a dict (of lists) of Epochs into a dict (of lists) of Evokeds."""
+    try:
+        if all(isinstance(content, Epochs) for content in instances.values()):
+            instances = {key: list(epochs[key].iter_evoked())
+                         for key, epochs in instances.items()}
+        elif all([all(isinstance(content, Epochs) for sublist in instances.values()
+                      for content in sublist)]):
+            instances = {key: [epochs[key].average() for epochs in epochs_list]
+                         for key, epochs_list in instances.items()}
+    except Exception:
+        raise TypeError("All entries in `evokeds` must be Epochs (or Evokeds)"
                          " or lists of Epochs (or Evokeds), got multiple"
                          " types!")
     return instances
@@ -1911,7 +1910,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
 
     Parameters
     ----------
-    evokeds : instance of mne.Evoked | list | dict
+    evokeds : instance of mne.Evoked or mne.Epochs | list | dict
         If a single Evoked instance, it is plotted as a time series.
         If a dict whose values are Evoked objects, the contents are plotted as
         single time series each and the keys are used as condition labels.
@@ -1921,6 +1920,13 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         area. All instances must have the same shape - channel numbers, time
         points etc.
         If dict, keys must be of type str.
+
+        If single instance of Epochs, or dict mapping from keys (which must be -
+        potentially partial - conditions in the Epochs object[s]) to Epochs,
+        convert the Epochs object[s] into lists of Evokeds by iterating over
+        the (matching) epochs.
+        If dict of list of Epochs, average for each Epoch those epoch matching
+        the key to create a list of evoked instances.
     %(picks_all_data)s
 
         * If picks is None or a (collection of) data channel types, the
@@ -2135,21 +2141,20 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     # build up evokeds into a dict, if it's not already
     if isinstance(evokeds, Evoked):
         evokeds = [evokeds]
+    elif isinstance(evokeds, Epochs):
+        evokeds = {1: list(evokeds.iter_evoked())}
+
     if isinstance(evokeds, (list, tuple)):
         evokeds = {str(idx + 1): evk for idx, evk in enumerate(evokeds)}
     if not isinstance(evokeds, dict):
         raise TypeError('"evokeds" must be a dict, list, or instance of '
                         'mne.Evoked; got {}'.format(type(evokeds).__name__))
 
-    _check_all_same_type_nested(evokeds, legal_types=(Epochs, Evoked))
-
-    thing = [thing for thing in evokeds.values()][0]
-    if isinstance(thing, Epochs):
-        evokeds = _get_evokeds_from_epochs(evokeds, Epochs)
-    elif isinstance(thing, (list, tuple)) and isinstance(thing[0], Epochs):
-        evokeds = _get_evokeds_from_epochs(evokeds, Epochs)
-
     evokeds = deepcopy(evokeds)  # avoid modifying dict outside function scope
+
+    # this line will return unmodified if no epochs in there
+    evokeds = _convert_epochs_to_evoked_for_pce(evokeds, Epochs)
+
     for cond, evoked in evokeds.items():
         _validate_type(cond, 'str', 'Conditions')
         if isinstance(evoked, Evoked):
