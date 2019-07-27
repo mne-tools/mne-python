@@ -209,12 +209,12 @@ def fast_cross_3d(x, y):
     assert y.shape[-1] == 3
     if max(x.size, y.size) >= 500:
         out = np.empty(np.broadcast(x, y).shape)
-        np.multiply(x[..., 1], y[..., 2], out=out[:, 0])
-        out[:, 0] -= x[..., 2] * y[..., 1]
-        np.multiply(x[..., 2], y[..., 0], out=out[:, 1])
-        out[:, 1] -= x[..., 0] * y[..., 2]
-        np.multiply(x[..., 0], y[..., 1], out=out[:, 2])
-        out[:, 2] -= x[..., 1] * y[..., 0]
+        np.multiply(x[..., 1], y[..., 2], out=out[..., 0])
+        out[..., 0] -= x[..., 2] * y[..., 1]
+        np.multiply(x[..., 2], y[..., 0], out=out[..., 1])
+        out[..., 1] -= x[..., 0] * y[..., 2]
+        np.multiply(x[..., 0], y[..., 1], out=out[..., 2])
+        out[..., 2] -= x[..., 1] * y[..., 0]
         return out
     else:
         return np.cross(x, y)

@@ -241,7 +241,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
     logger.info('Computing beamformer filters for %d source%s'
                 % (n_sources, _pl(n_sources)))
-    svd_lwork = _svd_lwork((3, 3), Cm.dtype)
+    svd_lwork = _svd_lwork((3, 3), Cm.dtype)  # for real or complex
+    real_svd_lwork = _svd_lwork((3, 3))  # for one that will always be real
     eig_lwork = _eig_lwork((3, 3), Cm.dtype)
     inv_lwork = _inv_lwork((3, 3), Cm.dtype)
     for k in range(n_sources):
@@ -293,7 +294,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                     power = Wk.dot(Cm).dot(Wk.T)
 
                 # Compute the direction of max power
-                u, s, _ = _repeated_svd(power.real, svd_lwork)
+                u, s, _ = _repeated_svd(power.real, real_svd_lwork)
                 max_power_ori = u[:, 0]
 
                 # set the (otherwise arbitrary) sign to match the normal

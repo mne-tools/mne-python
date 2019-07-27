@@ -40,8 +40,8 @@ _I = np.cast['F'](1j)
 ###############################################################################
 # linalg.svd and linalg.pinv2
 dgesdd, dgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_d,))
-dgesvd, dgesvd_lwork = linalg.get_lapack_funcs(('gesvd', 'gesvd_lwork'), (_d,))
 zgesdd, zgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_z,))
+dgesvd, dgesvd_lwork = linalg.get_lapack_funcs(('gesvd', 'gesvd_lwork'), (_d,))
 zgesvd, zgesvd_lwork = linalg.get_lapack_funcs(('gesvd', 'gesvd_lwork'), (_z,))
 
 
@@ -189,7 +189,26 @@ zheevd, = linalg.get_lapack_funcs(('heevd',), (_z,))
 
 
 def eigh(a, overwrite_a=False, check_finite=True):
-    """Efficient wrapper for eigh."""
+    """Efficient wrapper for eigh.
+
+    Parameters
+    ----------
+    a : ndarray, shape (n_components, n_components)
+        The symmetric array operate on.
+    overwrite_a : bool
+        If True, the contents of a can be overwritten for efficiency.
+    check_finite : bool
+        If True, check that all elements are finite.
+
+    Returns
+    -------
+    w : ndarray, shape (n_components,)
+        The N eigenvalues, in ascending order, each repeated according to
+        its multiplicity.
+    v : ndarray, shape (n_components, n_components)
+        The normalized eigenvector corresponding to the eigenvalue ``w[i]``
+        is the column ``v[:, i]``.
+    """
     # We use SYEVD, see https://github.com/scipy/scipy/issues/9212
     if check_finite:
         a = _asarray_validated(a, check_finite=check_finite)
