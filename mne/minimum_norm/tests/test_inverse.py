@@ -892,7 +892,7 @@ def test_inverse_ctf_comp():
 
 
 def _check_full_data(inst, full_data):
-    """Check whether data is represented as kernel or not"""
+    """Check whether data is represented as kernel or not."""
     if full_data:
         assert isinstance(inst._kernel, type(None))
         assert isinstance(inst._sens_data, type(None))
@@ -907,11 +907,6 @@ def _check_full_data(inst, full_data):
 @testing.requires_testing_data
 def test_full_data():
     """Test if kernel in apply_inverse_epochs was properly applied."""
-
-    # params
-    pick_ori = "normal"
-    full_data = True
-
     inverse_operator = read_inverse_operator(fname_full)
     tmin, tmax = -0.2, 0.5
     raw = read_raw_fif(fname_raw)
@@ -921,10 +916,15 @@ def test_full_data():
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, pick_ori=pick_ori, full_data=full_data)
+    full_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                                     pick_ori="normal", full_data=True)
+    kernel_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                                       pick_ori="normal", full_data=False)
 
-    for stc in stcs:
-        _check_full_data(stc, full_data)
+    for full_stc, kern_stc in zip(full_stcs, kernel_stcs):
+        _check_full_data(full_stc, full_data=True)
+        _check_full_data(kern_stc, full_data=False)
+        assert_allclose(kern_stc.data, full_stc.data)
 
 
 run_tests_if_main()
