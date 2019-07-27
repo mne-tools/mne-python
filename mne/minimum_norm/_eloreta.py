@@ -4,8 +4,6 @@
 
 import numpy as np
 
-from scipy import linalg
-
 from ..defaults import _handle_default
 from ..fixes import _safe_svd
 from ..utils import (warn, logger, _svd_lwork, _repeated_svd, _repeated_pinv2,
