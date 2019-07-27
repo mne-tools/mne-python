@@ -383,10 +383,4 @@ def _parametric_ci(arr, ci=.95):
         return mean, sigma
     from scipy import stats
     sigma = stats.sem(arr, 0)
-    # This is highly convoluted to support 17th century Scipy
-    # XXX Fix when Scipy 0.12 support is dropped!
-    # then it becomes just:
-    # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
-    return np.asarray([stats.t.interval(ci, arr.shape[0],
-                       loc=mean_, scale=sigma_)
-                       for mean_, sigma_ in zip(mean, sigma)]).T
+    return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])

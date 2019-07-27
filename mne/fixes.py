@@ -1038,7 +1038,7 @@ def log_likelihood(emp_cov, precision):
 
 def _logdet(A):
     """Compute the log det of a positive semidefinite matrix."""
-    vals = linalg.eigh(A)[0]
+    vals = linalg.eigvalsh(A)
     # avoid negative (numerical errors) or zero (semi-definite matrix) values
     tol = vals.max() * vals.size * np.finfo(np.float64).eps
     vals = np.where(vals > tol, vals, tol)

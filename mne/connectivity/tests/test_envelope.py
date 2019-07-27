@@ -62,3 +62,13 @@ def test_envelope_correlation():
         envelope_correlation(data, 1.)
     with pytest.raises(ValueError, match='Combine option'):
         envelope_correlation(data, 'foo')
+    with pytest.raises(ValueError, match='Invalid value.*orthogonalize.*'):
+        envelope_correlation(data, orthogonalize='foo')
+
+    corr_plain = envelope_correlation(data, combine=None, orthogonalize=False)
+    assert corr_plain.shape == (data.shape[0],) + corr_orig.shape
+    assert np.min(corr_plain) < 0
+    corr_plain_mean = np.mean(corr_plain, axis=0)
+    assert_allclose(np.diag(corr_plain_mean), 1)
+    np_corr = np.array([np.corrcoef(np.abs(x)) for x in data_hilbert])
+    assert_allclose(corr_plain, np_corr)

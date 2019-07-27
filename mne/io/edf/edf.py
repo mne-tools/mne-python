@@ -637,6 +637,8 @@ def _read_edf_header(fname, exclude):
                 continue
             if unit == 'uV':
                 edf_info['units'].append(1e-6)
+            elif unit == 'mV':
+                edf_info['units'].append(1e-3)
             else:
                 edf_info['units'].append(1)
 

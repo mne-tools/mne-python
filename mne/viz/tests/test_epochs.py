@@ -16,10 +16,13 @@ import matplotlib.pyplot as plt
 from mne import (read_events, Epochs, pick_types, read_cov, create_info,
                  EpochsArray)
 from mne.channels import read_layout
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, read_raw_ctf
 from mne.utils import run_tests_if_main
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
+
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -28,6 +31,8 @@ cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 1.0
 layout = read_layout('Vectorview-all')
+test_base_dir = testing.data_path(download=False)
+ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
 
 
 def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
@@ -295,6 +300,52 @@ def test_plot_psd_epochs():
         with pytest.warns(UserWarning, match=err_str):
             epochs.plot_psd(dB=dB)
 
+    plt.close('all')
+
+
+@testing.requires_testing_data
+def test_plot_epochs_ctf():
+    """Test of basic CTF plotting."""
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    raw.pick_channels(['UDIO001', 'UPPT001', 'SCLK01-177',
+                       'BG1-4304', 'MLC11-4304', 'MLC11-4304',
+                       'EEG058', 'UADC007-4302'])
+    evts = make_fixed_length_events(raw)
+    epochs = Epochs(raw, evts, preload=True)
+    epochs.plot()
+    plt.close('all')
+
+    # test butterfly
+    fig = epochs.plot(butterfly=True)
+    keystotest = ['b', 'b', 'left', 'right', 'up', 'down',
+                  'pageup', 'pagedown', '-', '+', '=',
+                  'f11', 'home', '?', 'h', 'o', 'end']
+    for key in keystotest:
+        fig.canvas.key_press_event(key)
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    fig.canvas.resize_event()
+    fig.canvas.close_event()  # closing and epoch dropping
+    plt.close('all')
+
+
+@testing.requires_testing_data
+def test_plot_psd_epochs_ctf():
+    """Test plotting CTF epochs psd (+topomap)."""
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    evts = make_fixed_length_events(raw)
+    epochs = Epochs(raw, evts, preload=True)
+    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
+                  bands=[(0, 0.01, 'foo')])  # no freqs in range
+    epochs.plot_psd_topomap()
+
+    # EEG060 is flat in this dataset
+    err_str = r'channel\(s\) EEG060\.'
+    for dB in [True, False]:
+        with pytest.warns(UserWarning, match=err_str):
+            epochs.plot_psd(dB=dB)
+    epochs.drop_channels(['EEG060'])
+    epochs.plot_psd(spatial_colors=False, average=False)
     plt.close('all')
 
 

@@ -1828,7 +1828,7 @@ def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,
     return (data,) if ci_fun is None else (data, ci)
 
 
-def _get_ci_function_pce(ci):
+def _get_ci_function_pce(ci, do_topo=False):
     """Get confidence interval function for plot_compare_evokeds."""
     if ci is None:
         return None
@@ -1840,7 +1840,8 @@ def _get_ci_function_pce(ci):
         ci = 0.95
     if isinstance(ci, float):
         from ..stats import _ci
-        return partial(_ci, ci=ci, method='bootstrap')
+        method = 'parametric' if do_topo else 'bootstrap'
+        return partial(_ci, ci=ci, method=method)
     else:
         raise TypeError('"ci" must be None, bool, float or callable, got {}'
                         .format(type(ci).__name__))
@@ -1967,7 +1968,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     ci : float | bool | callable | None
         Confidence band around each ERP/F time series. If ``False`` or ``None``
         no confidence band is drawn. If :class:`float`, ``ci`` must be between
-        0 and 1, and will set the threshold for a bootstrap estimation of the
+        0 and 1, and will set the threshold for a bootstrap
+        (single plot)/parametric (when ``axes=='topo'``)  estimation of the
         confidence band; ``True`` is equivalent to setting a threshold of 0.95
         (i.e., the 95%% confidence band is drawn). If a callable, it must take
         a single array (n_observations × n_times) as input and return upper and
@@ -2274,7 +2276,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         for cond in conditions:
             this_evokeds = evokeds[cond]
             # skip CIs when possible; assign ci_fun first to get arg checking
-            ci_fun = _get_ci_function_pce(ci)
+            ci_fun = _get_ci_function_pce(ci, do_topo=do_topo)
             ci_fun = ci_fun if len(this_evokeds) > 1 else None
             res = _get_data_and_ci(this_evokeds, combine, c_func, picks=_picks,
                                    scaling=scalings, ci_fun=ci_fun)

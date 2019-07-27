@@ -8,11 +8,12 @@ import numpy as np
 
 from ..filter import next_fast_len
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import verbose, _check_combine
+from ..utils import verbose, _check_combine, _check_option
 
 
 @verbose
-def envelope_correlation(data, combine='mean', verbose=None):
+def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
+                         verbose=None):
     """Compute the envelope correlation.
 
     Parameters
@@ -24,13 +25,21 @@ def envelope_correlation(data, combine='mean', verbose=None):
         object (and ``stc.data`` will be used). If it's float data,
         the Hilbert transform will be applied; if it's complex data,
         it's assumed the Hilbert has already been applied.
-    combine : 'mean' | callable | None
+    combine : 'mean' | callable | None
         How to combine correlation estimates across epochs.
         Default is 'mean'. Can be None to return without combining.
         If callable, it must accept one positional input.
         For example::
 
             combine = lambda data: np.median(data, axis=0)
+
+    orthogonalize : 'pairwise' | False
+        Whether to orthogonalize with the pairwise method or not.
+        Defaults to 'pairwise'. Note that when False,
+        the correlation matrix will not be returned with
+        absolute values.
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Returns
@@ -54,6 +63,7 @@ def envelope_correlation(data, combine='mean', verbose=None):
            resting-state networks depend on the mediating frequency band.
            Neuroimage 174:57–68
     """
+    _check_option('orthogonalize', orthogonalize, (False, 'pairwise'))
     from scipy.signal import hilbert
     n_nodes = None
     if combine is not None:
@@ -82,6 +92,7 @@ def envelope_correlation(data, combine='mean', verbose=None):
         if epoch_data.dtype in (np.float32, np.float64):
             n_fft = next_fast_len(n_times)
             epoch_data = hilbert(epoch_data, N=n_fft, axis=-1)[..., :n_times]
+
         if epoch_data.dtype not in (np.complex64, np.complex128):
             raise ValueError('data.dtype must be float or complex, got %s'
                              % (epoch_data.dtype,))
@@ -95,17 +106,24 @@ def envelope_correlation(data, combine='mean', verbose=None):
         data_mag_std[data_mag_std == 0] = 1
         corr = np.empty((n_nodes, n_nodes))
         for li, label_data in enumerate(epoch_data):
-            label_data_orth = (label_data * data_conj_scaled).imag
-            label_data_orth -= np.mean(label_data_orth, axis=-1, keepdims=True)
-            label_data_orth_std = np.linalg.norm(label_data_orth, axis=-1)
-            label_data_orth_std[label_data_orth_std == 0] = 1
+            if orthogonalize is False:  # the new code
+                label_data_orth = data_mag
+                label_data_orth_std = data_mag_std
+            else:
+                label_data_orth = (label_data * data_conj_scaled).imag
+                label_data_orth -= np.mean(label_data_orth, axis=-1,
+                                           keepdims=True)
+                label_data_orth_std = np.linalg.norm(label_data_orth, axis=-1)
+                label_data_orth_std[label_data_orth_std == 0] = 1
             # correlation is dot product divided by variances
             corr[li] = np.dot(label_data_orth, data_mag_nomean[li])
             corr[li] /= data_mag_std[li]
             corr[li] /= label_data_orth_std
-        # Make it symmetric (it isn't at this point)
-        corr = np.abs(corr)
-        corrs.append((corr.T + corr) / 2.)
+        if orthogonalize is not False:
+            # Make it symmetric (it isn't at this point)
+            corr = np.abs(corr)
+            corr = (corr.T + corr) / 2.
+        corrs.append(corr)
         del corr
 
     corr = fun(corrs)
