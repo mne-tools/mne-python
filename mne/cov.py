@@ -36,7 +36,7 @@ from .rank import compute_rank
 from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
-                    _check_option)
+                    _check_option, eigh)
 from . import viz
 
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
@@ -892,7 +892,7 @@ def _eigvec_subspace(eig, eigvec, mask):
     """Compute the subspace from a subset of eigenvectors."""
     # We do the same thing we do with projectors:
     P = np.eye(len(eigvec)) - np.dot(eigvec[~mask].T, eigvec[~mask])
-    eig, eigvec = linalg.eigh(P)
+    eig, eigvec = eigh(P)
     eigvec = eigvec.T
     return eig, eigvec
 
@@ -1289,7 +1289,7 @@ def _unpack_epochs(epochs):
 def _get_ch_whitener(A, pca, ch_type, rank):
     """Get whitener params for a set of channels."""
     # whitening operator
-    eig, eigvec = linalg.eigh(A, overwrite_a=True)
+    eig, eigvec = eigh(A, overwrite_a=True)
     eigvec = eigvec.T
     mask = np.ones(len(eig), bool)
     eig[:-rank] = 0.0
