@@ -85,18 +85,18 @@ raw.crop(tmax=60.)
 # :class:`~mne.preprocessing.ICA` object's :meth:`~mne.preprocessing.ICA.apply`
 # method.
 #
-# As is typically done with ICA, to speed up computation the data are first
+# As is typically done with ICA, the data are first
 # scaled to unit variance and whitened using principal components analysis
 # (PCA) before performing the ICA decomposition. You can impose a
 # dimensionality reduction at this step by specifying ``max_pca_components``.
-# From these retained Principal Components (PCs), the first ``n_components``
+# From those retained Principal Components (PCs), the first ``n_components``
 # are then passed to the ICA algorithm (``n_components`` may be an integer
 # number of components to use, or a fraction of explained variance that used
 # components should capture). Then, when reconstructing the signal after
-# excluding the Independent Components (ICs) that capture the artifacts, the
-# signal will be reconstructed from the retained ICs *plus* the retained PCs
-# that were not included in the ICA step. If you want to reduce the number of
-# retained PCs used at the reconstruction stage, it is controlled by the
+# excluding the Independent Components (ICs) that capture unwanted artifacts,
+# the signal will be reconstructed from the retained ICs *plus* the retained
+# PCs that were not included in the ICA step. If you want to reduce the number
+# of retained PCs used at the reconstruction stage, it is controlled by the
 # ``n_pca_components`` parameter. The procedure and the parameters that control
 # dimensionality at various stages is summarized in the diagram below:
 #
@@ -113,17 +113,20 @@ raw.crop(tmax=60.)
 # Example: EOG and ECG artifact repair
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
+# Visualizing the artifacts
+# ~~~~~~~~~~~~~~~~~~~~~~~~~
+#
 # Let's begin by visualizing the artifacts that we want to repair. In this
 # dataset they are big enough to see easily in the raw data:
 
-# plot some channels that clearly show heartbeats and blinks
+# pick some channels that clearly show heartbeats and blinks
 regexp = r'(MEG [12][45][123]1|EEG 00.)'
 artifact_picks = mne.pick_channels_regexp(raw.ch_names, regexp=regexp)
 raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 
 ###############################################################################
-# We can get a better view of the ocular artifacts using
-# :func:`~mne.preprocessing.create_eog_epochs` like we did in the
+# We can get a summary of how the ocular artifact manifests across all channels
+# using :func:`~mne.preprocessing.create_eog_epochs` like we did in the
 # :ref:`tut-artifact-overview` tutorial:
 
 eog_evoked = create_eog_epochs(raw).average()
@@ -137,6 +140,9 @@ ecg_evoked = create_ecg_epochs(raw).average()
 ecg_evoked.plot_joint()
 
 ###############################################################################
+# Filtering to remove slow drifts
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
 # Before we run the ICA, an important step is filtering the data to remove
 # low-frequency drifts, which can negatively affect the quality of the ICA fit.
 # The slow drifts are problematic because they reduce the independence of the
@@ -145,7 +151,7 @@ ecg_evoked.plot_joint()
 # higher values), making it harder for the algorithm to find an accurate
 # solution. A high-pass filter with 1 Hz cutoff frequency is recommended.
 # However, because filtering is a linear operation, the ICA solution found from
-# the filtered signal can be applied to the unfiltered signal (See [2]_ for
+# the filtered signal can be applied to the unfiltered signal (see [2]_ for
 # more information), so we'll keep a copy of the unfiltered
 # :class:`~mne.io.Raw` object around so we can apply the ICA solution to it
 # later.
@@ -154,15 +160,19 @@ filt_raw = raw.copy()
 filt_raw.load_data().filter(l_freq=1., h_freq=None)
 
 ###############################################################################
+# Fitting and plotting the ICA solution
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
 # Now we're ready to set up and fit the ICA. Since we know (from observing our
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
 # those artifacts to be captured in the first few dimensions of the PCA
 # decomposition that happens before the ICA. Therefore, we probably don't need
 # a huge number of components to do a good job of isolating our artifacts
 # (though it is usually preferable to include more components for a more
-# accurate solution). As a first guess, we'll run ICA with only the first 15
-# PCA components — a very small number given that our data has over 300
-# channels, but it will run quickly and we will able to tell easily whether it
+# accurate solution). As a first guess, we'll run ICA with ``n_components=15``
+# (use only the first 15 PCA components to compute the ICA decomposition) — a
+# very small number given that our data has over 300 channels, but with the
+# advantage that it will run quickly and we will able to tell easily whether it
 # worked or not (because we already know what the EOG / ECG artifacts should
 # look like).
 #
@@ -176,45 +186,52 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 #
 # ICA fitting involves some randomness (e.g., the components may get a sign
 # flip on different runs, or may not always be returned in the same order), so
-# we'll specify a `random seed`_ so that we get identical results each time
-# this tutorial is built by our web servers. Some optional parameters that we
-# could pass to the :meth:`~mne.preprocessing.ICA.fit` method include ``decim``
-# (to use only every Nth sample in computing the ICs, which can yield a
-# considerable speed-up) and ``reject`` (for providing a rejection dictionary
-# for maximum acceptable peak-to-peak amplitudes for each channel type, just
-# like we used when creating epoched data in the :ref:`tut-overview` tutorial).
+# we'll also specify a `random seed`_ so that we get identical results each
+# time this tutorial is built by our web servers.
 
 ica = ICA(n_components=15, random_state=97)
 ica.fit(filt_raw)
 
 ###############################################################################
+# Some optional parameters that we could have passed to the
+# :meth:`~mne.preprocessing.ICA.fit` method include ``decim`` (to use only
+# every Nth sample in computing the ICs, which can yield a considerable
+# speed-up) and ``reject`` (for providing a rejection dictionary for maximum
+# acceptable peak-to-peak amplitudes for each channel type, just like we used
+# when creating epoched data in the :ref:`tut-overview` tutorial).
+#
 # Now we can examine the ICs to see what they captured.
 # :meth:`~mne.preprocessing.ICA.plot_sources` will show the time series of the
-# ICs, and :meth:`~mne.preprocessing.ICA.plot_components` will show the scalp
-# field distributions computed from the ICA unmixing matrix. Note that in our
-# call to :meth:`~mne.preprocessing.ICA.plot_sources` we can use the original,
-# unfiltered :class:`~mne.io.Raw` object:
+# ICs. Note that in our call to :meth:`~mne.preprocessing.ICA.plot_sources` we
+# can use the original, unfiltered :class:`~mne.io.Raw` object:
 
 raw.load_data()
-
-# sphinx_gallery_thumbnail_number = 9
 ica.plot_sources(raw)
-ica.plot_components()
 
 ###############################################################################
 # Here we can pretty clearly see that the first component (``ICA000``) captures
 # the EOG signal quite well, and the second component (``ICA001``) looks a lot
-# like `a heartbeat <qrs_>_` (for more info on visually identifying Independent
-# Components, `this EEGLAB tutorial`_ is a good resource). In the remaining
-# sections, we'll look at different ways of choosing which ICs to exclude prior
-# to reconstructing the sensor signals.
+# like `a heartbeat <qrs_>`_ (for more info on visually identifying Independent
+# Components, `this EEGLAB tutorial`_ is a good resource). We can also
+# visualize the scalp field distribution of each component using
+# :meth:`~mne.preprocessing.ICA.plot_components`. These are interpolated based
+# on the values in the ICA unmixing matrix:
+
+# sphinx_gallery_thumbnail_number = 9
+ica.plot_components()
+
+###############################################################################
+# .. note::
 #
-#
-# Selecting ICA components manually
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#     :meth:`~mne.preprocessing.ICA.plot_components` (which plots the scalp
+#     field topographies for each component) has an optional ``inst`` parameter
+#     that takes an instance of :class:`~mne.io.Raw` or :class:`~mne.Epochs`.
+#     Passing ``inst`` makes the scalp topographies interactive: clicking one
+#     will bring up a diagnostic :meth:`~mne.preprocessing.ICA.plot_properties`
+#     window (see below) for that component.
 #
 # In the plots above it's fairly obvious which ICs are capturing our EOG and
-# ECG artifacts, but it can be helpful to further visualize them anyway just to
+# ECG artifacts, but there are additional ways visualize them anyway just to
 # be sure. First, we can plot an overlay of the original signal against the
 # reconstructed signal with the artifactual ICs excluded, using
 # :meth:`~mne.preprocessing.ICA.plot_overlay`:
@@ -231,24 +248,22 @@ ica.plot_overlay(raw, exclude=[1], picks='mag')
 ica.plot_properties(raw, picks=[0, 1])
 
 ###############################################################################
-# .. note::
+# In the remaining sections, we'll look at different ways of choosing which ICs
+# to exclude prior to reconstructing the sensor signals.
 #
-#     :meth:`~mne.preprocessing.ICA.plot_components` (which yields the scalp
-#     field topographies for each component) has an optional ``inst`` parameter
-#     that takes an instance of :class:`~mne.io.Raw` or :class:`~mne.Epochs`.
-#     Passing ``inst`` makes the scalp topographies interactive: clicking one
-#     will bring up a diagnostic :meth:`~mne.preprocessing.ICA.plot_properties`
-#     window for that component.
 #
+# Selecting ICA components manually
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Once we're certain which components we want to exclude, we can specify that
 # manually by setting the ``ica.exclude`` attribute. Similar to marking bad
-# channels, merely setting ``ica.exclude`` doesn't do anything yet (you're
-# adding the excluded ICs to a list that will get used later when it's needed).
-# Once the exclusions have been set, the ICA methods will exclude those
-# component(s) even if no ``exclude`` parameter is passed, and the list of
-# excluded components will be preserved when using
-# :meth:`mne.preprocessing.ICA.save` and :func:`mne.preprocessing.read_ica`.
+# channels, merely setting ``ica.exclude`` doesn't do anything immediately (it
+# just adds the excluded ICs to a list that will get used later when it's
+# needed). Once the exclusions have been set, ICA methods like
+# :meth:`~mne.preprocessing.ICA.plot_overlay` will exclude those component(s)
+# even if no ``exclude`` parameter is passed, and the list of excluded
+# components will be preserved when using :meth:`mne.preprocessing.ICA.save`
+# and :func:`mne.preprocessing.read_ica`.
 
 ica.exclude = [0, 1]  # indices chosen based on various plots above
 
@@ -287,7 +302,7 @@ ica.exclude = []
 eog_indices, eog_scores = ica.find_bads_eog(raw)
 ica.exclude = eog_indices
 
-# barplot of IC component "EOG match" scores
+# barplot of ICA component "EOG match" scores
 ica.plot_scores(eog_scores)
 
 # plot diagnostics
@@ -331,7 +346,7 @@ ica.exclude = []
 ecg_indices, ecg_scores = ica.find_bads_ecg(raw, method='correlation')
 ica.exclude = ecg_indices
 
-# barplot of IC component "ECG match" scores
+# barplot of ICA component "ECG match" scores
 ica.plot_scores(ecg_scores)
 
 # plot diagnostics
@@ -361,7 +376,7 @@ new_ica.fit(filt_raw)
 ecg_indices, ecg_scores = new_ica.find_bads_ecg(raw, method='correlation')
 new_ica.exclude = ecg_indices
 
-# barplot of IC component "ECG match" scores
+# barplot of ICA component "ECG match" scores
 new_ica.plot_scores(ecg_scores)
 
 # plot diagnostics
@@ -420,6 +435,9 @@ for subj in range(4):
     raws.append(raw)
     icas.append(ica)
 
+###############################################################################
+# Now let's run :func:`~mne.preprocessing.corrmap`:
+
 # use the first subject as template; use Fpz as proxy for EOG
 raw = raws[0]
 ica = icas[0]
@@ -431,7 +449,7 @@ corrmap(icas, template=(0, eog_inds[0]))
 # the maps that were considered a "match" for the template (including the
 # template itself). There were only three matches from the four subjects;
 # notice the output message ``No maps selected for subject(s) 1, consider a
-# more liberal threshold```.  By default the threshold is set automatically by
+# more liberal threshold``.  By default the threshold is set automatically by
 # trying several values; here it may have chosen a threshold that is too high.
 # Let's take a look at the ICA sources for each subject:
 
@@ -452,7 +470,7 @@ corrmap(icas, template=(0, eog_inds[0]), threshold=0.9)
 # Now we get the message ``At least 1 IC detected for each subject`` (which is
 # good). At this point we'll re-run :func:`~mne.preprocessing.corrmap` with
 # parameters ``label=blink, show=False`` to *label* the ICs from each subject
-# that capture the blink artifacts.
+# that capture the blink artifacts (without plotting them again).
 
 corrmap(icas, template=(0, eog_inds[0]), threshold=0.9, label='blink',
         plot=False)
