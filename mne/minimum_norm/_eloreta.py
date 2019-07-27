@@ -84,8 +84,8 @@ def _compute_eloreta(inv, lambda2, options):
             W /= norm / n_src
 
         # Check for weight convergence
-        delta = (linalg.norm(W.ravel() - W_last.ravel()) /
-                 linalg.norm(W_last.ravel()))
+        delta = (np.linalg.norm(W.ravel() - W_last.ravel()) /
+                 np.linalg.norm(W_last.ravel()))
         logger.debug('            Iteration %s / %s ...%s'
                      % (kk + 1, max_iter, extra))
         if delta < eps:
@@ -116,7 +116,7 @@ def _compute_eloreta(inv, lambda2, options):
 def _compute_eloreta_inv(G, W, n_orient, n_nzero, lambda2, force_equal,
                          pinv2_lwork, svd_lwork):
     """Invert weights and compute M."""
-    W_inv = np.empty_like(W)
+    W_inv = np.empty(W.shape)
     n_src = W_inv.shape[0]
     if n_orient == 1 or force_equal:
         W_inv[:] = 1. / W
