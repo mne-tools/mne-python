@@ -427,6 +427,7 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
 
     # Only MEG coils are sensitive to the primary current distribution.
     if coil_type == 'meg':
+        # Primary current contribution (can be calc. in coil/dipole coords)
         parallel, p_fun, _ = parallel_func(_do_prim_curr, n_jobs)
         pcc = np.concatenate(parallel(p_fun(r, coils)
                                       for r in nas(rr, n_jobs)), axis=0)
