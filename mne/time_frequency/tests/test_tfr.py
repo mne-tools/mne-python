@@ -8,7 +8,8 @@ import pytest
 import matplotlib.pyplot as plt
 
 import mne
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray, find_events
+from mne import (Epochs, read_events, find_events, pick_types, create_info,
+                 EpochsArray)
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
                        requires_pandas, grand_average)
@@ -757,7 +758,7 @@ def test_getitem_epochsTFR():
 def _prepare_epochs(ep_start, ep_stop):
     """Load data and create and Epochs object from it."""
     raw = read_raw_fif(raw_fname)
-    tmin, tmax, event_id = -0.2, 0.5, 1
+    tmin, tmax = -0.2, 0.5
     events = find_events(raw, stim_channel='STI 014')
     sel_events = events[ep_start:ep_stop]
     epochs = Epochs(raw, sel_events, tmin=tmin, tmax=tmax, preload=True)
@@ -766,33 +767,39 @@ def _prepare_epochs(ep_start, ep_stop):
 
 
 def _epochs_generator(ep_start, ep_stop):
-    """Create a generator object of epochs"""
+    """Create a generator object of epochs."""
     for cur_ep in range(ep_start, ep_stop):
         yield _prepare_epochs(cur_ep, cur_ep + 1)
 
 
 def _assert_tfr_equal(actual, desired):
-    """Assert equality of some TFR attributes-"""
+    """Assert equality of some TFR attributes."""
     assert_allclose(actual.times, desired.times)
     assert_allclose(actual.data, desired.data)
     if isinstance(actual, AverageTFR):
         assert_equal(actual.nave, desired.nave)
 
 
-@pytest.mark.parametrize('return_itc, average', [[True, True], [False, False], [False, True]])
+@pytest.mark.parametrize('return_itc, average', [[True, True],
+                                                 [False, False],
+                                                 [False, True]])
 @pytest.mark.parametrize('func', [tfr_morlet, tfr_multitaper])
 def test_tfr_with_lists(return_itc, average, func):
     """Test whether tfr_morlet works the same for lists as for epochs."""
     epochs_ref = _prepare_epochs(0, 3)
-    epochs_list = [_prepare_epochs(cur_ep, cur_ep + 1) for cur_ep in range(0, 3)]
+    epochs_list = [_prepare_epochs(cur_ep, cur_ep + 1)
+                   for cur_ep in range(0, 3)]
     epochs_gen = _epochs_generator(0, 3)
 
     freqs = [10, 12]
     n_cycles = 2
 
-    tfr_ref = func(epochs_ref, freqs, n_cycles, return_itc=return_itc, average=average)
-    tfr_list = func(epochs_list, freqs, n_cycles, return_itc=return_itc, average=average)
-    tfr_gen = func(epochs_gen, freqs, n_cycles, return_itc=return_itc, average=average)
+    tfr_ref = func(epochs_ref, freqs, n_cycles,
+                   return_itc=return_itc, average=average)
+    tfr_list = func(epochs_list, freqs, n_cycles,
+                    return_itc=return_itc, average=average)
+    tfr_gen = func(epochs_gen, freqs, n_cycles,
+                   return_itc=return_itc, average=average)
 
     if return_itc is True:
         for index, _ in enumerate(tfr_ref):

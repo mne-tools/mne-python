@@ -670,8 +670,9 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
     Parameters
     ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    inst : Epochs | Evoked | list (or generator object) of (Epochs | Evoked)
+        The epochs or evoked object. If a list or generator object, single
+        elements will be joined and treated as Epochs.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -814,8 +815,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     Parameters
     ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    inst : Epochs | Evoked | list (or generator object) of (Epochs | Evoked)
+        The epochs or evoked object. If a list or generator object, single
+        elements will be joined and treated as Epochs.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
