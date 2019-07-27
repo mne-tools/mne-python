@@ -891,4 +891,40 @@ def test_inverse_ctf_comp():
         apply_inverse_raw(raw, inv, 1. / 9.)
 
 
+def _check_full_data(inst, full_data):
+    """Check whether data is represented as kernel or not"""
+    if full_data:
+        assert isinstance(inst._kernel, type(None))
+        assert isinstance(inst._sens_data, type(None))
+        assert isinstance(inst._data, np.ndarray)
+    else:
+        assert isinstance(inst._kernel, np.ndarray)
+        assert isinstance(inst._sens_data, np.ndarray)
+        assert isinstance(inst._data, type(None))
+        assert not inst._kernel_removed
+
+
+@testing.requires_testing_data
+def test_full_data():
+    """Test if kernel in apply_inverse_epochs was properly applied."""
+
+    # params
+    pick_ori = "normal"
+    full_data = True
+
+    inverse_operator = read_inverse_operator(fname_full)
+    tmin, tmax = -0.2, 0.5
+    raw = read_raw_fif(fname_raw)
+    events = read_events(fname_event)[:2]
+    epochs = Epochs(raw, events, event_id=None, tmin=tmin, tmax=tmax)
+
+    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
+                                                lambda2=lambda2,
+                                                method="dSPM")
+    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, pick_ori=pick_ori, full_data=full_data)
+
+    for stc in stcs:
+        _check_full_data(stc, full_data)
+
+
 run_tests_if_main()
