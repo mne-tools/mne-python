@@ -538,7 +538,7 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
 
 @verbose
 def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
-                          verbose=None):
+                          copy=True, verbose=None):
     """Pick channels from forward operator.
 
     Parameters
@@ -556,6 +556,10 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
         rather than a set.
 
         .. versionadded:: 0.18
+    copy : bool
+        If True (default), make a copy.
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Returns
@@ -566,7 +570,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     """
     orig['info']._check_consistency()
     if len(include) == 0 and len(exclude) == 0:
-        return orig
+        return orig.copy() if copy else orig
     exclude = _check_excludes_includes(exclude,
                                        info=orig['info'], allow_bads=True)
 
@@ -577,7 +581,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     sel_info = pick_channels(orig['info']['ch_names'], include=include,
                              exclude=exclude, ordered=ordered)
 
-    fwd = deepcopy(orig)
+    fwd = deepcopy(orig) if copy else orig
 
     # Check that forward solution and original data file agree on #channels
     if len(sel_sol) != len(sel_info):

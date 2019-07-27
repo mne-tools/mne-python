@@ -50,4 +50,7 @@ from .numerics import (hashfunc, md5sum, _compute_row_norms,
                        _undo_scaling_array, _scaled_array, _replace_md5, _PCA,
                        _mask_to_onsets_offsets, _array_equal_nan)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
-_prepare_write_metadata, _FakeNoPandas)
+                    _prepare_write_metadata, _FakeNoPandas)
+from .linalg import (_svd_lwork, _repeated_svd, _repeated_pinv2,
+                     _eig_lwork, _repeated_eig, _inv_lwork, _repeated_inv,
+                     dgesdd, dgemm, zgemm, dgemv, ddot, LinAlgError, eigh)

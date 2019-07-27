@@ -7,3 +7,4 @@ omit =
     */bin/*
     */setup.py
     */mne/fixes*
+    */mne/utils/linalg.py
