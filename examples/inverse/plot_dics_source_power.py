@@ -34,10 +34,10 @@ print(__doc__)
 ###############################################################################
 # Reading the raw data and creating epochs:
 data_path = somato.data_path()
-subj = '01'
+subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subj), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subj, task))
+raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
+                    'sub-{}_task-{}_meg.fif'.format(subject, task))
 
 raw = mne.io.read_raw_fif(raw_fname)
 
@@ -50,8 +50,8 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
                     preload=True)
 
 # Read forward operator and point to freesurfer subject directory
-fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subj),
-                    'sub-{}_task-{}-fwd.fif'.format(subj, task))
+fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
+                    'sub-{}_task-{}-fwd.fif'.format(subject, task))
 subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
 
 fwd = mne.read_forward_solution(fname_fwd)
@@ -86,4 +86,4 @@ beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
 stc = beta_source_power / baseline_source_power
 message = 'DICS source power in the 12-30 Hz frequency band'
 brain = stc.plot(hemi='both', views='par', subjects_dir=subjects_dir,
-                 subject=subj, time_label=message)
+                 subject=subject, time_label=message)

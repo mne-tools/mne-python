@@ -27,10 +27,10 @@ from mne.datasets import somato
 ###############################################################################
 # Set parameters
 data_path = somato.data_path()
-subj = '01'
+subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subj), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subj, task))
+raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
+                    'sub-{}_task-{}_meg.fif'.format(subject, task))
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)
