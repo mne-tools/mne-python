@@ -55,6 +55,10 @@ Changelog
 Bug
 ~~~
 
+- Fix side-effect where :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources` changed the ``ICA.exclude`` attribute even when users didn't interact with the plot by `Daniel McCloy`_.
+
+- Fix wrong assumptions about units in BrainVision montages and add test asserting units in "mm" or "auto", by `Stefan Appelhoff`_
+
 - Fix scaling issue with signals in mV in EDF files read with :func:`mne.io.read_raw_edf` by `Alex Gramfort`_
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` so that recording date timestamps are also recognized if channel reference data is negative, by `Stefan Appelhoff`_
@@ -96,6 +100,7 @@ Bug
 API
 ~~~
 
+- Deprecate ``exclude`` parameter in :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources`, instead always use the ``exclude`` attribute of the ICA object by `Daniel McCloy`_.
 
 - Deprecate ``montage`` parameter in favor of the ``set_montage`` method in all EEG data readers :func:`mne.io.read_raw_cnt`, :func:`mne.io.read_raw_egi`, :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_gdf`, :func:`mne.io.read_raw_nicolet`, :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Alex Gramfort`_
 

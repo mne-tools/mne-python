@@ -473,8 +473,8 @@ def test_inverse_residual(evoked):
     evoked = evoked.pick_types()
     inv = read_inverse_operator(fname_inv_fixed_depth)
     fwd = read_forward_solution(fname_fwd)
+    pick_channels_forward(fwd, evoked.ch_names, copy=False)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
-    fwd = pick_channels_forward(fwd, evoked.ch_names)
     matcher = re.compile(r'.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*')
     for method in ('MNE', 'dSPM', 'sLORETA'):
         with catch_logging() as log:

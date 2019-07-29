@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Test reading of BrainVision format."""
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
@@ -422,6 +423,28 @@ def test_brainvision_vectorized_data():
     assert_array_almost_equal(raw._data[:, :2], first_two_samples_all_chs)
 
 
+def test_coodinates_extraction():
+    """Test reading of [Coordinates] section if present."""
+    # vhdr 2 has a Coordinates section
+    with pytest.warns(RuntimeWarning, match='coordinate information'):
+        raw = read_raw_brainvision(vhdr_v2_path)
+
+    # Basic check of extracted coordinates
+    assert raw.info['dig'] is not None
+    diglist = raw.info['dig']
+    coords = np.array([dig['r'] for dig in diglist])
+    assert coords.shape[0] == len(raw.ch_names)
+    assert coords.shape[1] == 3
+
+    # Make sure the scaling seems right
+    # a coordinate more than 20cm away from origin is implausible
+    assert coords.max() < 0.2
+
+    # vhdr 1 does not have a Coordinates section
+    raw2 = read_raw_brainvision(vhdr_path)
+    assert raw2.info['dig'] is None
+
+
 @testing.requires_testing_data
 def test_brainvision_neuroone_export():
     """Test Brainvision file exported with neuroone system."""
@@ -448,7 +471,7 @@ def test_read_vmrk_annotations():
     try:
         temp.close()
         unlink(temp.name)
-    except FileNotFoundError:
+    except IOError:
         pass
 
 

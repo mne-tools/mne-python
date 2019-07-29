@@ -75,11 +75,12 @@ ica.plot_scores(scores, exclude=ecg_inds, title=title % 'ecg', labels='ecg')
 
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
-ica.plot_sources(raw, show_picks, exclude=ecg_inds, title=title % 'ecg')
+ica.exclude = ecg_inds
+ica.plot_sources(raw, show_picks, title=title % 'ecg')
+ica.exclude = []
 ica.plot_components(ecg_inds, title=title % 'ecg', colorbar=True)
 
 ecg_inds = ecg_inds[:n_max_ecg]
-ica.exclude += ecg_inds
 
 # detect EOG by correlation
 
@@ -88,22 +89,27 @@ ica.plot_scores(scores, exclude=eog_inds, title=title % 'eog', labels='eog')
 
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
-ica.plot_sources(raw, show_picks, exclude=eog_inds, title=title % 'eog')
+ica.exclude = eog_inds
+ica.plot_sources(raw, show_picks, title=title % 'eog')
+ica.exclude = []
 ica.plot_components(eog_inds, title=title % 'eog', colorbar=True)
 
 eog_inds = eog_inds[:n_max_eog]
-ica.exclude += eog_inds
 
 ###############################################################################
 # 3) Assess component selection and unmixing quality.
 
 # estimate average artifact
 ecg_evoked = ecg_epochs.average()
-ica.plot_sources(ecg_evoked, exclude=ecg_inds)  # plot ECG sources + selection
+ica.exclude = ecg_inds
+ica.plot_sources(ecg_evoked)                    # plot ECG sources + selection
+ica.exclude = []
 ica.plot_overlay(ecg_evoked, exclude=ecg_inds)  # plot ECG cleaning
 
 eog_evoked = create_eog_epochs(raw, tmin=-.5, tmax=.5, picks=picks).average()
-ica.plot_sources(eog_evoked, exclude=eog_inds)  # plot EOG sources + selection
+ica.exclude = eog_inds
+ica.plot_sources(eog_evoked)                    # plot EOG sources + selection
+ica.exclude = []
 ica.plot_overlay(eog_evoked, exclude=eog_inds)  # plot EOG cleaning
 
 # check the amplitudes do not change
