@@ -1264,3 +1264,20 @@ def _get_status(checks):
         return list(checks.get_status())
     except AttributeError:
         return [x[0].get_visible() for x in checks.lines]
+
+
+###############################################################################
+# Numba (optional requirement)
+
+# Here we choose different defaults to speed things up by default
+try:
+    from numba import jit as _jit
+    def jit(nopython=True, nogil=True, fastmath=True, cache=True,
+            **kwargs):  # noqa
+        return _jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
+                    cache=cache)
+except ImportError:
+    def jit(**kwargs):  # noqa
+        def _jit(func):
+            return func
+        return _jit

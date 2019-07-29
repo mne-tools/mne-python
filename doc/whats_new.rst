@@ -34,6 +34,8 @@ Changelog
 
 - Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 
+- Speed up morph map generation in :func:`mne.read_morph_maps` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
+
 - Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
 
 - Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
