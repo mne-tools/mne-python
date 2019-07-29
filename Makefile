@@ -67,7 +67,7 @@ test-no-sample-with-coverage: in testing_data
 	$(PYTESTS) --cov=mne --cov-report html:coverage
 
 test-doc: sample_data testing_data
-	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --ignore=./doc/auto_examples --ignore=./doc/auto_tutorials --ignore=./doc/_build doc/faq.rst doc/martinos.rst doc/install/advanced.rst doc/install/contributing.rst doc/manual/channel_interpolation.rst doc/manual/cookbook.rst doc/manual/sample_dataset.rst doc/manual/preprocessing/ssp.rst doc/tutorials/philosophy.rst
+	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/ --ignore=./doc/auto_examples --ignore=./doc/auto_tutorials --ignore=./doc/_build
 
 test-coverage: testing_data
 	rm -rf coverage .coverage
