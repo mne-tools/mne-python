@@ -29,7 +29,7 @@ from mne.datasets import somato
 data_path = somato.data_path()
 subj = '01'
 task = 'somato'
-raw_fname = op.join(data_path, subj, 'meg',
+raw_fname = op.join(data_path, 'sub-{}'.format(subj), 'meg',
                     'sub-{}_task-{}_meg.fif'.format(subj, task))
 
 # Setup for reading the raw data
