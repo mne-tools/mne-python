@@ -811,8 +811,8 @@ def _prepare_epochs(n_epochs):
 def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, decim, zero_mean):
     method = "MNE"
     pick_ori = "normal"
-    full_data = True
-    n_epochs = 1
+    full_data = False
+    n_epochs = 2
     n_cycles = 2
     use_fft = True
     decim = 1
@@ -827,9 +827,9 @@ def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs,
 
     stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
                                pick_ori=pick_ori, full_data=full_data,
-                               label=label, prepared=False)[0]
+                               label=label, prepared=False)
     stfr = tfr_morlet(stc, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                      zero_mean=zero_mean, return_itc=False, output='power')
+                      zero_mean=zero_mean, return_itc=False, output='power', average=False)
 
     stfr_ref, _ = source_induced_power(epochs, inv, lambda2=l2, method=method,
                                        pick_ori=pick_ori, label=label,
@@ -838,7 +838,7 @@ def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs,
                                        baseline=None, pca=False)
 
     assert_kernel_removed(stfr, full_data)
-    assert_allclose(stfr.get_data(), stfr_ref)
+    assert_allclose(stfr.data, stfr_ref)
 
 
 @testing.requires_testing_data

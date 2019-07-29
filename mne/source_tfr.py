@@ -61,23 +61,27 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, vector=False, epochs=False, output=None, verbose=None):  # noqa: D102
+                 subject=None, dims=("dipoles", "freqs", "times"), output=None, verbose=None):  # noqa: D102
+
+        valid_dims = (("dipoles", "freqs", "times"),
+                      ("dipoles", "epochs", "freqs", "times"),
+                      ("dipoles", "orientations", "freqs", "times"),
+                      ("dipoles", "orientations", "epochs", "freqs", "times"))
 
         if not (isinstance(vertices, np.ndarray) or
                 isinstance(vertices, list)):
             raise ValueError('Vertices must be a numpy array or a list of '
                              'arrays')
 
-        self._src_type = 'SourceTFR'
-        self._data_ndim = 3
-        self._isvector = vector
-        self._isepochs = epochs
-        self._output = output
+        if dims not in valid_dims:
+            raise ValueError("Input dimensions are invalid. Valid dimemsions are:"
+                             " {}".format(valid_dims))
 
-        if self._isvector:
-            self._data_ndim += 1
-        if self._isepochs:
-            self._data_ndim += 1
+        self._src_type = 'SourceTFR'
+        self._data_ndim = len(dims)
+        self.dims = dims
+
+        self._output = output
 
         print("DATA DIM", self._data_ndim)
 
@@ -93,8 +97,8 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             if sens_data.ndim != self._data_ndim:
                 raise ValueError('The sensor data must have %s dimensions, got '
                                  '%s' % (self._data_ndim, sens_data.ndim,))
-            if self._isvector:
-                raise ValueError('Vector Representation is not supported for '
+            if 'orientations' in dims:
+                raise ValueError('Multiple orientations are not supported for '
                                  'data=(kernel, sens_data) ')
 
         # TODO: Make sure this is supported, or else construct the full data instead
@@ -117,15 +121,15 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                 raise ValueError('Number of vertices (%i) and stfr.shape[0] '
                                  '(%i) must match' % (n_src, data.shape[0]))
             if data.ndim != self._data_ndim:
-                raise ValueError('Data (shape %s) must have %s dimensions for '
-                                 'SourceTFR with vector=%s and epochs=%s'
-                                 % (data.shape, self._data_ndim,
-                                    self._isvector, self._isepochs))
+                raise ValueError('Data (shape {0}) must have {1} dimensions for '
+                                 'SourceTFR with dims={2}'
+                                 .format(data.shape,self._data_ndim, self.dims))
             # TODO: Discuss which of the data shapes should represent vector
             # TODO: Cover this!
-            if self._isvector and data.shape[1] != 3:
-                raise ValueError('If vector=True, stfr.shape[1] must be 3. '
-                                 'Got shape[1] == %s' % (data.shape[1]))
+            if "orientations" in dims and data.shape[1] != 3:
+                raise ValueError('If mutiple orientations are defined, '
+                                 'stfr.shape[1] must be 3. Got '
+                                 'shape[1] == %s' % (data.shape[1]))
 
 
 
@@ -247,8 +251,9 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         self.tstep = 1.0 / sfreq
         return self
 
-    @verbose
-    def get_data(self):
+
+    @property
+    def data(self):
         """create the SourceTFR data field.
 
         Parameters
@@ -269,7 +274,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         return self._data
 
     # TODO: change this accordingly
-    # @data.setter
+    @data.setter
     def data(self, value):
         value = np.asarray(value)
         if self._data is not None and value.ndim != self._data.ndim:

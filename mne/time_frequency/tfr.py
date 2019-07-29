@@ -11,6 +11,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 
 from copy import deepcopy
 from functools import partial
+from inspect import isgenerator
 from math import sqrt
 
 import numpy as np
@@ -607,20 +608,38 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     from ..source_estimate import SourceEstimate, VolSourceEstimate, VectorSourceEstimate, VolVectorSourceEstimate, \
         _BaseSourceEstimate
     from ..source_tfr import SourceTFR
+    from ..evoked import Evoked
     # TODO: CLEAN UP ALL THE CASES
 
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
-    if isinstance(inst, _BaseSourceEstimate) and inst._sens_data is not None:
-        # TODO: Handle newaxis better or: Get this into _get_data()
-        data = inst._sens_data[np.newaxis, :, :]
-    else:
-        data = _get_data(inst, return_itc)
 
-    if not (isinstance(inst, _BaseSourceEstimate)):
-        info = inst.info
-        info, data = _prepare_picks(info, data, picks, axis=1)
-        del picks
+    if isinstance(inst, (Evoked, _BaseSourceEstimate)) and return_itc:
+        raise ValueError('return_itc must be False for Evoked and single SourceEstimate objects')
+
+    is_list = False
+    if isinstance(inst, list) or isgenerator(inst):
+        is_list = True
+        for ind, obj in enumerate(inst):
+            if ind == 0:
+                data = _get_data(obj)
+                sfreq = 1 / obj.tstep
+                times = obj.times[decim].copy()
+                inst = obj  # later attributes are specified from the first object
+            else:
+                data = np.concatenate((data, _get_data(obj)))
+                # TODO: Raise Error here if obj.times and sfreq are not the same as the already defined ones?
+    else:
+        data = _get_data(inst)
+        if not (isinstance(inst, _BaseSourceEstimate)):
+            info = inst.info
+            info, data = _prepare_picks(info, data, picks, axis=1)
+            sfreq = info['sfreq']
+            times = inst.times[decim].copy()
+            del picks
+        else:
+            sfreq = 1 / inst.tstep
+            times = inst.times[decim].copy()
 
     if average:
         if output == 'complex':
@@ -635,56 +654,36 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
-        if inst._sens_data is not None:
-            out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
-                               output='complex', decim=decim, **tfr_params)
-        else:
-            out = _compute_tfr(data, freqs, 1 / inst.tstep, method=method,
-                           output=output, decim=decim, **tfr_params)
-
-    elif isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-        print("SHAPEY SHAPE:", data.shape)  # !!!remove
-        # out = np.empty([data.shape[1], data.shape[2], len(freqs), data.shape[3]])
-        # out = np.asfortranarray(out)
-        # print("IS IT STILL A FORTR: ARR?  ", np.isfortran(out))
-        print("TFR SHAPE OF THE FOLLOWING DATA: ", data.shape)  # !!! remove
-        print("TFR DATA before _compute_tfr: ", data)  # !!! remove
-        grg = np.reshape(data, [data.shape[0], data.shape[1] * data.shape[2], data.shape[3]])
-        se = _compute_tfr(grg, freqs, 1 / inst.tstep,
-                          method=method, output=output, decim=decim,
-                          **tfr_params)
-        out = np.reshape(se, [data.shape[1], data.shape[2], len(freqs), data.shape[3]])
-        # for i in range(3):
-        #    pow = _compute_tfr(data[:, :, i, :], freqs, 1 / inst.tstep,
-        #                                   method=method, output=output, decim=decim,
-        #                                   **tfr_params)
-        #    f = _compute_tfr(data[:, :, i, :], freqs, 1 / inst.tstep,
-        #                     method=method, output='complex', decim=decim,
-        #                     **tfr_params)
-        #    out[:, i, :, :] = pow  #np.sqrt(pow / f * f.conj())
-        #    print("IS IT REALLY COMPLEX: ", out[0, 0, 0, 0])  # !!! remove
-        #    print("IS IT STILL A FORTR: ARR?  ", np.isfortran(out))
+    if isinstance(inst, _BaseSourceEstimate) and inst._sens_data is not None:
+        out = _compute_tfr(data, freqs, sfreq, method=method,
+                           output='complex', decim=decim, **tfr_params)
     else:
-        out = _compute_tfr(data, freqs, info['sfreq'], method=method,
+        out = _compute_tfr(data, freqs, sfreq, method=method,
                            output=output, decim=decim, **tfr_params)
-
-    times = inst.times[decim].copy()
 
     print("OUT DIMENSIONS = ", out.shape)  # !!! remove
     # TODO integrate this correctly
-    if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
-        print("OUT DIMENSIONS = ", out.shape)  # !!! remove
-        out = np.squeeze(out)
-        if inst._sens_data is not None:
-            out = (inst._kernel, out)
-        return SourceTFR(out, inst.vertices, tmin=inst.tmin,
+    if isinstance(inst, _BaseSourceEstimate):
+        if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
+            print("OUT DIMENSIONS = ", out.shape)  # !!! remove
+            out = np.squeeze(out)
+            dims = ("dipoles", "freqs", "times")
+            if is_list:
+                out = np.moveaxis(out, source=0, destination=1)
+                dims = ("dipoles", "epochs", "freqs", "times")
+            if inst._sens_data is not None:
+                out = (inst._kernel, out)
+        elif isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+            print("OUTTT SHAPPPEY: ", out.shape, data.shape)  # !!! remove
+            out = np.reshape(out, [out.shape[0], out.shape[1]//3, 3,
+                                   out.shape[2], out.shape[3]])
+            out = np.squeeze(out)
+            dims = ("dipoles", "orientations", "freqs", "times")
+            if is_list:
+                out = np.moveaxis(out, source=0, destination=2)
+                dims = ("dipoles", "orientations", "epochs", "freqs", "times")
+        return SourceTFR(out, inst.vertices, dims=dims, tmin=inst.tmin,
                          tstep=inst.tstep, subject=inst.subject, output=output)
-    elif isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-        print("TFR SHAPE OF THE FOLLOWING DATA: ", out.shape)  # !!! remove
-        print("TFR DATA in tfr_aux before gettin SourceTFR: ", out)  # !!! remove
-        return SourceTFR(out, inst.vertices, tmin=inst.tmin,
-                         tstep=inst.tstep, subject=inst.subject, vector=True)
 
     if average:
         if return_itc:
@@ -2207,18 +2206,25 @@ def combine_tfr(all_tfr, weights='nave'):
 # Utils
 
 
-def _get_data(inst, return_itc):
+def _get_data(inst):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..source_estimate import _BaseSourceEstimate
+    from ..source_estimate import _BaseSourceEstimate, VectorSourceEstimate, VolVectorSourceEstimate
+
     if not isinstance(inst, (BaseEpochs, Evoked, _BaseSourceEstimate)):
         raise TypeError('inst must be Epochs, Evoked, or any SourceEstimate')
-    if isinstance(inst, BaseEpochs):
-        data = inst.get_data()
-    else:
-        if return_itc:
-            raise ValueError('return_itc must be False for Evoked and SourceEstimate data')
+    if isinstance(inst, _BaseSourceEstimate):
+        if inst._sens_data is not None:  # kernel representation
+            data = inst._sens_data[np.newaxis]
+        else:
+            data = inst.data[np.newaxis]  # full data representation
+            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+                print(" DATA BEFORE RESHAPE: ", data.shape)  # !!! remove
+                data = np.reshape(data, [data.shape[0], data.shape[1] * data.shape[2], data.shape[3]])
+    elif isinstance(inst, BaseEpochs):
+            data = inst.get_data()
+    else:  # is Evoked
         data = inst.data[np.newaxis].copy()
     return data
 
