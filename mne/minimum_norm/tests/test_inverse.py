@@ -781,12 +781,9 @@ def test_apply_mne_inverse_fixed_raw():
     assert_array_almost_equal(stc.data, stc3.data)
 
 
-@testing.requires_testing_data
-def test_apply_mne_inverse_epochs():
-    """Test MNE with precomputed inverse operator on Epochs."""
-    inverse_operator = read_inverse_operator(fname_full)
-    label_lh = read_label(fname_label % 'Aud-lh')
-    label_rh = read_label(fname_label % 'Aud-rh')
+@pytest.fixture
+def get_epochs():
+    """Create an epochs object used for testing."""
     event_id, tmin, tmax = 1, -0.2, 0.5
     raw = read_raw_fif(fname_raw)
 
@@ -799,14 +796,24 @@ def test_apply_mne_inverse_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat)
 
+    return epochs
+
+
+@testing.requires_testing_data
+def test_apply_mne_inverse_epochs(get_epochs):
+    """Test MNE with precomputed inverse operator on Epochs."""
+    inverse_operator = read_inverse_operator(fname_full)
+    label_lh = read_label(fname_label % 'Aud-lh')
+    label_rh = read_label(fname_label % 'Aud-rh')
+
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
     for pick_ori in [None, "normal", "vector"]:
-        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                    label=label_lh, pick_ori=pick_ori)
-        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                     label=label_lh, pick_ori=pick_ori,
+        stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+                                    "dSPM", label=label_lh, pick_ori=pick_ori)
+        stcs2 = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+                                     "dSPM", label=label_lh, pick_ori=pick_ori,
                                      prepared=True)
         # test if using prepared and not prepared inverse operator give the
         # same result
@@ -818,7 +825,7 @@ def test_apply_mne_inverse_epochs():
         assert (stcs[0].subject == 'sample')
     inverse_operator = read_inverse_operator(fname_full)
 
-    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+    stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, pick_ori='normal')
     data = sum(stc.data for stc in stcs) / len(stcs)
     flip = label_sign_flip(label_lh, inverse_operator['src'])
@@ -832,11 +839,11 @@ def test_apply_mne_inverse_epochs():
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_rh, pick_ori="normal",
+    stcs_rh = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+                                   "dSPM", label=label_rh, pick_ori="normal",
                                    prepared=True)
-    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_lh + label_rh,
+    stcs_bh = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+                                   "dSPM", label=label_lh + label_rh,
                                    pick_ori="normal",
                                    prepared=True)
 
@@ -845,7 +852,7 @@ def test_apply_mne_inverse_epochs():
     assert_array_almost_equal(stcs_rh[0].data, stcs_bh[0].data[n_lh:])
 
     # test without using a label (so delayed computation is used)
-    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+    stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2, "dSPM",
                                 pick_ori="normal", prepared=True)
     assert (stcs[0].subject == 'sample')
     label_stc = stcs[0].in_label(label_rh)
@@ -891,39 +898,34 @@ def test_inverse_ctf_comp():
         apply_inverse_raw(raw, inv, 1. / 9.)
 
 
-def _check_full_data(inst, full_data):
+def _check_delayed_data(inst, delayed):
     """Check whether data is represented as kernel or not."""
-    if full_data:
-        assert isinstance(inst._kernel, type(None))
-        assert isinstance(inst._sens_data, type(None))
+    if delayed:
+        assert inst._kernel is None
+        assert inst._sens_data is None
         assert isinstance(inst._data, np.ndarray)
     else:
         assert isinstance(inst._kernel, np.ndarray)
         assert isinstance(inst._sens_data, np.ndarray)
-        assert isinstance(inst._data, type(None))
+        assert inst._data is None
         assert not inst._kernel_removed
 
 
 @testing.requires_testing_data
-def test_full_data():
+def test_delayed_data(get_epochs):
     """Test if kernel in apply_inverse_epochs was properly applied."""
     inverse_operator = read_inverse_operator(fname_full)
-    tmin, tmax = -0.2, 0.5
-    raw = read_raw_fif(fname_raw)
-    events = read_events(fname_event)[:2]
-    epochs = Epochs(raw, events, event_id=None, tmin=tmin, tmax=tmax)
-
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    full_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                     pick_ori="normal", full_data=True)
-    kernel_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                       pick_ori="normal", full_data=False)
+    full_stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+                                     pick_ori="normal", delayed=True)
+    kernel_stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+                                       pick_ori="normal", delayed=False)
 
     for full_stc, kern_stc in zip(full_stcs, kernel_stcs):
-        _check_full_data(full_stc, full_data=True)
-        _check_full_data(kern_stc, full_data=False)
+        _check_delayed_data(full_stc, delayed=True)
+        _check_delayed_data(kern_stc, delayed=False)
         assert_allclose(kern_stc.data, full_stc.data)
 
 
