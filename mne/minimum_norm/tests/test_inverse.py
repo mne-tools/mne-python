@@ -901,14 +901,14 @@ def test_inverse_ctf_comp():
 def _check_delayed_data(inst, delayed):
     """Check whether data is represented as kernel or not."""
     if delayed:
-        assert inst._kernel is None
-        assert inst._sens_data is None
-        assert isinstance(inst._data, np.ndarray)
-    else:
         assert isinstance(inst._kernel, np.ndarray)
         assert isinstance(inst._sens_data, np.ndarray)
         assert inst._data is None
         assert not inst._kernel_removed
+    else:
+        assert inst._kernel is None
+        assert inst._sens_data is None
+        assert isinstance(inst._data, np.ndarray)
 
 
 @testing.requires_testing_data
@@ -919,13 +919,13 @@ def test_delayed_data(get_epochs):
                                                 lambda2=lambda2,
                                                 method="dSPM")
     full_stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
-                                     pick_ori="normal", delayed=True)
+                                     pick_ori="normal", delayed=False)
     kernel_stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
-                                       pick_ori="normal", delayed=False)
+                                       pick_ori="normal", delayed=True)
 
     for full_stc, kern_stc in zip(full_stcs, kernel_stcs):
-        _check_delayed_data(full_stc, delayed=True)
-        _check_delayed_data(kern_stc, delayed=False)
+        _check_delayed_data(full_stc, delayed=False)
+        _check_delayed_data(kern_stc, delayed=True)
         assert_allclose(kern_stc.data, full_stc.data)
 
 

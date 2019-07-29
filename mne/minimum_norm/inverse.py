@@ -1069,7 +1069,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
                               prepared=False, method_params=None,
-                              delayed=True, verbose=None):
+                              delayed=False, verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'])
@@ -1122,7 +1122,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                 sol *= noise_norm
         else:
             # Linear inverse: do computation here or delayed
-            if not delayed:
+            if delayed:
                 sol = (K, e[sel])
             else:
                 sol = np.dot(K, e[sel])
@@ -1141,7 +1141,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
                          return_generator=False, prepared=False,
-                         method_params=None, delayed=True, verbose=None):
+                         method_params=None, delayed=False, verbose=None):
     """Apply inverse operator to Epochs.
 
     Parameters
@@ -1178,11 +1178,11 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
         .. versionadded:: 0.16
     delayed : bool
-        If True, the full data is returned. If False, data is stored as a tuple
+        If False, the full data is returned. If True, data is stored as a tuple
         of smaller arrays in order to save memory. In this case, the full data
         field will be automatically constructed when stc.data is called for the
-        first time. `delayed=False` is only implemented for fixed
-        orientations. Defaults to True.
+        first time. `delayed=True` is only implemented for fixed
+        orientations. Defaults to False.
 
         .. versionadded:: 0.19
     %(verbose)s
