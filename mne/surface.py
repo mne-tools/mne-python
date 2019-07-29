@@ -284,20 +284,16 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
                           method='accurate'):
     """Project points onto (scalp) surface."""
     surf_geom = _get_tri_supp_geom(surf)
-    coords = np.empty((len(rrs), 3))
-    tri_idx = np.empty((len(rrs),), int)
     if method == 'accurate':
+        tri_idx = np.empty((len(rrs),), int)
+        weights = np.empty((len(rrs), 3))
         for ri, rr in enumerate(rrs):
             # Get index of closest tri on scalp BEM to electrode position
-            tri_idx[ri] = _find_nearest_tri_pt(rr, surf_geom)[2]
-            # Calculate a linear interpolation between the vertex values to
-            # get coords of pt projected onto closest triangle
-            coords[ri] = _triangle_coords(rr, surf_geom, tri_idx[ri])
-        weights = np.array([1. - coords[:, 0] - coords[:, 1], coords[:, 0],
-                            coords[:, 1]])
+            weights[ri], tri_idx[ri] = _find_nearest_tri_pt(
+                rr, surf_geom, reproject=True)
         out = (weights, tri_idx)
         if project_rrs:  #
-            out += (einsum('ij,jik->jk', weights,
+            out += (einsum('ij,ijk->ik', weights,
                            surf['rr'][surf['tris'][tri_idx]]),)
         if return_nn:
             out += (surf_geom['nn'][tri_idx],)
@@ -1146,10 +1142,10 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
     weights = []
     tri_geom = _get_tri_supp_geom(dict(rr=from_rr, tris=from_tri))
     for pt_tris, to_pt in zip(from_pt_tris, to_rr):
-        p, q, idx, dist = _find_nearest_tri_pt(to_pt, tri_geom, pt_tris,
-                                               run_all=False)
+        w, idx = _find_nearest_tri_pt(to_pt, tri_geom, pt_tris, run_all=False,
+                                      reproject=False)
         tri_inds.append(idx)
-        weights.append([1. - (p + q), p, q])
+        weights.append(w)
 
     nn_idx = from_tri[tri_inds]
     weights = np.array(weights)
@@ -1160,7 +1156,8 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
     return this_map
 
 
-def _find_nearest_tri_pt(rr, tri_geom, pt_tris=None, run_all=True):
+def _find_nearest_tri_pt(rr, tri_geom, pt_tris=None, run_all=True,
+                         reproject=False):
     """Find nearest point mapping to a set of triangles.
 
     If run_all is False, if the point lies within a triangle, it stops.
@@ -1217,7 +1214,13 @@ def _find_nearest_tri_pt(rr, tri_geom, pt_tris=None, run_all=True):
                                                dists[s], tri_geom)
         if np.abs(distt) < np.abs(dist):
             p, q, pt, dist = pp, qq, ptt, distt
-    return p, q, pt, dist
+    w = (1 - p - q, p, q)
+    if reproject:
+        # Calculate a linear interpolation between the vertex values to
+        # get coords of pt projected onto closest triangle
+        coords = _triangle_coords(rr, tri_geom, pt)
+        w = (1. - coords[0] - coords[1], coords[0], coords[1])
+    return w, pt
 
 
 def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
