@@ -2,6 +2,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Egnemann <denis.engemann@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 # License: BSD Style.
 
 from collections import OrderedDict
@@ -237,10 +238,10 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
     releases = dict(testing='0.67', misc='0.3')
-    # And also update the "hashes['testing']" variable below.
+    # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
-    # an updated version) and update the hash.
+    # an updated version) and update the md5 hash.
 
     # try to match url->archive_name->folder_name
     urls = dict(  # the URLs to use
@@ -255,7 +256,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
         sample="https://osf.io/86qa2/download?version=4",
-        somato='https://osf.io/tp4sg/download?version=3',
+        somato='https://osf.io/tp4sg/download?version=4',
         spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
@@ -306,7 +307,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='MNE-fieldtrip_cmc-data',
         phantom_4dbti='MNE-phantom-4DBTi',
     )
-    hashes = dict(
+    md5_hashes = dict(
         brainstorm=dict(
             bst_auditory='fa371a889a5688258896bfa29dd1700b',
             bst_phantom_ctf='80819cb7f5b92d1a5289db3fb6acb33c',
@@ -316,7 +317,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fake='3194e9f7b46039bb050a74f3e1ae9908',
         misc='d822a720ef94302467cb6ad1d320b669',
         sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
-        somato='384ff9c809ecd2aa926c8168a4e1fcd1',
+        somato='7bb37bea67e8c4968629160d7e03c43f',
         spm='9f43f67150e3b694b523a21eb929ea75',
         testing='9bc5543854737f32d426629b31ea85d7',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
@@ -328,9 +329,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
         phantom_4dbti='f1d96f81d46480d0cc52a7ba4f125367'
     )
-    assert set(hashes.keys()) == set(urls.keys())
+    assert set(md5_hashes.keys()) == set(urls.keys())
     url = urls[name]
-    hash_ = hashes[name]
+    hash_ = md5_hashes[name]
     folder_orig = folder_origs.get(name, None)
     if name == 'brainstorm':
         assert archive_name is not None
