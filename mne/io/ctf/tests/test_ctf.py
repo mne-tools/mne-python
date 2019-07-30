@@ -367,21 +367,15 @@ def test_fieldtrip_stuff():
     event_sample = []
     event_offset = []
     event_type = []
-    for i in range(mrk_number_markers):
-        for j in range(mrk_number_samples[i]):
-            trialnum = mrk[0, 0]['trial_times'][0, i][j, 0]
-            _trialnum = mm[list(mm.keys())[i]][j][0] + 1
-            synctime = mrk[0, 0]['trial_times'][0, i][j, 1]
-            _synctime = mm[list(mm.keys())[i]][j][1]
-
-            assert synctime == _synctime
-            assert trialnum == _trialnum
+    for current_marker_type in mm.keys():
+        for trialnum, synctime in mm[current_marker_type]:
+            trialnum += 1
 
             begsample = (trialnum-1) * hdr_nSamples + 1
             endsample = (trialnum  ) * hdr_nSamples
             offset    = round(synctime * hdr_Fs) + hdr_nSamplesPre
 
-            event_type.append(mrk[0, 0]['marker_names'][0, i][0])
+            event_type.append(current_marker_type)
             event_sample.append(begsample + offset)
             event_offset.append(offset)
 
