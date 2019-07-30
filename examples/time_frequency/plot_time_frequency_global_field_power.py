@@ -27,6 +27,8 @@ output of a Morlet Wavelet in frequency bands is relative speed and, more
 importantly, the clear-cut comparability of the spectral decomposition (the
 same type of filter is used across all bands).
 
+We will use this dataset: :ref:`somato-dataset`
+
 References
 ----------
 
@@ -38,10 +40,12 @@ References
        vol. 108, 328-342, NeuroImage.
 .. [3] Efron B. and Hastie T. Computer Age Statistical Inference (2016).
        Cambrdige University Press, Chapter 11.2.
-"""
+"""  # noqa: E501
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+import os.path as op
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -54,7 +58,10 @@ from mne.stats import _bootstrap_ci
 ###############################################################################
 # Set parameters
 data_path = somato.data_path()
-raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
+subject = '01'
+task = 'somato'
+raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
+                    'sub-{}_task-{}_meg.fif'.format(subject, task))
 
 # let's explore some frequency bands
 iter_freqs = [
