@@ -325,12 +325,20 @@ def test_markers_as_annotations():
 def test_fieldtrip_stuff():
     from scipy.io import loadmat
     from mne.io.ctf import __file__ as _ctf_file
+    from mne.datasets.brainstorm import bst_raw
+    from mne.io.ctf.markers import Markers
 
     fname = op.join(op.dirname(_ctf_file), 'fieldtrip.mat')
     data = loadmat(fname)
     LATENCIES = data['event']
     hdr = data['hdr']
     mrk = data['mrk']
+
+    data_path = bst_raw.data_path()
+    raw_path = (data_path + '/MEG/bst_raw/' +
+                'subj001_somatosensory_20111109_01_AUX-f.ds')
+
+    mm = Markers(raw_path)
 
     # for i=1:mrk.number_markers
     #   for j=1:mrk.number_samples(i)
@@ -362,7 +370,13 @@ def test_fieldtrip_stuff():
     for i in range(mrk_number_markers):
         for j in range(mrk_number_samples[i]):
             trialnum = mrk[0, 0]['trial_times'][0, i][j, 0]
+            _trialnum = mm[list(mm.keys())[i]][j][0] + 1
             synctime = mrk[0, 0]['trial_times'][0, i][j, 1]
+            _synctime = mm[list(mm.keys())[i]][j][1]
+
+            assert synctime == _synctime
+            assert trialnum == _trialnum
+
             begsample = (trialnum-1) * hdr_nSamples + 1
             endsample = (trialnum  ) * hdr_nSamples
             offset    = round(synctime * hdr_Fs) + hdr_nSamplesPre
@@ -379,8 +393,6 @@ def test_fieldtrip_stuff():
     assert event_type == EXPECTED_TYPE
     assert event_sample == EXPECTED_SAMPLE
     assert event_offset == EXPECTED_OFFSET
-
-    # import pdb; pdb.set_trace()
 
 
 run_tests_if_main()
