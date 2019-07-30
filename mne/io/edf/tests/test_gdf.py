@@ -16,7 +16,6 @@ from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne import pick_types, find_events, events_from_annotations
-from mne.io.edf.edf import GDF_EVENTS_LUT
 
 data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
@@ -81,7 +80,7 @@ def test_gdf2_data():
 
 def test_gdf_events_lut():
     """Test something about GDF_EVENTS_LUT to make sure it has not changed."""
-    assert len(GDF_EVENTS_LUT) == 200
+    assert len(mne.io.edf.edf.RawGDF.GDF_EVENTS_LUT) == 200
 
 
 run_tests_if_main()
