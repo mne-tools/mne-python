@@ -1182,7 +1182,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         of two smaller arrays in order to save memory. In this case, the first
         array in the tuple corresponds to the "kernel" shape (n_vertices,
         n_sensors) and the second array to the "sens_data" shape (n_sensors,
-        n_times). The full data field will be automatically constructed when
+        n_times). The full source time courses field will be automatically computed when
         stc.data is called for the first time (see for example:
         :class:`mne.SourceEstimate`). `delayed=True` is only implemented for
         fixed orientations (e.g. if `pick_ori="normal"`). Defaults to False.
