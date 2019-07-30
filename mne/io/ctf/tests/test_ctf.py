@@ -384,9 +384,25 @@ def test_fieldtrip_stuff():
     EXPECTED_SAMPLE = [int(l[0]) for l in LATENCIES[:]['sample'][0]]
     EXPECTED_OFFSET = [int(l[0]) for l in LATENCIES[:]['offset'][0]]
 
+    print(len(EXPECTED_SAMPLE))
+    print(len(EXPECTED_OFFSET))
+
+    latency = np.sort(np.array(EXPECTED_SAMPLE) + np.array(EXPECTED_SAMPLE))
+
     assert event_type == EXPECTED_TYPE
     assert event_sample == EXPECTED_SAMPLE
     assert event_offset == EXPECTED_OFFSET
+
+    ###### Compare it with whatever events we are getting
+    from mne import find_events
+
+    raw = read_raw_ctf(raw_path, preload=True)
+    events  = find_events(raw)
+
+    latency_modified = np.delete(latency, [44, 152])
+    print(latency_modified/events[:,0])
+    print(np.diff(latency_modified)/np.diff(events[:,0]))
+
 
 
 run_tests_if_main()
