@@ -782,7 +782,7 @@ def test_apply_mne_inverse_fixed_raw():
 
 
 @pytest.fixture
-def get_epochs():
+def epochs():
     """Create an epochs object used for testing."""
     event_id, tmin, tmax = 1, -0.2, 0.5
     raw = read_raw_fif(fname_raw)
@@ -800,7 +800,7 @@ def get_epochs():
 
 
 @testing.requires_testing_data
-def test_apply_mne_inverse_epochs(get_epochs):
+def test_apply_mne_inverse_epochs(epochs):
     """Test MNE with precomputed inverse operator on Epochs."""
     inverse_operator = read_inverse_operator(fname_full)
     label_lh = read_label(fname_label % 'Aud-lh')
@@ -810,9 +810,9 @@ def test_apply_mne_inverse_epochs(get_epochs):
                                                 lambda2=lambda2,
                                                 method="dSPM")
     for pick_ori in [None, "normal", "vector"]:
-        stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
                                     "dSPM", label=label_lh, pick_ori=pick_ori)
-        stcs2 = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2,
                                      "dSPM", label=label_lh, pick_ori=pick_ori,
                                      prepared=True)
         # test if using prepared and not prepared inverse operator give the
@@ -825,7 +825,7 @@ def test_apply_mne_inverse_epochs(get_epochs):
         assert (stcs[0].subject == 'sample')
     inverse_operator = read_inverse_operator(fname_full)
 
-    stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2, "dSPM",
+    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, pick_ori='normal')
     data = sum(stc.data for stc in stcs) / len(stcs)
     flip = label_sign_flip(label_lh, inverse_operator['src'])
@@ -839,10 +839,10 @@ def test_apply_mne_inverse_epochs(get_epochs):
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    stcs_rh = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2,
                                    "dSPM", label=label_rh, pick_ori="normal",
                                    prepared=True)
-    stcs_bh = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2,
                                    "dSPM", label=label_lh + label_rh,
                                    pick_ori="normal",
                                    prepared=True)
@@ -852,7 +852,7 @@ def test_apply_mne_inverse_epochs(get_epochs):
     assert_array_almost_equal(stcs_rh[0].data, stcs_bh[0].data[n_lh:])
 
     # test without using a label (so delayed computation is used)
-    stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2, "dSPM",
+    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                 pick_ori="normal", prepared=True)
     assert (stcs[0].subject == 'sample')
     label_stc = stcs[0].in_label(label_rh)
@@ -912,15 +912,15 @@ def _check_delayed_data(inst, delayed):
 
 
 @testing.requires_testing_data
-def test_delayed_data(get_epochs):
+def test_delayed_data(epochs):
     """Test if kernel in apply_inverse_epochs was properly applied."""
     inverse_operator = read_inverse_operator(fname_full)
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    full_stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+    full_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
                                      pick_ori="normal", delayed=False)
-    kernel_stcs = apply_inverse_epochs(get_epochs, inverse_operator, lambda2,
+    kernel_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
                                        pick_ori="normal", delayed=True)
 
     for full_stc, kern_stc in zip(full_stcs, kernel_stcs):
