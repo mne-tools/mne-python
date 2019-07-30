@@ -1221,9 +1221,9 @@ def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
             s = np.where(use)[0]
             # Tough: must investigate the sides
             if reindex:
-                use_pt_tris = pt_tris[s]
+                use_pt_tris = pt_tris[s].astype(np.int64)
             else:
-                use_pt_tris = s
+                use_pt_tris = s.astype(np.int64)
             pp, qq, ptt, distt = _nearest_tri_edge(
                 use_pt_tris, rr[0], pqs[s], dists[s], a, b, c)
             if np.abs(distt) < np.abs(dist):
