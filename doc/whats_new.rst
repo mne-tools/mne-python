@@ -57,6 +57,8 @@ Bug
 
 - Fix side-effect where :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources` changed the ``ICA.exclude`` attribute even when users didn't interact with the plot by `Daniel McCloy`_.
 
+- Fix scaling of sources in :meth:`ica.plot_sources(epochs) <mne.preprocessing.ICA.plot_sources>` by `Eric Larson`_
+
 - Fix wrong assumptions about units in BrainVision montages and add test asserting units in "mm" or "auto", by `Stefan Appelhoff`_
 
 - Fix scaling issue with signals in mV in EDF files read with :func:`mne.io.read_raw_edf` by `Alex Gramfort`_
