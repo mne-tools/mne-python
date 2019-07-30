@@ -346,7 +346,7 @@ def test_open_report():
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
         with open_report(hdf5, subjects_dir=subjects_dir) as report:
-            1/0
+            1 / 0
 
 
 def test_remove():
