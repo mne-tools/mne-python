@@ -1178,14 +1178,15 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
         .. versionadded:: 0.16
     delayed : bool
-        If False, the source time courses are computed. If True, they are stored as a tuple
-        of two smaller arrays in order to save memory. In this case, the first
-        array in the tuple corresponds to the "kernel" shape (n_vertices,
-        n_sensors) and the second array to the "sens_data" shape (n_sensors,
-        n_times). The full source time courses field will be automatically computed when
-        stc.data is called for the first time (see for example:
-        :class:`mne.SourceEstimate`). `delayed=True` is only implemented for
-        fixed orientations (e.g. if `pick_ori="normal"`). Defaults to False.
+        If False, the source time courses are computed. If True, they are
+        stored as a tuple of two smaller arrays in order to save memory. In
+        this case, the first array in the tuple corresponds to the "kernel"
+        shape (n_vertices, n_sensors) and the second array to the "sens_data"
+        shape (n_sensors, n_times). The full source time courses field will be
+        automatically computed when stc.data is called for the first time
+        (see for example: :class:`mne.SourceEstimate`). `delayed=True` is
+        only implemented for fixed orientations (e.g. if `pick_ori="normal"`),
+        and will be ignored for loose orientations. Defaults to False.
 
         .. versionadded:: 0.19
     %(verbose)s
