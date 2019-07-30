@@ -1178,7 +1178,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
         .. versionadded:: 0.16
     delayed : bool
-        If False, the full data is returned. If True, data is stored as a tuple
+        If False, the source time courses are computed. If True, they are stored as a tuple
         of two smaller arrays in order to save memory. In this case, the first
         array in the tuple corresponds to the "kernel" shape (n_vertices,
         n_sensors) and the second array to the "sens_data" shape (n_sensors,
