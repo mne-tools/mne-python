@@ -1271,7 +1271,7 @@ def _get_status(checks):
 
 # Here we choose different defaults to speed things up by default
 try:
-    from numba import jit as _jit
+    from numba import prange, jit as _jit
     def jit(nopython=True, nogil=True, fastmath=True, cache=True,
             **kwargs):  # noqa
         return _jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
@@ -1281,3 +1281,4 @@ except ImportError:
         def _jit(func):
             return func
         return _jit
+    prange = range

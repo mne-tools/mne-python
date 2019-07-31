@@ -27,7 +27,8 @@ from .channels.channels import _get_meg_system
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans)
 from .utils import logger, verbose, get_subjects_dir, warn
-from .fixes import _serialize_volume_info, _get_read_geometry, einsum, jit
+from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
+                    prange)
 
 
 ###############################################################################
@@ -1132,7 +1133,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
     _normalize_vectors(to_rr)
 
     # from surface: get nearest neighbors, find triangles for each vertex
-    nn_pts_idx = _compute_nearest(from_rr, to_rr)
+    nn_pts_idx = _compute_nearest(from_rr, to_rr, method='cKDTree')
     from_pt_tris = _triangle_neighbors(from_tri, len(from_rr))
     from_pt_tris = [from_pt_tris[pt_idx].astype(int) for pt_idx in nn_pts_idx]
     from_pt_lens = np.cumsum([0] + [len(x) for x in from_pt_tris])
@@ -1157,7 +1158,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
     return this_map
 
 
-@jit()
+@jit(parallel=True)
 def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
                           a, b, c, nn, r1, r12, r13, r1213, mat,
                           run_all=True, reproject=False):
@@ -1181,7 +1182,7 @@ def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
 
     weights = np.empty((len(rrs), 3))
     tri_idx = np.empty(len(rrs), np.int64)
-    for ri in range(len(rrs)):
+    for ri in prange(len(rrs)):
         rr = np.reshape(rrs[ri], (1, 3))
         start, stop = pt_lens[ri:ri + 2]
         if start == stop == 0:  # use all
