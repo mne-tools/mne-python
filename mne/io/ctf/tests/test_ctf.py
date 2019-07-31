@@ -347,4 +347,23 @@ def test_read_ctf_annotations():
     assert_array_equal(latencies, EXPECTED_LATENCIES)
 
 
+@testing.requires_testing_data
+def test_read_ctf_annotations_more():
+    """Test reading CTF marker file.
+
+    `testdata_ctf_mc.ds` has no trials or offsets therefore its a plain reading
+    of whatever is in the MarkerFile.mrk.
+    """
+    EXPECTED_ONSET = [
+        0., 0.1425, 0.285, 0.42833333, 0.57083333, 0.71416667, 0.85666667,
+        0.99916667, 1.1425, 1.285, 1.4275, 1.57083333, 1.71333333, 1.85666667,
+        1.99916667, 2.14166667, 2.285, 2.4275, 2.57083333, 2.71333333,
+        2.85583333, 2.99916667, 3.14166667, 3.28416667, 3.4275, 3.57,
+        3.71333333, 3.85583333, 3.99833333, 4.14166667, 4.28416667, 4.42666667,
+        4.57, 4.7125, 4.85583333, 4.99833333
+    ]
+    fname = op.join(ctf_dir, 'testdata_ctf_mc.ds')
+    assert_allclose(read_annotations(fname).onset,
+                    EXPECTED_ONSET)
+
 run_tests_if_main()
