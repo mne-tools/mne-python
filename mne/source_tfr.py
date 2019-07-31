@@ -60,28 +60,32 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     """
 
     @verbose
-    def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 subject=None, dims=("dipoles", "freqs", "times"), output=None, verbose=None):  # noqa: D102
+    def __init__(self, data, vertices=None, tmin=None, tstep=None, freqs=None,
+                 dims=("dipoles", "freqs", "times"), method=None, subject=None, verbose=None):
 
-        valid_dims = (("dipoles", "freqs", "times"),
+        valid_dims = [("dipoles", "freqs", "times"),
                       ("dipoles", "epochs", "freqs", "times"),
                       ("dipoles", "orientations", "freqs", "times"),
-                      ("dipoles", "orientations", "epochs", "freqs", "times"))
+                      ("dipoles", "orientations", "epochs", "freqs", "times")]
+
+        valid_methods = ["morlet-power", "multitaper-power", "stockwell-power",
+                         "morlet-itc", "multitaper-itc", "stockwell-itc"]
+
+        _check_option("dims", dims, valid_dims)
+        _check_option("method", method, valid_methods)
 
         if not (isinstance(vertices, np.ndarray) or
                 isinstance(vertices, list)):
             raise ValueError('Vertices must be a numpy array or a list of '
                              'arrays')
 
-        if dims not in valid_dims:
-            raise ValueError("Input dimensions are invalid. Valid dimemsions are:"
-                             " {}".format(valid_dims))
-
+        # TODO: src_type should rather represent the stc source type
         self._src_type = 'SourceTFR'
         self._data_ndim = len(dims)
-        self.dims = dims
 
-        self._output = output
+        self.dims = dims
+        self.method = method
+        self.freqs = freqs
 
         print("DATA DIM", self._data_ndim)
 
@@ -124,7 +128,6 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                 raise ValueError('Data (shape {0}) must have {1} dimensions for '
                                  'SourceTFR with dims={2}'
                                  .format(data.shape,self._data_ndim, self.dims))
-            # TODO: Discuss which of the data shapes should represent vector
             # TODO: Cover this!
             if "orientations" in dims and data.shape[1] != 3:
                 raise ValueError('If mutiple orientations are defined, '
@@ -269,7 +272,8 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
             self._remove_kernel_sens_data_()
-            if self._output in ['power', 'avg_power']:
+            if 'power' in self.method:
+                # TODO: Make sure this step is performed equally in stockwell or else change the statement
                 self._data = (self._data * self._data.conj()).real
         return self._data
 
@@ -300,9 +304,11 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     @property
     def shape(self):
         """Shape of the data."""
-        if self._data is not None:
+        if self._data is None:
+            return (self._kernel.shape[0],) + self._sens_data.shape[1:]
+
+        else:
             return self._data.shape
-        return (self._kernel.shape[0], self._sens_data.shape[1], self._sens_data.shape[2])
 
     @property
     def tmin(self):

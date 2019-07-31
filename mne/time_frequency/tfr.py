@@ -617,9 +617,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     if isinstance(inst, (Evoked, _BaseSourceEstimate)) and return_itc:
         raise ValueError('return_itc must be False for Evoked and single SourceEstimate objects')
 
-    is_list = False
     if isinstance(inst, list) or isgenerator(inst):
-        is_list = True
         for ind, obj in enumerate(inst):
             if ind == 0:
                 data = _get_data(obj)
@@ -631,15 +629,16 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                 # TODO: Raise Error here if obj.times and sfreq are not the same as the already defined ones?
     else:
         data = _get_data(inst)
-        if not (isinstance(inst, _BaseSourceEstimate)):
+        if isinstance(inst, _BaseSourceEstimate):
+            sfreq = 1 / inst.tstep
+            times = inst.times[decim].copy()  # !!! i think we dont even need this
+        else:
             info = inst.info
             info, data = _prepare_picks(info, data, picks, axis=1)
             sfreq = info['sfreq']
             times = inst.times[decim].copy()
             del picks
-        else:
-            sfreq = 1 / inst.tstep
-            times = inst.times[decim].copy()
+
 
     if average:
         if output == 'complex':
@@ -654,7 +653,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    if isinstance(inst, _BaseSourceEstimate) and inst._sens_data is not None:
+    if isinstance(inst, _BaseSourceEstimate) and inst._sens_data is not None and output in ['power', 'avg_power']:
         out = _compute_tfr(data, freqs, sfreq, method=method,
                            output='complex', decim=decim, **tfr_params)
     else:
@@ -662,28 +661,6 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                            output=output, decim=decim, **tfr_params)
 
     print("OUT DIMENSIONS = ", out.shape)  # !!! remove
-    # TODO integrate this correctly
-    if isinstance(inst, _BaseSourceEstimate):
-        if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
-            print("OUT DIMENSIONS = ", out.shape)  # !!! remove
-            out = np.squeeze(out)
-            dims = ("dipoles", "freqs", "times")
-            if is_list:
-                out = np.moveaxis(out, source=0, destination=1)
-                dims = ("dipoles", "epochs", "freqs", "times")
-            if inst._sens_data is not None:
-                out = (inst._kernel, out)
-        elif isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-            print("OUTTT SHAPPPEY: ", out.shape, data.shape)  # !!! remove
-            out = np.reshape(out, [out.shape[0], out.shape[1]//3, 3,
-                                   out.shape[2], out.shape[3]])
-            out = np.squeeze(out)
-            dims = ("dipoles", "orientations", "freqs", "times")
-            if is_list:
-                out = np.moveaxis(out, source=0, destination=2)
-                dims = ("dipoles", "orientations", "epochs", "freqs", "times")
-        return SourceTFR(out, inst.vertices, dims=dims, tmin=inst.tmin,
-                         tstep=inst.tstep, subject=inst.subject, output=output)
 
     if average:
         if return_itc:
@@ -691,10 +668,16 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         else:
             power = out
         nave = len(data)
-        out = AverageTFR(info, power, times, freqs, nave,
-                         method='%s-power' % method)
+        if isinstance(inst, _BaseSourceEstimate):
+            out = _create_stfr(inst, out, freqs, method='%s-power' % method)
+        else:
+            out = AverageTFR(info, power, times, freqs, nave,
+                             method='%s-power' % method)
         if return_itc:
-            out = (out, AverageTFR(info, itc, times, freqs, nave,
+            if isinstance(inst, _BaseSourceEstimate):
+                out = (out, _create_stfr(inst, out, freqs, method='%s-itc' % method))
+            else:
+                out = (out, AverageTFR(info, itc, times, freqs, nave,
                                    method='%s-itc' % method))
     else:
         power = out
@@ -706,10 +689,36 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             # if the input is of class Evoked
             meta = evs = ev_id = None
 
-        out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
+        if isinstance(inst, _BaseSourceEstimate):
+            out = _create_stfr(inst, out, freqs, method='%s-power' % method)
+        else:
+            out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
                         events=evs, event_id=ev_id, metadata=meta)
-
     return out
+
+
+def _create_stfr(inst, out, freqs, method):
+    """Prepare data and create a SourceTFR object."""
+    from ..source_estimate import VectorSourceEstimate, VolVectorSourceEstimate
+    from ..source_tfr import SourceTFR
+
+    if len(out.shape) == 4:  # epoched data
+        dims = ["dipoles", "epochs", "freqs", "times"]
+        out = np.moveaxis(out, source=0, destination=1)  # switch the epoch axis according to wanted dims
+
+    else:  # len 3 non-epoched data
+        dims = ["dipoles", "freqs", "times"]  # No need to reshape, only name the axes
+
+    if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+        dims.insert(1, "orientations")  # put in the orientation dimension after the dipoles
+        newshape = [out.shape[0] // 3, 3] + list(out.shape[1:])
+        out = np.reshape(out, newshape)
+
+    if inst._sens_data is not None:
+        out = (inst._kernel, out)
+
+    return SourceTFR(out, inst.vertices, inst.tmin, inst.tstep, freqs, tuple(dims),
+                     method, inst.subject)
 
 
 @verbose

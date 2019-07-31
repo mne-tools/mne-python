@@ -799,20 +799,55 @@ def _prepare_epochs(n_epochs):
 
 # TODO: for 'vectors' ori, tfr averaged over all 3 vecs is the same, but distributed differently between vectors. find out the reason for this.
 @testing.requires_testing_data
-@pytest.mark.parametrize('method', ['dSPM',
-                                    'MNE'])  # , 'sLORETA' works, but not #, 'eLORETA' ['dSPM', 'MNE', 'sLORETA', 'eLORETA']
-@pytest.mark.parametrize('n_epochs', [1, 3])  # , 3
-@pytest.mark.parametrize('n_cycles', [1, 3])
-@pytest.mark.parametrize('decim', [1, 3])
+@pytest.mark.parametrize('n_epochs', [1])  # , 3
 @pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
-@pytest.mark.parametrize('full_data', [True, False])
-@pytest.mark.parametrize('use_fft', [True, False])
-@pytest.mark.parametrize('zero_mean', [True, False])
-def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, decim, zero_mean):
-    method = "MNE"
+def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
+    method = "dSPM"
     pick_ori = "normal"
-    full_data = False
-    n_epochs = 2
+    full_data = True
+    n_epochs = 1
+    n_cycles = 2
+    use_fft = True
+    decim = 1
+    zero_mean = False
+
+    epochs = _prepare_epochs(n_epochs)
+    inv = read_inverse_operator(stc_inv_fname)
+    label = read_label(stc_label_fname)
+
+    l2 = 1. / 9.
+    freqs = np.array([10, 12, 14, 16])
+
+    stcs = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
+                                pick_ori=pick_ori, full_data=full_data,
+                                label=label, prepared=False)
+
+    single_stfr = tfr_morlet(stcs[0], freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                             zero_mean=zero_mean, return_itc=False, output='power', average=True)
+
+    list_stfr = tfr_morlet(stcs, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                           zero_mean=zero_mean, return_itc=False, output='power', average=True)
+
+    stfr_ref, _ = source_induced_power(epochs, inv, lambda2=l2, method=method,
+                                       pick_ori=pick_ori, label=label,
+                                       prepared=False, freqs=freqs, n_cycles=n_cycles,
+                                       use_fft=use_fft, decim=decim, zero_mean=zero_mean,
+                                       baseline=None, pca=False)
+
+    # assert_kernel_removed(stfr, full_data)
+    assert_allclose(single_stfr.data, stfr_ref)
+    assert_allclose(list_stfr.data, stfr_ref)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("pick_ori", ["normal", "vector"])
+@pytest.mark.parametrize("n_epochs", [1, 4])
+@pytest.mark.parametrize("average", [True, False])
+def test_kernel_equivalence(pick_ori, n_epochs, average):
+    method = "MNE"
+    pick_ori = "vector"
+    full_data = True
+    n_epochs = 1
     n_cycles = 2
     use_fft = True
     decim = 1
@@ -829,7 +864,7 @@ def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs,
                                pick_ori=pick_ori, full_data=full_data,
                                label=label, prepared=False)
     stfr = tfr_morlet(stc, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                      zero_mean=zero_mean, return_itc=False, output='power', average=False)
+                      zero_mean=zero_mean, return_itc=True, output='power', average=True)
 
     stfr_ref, _ = source_induced_power(epochs, inv, lambda2=l2, method=method,
                                        pick_ori=pick_ori, label=label,
@@ -841,19 +876,13 @@ def test_morlet_induced_power_equivalence(method, pick_ori, full_data, n_epochs,
     assert_allclose(stfr.data, stfr_ref)
 
 
+# TODO: parametrize
 @testing.requires_testing_data
-@pytest.mark.parametrize('method', ['dSPM', 'MNE', 'sLORETA', 'eLORETA'])
-@pytest.mark.parametrize('n_epochs', [1])  # , 3
-@pytest.mark.parametrize('n_cycles', [1, 3])
-@pytest.mark.parametrize('decim', [1, 3])
-@pytest.mark.parametrize('time_bandwidth', [4.0, 3.2])
-@pytest.mark.parametrize('pick_ori', ['normal', 'vector'])  # , 'vector'
-@pytest.mark.parametrize('full_data', [True, False])
-@pytest.mark.parametrize('use_fft', [True, False])
 def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, decim, time_bandwidth):
     method = "MNE"
     pick_ori = "normal"
-    full_data = False
+    return_itc = False
+    average = True
     n_epochs = 1
     n_cycles = 2
     use_fft = True
@@ -867,31 +896,32 @@ def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, de
     l2 = 1. / 9.
     freqs = np.array([10, 12, 14, 16])
 
-    stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                               pick_ori=pick_ori, full_data=full_data,
+    stc_full = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
+                                    pick_ori=pick_ori, full_data=True,
                                label=label, prepared=False)[0]
+    stc_delayed = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
+                                       pick_ori=pick_ori, full_data=False,
+                                       label=label, prepared=False)[0]
 
-    stfr = tfr_multitaper(stc, freqs, n_cycles, time_bandwidth, use_fft, return_itc=False,
-                          decim=decim, average=False)
+    stfr_full = tfr_multitaper(stc_full, freqs, n_cycles, time_bandwidth, use_fft, return_itc=return_itc,
+                               decim=decim, average=average)
+    stfr_delayed = tfr_multitaper(stc_delayed, freqs, n_cycles, time_bandwidth, use_fft, return_itc=return_itc,
+                                  decim=decim, average=average)
 
-    assert_kernel_removed(stfr, full_data)
+    assert_kernel_removed(stfr_full, True)
+    assert_kernel_removed(stfr_delayed, False)
 
-    ref_shape = (stc.shape[0], len(freqs), stc.shape[-1])
-    assert_equal(stfr.shape, ref_shape)
-    assert_equal(stfr.times, stc.times)
-    assert_equal(stfr.tmin, stc.tmin)
+    ref_shape = (stc_full.shape[0], len(freqs), stc_full.shape[-1])
+    assert_equal(stfr_full.shape, ref_shape)
+    assert_equal(stfr_full.times, stc_full.times)
+    assert_equal(stfr_full.tmin, stc_full.tmin)
+
+    assert_allclose(stfr_full.data, stfr_delayed.data)
 
 
-
+# TODO: parametrize
 @testing.requires_testing_data
-@pytest.mark.parametrize('method', ['dSPM', 'MNE', 'sLORETA', 'eLORETA'])
-@pytest.mark.parametrize('n_epochs', [1])  # , 3
-@pytest.mark.parametrize('n_fft', [2 ** 8, 2 ** 9])
-@pytest.mark.parametrize('width', [1.0, 2.9])
-@pytest.mark.parametrize('decim', [1, 3])
-@pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
-@pytest.mark.parametrize('full_data', [True, False])
-def test_source_stockwell(method, pick_ori, full_data, n_epochs, n_fft, width, decim):
+def test_source_stockwell():
     method = "MNE"
     pick_ori = "normal"
     full_data = False
