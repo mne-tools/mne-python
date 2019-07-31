@@ -303,7 +303,8 @@ def test_saving_picked(tmpdir, comp_grade):
 
 
 # @spm_face.requires_spm_data
-def test_xx():
+def test_read_ctf_annotations():
+    """Test reading CTF marker file."""
     EXPECTED_LATENCIES = np.array([
          5640,   7950,   9990,  12253,  14171,  16557,  18896,  20846,  # noqa
         22702,  24990,  26830,  28974,  30906,  33077,  34985,  36907,  # noqa
