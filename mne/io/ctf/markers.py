@@ -1,6 +1,7 @@
-import itertools
 import numpy as np
 import os.path as op
+
+from itertools.chain import from_iterable as _list_unpack
 
 from ...annotations import Annotations
 from .res4 import _read_res4
@@ -50,21 +51,17 @@ def _get_res4_info_needed_by_markers(directory):
 
 
 def _read_annotations_ctf(directory):
-
     total_offset, trial_duration = _get_res4_info_needed_by_markers(directory)
-
-    mm = _get_markers(op.join(directory, 'MarkerFile.mrk'))
+    markers = _get_markers(op.join(directory, 'MarkerFile.mrk'))
 
     onset = []
-    labels = []
-    for current_marker_type in mm.keys():
-        labels.append([current_marker_type] * len(mm[current_marker_type]))
-        for trialnum, synctime in mm[current_marker_type]:
+    for label in markers.keys():
+        for trialnum, synctime in markers[label]:
             onset.append(synctime + (trialnum * trial_duration) + total_offset)
 
-    return Annotations(
-        onset=onset,
-        duration=np.zeros_like(onset),
-        description=list(itertools.chain.from_iterable(labels)),
-        orig_time=None
+    description = list(
+        _list_unpack([[label] * len(v) for label, v in markers])
     )
+
+    return Annotations(onset=onset, duration=np.zeros_like(onset),
+                       description=description, orig_time=None)
