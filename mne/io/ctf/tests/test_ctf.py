@@ -385,7 +385,9 @@ def test_fieldtrip_stuff():
     print(len(EXPECTED_SAMPLE))
     print(len(EXPECTED_OFFSET))
 
-    latency = np.sort(np.array(EXPECTED_SAMPLE) + np.array(EXPECTED_SAMPLE))
+    latency = np.sort(np.array(EXPECTED_SAMPLE) + np.array(EXPECTED_OFFSET))
+
+    xx_begsampels = np.delete(np.sort(np.array(EXPECTED_SAMPLE)), [45, 153])
 
     assert event_type == EXPECTED_TYPE
     assert event_sample == EXPECTED_SAMPLE
@@ -398,8 +400,91 @@ def test_fieldtrip_stuff():
     events  = find_events(raw)
 
     latency_modified = np.delete(latency, [44, 152])
-    print(latency_modified/events[:,0])
-    print(np.diff(latency_modified)/np.diff(events[:,0]))
+
+    # print(latency_modified/events[:,0])
+    # print(np.diff(latency_modified)/np.diff(events[:,0]))
+    xx_begsampels - events[:, 0]
+    # import pdb; pdb.set_trace()
+
+def test_foo():
+    from scipy.io import loadmat
+    from mne.io.ctf.res4 import _read_res4
+    from mne.datasets.brainstorm import bst_raw
+    from mne.io.ctf.markers import Markers
+
+    raw_path = '/home/sik/mne_data/MNE-testing-data/CTF/testdata_ctf_mc.ds'
+
+    mm = Markers(raw_path)
+
+    res4 = _read_res4(raw_path)
+    hdr_nSamples, hdr_Fs, hdr_nSamplesPre = [
+        res4[key] for key in ['nsamp', 'sfreq', 'pre_trig_pts']
+    ]
+
+    event_sample = []
+    event_offset = []
+    event_type = []
+    xx = []
+    for current_marker_type in mm.keys():
+        for trialnum, synctime in mm[current_marker_type]:
+            trialnum += 1
+
+            begsample = (trialnum-1) * hdr_nSamples + 1
+            endsample = (trialnum  ) * hdr_nSamples
+            offset    = round(synctime * hdr_Fs) + hdr_nSamplesPre
+
+            xx.append(begsample)
+            event_type.append(current_marker_type)
+            event_sample.append(begsample + offset)
+            event_offset.append(offset)
+
+
+    # xx_begsampels = np.delete(np.sort(np.array(xx)), [45, 153])
+    xx_begsamples = np.sort(np.array(xx))
+    ###### Compare it with whatever events we are getting
+    from mne import find_events
+
+    raw = read_raw_ctf(raw_path, preload=True)
+    events  = find_events(raw, min_duration=0.2)
+
+    # import pdb; pdb.set_trace()
+
+
+def test_get_regular_events_for_test_ctf_mc():
+    from mne import find_events
+    from mne.io.ctf.markers import Markers
+
+    raw_path = op.join(ctf_dir, 'testdata_ctf_mc.ds')
+    raw = read_raw_ctf(raw_path, preload=True)
+    mm = Markers(raw_path)
+    # events  = find_events(raw, min_duration=1/raw.info['sfreq'])
+    events  = find_events(raw, min_duration=100)
+    # import pdb; pdb.set_trace()
+
+
+@spm_face.requires_spm_data
+def test_bar():
+    from mne import find_events
+    from mne.io.ctf.markers import Markers
+
+    data_path = spm_face.data_path()
+    raw_fname = op.join(data_path, 'MEG', 'spm',
+                        'SPM_CTF_MEG_example_faces1_3D.ds')
+    raw = read_raw_ctf(raw_fname, preload=True)
+    mm = Markers(raw_fname)
+    # import pdb; pdb.set_trace()
+
+
+@spm_face.requires_spm_data
+def test_bar_baaz():
+    from mne import find_events
+    from mne.io.ctf.markers import Markers
+
+    data_path = spm_face.data_path()
+    raw_fname = op.join(data_path, 'MEG', 'spm',
+                        'SPM_CTF_MEG_example_faces2_3D.ds')
+    raw = read_raw_ctf(raw_fname, preload=True)
+    mm = Markers(raw_fname)
     # import pdb; pdb.set_trace()
 
 
