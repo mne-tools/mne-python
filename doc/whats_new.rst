@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support to :func:`mne.read_annotations` to read CTF marker files by `Joan Massich`_
+
 - Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
 
 - Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
