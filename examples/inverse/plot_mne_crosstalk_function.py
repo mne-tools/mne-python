@@ -15,7 +15,6 @@ to sources outside the label is undesirable, and referred to as
 # License: BSD (3-clause)
 
 import mne
-from mne.viz import create_3d_figure, use_3d_backend
 from mne.datasets import sample
 from mne.minimum_norm import cross_talk_function, read_inverse_operator
 
@@ -55,16 +54,13 @@ stc_ctf_dspm = cross_talk_function(
     inverse_operator, forward, labels, method=method, lambda2=lambda2,
     signed=False, mode=mode, n_svd_comp=n_svd_comp)
 
-with use_3d_backend("mayavi"):
-    time_label = "MNE %d"
-    brain_mne = stc_ctf_mne.plot(hemi='rh', subjects_dir=subjects_dir,
-                                 time_label=time_label,
-                                 figure=create_3d_figure(size=(500, 500)))
+time_label = "MNE %d"
+brain_mne = stc_ctf_mne.plot(hemi='rh', subjects_dir=subjects_dir,
+                             time_label=time_label, figure=1, size=500)
 
-    time_label = "dSPM %d"
-    brain_dspm = stc_ctf_dspm.plot(hemi='rh', subjects_dir=subjects_dir,
-                                   time_label=time_label,
-                                   figure=create_3d_figure(size=(500, 500)))
+time_label = "dSPM %d"
+brain_dspm = stc_ctf_dspm.plot(hemi='rh', subjects_dir=subjects_dir,
+                               time_label=time_label, figure=2, size=500)
 
 # Cross-talk functions for MNE and dSPM (and sLORETA) have the same shapes
 # (they may still differ in overall amplitude).
