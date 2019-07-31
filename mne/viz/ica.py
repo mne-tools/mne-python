@@ -981,6 +981,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                                       axis=1)
         data = np.append(data, eog_ecg_data, axis=0)
     scalings = _handle_default('scalings_plot_raw')
+    scalings['misc'] = 5.0
     info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'],
                        ch_types=ch_types)
     info['projs'] = list()
@@ -1010,7 +1011,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
                                title=title, picks=picks,
-                               order=order)
+                               order=order, info=info)
     params['plot_update_proj_callback'] = _update_epoch_data
     _update_epoch_data(params)
     params['hsel_patch'].set_x(params['t_start'])
