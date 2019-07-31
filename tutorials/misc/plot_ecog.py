@@ -58,7 +58,7 @@ mne.viz.set_3d_view(fig, 200, 70)
 # We'll once again plot the surface, then take a snapshot.
 fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                              surfaces='pial')
-mne.viz.set_3d_view(fig, 200, 70)
+mne.viz.set_3d_view(fig_scatter, 200, 70)
 xy, im = snapshot_brain_montage(fig_scatter, mon)
 
 # Convert from a dictionary to array to plot
