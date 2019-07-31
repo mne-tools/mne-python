@@ -319,42 +319,45 @@ def test_markers_as_annotations():
     mm = Markers(raw_path)
 
     assert [len(mm[kk]) for kk in mm.keys()] == [103, 99]
-    assert Counter(events[:,2]) == {2: 102, 1: 98}
+    assert Counter(events[:, 2]) == {2: 102, 1: 98}
 
 
+# @spm_face.requires_spm_data
 def test_my_proposal():
     EXPECTED_LATENCIES = np.array([
-        5879,   8699,  10979,  13705,  15741,  16913,  19791,  21891,  # noqa
-       23803,  26579,  28459,  29147,  31211,  33753,  35769,  37813,  # noqa
-       40043,  41919,  44361,  45443,  48113,  50635,  53203,  54453,  # noqa
-       56541,  58947,  61387,  63549,  65887,  66933,  69253,  72017,  # noqa
-       74997,  76013,  78891,  81629,  84107,  86215,  86405,  88651,  # noqa
-       91491,  93985,  95957,  98243,  99001, 100791, 101097, 104049,  # noqa
-      106243, 109155, 111333, 112087, 113963, 116433, 118381, 120525,  # noqa
-      123331, 125261, 126219, 129179, 131441, 134215, 135407, 137619,  # noqa
-      139659, 142379, 145119, 147495, 148177, 151009, 153855, 156291,  # noqa
-      157193, 159981, 162691, 165443, 166553, 169533, 172047, 174037,  # noqa
-      174837, 177371, 179923, 182809, 183817, 186667, 189707, 191659,  # noqa
-      192719, 194963, 197467, 200321, 202269, 204415, 206597, 207817,  # noqa
-      210521, 213189, 215513, 216009, 218279, 220755, 222873, 225409,  # noqa
-      227593, 228707, 231109, 233617, 236409, 238945, 240045, 242323,  # noqa
-      244495, 246723, 249001, 251709, 253571, 254703, 257281, 259307,  # noqa
-      262159, 263251, 265495, 267745, 270269, 273111, 274253, 276993,  # noqa
-      279671, 282071, 282781, 285465, 287921, 289871, 292081, 294765,  # noqa
-      295537, 298457, 300451, 302491, 304497, 306895, 307963, 310647,  # noqa
-      313347, 315817, 316829, 318977, 321561, 323557, 325755, 328117,  # noqa
-      331081, 331201, 332999, 333937, 336367, 339367, 341885, 342067,  # noqa
-      344919, 347017, 349687, 352739, 353303, 355853, 358497, 361005,  # noqa
-      363449, 363751, 366069, 368397, 370553, 373007, 375111, 376207,  # noqa
-      378781, 381799, 384117, 386921, 387185, 390067, 392647, 395169,  # noqa
-      396185, 398627, 400795, 402931, 405007, 407093, 409943, 410971,  # noqa
-      413857, 415949, 417899, 419993, 422247, 424717, 425251, 427829,  # noqa
-      430155, 433135
-    ])
+         5640,   7950,   9990,  12253,  14171,  16557,  18896,  20846,  # noqa
+        22702,  24990,  26830,  28974,  30906,  33077,  34985,  36907,  # noqa
+        38922,  40760,  42881,  45222,  47457,  49618,  51802,  54227,  # noqa
+        56171,  58274,  60394,  62375,  64444,  66767,  68827,  71109,  # noqa
+        73499,  75807,  78146,  80415,  82554,  84508,  86403,  88426,  # noqa
+        90746,  92893,  94779,  96822,  98996,  99001, 100949, 103325,  # noqa
+       105322, 107678, 109667, 111844, 113682, 115817, 117691, 119663,  # noqa
+       121966, 123831, 126110, 128490, 130521, 132808, 135204, 137210,  # noqa
+       139130, 141390, 143660, 145748, 147889, 150205, 152528, 154646,  # noqa
+       156897, 159191, 161446, 163722, 166077, 168467, 170624, 172519,  # noqa
+       174719, 176886, 179062, 181405, 183709, 186034, 188454, 190330,  # noqa
+       192660, 194682, 196834, 199161, 201035, 203008, 204999, 207409,  # noqa
+       209661, 211895, 213957, 216005, 218040, 220178, 222137, 224305,  # noqa
+       226297, 228654, 230755, 232909, 235205, 237373, 239723, 241762,  # noqa
+       243748, 245762, 247801, 250055, 251886, 254252, 256441, 258354,  # noqa
+       260680, 263026, 265048, 267073, 269235, 271556, 273927, 276197,  # noqa
+       278436, 280536, 282691, 284933, 287061, 288936, 290941, 293183,  # noqa
+       295369, 297729, 299626, 301546, 303449, 305548, 307882, 310124,  # noqa
+       312374, 314509, 316815, 318789, 320981, 322879, 324878, 326959,  # noqa
+       329341, 331200, 331201, 333469, 335584, 337984, 340143, 342034,  # noqa
+       344360, 346309, 348544, 350970, 353052, 355227, 357449, 359603,  # noqa
+       361725, 363676, 365735, 367799, 369777, 371904, 373856, 376204,  # noqa
+       378391, 380800, 382859, 385161, 387093, 389434, 391624, 393785,  # noqa
+       396093, 398214, 400198, 402166, 404104, 406047, 408372, 410686,  # noqa
+       413029, 414975, 416850, 418797, 420824, 422959, 425026, 427215,  # noqa
+       429278, 431668
+    ]) - 1  # Fieldtrip has 1 sample difference with MNE
+    ENVENT_NOT_PRESENT_IN_STIMCH_IDX = [44, 152]
 
     from mne.datasets.brainstorm import bst_raw
     from mne.io.ctf.markers import Markers
     from mne.io.ctf.res4 import _read_res4
+    from mne import find_events
     import itertools
 
     data_path = bst_raw.data_path()
@@ -363,18 +366,16 @@ def test_my_proposal():
 
     mm = Markers(raw_path)
     res4 = _read_res4(raw_path)
-    hdr_nSamples, hdr_Fs, hdr_nSamplesPre = [
-        res4[key] for key in ['nsamp', 'sfreq', 'pre_trig_pts']
-    ]
+
     latencies = []
     labels = []
     for current_marker_type in mm.keys():
         labels.append([current_marker_type] * len(mm[current_marker_type]))
         for trialnum, synctime in mm[current_marker_type]:
             latencies.append(
-                hdr_nSamplesPre +
-                (trialnum * hdr_nSamples) +
-                round(synctime * hdr_Fs)
+                res4['pre_trig_pts'] +
+                (trialnum * res4['nsamp']) +
+                round(synctime * res4['sfreq'])
             )
 
     unshuffling = np.argsort(latencies)
@@ -384,6 +385,14 @@ def test_my_proposal():
     labels = [_labels[x] for x in unshuffling]
 
     assert_array_equal(latencies, EXPECTED_LATENCIES)
+
+    events_in_raw_sti = find_events(read_raw_ctf(raw_path, preload=True))[:, 0]
+    latencies_ = np.delete(latencies, ENVENT_NOT_PRESENT_IN_STIMCH_IDX)
+
+    assert_array_equal(  # For whatever reason 44, 151 and 152 do not match
+        np.delete(latencies_, [44, 151, 152]),
+        np.delete(events_in_raw_sti, [44, 151, 152])
+    )
 
 
 def test_fieldtrip_stuff():
@@ -446,110 +455,9 @@ def test_fieldtrip_stuff():
     EXPECTED_SAMPLE = [int(l[0]) for l in LATENCIES[:]['sample'][0]]
     EXPECTED_OFFSET = [int(l[0]) for l in LATENCIES[:]['offset'][0]]
 
-    print(len(EXPECTED_SAMPLE))
-    print(len(EXPECTED_OFFSET))
-
-    latency = np.sort(np.array(EXPECTED_SAMPLE) + np.array(EXPECTED_OFFSET))
-
-    xx_begsampels = np.delete(np.sort(np.array(EXPECTED_SAMPLE)), [45, 153])
-
     assert event_type == EXPECTED_TYPE
     assert event_sample == EXPECTED_SAMPLE
     assert event_offset == EXPECTED_OFFSET
-
-    ###### Compare it with whatever events we are getting
-    from mne import find_events
-
-    raw = read_raw_ctf(raw_path, preload=True)
-    events  = find_events(raw)
-
-    latency_modified = np.delete(latency, [44, 152])
-
-    # print(latency_modified/events[:,0])
-    # print(np.diff(latency_modified)/np.diff(events[:,0]))
-    xx_begsampels - events[:, 0]
-    import pdb; pdb.set_trace()
-
-def test_foo():
-    from scipy.io import loadmat
-    from mne.io.ctf.res4 import _read_res4
-    from mne.datasets.brainstorm import bst_raw
-    from mne.io.ctf.markers import Markers
-
-    raw_path = '/home/sik/mne_data/MNE-testing-data/CTF/testdata_ctf_mc.ds'
-
-    mm = Markers(raw_path)
-
-    res4 = _read_res4(raw_path)
-    hdr_nSamples, hdr_Fs, hdr_nSamplesPre = [
-        res4[key] for key in ['nsamp', 'sfreq', 'pre_trig_pts']
-    ]
-
-    event_sample = []
-    event_offset = []
-    event_type = []
-    xx = []
-    for current_marker_type in mm.keys():
-        for trialnum, synctime in mm[current_marker_type]:
-            trialnum += 1
-
-            begsample = (trialnum-1) * hdr_nSamples + 1
-            endsample = (trialnum  ) * hdr_nSamples
-            offset    = round(synctime * hdr_Fs) + hdr_nSamplesPre
-
-            xx.append(begsample)
-            event_type.append(current_marker_type)
-            event_sample.append(begsample + offset)
-            event_offset.append(offset)
-
-
-    # xx_begsampels = np.delete(np.sort(np.array(xx)), [45, 153])
-    xx_begsamples = np.sort(np.array(xx))
-    ###### Compare it with whatever events we are getting
-    from mne import find_events
-
-    raw = read_raw_ctf(raw_path, preload=True)
-    events  = find_events(raw, min_duration=0.2)
-
-    # import pdb; pdb.set_trace()
-
-
-def test_get_regular_events_for_test_ctf_mc():
-    from mne import find_events
-    from mne.io.ctf.markers import Markers
-
-    raw_path = op.join(ctf_dir, 'testdata_ctf_mc.ds')
-    raw = read_raw_ctf(raw_path, preload=True)
-    mm = Markers(raw_path)
-    # events  = find_events(raw, min_duration=1/raw.info['sfreq'])
-    events  = find_events(raw, min_duration=100)
-    # import pdb; pdb.set_trace()
-
-
-@spm_face.requires_spm_data
-def test_bar():
-    from mne import find_events
-    from mne.io.ctf.markers import Markers
-
-    data_path = spm_face.data_path()
-    raw_fname = op.join(data_path, 'MEG', 'spm',
-                        'SPM_CTF_MEG_example_faces1_3D.ds')
-    raw = read_raw_ctf(raw_fname, preload=True)
-    mm = Markers(raw_fname)
-    # import pdb; pdb.set_trace()
-
-
-@spm_face.requires_spm_data
-def test_bar_baaz():
-    from mne import find_events
-    from mne.io.ctf.markers import Markers
-
-    data_path = spm_face.data_path()
-    raw_fname = op.join(data_path, 'MEG', 'spm',
-                        'SPM_CTF_MEG_example_faces2_3D.ds')
-    raw = read_raw_ctf(raw_fname, preload=True)
-    mm = Markers(raw_fname)
-    # import pdb; pdb.set_trace()
 
 
 run_tests_if_main()
