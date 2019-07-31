@@ -918,6 +918,11 @@ def test_delayed_data(epochs):
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
+
+    with pytest.raises(ValueError, match="delayed must be False for.*?vector"):
+        apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                             pick_ori="vector", delayed=True)
+
     full_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
                                      pick_ori="normal", delayed=False)
     kernel_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,

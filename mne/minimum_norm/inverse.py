@@ -1075,6 +1075,9 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     _check_ori(pick_ori, inverse_operator['source_ori'])
     _check_ch_names(inverse_operator, epochs.info)
 
+    if delayed and pick_ori == "vector":
+        raise ValueError("delayed must be False for pick_ori='vector'.")
+
     #
     #   Set up the inverse according to the parameters
     #
