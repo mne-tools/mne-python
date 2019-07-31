@@ -76,26 +76,26 @@ def _read_annotations_ctf(directory):
     mm = Markers(directory)
     res4 = _read_res4(directory)
 
-    latencies = []
+    onset = []
     labels = []
+
+    total_offset = res4['pre_trig_pts'] / res4['sfreq']
+    trial_duration = res4['nsamp'] / res4['sfreq']
+
     for current_marker_type in mm.keys():
         labels.append([current_marker_type] * len(mm[current_marker_type]))
         for trialnum, synctime in mm[current_marker_type]:
-            latencies.append(
-                res4['pre_trig_pts'] +
-                (trialnum * res4['nsamp']) +
-                round(synctime * res4['sfreq'])
-            )
+            onset.append(synctime + (trialnum * trial_duration) + total_offset)
 
-    unshuffling = np.argsort(latencies)
+    unshuffling = np.argsort(onset)
 
-    latencies = np.array(latencies)[unshuffling]
+    onset = np.array(onset)[unshuffling]
     _labels = list(itertools.chain.from_iterable(labels))
     labels = [_labels[x] for x in unshuffling]
 
     return Annotations(
-        onset=latencies / res4['sfreq'],
-        duration=np.zeros_like(latencies),
+        onset=onset,
+        duration=np.zeros_like(onset),
         description=labels,
         orig_time=None
     )
