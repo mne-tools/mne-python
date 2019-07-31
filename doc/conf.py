@@ -341,6 +341,9 @@ except Exception:
 else:
     scrapers += ('pyvista',)
 if any(x in scrapers for x in ('pyvista', 'mayavi')):
+    from traits.api import push_exception_handler
+    push_exception_handler(reraise_exceptions=True)
+    report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
 
 

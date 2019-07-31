@@ -1719,9 +1719,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     else:
         hemis = [hemi]
 
-    if title is None and isinstance(time_label, str):
-        title = time_label
-    elif title is None:
+    if title is None:
         title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi=hemi, surf=surface,

@@ -214,7 +214,7 @@ s = apply_inverse(epochs['signal'].average(), inv)
 # Take the root-mean square along the time dimension and plot the result.
 s_rms = np.sqrt((s ** 2).mean())
 brain = s_rms.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
-                   size=600, time_label='MNE-dSPM inverse (RMS)')
+                   size=600, title='MNE-dSPM inverse (RMS)')
 
 # Indicate the true locations of the source activity on the plot.
 brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
@@ -265,9 +265,9 @@ power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 # Plot the DICS power maps for both approaches.
 for approach, power in enumerate([power_approach1, power_approach2], 1):
+    title = 'DICS power map, approach %d' % approach
     brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both',
-                       figure=approach + 1, size=600,
-                       time_label='DICS power map, approach %d' % approach)
+                       figure=approach + 1, size=600, title=title)
 
     # Indicate the true locations of the source activity on the plot.
     brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
