@@ -325,14 +325,13 @@ def test_markers_as_annotations():
 def test_fieldtrip_stuff():
     from scipy.io import loadmat
     from mne.io.ctf import __file__ as _ctf_file
+    from mne.io.ctf.res4 import _read_res4
     from mne.datasets.brainstorm import bst_raw
     from mne.io.ctf.markers import Markers
 
     fname = op.join(op.dirname(_ctf_file), 'fieldtrip.mat')
     data = loadmat(fname)
     LATENCIES = data['event']
-    hdr = data['hdr']
-    mrk = data['mrk']
 
     data_path = bst_raw.data_path()
     raw_path = (data_path + '/MEG/bst_raw/' +
@@ -358,11 +357,10 @@ def test_fieldtrip_stuff():
     #   end
     # end
 
-    mrk_number_markers = 2
-    mrk_number_samples = [103, 99]
-    hdr_nSamples = 1800  # hdr[0,0]['nSamples'][0,0]
-    hdr_Fs = 1200  # hdr[0,0]['Fs'][0,0]
-    hdr_nSamplesPre = 180  # hdr[0,0]['nSamplesPre'][0,0]
+    res4 = _read_res4(raw_path)
+    hdr_nSamples, hdr_Fs, hdr_nSamplesPre = [
+        res4[key] for key in ['nsamp', 'sfreq', 'pre_trig_pts']
+    ]
 
     event_sample = []
     event_offset = []
@@ -402,7 +400,7 @@ def test_fieldtrip_stuff():
     latency_modified = np.delete(latency, [44, 152])
     print(latency_modified/events[:,0])
     print(np.diff(latency_modified)/np.diff(events[:,0]))
-
+    # import pdb; pdb.set_trace()
 
 
 run_tests_if_main()
