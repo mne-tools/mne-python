@@ -28,6 +28,6 @@ neo
 xlrd
 pydocstyle
 flake8
-pyvista>=0.21.2
+https://github.com/GuillaumeFavelier/pyvista/zipball/memory_footprint
 pylsl>=1.12
 panel

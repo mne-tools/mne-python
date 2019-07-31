@@ -34,7 +34,7 @@ dependencies:
 - pip:
   - mne
   - vtk
-  - pyvista>=0.21.2
+  - https://github.com/GuillaumeFavelier/pyvista/zipball/memory_footprint
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
