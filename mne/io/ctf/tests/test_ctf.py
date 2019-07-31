@@ -322,6 +322,70 @@ def test_markers_as_annotations():
     assert Counter(events[:,2]) == {2: 102, 1: 98}
 
 
+def test_my_proposal():
+    EXPECTED_LATENCIES = np.array([
+        5879,   8699,  10979,  13705,  15741,  16913,  19791,  21891,  # noqa
+       23803,  26579,  28459,  29147,  31211,  33753,  35769,  37813,  # noqa
+       40043,  41919,  44361,  45443,  48113,  50635,  53203,  54453,  # noqa
+       56541,  58947,  61387,  63549,  65887,  66933,  69253,  72017,  # noqa
+       74997,  76013,  78891,  81629,  84107,  86215,  86405,  88651,  # noqa
+       91491,  93985,  95957,  98243,  99001, 100791, 101097, 104049,  # noqa
+      106243, 109155, 111333, 112087, 113963, 116433, 118381, 120525,  # noqa
+      123331, 125261, 126219, 129179, 131441, 134215, 135407, 137619,  # noqa
+      139659, 142379, 145119, 147495, 148177, 151009, 153855, 156291,  # noqa
+      157193, 159981, 162691, 165443, 166553, 169533, 172047, 174037,  # noqa
+      174837, 177371, 179923, 182809, 183817, 186667, 189707, 191659,  # noqa
+      192719, 194963, 197467, 200321, 202269, 204415, 206597, 207817,  # noqa
+      210521, 213189, 215513, 216009, 218279, 220755, 222873, 225409,  # noqa
+      227593, 228707, 231109, 233617, 236409, 238945, 240045, 242323,  # noqa
+      244495, 246723, 249001, 251709, 253571, 254703, 257281, 259307,  # noqa
+      262159, 263251, 265495, 267745, 270269, 273111, 274253, 276993,  # noqa
+      279671, 282071, 282781, 285465, 287921, 289871, 292081, 294765,  # noqa
+      295537, 298457, 300451, 302491, 304497, 306895, 307963, 310647,  # noqa
+      313347, 315817, 316829, 318977, 321561, 323557, 325755, 328117,  # noqa
+      331081, 331201, 332999, 333937, 336367, 339367, 341885, 342067,  # noqa
+      344919, 347017, 349687, 352739, 353303, 355853, 358497, 361005,  # noqa
+      363449, 363751, 366069, 368397, 370553, 373007, 375111, 376207,  # noqa
+      378781, 381799, 384117, 386921, 387185, 390067, 392647, 395169,  # noqa
+      396185, 398627, 400795, 402931, 405007, 407093, 409943, 410971,  # noqa
+      413857, 415949, 417899, 419993, 422247, 424717, 425251, 427829,  # noqa
+      430155, 433135
+    ])
+
+    from mne.datasets.brainstorm import bst_raw
+    from mne.io.ctf.markers import Markers
+    from mne.io.ctf.res4 import _read_res4
+    import itertools
+
+    data_path = bst_raw.data_path()
+    raw_path = (data_path + '/MEG/bst_raw/' +
+                'subj001_somatosensory_20111109_01_AUX-f.ds')
+
+    mm = Markers(raw_path)
+    res4 = _read_res4(raw_path)
+    hdr_nSamples, hdr_Fs, hdr_nSamplesPre = [
+        res4[key] for key in ['nsamp', 'sfreq', 'pre_trig_pts']
+    ]
+    latencies = []
+    labels = []
+    for current_marker_type in mm.keys():
+        labels.append([current_marker_type] * len(mm[current_marker_type]))
+        for trialnum, synctime in mm[current_marker_type]:
+            latencies.append(
+                hdr_nSamplesPre +
+                (trialnum * hdr_nSamples) +
+                round(synctime * hdr_Fs)
+            )
+
+    unshuffling = np.argsort(latencies)
+
+    latencies = np.array(latencies)[unshuffling]
+    _labels = list(itertools.chain.from_iterable(labels))
+    labels = [_labels[x] for x in unshuffling]
+
+    assert_array_equal(latencies, EXPECTED_LATENCIES)
+
+
 def test_fieldtrip_stuff():
     from scipy.io import loadmat
     from mne.io.ctf import __file__ as _ctf_file
@@ -404,7 +468,7 @@ def test_fieldtrip_stuff():
     # print(latency_modified/events[:,0])
     # print(np.diff(latency_modified)/np.diff(events[:,0]))
     xx_begsampels - events[:, 0]
-    # import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
 
 def test_foo():
     from scipy.io import loadmat
