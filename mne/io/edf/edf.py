@@ -276,7 +276,8 @@ class RawGDF(BaseRaw):
                 ' in 0.19. Please use `mne.events_from_annotations` instead')
     def find_edf_events(self):
         return events_from_annotations(self)
-        
+
+
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
     # BDF
@@ -1436,6 +1437,7 @@ def _get_annotations_gdf(edf_info, sfreq):
         onset = events[1] / sfreq
         duration = events[4] / sfreq
         desc = [RawGDF.GDF_EVENTS_LUT[key]
-                if key in RawGDF.GDF_EVENTS_LUT else 'Undefined('+str(key)+')'
+                if key in RawGDF.GDF_EVENTS_LUT
+                else 'Undefined(' + str(key) + ')'
                 for key in events[2]]
     return onset, duration, desc
