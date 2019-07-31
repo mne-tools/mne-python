@@ -18,7 +18,7 @@ from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.compensator import get_current_comp
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main, _clean_names, catch_logging
-from mne.datasets import testing, spm_face
+from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
@@ -302,7 +302,7 @@ def test_saving_picked(tmpdir, comp_grade):
                     atol=1e-20)  # atol is very small but > 0
 
 
-# @spm_face.requires_spm_data
+# @brainstorm.requires_bstraw_data
 def test_read_ctf_annotations():
     """Test reading CTF marker file."""
     EXPECTED_LATENCIES = np.array([
