@@ -87,15 +87,9 @@ def _read_annotations_ctf(directory):
         for trialnum, synctime in mm[current_marker_type]:
             onset.append(synctime + (trialnum * trial_duration) + total_offset)
 
-    unshuffling = np.argsort(onset)
-
-    onset = np.array(onset)[unshuffling]
-    _labels = list(itertools.chain.from_iterable(labels))
-    labels = [_labels[x] for x in unshuffling]
-
     return Annotations(
         onset=onset,
         duration=np.zeros_like(onset),
-        description=labels,
+        description=list(itertools.chain.from_iterable(labels)),
         orig_time=None
     )

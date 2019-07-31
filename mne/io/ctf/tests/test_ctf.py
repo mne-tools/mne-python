@@ -505,7 +505,8 @@ def test_xx():
     ).set_annotations(read_annotations(fname))
 
     events, _ = events_from_annotations(raw)
-    assert_array_equal(events[:, 0], EXPECTED_LATENCIES)
+    latencies = np.sort(events[:, 0])
+    assert_array_equal(latencies, EXPECTED_LATENCIES)
 
 
 run_tests_if_main()
