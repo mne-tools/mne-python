@@ -38,7 +38,7 @@ def _get_markers(fname):
 
 
 def _get_res4_info_needed_by_markers(directory):
-    """Get required information from CTF res4 information file. """
+    """Get required information from CTF res4 information file."""
     # we only need 3 values from res4. Maybe we can read them directly instead
     # of parsing the entire res4 file.
     res4 = _read_res4(directory)

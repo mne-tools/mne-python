@@ -12,9 +12,10 @@ from numpy import array_equal
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
-from mne import pick_types
+from mne import (pick_types, read_annotations, create_info,
+                 events_from_annotations)
 from mne.transforms import apply_trans
-from mne.io import read_raw_fif, read_raw_ctf
+from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.io.compensator import get_current_comp
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main, _clean_names, catch_logging
@@ -28,6 +29,8 @@ ctf_fname_2_trials = 'testdata_ctf_pseudocontinuous.ds'
 ctf_fname_discont = 'testdata_ctf_short_discontinuous.ds'
 ctf_fname_somato = 'somMDYO-18av.ds'
 ctf_fname_catch = 'catch-alp-good-f.ds'
+somato_fname = op.join(brainstorm.bst_raw.data_path(), 'MEG', 'bst_raw',
+                       'subj001_somatosensory_20111109_01_AUX-f.ds')
 
 block_sizes = {
     ctf_fname_continuous: 12000,
@@ -302,7 +305,7 @@ def test_saving_picked(tmpdir, comp_grade):
                     atol=1e-20)  # atol is very small but > 0
 
 
-# @brainstorm.requires_bstraw_data
+@brainstorm.bst_raw.requires_bstraw_data
 def test_read_ctf_annotations():
     """Test reading CTF marker file."""
     EXPECTED_LATENCIES = np.array([
@@ -333,19 +336,11 @@ def test_read_ctf_annotations():
        413029, 414975, 416850, 418797, 420824, 422959, 425026, 427215,  # noqa
        429278, 431668
     ]) - 1  # Fieldtrip has 1 sample difference with MNE
-    from mne import read_annotations
-    from mne.io import RawArray
-    from mne import create_info, events_from_annotations
-
-    from mne.datasets.brainstorm import bst_raw
-
-    fname = op.join(bst_raw.data_path(), 'MEG', 'bst_raw',
-                    'subj001_somatosensory_20111109_01_AUX-f.ds')
 
     raw = RawArray(
         data=np.empty([1, 432000], dtype=np.float64),
         info=create_info(ch_names=1, sfreq=1200.0)
-    ).set_annotations(read_annotations(fname))
+    ).set_annotations(read_annotations(somato_fname))
 
     events, _ = events_from_annotations(raw)
     latencies = np.sort(events[:, 0])
