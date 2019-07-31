@@ -594,6 +594,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.edf.edf import _read_annotations_edf
     from .io.cnt.cnt import _read_annotations_cnt
     from .io.curry.curry import _read_annotations_curry
+    from .io.ctf.markers import _read_annotations_ctf
 
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
@@ -616,6 +617,9 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     elif name.endswith('cnt'):
         annotations = _read_annotations_cnt(fname)
+
+    elif name.endswith('ds'):
+        annotations = _read_annotations_ctf(fname)
 
     elif name.endswith('cef'):
         annotations = _read_annotations_curry(fname, sfreq=sfreq)

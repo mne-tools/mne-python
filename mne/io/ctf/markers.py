@@ -67,7 +67,7 @@ class Markers:
             self.marks[name].append((trial, t))
 
 
-def read_annotations(directory):
+def _read_annotations_ctf(directory):
 
     from mne.io.ctf.markers import Markers
     from mne.io.ctf.res4 import _read_res4

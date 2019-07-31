@@ -490,7 +490,7 @@ def test_xx():
        413029, 414975, 416850, 418797, 420824, 422959, 425026, 427215,  # noqa
        429278, 431668
     ]) - 1  # Fieldtrip has 1 sample difference with MNE
-    from mne.io.ctf.markers import read_annotations
+    from mne import read_annotations
     from mne.io import RawArray
     from mne import create_info, events_from_annotations
 
