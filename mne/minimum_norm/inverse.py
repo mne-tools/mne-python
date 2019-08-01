@@ -1075,8 +1075,12 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     _check_ori(pick_ori, inverse_operator['source_ori'])
     _check_ch_names(inverse_operator, epochs.info)
 
-    if delayed and pick_ori == "vector":
-        raise ValueError("delayed must be False for pick_ori='vector'.")
+    is_free_ori = not (is_fixed_orient(inverse_operator) or
+                       pick_ori == 'normal')
+
+    if delayed and is_free_ori and pick_ori != "vector":
+        raise ValueError("delayed must be False for free orientations other "
+                         "than pick_ori='vector'.")
 
     #
     #   Set up the inverse according to the parameters
@@ -1096,13 +1100,10 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
 
-    is_free_ori = not (is_fixed_orient(inverse_operator) or
-                       pick_ori == 'normal')
-
     if pick_ori == 'vector' and noise_norm is not None:
         noise_norm = noise_norm.repeat(3, axis=0)
 
-    if not is_free_ori and noise_norm is not None:
+    if not (is_free_ori and pick_ori != 'vector') and noise_norm is not None:
         # premultiply kernel with noise normalization
         K *= noise_norm
 
@@ -1117,12 +1118,13 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
             # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel
 
-            if pick_ori != 'vector':
-                logger.info('combining the current components...')
-                sol = combine_xyz(sol)
+        if is_free_ori and pick_ori != 'vector':
+            logger.info('combining the current components...')
+            sol = combine_xyz(sol)
 
             if noise_norm is not None:
                 sol *= noise_norm
+
         else:
             # Linear inverse: do computation here or delayed
             if delayed:
@@ -1184,12 +1186,13 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         If False, the source time courses are computed. If True, they are
         stored as a tuple of two smaller arrays in order to save memory. In
         this case, the first array in the tuple corresponds to the "kernel"
-        shape (n_vertices, n_sensors) and the second array to the "sens_data"
-        shape (n_sensors, n_times). The full source time courses field will be
-        automatically computed when stc.data is called for the first time
-        (see for example: :class:`mne.SourceEstimate`). `delayed=True` is
-        only implemented for fixed orientations (e.g. if `pick_ori="normal"`),
-        and will be ignored for loose orientations. Defaults to False.
+        shape (n_vertices [, n_orientations], n_sensors) and the second array
+        to the "sens_data" shape (n_sensors, n_times). The full source time
+        courses field will be automatically computed when stc.data is called
+        for the first time (see for example: :class:`mne.SourceEstimate`).
+        `delayed=True` is only implemented for fixed orientations (e.g.
+        from pick_ori = "normal") as well as pick_ori="vector".
+        Defaults to False.
 
         .. versionadded:: 0.19
     %(verbose)s
