@@ -340,7 +340,7 @@ def test_read_ctf_annotations():
     ]) - 1  # Fieldtrip has 1 sample difference with MNE
 
     raw = RawArray(
-        data=np.empty([1, 432000], dtype=np.float64),
+        data=np.empty((1, 432000), dtype=np.float64),
         info=create_info(ch_names=1, sfreq=1200.0)
     ).set_annotations(read_annotations(somato_fname))
 
