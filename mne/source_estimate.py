@@ -383,6 +383,12 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
         src_type = _get_src_type(src=None, vertices=vertices,
                                  warn_text=warn_text)
 
+    if vector and isinstance(data, tuple):
+        kernel = True
+        data, sens_data = data[0], data[1]
+    else:
+        kernel = False
+
     if src_type == 'surface':
         # make a surface source estimate
         n_vertices = len(vertices[0]) + len(vertices[1])
@@ -401,6 +407,8 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
             for i, d, n in zip(range(data.shape[0]), data, source_nn):
                 data_rot[i] = np.dot(n.T, d)
             data = data_rot
+            if kernel:
+                data = (data, sens_data)
             stc = VectorSourceEstimate(data, vertices=vertices, tmin=tmin,
                                        tstep=tstep, subject=subject)
         else:
@@ -412,6 +420,8 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
             klass = VolVectorSourceEstimate
         else:
             klass = VolSourceEstimate
+        if kernel:
+            data = (data, sens_data)
         stc = klass(data, vertices=vertices, tmin=tmin, tstep=tstep,
                     subject=subject)
     elif src_type == 'mixed':
@@ -491,7 +501,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                 raise ValueError('If data is a tuple it has to be length 2')
             kernel, sens_data = data
             data = None
-            if kernel.shape[1] != sens_data.shape[0]:
+            if kernel.shape[-1] != sens_data.shape[0]:
                 raise ValueError('kernel and sens_data have invalid '
                                  'dimensions')
             if sens_data.ndim != 2:

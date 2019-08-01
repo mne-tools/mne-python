@@ -1069,11 +1069,18 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
                               prepared=False, method_params=None,
-                              full_data=True, verbose=None):
+                              delayed=False, verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'])
     _check_ch_names(inverse_operator, epochs.info)
+
+    is_free_ori = not (is_fixed_orient(inverse_operator) or
+                       pick_ori == 'normal')
+
+    if delayed and is_free_ori and pick_ori != "vector":
+        raise ValueError("delayed must be False for free orientations other "
+                         "than pick_ori='vector'.")
 
     #
     #   Set up the inverse according to the parameters
@@ -1093,13 +1100,10 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
 
-    is_free_ori = not (is_fixed_orient(inverse_operator) or
-                       pick_ori == 'normal')
-
     if pick_ori == 'vector' and noise_norm is not None:
         noise_norm = noise_norm.repeat(3, axis=0)
 
-    if not is_free_ori and noise_norm is not None:
+    if not (is_free_ori and pick_ori != 'vector') and noise_norm is not None:
         # premultiply kernel with noise normalization
         K *= noise_norm
 
@@ -1114,15 +1118,16 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
             # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel
 
-            if pick_ori != 'vector':
-                logger.info('combining the current components...')
-                sol = combine_xyz(sol)
+        if is_free_ori and pick_ori != 'vector':
+            logger.info('combining the current components...')
+            sol = combine_xyz(sol)
 
             if noise_norm is not None:
                 sol *= noise_norm
+
         else:
             # Linear inverse: do computation here or delayed
-            if not full_data:
+            if delayed:
                 sol = (K, e[sel])
             else:
                 sol = np.dot(K, e[sel])
@@ -1141,7 +1146,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
                          return_generator=False, prepared=False,
-                         method_params=None, full_data=True, verbose=None):
+                         method_params=None, delayed=False, verbose=None):
     """Apply inverse operator to Epochs.
 
     Parameters
@@ -1177,12 +1182,17 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
-    full_data : bool
-        If True, the full data is returned. If False, data is stored as a tuple
-        of smaller arrays in order to save memory. In this case, the full data
-        field will be automatically constructed when stc.data is called for the
-        first time. `full_data=False` is only implemented for fixed
-        orientations. Defaults to True.
+    delayed : bool
+        If False, the source time courses are computed. If True, they are
+        stored as a tuple of two smaller arrays in order to save memory. In
+        this case, the first array in the tuple corresponds to the "kernel"
+        shape (n_vertices [, n_orientations], n_sensors) and the second array
+        to the "sens_data" shape (n_sensors, n_times). The full source time
+        courses field will be automatically computed when stc.data is called
+        for the first time (see for example: :class:`mne.SourceEstimate`).
+        `delayed=True` is only implemented for fixed orientations (e.g.
+        from pick_ori = "normal") as well as pick_ori="vector".
+        Defaults to False.
 
         .. versionadded:: 0.19
     %(verbose)s
@@ -1200,7 +1210,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(
         epochs, inverse_operator, lambda2, method=method, label=label,
         nave=nave, pick_ori=pick_ori, verbose=verbose, prepared=prepared,
-        method_params=method_params, full_data=full_data)
+        method_params=method_params, delayed=delayed)
 
     if not return_generator:
         # return a list
@@ -1280,6 +1290,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # 11. Do appropriate source weighting to the forward computation matrix
     #
 
+    # make a copy immediately so we do it exactly once
+    forward = forward.copy()
+
     # Deal with "fixed" and "loose"
     src_kind = forward['src'].kind
     if fixed == 'auto':
@@ -1326,8 +1339,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             if allow_fixed_depth:
                 # can convert now
                 logger.info('Converting forward solution to fixed orietnation')
-                forward = convert_forward_solution(
-                    forward, force_fixed=True, use_cps=True)
+                convert_forward_solution(
+                    forward, force_fixed=True, use_cps=True, copy=False)
         elif exp is not None and not allow_fixed_depth:
             raise ValueError(
                 'For a fixed orientation inverse solution with depth '
@@ -1341,10 +1354,11 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'operator.')
         if loose < 1. and not forward['surf_ori']:  # loose ori
             logger.info('Converting forward solution to surface orientation')
-            forward = convert_forward_solution(
-                forward, surf_ori=True, use_cps=True)
+            convert_forward_solution(
+                forward, surf_ori=True, use_cps=True, copy=False)
 
-    forward, info_picked = _select_orient_forward(forward, info, noise_cov)
+    forward, info_picked = _select_orient_forward(forward, info, noise_cov,
+                                                  copy=False)
     logger.info("Selected %d channels" % (len(info_picked['ch_names'],)))
 
     if exp is None:
@@ -1364,9 +1378,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                             'depth-weighting prior into the fixed-orientation '
                             'one')
                 depth_prior = depth_prior[2::3]
-            forward = convert_forward_solution(
+            convert_forward_solution(
                 forward, surf_ori=True, force_fixed=True,
-                use_cps=use_cps)
+                use_cps=use_cps, copy=False)
     else:
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this

@@ -473,8 +473,8 @@ def test_inverse_residual(evoked):
     evoked = evoked.pick_types()
     inv = read_inverse_operator(fname_inv_fixed_depth)
     fwd = read_forward_solution(fname_fwd)
+    pick_channels_forward(fwd, evoked.ch_names, copy=False)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
-    fwd = pick_channels_forward(fwd, evoked.ch_names)
     matcher = re.compile(r'.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*')
     for method in ('MNE', 'dSPM', 'sLORETA'):
         with catch_logging() as log:
@@ -781,12 +781,9 @@ def test_apply_mne_inverse_fixed_raw():
     assert_array_almost_equal(stc.data, stc3.data)
 
 
-@testing.requires_testing_data
-def test_apply_mne_inverse_epochs():
-    """Test MNE with precomputed inverse operator on Epochs."""
-    inverse_operator = read_inverse_operator(fname_full)
-    label_lh = read_label(fname_label % 'Aud-lh')
-    label_rh = read_label(fname_label % 'Aud-rh')
+@pytest.fixture
+def epochs():
+    """Create an epochs object used for testing."""
     event_id, tmin, tmax = 1, -0.2, 0.5
     raw = read_raw_fif(fname_raw)
 
@@ -799,14 +796,24 @@ def test_apply_mne_inverse_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat)
 
+    return epochs
+
+
+@testing.requires_testing_data
+def test_apply_mne_inverse_epochs(epochs):
+    """Test MNE with precomputed inverse operator on Epochs."""
+    inverse_operator = read_inverse_operator(fname_full)
+    label_lh = read_label(fname_label % 'Aud-lh')
+    label_rh = read_label(fname_label % 'Aud-rh')
+
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
     for pick_ori in [None, "normal", "vector"]:
-        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                    label=label_lh, pick_ori=pick_ori)
-        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                     label=label_lh, pick_ori=pick_ori,
+        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                                    "dSPM", label=label_lh, pick_ori=pick_ori)
+        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                                     "dSPM", label=label_lh, pick_ori=pick_ori,
                                      prepared=True)
         # test if using prepared and not prepared inverse operator give the
         # same result
@@ -832,11 +839,11 @@ def test_apply_mne_inverse_epochs():
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_rh, pick_ori="normal",
+    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                                   "dSPM", label=label_rh, pick_ori="normal",
                                    prepared=True)
-    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_lh + label_rh,
+    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                                   "dSPM", label=label_lh + label_rh,
                                    pick_ori="normal",
                                    prepared=True)
 
@@ -889,6 +896,39 @@ def test_inverse_ctf_comp():
     raw.apply_gradient_compensation(0)
     with pytest.raises(RuntimeError, match='Compensation grade .* not match'):
         apply_inverse_raw(raw, inv, 1. / 9.)
+
+
+def _check_delayed_data(inst, delayed):
+    """Check whether data is represented as kernel or not."""
+    if delayed:
+        assert isinstance(inst._kernel, np.ndarray)
+        assert isinstance(inst._sens_data, np.ndarray)
+        assert inst._data is None
+        assert not inst._kernel_removed
+    else:
+        assert inst._kernel is None
+        assert inst._sens_data is None
+        assert isinstance(inst._data, np.ndarray)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('pick_ori', ['normal', 'vector'])
+def test_delayed_data(epochs, pick_ori):
+    """Test if kernel in apply_inverse_epochs was properly applied."""
+    inverse_operator = read_inverse_operator(fname_full)
+    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
+                                                lambda2=lambda2,
+                                                method="dSPM")
+
+    full_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                                     pick_ori=pick_ori, delayed=False)
+    kernel_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
+                                       pick_ori=pick_ori, delayed=True)
+
+    for full_stc, kern_stc in zip(full_stcs, kernel_stcs):
+        _check_delayed_data(full_stc, delayed=False)
+        _check_delayed_data(kern_stc, delayed=True)
+        assert_allclose(kern_stc.data, full_stc.data)
 
 
 run_tests_if_main()
