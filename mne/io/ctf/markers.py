@@ -55,6 +55,10 @@ def _get_res4_info_needed_by_markers(directory):
 
 def _read_annotations_ctf(directory):
     total_offset, trial_duration = _get_res4_info_needed_by_markers(directory)
+    return _read_annotations_ctf_call(directory, total_offset, trial_duration)
+
+
+def _read_annotations_ctf_call(directory, total_offset, trial_duration):
     markers = _get_markers(op.join(directory, 'MarkerFile.mrk'))
 
     onset = [synctime + (trialnum * trial_duration) + total_offset
