@@ -59,14 +59,19 @@ def _read_annotations_ctf(directory):
 
 
 def _read_annotations_ctf_call(directory, total_offset, trial_duration):
-    markers = _get_markers(op.join(directory, 'MarkerFile.mrk'))
+    fname = op.join(directory, 'MarkerFile.mrk')
 
-    onset = [synctime + (trialnum * trial_duration) + total_offset
-             for _, m in markers.items() for (trialnum, synctime) in m]
+    if not op.exists(fname):
+        return Annotations(list(), list(), list(), orig_time=None)
+    else:
+        markers = _get_markers(fname)
 
-    description = np.concatenate([
-        np.repeat(label, len(m)) for label, m in markers.items()
-    ])
+        onset = [synctime + (trialnum * trial_duration) + total_offset
+                 for _, m in markers.items() for (trialnum, synctime) in m]
 
-    return Annotations(onset=onset, duration=np.zeros_like(onset),
-                       description=description, orig_time=None)
+        description = np.concatenate([
+            np.repeat(label, len(m)) for label, m in markers.items()
+        ])
+
+        return Annotations(onset=onset, duration=np.zeros_like(onset),
+                           description=description, orig_time=None)
