@@ -1011,7 +1011,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
                                title=title, picks=picks,
-                               order=order)
+                               order=order, info=info)
     params['plot_update_proj_callback'] = _update_epoch_data
     _update_epoch_data(params)
     params['hsel_patch'].set_x(params['t_start'])

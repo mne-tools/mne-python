@@ -953,21 +953,24 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=None, event_colors=None,
-                               order=None, butterfly=False):
+                               order=None, butterfly=False, info=None):
     """Set up the mne_browse_epochs window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
     from matplotlib.colors import colorConverter
     epochs = params['epochs']
+    info = info or epochs.info
+    orig_epoch_times, events, name = epochs.times, epochs.events, epochs._name
+    del epochs
 
     # Reorganize channels
-    picks = _picks_to_idx(epochs.info, picks)
+    picks = _picks_to_idx(info, picks)
     picks = sorted(picks)
     # channel type string for every channel
-    types = [channel_type(epochs.info, ch) for ch in picks]
+    types = [channel_type(info, ch) for ch in picks]
     # list of unique channel types
-    ch_types = list(_get_channel_types(epochs.info))
+    ch_types = list(_get_channel_types(info))
     if order is None:
         order = _DATA_CH_TYPES_ORDER_DEFAULT
     inds = [pick_idx for order_type in order
@@ -987,14 +990,14 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
-    n_epochs = min(n_epochs, len(epochs.events))
-    duration = len(epochs.times) * n_epochs
+    n_epochs = min(n_epochs, len(events))
+    duration = len(orig_epoch_times) * n_epochs
     n_channels = min(n_channels, len(picks))
     if size is not None:
         size = size.split(',')
         size = tuple(float(s) for s in size)
     if title is None:
-        title = epochs._name
+        title = name
         if title is None or len(title) == 0:
             title = ''
     fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
@@ -1040,9 +1043,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     type_colors = [colorConverter.to_rgba(color[c]) for c in types]
     colors = list()
     for color_idx in range(len(type_colors)):
-        colors.append([type_colors[color_idx]] * len(epochs.events))
+        colors.append([type_colors[color_idx]] * len(events))
     lines = list()
-    n_times = len(epochs.times)
+    n_times = len(orig_epoch_times)
 
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
@@ -1052,15 +1055,15 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         ax.add_collection(lc)
         lines.append(lc)
 
-    times = epochs.times
-    data = np.zeros((params['info']['nchan'], len(times) * n_epochs))
+    data = np.zeros((params['info']['nchan'],
+                     len(orig_epoch_times) * n_epochs))
 
     ylim = (25., 0.)  # Hardcoded 25 because butterfly has max 5 rows (5*5=25).
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
-    times = np.arange(len(times) * len(epochs.events))
+    times = np.arange(len(orig_epoch_times) * len(events))
     epoch_times = np.arange(0, len(times), n_times)
 
     ax.set_yticks(offsets)
@@ -1070,7 +1073,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ax2.set_xticks(ticks[:n_epochs])
     labels = list(range(1, len(ticks) + 1))  # epoch numbers
     ax.set_xticklabels(labels)
-    xlim = epoch_times[-1] + len(epochs.times)
+    xlim = epoch_times[-1] + len(orig_epoch_times)
     ax_hscroll.set_xlim(0, xlim)
     vertline_t = ax_hscroll.text(0, 1, '', color='y', va='bottom', ha='right')
 
