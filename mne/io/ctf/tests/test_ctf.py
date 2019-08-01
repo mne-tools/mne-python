@@ -350,7 +350,7 @@ def test_read_ctf_annotations():
 
 
 @testing.requires_testing_data
-def test_read_ctf_annotations_more():
+def test_read_ctf_annotations_smoke_test():
     """Test reading CTF marker file.
 
     `testdata_ctf_mc.ds` has no trials or offsets therefore its a plain reading
@@ -365,7 +365,10 @@ def test_read_ctf_annotations_more():
         4.57, 4.7125, 4.85583333, 4.99833333
     ]
     fname = op.join(ctf_dir, 'testdata_ctf_mc.ds')
-    assert_allclose(read_annotations(fname).onset,
-                    EXPECTED_ONSET)
+    annot = read_annotations(fname)
+    assert_allclose(annot.onset, EXPECTED_ONSET)
+
+    raw = read_raw_ctf(fname)
+    assert raw.annotations == annot
 
 run_tests_if_main()
