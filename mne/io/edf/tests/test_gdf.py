@@ -37,7 +37,7 @@ def test_gdf_data():
     undefined_ids = [32769, 32770, 33024, 33025, 33026, 33027, 33028,
                      33029, 33040, 33041, 33042, 33043, 33044, 33045,
                      33285, 33286]
-    assert evs_id == {'Undefined(' + str(index) + ')': i + 1
+    assert evs_id == {'Undefined(%s)' % index: i + 1
                       for i, index in enumerate(undefined_ids)}
 
     # this .npy was generated using the official biosig python package

@@ -1438,6 +1438,6 @@ def _get_annotations_gdf(edf_info, sfreq):
         duration = events[4] / sfreq
         desc = [RawGDF.GDF_EVENTS_LUT[key]
                 if key in RawGDF.GDF_EVENTS_LUT
-                else 'Undefined(' + str(key) + ')'
+                else 'Undefined(%s)' % key
                 for key in events[2]]
     return onset, duration, desc
