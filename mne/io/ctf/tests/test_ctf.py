@@ -29,8 +29,10 @@ ctf_fname_2_trials = 'testdata_ctf_pseudocontinuous.ds'
 ctf_fname_discont = 'testdata_ctf_short_discontinuous.ds'
 ctf_fname_somato = 'somMDYO-18av.ds'
 ctf_fname_catch = 'catch-alp-good-f.ds'
-somato_fname = op.join(brainstorm.bst_raw.data_path(), 'MEG', 'bst_raw',
-                       'subj001_somatosensory_20111109_01_AUX-f.ds')
+somato_fname = op.join(
+    brainstorm.bst_raw.data_path(download=False), 'MEG', 'bst_raw',
+    'subj001_somatosensory_20111109_01_AUX-f.ds'
+)
 
 block_sizes = {
     ctf_fname_continuous: 12000,

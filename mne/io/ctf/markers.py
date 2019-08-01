@@ -1,3 +1,7 @@
+# Author: Joan Massich <mailsik@gmail.com>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 import os.path as op
 import itertools
@@ -14,11 +18,11 @@ def _get_markers(fname):
             pass
 
     def parse_marker(string):  # XXX: there should be a nicer way to do that
-        data = np.genfromtxt(StringIO(string),
-                             dtype=[('trial', int), ('sync', float)])
+        data = np.genfromtxt(
+            StringIO(string), dtype=[('trial', int), ('sync', float)])
         return int(data['trial']), float(data['sync'])
 
-    events = dict()
+    markers = dict()
     with open(fname) as fid:
         consume(fid, lambda l: not l.startswith('NUMBER OF MARKERS:'))
         num_of_markers = int(fid.readline())
@@ -28,13 +32,15 @@ def _get_markers(fname):
             label = fid.readline().strip('\n')
 
             consume(fid, lambda l: not l.startswith('NUMBER OF SAMPLES:'))
-            n_events = int(fid.readline())
+            n_markers = int(fid.readline())
 
             consume(fid, lambda l: not l.startswith('LIST OF SAMPLES:'))
             next(fid)  # skip the samples header
-            events[label] = [parse_marker(next(fid)) for _ in range(n_events)]
+            markers[label] = [
+                parse_marker(next(fid)) for _ in range(n_markers)
+            ]
 
-    return events
+    return markers
 
 
 def _get_res4_info_needed_by_markers(directory):
