@@ -4,21 +4,20 @@
 
 import numpy as np
 import os.path as op
+from io import BytesIO
 
 from ...annotations import Annotations
 from .res4 import _read_res4
 
 
 def _get_markers(fname):
-    from io import StringIO
-
     def consume(fid, predicate):  # just a consumer to move around conveniently
         while(predicate(fid.readline())):
             pass
 
     def parse_marker(string):  # XXX: there should be a nicer way to do that
         data = np.genfromtxt(
-            StringIO(string), dtype=[('trial', int), ('sync', float)])
+            BytesIO(string.encode()), dtype=[('trial', int), ('sync', float)])
         return int(data['trial']), float(data['sync'])
 
     markers = dict()
@@ -61,9 +60,9 @@ def _read_annotations_ctf(directory):
     onset = [synctime + (trialnum * trial_duration) + total_offset
              for _, m in markers.items() for (trialnum, synctime) in m]
 
-    description = np.array([
+    description = np.concatenate([
         np.repeat(label, len(m)) for label, m in markers.items()
-    ]).flatten()
+    ])
 
     return Annotations(onset=onset, duration=np.zeros_like(onset),
                        description=description, orig_time=None)
