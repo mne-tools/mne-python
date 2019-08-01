@@ -12,13 +12,15 @@ from numpy import array_equal
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
-from mne import pick_types
+from mne import (pick_types, read_annotations, create_info,
+                 events_from_annotations)
 from mne.transforms import apply_trans
-from mne.io import read_raw_fif, read_raw_ctf
+from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.io.compensator import get_current_comp
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.tests.test_annotations import _assert_annotations_equal
 from mne.utils import run_tests_if_main, _clean_names, catch_logging
-from mne.datasets import testing, spm_face
+from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
 ctf_dir = op.join(testing.data_path(download=False), 'CTF')
@@ -28,6 +30,10 @@ ctf_fname_2_trials = 'testdata_ctf_pseudocontinuous.ds'
 ctf_fname_discont = 'testdata_ctf_short_discontinuous.ds'
 ctf_fname_somato = 'somMDYO-18av.ds'
 ctf_fname_catch = 'catch-alp-good-f.ds'
+somato_fname = op.join(
+    brainstorm.bst_raw.data_path(download=False), 'MEG', 'bst_raw',
+    'subj001_somatosensory_20111109_01_AUX-f.ds'
+)
 
 block_sizes = {
     ctf_fname_continuous: 12000,
@@ -301,5 +307,69 @@ def test_saving_picked(tmpdir, comp_grade):
     assert_allclose(raw2[0:20][0], raw_pick[0:20][0], rtol=1e-6,
                     atol=1e-20)  # atol is very small but > 0
 
+
+@brainstorm.bst_raw.requires_bstraw_data
+def test_read_ctf_annotations():
+    """Test reading CTF marker file."""
+    EXPECTED_LATENCIES = np.array([
+         5640,   7950,   9990,  12253,  14171,  16557,  18896,  20846,  # noqa
+        22702,  24990,  26830,  28974,  30906,  33077,  34985,  36907,  # noqa
+        38922,  40760,  42881,  45222,  47457,  49618,  51802,  54227,  # noqa
+        56171,  58274,  60394,  62375,  64444,  66767,  68827,  71109,  # noqa
+        73499,  75807,  78146,  80415,  82554,  84508,  86403,  88426,  # noqa
+        90746,  92893,  94779,  96822,  98996,  99001, 100949, 103325,  # noqa
+       105322, 107678, 109667, 111844, 113682, 115817, 117691, 119663,  # noqa
+       121966, 123831, 126110, 128490, 130521, 132808, 135204, 137210,  # noqa
+       139130, 141390, 143660, 145748, 147889, 150205, 152528, 154646,  # noqa
+       156897, 159191, 161446, 163722, 166077, 168467, 170624, 172519,  # noqa
+       174719, 176886, 179062, 181405, 183709, 186034, 188454, 190330,  # noqa
+       192660, 194682, 196834, 199161, 201035, 203008, 204999, 207409,  # noqa
+       209661, 211895, 213957, 216005, 218040, 220178, 222137, 224305,  # noqa
+       226297, 228654, 230755, 232909, 235205, 237373, 239723, 241762,  # noqa
+       243748, 245762, 247801, 250055, 251886, 254252, 256441, 258354,  # noqa
+       260680, 263026, 265048, 267073, 269235, 271556, 273927, 276197,  # noqa
+       278436, 280536, 282691, 284933, 287061, 288936, 290941, 293183,  # noqa
+       295369, 297729, 299626, 301546, 303449, 305548, 307882, 310124,  # noqa
+       312374, 314509, 316815, 318789, 320981, 322879, 324878, 326959,  # noqa
+       329341, 331200, 331201, 333469, 335584, 337984, 340143, 342034,  # noqa
+       344360, 346309, 348544, 350970, 353052, 355227, 357449, 359603,  # noqa
+       361725, 363676, 365735, 367799, 369777, 371904, 373856, 376204,  # noqa
+       378391, 380800, 382859, 385161, 387093, 389434, 391624, 393785,  # noqa
+       396093, 398214, 400198, 402166, 404104, 406047, 408372, 410686,  # noqa
+       413029, 414975, 416850, 418797, 420824, 422959, 425026, 427215,  # noqa
+       429278, 431668
+    ]) - 1  # Fieldtrip has 1 sample difference with MNE
+
+    raw = RawArray(
+        data=np.empty((1, 432000), dtype=np.float64),
+        info=create_info(ch_names=1, sfreq=1200.0)
+    ).set_annotations(read_annotations(somato_fname))
+
+    events, _ = events_from_annotations(raw)
+    latencies = np.sort(events[:, 0])
+    assert_array_equal(latencies, EXPECTED_LATENCIES)
+
+
+@testing.requires_testing_data
+def test_read_ctf_annotations_smoke_test():
+    """Test reading CTF marker file.
+
+    `testdata_ctf_mc.ds` has no trials or offsets therefore its a plain reading
+    of whatever is in the MarkerFile.mrk.
+    """
+    EXPECTED_ONSET = [
+        0., 0.1425, 0.285, 0.42833333, 0.57083333, 0.71416667, 0.85666667,
+        0.99916667, 1.1425, 1.285, 1.4275, 1.57083333, 1.71333333, 1.85666667,
+        1.99916667, 2.14166667, 2.285, 2.4275, 2.57083333, 2.71333333,
+        2.85583333, 2.99916667, 3.14166667, 3.28416667, 3.4275, 3.57,
+        3.71333333, 3.85583333, 3.99833333, 4.14166667, 4.28416667, 4.42666667,
+        4.57, 4.7125, 4.85583333, 4.99833333
+    ]
+    fname = op.join(ctf_dir, 'testdata_ctf_mc.ds')
+    annot = read_annotations(fname)
+    assert_allclose(annot.onset, EXPECTED_ONSET)
+
+    raw = read_raw_ctf(fname)
+    _assert_annotations_equal(raw.annotations, annot)
 
 run_tests_if_main()
