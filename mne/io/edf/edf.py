@@ -28,6 +28,9 @@ from ...annotations import Annotations, events_from_annotations
 from ._utils import _load_gdf_events_lut
 
 
+GDF_EVENTS_LUT = _load_gdf_events_lut()
+
+
 @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
             ' in 0.19. Please use `mne.events_from_annotations` instead')
 def find_edf_events(raw):
@@ -235,8 +238,6 @@ class RawGDF(BaseRaw):
     mne.io.Raw : Documentation of attributes and methods.
     mne.io.read_raw_gdf : Recommended way to read GDF files.
     """
-
-    GDF_EVENTS_LUT = _load_gdf_events_lut()
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
@@ -1436,8 +1437,6 @@ def _get_annotations_gdf(edf_info, sfreq):
     if events is not None and events[1].shape[0] > 0:
         onset = events[1] / sfreq
         duration = events[4] / sfreq
-        desc = [RawGDF.GDF_EVENTS_LUT[key]
-                if key in RawGDF.GDF_EVENTS_LUT
-                else 'Undefined(%s)' % key
+        desc = [GDF_EVENTS_LUT.get(key, 'Undefined(%s)' % (key,))
                 for key in events[2]]
     return onset, duration, desc
