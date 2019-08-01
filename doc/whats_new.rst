@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Now :func:`mne.io.read_raw_ctf` populates ``raw.annotations`` with the markers in ``MarkerFile.mrk`` if any by `Joan Massich`_
+
 - Add support to :func:`mne.read_annotations` to read CTF marker files by `Joan Massich`_
 
 - Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
