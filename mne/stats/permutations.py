@@ -102,9 +102,31 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     return T_obs, p_values, H0
 
 
-def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, stat_fun='mean',
-                  random_state=None):
-    """Get confidence intervals from non-parametric bootstrap."""
+def bootstrap_ci(arr, ci=.95, n_bootstraps=2000, stat_fun='mean',
+                 random_state=None):
+    """Get confidence intervals from non-parametric bootstrap.
+
+    Parameters
+    ----------
+    arr : ndarray
+        The input data on which to calculate the confidence interval.
+    ci : float
+        Level of the confidence interval between 0 and 1.
+    n_bootstraps : int
+        Number of bootstraps
+    stat_fun : str | callable
+        Can be "mean", "median", or a callable operating along `axis=0`.
+    random_state : int | float | array_like | None
+        The seed at which to initialize the bootstrap.
+
+    Returns
+    -------
+    cis : ndarray
+        Containing the lower boundary of the CI at `cis[0, ...]` and the upper
+        boundary of the CI at `cis[1, ...]`.
+
+
+    """
     if stat_fun == "mean":
         def stat_fun(x):
             return x.mean(axis=0)
@@ -127,8 +149,8 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, stat_fun='mean',
 def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000, random_state=None):
     """Calculate confidence interval. Aux function for plot_compare_evokeds."""
     if method == "bootstrap":
-        return _bootstrap_ci(arr, ci=ci, n_bootstraps=n_bootstraps,
-                             random_state=random_state)
+        return bootstrap_ci(arr, ci=ci, n_bootstraps=n_bootstraps,
+                            random_state=random_state)
     else:
         from . import _parametric_ci
         return _parametric_ci(arr, ci=ci)
