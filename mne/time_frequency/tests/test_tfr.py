@@ -833,43 +833,6 @@ def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
     assert_allclose(single_stfr.data, list_stfr.data)
 
 
-@testing.requires_testing_data
-@pytest.mark.parametrize("pick_ori", ["normal", "vector"])
-@pytest.mark.parametrize("n_epochs", [1, 4])
-@pytest.mark.parametrize("average", [True, False])
-def test_kernel_equivalence(pick_ori, n_epochs, average):
-    method = "MNE"
-    pick_ori = "vector"
-    delayed = False
-    n_epochs = 1
-    n_cycles = 2
-    use_fft = True
-    decim = 1
-    zero_mean = False
-
-    epochs = _prepare_epochs(n_epochs)
-    inv = read_inverse_operator(stc_inv_fname)
-    label = read_label(stc_label_fname)
-
-    l2 = 1. / 9.
-    freqs = np.array([10, 12, 14, 16])
-
-    stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                               pick_ori=pick_ori, delayed=delayed,
-                               label=label, prepared=False)
-    stfr = tfr_morlet(stc, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                      zero_mean=zero_mean, return_itc=True, output='power', average=True)
-
-    stfr_ref, _ = source_induced_power(epochs, inv, lambda2=l2, method=method,
-                                       pick_ori=pick_ori, label=label,
-                                       prepared=False, freqs=freqs, n_cycles=n_cycles,
-                                       use_fft=use_fft, decim=decim, zero_mean=zero_mean,
-                                       baseline=None, pca=False)
-
-    _check_delayed_data(stfr, delayed)
-    assert_allclose(stfr.data, stfr_ref)
-
-
 # TODO: parametrize
 @testing.requires_testing_data
 def test_multitaper(method, pick_ori, delayed, n_epochs, n_cycles, use_fft, decim, time_bandwidth):
