@@ -869,6 +869,7 @@ Non-parametric (clustering) resampling methods:
    spatio_temporal_cluster_test
    spatio_temporal_cluster_1samp_test
    summarize_clusters_stc
+   bootstrap_ci
 
 Compute ``connectivity`` matrices for cluster-level statistics:
 
