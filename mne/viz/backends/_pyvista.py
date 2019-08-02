@@ -295,6 +295,7 @@ class _Renderer(_BaseRenderer):
             elif mode == "cylinder":
                 cylinder = vtk.vtkCylinderSource()
                 cylinder.SetHeight(glyph_height)
+                cylinder.SetRadius(glyph_height)
                 cylinder.SetCenter(glyph_center)
                 cylinder.SetResolution(glyph_resolution)
                 cylinder.Update()
