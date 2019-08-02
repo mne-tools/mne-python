@@ -981,8 +981,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
         if op.exists(fname):
             return _read_morph_map(fname, subject_from, subject_to)
     # if file does not exist, make it
-    warn('Morph map "%s" does not exist, creating it and saving it to '
-         'disk (this may take a few minutes)' % fname)
+    logger.info('Morph map "%s" does not exist, creating it and saving it to '
+                'disk' % fname)
     logger.info(log_msg % (subject_from, subject_to))
     mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
     if subject_to == subject_from:
