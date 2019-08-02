@@ -108,7 +108,7 @@ def bootstrap_ci(arr, ci=.95, n_bootstraps=2000, stat_fun='mean',
 
     Parameters
     ----------
-    arr : ndarray
+    arr : ndarray, shape (n_samples, ...)
         The input data on which to calculate the confidence interval.
     ci : float
         Level of the confidence interval between 0 and 1.
@@ -121,7 +121,7 @@ def bootstrap_ci(arr, ci=.95, n_bootstraps=2000, stat_fun='mean',
 
     Returns
     -------
-    cis : ndarray
+    cis : ndarray, shape (2, ...)
         Containing the lower boundary of the CI at `cis[0, ...]` and the upper
         boundary of the CI at `cis[1, ...]`.
 
