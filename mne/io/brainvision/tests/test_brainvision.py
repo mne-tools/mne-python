@@ -77,82 +77,50 @@ def test_orig_units(recwarn):
     assert orig_units['ReRef'] == 'C'
 
 
-def test_vmrk_meas_date():
-    """Test successful extraction of measurement date."""
-    # Test file that does have a specific date
-    raw = read_raw_brainvision(vhdr_path)
-    assert_allclose(raw.info['meas_date'], [1384359243, 794231])
-    assert '2013-11-13 16:14:03 GMT' in repr(raw.info)
+@pytest.fixture()
+def _get_date_test_data(tmpdir):
+    """Return vmrk text and index of New Segment line for date tests."""
+    # Make a temporary copy of the test files
+    tmpdir = str(tmpdir)
+    for ff in [vhdr_path, vmrk_path, eeg_path]:
+        sh.copyfile(ff, op.join(tmpdir, op.basename(ff)))
 
-    # Test file with multiple dates ... we should only take the first
-    with pytest.warns(RuntimeWarning, match='software filter'):
-        raw = read_raw_brainvision(vhdr_old_path)
-    assert_allclose(raw.info['meas_date'], [1184588560, 937453])
-    assert '2007-07-16 12:22:40 GMT' in repr(raw.info)
-
-    # Test files with no date, we should get DATE_NONE from mne.io.write
-    with pytest.warns(RuntimeWarning, match='coordinate information'):
-        raw = read_raw_brainvision(vhdr_v2_path)
-    assert raw.info['meas_date'] is None
-    assert 'unspecified' in repr(raw.info)
-
-    # Test files with faulty dates introduced by segmenting a file without
-    # date information. Should not raise a strptime ValueError
-    raw = read_raw_brainvision(vhdr_bad_date)
-    assert raw.info['meas_date'] is None
-    assert 'unspecified' in repr(raw.info)
-
-    # Reuse our vmrk to test several other cases with dates
-    tmpdir = _TempDir()
-    tmp_vhdr_file = op.join(tmpdir, op.basename(vhdr_bad_date))
-    tmp_vmrk_file = tmp_vhdr_file.replace('.vhdr', '.vmrk')
-    tmp_eeg_file = op.join(tmpdir, op.basename(eeg_path))
-    sh.copyfile(vhdr_bad_date, tmp_vhdr_file)
-    sh.copyfile(vhdr_bad_date.replace('.vhdr', '.vmrk'), tmp_vmrk_file)
-    sh.copyfile(eeg_path, tmp_eeg_file)
-
-    # We'll exclusively manipulate the "New Segment" line in vmrk
-    with open(tmp_vmrk_file, 'r') as fin:
+    # Get the marker info and the line where the date is specified
+    with open(vmrk_path, 'r') as fin:
         lines = fin.readlines()
-    idx = lines.index('Mk1=New Segment,,1,1,0,00000000000304125000\n')
 
-    # Now perform some tests
-    # Test that we get no error for trying to extract meas_date if there is
-    # no marker of type "New Segment" in the data
-    lines[idx] = 'Mk1=STATUS,,1,1,0\n'
+    idx = lines.index('Mk1=New Segment,,1,1,0,20131113161403794232\n')
+
+    # Return header and marker file paths
+    tmp_vhdr_file = op.join(tmpdir, op.basename(vhdr_path))
+    tmp_vmrk_file = op.join(tmpdir, op.basename(vmrk_path))
+
+    return tmp_vhdr_file, tmp_vmrk_file, lines, idx
+
+
+@pytest.mark.parametrize('newstring, expected', [
+    pytest.param('Mk1=New Segment,,1,1,0,20131113161403794232\n', '2013-11-13 16:14:03 GMT'),  # noqa: E501
+    pytest.param('Mk1=New Segment,,1,1,0,20070716122240937454\nMk2=New Segment,,2,1,0,20070716122240937455\n', '2007-07-16 12:22:40 GMT'),  # noqa: E501
+    pytest.param('Mk1=STATUS,,1,1,0\n', 'unspecified'),
+    pytest.param('Mk1=New Segment,,1,1,0,\n', 'unspecified'),
+    pytest.param('Mk1=New Segment,,1,1,0\n', 'unspecified'),
+    pytest.param('Mk1=New Segment,,1,1,0,00000000000304125000', 'unspecified'),
+    pytest.param('Mk1=New Segment,,1,1,0,\nMk2=New Segment,,2,1,0,20070716122240937454\n', '2007-07-16 12:22:40 GMT'),  # noqa: E501
+])
+def test_dates(_get_date_test_data, newstring, expected):
+    """Test valid dates."""
+    tmp_vhdr_file, tmp_vmrk_file, lines, idx = _get_date_test_data
+
+    # Replace the New Segment
+    lines[idx] = newstring
+
+    # Write it to tmp file
     with open(tmp_vmrk_file, 'w') as fout:
         fout.writelines(lines)
-    raw = read_raw_brainvision(tmp_vhdr_file)
-    assert raw.info['meas_date'] is None
-    assert 'unspecified' in repr(raw.info)
 
-    # Test that we extract no date, if "New Segment", but no date specified
-    # Note the trailing comma but missing data following that comma
-    lines[idx] = 'Mk1=New Segment,,1,1,0,\n'
-    with open(tmp_vmrk_file, 'w') as fout:
-        fout.writelines(lines)
+    # Read it back in and assert
     raw = read_raw_brainvision(tmp_vhdr_file)
-    assert raw.info['meas_date'] is None
-    assert 'unspecified' in repr(raw.info)
-
-    # Test that no error if "New Segment", but no date specified and no
-    # trailing comma
-    lines[idx] = 'Mk1=New Segment,,1,1,0\n'
-    with open(tmp_vmrk_file, 'w') as fout:
-        fout.writelines(lines)
-    raw = read_raw_brainvision(tmp_vhdr_file)
-    assert raw.info['meas_date'] is None
-    assert 'unspecified' in repr(raw.info)
-
-    # Test that a fine date gets recognized, use 2000-01-01:12:00:00, assuming
-    # UTC timezone, which would be in unix time: 946728000
-    lines[idx] = 'Mk1=New Segment,,1,1,0,20000101120000000000\n'
-    with open(tmp_vmrk_file, 'w') as fout:
-        fout.writelines(lines)
-    raw = read_raw_brainvision(tmp_vhdr_file)
-    assert raw.info['meas_date'] is not None
-    assert raw.info['meas_date'][1] == 0  # no microseconds
-    assert raw.info['meas_date'][0] == 946728000
+    assert expected in repr(raw.info)
 
 
 def test_vhdr_codepage_ansi():
