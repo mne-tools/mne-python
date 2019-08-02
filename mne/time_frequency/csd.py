@@ -638,9 +638,6 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     csd_morlet
     csd_multitaper
     """
-    # Local import to keep "import mne" fast
-    # from scipy.fftpack import fftfreq
-
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax)
 

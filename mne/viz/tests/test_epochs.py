@@ -3,6 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
@@ -15,10 +16,13 @@ import matplotlib.pyplot as plt
 from mne import (read_events, Epochs, pick_types, read_cov, create_info,
                  EpochsArray)
 from mne.channels import read_layout
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, read_raw_ctf
 from mne.utils import run_tests_if_main
 from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
+from mne.datasets import testing
+from mne.event import make_fixed_length_events
+
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -27,6 +31,8 @@ cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 1.0
 layout = read_layout('Vectorview-all')
+test_base_dir = testing.data_path(download=False)
+ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
 
 
 def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
@@ -143,43 +149,98 @@ def test_plot_epochs_nodata():
 
 
 def test_plot_epochs_image():
-    """Test plotting of epochs image."""
-    epochs = _get_epochs()
-    epochs.plot_image(picks=[1, 2])
-    epochs.plot_image(picks='mag')
-    overlay_times = [0.1]
-    epochs.plot_image(picks=[1], order=[0], overlay_times=overlay_times,
-                      vmin=0.01, title="test"
-                      )
-    epochs.plot_image(picks=[1], overlay_times=overlay_times, vmin=-0.001,
-                      vmax=0.001)
-    pytest.raises(ValueError, epochs.plot_image,
-                  picks=[1], overlay_times=[0.1, 0.2])
-    pytest.raises(ValueError, epochs.plot_image,
-                  picks=[1], order=[0, 1])
-    pytest.raises(ValueError, epochs.plot_image, axes=dict(), group_by=list(),
-                  combine='mean')
-    pytest.raises(ValueError, epochs.plot_image, axes=list(), group_by=dict(),
-                  combine='mean')
-    pytest.raises(ValueError, epochs.plot_image, group_by='error',
-                  picks=[1, 2])
-    pytest.raises(ValueError, epochs.plot_image, units={"hi": 1},
-                  scalings={"ho": 1})
-    assert len(epochs.plot_image(picks=["eeg", "mag", "grad"])) < 6
-    epochs.load_data().pick_types(meg='mag')
-    epochs.info.normalize_proj()
-    epochs.plot_image(group_by='type', combine='mean')
-    epochs.plot_image(group_by={"1": [1, 2], "2": [1, 2]}, combine='mean')
-    epochs.plot_image(vmin=lambda x: x.min())
-    pytest.raises(ValueError, epochs.plot_image, axes=1, fig=2)
-    ts_args = dict(show_sensors=False)
-    with pytest.warns(RuntimeWarning, match='fall outside'):
-        epochs.plot_image(overlay_times=[1.1], combine="gfp", ts_args=ts_args)
-    pytest.raises(ValueError, epochs.plot_image, combine='error',
-                  ts_args=ts_args)
-    with pytest.raises(NotImplementedError, match='currently'):
-        epochs.plot_image(ts_args=dict(invert_y=True))
+    """Test plotting of epochs image.
 
+    Note that some of these tests that should pass are triggering MPL
+    UserWarnings about tight_layout not being applied ("tight_layout cannot
+    make axes width small enough to accommodate all axes decorations"). Calling
+    `plt.close('all')` just before the offending test seems to prevent this
+    warning, though it's unclear why.
+    """
+    epochs = _get_epochs()
+    figs = epochs.plot_image()
+    assert len(figs) == 2  # one fig per ch_type (test data has mag, grad)
+    epochs.plot_image(picks='mag', sigma=0.1)
+    epochs.plot_image(picks=[0, 1], combine='mean',
+                      ts_args=dict(show_sensors=False))
+    epochs.plot_image(picks=[1], order=[0], overlay_times=[0.1], vmin=0.01,
+                      title='test')
+    plt.close('all')
+    epochs.plot_image(picks=[1], overlay_times=[0.1], vmin=-0.001, vmax=0.001)
+    plt.close('all')
+    epochs.plot_image(picks=[1], vmin=lambda x: x.min())
+    # test providing figure
+    fig, axs = plt.subplots(3, 1)
+    epochs.plot_image(picks=[1], fig=fig)
+    # test providing axes instance
+    epochs.plot_image(picks=[1], axes=axs[0], evoked=False, colorbar=False)
+    plt.close('all')
+    # test order=callable
+    epochs.plot_image(picks=[0, 1],
+                      order=lambda times, data: np.arange(len(data))[::-1])
+    # test deprecation
+    with pytest.warns(DeprecationWarning, match='group_by="type" is no longe'):
+        epochs.plot_image(group_by='type')
+    # test warning
+    with pytest.warns(RuntimeWarning, match='Only one channel in group'):
+        epochs.plot_image(picks=[1], combine='mean')
+    # group_by should be a dict
+    with pytest.raises(AttributeError, match="has no attribute 'items'"):
+        epochs.plot_image(group_by='foo')
+    # units and scalings keys must match
+    with pytest.raises(ValueError, match='Scalings and units must have the'):
+        epochs.plot_image(units=dict(hi=1), scalings=dict(ho=1))
+    plt.close('all')
+    # test invert_y
+    epochs.plot_image(ts_args=dict(invert_y=True))
+    # can't combine different sensor types
+    with pytest.raises(ValueError, match='Cannot combine sensors of differ'):
+        epochs.plot_image(group_by=dict(foo=[0, 1, 2]))
+    # can't pass both fig and axes
+    with pytest.raises(ValueError, match='one of "fig" or "axes" must be'):
+        epochs.plot_image(fig='foo', axes='bar')
+    # wrong number of axes in fig
+    with pytest.raises(ValueError, match='"fig" must contain . axes, got .'):
+        epochs.plot_image(fig=plt.figure())
+    # only 1 group allowed when fig is passed
+    with pytest.raises(ValueError, match='"group_by" can only have one group'):
+        fig, axs = plt.subplots(3, 1)
+        epochs.plot_image(fig=fig, group_by=dict(foo=[0, 1], bar=[5, 6]))
+        del fig, axs
+    plt.close('all')
+    # must pass correct number of axes (1, 2, or 3)
+    with pytest.raises(ValueError, match='is a list, can only plot one group'):
+        fig, axs = plt.subplots(1, 3)
+        epochs.plot_image(axes=axs)
+    for length, kwargs in ([3, dict()],
+                           [2, dict(evoked=False)],
+                           [2, dict(colorbar=False)],
+                           [1, dict(evoked=False, colorbar=False)]):
+        fig, axs = plt.subplots(1, length + 1)
+        epochs.plot_image(picks='mag', axes=axs[:length], **kwargs)
+        with pytest.raises(ValueError, match='"axes" must be length ., got .'):
+            epochs.plot_image(picks='mag', axes=axs, **kwargs)
+    plt.close('all')
+    # mismatch between axes dict keys and group_by dict keys
+    with pytest.raises(ValueError, match='must match the keys in "group_by"'):
+        epochs.plot_image(axes=dict())
+    # wrong number of axes in dict
+    match = 'each value in "axes" must be a list of . axes, got .'
+    with pytest.raises(ValueError, match=match):
+        epochs.plot_image(axes=dict(foo=axs[:2], bar=axs[:3]),
+                          group_by=dict(foo=[0, 1], bar=[5, 6]))
+    # bad value of "combine"
+    with pytest.raises(ValueError, match='"combine" must be None, a callable'):
+        epochs.plot_image(combine='foo')
+    # mismatched picks and overlay_times
+    with pytest.raises(ValueError, match='size of overlay_times parameter'):
+        epochs.plot_image(picks=[1], overlay_times=[0.1, 0.2])
+    # bad overlay times
+    with pytest.warns(RuntimeWarning, match='fall outside'):
+        epochs.plot_image(overlay_times=[999.])
+    # mismatched picks and order
+    with pytest.raises(ValueError, match='must match the length of the data'):
+        epochs.plot_image(picks=[1], order=[0, 1])
     plt.close('all')
 
 
@@ -239,6 +300,52 @@ def test_plot_psd_epochs():
         with pytest.warns(UserWarning, match=err_str):
             epochs.plot_psd(dB=dB)
 
+    plt.close('all')
+
+
+@testing.requires_testing_data
+def test_plot_epochs_ctf():
+    """Test of basic CTF plotting."""
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    raw.pick_channels(['UDIO001', 'UPPT001', 'SCLK01-177',
+                       'BG1-4304', 'MLC11-4304', 'MLC11-4304',
+                       'EEG058', 'UADC007-4302'])
+    evts = make_fixed_length_events(raw)
+    epochs = Epochs(raw, evts, preload=True)
+    epochs.plot()
+    plt.close('all')
+
+    # test butterfly
+    fig = epochs.plot(butterfly=True)
+    keystotest = ['b', 'b', 'left', 'right', 'up', 'down',
+                  'pageup', 'pagedown', '-', '+', '=',
+                  'f11', 'home', '?', 'h', 'o', 'end']
+    for key in keystotest:
+        fig.canvas.key_press_event(key)
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    fig.canvas.resize_event()
+    fig.canvas.close_event()  # closing and epoch dropping
+    plt.close('all')
+
+
+@testing.requires_testing_data
+def test_plot_psd_epochs_ctf():
+    """Test plotting CTF epochs psd (+topomap)."""
+    raw = read_raw_ctf(ctf_fname, preload=True)
+    evts = make_fixed_length_events(raw)
+    epochs = Epochs(raw, evts, preload=True)
+    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
+                  bands=[(0, 0.01, 'foo')])  # no freqs in range
+    epochs.plot_psd_topomap()
+
+    # EEG060 is flat in this dataset
+    err_str = r'channel\(s\) EEG060\.'
+    for dB in [True, False]:
+        with pytest.warns(UserWarning, match=err_str):
+            epochs.plot_psd(dB=dB)
+    epochs.drop_channels(['EEG060'])
+    epochs.plot_psd(spatial_colors=False, average=False)
     plt.close('all')
 
 

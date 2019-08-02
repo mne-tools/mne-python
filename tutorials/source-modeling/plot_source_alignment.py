@@ -37,9 +37,9 @@ src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
 ###############################################################################
 # Understanding coordinate frames
 # -------------------------------
-# For M/EEG source imaging, there are three **coordinate frames** that we must
-# bring into alignment using two 3D
-# `transformation matrices <trans_matrices_>`_
+# For M/EEG source imaging, there are three **coordinate frames** (further
+# explained in the next section) that we must bring into alignment using two 3D
+# `transformation matrices <rotation and translation matrix_>`_
 # that define how to rotate and translate points in one coordinate frame
 # to their equivalent locations in another.
 #
@@ -72,6 +72,10 @@ print('Distance from head origin to MEG origin: %0.1f mm'
       % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
 print('Distance from head origin to MRI origin: %0.1f mm'
       % (1000 * np.linalg.norm(trans['trans'][:3, 3])))
+dists = mne.dig_mri_distances(raw.info, trans, 'sample',
+                              subjects_dir=subjects_dir)
+print('Distance from %s digitized points to head surface: %0.1f mm'
+      % (len(dists), 1000 * np.mean(dists)))
 
 ###############################################################################
 # Coordinate frame definitions
@@ -96,38 +100,59 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 # .. role:: green
 # .. role:: red
 #
-# 1. Neuromag head coordinate frame ("head", :pink:`pink axes`)
-#      Defined by the intersection of 1) the line between the LPA
-#      (:red:`red sphere`) and RPA (:purple:`purple sphere`), and
-#      2) the line perpendicular to this LPA-RPA line one that goes through
-#      the Nasion (:green:`green sphere`).
-#      The axes are oriented as **X** origin→RPA, **Y** origin→Nasion,
+# 1. Neuromag/Elekta/MEGIN head coordinate frame ("head", :pink:`pink axes`)
+#      The head coordinate frame is defined through the coordinates of
+#      anatomical landmarks on the subject's head: Usually the Nasion (`NAS`_),
+#      and the left and right preauricular points (`LPA`_ and `RPA`_).
+#      Different MEG manufacturers may have different definitions of the
+#      coordinate head frame. A good overview can be seen in the
+#      `FieldTrip FAQ on coordinate systems`_.
+#
+#      For Neuromag/Elekta/MEGIN, the head coordinate frame is defined by the
+#      intersection of
+#
+#      1. the line between the LPA (:red:`red sphere`) and RPA
+#         (:purple:`purple sphere`), and
+#      2. the line perpendicular to this LPA-RPA line one that goes through
+#         the Nasion (:green:`green sphere`).
+#
+#      The axes are oriented as **X** origin→RPA, **Y** origin→NAS,
 #      **Z** origin→upward (orthogonal to X and Y).
 #
-#      .. note:: This gets defined during the head digitization stage during
-#                acquisition, often by use of a Polhemus or other digitizer.
+#      .. note:: The required 3D coordinates for defining the head coordinate
+#                frame (NAS, LPA, RPA) are measured at a stage separate from
+#                the MEG data recording. There exist numerous devices to
+#                perform such measurements, usually called "digitizers". For
+#                example, see the devices by the company `Polhemus`_.
 #
 # 2. MEG device coordinate frame ("meg", :blue:`blue axes`)
-#      This is defined by the MEG manufacturers. From the Elekta user manual:
+#      The MEG device coordinate frame is defined by the respective MEG
+#      manufacturers. All MEG data is acquired with respect to this coordinate
+#      frame. To account for the anatomy and position of the subject's head, we
+#      use so-called head position indicator (HPI) coils. The HPI coils are
+#      placed at known locations on the scalp of the subject and emit
+#      high-frequency magnetic fields used to coregister the head coordinate
+#      frame with the device coordinate frame.
+#
+#      From the Neuromag/Elekta/MEGIN user manual:
 #
 #          The origin of the device coordinate system is located at the center
-#          of the posterior spherical section of the helmet with axis going
-#          from left to right and axis pointing front. The axis is, again
+#          of the posterior spherical section of the helmet with X axis going
+#          from left to right and Y axis pointing front. The Z axis is, again
 #          normal to the plane with positive direction up.
 #
-#      .. note:: The device is coregistered with the head coordinate frame
-#                during acquisition via emission of sinusoidal currents in
-#                head position indicator (HPI) coils
-#                (:magenta:`magenta spheres`) at the beginning of the
-#                recording. This is stored in ``raw.info['dev_head_t']``.
+#      .. note:: The HPI coils are shown as :magenta:`magenta spheres`.
+#                Coregistration happens at the beginning of the recording and
+#                the data is stored in ``raw.info['dev_head_t']``.
 #
 # 3. MRI coordinate frame ("mri", :gray:`gray axes`)
 #      Defined by Freesurfer, the MRI (surface RAS) origin is at the
 #      center of a 256×256×256 1mm anisotropic volume (may not be in the center
 #      of the head).
 #
-#      .. note:: This is aligned to the head coordinate frame that we
-#                typically refer to in MNE as ``trans``.
+#      .. note:: We typically align the MRI coordinate frame to the head
+#                coordinate frame through a `rotation and translation matrix`_,
+#                that we refer to in MNE as ``trans``.
 #
 # A bad example
 # -------------
@@ -209,4 +234,9 @@ mne.viz.plot_alignment(
 # `these slides
 # <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
 #
-# .. _trans_matrices: https://en.wikipedia.org/wiki/Transformation_matrix
+# .. _rotation and translation matrix: https://en.wikipedia.org/wiki/Transformation_matrix  # noqa: E501
+# .. _NAS: https://en.wikipedia.org/wiki/Nasion
+# .. _LPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
+# .. _RPA: http://www.fieldtriptoolbox.org/faq/how_are_the_lpa_and_rpa_points_defined/  # noqa:E501
+# .. _Polhemus: https://polhemus.com/scanning-digitizing/digitizing-products/
+# .. _FieldTrip FAQ on coordinate systems: http://www.fieldtriptoolbox.org/faq/how_are_the_different_head_and_mri_coordinate_systems_defined/  # noqa:E501

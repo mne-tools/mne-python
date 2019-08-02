@@ -31,7 +31,7 @@ import mne
 # MNE-Python data structures are based around the FIF file format from
 # Neuromag, but there are reader functions for :ref:`a wide variety of other
 # data formats <data-formats>`. MNE-Python also has interfaces to a
-# variety of :doc:`publicly available datasets <../../manual/datasets_index>`,
+# variety of :ref:`publicly available datasets <datasets>`,
 # which MNE-Python can download and manage for you.
 #
 # We'll start this tutorial by loading one of the example datasets (called
@@ -200,6 +200,8 @@ fig.subplots_adjust(right=0.7)  # make room for the legend
 # proceeding with epoching as described in the next section.
 #
 #
+# .. _tut-section-overview-epoching:
+#
 # Epoching continuous data
 # ^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -301,8 +303,7 @@ aud_evoked = aud_epochs.average()
 vis_evoked = vis_epochs.average()
 
 mne.viz.plot_compare_evokeds(dict(auditory=aud_evoked, visual=vis_evoked),
-                             show_legend='upper left',
-                             show_sensors='upper right')
+                             legend='upper left', show_sensors='upper right')
 
 ###############################################################################
 # We can also get a more detailed view of each :class:`~mne.Evoked` object

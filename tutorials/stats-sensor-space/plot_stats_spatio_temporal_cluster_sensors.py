@@ -165,7 +165,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
         title += "s (mean)"
     plot_compare_evokeds(evokeds, title=title, picks=ch_inds, axes=ax_signals,
                          colors=colors, linestyles=linestyles, show=False,
-                         split_legend=True, truncate_yaxis='max_ticks')
+                         split_legend=True, truncate_yaxis='auto')
 
     # plot temporal cluster extent
     ymin, ymax = ax_signals.get_ylim()

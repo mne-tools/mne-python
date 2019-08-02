@@ -9,7 +9,8 @@ import pytest
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne.datasets import testing
-from mne import read_surface, write_surface, decimate_surface, pick_types
+from mne import (read_surface, write_surface, decimate_surface, pick_types,
+                 dig_mri_distances)
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
@@ -23,6 +24,9 @@ data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
+fname_trans = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc-trans.fif')
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 
 rng = np.random.RandomState(0)
 
@@ -194,6 +198,22 @@ def test_decimate_surface():
     nirvana = 5
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, nirvana]])
     pytest.raises(ValueError, decimate_surface, points, tris, n_tri)
+
+
+@pytest.mark.parametrize('dig_kinds, exclude, count, bounds, outliers', [
+    ('auto', False, 72, (0.001, 0.002), 0),
+    (('eeg', 'extra', 'cardinal', 'hpi'), False, 146, (0.002, 0.003), 1),
+    (('eeg', 'extra', 'cardinal', 'hpi'), True, 139, (0.001, 0.002), 0),
+])
+@testing.requires_testing_data
+def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
+    """Test the trans obtained by coregistration."""
+    info = read_info(fname_raw)
+    dists = dig_mri_distances(info, fname_trans, 'sample', subjects_dir,
+                              dig_kinds=dig_kinds, exclude_frontal=exclude)
+    assert dists.shape == (count,)
+    assert bounds[0] < np.mean(dists) < bounds[1]
+    assert np.sum(dists > 0.03) == outliers
 
 
 run_tests_if_main()

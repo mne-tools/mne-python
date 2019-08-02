@@ -24,7 +24,8 @@ from .io.tag import find_tag
 from .io.write import (write_int, start_file, end_block, start_block, end_file,
                        write_string, write_float_sparse_rcs)
 from .channels.channels import _get_meg_system
-from .transforms import transform_surface_to, _pol_to_cart, _cart_to_sph
+from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
+                         _get_trans, apply_trans)
 from .utils import logger, verbose, get_subjects_dir, warn
 from .fixes import _serialize_volume_info, _get_read_geometry, einsum
 
@@ -183,7 +184,7 @@ def fast_cross_3d(x, y):
     """Compute cross product between list of 3D vectors.
 
     Much faster than np.cross() when the number of cross products
-    becomes large (>500). This is because np.cross() methods become
+    becomes large (>= 500). This is because np.cross() methods become
     less memory efficient at this stage.
 
     Parameters
@@ -206,13 +207,15 @@ def fast_cross_3d(x, y):
     assert y.ndim >= 1
     assert x.shape[-1] == 3
     assert y.shape[-1] == 3
-    if max(x.size, y.size) >= 1500:
-        a = x[..., 1] * y[..., 2] - x[..., 2] * y[..., 1]
-        b = x[..., 2] * y[..., 0] - x[..., 0] * y[..., 2]
-        c = x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]
-        # Once we bump to NumPy 1.10, np.stack simplifies this
-        return np.concatenate([
-            a[..., np.newaxis], b[..., np.newaxis], c[..., np.newaxis]], -1)
+    if max(x.size, y.size) >= 500:
+        out = np.empty(np.broadcast(x, y).shape)
+        np.multiply(x[..., 1], y[..., 2], out=out[..., 0])
+        out[..., 0] -= x[..., 2] * y[..., 1]
+        np.multiply(x[..., 2], y[..., 0], out=out[..., 1])
+        out[..., 1] -= x[..., 0] * y[..., 2]
+        np.multiply(x[..., 0], y[..., 1], out=out[..., 2])
+        out[..., 2] -= x[..., 1] * y[..., 0]
+        return out
     else:
         return np.cross(x, y)
 
@@ -1410,3 +1413,54 @@ def _complete_sphere_surf(sphere, idx, level, complete=True):
         complete_surface_info(surf, copy=False)
     surf['coord_frame'] = sphere['coord_frame']
     return surf
+
+
+@verbose
+def dig_mri_distances(info, trans, subject, subjects_dir=None,
+                      dig_kinds='auto', exclude_frontal=False, verbose=None):
+    """Compute distances between head shape points and the scalp surface.
+
+    This function is useful to check that coregistration is correct.
+    Unless outliers are present in the head shape points,
+    one can assume an average distance around 2-3 mm.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info that contains the head shape
+        points in ``info['dig']``.
+    trans : str | instance of Transform
+        The head<->MRI transform. If str is passed it is the
+        path to file on disk.
+    subject : str
+        The name of the subject.
+    subjects_dir : str | None
+        Directory containing subjects data. If None use
+        the Freesurfer SUBJECTS_DIR environment variable.
+    %(dig_kinds)s
+    %(exclude_frontal)s
+        Default is False.
+    %(verbose)s
+
+    Returns
+    -------
+    dists : array, shape (n_points,)
+        The distances.
+
+    See Also
+    --------
+    mne.bem.get_fitting_dig
+
+    Notes
+    -----
+    .. versionadded:: 0.19
+    """
+    from .bem import get_fitting_dig
+    pts = get_head_surf(subject, ('head-dense', 'head', 'bem'),
+                        subjects_dir=subjects_dir)['rr']
+    trans = _get_trans(trans, fro="mri", to="head")[0]
+    pts = apply_trans(trans, pts)
+    info_dig = get_fitting_dig(
+        info, dig_kinds, exclude_frontal=exclude_frontal)
+    dists = _compute_nearest(pts, info_dig, return_dists=True)[1]
+    return dists

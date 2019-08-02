@@ -23,7 +23,6 @@ from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
-from ..channels.montage import read_montage, _set_montage, Montage
 from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -358,6 +357,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 load_from_disk = True
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
+        orig_ch_names = info['ch_names']
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
         self.buffer_size_sec = float(buffer_size_sec)
@@ -381,14 +381,21 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._filenames = list(filenames)
         self.orig_format = orig_format
         # Sanity check and set original units, if provided by the reader:
+
         if orig_units:
             if not isinstance(orig_units, dict):
                 raise ValueError('orig_units must be of type dict, but got '
                                  ' {}'.format(type(orig_units)))
 
-            # original units need to be truncated to 15 chars, which is what
-            # the MNE IO procedure also does with the other channels
-            orig_units_trunc = [ch[:15] for ch in orig_units]
+            # original units need to be truncated to 15 chars or renamed
+            # to match MNE conventions (channel name unique and less than
+            # 15 characters).
+            orig_units = deepcopy(orig_units)
+            for old_ch, new_ch in zip(orig_ch_names, info['ch_names']):
+                if old_ch in orig_units:
+                    this_unit = orig_units[old_ch]
+                    del orig_units[old_ch]
+                    orig_units[new_ch] = this_unit
 
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
@@ -399,7 +406,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             # Each channel in the data must have a corresponding channel in
             # the original units.
-            ch_correspond = [ch in orig_units_trunc for ch in ch_names]
+            ch_correspond = [ch in orig_units for ch in ch_names]
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError('Channel {} has no associated original '
@@ -2303,36 +2310,6 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
         return raws[0]
     else:
         return raws[0], events
-
-
-def _check_update_montage(info, montage, path=None, update_ch_names=False,
-                          raise_missing=True):
-    """Help eeg readers to add montage."""
-    if montage is not None:
-        if not isinstance(montage, (str, Montage)):
-            err = ("Montage must be str, None, or instance of Montage. "
-                   "%s was provided" % type(montage))
-            raise TypeError(err)
-        if montage is not None:
-            if isinstance(montage, str):
-                montage = read_montage(montage, path=path)
-            _set_montage(info, montage, update_ch_names=update_ch_names)
-
-            missing_positions = []
-            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
-                       FIFF.FIFFV_STIM_CH)
-            for ch in info['chs']:
-                if not ch['kind'] in exclude:
-                    if not np.isfinite(ch['loc'][:3]).all():
-                        missing_positions.append(ch['ch_name'])
-
-            # raise error if positions are missing
-            if missing_positions and raise_missing:
-                raise KeyError(
-                    "The following positions are missing from the montage "
-                    "definitions: %s. If those channels lack positions "
-                    "because they are EOG channels use the eog parameter."
-                    % str(missing_positions))
 
 
 def _check_maxshield(allow_maxshield):

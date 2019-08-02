@@ -10,8 +10,8 @@ import numpy as np
 
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
-from ..base import BaseRaw, _check_update_montage
-from ..utils import _read_segments_file, _create_chs
+from ..base import BaseRaw
+from ..utils import _read_segments_file, _create_chs, _deprecate_montage
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...utils import verbose, logger, warn
@@ -88,7 +88,7 @@ def _read_events(fid, info):
 
 
 @verbose
-def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
+def read_raw_egi(input_fname, montage='deprecated', eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
@@ -98,10 +98,7 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     input_fname : str
         Path to the raw file. Files with an extension .mff are automatically
         considered to be EGI's native MFF format files.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Default is None.
@@ -117,12 +114,7 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
        trigger. Defaults to None. If None, channels that have more than
        one event and the ``sync`` and ``TREV`` channels will be
        ignored.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
 
         .. versionadded:: 0.11
     channel_naming : str
@@ -168,7 +160,7 @@ class RawEGI(BaseRaw):
     """Raw object from EGI simple binary file."""
 
     @verbose
-    def __init__(self, input_fname, montage=None, eog=None, misc=None,
+    def __init__(self, input_fname, montage='deprecated', eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):  # noqa: D102
         if eog is None:
@@ -261,11 +253,12 @@ class RawEGI(BaseRaw):
                              'unit': FIFF.FIFF_UNIT_NONE})
         info['chs'] = chs
         info._update_redundant()
-        _check_update_montage(info, montage)
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],
             filenames=[input_fname], last_samps=[egi_info['n_samples'] - 1],
             raw_extras=[egi_info], verbose=verbose)
+
+        _deprecate_montage(self, "read_raw_egi", montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""

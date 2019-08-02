@@ -186,16 +186,21 @@ def test_plot_ica_sources():
 
     # dtype can change int->np.int after load, test it explicitly
     ica.n_components_ = np.int64(ica.n_components_)
-    fig = ica.plot_sources(raw, [1])
+    fig = ica.plot_sources(raw)
     # also test mouse clicks
     data_ax = fig.axes[0]
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+    # `exclude` parameter is deprecated
+    with pytest.deprecated_call():
+        ica.plot_sources(raw, exclude=[1])
 
     raw.info['bads'] = ['MEG 0113']
-    pytest.raises(RuntimeError, ica.plot_sources, inst=raw)
+    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):
+        ica.plot_sources(inst=raw)
     ica.plot_sources(epochs)
     epochs.info['bads'] = ['MEG 0113']
-    pytest.raises(RuntimeError, ica.plot_sources, inst=epochs)
+    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"):
+        ica.plot_sources(inst=epochs)
     epochs.info['bads'] = []
     ica.plot_sources(epochs.average())
     evoked = epochs.average()
@@ -208,13 +213,13 @@ def test_plot_ica_sources():
     _fake_click(fig, ax,
                 [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
     # plot with bad channels excluded
-    ica.plot_sources(evoked, exclude=[0])
     ica.exclude = [0]
-    ica.plot_sources(evoked)  # does the same thing
+    ica.plot_sources(evoked)
     ica.labels_ = dict(eog=[0])
     ica.labels_['eog/0/crazy-channel'] = [0]
     ica.plot_sources(evoked)  # now with labels
-    pytest.raises(ValueError, ica.plot_sources, 'meeow')
+    with pytest.raises(ValueError, match='must be of Raw or Epochs type'):
+        ica.plot_sources('meeow')
     plt.close('all')
 
 
@@ -287,7 +292,8 @@ def test_plot_instance_components():
               max_pca_components=3, n_pca_components=3)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
-    fig = ica.plot_sources(raw, exclude=[0], title='Components')
+    ica.exclude = [0]
+    fig = ica.plot_sources(raw, title='Components')
     for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
                 'pagedown', 'home', 'end', 'f11', 'b']:
         fig.canvas.key_press_event(key)
@@ -299,7 +305,7 @@ def test_plot_instance_components():
     fig.canvas.key_press_event('escape')
     plt.close('all')
     epochs = _get_epochs()
-    fig = ica.plot_sources(epochs, exclude=[0], title='Components')
+    fig = ica.plot_sources(epochs, title='Components')
     for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
                 'pagedown', 'home', 'end', 'f11', 'b']:
         fig.canvas.key_press_event(key)

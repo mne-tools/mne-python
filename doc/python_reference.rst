@@ -58,6 +58,7 @@ Reading raw data
    read_raw_bti
    read_raw_cnt
    read_raw_ctf
+   read_raw_curry
    read_raw_edf
    read_raw_bdf
    read_raw_gdf
@@ -549,6 +550,7 @@ Forward Modeling
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   dig_mri_distances
    forward.compute_depth_prior
    forward.compute_orient_prior
    forward.restrict_forward_to_label

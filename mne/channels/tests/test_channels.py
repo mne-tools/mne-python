@@ -236,7 +236,8 @@ def test_1020_selection():
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname = op.join(base_dir, 'test_raw.set')
     loc_fname = op.join(base_dir, 'test_chans.locs')
-    raw = read_raw_eeglab(raw_fname, montage=loc_fname)
+    raw = read_raw_eeglab(raw_fname)
+    raw.set_montage(loc_fname)
 
     for input in ("a_string", 100, raw, [1, 2]):
         pytest.raises(TypeError, make_1020_channel_selections, input)

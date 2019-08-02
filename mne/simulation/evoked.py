@@ -193,7 +193,7 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None,
     rng = check_random_state(random_state)
     _, _, colorer = compute_whitener(cov, info, pca=True, return_colorer=True,
                                      picks=picks, verbose=False)
-    noise = np.dot(colorer, rng.randn(colorer.shape[1], n_samples))
+    noise = np.dot(colorer, rng.standard_normal((colorer.shape[1], n_samples)))
     if iir_filter is not None:
         if zi is None:
             zi = np.zeros((len(colorer), len(iir_filter) - 1))

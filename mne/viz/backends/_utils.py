@@ -27,6 +27,8 @@ def _get_colormap_from_array(colormap=None, normalized_colormap=False,
     from matplotlib.colors import ListedColormap
     if colormap is None:
         cmap = cm.get_cmap(default_colormap)
+    elif isinstance(colormap, str):
+        cmap = cm.get_cmap(colormap)
     elif normalized_colormap:
         cmap = ListedColormap(colormap)
     else:

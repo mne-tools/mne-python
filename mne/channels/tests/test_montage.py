@@ -1,4 +1,5 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -9,14 +10,19 @@ import pytest
 
 import numpy as np
 from scipy.io import savemat
+from copy import deepcopy
+from functools import partial
 
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
                            assert_array_less, assert_equal)
-from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
-                                  get_builtin_montages)
-from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
+
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
+from mne.channels import (Montage, read_montage, read_dig_montage,
+                          get_builtin_montages)
+from mne.channels.montage import _set_montage
+from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
+                       object_diff)
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
@@ -26,7 +32,8 @@ from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
-                    read_fiducials)
+                    read_raw_cnt, read_raw_edf, read_raw_nicolet, read_raw_bdf,
+                    read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
 
 from mne.datasets import testing
 
@@ -37,15 +44,26 @@ egi_raw_fname = op.join(data_path, 'montage', 'egi_dig_test.raw')
 egi_fif_fname = op.join(data_path, 'montage', 'egi_dig_raw.fif')
 locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
+eeglab_fname = op.join(data_path, 'EEGLAB', 'test_raw.set')
+bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
+bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
+egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
+cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+io_dir = op.dirname(_mne_io_file)
 kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
 elp = op.join(kit_dir, 'test_elp.txt')
 hsp = op.join(kit_dir, 'test_hsp.txt')
 hpi = op.join(kit_dir, 'test_mrk.sqd')
 bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+edf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test.edf')
+bdf_path = op.join(io_dir, 'edf', 'tests', 'data', 'test_bdf_eeglab.mat')
+egi_fname2 = op.join(io_dir, 'egi', 'tests', 'data', 'test_egi.raw')
+vhdr_path = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 ctf_fif_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
+                        'test_nicolet_raw.data')
 
 
 def test_fiducials():
@@ -179,17 +197,18 @@ def test_montage():
         elp=[[-48.20043, 57.55106, 39.86971], [0.0, 60.73848, 59.4629],
              [48.1426, 57.58403, 39.89198], [41.64599, 66.91489, 31.8278]],
         hpts=[[-95, -3, -3], [-1, -1., -3.], [-2, -2, 2.], [0, 0, 0]],
-        bvef=[[-26.266444, 80.839803, 5.204748e-15],
-              [3.680313e-15, 60.104076, 60.104076],
-              [-46.325632, 57.207392, 42.500000],
-              [-68.766444, 49.961746, 5.204748e-15]],
+        bvef=[[-2.62664445e-02,  8.08398039e-02,  5.20474890e-18],
+              [3.68031324e-18,  6.01040764e-02,  6.01040764e-02],
+              [-4.63256329e-02,  5.72073923e-02,  4.25000000e-02],
+              [-6.87664445e-02,  4.99617464e-02,  5.20474890e-18]],
     )
     for key, text in inputs.items():
         kind = key.split('_')[-1]
         fname = op.join(tempdir, 'test.' + kind)
         with open(fname, 'w') as fid:
             fid.write(text)
-        montage = read_montage(fname)
+        unit = 'mm' if kind == 'bvef' else 'm'
+        montage = read_montage(fname, unit=unit)
         if kind in ('sfp', 'txt'):
             assert ('very_very_very_long_name' in montage.ch_names)
         assert_equal(len(montage.ch_names), 4)
@@ -214,6 +233,11 @@ def test_montage():
             assert_array_less(distance_from_centroid, 0.2)
             assert_array_less(0.01, distance_from_centroid)
         assert_array_almost_equal(poss[key], montage.pos, 4, err_msg=key)
+
+    # Bvef is either auto or mm in terms of "units"
+    with pytest.raises(ValueError, match='be "auto" or "mm" for .bvef files.'):
+        bvef_file = op.join(tempdir, 'test.' + 'bvef')
+        read_montage(bvef_file, unit='m')
 
     # Test reading in different letter case.
     ch_names = ["F3", "FZ", "F4", "FC3", "FCz", "FC4", "C3", "CZ", "C4", "CP3",
@@ -240,7 +264,7 @@ def test_montage():
     # sfp files seem to have Nz, T9, and T10 as fiducials:
     # https://github.com/mne-tools/mne-python/pull/4482#issuecomment-321980611
 
-    kinds = ['test_fid.hpts',  'test_fid.sfp']
+    kinds = ['test_fid.hpts', 'test_fid.sfp']
 
     for kind, input_str in zip(kinds, input_strs):
         fname = op.join(tempdir, kind)
@@ -558,6 +582,180 @@ def _check_roundtrip(montage, fname):
             assert_allclose(getattr(montage, kind),
                             getattr(montage_read, kind), err_msg=kind)
     assert_equal(montage_read.coord_frame, 'head')
+
+
+def _fake_montage(ch_names):
+    return Montage(
+        pos=np.random.RandomState(42).randn(len(ch_names), 3),
+        ch_names=ch_names,
+        kind='foo',
+        selection=np.arange(len(ch_names))
+    )
+
+
+cnt_ignore_warns = [
+    pytest.mark.filterwarnings(
+        'ignore:.*Could not parse meas date from the header. Setting to None.'
+    ),
+    pytest.mark.filterwarnings((
+        'ignore:.*Could not define the number of bytes automatically.'
+        ' Defaulting to 2.')
+    ),
+]
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('read_raw,fname', [
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname,
+                 id='nicolet'),
+    pytest.param(read_raw_eeglab, eeglab_fname, id='eeglab'),
+    pytest.param(read_raw_edf, edf_path, id='edf'),
+    pytest.param(read_raw_bdf, bdf_path,
+                 marks=pytest.mark.xfail(raises=NotImplementedError),
+                 id='bdf 1'),
+    pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
+    pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+    pytest.param(read_raw_egi, egi_fname1, id='egi mff'),
+    pytest.param(read_raw_egi, egi_fname2,
+                 marks=pytest.mark.filterwarnings('ignore:.*than one event'),
+                 id='egi raw'),
+    pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
+                 cnt_fname, marks=cnt_ignore_warns, id='cnt'),
+    pytest.param(read_raw_brainvision, vhdr_path, id='brainvision'),
+])
+def test_montage_when_reading_and_setting(read_raw, fname):
+    """Test montage.
+
+    This is a regression test to help refactor Digitization.
+    """
+    with pytest.deprecated_call():
+        raw_none = read_raw(fname, montage=None, preload=False)
+    # raw_none_copy = deepcopy(raw_none)
+    montage = _fake_montage(raw_none.info['ch_names'])
+
+    with pytest.deprecated_call():
+        raw_montage = read_raw(fname, montage=montage, preload=False)
+
+    raw_none.set_montage(montage)
+
+    # Check that reading with montage or setting the montage is the same
+    assert_array_equal(raw_none.get_data(), raw_montage.get_data())
+    assert object_diff(raw_none.info['dig'], raw_montage.info['dig']) == ''
+    assert object_diff(raw_none.info['chs'], raw_montage.info['chs']) == ''
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('read_raw,fname', [
+    pytest.param(partial(read_raw_nicolet, ch_type='eeg'),
+                 nicolet_fname,
+                 marks=pytest.mark.skip,
+                 id='nicolet'),
+    pytest.param(read_raw_eeglab, eeglab_fname,
+                 marks=pytest.mark.skip,
+                 id='eeglab'),
+    pytest.param(read_raw_edf, edf_path, id='edf'),
+    pytest.param(read_raw_bdf, bdf_path,
+                 marks=pytest.mark.xfail(raises=NotImplementedError),
+                 id='bdf 1'),
+    pytest.param(read_raw_bdf, bdf_fname1, id='bdf 2'),
+    pytest.param(read_raw_bdf, bdf_fname2, id='bdf 3'),
+    pytest.param(read_raw_egi, egi_fname1,
+                 marks=pytest.mark.skip,
+                 id='egi mff'),
+    pytest.param(read_raw_egi, egi_fname2,
+                 marks=pytest.mark.filterwarnings('ignore:.*than one event'),
+                 id='egi raw'),
+    pytest.param(partial(read_raw_cnt, eog='auto', misc=['NA1', 'LEFT_EAR']),
+                 cnt_fname,
+                 marks=[*cnt_ignore_warns, pytest.mark.skip],
+                 id='cnt'),
+    pytest.param(read_raw_brainvision, vhdr_path,
+                 marks=pytest.mark.skip,
+                 id='brainvision'),
+])
+def test_montage_when_reading_and_setting_more(read_raw, fname):
+    """Test montage.
+
+    This is a regression test to help refactor Digitization.
+    """
+    with pytest.deprecated_call():
+        raw_none = read_raw(fname, montage=None, preload=False)
+    raw_none_copy = deepcopy(raw_none)
+
+    # check consistency between reading and setting with montage=None
+    assert raw_none_copy.info['dig'] is None
+    original_chs = deepcopy(raw_none_copy.info['chs'])
+    original_loc = np.array([ch['loc'] for ch in original_chs])
+    assert_array_equal(original_loc, np.zeros_like(original_loc))
+
+    raw_none_copy.set_montage(montage=None)
+    loc = np.array([ch['loc'] for ch in raw_none_copy.info['chs']])
+    assert_array_equal(loc, np.full_like(loc, np.NaN))
+
+EXPECTED_DIG_RPR = [
+    '<DigPoint |        LPA : (-6.7, 0.0, -3.3) mm      : head frame>',  # FidT9 [-6.711765    0.04040288 -3.25160035]  # noqa
+    '<DigPoint |     Nasion : (0.0, 9.1, -2.4) mm       : head frame>',  # FidNz [ 0.          9.07158515 -2.35975445]  # noqa
+    '<DigPoint |        RPA : (6.7, 0.0, -3.3) mm       : head frame>',  # FidT10 [ 6.711765    0.04040288 -3.25160035] # noqa
+    '<DigPoint |     EEG #1 : (-2.7, 8.9, 1.1) mm       : head frame>',  # E1 [-2.69540556  8.88482032  1.08830814]     # noqa
+    '<DigPoint |     EEG #2 : (2.7, 8.9, 1.1) mm        : head frame>',  # E2 [2.69540556 8.88482032 1.08830814]        # noqa
+    '<DigPoint |     EEG #3 : (-4.5, 6.0, 4.4) mm       : head frame>',  # E3 [-4.45938719  6.02115996  4.36532148]     # noqa
+    '<DigPoint |     EEG #4 : (4.5, 6.0, 4.4) mm        : head frame>',  # E4 [4.45938719 6.02115996 4.36532148]        # noqa
+    '<DigPoint |     EEG #5 : (-5.5, 0.3, 6.4) mm       : head frame>',  # E5 [-5.47913021  0.28494865  6.38332782]     # noqa
+    '<DigPoint |     EEG #6 : (5.5, 0.3, 6.4) mm        : head frame>',  # E6 [5.47913021 0.28494865 6.38332782]        # noqa
+    '<DigPoint |     EEG #7 : (-5.8, -4.5, 5.0) mm      : head frame>',  # E7 [-5.8312415 -4.4948217  4.9553477]        # noqa
+    '<DigPoint |     EEG #8 : (5.8, -4.5, 5.0) mm       : head frame>',  # E8 [ 5.8312415 -4.4948217  4.9553477]        # noqa
+    '<DigPoint |     EEG #9 : (-2.7, -8.6, 0.2) mm      : head frame>',  # E9 [-2.73883802 -8.60796685  0.23936822]     # noqa
+    '<DigPoint |    EEG #10 : (2.7, -8.6, 0.2) mm       : head frame>',  # E10 [ 2.73883802 -8.60796685  0.23936822]    # noqa
+    '<DigPoint |    EEG #11 : (-6.4, 4.1, -0.4) mm      : head frame>',  # E11 [-6.3990872   4.12724888 -0.35685224]    # noqa
+    '<DigPoint |    EEG #12 : (6.4, 4.1, -0.4) mm       : head frame>',  # E12 [ 6.3990872   4.12724888 -0.35685224]    # noqa
+    '<DigPoint |    EEG #13 : (-7.3, -1.9, -0.6) mm     : head frame>',  # E13 [-7.3046251  -1.86623801 -0.62918201]    # noqa
+    '<DigPoint |    EEG #14 : (7.3, -1.9, -0.6) mm      : head frame>',  # E14 [ 7.3046251  -1.86623801 -0.62918201]    # noqa
+    '<DigPoint |    EEG #15 : (-6.0, -5.8, 0.1) mm      : head frame>',  # E15 [-6.03474684 -5.7557822   0.05184301]    # noqa
+    '<DigPoint |    EEG #16 : (6.0, -5.8, 0.1) mm       : head frame>',  # E16 [ 6.03474684 -5.7557822   0.05184301]    # noqa
+    '<DigPoint |    EEG #17 : (0.0, 8.0, 5.0) mm        : head frame>',  # E17 [0.         7.96264703 5.044718  ]       # noqa
+    '<DigPoint |    EEG #18 : (0.0, 9.3, -2.2) mm       : head frame>',  # E18 [ 0.          9.2711397  -2.21151643]    # noqa
+    '<DigPoint |    EEG #19 : (0.0, -6.7, 6.5) mm       : head frame>',  # E19 [ 0.         -6.67669403  6.46520826]    # noqa
+    '<DigPoint |    EEG #20 : (0.0, -9.0, 0.5) mm       : head frame>',  # E20 [ 0.         -8.9966865   0.48795205]    # noqa
+    '<DigPoint |    EEG #21 : (-6.5, 2.4, -5.3) mm      : head frame>',  # E21 [-6.51899513  2.4172994  -5.25363707]    # noqa
+    '<DigPoint |    EEG #22 : (6.5, 2.4, -5.3) mm       : head frame>',  # E22 [ 6.51899513  2.4172994  -5.25363707]    # noqa
+    '<DigPoint |    EEG #23 : (-6.2, -2.5, -5.6) mm     : head frame>',  # E23 [-6.17496939 -2.45813888 -5.637381  ]    # noqa
+    '<DigPoint |    EEG #24 : (6.2, -2.5, -5.6) mm      : head frame>',  # E24 [ 6.17496939 -2.45813888 -5.637381  ]    # noqa
+    '<DigPoint |    EEG #25 : (-3.8, -6.4, -5.3) mm     : head frame>',  # E25 [-3.78498391 -6.40101441 -5.26004069]    # noqa
+    '<DigPoint |    EEG #26 : (3.8, -6.4, -5.3) mm      : head frame>',  # E26 [ 3.78498391 -6.40101441 -5.26004069]    # noqa
+    '<DigPoint |    EEG #27 : (0.0, 9.1, 1.3) mm        : head frame>',  # E27 [0.         9.08744089 1.33334501]       # noqa
+    '<DigPoint |    EEG #28 : (0.0, 3.8, 7.9) mm        : head frame>',  # E28 [0.         3.80677022 7.89130496]       # noqa
+    '<DigPoint |    EEG #29 : (-3.7, 6.6, -6.5) mm      : head frame>',  # E29 [-3.74350495  6.64920491 -6.53024307]    # noqa
+    '<DigPoint |    EEG #30 : (3.7, 6.6, -6.5) mm       : head frame>',  # E30 [ 3.74350495  6.64920491 -6.53024307]    # noqa
+    '<DigPoint |    EEG #31 : (-6.1, 4.5, -4.4) mm      : head frame>',  # E31 [-6.11845814  4.52387011 -4.40917443]    # noqa
+    '<DigPoint |    EEG #32 : (6.1, 4.5, -4.4) mm       : head frame>',  # E32 [ 6.11845814  4.52387011 -4.40917443]    # noqa
+]
+
+
+def test_setting_hydrocel_montage():
+    """Test set_montage using GSN-HydroCel-32."""
+    from mne.io import RawArray
+
+    montage = read_montage('GSN-HydroCel-32')
+    ch_names = [name for name in montage.ch_names if name.startswith('E')]
+    montage.pos /= 1e3
+
+    raw = RawArray(
+        data=np.empty([len(ch_names), 1]),
+        info=create_info(ch_names=ch_names, sfreq=1, ch_types='eeg')
+    ).set_montage(montage)
+
+    # test info['chs']
+    _slice = [name.startswith('E') for name in montage.ch_names]
+    _slice = np.array(_slice, dtype=bool)
+    EXPECTED_CHS_POS = montage.pos[_slice, :]  # Shall this be in the same units as info['dig'] ??  # noqa
+    actual_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']])
+    assert_array_equal(actual_pos, EXPECTED_CHS_POS)
+
+    # test info['dig']
+    for actual, expected in zip([str(d) for d in raw.info['dig']],
+                                EXPECTED_DIG_RPR):
+        assert actual == expected
 
 
 run_tests_if_main()

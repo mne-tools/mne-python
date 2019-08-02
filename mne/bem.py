@@ -253,15 +253,14 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
     return
 
 
-def _check_complete_surface(surf, copy=False, incomplete='raise'):
+def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     surf = complete_surface_info(surf, copy=copy, verbose=False)
     fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
     if len(fewer) > 0:
-        msg = ('Surface %s has topological defects: %d / %d '
-               'vertices have fewer than three neighboring '
-               'triangles [%s]' % (_surf_name[surf['id']],
-                                   len(fewer), surf['ntri'],
-                                   ', '.join(str(f) for f in fewer)))
+        msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
+               'have fewer than three neighboring triangles [{}]{}'
+               .format(_surf_name[surf['id']], len(fewer), surf['ntri'],
+                       ', '.join(str(f) for f in fewer), extra))
         if incomplete == 'raise':
             raise RuntimeError(msg)
         else:
@@ -484,7 +483,7 @@ def _check_thicknesses(surfs):
 
 
 def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
-                     incomplete='raise'):
+                     incomplete='raise', extra=''):
     """Convert surfaces to a BEM."""
     # equivalent of mne_surf2bem
     # surfs can be strings (filenames) or surface dicts
@@ -502,7 +501,8 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
     for surf, id_ in zip(surfs, ids):
         # Do topology checks (but don't save data) to fail early
         surf['id'] = id_
-        _check_complete_surface(surf, copy=True, incomplete=incomplete)
+        _check_complete_surface(surf, copy=True, incomplete=incomplete,
+                                extra=extra)
         surf['coord_frame'] = surf.get('coord_frame', FIFF.FIFFV_COORD_MRI)
         surf.update(np=len(surf['rr']), ntri=len(surf['tris']))
         if rescale:
@@ -867,19 +867,19 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
 
 
 @verbose
-def get_fitting_dig(info, dig_kinds='auto', verbose=None):
+def get_fitting_dig(info, dig_kinds='auto', exclude_frontal=True,
+                    verbose=None):
     """Get digitization points suitable for sphere fitting.
 
     Parameters
     ----------
     info : instance of Info
         The measurement info.
-    dig_kinds : list of str | str
-        Kind of digitization points to use in the fitting. These can be any
-        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
-        be 'auto' (default), which will use only the 'extra' points if
-        enough (more than 10) are available, and if not, uses 'extra' and
-        'eeg' points.
+    %(dig_kinds)s
+    %(exclude_frontal)s
+        Default is True.
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Returns
@@ -923,7 +923,9 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
                            'contact mne-python developers')
 
     # exclude some frontal points (nose etc.)
-    hsp = np.array([p for p in hsp if not (p[2] < -1e-6 and p[1] > 1e-6)])
+    if exclude_frontal:
+        hsp = [p for p in hsp if not (p[2] < -1e-6 and p[1] > 1e-6)]
+    hsp = np.array(hsp)
 
     if len(hsp) <= 10:
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]

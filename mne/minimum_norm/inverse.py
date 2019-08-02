@@ -1272,6 +1272,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # 11. Do appropriate source weighting to the forward computation matrix
     #
 
+    # make a copy immediately so we do it exactly once
+    forward = forward.copy()
+
     # Deal with "fixed" and "loose"
     src_kind = forward['src'].kind
     if fixed == 'auto':
@@ -1318,8 +1321,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             if allow_fixed_depth:
                 # can convert now
                 logger.info('Converting forward solution to fixed orietnation')
-                forward = convert_forward_solution(
-                    forward, force_fixed=True, use_cps=True)
+                convert_forward_solution(
+                    forward, force_fixed=True, use_cps=True, copy=False)
         elif exp is not None and not allow_fixed_depth:
             raise ValueError(
                 'For a fixed orientation inverse solution with depth '
@@ -1333,10 +1336,11 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'operator.')
         if loose < 1. and not forward['surf_ori']:  # loose ori
             logger.info('Converting forward solution to surface orientation')
-            forward = convert_forward_solution(
-                forward, surf_ori=True, use_cps=True)
+            convert_forward_solution(
+                forward, surf_ori=True, use_cps=True, copy=False)
 
-    forward, info_picked = _select_orient_forward(forward, info, noise_cov)
+    forward, info_picked = _select_orient_forward(forward, info, noise_cov,
+                                                  copy=False)
     logger.info("Selected %d channels" % (len(info_picked['ch_names'],)))
 
     if exp is None:
@@ -1356,9 +1360,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                             'depth-weighting prior into the fixed-orientation '
                             'one')
                 depth_prior = depth_prior[2::3]
-            forward = convert_forward_solution(
+            convert_forward_solution(
                 forward, surf_ori=True, force_fixed=True,
-                use_cps=use_cps)
+                use_cps=use_cps, copy=False)
     else:
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this

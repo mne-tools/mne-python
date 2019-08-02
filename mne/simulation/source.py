@@ -12,8 +12,10 @@ import numpy as np
 
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
+from ..fixes import rng_uniform
 from ..utils import check_random_state, warn, _check_option, fill_doc
 from ..label import Label
+from ..surface import _compute_nearest
 
 
 @fill_doc
@@ -77,7 +79,7 @@ def select_source_in_label(src, label, random_state=None, location='random',
         hemi_idx = 1
     src_sel = np.intersect1d(src[hemi_idx]['vertno'], label.vertices)
     if location == 'random':
-        idx = src_sel[rng.randint(0, len(src_sel), 1)[0]]
+        idx = src_sel[rng_uniform(rng)(0, len(src_sel), 1)[0]]
     else:  # 'center'
         idx = label.center_of_mass(
             subject, restrict_vertices=src_sel, subjects_dir=subjects_dir,
@@ -267,6 +269,13 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
         hemi_ind = hemi_to_ind[label.hemi]
         src_sel = np.intersect1d(src[hemi_ind]['vertno'],
                                  label.vertices)
+        if len(src_sel) == 0:
+            idx = src[hemi_ind]['inuse'].astype('bool')
+            xhs = src[hemi_ind]['rr'][idx]
+            rr = src[hemi_ind]['rr'][label.vertices]
+            closest_src = _compute_nearest(xhs, rr)
+            src_sel = src[hemi_ind]['vertno'][np.unique(closest_src)]
+
         if value_fun is not None:
             idx_sel = np.searchsorted(label.vertices, src_sel)
             values_sel = np.array([value_fun(v) for v in

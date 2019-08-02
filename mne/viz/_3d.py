@@ -531,7 +531,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
-                   meg=None, eeg='original',
+                   meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
@@ -577,6 +577,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         show EEG sensors in their digitized locations or projected onto the
         scalp, or a list of these options including ``[]`` (equivalent of
         False).
+    fwd : instance of Forward
+        The forward solution. If present, the orientations of the dipoles
+        present in the forward solution are displayed.
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
@@ -638,7 +641,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     .. versionadded:: 0.15
     """
-    from ..forward import _create_meg_coils
+    from ..forward import _create_meg_coils, Forward
     # Update the backend
     from .backends.renderer import _Renderer
 
@@ -705,6 +708,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                  for s in src])
     else:
         src_rr = src_nn = np.empty((0, 3))
+
+    if fwd is not None:
+        _validate_type(fwd, [Forward])
+        fwd_rr = fwd['source_rr']
+        if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+            fwd_nn = fwd['source_nn'].reshape(-1, 1, 3)
+        else:
+            fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
 
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
@@ -954,13 +965,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         # Surfs can sometimes be in head coords (e.g., if coming from sphere)
         surfs[key] = transform_surface_to(surfs[key], coord_frame,
                                           [mri_trans, head_trans], copy=True)
+
     if src is not None:
-        if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-            src_rr = apply_trans(mri_trans, src_rr)
-            src_nn = apply_trans(mri_trans, src_nn, move=False)
-        elif src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-            src_rr = apply_trans(head_trans, src_rr)
-            src_nn = apply_trans(head_trans, src_nn, move=False)
+        src_rr, src_nn = _update_coord_frame(src[0], src_rr, src_nn,
+                                             mri_trans, head_trans)
+    if fwd is not None:
+        fwd_rr, fwd_nn = _update_coord_frame(fwd, fwd_rr, fwd_nn,
+                                             mri_trans, head_trans)
 
     # determine points
     meg_rrs, meg_tris = list(), list()
@@ -1122,6 +1133,18 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             opacity=0.75, glyph_height=0.25,
             glyph_center=(0., 0., 0.), glyph_resolution=20,
             backface_culling=True)
+    if fwd is not None:
+        red = (1.0, 0.0, 0.0)
+        green = (0.0, 1.0, 0.0)
+        blue = (0.0, 0.0, 1.0)
+        for ori, color in zip(range(fwd_nn.shape[1]), (red, green, blue)):
+            renderer.quiver3d(fwd_rr[:, 0],
+                              fwd_rr[:, 1],
+                              fwd_rr[:, 2],
+                              fwd_nn[:, ori, 0],
+                              fwd_nn[:, ori, 1],
+                              fwd_nn[:, ori, 2],
+                              color=color, mode='arrow', scale=1.5e-3)
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
@@ -2229,7 +2252,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                scale_factor=scale_factor,
                                min=scale_pts[0], max=scale_pts[2],
                                **ad_kwargs)
-    if 'mid' not in ad_kwargs:  # PySurfer < 0.9
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
@@ -2412,8 +2434,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
-                          scale=5e-3, color=(1.0, 0.0, 0.0), fig=None,
-                          verbose=None):
+                          scale=5e-3, color=None, highlight_color='r',
+                          fig=None, verbose=None):
     """Plot dipole locations.
 
     If mode is set to 'arrow' or 'sphere', only the location of the first
@@ -2477,7 +2499,17 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     scale: float
         The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
     color : tuple
-        The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
+        The color of the dipoles.
+        The default (None) will use ``'y'`` if mode is ``'orthoview'`` and
+        ``show_all`` is True, else 'r'.
+
+        .. versionchanged:: 0.19.0
+           Color is now passed in orthoview mode.
+    highlight_color : color
+        The highlight color. Only used in orthoview mode with
+        ``show_all=True``.
+
+        .. versionadded:: 0.19.0
     fig : mayavi.mlab.Figure | None
         3D Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -2498,9 +2530,11 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         fig = _plot_dipole_mri_orthoview(
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
-            ax=ax, block=block, show=show)
+            ax=ax, block=block, show=show, color=color,
+            highlight_color=highlight_color)
     elif mode in ['arrow', 'sphere']:
         from .backends.renderer import _Renderer
+        color = (1., 0., 0.) if color is None else color
         renderer = _Renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
         ori = dipoles.ori
@@ -2518,7 +2552,8 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
         fig = renderer.scene()
     else:
-        raise ValueError('Mode must be "orthoview", got %s.' % (mode,))
+        raise ValueError('Mode must be "cone", "arrow" or orthoview", '
+                         'got %s.' % (mode,))
 
     return fig
 
@@ -2650,10 +2685,9 @@ def plot_sensors_connectivity(info, con, picks=None):
                              destination=np.c_[x2, y2, z2],
                              scalars=np.c_[val, val],
                              vmin=vmin, vmax=vmax, radius=0.001,
-                             colormap='RdBu',
                              reverse_lut=True)
 
-    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)', n_labels=4)
+    renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)')
 
     # Add the sensor names for the connections shown
     nodes_shown = list(set([n[0] for n in con_nodes] +
@@ -2674,7 +2708,8 @@ def plot_sensors_connectivity(info, con, picks=None):
 
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
-                               ax=None, block=False, show=True):
+                               ax=None, block=False, show=True, color=None,
+                               highlight_color='r'):
     """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -2715,11 +2750,13 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                np.linspace(-dd, dd, dims))
 
     _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
-                 coord_frame, zooms, show_all, scatter_points)
+                 coord_frame, zooms, show_all, scatter_points, color,
+                 highlight_color)
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
               'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
               'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
-              'show_all': show_all, 'scatter_points': scatter_points}
+              'show_all': show_all, 'scatter_points': scatter_points,
+              'color': color, 'highlight_color': highlight_color}
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -2765,9 +2802,11 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
 
 
 def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
-                 zooms, show_all, scatter_points):
+                 zooms, show_all, scatter_points, color, highlight_color):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
     point = points[idx]
     xidx, yidx, zidx = np.round(point).astype(int)
     xslice = data[xidx][::-1]
@@ -2781,14 +2820,18 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     xyz = scatter_points
 
     ori = ori[idx]
+    if color is None:
+        color = 'y' if show_all else 'r'
+    color = np.array(color_converter.to_rgba(color))
+    highlight_color = np.array(color_converter.to_rgba(highlight_color))
     if show_all:
-        colors = np.repeat('y', len(points))
-        colors[idx] = 'r'
+        colors = np.repeat(color[np.newaxis], len(points), axis=0)
+        colors[idx] = highlight_color
         size = np.repeat(5, len(points))
         size[idx] = 20
         visible = np.arange(len(points))
     else:
-        colors = 'r'
+        colors = color
         size = 20
         visible = idx
 
@@ -2799,15 +2842,15 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     yy = np.linspace(offset, xyz[idx, 1], yidx)
     zz = np.linspace(offset, xyz[idx, 2], zidx)
     ax.plot(xx, np.repeat(xyz[idx, 1], len(xx)), zs=xyz[idx, 2], zorder=1,
-            linestyle='-', color='r')
+            linestyle='-', color=highlight_color)
     ax.plot(np.repeat(xyz[idx, 0], len(yy)), yy, zs=xyz[idx, 2], zorder=1,
-            linestyle='-', color='r')
+            linestyle='-', color=highlight_color)
     ax.plot(np.repeat(xyz[idx, 0], len(zz)),
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
-            linestyle='-', color='r')
+            linestyle='-', color=highlight_color)
     kwargs = _pivot_kwargs()
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=50, color='r', **kwargs)
+              ori[2], length=50, color=highlight_color, **kwargs)
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
     ax.set_ylim(-1 * dims * zooms[:2])
@@ -2850,4 +2893,15 @@ def _dipole_changed(event, params):
     _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
                  params['idx'], params['dipole'], params['gridx'],
                  params['gridy'], params['ori'], params['coord_frame'],
-                 params['zooms'], params['show_all'], params['scatter_points'])
+                 params['zooms'], params['show_all'], params['scatter_points'],
+                 params['color'], params['highlight_color'])
+
+
+def _update_coord_frame(obj, rr, nn, mri_trans, head_trans):
+    if obj['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+        rr = apply_trans(mri_trans, rr)
+        nn = apply_trans(mri_trans, nn, move=False)
+    elif obj['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+        rr = apply_trans(head_trans, rr)
+        nn = apply_trans(head_trans, nn, move=False)
+    return rr, nn
