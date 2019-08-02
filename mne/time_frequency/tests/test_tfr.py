@@ -890,12 +890,16 @@ def _create_ref_data():
     data = np.random.rand(4, 33, 211)
     chans = np.array([i for i in range(data.shape[1])])
     ch_names = list(chans.astype(str))
+    ch_types = {}
+    for name in ch_names:
+        ch_types[name] = 'eeg'
     verts = [chans, np.array([])]
     sfreq = 300
     tstep = 1. / sfreq
     tmin = 0
 
     epochs_ref = EpochsArray(data, create_info(ch_names, sfreq), tmin=0)
+    epochs_ref.set_channel_types(ch_types)
     stcs_list = [SourceEstimate(data[i], verts, tmin, tstep) for i in range(data.shape[0])]
     stcs_gen = stc_generator(data, verts, tmin, tstep)
 
@@ -943,6 +947,22 @@ def _test_tfr_equivalence():
 
     assert_allclose(stfr_single.data, tfr_evoked.data)
 
+
+def test_tfr_stockwell_equivalence():
+
+    fmin = 10
+    fmax = 16
+    return_itc = False
+
+
+    epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single = _create_ref_data()
+
+    tfr_epoched = tfr_stockwell(epochs_ref, fmin, fmax, return_itc=return_itc)
+    stfr_list = tfr_stockwell(stcs_list, fmin, fmax, return_itc=return_itc)
+    stfr_gen = tfr_stockwell(stcs_gen, fmin, fmax, return_itc=return_itc)
+
+    assert_allclose(stfr_list.data, tfr_epoched.data)
+    assert_allclose(stfr_gen.data, tfr_epoched.data)
 
 
 

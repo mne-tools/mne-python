@@ -4,6 +4,7 @@
 # License : BSD 3-clause
 
 from copy import deepcopy
+from inspect import isgenerator
 import math
 import numpy as np
 from scipy import fftpack
@@ -12,7 +13,7 @@ from scipy import fftpack
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn, fill_doc
 from ..parallel import parallel_func, check_n_jobs
-from .tfr import AverageTFR, _get_data
+from .tfr import AverageTFR, _get_data, _create_stfr
 
 
 def _check_input_st(x_in, n_fft):
@@ -203,7 +204,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                   width=1.0, decim=1, return_itc=False, n_jobs=1,
                   verbose=None):
-    from ..source_estimate import SourceEstimate, VolSourceEstimate
+    from ..source_estimate import _BaseSourceEstimate, VectorSourceEstimate, VolVectorSourceEstimate
     from ..source_tfr import SourceTFR
     """Time-Frequency Representation (TFR) using Stockwell Transform.
 
@@ -251,35 +252,52 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     .. versionadded:: 0.9.0
     """
 
-    # verbose dec is used b/c subfunctions are verbose
-    data = _get_data(inst, return_itc)
     n_jobs = check_n_jobs(n_jobs)
-    times = inst.times[::decim].copy()
-    nave = len(data)
+
+    if isinstance(inst, list) or isgenerator(inst):
+        for idx, obj in enumerate(inst):
+            if idx == 0:
+                data = _get_data(obj, return_itc=False)  # don't provoke an error
+                times = obj.times[::decim].copy()
+                inst = obj # overwrite this in order to determine the object type later
+            else:
+                data = np.concatenate((data, _get_data(obj, return_itc=False)), axis=0)
+
+        nave = len(data)
+
+    # verbose dec is used b/c subfunctions are verbose
+    else:
+        data = _get_data(inst, return_itc)
+        times = inst.times[::decim].copy()
+        nave = len(data)
+
+    print("DATAAAA SHAPPPPE : ", data.shape)
+
     # TODO: Make sure the itc stuff is handled accordingly. + clean this up
-    if isinstance(inst, (SourceEstimate, VolSourceEstimate)):
-        if inst._sens_data is not None:
-            data = inst._sens_data
-        power, itc, freqs = tfr_array_stockwell(data, sfreq=inst.sfreq,
-                                                fmin=fmin, fmax=fmax, n_fft=n_fft,
-                                                width=width, decim=decim,
-                                                return_itc=return_itc,
-                                                n_jobs=n_jobs)
-        if inst._sens_data is not None:
-            power = (inst._kernel, power)
-        return SourceTFR(power, inst.vertices, tmin=inst.tmin,
-                         tstep=inst.tstep, subject=inst.subject)
+    if isinstance(inst, _BaseSourceEstimate):
+        sfreq = inst.sfreq
+
     else:
         picks = _pick_data_channels(inst.info)
         data = data[:, picks, :]
         info = pick_info(inst.info, picks)
-        power, itc, freqs = tfr_array_stockwell(data, sfreq=info['sfreq'],
+        sfreq = info['sfreq']
+
+
+    power, itc, freqs = tfr_array_stockwell(data, sfreq=sfreq,
                                             fmin=fmin, fmax=fmax, n_fft=n_fft,
                                             width=width, decim=decim,
                                             return_itc=return_itc,
                                             n_jobs=n_jobs)
+
+    if isinstance(inst, _BaseSourceEstimate):
+        #TODO: use _create_stfr here
+        out = _create_stfr(inst, power, freqs, method='stockwell-power')
+        if return_itc:
+            out = (out, _create_stfr(inst, itc, freqs, method='stockwell-itc'))
+    else:
         out = AverageTFR(info, power, times, freqs, nave, method='stockwell-power')
         if return_itc:
             out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
-                               freqs.copy(), nave, method='stockwell-itc'))
-        return out
+                                   freqs.copy(), nave, method='stockwell-itc'))
+    return out

@@ -500,13 +500,13 @@ def _tfr_loop_list(list_data, freqs, method='morlet',
     for epoch_idx, inst in enumerate(list_data):
 
         for W_idx in range(n_Ws):
-            X = inst.data
+            X = _get_data(inst, return_itc=False) # don't provoke an error
             if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
                 X = np.reshape(X, [X.shape[0] * X.shape[1], X.shape[2]])
 
             if epoch_idx == 0 and W_idx == 0:
 
-                sfreq = 1 / inst.tstep
+                sfreq = inst.sfreq
 
                 # Check params
                 freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
@@ -752,17 +752,15 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
-    if isinstance(inst, (Evoked, _BaseSourceEstimate)) and return_itc:
-        raise ValueError('return_itc must be False for Evoked and single SourceEstimate objects')
 
     if isinstance(inst, list) or isgenerator(inst):
 
         out, inst = _tfr_loop_list(inst, freqs, method=method,
                                    output=output, decim=decim, **tfr_params)
     else:
-        data = _get_data(inst)
+        data = _get_data(inst, return_itc)
         if isinstance(inst, _BaseSourceEstimate):
-            sfreq = 1 / inst.tstep
+            sfreq = inst.sfreq
             times = inst.times[decim].copy()  # !!! i think we dont even need this
         else:
             info = inst.info
@@ -2331,7 +2329,7 @@ def combine_tfr(all_tfr, weights='nave'):
 # Utils
 
 
-def _get_data(inst):
+def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
@@ -2339,18 +2337,20 @@ def _get_data(inst):
 
     if not isinstance(inst, (BaseEpochs, Evoked, _BaseSourceEstimate)):
         raise TypeError('inst must be Epochs, Evoked, or any SourceEstimate')
-    if isinstance(inst, _BaseSourceEstimate):
-        if inst._sens_data is not None:  # kernel representation
-            data = inst._sens_data[np.newaxis]
-        else:
+    if isinstance(inst, BaseEpochs):
+        data = inst.get_data()
+    else:
+        if return_itc:
+            raise ValueError('return_itc must be False for evoked data or single SourceEstimates')
+
+        if isinstance(inst, _BaseSourceEstimate):
             data = inst.data[np.newaxis]  # full data representation
             if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
                 print(" DATA BEFORE RESHAPE: ", data.shape)  # !!! remove
                 data = np.reshape(data, [data.shape[0], data.shape[1] * data.shape[2], data.shape[3]])
-    elif isinstance(inst, BaseEpochs):
-            data = inst.get_data()
-    else:  # is Evoked
-        data = inst.data[np.newaxis].copy()
+        else:  # is Evoked
+            data = inst.data[np.newaxis].copy()
+
     return data
 
 
