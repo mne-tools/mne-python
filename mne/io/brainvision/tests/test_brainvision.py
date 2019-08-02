@@ -4,9 +4,9 @@
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
-
 import os.path as op
 from os import unlink
+from collections import OrderedDict as odict
 import shutil as sh
 
 import numpy as np
@@ -77,33 +77,33 @@ def test_orig_units(recwarn):
     assert orig_units['ReRef'] == 'C'
 
 
-TEST_CASES = np.array([
+DATE_TEST_CASES = np.array([
     ('Mk1=New Segment,,1,1,0,20131113161403794232\n',  # content
      [1384359243, 794231],  # meas_date internal representation
      '2013-11-13 16:14:03 GMT'),  # meas_date representation
 
+    ('Mk1=New Segment,,1,1,0,20070716122240937454\nMk2=New Segment,,2,1,0,20070716122240937455\n',  # noqa: E501
+     [1184588560, 937453],
+     '2007-07-16 12:22:40 GMT'),
+
+    ('Mk1=New Segment,,1,1,0,\nMk2=New Segment,,2,1,0,20070716122240937454\n',
+     [1184588560, 937453],
+     '2007-07-16 12:22:40 GMT'),
+
     ('Mk1=STATUS,,1,1,0\n', None, 'unspecified'),
     ('Mk1=New Segment,,1,1,0,\n', None, 'unspecified'),
     ('Mk1=New Segment,,1,1,0\n', None, 'unspecified'),
+    ('Mk1=New Segment,,1,1,0,00000000000304125000', None, 'unspecified'),
 
 ], dtype=np.dtype({
     'names': ['content', 'meas_date', 'meas_date_repr'],
     'formats': [object, object, 'U22']
 }))
-# @pytest.mark.parametrize('newstring, expected', [
-#     ('Mk1=New Segment,,1,1,0,20131113161403794232\n', '2013-11-13 16:14:03 GMT'),  # noqa: E501
-#     ('Mk1=New Segment,,1,1,0,20070716122240937454\nMk2=New Segment,,2,1,0,20070716122240937455\n', '2007-07-16 12:22:40 GMT'),  # noqa: E501
-#     ('Mk1=STATUS,,1,1,0\n', 'unspecified'),
-#     ('Mk1=New Segment,,1,1,0,\n', 'unspecified'),
-#     ('Mk1=New Segment,,1,1,0\n', 'unspecified'),
-#     ('Mk1=New Segment,,1,1,0,00000000000304125000', 'unspecified'),
-#     ('Mk1=New Segment,,1,1,0,\nMk2=New Segment,,2,1,0,20070716122240937454\n', '2007-07-16 12:22:40 GMT'),  # noqa: E501
-# ])
+
 
 @pytest.fixture(scope='session')
 def _mocked_meas_date_data(tmpdir_factory):
-    """Helper funct. preparing the files for mocked_meas_date_file fixture."""
-
+    """Prepare files for mocked_meas_date_file fixture."""
     # Prepare the files
     tmpdir = str(tmpdir_factory.mktemp('brainvision_mocked_meas_date'))
     vhdr_fname, vmrk_fname, eeg_fname = [
@@ -113,45 +113,37 @@ def _mocked_meas_date_data(tmpdir_factory):
     for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
         sh.copyfile(orig, dest)
 
-    # Get the marker info and the line where the date is specified
+    # Get the marker information
     with open(vmrk_path, 'r') as fin:
         lines = fin.readlines()
 
-    return {'vhdr_fname': vhdr_fname, 'vmrk_fname': vmrk_fname,
-            'eeg_fname': eeg_fname, 'lines': lines}
+    return odict(vhdr_fname=vhdr_fname, vmrk_fname=vmrk_fname, lines=lines)
 
 
-@pytest.fixture(scope='session', params=[tt for tt in TEST_CASES])
+@pytest.fixture(scope='session', params=[tt for tt in DATE_TEST_CASES])
 def mocked_meas_date_file(_mocked_meas_date_data, request):
-    """Return vmrk text and index of New Segment line for date tests."""
-    MEAS_DATE_LINE = 11
-
-    vhdr_fname = _mocked_meas_date_data['vhdr_fname']
-    vmrk_fname = _mocked_meas_date_data['vmrk_fname']
-    eeg_fname = _mocked_meas_date_data['eeg_fname']
-    lines = _mocked_meas_date_data['lines']
+    """Prepare a generator for use in test_meas_date."""
+    MEAS_DATE_LINE = 11  # see test.vmrk file
+    vhdr_fname, vmrk_fname, lines = _mocked_meas_date_data.values()
 
     lines[MEAS_DATE_LINE] = request.param['content']
     with open(vmrk_fname, 'w') as fout:
         fout.writelines(lines)
 
-    yield dict(vhdr_fname=vhdr_fname,
-               vmrk_fname=vmrk_fname,
-               eeg_fname=eeg_fname,
-               expected_meas_date=request.param['meas_date'],
-               expected_meas_date_repr=request.param['meas_date_repr'])
+    yield odict(vhdr_fname=vhdr_fname,
+                expected_meas_date=request.param['meas_date'],
+                expected_meas_date_repr=request.param['meas_date_repr'])
 
 
 def test_meas_date(mocked_meas_date_file):
     """Test successful extraction of measurement date."""
-    raw = read_raw_brainvision(mocked_meas_date_file['vhdr_fname'])
-    assert mocked_meas_date_file['expected_meas_date_repr'] in repr(raw.info)
-    if mocked_meas_date_file['expected_meas_date'] is None:
+    vhdr_f, expected_meas, expected_meas_repr = mocked_meas_date_file.values()
+    raw = read_raw_brainvision(vhdr_f)
+    assert expected_meas_repr in repr(raw.info)
+    if expected_meas is None:
         assert raw.info['meas_date'] is None
     else:
-        assert_allclose(raw.info['meas_date'],
-                        mocked_meas_date_file['expected_meas_date'])
-
+        assert_allclose(raw.info['meas_date'], expected_meas)
 
 
 def test_vhdr_codepage_ansi():
