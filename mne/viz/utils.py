@@ -3052,5 +3052,6 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
             ax.set_ylabel(ylabel)
             ax.set_title(title)
     if make_label:
-        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+        fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
+                           hspace=0.5)
     return fig
