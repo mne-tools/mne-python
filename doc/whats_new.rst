@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Unknown events code in GDF are now visible in the ``event_id`` by `Theodore Papadopoulo`_
+
 - Now :func:`mne.io.read_raw_ctf` populates ``raw.annotations`` with the markers in ``MarkerFile.mrk`` if any by `Joan Massich`_
 
 - Add support to :func:`mne.read_annotations` to read CTF marker files by `Joan Massich`_
@@ -3509,3 +3511,5 @@ of commits):
 .. _Thomas Radman: https://github.com/tradman
 
 .. _Paul Roujansky: https://github.com/paulroujansky
+
+.. _Theodore Papadopoulo: https://github.com/papadop
