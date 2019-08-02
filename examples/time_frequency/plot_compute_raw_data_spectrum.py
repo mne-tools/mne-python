@@ -56,7 +56,7 @@ n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 # channels first. Note that there are several parameters to the
 # :meth:`mne.io.Raw.plot_psd` method, some of which will be explained below.
 
-raw.plot_psd(area_mode='range', tmax=10.0, show=False, average=False)
+raw.plot_psd(area_mode='range', tmax=10.0, show=False, average=True)
 
 ###############################################################################
 # Plot a cleaned PSD
