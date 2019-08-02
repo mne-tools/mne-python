@@ -8,7 +8,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 import mne
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray
+from mne import Epochs, read_events, pick_types, create_info, EpochsArray, SourceEstimate
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
                        requires_pandas, grand_average)
@@ -32,6 +32,7 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
                                              source_induced_power,
                                              compute_source_psd,
                                              compute_source_psd_epochs)
+from mne.minimum_norm.tests.test_inverse import _check_delayed_data
 
 from mne.time_frequency.multitaper import psd_array_multitaper
 
@@ -776,17 +777,6 @@ def test_getitem_epochsTFR():
     assert_array_equal(power.next(), power.data[ind + 1])
 
 
-def assert_kernel_removed(inst, should_be_removed):
-    """Check if the kernel was removed properly."""
-    if should_be_removed:
-        assert inst._kernel is None
-        assert inst._sens_data is None
-    else:
-        assert not inst._kernel_removed
-        assert isinstance(inst._sens_data, np.ndarray)
-        assert isinstance(inst._kernel, np.ndarray)
-
-
 def _prepare_epochs(n_epochs):
     raw = read_raw_fif(stc_raw_fname)
     tmin, tmax, event_id = -0.2, 0.5, 1
@@ -802,9 +792,9 @@ def _prepare_epochs(n_epochs):
 @pytest.mark.parametrize('n_epochs', [1])  # , 3
 @pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
 def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
-    method = "dSPM"
-    pick_ori = "normal"
-    full_data = True
+    method = "MNE"
+    pick_ori = "vector"
+    delayed = False
     n_epochs = 1
     n_cycles = 2
     use_fft = True
@@ -819,7 +809,7 @@ def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
     freqs = np.array([10, 12, 14, 16])
 
     stcs = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                                pick_ori=pick_ori, full_data=full_data,
+                                pick_ori=pick_ori, delayed=delayed,
                                 label=label, prepared=False)
 
     single_stfr = tfr_morlet(stcs[0], freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
@@ -834,9 +824,13 @@ def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
                                        use_fft=use_fft, decim=decim, zero_mean=zero_mean,
                                        baseline=None, pca=False)
 
-    # assert_kernel_removed(stfr, full_data)
-    assert_allclose(single_stfr.data, stfr_ref)
-    assert_allclose(list_stfr.data, stfr_ref)
+    # TODO: "vector" ori differs along the single orientations, but each 3 vectors are added, results are correct.
+    # Maybe the orientation alignment differs in source_induced_power and apply_inverse_epochs?
+
+    # _check_delayed_data(stfr, delayed)
+    assert_allclose(np.reshape(single_stfr.data, stfr_ref.shape), stfr_ref)
+    assert_allclose(np.reshape(list_stfr.data, stfr_ref.shape), stfr_ref)
+    assert_allclose(single_stfr.data, list_stfr.data)
 
 
 @testing.requires_testing_data
@@ -846,7 +840,7 @@ def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
 def test_kernel_equivalence(pick_ori, n_epochs, average):
     method = "MNE"
     pick_ori = "vector"
-    full_data = True
+    delayed = False
     n_epochs = 1
     n_cycles = 2
     use_fft = True
@@ -861,7 +855,7 @@ def test_kernel_equivalence(pick_ori, n_epochs, average):
     freqs = np.array([10, 12, 14, 16])
 
     stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                               pick_ori=pick_ori, full_data=full_data,
+                               pick_ori=pick_ori, delayed=delayed,
                                label=label, prepared=False)
     stfr = tfr_morlet(stc, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
                       zero_mean=zero_mean, return_itc=True, output='power', average=True)
@@ -872,17 +866,17 @@ def test_kernel_equivalence(pick_ori, n_epochs, average):
                                        use_fft=use_fft, decim=decim, zero_mean=zero_mean,
                                        baseline=None, pca=False)
 
-    assert_kernel_removed(stfr, full_data)
+    _check_delayed_data(stfr, delayed)
     assert_allclose(stfr.data, stfr_ref)
 
 
 # TODO: parametrize
 @testing.requires_testing_data
-def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, decim, time_bandwidth):
+def test_multitaper(method, pick_ori, delayed, n_epochs, n_cycles, use_fft, decim, time_bandwidth):
     method = "MNE"
     pick_ori = "normal"
     return_itc = False
-    average = True
+    average = False
     n_epochs = 1
     n_cycles = 2
     use_fft = True
@@ -897,10 +891,10 @@ def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, de
     freqs = np.array([10, 12, 14, 16])
 
     stc_full = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                                    pick_ori=pick_ori, full_data=True,
+                                    pick_ori=pick_ori, delayed=False,
                                label=label, prepared=False)[0]
     stc_delayed = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                                       pick_ori=pick_ori, full_data=False,
+                                       pick_ori=pick_ori, delayed=True,
                                        label=label, prepared=False)[0]
 
     stfr_full = tfr_multitaper(stc_full, freqs, n_cycles, time_bandwidth, use_fft, return_itc=return_itc,
@@ -908,48 +902,85 @@ def test_multitaper(method, pick_ori, full_data, n_epochs, n_cycles, use_fft, de
     stfr_delayed = tfr_multitaper(stc_delayed, freqs, n_cycles, time_bandwidth, use_fft, return_itc=return_itc,
                                   decim=decim, average=average)
 
-    assert_kernel_removed(stfr_full, True)
-    assert_kernel_removed(stfr_delayed, False)
+    _check_delayed_data(stfr_full, False)
+    _check_delayed_data(stfr_delayed, True)
 
-    ref_shape = (stc_full.shape[0], len(freqs), stc_full.shape[-1])
+    ref_shape = (stc_full.shape[0], 1, len(freqs), stc_full.shape[-1])
     assert_equal(stfr_full.shape, ref_shape)
     assert_equal(stfr_full.times, stc_full.times)
     assert_equal(stfr_full.tmin, stc_full.tmin)
 
+    assert_equal(stfr_delayed.shape, ref_shape)
+    assert_equal(stfr_delayed.times, stc_full.times)
+    assert_equal(stfr_delayed.tmin, stc_full.tmin)
+
     assert_allclose(stfr_full.data, stfr_delayed.data)
 
 
-# TODO: parametrize
-@testing.requires_testing_data
-def test_source_stockwell():
-    method = "MNE"
-    pick_ori = "normal"
-    full_data = False
-    n_epochs = 1
-    n_fft = 2 ** 8
-    width = 1.0
+def _create_ref_data():
+    """Create different types with equal data that should produce equal TFRs."""
+
+    def stc_generator(data, verts, tmin, tstep):
+        for i in range(len(data)):
+            yield SourceEstimate(data[i], verts, tmin, tstep)
+
+    data = np.random.rand(4, 33, 211)
+    chans = np.array([i for i in range(data.shape[1])])
+    ch_names = list(chans.astype(str))
+    verts = [chans, np.array([])]
+    sfreq = 300
+    tstep = 1. / sfreq
+    tmin = 0
+
+    epochs_ref = EpochsArray(data, create_info(ch_names, sfreq), tmin=0)
+    stcs_list = [SourceEstimate(data[i], verts, tmin, tstep) for i in range(data.shape[0])]
+    stcs_gen = stc_generator(data, verts, tmin, tstep)
+
+    evoked_ref = epochs_ref.average(picks='all')
+    stc_single = SourceEstimate(evoked_ref.data, verts, tmin, tstep)
+
+    return epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single
+
+
+def _test_tfr_equivalence():
+    """Test tfrs for equivalence."""
+
+    n_cycles = 2
+    use_fft = True
     decim = 1
 
-    epochs = _prepare_epochs(n_epochs)
-    inv = read_inverse_operator(stc_inv_fname)
-    label = read_label(stc_label_fname)
+    freqs = [10, 12, 14]
 
-    l2 = 1. / 9.
-    fmin = 10
-    fmax = 16
+    # TODO: parametrize over func, average True False and return_itc
 
-    stc = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                               pick_ori=pick_ori, full_data=full_data,
-                               label=label, prepared=False)[0]
+    epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single = _create_ref_data()
 
-    stfr = tfr_stockwell(stc, fmin, fmax, n_fft, width, decim, return_itc=False)
+    tfr_epoched = tfr_multitaper(epochs_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                                 return_itc=True, average=True, picks="all")
+    stfr_list = tfr_multitaper(stcs_list, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                               return_itc=True, average=True)
+    stfr_gen = tfr_multitaper(stcs_gen, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                              return_itc=True, average=True)
 
-    assert_kernel_removed(stfr, full_data)
+    assert_allclose(stfr_list[0].data, tfr_epoched[0].data)
+    assert_allclose(stfr_gen[0].data, tfr_epoched[0].data)
 
-    ref_shape = (stc.shape[0], 5, stc.shape[-1])
-    assert_equal(stfr.shape, ref_shape)
-    assert_equal(stfr.times, stc.times)
-    assert_equal(stfr.tmin, stc.tmin)
+    tfr_evoked = tfr_multitaper(evoked_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                                return_itc=False, average=False, picks='all')
+    stfr_single = tfr_multitaper(stc_single, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                                 return_itc=False, average=False)
+
+    assert_allclose(stfr_single.data.transpose(1, 0, 2, 3), tfr_evoked.data)
+
+    # For average=True, the array should be flattened over the epoch dim
+    tfr_evoked = tfr_multitaper(evoked_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                                return_itc=False, average=True, picks='all')
+    stfr_single = tfr_multitaper(stc_single, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                                 return_itc=False, average=True)
+
+    assert_allclose(stfr_single.data, tfr_evoked.data)
+
+
 
 
 run_tests_if_main()
