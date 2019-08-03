@@ -3,10 +3,8 @@
 import os
 import glob
 from os import path as op
-import subprocess
-import sys
 
-from mne.utils import run_subprocess, _replace_md5
+from mne.utils import _replace_md5, ArgvSetter
 
 
 def setup(app):
@@ -69,11 +67,14 @@ def generate_commands_rst(app=None):
         f.write(header)
         for fname in iterator:
             cmd_name = fname[:-3]
-            run_name = op.join(command_path, fname)
-            output, _ = run_subprocess([sys.executable, run_name, '--help'],
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE, verbose=False)
-            output = output.splitlines()
+            from importlib import import_module
+            module = import_module('.' + cmd_name, 'mne.commands')
+            with ArgvSetter(('mne', cmd_name, '--help')) as out:
+                try:
+                    module.run()
+                except SystemExit:  # this is how these terminate
+                    pass
+            output = out.stdout.getvalue().splitlines()
 
             # Swap usage and title lines
             output[0], output[2] = output[2], output[0]
@@ -102,7 +103,6 @@ def generate_commands_rst(app=None):
                                    '=' * len(cmd_name),
                                    output))
     _replace_md5(out_fname)
-    print('[Done]')
 
 
 # This is useful for testing/iterating to see what the result looks like

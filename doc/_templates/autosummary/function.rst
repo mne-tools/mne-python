@@ -5,7 +5,7 @@
 
 .. autofunction:: {{ objname }}
 
-.. include:: {{module}}.{{objname}}.examples
+.. include:: {{fullname}}.examples
 
 .. raw:: html
 

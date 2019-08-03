@@ -5,4 +5,8 @@
 
 .. automethod:: {{ objname }}
 
-.. include:: {{module}}.{{objname}}.examples
+.. include:: {{fullname}}.examples
+
+.. raw:: html
+
+    <div style='clear:both'></div>
