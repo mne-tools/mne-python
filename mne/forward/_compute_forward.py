@@ -244,8 +244,8 @@ def _bem_specify_els(bem, els, mults):
                           for el in els], axis=0)
     ws = np.concatenate([el['w'] for el in els])
     tri_weights, tri_idx = _project_onto_surface(rrs, scalp)
-    tri_weights *= ws
-    weights = einsum('ij,jik->jk', tri_weights,
+    tri_weights *= ws[:, np.newaxis]
+    weights = einsum('ij,ijk->ik', tri_weights,
                      bem['solution'][scalp['tris'][tri_idx]])
     # there are way more vertices than electrodes generally, so let's iterate
     # over the electrodes

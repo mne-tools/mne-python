@@ -8,7 +8,7 @@ dependencies:
 - numpy
 - scipy
 - matplotlib
-- cython
+- numba
 - pyqt>=5.9
 - pandas>=0.18
 - xlrd
