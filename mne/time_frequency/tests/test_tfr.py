@@ -787,13 +787,42 @@ def _prepare_epochs(n_epochs):
     return epochs
 
 
+def _create_ref_data():
+    """Create different types with equal data that should produce equal TFRs."""
+
+    def stc_generator(data, verts, tmin, tstep):
+        for i in range(len(data)):
+            yield SourceEstimate(data[i], verts, tmin, tstep)
+
+    data = np.random.rand(4, 33, 211)
+    chans = np.array([i for i in range(data.shape[1])])
+    ch_names = list(chans.astype(str))
+    ch_types = {}
+    for name in ch_names:
+        ch_types[name] = 'eeg'
+    verts = [chans, np.array([])]
+    sfreq = 300
+    tstep = 1. / sfreq
+    tmin = 0
+
+    epochs_ref = EpochsArray(data, create_info(ch_names, sfreq), tmin=0)
+    epochs_ref.set_channel_types(ch_types)
+    stcs_list = [SourceEstimate(data[i], verts, tmin, tstep) for i in range(data.shape[0])]
+    stcs_gen = stc_generator(data, verts, tmin, tstep)
+
+    evoked_ref = epochs_ref.average(picks='all')
+    stc_single = SourceEstimate(evoked_ref.data, verts, tmin, tstep)
+
+    return epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single
+
+
 # TODO: for 'vectors' ori, tfr averaged over all 3 vecs is the same, but distributed differently between vectors. find out the reason for this.
 @testing.requires_testing_data
 @pytest.mark.parametrize('n_epochs', [1])  # , 3
 @pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
 def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
     method = "MNE"
-    pick_ori = "vector"
+    pick_ori = "normal"
     delayed = False
     n_epochs = 1
     n_cycles = 2
@@ -833,86 +862,10 @@ def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
     assert_allclose(single_stfr.data, list_stfr.data)
 
 
-# TODO: parametrize
-@testing.requires_testing_data
-def test_multitaper(method, pick_ori, delayed, n_epochs, n_cycles, use_fft, decim, time_bandwidth):
-    method = "MNE"
-    pick_ori = "normal"
-    return_itc = False
-    average = False
-    n_epochs = 1
-    n_cycles = 2
-    use_fft = True
-    decim = 1
-    time_bandwidth = 4
-
-    epochs = _prepare_epochs(n_epochs)
-    inv = read_inverse_operator(stc_inv_fname)
-    label = read_label(stc_label_fname)
-
-    l2 = 1. / 9.
-    freqs = np.array([10, 12, 14, 16])
-
-    stc_full = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                                    pick_ori=pick_ori, delayed=False,
-                               label=label, prepared=False)[0]
-    stc_delayed = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                                       pick_ori=pick_ori, delayed=True,
-                                       label=label, prepared=False)[0]
-
-    stfr_full = tfr_multitaper(stc_full, freqs, n_cycles, time_bandwidth, use_fft, return_itc=return_itc,
-                               decim=decim, average=average)
-    stfr_delayed = tfr_multitaper(stc_delayed, freqs, n_cycles, time_bandwidth, use_fft, return_itc=return_itc,
-                                  decim=decim, average=average)
-
-    _check_delayed_data(stfr_full, False)
-    _check_delayed_data(stfr_delayed, True)
-
-    ref_shape = (stc_full.shape[0], 1, len(freqs), stc_full.shape[-1])
-    assert_equal(stfr_full.shape, ref_shape)
-    assert_equal(stfr_full.times, stc_full.times)
-    assert_equal(stfr_full.tmin, stc_full.tmin)
-
-    assert_equal(stfr_delayed.shape, ref_shape)
-    assert_equal(stfr_delayed.times, stc_full.times)
-    assert_equal(stfr_delayed.tmin, stc_full.tmin)
-
-    assert_allclose(stfr_full.data, stfr_delayed.data)
-
-
-def _create_ref_data():
-    """Create different types with equal data that should produce equal TFRs."""
-
-    def stc_generator(data, verts, tmin, tstep):
-        for i in range(len(data)):
-            yield SourceEstimate(data[i], verts, tmin, tstep)
-
-    data = np.random.rand(4, 33, 211)
-    chans = np.array([i for i in range(data.shape[1])])
-    ch_names = list(chans.astype(str))
-    ch_types = {}
-    for name in ch_names:
-        ch_types[name] = 'eeg'
-    verts = [chans, np.array([])]
-    sfreq = 300
-    tstep = 1. / sfreq
-    tmin = 0
-
-    epochs_ref = EpochsArray(data, create_info(ch_names, sfreq), tmin=0)
-    epochs_ref.set_channel_types(ch_types)
-    stcs_list = [SourceEstimate(data[i], verts, tmin, tstep) for i in range(data.shape[0])]
-    stcs_gen = stc_generator(data, verts, tmin, tstep)
-
-    evoked_ref = epochs_ref.average(picks='all')
-    stc_single = SourceEstimate(evoked_ref.data, verts, tmin, tstep)
-
-    return epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single
-
-
 def _test_tfr_equivalence():
     """Test tfrs for equivalence."""
 
-    n_cycles = 2
+    n_cycles = 5
     use_fft = True
     decim = 1
 
@@ -948,6 +901,8 @@ def _test_tfr_equivalence():
     assert_allclose(stfr_single.data, tfr_evoked.data)
 
 
+@pytest.mark.filterwarnings('ignore:.*Applying zero padding.*:')
+@pytest.mark.filterwarnings('ignore:.*The unit .*? has changed from NA to V.*:')
 def test_tfr_stockwell_equivalence():
 
     fmin = 10

@@ -470,12 +470,6 @@ def _tfr_loop_list(list_data, freqs, method='morlet',
                    verbose=None):
     from ..source_estimate import VectorSourceEstimate, VolVectorSourceEstimate
 
-    # TODO: do this in the loop, also look for the other checks
-    # Check wavelets
-    # if len(Ws[0][0]) > epoch_data.shape[2]:
-    #    raise ValueError('At least one of the wavelets is longer than the '
-    #                     'signal. Use a longer signal or shorter wavelets.')
-
     # Initialize output
     decim = _check_decim(decim)
     n_freqs = len(freqs)
@@ -484,71 +478,58 @@ def _tfr_loop_list(list_data, freqs, method='morlet',
     if output in ['complex', 'avg_power_itc']:
         dtype = np.complex
 
-    # TODO: create the array dynamically during the loop.
-    # if ('avg_' in output) or ('itc' in output):
-    #    tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
-    # else:
-    #    tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
-
-    # TODO: i think, this doesn't mind the dipoles/chans. Make sure it does.
-
-    # Loops across tapers.
-    # TODO: Ws should have length 1 for morlet and length (time_bandwidth - 1) for multitapers. use this to loop gens
-
-    n_Ws = 1 if method == "morlet" else int(np.floor(time_bandwidth - 1))
-
     for epoch_idx, inst in enumerate(list_data):
+        X = inst.data
 
-        for W_idx in range(n_Ws):
-            X = _get_data(inst, return_itc=False) # don't provoke an error
-            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-                X = np.reshape(X, [X.shape[0] * X.shape[1], X.shape[2]])
+        if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+            X = np.reshape(X, [X.shape[0] * X.shape[1], X.shape[2]])
 
-            if epoch_idx == 0 and W_idx == 0:
+        if epoch_idx == 0:  # initialize some stuff in the first epoch
 
-                sfreq = inst.sfreq
+            sfreq = inst.sfreq
 
-                # Check params
-                freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
-                    _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
-                                     time_bandwidth, use_fft, decim, output)
+            # Check params
+            freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
+                _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
+                                 time_bandwidth, use_fft, decim, output)
 
-                # Setup wavelet
-                if method == 'morlet':
-                    # make a list to have same dimensionality as the 'multitaper' case
-                    Ws = [morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)]
+            # TODO: Add the other checks from compute tfr and tfr loop that were omitted here
 
-                elif method == 'multitaper':
-                    Ws = _make_dpss(sfreq, freqs, n_cycles=n_cycles,
-                                    time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+            # Setup wavelet
+            if method == 'morlet':
+                # make a list to have same dimensionality as the 'multitaper' case
+                Ws = [morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)]
 
-                n_times = X.shape[-1]
-                n_vertices = X.shape[0]
+            elif method == 'multitaper':
+                Ws = _make_dpss(sfreq, freqs, n_cycles=n_cycles,
+                                time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
-                if len(Ws[0][0]) > inst.shape[-1]:
-                    raise ValueError('At least one of the wavelets is longer than the '
-                                     'signal. Use a longer signal or shorter wavelets.')
+            # check tapers
+            if len(Ws[0][0]) > inst.shape[-1]:
+                raise ValueError('At least one of the wavelets is longer than the '
+                                 'signal. Use a longer signal or shorter wavelets.')
 
-                if ('avg_' in output) or ('itc' in output):
-                    tfrs = np.zeros((n_vertices, n_freqs, n_times), dtype=dtype)
-                else:
-                    tfrs = np.zeros((1, n_vertices, n_freqs, n_times), dtype=dtype)
+            # initiate tfrs
+            n_times = X.shape[-1]
+            n_verts = X.shape[0]
 
-                # Inter-trial phase locking is apparently computed per taper...
-                if 'itc' in output:
-                    plf = np.zeros((n_Ws, n_vertices, n_freqs, n_times), dtype=np.complex)
+            if ('avg_' in output) or ('itc' in output):
+                tfrs = np.zeros((n_verts, n_freqs, n_times), dtype=dtype)
+            else:
+                tfrs = np.zeros((1, n_verts, n_freqs, n_times), dtype=dtype)
 
-            if epoch_idx == len(tfrs):
-                tmp = np.zeros((1, n_vertices, n_freqs, n_times), dtype=dtype)
-                tfrs = np.concatenate((tfrs, tmp), axis=0)
+            # Inter-trial phase locking is summed up for each taper
+            if 'itc' in output:
+                plf = np.zeros((len(Ws), n_verts, n_freqs, n_times), dtype=np.complex)
 
-            tfr = cwt(X, Ws[W_idx], use_fft=use_fft, mode='same', decim=decim)
+        # TODO: Raise Error if obj.times and sfreq are not the same as the already defined ones?
+
+        for W_idx, W in enumerate(Ws):
+
+            tfr = cwt(X, W, use_fft=use_fft, mode='same', decim=decim)
 
             print("TFRR NEAUW", tfr.shape)
 
-            # TODO: Raise Error if obj.times and sfreq are not the same as the already defined ones?
-
-            # Loop across epochs
             # Transform complex values
             if output in ['power', 'avg_power']:
                 tfr = (tfr * tfr.conj()).real  # power
@@ -566,15 +547,17 @@ def _tfr_loop_list(list_data, freqs, method='morlet',
             if ('avg_' in output) or ('itc' in output):
                 tfrs += tfr
             else:
-                # tfr = np.expand_dims(tfr, axis=0)
-                # tfrs = np.concatenate((tfrs, tfr), axis=0)
-
                 tfrs[epoch_idx] += tfr
 
             print("TFRS after stack/addDDDDDDDDDDDDDDDDDDDDDDd", tfrs.shape)
 
-            # if epoch_idx == n_Ws - 1:
-    for W_idx in range(n_Ws):
+        # add one tfr element to the tfrs array after each epoch
+        if not (('avg_' in output) or ('itc' in output)):
+            new_epoch = np.zeros((1, n_verts, n_freqs, n_times), dtype=dtype)
+            tfrs = np.concatenate((tfrs, new_epoch), axis=0)
+
+    # process the itc taper sums with the data
+    for W_idx in range(len(Ws)):
         # Compute inter trial coherence
         if output == 'avg_power_itc':
             tfrs += 1j * np.abs(plf[W_idx])
@@ -761,7 +744,6 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         data = _get_data(inst, return_itc)
         if isinstance(inst, _BaseSourceEstimate):
             sfreq = inst.sfreq
-            times = inst.times[decim].copy()  # !!! i think we dont even need this
         else:
             info = inst.info
             info, data = _prepare_picks(info, data, picks, axis=1)

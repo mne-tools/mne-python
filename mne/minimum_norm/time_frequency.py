@@ -196,8 +196,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
         if Vh is not None:
             epoch = np.dot(Vh, epoch)  # reducing data rank
 
-        print("SIP SHAPE OF THE FOLLOWING DATA: ", data.shape)  # !!! remove
-        print("SIP DATA in _compute_pow_plv before _is_free_ori: ", data)  # !!! remove
+        print("SIP SHAPE in _compute_pow_plv before _is_free_ori: ", data.shape)  # !!! remove
         power_e, plv_e = _single_epoch_tfr(
             data=epoch, is_free_ori=is_free_ori, K=K, Ws=Ws, use_fft=use_fft,
             decim=decim, shape=shape, with_plv=with_plv, with_power=with_power)
@@ -228,14 +227,12 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
         if with_plv:
             plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
 
-        print("SIP SHAPE OF THE FOLLOWING DATA: ", tfr_.shape)  # !!! remove
-        print("SIP DATA in _single_epoch_tfr after fortran array: ", tfr_)  # !!! remove
+        print("SIP SHAPE _single_epoch_tfr after fortran array: ", tfr_.shape)  # !!! remove
 
         tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
         print("DATA AND SHAPE SHAPE AND K SHAPE NOW: ", tfr_.shape, data.shape, shape, K.shape)  # !!! remove
         for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
-            print("SIP SHAPE OF THE FOLLOWING DATA: ", tfr_.shape)  # !!! remove
-            print("SIP DATA in _single_epoch_tfr real and imaginarly: ", np.real(tfr_), np.imag(tfr_))  # !!! remove
+            print("SIP SHAPE in _single_epoch_tfr real and imaginarly: ", tfr_.shape)  # !!! remove
             sol = np.dot(K, t)
 
             sol_pick_normal = sol
@@ -257,12 +254,10 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
             tfr_f += sol
             del sol
 
-        print("SIP SHAPE OF THE FOLLOWING DATA: ", tfr_e.shape)  # !!! remove
-        print("SIP DATA in _single_epoch_tfr after loop: ", tfr_e)  # !!! remove
+        print("SIP SHAPE in _single_epoch_tfr after loop: ", tfr_e.shape)  # !!! remove
         tfr_e[:, f, :] += tfr_f
         del tfr_f
-        print("SIP SHAPE OF THE FOLLOWING DATA: ", tfr_e.shape)  # !!! remove
-        print("SIP DATA in _single_epoch_tfr at the end : ", tfr_e)  # !!! remove
+        print("SIP SHAPE in _single_epoch_tfr at the end: ", tfr_e.shape)  # !!! remove
 
         if with_plv:
             plv_f /= np.abs(plv_f)
@@ -280,8 +275,7 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
                           prepared=False, method_params=None, verbose=None):
     """Aux function for source induced power."""
     epochs_data = epochs.get_data()
-    print("SIP SHAPE OF THE FOLLOWING DATA: ", epochs.get_data().shape)  # !!! remove
-    print("SIP DATA at the start of _source_induced_power: ", epochs.get_data())  # !!! remove
+    print("SIP SHAPE at the start of _source_induced_power: ", epochs.get_data().shape)  # !!! remove
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
@@ -397,8 +391,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
-    print("SIP SHAPE OF THE FOLLOWING DATA: ", epochs.get_data().shape)  # !!! remove
-    print("SIP DATA before _source_induced_power: ", epochs.get_data())  # !!! remove
+    print("SIP SHAPE before _source_induced_power: ", epochs.get_data().shape)  # !!! remove
     power, plv, vertno = _source_induced_power(
         epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
