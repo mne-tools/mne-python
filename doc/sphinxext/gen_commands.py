@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import os
 import glob
+from importlib import import_module
+import os
 from os import path as op
 
 from mne.utils import _replace_md5, ArgvSetter
@@ -67,7 +68,6 @@ def generate_commands_rst(app=None):
         f.write(header)
         for fname in iterator:
             cmd_name = fname[:-3]
-            from importlib import import_module
             module = import_module('.' + cmd_name, 'mne.commands')
             with ArgvSetter(('mne', cmd_name, '--help')) as out:
                 try:
