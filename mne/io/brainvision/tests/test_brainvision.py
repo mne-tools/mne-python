@@ -6,7 +6,6 @@
 # License: BSD (3-clause)
 import os.path as op
 from os import unlink
-from collections import OrderedDict
 import shutil as sh
 
 import numpy as np
@@ -117,28 +116,27 @@ def _mocked_meas_date_data(tmpdir_factory):
     with open(vmrk_path, 'r') as fin:
         lines = fin.readlines()
 
-    return OrderedDict(vhdr_fname=vhdr_fname, vmrk_fname=vmrk_fname,
-                       lines=lines)
+    return vhdr_fname, vmrk_fname, lines
 
 
 @pytest.fixture(scope='session', params=[tt for tt in DATE_TEST_CASES])
 def mocked_meas_date_file(_mocked_meas_date_data, request):
     """Prepare a generator for use in test_meas_date."""
     MEAS_DATE_LINE = 11  # see test.vmrk file
-    vhdr_fname, vmrk_fname, lines = _mocked_meas_date_data.values()
+    vhdr_fname, vmrk_fname, lines = _mocked_meas_date_data
 
     lines[MEAS_DATE_LINE] = request.param['content']
     with open(vmrk_fname, 'w') as fout:
         fout.writelines(lines)
 
-    yield OrderedDict(vhdr_fname=vhdr_fname,
-                      expected_meas_date=request.param['meas_date'],
-                      expected_meas_date_repr=request.param['meas_date_repr'])
+    yield (
+        vhdr_fname, request.param['meas_date'], request.param['meas_date_repr']
+    )
 
 
 def test_meas_date(mocked_meas_date_file):
     """Test successful extraction of measurement date."""
-    vhdr_f, expected_meas, expected_meas_repr = mocked_meas_date_file.values()
+    vhdr_f, expected_meas, expected_meas_repr = mocked_meas_date_file
     raw = read_raw_brainvision(vhdr_f)
     assert expected_meas_repr in repr(raw.info)
     if expected_meas is None:
