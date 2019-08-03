@@ -1271,11 +1271,14 @@ def _get_status(checks):
 
 # Here we choose different defaults to speed things up by default
 try:
-    from numba import prange, jit as _jit
+    import numba
+    if LooseVersion(numba.__version__) < LooseVersion('0.40'):
+        raise ImportError
+    prange = numba.prange
     def jit(nopython=True, nogil=True, fastmath=True, cache=True,
             **kwargs):  # noqa
-        return _jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
-                    cache=cache)
+        return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
+                         cache=cache, **kwargs)
 except ImportError:
     def jit(**kwargs):  # noqa
         def _jit(func):

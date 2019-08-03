@@ -166,11 +166,14 @@ MNE-Python and its dependencies. Typical output looks like this::
     matplotlib:    3.0.2 {backend=Qt5Agg}
 
     sklearn:       0.20.2
+    numba:         0.45.0
     nibabel:       2.3.3
-    mayavi:        4.7.0.dev0 {qt_api=pyqt5, PyQt5=5.10.1}
     cupy:          Not found
     pandas:        0.24.0
     dipy:          0.15.0
+    mayavi:        4.7.1 {qt_api=pyqt5, PyQt5=5.10.1}
+    pyvista:       0.21.3
+    vtk:           8.2.0
 
 .. collapse:: |hand-stop-o| If you get an error...
     :class: danger
