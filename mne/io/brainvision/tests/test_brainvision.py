@@ -6,7 +6,7 @@
 # License: BSD (3-clause)
 import os.path as op
 from os import unlink
-from collections import OrderedDict as odict
+from collections import OrderedDict
 import shutil as sh
 
 import numpy as np
@@ -82,7 +82,8 @@ DATE_TEST_CASES = np.array([
      [1384359243, 794231],  # meas_date internal representation
      '2013-11-13 16:14:03 GMT'),  # meas_date representation
 
-    ('Mk1=New Segment,,1,1,0,20070716122240937454\nMk2=New Segment,,2,1,0,20070716122240937455\n',  # noqa: E501
+    (('Mk1=New Segment,,1,1,0,20070716122240937454\n'
+      'Mk2=New Segment,,2,1,0,20070716122240937455\n'),
      [1184588560, 937453],
      '2007-07-16 12:22:40 GMT'),
 
@@ -117,7 +118,8 @@ def _mocked_meas_date_data(tmpdir_factory):
     with open(vmrk_path, 'r') as fin:
         lines = fin.readlines()
 
-    return odict(vhdr_fname=vhdr_fname, vmrk_fname=vmrk_fname, lines=lines)
+    return OrderedDict(vhdr_fname=vhdr_fname, vmrk_fname=vmrk_fname,
+                       lines=lines)
 
 
 @pytest.fixture(scope='session', params=[tt for tt in DATE_TEST_CASES])
@@ -130,9 +132,9 @@ def mocked_meas_date_file(_mocked_meas_date_data, request):
     with open(vmrk_fname, 'w') as fout:
         fout.writelines(lines)
 
-    yield odict(vhdr_fname=vhdr_fname,
-                expected_meas_date=request.param['meas_date'],
-                expected_meas_date_repr=request.param['meas_date_repr'])
+    yield OrderedDict(vhdr_fname=vhdr_fname,
+                      expected_meas_date=request.param['meas_date'],
+                      expected_meas_date_repr=request.param['meas_date_repr'])
 
 
 def test_meas_date(mocked_meas_date_file):
