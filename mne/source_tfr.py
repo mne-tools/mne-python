@@ -87,8 +87,6 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         self.method = method
         self.freqs = freqs
 
-        print("DATA DIM", self._data_ndim)
-
         kernel, sens_data = None, None
         if isinstance(data, tuple):
             if len(data) != 2:

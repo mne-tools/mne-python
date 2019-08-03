@@ -8,7 +8,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 import mne
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray, SourceEstimate
+from mne import Epochs, read_events, pick_types, create_info, EpochsArray, SourceEstimate, VolSourceEstimate
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
                        requires_pandas, grand_average)
@@ -276,6 +276,28 @@ def test_time_frequency():
     # samples
     psd = cwt(data[0], [Ws[0][:-1]], use_fft=False, mode='full')
     assert_equal(psd.shape, (2, 1, 420))
+
+    # check errors for contradicting SourceEstimate input
+    stc_data = np.ones([3, 40])
+    verts = [np.array([1, 2, 3]), np.array([])]
+    tstep = 1. / 128.
+    tmin = 0.1
+    stc_ref = SourceEstimate(stc_data, verts, tmin, tstep)
+    stc_1 = VolSourceEstimate(stc_data, verts, tmin, tstep)
+    stc_2 = SourceEstimate(stc_data, verts, tmin=0.2, tstep=tstep)
+    stc_3 = SourceEstimate(stc_data, verts, tmin, tstep=1. / 129.)
+
+    "asdsd".format()
+
+    with pytest.raises(TypeError, match="must be of the same SourceEstimate type"):
+        tfr_morlet([stc_ref, stc_1], [10, 12], 1)
+
+    with pytest.raises(ValueError, match="must have the same tmin"):
+        tfr_morlet([stc_ref, stc_2], [10, 12], 1)
+
+    with pytest.raises(ValueError, match="must have the same sfreq"):
+        tfr_morlet([stc_ref, stc_3], [10, 12], 1)
+
 
 
 def test_dpsswavelet():
@@ -816,109 +838,92 @@ def _create_ref_data():
     return epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single
 
 
-# TODO: for 'vectors' ori, tfr averaged over all 3 vecs is the same, but distributed differently between vectors. find out the reason for this.
+# TODO: for 'vectors' ori, tfr added over all 3 vecs is the same, but distributed differently between vectors. find out the reason for this.
 @testing.requires_testing_data
-@pytest.mark.parametrize('n_epochs', [1])  # , 3
-@pytest.mark.parametrize('pick_ori', ['normal'])  # , 'vector'
-def test_morlet_induced_power_equivalence(pick_ori, n_epochs):
-    method = "MNE"
-    pick_ori = "normal"
-    delayed = False
-    n_epochs = 1
-    n_cycles = 2
-    use_fft = True
-    decim = 1
-    zero_mean = False
+@pytest.mark.parametrize('n_epochs', [1, 3])
+@pytest.mark.parametrize('return_itc', [True, False])
+def test_morlet_induced_power_equivalence(n_epochs, return_itc):
 
     epochs = _prepare_epochs(n_epochs)
     inv = read_inverse_operator(stc_inv_fname)
     label = read_label(stc_label_fname)
 
+    method = "dSPM"
+    pick_ori = "normal"
     l2 = 1. / 9.
     freqs = np.array([10, 12, 14, 16])
+    n_cycles = 2
+    use_fft = True
+    decim = 1
+    zero_mean = False
+
 
     stcs = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                                pick_ori=pick_ori, delayed=delayed,
+                                pick_ori=pick_ori,
                                 label=label, prepared=False)
 
-    single_stfr = tfr_morlet(stcs[0], freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                             zero_mean=zero_mean, return_itc=False, output='power', average=True)
+    stfr = tfr_morlet(stcs, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                      zero_mean=zero_mean, return_itc=return_itc, output='power', average=True)
 
-    list_stfr = tfr_morlet(stcs, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                           zero_mean=zero_mean, return_itc=False, output='power', average=True)
-
-    stfr_ref, _ = source_induced_power(epochs, inv, lambda2=l2, method=method,
+    # make sure both are lists, so we can compare them if return_itc=True
+    stfr_ref, itc_ref = source_induced_power(epochs, inv, lambda2=l2, method=method,
                                        pick_ori=pick_ori, label=label,
                                        prepared=False, freqs=freqs, n_cycles=n_cycles,
                                        use_fft=use_fft, decim=decim, zero_mean=zero_mean,
                                        baseline=None, pca=False)
 
-    # TODO: "vector" ori differs along the single orientations, but each 3 vectors are added, results are correct.
-    # Maybe the orientation alignment differs in source_induced_power and apply_inverse_epochs?
-
-    # _check_delayed_data(stfr, delayed)
-    assert_allclose(np.reshape(single_stfr.data, stfr_ref.shape), stfr_ref)
-    assert_allclose(np.reshape(list_stfr.data, stfr_ref.shape), stfr_ref)
-    assert_allclose(single_stfr.data, list_stfr.data)
+    if return_itc:
+        assert_allclose(np.reshape(stfr[0].data, stfr_ref.shape), stfr_ref)
+        assert_allclose(np.reshape(stfr[1].data, itc_ref.shape), itc_ref)
+    else:
+        assert_allclose(np.reshape(stfr.data, stfr_ref.shape), stfr_ref)
 
 
-def _test_tfr_equivalence():
-    """Test tfrs for equivalence."""
-
-    n_cycles = 5
+@pytest.mark.filterwarnings('ignore:.*The unit .*? has changed from NA to V.')
+@pytest.mark.parametrize('tfr_func', [tfr_morlet, tfr_multitaper])
+@pytest.mark.parametrize('return_itc, average',
+                         [[False, False],
+                          [False, True],
+                          [True, True]])
+def test_stfr_equivalence(tfr_func, return_itc, average):
+    """Test if SourceTFRs are computed in the same way as sensor space TFRs."""
+    n_cycles = 3
     use_fft = True
     decim = 1
 
-    freqs = [10, 12, 14]
-
-    # TODO: parametrize over func, average True False and return_itc
+    freqs = [10, 12, 14, 16]
 
     epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single = _create_ref_data()
 
-    tfr_epoched = tfr_multitaper(epochs_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                                 return_itc=True, average=True, picks="all")
-    stfr_list = tfr_multitaper(stcs_list, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                               return_itc=True, average=True)
-    stfr_gen = tfr_multitaper(stcs_gen, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                              return_itc=True, average=True)
+    epoch_tfrs = tfr_func(epochs_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                          return_itc=return_itc, average=average)
+    list_stfrs = tfr_func(stcs_list, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                          return_itc=return_itc, average=average)
+    gen_stfrs = tfr_func(stcs_gen, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                         return_itc=return_itc, average=average)
 
-    assert_allclose(stfr_list[0].data, tfr_epoched[0].data)
-    assert_allclose(stfr_gen[0].data, tfr_epoched[0].data)
+    # if average is False, stfr shapes need to be switched to epochs shape
+    trans = (0, 1, 2) if average else (1, 0, 2, 3)
 
-    tfr_evoked = tfr_multitaper(evoked_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                                return_itc=False, average=False, picks='all')
-    stfr_single = tfr_multitaper(stc_single, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                                 return_itc=False, average=False)
+    if not return_itc:
+        # make sure we can loop over variables for both return_itc options
+        epoch_tfrs, list_stfrs, gen_stfrs = [epoch_tfrs], [list_stfrs], [gen_stfrs]
 
-    assert_allclose(stfr_single.data.transpose(1, 0, 2, 3), tfr_evoked.data)
+    # compare power as well as itc data
+    for epoch_tfr, list_stfr, gen_stfr in zip(epoch_tfrs, list_stfrs, gen_stfrs):
+        assert_allclose(list_stfr.data.transpose(trans), epoch_tfr.data)
+        assert_allclose(gen_stfr.data.transpose(trans), epoch_tfr.data)
 
-    # For average=True, the array should be flattened over the epoch dim
-    tfr_evoked = tfr_multitaper(evoked_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                                return_itc=False, average=True, picks='all')
-    stfr_single = tfr_multitaper(stc_single, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                                 return_itc=False, average=True)
+        assert_equal(list_stfr.method, epoch_tfr.method)
+        assert_equal(gen_stfr.method, epoch_tfr.method)
 
-    assert_allclose(stfr_single.data, tfr_evoked.data)
+    evoked_tfr = tfr_func(evoked_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                          return_itc=False, average=average)
+    single_stfr = tfr_func(stc_single, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+                           return_itc=False, average=average)
 
-
-@pytest.mark.filterwarnings('ignore:.*Applying zero padding.*:')
-@pytest.mark.filterwarnings('ignore:.*The unit .*? has changed from NA to V.*:')
-def test_tfr_stockwell_equivalence():
-
-    fmin = 10
-    fmax = 16
-    return_itc = False
-
-
-    epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single = _create_ref_data()
-
-    tfr_epoched = tfr_stockwell(epochs_ref, fmin, fmax, return_itc=return_itc)
-    stfr_list = tfr_stockwell(stcs_list, fmin, fmax, return_itc=return_itc)
-    stfr_gen = tfr_stockwell(stcs_gen, fmin, fmax, return_itc=return_itc)
-
-    assert_allclose(stfr_list.data, tfr_epoched.data)
-    assert_allclose(stfr_gen.data, tfr_epoched.data)
-
+    assert_allclose(single_stfr.data.transpose(trans), evoked_tfr.data)
+    assert_equal(single_stfr.method, evoked_tfr.method)
 
 
 run_tests_if_main()

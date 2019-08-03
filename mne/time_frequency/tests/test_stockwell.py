@@ -20,6 +20,7 @@ from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _st_power_itc)
 
 from mne.time_frequency.tfr import AverageTFR
+from mne.time_frequency.tests.test_tfr import _create_ref_data
 from mne.utils import run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -131,6 +132,41 @@ def test_stockwell_api():
     assert (itc.data.max() <= 1.0)
     assert (np.log(power.data.max()) * 20 <= 0.0)
     assert (np.log(power.data.max()) * 20 <= 0.0)
+
+
+@pytest.mark.filterwarnings('ignore:.*The unit .*? has changed from NA to V.')
+@pytest.mark.filterwarnings('ignore:.*Applying zero padding.')
+@pytest.mark.parametrize('return_itc', [True, False])
+def test_stfr_stockwell(return_itc):
+    """Test if SourceTFRs are computed in the same way as sensor space TFRs."""
+    fmin = 10
+    fmax = 16
+
+    epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single = _create_ref_data()
+
+    epoch_tfrs = tfr_stockwell(epochs_ref, fmin, fmax, return_itc=return_itc)
+    list_stfrs = tfr_stockwell(stcs_list, fmin, fmax, return_itc=return_itc)
+    gen_stfrs = tfr_stockwell(stcs_gen, fmin, fmax, return_itc=return_itc)
+
+    if not return_itc:
+        # make sure we can loop over variables for both return_itc options
+        epoch_tfrs, list_stfrs, gen_stfrs = [epoch_tfrs], [list_stfrs], [gen_stfrs]
+
+    # compare power as well as itc data
+    for epoch_tfr, list_stfr, gen_stfr in zip(epoch_tfrs, list_stfrs, gen_stfrs):
+        assert_allclose(list_stfr.data, epoch_tfr.data)
+        assert_allclose(gen_stfr.data, epoch_tfr.data)
+
+        assert_equal(list_stfr.method, epoch_tfr.method)
+        assert_equal(gen_stfr.method, epoch_tfr.method)
+
+    evoked_tfr = tfr_stockwell(evoked_ref, fmin, fmax, return_itc=False)
+    single_stfr = tfr_stockwell(stc_single, fmin, fmax, return_itc=False)
+
+    assert_allclose(evoked_tfr.data, single_stfr.data)
+    assert_equal(evoked_tfr.method, single_stfr.method)
+
+
 
 
 run_tests_if_main()
