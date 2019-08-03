@@ -60,10 +60,10 @@ extensions = [
     'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
-    'sphinx.ext.graphviz',
+    'numpydoc',
+    'graphviz',
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
-    'numpydoc',
     'gen_commands',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
@@ -310,7 +310,7 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
     'dipy': ('http://nipy.org/dipy', None),
-    'mne_realtime': ('https://mne-tools.github.io/mne-realtime', None),
+    'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
 
@@ -352,7 +352,28 @@ else:
     report_scraper = None
 
 
+def append_attr_meth_examples(app, what, name, obj, options, lines):
+    """Append SG examples backreferences to method and attr docstrings."""
+    # NumpyDoc nicely embeds method and attribute docstrings for us, but it
+    # does not respect the autodoc templates that would otherwise insert
+    # the .. include:: lines, so we need to do it.
+    # Eventually this could perhaps live in SG.
+    if what in ('attribute', 'method'):
+        lines += """
+.. rubric:: Examples using ``{0}``
+
+.. include:: {1}.examples
+   :start-line: 5
+
+.. raw:: html
+
+    <div style="clear:both"></div>
+""".format(name.split('.')[-1], name).split('\n')
+
+
 def setup(app):
+    """Set up the Sphinx app."""
+    app.connect('autodoc-process-docstring', append_attr_meth_examples)
     if report_scraper is not None:
         report_scraper.app = app
         app.connect('build-finished', report_scraper.copyfiles)
