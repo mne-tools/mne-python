@@ -82,8 +82,7 @@ DATE_TEST_CASES = np.array([
      [1384359243, 794231],  # meas_date internal representation
      '2013-11-13 16:14:03 GMT'),  # meas_date representation
 
-    (('Mk1=New Segment,,1,1,0,20070716122240937454\n'
-      'Mk2=New Segment,,2,1,0,20070716122240937455\n'),
+    ('Mk1=New Segment,,1,1,0,20070716122240937454\nMk2=New Segment,,2,1,0,20070716122240937455\n',  # noqa: E501
      [1184588560, 937453],
      '2007-07-16 12:22:40 GMT'),
 
