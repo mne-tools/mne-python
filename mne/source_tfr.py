@@ -69,9 +69,11 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                       ("dipoles", "orientations", "epochs", "freqs", "times")]
 
         valid_methods = ["morlet-power", "multitaper-power", "stockwell-power",
-                         "morlet-itc", "multitaper-itc", "stockwell-itc"]
+                         "morlet-itc", "multitaper-itc", "stockwell-itc", None]
 
-        _check_option("dims", dims, valid_dims)
+        # unfortunately, _check option does not work with the original tuples
+        _check_option("dims", list(dims),
+                      [list(v_dims) for v_dims in valid_dims])
         _check_option("method", method, valid_methods)
 
         if not (isinstance(vertices, np.ndarray) or
@@ -126,11 +128,11 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                 raise ValueError('Data (shape {0}) must have {1} dimensions for '
                                  'SourceTFR with dims={2}'
                                  .format(data.shape,self._data_ndim, self.dims))
-            # TODO: Cover this!
+
             if "orientations" in dims and data.shape[1] != 3:
-                raise ValueError('If mutiple orientations are defined, '
+                raise ValueError('If multiple orientations are defined, '
                                  'stfr.shape[1] must be 3. Got '
-                                 'shape[1] == %s' % (data.shape[1]))
+                                 'shape[1] == {}'.format(data.shape[1]))
 
 
 
@@ -270,12 +272,13 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
             self._remove_kernel_sens_data_()
-            if 'power' in self.method:
-                # TODO: Make sure this step is performed equally in stockwell or else change the statement
-                self._data = (self._data * self._data.conj()).real
+
+            # we can't yet give full support for TFR complex conversion
+            # if 'power' in self.method:
+            #    self._data = (self._data * self._data.conj()).real
+
         return self._data
 
-    # TODO: change this accordingly
     @data.setter
     def data(self, value):
         value = np.asarray(value)

@@ -172,7 +172,7 @@ def test_stfr_crop():
     for inst in [stfr, kernel_stfr]:
         copy_1 = inst.copy()
         assert_allclose(copy_1.crop(tmax=0.8).data, inst.data[:, :, :9])
-        # FIXME: the next line would neither work for kernel stfr nor kernel stc
+        # FIXME: cropping like this does neither work for kernel stfr nor kernel stc
         # assert_allclose(copy_1.times, inst.times[:9])
 
         copy_2 = inst.copy()
@@ -210,42 +210,15 @@ def test_invalid_params():
     with pytest.raises(ValueError, match='(shape .*?) must have .*? dimensions'):
         SourceTFR(np.random.rand(40, 10, 20, 10), verts, tmin, tstep)
 
+    with pytest.raises(ValueError, match='multiple orientations.*? must be 3'):
+        SourceTFR(np.random.rand(40, 10, 20, 10), verts, tmin, tstep,
+                  dims=("dipoles", "orientations", "freqs", "times"))
 
-# TODO: To test lh/rh data, binned etc., valid STFR need to be created from SourceEstimates
+    with pytest.raises(ValueError, match="Invalid value for the 'dims' parameter"):
+        SourceTFR(data, verts, tmin, tstep, dims=("dipoles", "nonsense"))
 
-
-# TODO: This is for checking coverage while writing. Remove it before push
-import unittest
-
-
-class TestSTFR(unittest.TestCase):
-    def test_kernel(self):
-        test_stfr_kernel_equality()
-
-    def test_attributes(self):
-        test_stfr_attributes()
-
-    def test_io_stfr(self):
-        test_io_stfr_h5()
-
-    def test_resample(self):
-        test_stfr_resample()
-
-    def test_crop(self):
-        test_stfr_crop()
-
-    def test_inv_params(self):
-        test_invalid_params()
+    with pytest.raises(ValueError, match="Invalid value for the 'method' parameter"):
+        SourceTFR(data, verts, tmin, tstep, method="multitape")
 
 
-def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(
-        unittest.TestLoader().loadTestsFromTestCase((TestSTFR))
-    )
-
-    return suite
-
-
-if __name__ == '__main__':
-    unittest.TextTestRunner(verbosity=2).run(suite())
+run_tests_if_main()
