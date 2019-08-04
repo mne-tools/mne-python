@@ -213,18 +213,17 @@ s = apply_inverse(epochs['signal'].average(), inv)
 
 # Take the root-mean square along the time dimension and plot the result.
 s_rms = np.sqrt((s ** 2).mean())
+title = 'MNE-dSPM inverse (RMS)'
 brain = s_rms.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
-                   size=600)
+                   size=600, time_label=title, title=title)
 
 # Indicate the true locations of the source activity on the plot.
 brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
 brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
 # Rotate the view and add a title.
-fig = brain._figures[0][0]
-mne.viz.set_3d_view(fig, azimuth=0, elevation=0, distance=550,
-                    focalpoint=[0, 0, 0])
-mne.viz.set_3d_title(fig, 'MNE-dSPM inverse (RMS)')
+brain.show_view(view={'azimuth': 0, 'elevation': 0, 'distance': 550,
+                'focalpoint': [0, 0, 0]})
 
 ###############################################################################
 # We will now compute the cortical power map at 10 Hz. using a DICS beamformer.
@@ -267,18 +266,18 @@ power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 # Plot the DICS power maps for both approaches.
 for approach, power in enumerate([power_approach1, power_approach2], 1):
+    title = 'DICS power map, approach %d' % approach
     brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both',
-                       figure=approach + 1, size=600)
+                       figure=approach + 1, size=600, time_label=title,
+                       title=title)
 
     # Indicate the true locations of the source activity on the plot.
     brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
     brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
 
     # Rotate the view and add a title.
-    fig = brain._figures[0][0]
-    mne.viz.set_3d_view(fig, azimuth=0, elevation=0, distance=550,
-                        focalpoint=[0, 0, 0])
-    mne.viz.set_3d_title(fig, 'DICS power map, approach %d' % approach)
+    brain.show_view(view={'azimuth': 0, 'elevation': 0, 'distance': 550,
+                    'focalpoint': [0, 0, 0]})
 
 ###############################################################################
 # Excellent! All methods found our two simulated sources. Of course, with a

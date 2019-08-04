@@ -39,6 +39,8 @@ raw.crop(tmax=60).load_data()
 # time relative to which the annotation onsets should be interpreted.
 #
 #
+# .. _tut-section-programmatic-annotations:
+#
 # Creating annotations programmatically
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -112,7 +114,7 @@ print(raw2.annotations.onset)
 # Now that your annotations have been added to a :class:`~mne.io.Raw` object,
 # you can see them when you visualize the :class:`~mne.io.Raw` object:
 
-raw.plot(start=2, duration=6)
+fig = raw.plot(start=2, duration=6)
 
 ###############################################################################
 # The three annotations appear as differently colored rectangles because they
@@ -130,10 +132,10 @@ raw.plot(start=2, duration=6)
 # by clicking-and-dragging the mouse in the plot window. To do this, you must
 # first enter "annotation mode" by pressing :kbd:`a` while the plot window is
 # focused; this will bring up the annotation controls window:
-#
-# .. image:: ../../_static/annotation-controls.png
-#    :alt: screenshot of MNE-Python annotation controls window
-#
+
+fig.canvas.key_press_event('a')
+
+###############################################################################
 # The colored rings are clickable, and determine which existing label will be
 # created by the next click-and-drag operation in the main plot window. New
 # annotation descriptions can be added by typing the new description,
@@ -172,7 +174,8 @@ raw.plot(start=2, duration=6)
 # for finding heartbeat and blink artifacts
 # (:func:`~mne.preprocessing.find_ecg_events`,
 # :func:`~mne.preprocessing.find_eog_events`), and creation of epoched data
-# from continuous data (:class:`mne.Epochs`).
+# from continuous data (:class:`mne.Epochs`). See :ref:`tut-reject-data-spans`
+# for details.
 #
 #
 # Operations on Annotations objects

@@ -637,6 +637,8 @@ def _read_edf_header(fname, exclude):
                 continue
             if unit == 'uV':
                 edf_info['units'].append(1e-6)
+            elif unit == 'mV':
+                edf_info['units'].append(1e-3)
             else:
                 edf_info['units'].append(1)
 
@@ -1435,8 +1437,6 @@ def _get_annotations_gdf(edf_info, sfreq):
     if events is not None and events[1].shape[0] > 0:
         onset = events[1] / sfreq
         duration = events[4] / sfreq
-        desc = [GDF_EVENTS_LUT[key]
-                if key in GDF_EVENTS_LUT else 'Unknown'
+        desc = [GDF_EVENTS_LUT.get(key, 'Undefined(%s)' % (key,))
                 for key in events[2]]
-
     return onset, duration, desc

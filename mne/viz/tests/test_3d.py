@@ -154,9 +154,9 @@ def test_plot_evoked_field(renderer):
             assert isinstance(fig, mayavi.core.scene.Scene)
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-@pytest.mark.timeout(120)
 def test_plot_alignment(tmpdir, renderer):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
@@ -451,9 +451,6 @@ def test_plot_dipole_orientations(renderer):
 @traits_test
 def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
-    if renderer.get_3d_backend() == 'pyvista':
-        pytest.skip("This feature is not available yet on PyVista")
-
     info = read_info(evoked_fname)
     fig = plot_alignment(
         info, trans=None, subject='sample', subjects_dir=subjects_dir)

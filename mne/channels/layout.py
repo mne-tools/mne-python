@@ -473,6 +473,9 @@ def _find_kit_layout(info, n_grads):
     elif n_grads == 160:
         return 'KIT-160'
 
+    elif n_grads == 125:
+        return 'KIT-125'
+
     elif n_grads > 157:
         return 'KIT-AD'
 

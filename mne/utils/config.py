@@ -501,7 +501,8 @@ def sys_info(fid=None, show_paths=False):
                 libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'nibabel', 'mayavi', 'cupy', 'pandas', 'dipy'):
+                     'numba', 'nibabel', 'cupy', 'pandas', 'dipy',
+                     'mayavi', 'pyvista', 'vtk'):
         if mod_name == '':
             out += '\n'
             continue
@@ -531,7 +532,11 @@ def sys_info(fid=None, show_paths=False):
                     except Exception:
                         pass
                 extra = ' {qt_api=%s}%s' % (qt_api, extra)
-            out += '%s%s\n' % (mod.__version__, extra)
+            if mod_name == 'vtk':
+                version = mod.VTK_VERSION
+            else:
+                version = mod.__version__
+            out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)
 
 

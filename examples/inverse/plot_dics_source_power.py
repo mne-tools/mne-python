@@ -8,8 +8,7 @@ Compute source power using DICS beamfomer
 Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
 single-trial activity to estimate source power across a frequency band. This
 example demonstrates how to source localize the event-related synchronization
-(ERS) of beta band activity in the "somato" dataset.
-
+(ERS) of beta band activity in this dataset: :ref:`somato-dataset`
 
 References
 ----------
@@ -19,8 +18,11 @@ References
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #         Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+import os.path as op
+
 import numpy as np
 import mne
 from mne.datasets import somato
@@ -32,9 +34,10 @@ print(__doc__)
 ###############################################################################
 # Reading the raw data and creating epochs:
 data_path = somato.data_path()
-raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
-fname_fwd = data_path + '/MEG/somato/somato-meg-oct-6-fwd.fif'
-subjects_dir = data_path + '/subjects'
+subject = '01'
+task = 'somato'
+raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
+                    'sub-{}_task-{}_meg.fif'.format(subject, task))
 
 raw = mne.io.read_raw_fif(raw_fname)
 
@@ -46,7 +49,11 @@ events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
                     preload=True)
 
-# Read forward operator
+# Read forward operator and point to freesurfer subject directory
+fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
+                    'sub-{}_task-{}-fwd.fif'.format(subject, task))
+subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
+
 fwd = mne.read_forward_solution(fname_fwd)
 
 ###############################################################################
@@ -79,4 +86,4 @@ beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
 stc = beta_source_power / baseline_source_power
 message = 'DICS source power in the 12-30 Hz frequency band'
 brain = stc.plot(hemi='both', views='par', subjects_dir=subjects_dir,
-                 time_label=message)
+                 subject=subject, time_label=message)

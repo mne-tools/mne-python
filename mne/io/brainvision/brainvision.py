@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Conversion tool from Brain Vision EEG to FIF."""
-
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -152,8 +151,9 @@ def _read_vmrk(fname):
         The onsets in seconds.
     description : array, shape (n_annots,)
         The description of each annotation.
-    orig_time : str
-        The origin time as a string.
+    date_str : str
+        The recording time as a string. Defaults to empty string if no
+        recording time is found.
     """
     # read vmrk file
     with open(fname, 'rb') as fid:
@@ -205,13 +205,15 @@ def _read_vmrk(fname):
     # extract event information
     items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
     onset, duration, description = list(), list(), list()
-    date_str = None
+    date_str = ''
     for info in items:
-        mtype, mdesc, this_onset, this_duration = info.split(',')[:4]
-        if date_str is None and mtype == 'New Segment':
+        info_data = info.split(',')
+        mtype, mdesc, this_onset, this_duration = info_data[:4]
+        if date_str == '' and len(info_data) == 5 and mtype == 'New Segment':
             # to handle the origin of time and handle the presence of multiple
-            # New Segment annotations. We only keep the first one for date_str.
-            date_str = info.split(',')[-1]
+            # New Segment annotations. We only keep the first one that is
+            # different from an empty string for date_str.
+            date_str = info_data[-1]
 
         this_duration = (int(this_duration)
                          if this_duration.isdigit() else 0)
@@ -246,7 +248,7 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
         The annotations present in the file.
     """
     onset, duration, description, date_str = _read_vmrk(fname)
-    orig_time = None if date_str == '' else _str_to_meas_date(date_str)
+    orig_time = _str_to_meas_date(date_str)
 
     if sfreq == 'auto':
         vhdr_fname = op.splitext(fname)[0] + '.vhdr'
@@ -311,7 +313,7 @@ _unit_dict = {'V': 1.,  # V stands for Volt
 def _str_to_meas_date(date_str):
     date_str = date_str.strip()
 
-    if date_str in ['0', '00000000000000000000']:
+    if date_str in ['', '0', '00000000000000000000']:
         return None
 
     try:
@@ -463,7 +465,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # Try to get measurement date from marker file
     # Usually saved with a marker "New Segment", see BrainVision documentation
-    regexp = r'^Mk\d+=New Segment,.*,\d+,\d+,\d+,(\d{20})$'
+    regexp = r'^Mk\d+=New Segment,.*,\d+,\d+,-?\d+,(\d{20})$'
     with open(mrk_fname, 'r') as tmp_mrk_f:
         lines = tmp_mrk_f.readlines()
 
@@ -525,24 +527,36 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                               else FIFF.FIFF_UNIT_NONE)
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
-    # create montage
+    # create montage: 'Coordinates' section in VHDR file corresponds to "BVEF"
+    # BrainVision Electrode File. The data are based on BrainVision Analyzer
+    # coordinate system: Defined between standard electrode positions: X-axis
+    # from T7 to T8, Y-axis from Oz to Fpz, Z-axis orthogonal from XY-plane
+    # through Cz, fit to a sphere if idealized (when radius=1), specified in mm
     if cfg.has_section('Coordinates') and montage in (None, 'deprecated'):
         from ...transforms import _sph_to_cart
         from ...channels.montage import Montage
         montage_pos = list()
         montage_names = list()
         to_misc = list()
+        # Go through channels
         for ch in cfg.items('Coordinates'):
             ch_name = ch_dict[ch[0]]
             montage_names.append(ch_name)
-            radius, theta, phi = [float(c) for c in ch[1].split(',')]
             # 1: radius, 2: theta, 3: phi
+            rad, theta, phi = [float(c) for c in ch[1].split(',')]
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
-            pos = _sph_to_cart(np.array([[radius * 85., az, pol]]))[0]
+            # Coordinates could be "idealized" (spherical head model)
+            if rad == 1:
+                # scale up to realistic head radius (8.5cm == 85mm)
+                rad *= 85.
+            pos = _sph_to_cart(np.array([[rad, az, pol]]))[0]
             if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)
             montage_pos.append(pos)
+        # Make a montage, normalizing from BrainVision units "mm" to "m", the
+        # unit used for montages in MNE
+        montage_pos = np.array(montage_pos) / 1e3
         montage_sel = np.arange(len(montage_pos))
         montage = Montage(montage_pos, montage_names, 'Brainvision',
                           montage_sel)

@@ -8,10 +8,14 @@ Frequency and time-frequency sensors analysis
 The objective is to show you how to explore the spectral content
 of your data (frequency and time-frequency). Here we'll work on Epochs.
 
-We will use the somatosensory dataset that contains so-called
-event related synchronizations (ERS) / desynchronizations (ERD) in
-the beta band.
-"""
+We will use this dataset: :ref:`somato-dataset`. It contains so-called event
+related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
+"""  # noqa: E501
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
+# License: BSD (3-clause)
+import os.path as op
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,7 +27,10 @@ from mne.datasets import somato
 ###############################################################################
 # Set parameters
 data_path = somato.data_path()
-raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
+subject = '01'
+task = 'somato'
+raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
+                    'sub-{}_task-{}_meg.fif'.format(subject, task))
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)

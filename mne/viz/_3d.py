@@ -2434,8 +2434,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
-                          scale=5e-3, color=(1.0, 0.0, 0.0), fig=None,
-                          verbose=None):
+                          scale=5e-3, color=None, highlight_color='r',
+                          fig=None, verbose=None):
     """Plot dipole locations.
 
     If mode is set to 'arrow' or 'sphere', only the location of the first
@@ -2499,7 +2499,17 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     scale: float
         The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
     color : tuple
-        The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
+        The color of the dipoles.
+        The default (None) will use ``'y'`` if mode is ``'orthoview'`` and
+        ``show_all`` is True, else 'r'.
+
+        .. versionchanged:: 0.19.0
+           Color is now passed in orthoview mode.
+    highlight_color : color
+        The highlight color. Only used in orthoview mode with
+        ``show_all=True``.
+
+        .. versionadded:: 0.19.0
     fig : mayavi.mlab.Figure | None
         3D Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -2520,9 +2530,11 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         fig = _plot_dipole_mri_orthoview(
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
-            ax=ax, block=block, show=show)
+            ax=ax, block=block, show=show, color=color,
+            highlight_color=highlight_color)
     elif mode in ['arrow', 'sphere']:
         from .backends.renderer import _Renderer
+        color = (1., 0., 0.) if color is None else color
         renderer = _Renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
         ori = dipoles.ori
@@ -2576,10 +2588,6 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     from .. import Info
     # Update the backend
     from .backends.renderer import _Renderer
-    from .backends.renderer import get_3d_backend
-
-    if get_3d_backend() == 'pyvista':
-        raise RuntimeError('This feature is not available yet with PyVista')
 
     if fig is None:
         raise ValueError('The figure must have a scene')
@@ -2696,7 +2704,8 @@ def plot_sensors_connectivity(info, con, picks=None):
 
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
-                               ax=None, block=False, show=True):
+                               ax=None, block=False, show=True, color=None,
+                               highlight_color='r'):
     """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -2737,11 +2746,13 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                np.linspace(-dd, dd, dims))
 
     _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
-                 coord_frame, zooms, show_all, scatter_points)
+                 coord_frame, zooms, show_all, scatter_points, color,
+                 highlight_color)
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
               'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
               'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
-              'show_all': show_all, 'scatter_points': scatter_points}
+              'show_all': show_all, 'scatter_points': scatter_points,
+              'color': color, 'highlight_color': highlight_color}
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -2787,9 +2798,11 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
 
 
 def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
-                 zooms, show_all, scatter_points):
+                 zooms, show_all, scatter_points, color, highlight_color):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
     point = points[idx]
     xidx, yidx, zidx = np.round(point).astype(int)
     xslice = data[xidx][::-1]
@@ -2803,14 +2816,18 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     xyz = scatter_points
 
     ori = ori[idx]
+    if color is None:
+        color = 'y' if show_all else 'r'
+    color = np.array(color_converter.to_rgba(color))
+    highlight_color = np.array(color_converter.to_rgba(highlight_color))
     if show_all:
-        colors = np.repeat('y', len(points))
-        colors[idx] = 'r'
+        colors = np.repeat(color[np.newaxis], len(points), axis=0)
+        colors[idx] = highlight_color
         size = np.repeat(5, len(points))
         size[idx] = 20
         visible = np.arange(len(points))
     else:
-        colors = 'r'
+        colors = color
         size = 20
         visible = idx
 
@@ -2821,15 +2838,15 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     yy = np.linspace(offset, xyz[idx, 1], yidx)
     zz = np.linspace(offset, xyz[idx, 2], zidx)
     ax.plot(xx, np.repeat(xyz[idx, 1], len(xx)), zs=xyz[idx, 2], zorder=1,
-            linestyle='-', color='r')
+            linestyle='-', color=highlight_color)
     ax.plot(np.repeat(xyz[idx, 0], len(yy)), yy, zs=xyz[idx, 2], zorder=1,
-            linestyle='-', color='r')
+            linestyle='-', color=highlight_color)
     ax.plot(np.repeat(xyz[idx, 0], len(zz)),
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
-            linestyle='-', color='r')
+            linestyle='-', color=highlight_color)
     kwargs = _pivot_kwargs()
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=50, color='r', **kwargs)
+              ori[2], length=50, color=highlight_color, **kwargs)
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
     ax.set_ylim(-1 * dims * zooms[:2])
@@ -2872,7 +2889,8 @@ def _dipole_changed(event, params):
     _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
                  params['idx'], params['dipole'], params['gridx'],
                  params['gridy'], params['ori'], params['coord_frame'],
-                 params['zooms'], params['show_all'], params['scatter_points'])
+                 params['zooms'], params['show_all'], params['scatter_points'],
+                 params['color'], params['highlight_color'])
 
 
 def _update_coord_frame(obj, rr, nn, mri_trans, head_trans):

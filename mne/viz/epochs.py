@@ -558,8 +558,8 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     return fig
 
 
-def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
-                  color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
+def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
+                  color=(0.8, 0.8, 0.8), width=0.8, ignore=('IGNORED',),
                   show=True):
     """Show the channel stats based on a drop_log from Epochs.
 
@@ -590,29 +590,34 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     """
     import matplotlib.pyplot as plt
     from ..epochs import _drop_log_stats
-    perc = _drop_log_stats(drop_log, ignore)
+    percent = _drop_log_stats(drop_log, ignore)
+    if percent < threshold:
+        logger.info('Percent dropped epochs < supplied threshold; not '
+                    'plotting drop log.')
+        return
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
-    fig = plt.figure()
-    if perc < threshold or len(ch_names) == 0:
-        plt.text(0, 0, 'No drops')
+    counts = np.array(list(scores.values()))
+    # init figure, handle easy case (no drops)
+    fig, ax = plt.subplots()
+    ax.set_title('{}: {:.1f}%'.format(subject, percent))
+    if len(ch_names) == 0:
+        ax.text(0.5, 0.5, 'No drops', ha='center', fontsize=14)
         return fig
-    n_used = 0
-    for d in drop_log:  # "d" is the list of drop reasons for each epoch
-        if len(d) == 0 or any(ch not in ignore for ch in d):
-            n_used += 1  # number of epochs not ignored
-    counts = 100 * np.array(list(scores.values()), dtype=float) / n_used
-    n_plot = min(n_max_plot, len(ch_names))
-    order = np.flipud(np.argsort(counts))
-    plt.title('%s: %0.1f%%' % (subject, perc))
-    x = np.arange(n_plot)
-    plt.bar(x, counts[order[:n_plot]], color=color, width=width)
-    plt.xticks(x + width / 2.0, ch_names[order[:n_plot]], rotation=45,
-               horizontalalignment='right')
-    plt.tick_params(axis='x', which='major', labelsize=10)
-    plt.ylabel('% of epochs rejected')
-    plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
-    plt.grid(True, axis='y')
+    # count epochs that aren't fully caught by `ignore`
+    n_used = sum([any(ch not in ignore for ch in d) or len(d) == 0
+                  for d in drop_log])
+    # calc plot values
+    n_bars = min(n_max_plot, len(ch_names))
+    x = np.arange(n_bars)
+    y = 100 * counts / n_used
+    order = np.flipud(np.argsort(y))
+    ax.bar(x, y[order[:n_bars]], color=color, width=width, align='center')
+    ax.set_xticks(x)
+    ax.set_xticklabels(ch_names[order[:n_bars]], rotation=45, size=10,
+                       horizontalalignment='right')
+    ax.set_ylabel('% of epochs rejected')
+    ax.grid(axis='y')
     tight_layout(pad=1, fig=fig)
     plt_show(show)
     return fig
@@ -948,21 +953,24 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=None, event_colors=None,
-                               order=None, butterfly=False):
+                               order=None, butterfly=False, info=None):
     """Set up the mne_browse_epochs window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
     from matplotlib.colors import colorConverter
     epochs = params['epochs']
+    info = info or epochs.info
+    orig_epoch_times, events, name = epochs.times, epochs.events, epochs._name
+    del epochs
 
     # Reorganize channels
-    picks = _picks_to_idx(epochs.info, picks)
+    picks = _picks_to_idx(info, picks)
     picks = sorted(picks)
     # channel type string for every channel
-    types = [channel_type(epochs.info, ch) for ch in picks]
+    types = [channel_type(info, ch) for ch in picks]
     # list of unique channel types
-    ch_types = list(_get_channel_types(epochs.info))
+    ch_types = list(_get_channel_types(info))
     if order is None:
         order = _DATA_CH_TYPES_ORDER_DEFAULT
     inds = [pick_idx for order_type in order
@@ -982,14 +990,14 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
-    n_epochs = min(n_epochs, len(epochs.events))
-    duration = len(epochs.times) * n_epochs
+    n_epochs = min(n_epochs, len(events))
+    duration = len(orig_epoch_times) * n_epochs
     n_channels = min(n_channels, len(picks))
     if size is not None:
         size = size.split(',')
         size = tuple(float(s) for s in size)
     if title is None:
-        title = epochs._name
+        title = name
         if title is None or len(title) == 0:
             title = ''
     fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
@@ -1035,9 +1043,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     type_colors = [colorConverter.to_rgba(color[c]) for c in types]
     colors = list()
     for color_idx in range(len(type_colors)):
-        colors.append([type_colors[color_idx]] * len(epochs.events))
+        colors.append([type_colors[color_idx]] * len(events))
     lines = list()
-    n_times = len(epochs.times)
+    n_times = len(orig_epoch_times)
 
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
@@ -1047,15 +1055,15 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         ax.add_collection(lc)
         lines.append(lc)
 
-    times = epochs.times
-    data = np.zeros((params['info']['nchan'], len(times) * n_epochs))
+    data = np.zeros((params['info']['nchan'],
+                     len(orig_epoch_times) * n_epochs))
 
     ylim = (25., 0.)  # Hardcoded 25 because butterfly has max 5 rows (5*5=25).
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
-    times = np.arange(len(times) * len(epochs.events))
+    times = np.arange(len(orig_epoch_times) * len(events))
     epoch_times = np.arange(0, len(times), n_times)
 
     ax.set_yticks(offsets)
@@ -1065,7 +1073,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ax2.set_xticks(ticks[:n_epochs])
     labels = list(range(1, len(ticks) + 1))  # epoch numbers
     ax.set_xticklabels(labels)
-    xlim = epoch_times[-1] + len(epochs.times)
+    xlim = epoch_times[-1] + len(orig_epoch_times)
     ax_hscroll.set_xlim(0, xlim)
     vertline_t = ax_hscroll.text(0, 1, '', color='y', va='bottom', ha='right')
 

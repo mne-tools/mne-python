@@ -1038,7 +1038,7 @@ def log_likelihood(emp_cov, precision):
 
 def _logdet(A):
     """Compute the log det of a positive semidefinite matrix."""
-    vals = linalg.eigh(A)[0]
+    vals = linalg.eigvalsh(A)
     # avoid negative (numerical errors) or zero (semi-definite matrix) values
     tol = vals.max() * vals.size * np.finfo(np.float64).eps
     vals = np.where(vals > tol, vals, tol)
@@ -1264,3 +1264,24 @@ def _get_status(checks):
         return list(checks.get_status())
     except AttributeError:
         return [x[0].get_visible() for x in checks.lines]
+
+
+###############################################################################
+# Numba (optional requirement)
+
+# Here we choose different defaults to speed things up by default
+try:
+    import numba
+    if LooseVersion(numba.__version__) < LooseVersion('0.40'):
+        raise ImportError
+    prange = numba.prange
+    def jit(nopython=True, nogil=True, fastmath=True, cache=True,
+            **kwargs):  # noqa
+        return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
+                         cache=cache, **kwargs)
+except ImportError:
+    def jit(**kwargs):  # noqa
+        def _jit(func):
+            return func
+        return _jit
+    prange = range

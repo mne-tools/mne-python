@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Test reading of BrainVision format."""
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
@@ -6,7 +7,7 @@
 
 import os.path as op
 from os import unlink
-import shutil
+import shutil as sh
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -101,6 +102,58 @@ def test_vmrk_meas_date():
     assert raw.info['meas_date'] is None
     assert 'unspecified' in repr(raw.info)
 
+    # Reuse our vmrk to test several other cases with dates
+    tmpdir = _TempDir()
+    tmp_vhdr_file = op.join(tmpdir, op.basename(vhdr_bad_date))
+    tmp_vmrk_file = tmp_vhdr_file.replace('.vhdr', '.vmrk')
+    tmp_eeg_file = op.join(tmpdir, op.basename(eeg_path))
+    sh.copyfile(vhdr_bad_date, tmp_vhdr_file)
+    sh.copyfile(vhdr_bad_date.replace('.vhdr', '.vmrk'), tmp_vmrk_file)
+    sh.copyfile(eeg_path, tmp_eeg_file)
+
+    # We'll exclusively manipulate the "New Segment" line in vmrk
+    with open(tmp_vmrk_file, 'r') as fin:
+        lines = fin.readlines()
+    idx = lines.index('Mk1=New Segment,,1,1,0,00000000000304125000\n')
+
+    # Now perform some tests
+    # Test that we get no error for trying to extract meas_date if there is
+    # no marker of type "New Segment" in the data
+    lines[idx] = 'Mk1=STATUS,,1,1,0\n'
+    with open(tmp_vmrk_file, 'w') as fout:
+        fout.writelines(lines)
+    raw = read_raw_brainvision(tmp_vhdr_file)
+    assert raw.info['meas_date'] is None
+    assert 'unspecified' in repr(raw.info)
+
+    # Test that we extract no date, if "New Segment", but no date specified
+    # Note the trailing comma but missing data following that comma
+    lines[idx] = 'Mk1=New Segment,,1,1,0,\n'
+    with open(tmp_vmrk_file, 'w') as fout:
+        fout.writelines(lines)
+    raw = read_raw_brainvision(tmp_vhdr_file)
+    assert raw.info['meas_date'] is None
+    assert 'unspecified' in repr(raw.info)
+
+    # Test that no error if "New Segment", but no date specified and no
+    # trailing comma
+    lines[idx] = 'Mk1=New Segment,,1,1,0\n'
+    with open(tmp_vmrk_file, 'w') as fout:
+        fout.writelines(lines)
+    raw = read_raw_brainvision(tmp_vhdr_file)
+    assert raw.info['meas_date'] is None
+    assert 'unspecified' in repr(raw.info)
+
+    # Test that a fine date gets recognized, use 2000-01-01:12:00:00, assuming
+    # UTC timezone, which would be in unix time: 946728000
+    lines[idx] = 'Mk1=New Segment,,1,1,0,20000101120000000000\n'
+    with open(tmp_vmrk_file, 'w') as fout:
+        fout.writelines(lines)
+    raw = read_raw_brainvision(tmp_vhdr_file)
+    assert raw.info['meas_date'] is not None
+    assert raw.info['meas_date'][1] == 0  # no microseconds
+    assert raw.info['meas_date'][0] == 946728000
+
 
 def test_vhdr_codepage_ansi():
     """Test BV reading with ANSI codepage."""
@@ -111,7 +164,7 @@ def test_vhdr_codepage_ansi():
     ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
     ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
     # copy data file
-    shutil.copy(eeg_path, ansi_eeg_path)
+    sh.copy(eeg_path, ansi_eeg_path)
     # modify header file
     with open(ansi_vhdr_path, 'wb') as fout:
         with open(vhdr_path, 'rb') as fin:
@@ -143,8 +196,8 @@ def test_ascii():
     tempdir = _TempDir()
     ascii_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
     # copy marker file
-    shutil.copy(vhdr_path.replace('.vhdr', '.vmrk'),
-                ascii_vhdr_path.replace('.vhdr', '.vmrk'))
+    sh.copy(vhdr_path.replace('.vhdr', '.vmrk'),
+            ascii_vhdr_path.replace('.vhdr', '.vmrk'))
     # modify header file
     skipping = False
     with open(ascii_vhdr_path, 'wb') as fout:
@@ -422,6 +475,28 @@ def test_brainvision_vectorized_data():
     assert_array_almost_equal(raw._data[:, :2], first_two_samples_all_chs)
 
 
+def test_coodinates_extraction():
+    """Test reading of [Coordinates] section if present."""
+    # vhdr 2 has a Coordinates section
+    with pytest.warns(RuntimeWarning, match='coordinate information'):
+        raw = read_raw_brainvision(vhdr_v2_path)
+
+    # Basic check of extracted coordinates
+    assert raw.info['dig'] is not None
+    diglist = raw.info['dig']
+    coords = np.array([dig['r'] for dig in diglist])
+    assert coords.shape[0] == len(raw.ch_names)
+    assert coords.shape[1] == 3
+
+    # Make sure the scaling seems right
+    # a coordinate more than 20cm away from origin is implausible
+    assert coords.max() < 0.2
+
+    # vhdr 1 does not have a Coordinates section
+    raw2 = read_raw_brainvision(vhdr_path)
+    assert raw2.info['dig'] is None
+
+
 @testing.requires_testing_data
 def test_brainvision_neuroone_export():
     """Test Brainvision file exported with neuroone system."""
@@ -448,7 +523,7 @@ def test_read_vmrk_annotations():
     try:
         temp.close()
         unlink(temp.name)
-    except FileNotFoundError:
+    except IOError:
         pass
 
 

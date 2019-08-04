@@ -32,7 +32,8 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
-                    check_fname, _pl, fill_doc, _check_option)
+                    check_fname, _pl, fill_doc, _check_option,
+                    _svd_lwork, _repeated_svd, ddot, dgemv, dgemm)
 
 
 @fill_doc
@@ -612,13 +613,13 @@ def _read_dipole_text(fname):
 
 def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     """Compute the forward solution and do other nice stuff."""
-    B = _compute_forwards_meeg(rr, fwd_data, n_jobs, verbose=False)
+    B = _compute_forwards_meeg(rr, fwd_data, n_jobs, silent=True)
     B = np.concatenate(B, axis=1)
     assert np.isfinite(B).all()
     B_orig = B.copy()
 
     # Apply projection and whiten (cov has projections already)
-    B = np.dot(B, whitener.T)
+    B = dgemm(1., B, whitener.T)
 
     # column normalization doesn't affect our fitting, so skip for now
     # S = np.sum(B * B, axis=1)  # across channels
@@ -649,11 +650,12 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs):
     return SourceSpaces([src])
 
 
-def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
+def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None,
+              lwork=None):
     """Calculate the residual sum of squares."""
     if fwd_svd is None:
         fwd = _dipole_forwards(fwd_data, whitener, rd[np.newaxis, :])[0]
-        uu, sing, vv = linalg.svd(fwd, overwrite_a=True, full_matrices=False)
+        uu, sing, vv = _repeated_svd(fwd, lwork, overwrite_a=True)
     else:
         uu, sing, vv = fwd_svd
     gof = _dipole_gof(uu, sing, vv, B, B2)[0]
@@ -664,8 +666,8 @@ def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
 def _dipole_gof(uu, sing, vv, B, B2):
     """Calculate the goodness of fit from the forward SVD."""
     ncomp = 3 if sing[2] / (sing[0] if sing[0] > 0 else 1.) > 0.2 else 2
-    one = np.dot(vv[:ncomp], B)
-    Bm2 = np.sum(one * one)
+    one = dgemv(1., vv[:ncomp], B)  # np.dot(vv[:ncomp], B)
+    Bm2 = ddot(one, one)  # np.sum(one * one)
     gof = Bm2 / B2
     return gof, one
 
@@ -931,7 +933,9 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
     idx = np.argmin([_fit_eval(guess_rrs[[fi], :], B, B2, fwd_svd)
                      for fi, fwd_svd in enumerate(guess_data['fwd_svd'])])
     x0 = guess_rrs[idx]
-    fun = partial(_fit_eval, B=B, B2=B2, fwd_data=fwd_data, whitener=whitener)
+    lwork = _svd_lwork((3, B.shape[0]))
+    fun = partial(_fit_eval, B=B, B2=B2, fwd_data=fwd_data, whitener=whitener,
+                  lwork=lwork)
 
     # Tested minimizers:
     #    Simplex, BFGS, CG, COBYLA, L-BFGS-B, Powell, SLSQP, TNC

@@ -775,8 +775,10 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         Use minimum norm [1]_, dSPM (default) [2]_, sLORETA [3]_, or
         eLORETA [4]_.
     pick_ori : None | "normal" | "vector"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
+        By default (None) pooling is performed by taking the norm of loose/free
+        orientations. In case of a fixed source space no norm is computed
+        leading to signed source activity.
+        If "normal" only the radial component is kept. This is only implemented
         when working with loose orientations.
         If "vector", no pooling of the orientations is done and the vector
         result will be returned in the form of a
