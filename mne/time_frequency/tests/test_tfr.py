@@ -287,9 +287,8 @@ def test_time_frequency():
     stc_2 = SourceEstimate(stc_data, verts, tmin=0.2, tstep=tstep)
     stc_3 = SourceEstimate(stc_data, verts, tmin, tstep=1. / 129.)
 
-    "asdsd".format()
-
-    with pytest.raises(TypeError, match="must be of the same SourceEstimate type"):
+    with pytest.raises(TypeError, match="must be of the same "
+                                        "SourceEstimate type"):
         tfr_morlet([stc_ref, stc_1], [10, 12], 1)
 
     with pytest.raises(ValueError, match="must have the same tmin"):
@@ -297,6 +296,10 @@ def test_time_frequency():
 
     with pytest.raises(ValueError, match="must have the same sfreq"):
         tfr_morlet([stc_ref, stc_3], [10, 12], 1)
+
+    with pytest.raises(TypeError, match="must consist of "
+                                        "SourceEstimate objects"):
+        tfr_morlet([stc_ref, evoked], [10, 12], 1)
 
 
 
@@ -800,6 +803,7 @@ def test_getitem_epochsTFR():
 
 
 def _prepare_epochs(n_epochs):
+    """Load data and create an Epochs object from it."""
     raw = read_raw_fif(stc_raw_fname)
     tmin, tmax, event_id = -0.2, 0.5, 1
     events = find_events(raw, stim_channel='STI 014')
@@ -811,7 +815,6 @@ def _prepare_epochs(n_epochs):
 
 def _create_ref_data():
     """Create different types with equal data that should produce equal TFRs."""
-
     def stc_generator(data, verts, tmin, tstep):
         for i in range(len(data)):
             yield SourceEstimate(data[i], verts, tmin, tstep)
@@ -843,6 +846,7 @@ def _create_ref_data():
 @pytest.mark.parametrize('n_epochs', [1, 3])
 @pytest.mark.parametrize('return_itc', [True, False])
 def test_morlet_induced_power_equivalence(n_epochs, return_itc):
+    """Test equivalence of tfr_morlet(stc) and source_induced_power."""
 
     epochs = _prepare_epochs(n_epochs)
     inv = read_inverse_operator(stc_inv_fname)
@@ -857,20 +861,19 @@ def test_morlet_induced_power_equivalence(n_epochs, return_itc):
     decim = 1
     zero_mean = False
 
-
     stcs = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                                pick_ori=pick_ori,
-                                label=label, prepared=False)
+                                pick_ori=pick_ori, label=label, prepared=False)
 
-    stfr = tfr_morlet(stcs, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                      zero_mean=zero_mean, return_itc=return_itc, output='power', average=True)
+    stfr = tfr_morlet(stcs, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft,
+                      decim=decim, zero_mean=zero_mean, return_itc=return_itc,
+                      output='power', average=True)
 
     # make sure both are lists, so we can compare them if return_itc=True
-    stfr_ref, itc_ref = source_induced_power(epochs, inv, lambda2=l2, method=method,
-                                       pick_ori=pick_ori, label=label,
-                                       prepared=False, freqs=freqs, n_cycles=n_cycles,
-                                       use_fft=use_fft, decim=decim, zero_mean=zero_mean,
-                                       baseline=None, pca=False)
+    stfr_ref, itc_ref = \
+        source_induced_power(epochs, inv, lambda2=l2, method=method,
+                             pick_ori=pick_ori, label=label, prepared=False,
+                             freqs=freqs, n_cycles=n_cycles, use_fft=use_fft,
+                             decim=decim, zero_mean=zero_mean, pca=False)
 
     if return_itc:
         assert_allclose(np.reshape(stfr[0].data, stfr_ref.shape), stfr_ref)

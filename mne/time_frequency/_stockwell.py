@@ -204,14 +204,14 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                   width=1.0, decim=1, return_itc=False, n_jobs=1,
                   verbose=None):
-    from ..source_estimate import _BaseSourceEstimate, VectorSourceEstimate, VolVectorSourceEstimate
-    from ..source_tfr import SourceTFR
+    from ..source_estimate import _BaseSourceEstimate
     """Time-Frequency Representation (TFR) using Stockwell Transform.
 
     Parameters
     ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    inst : Epochs | Evoked | SourceEstimate | list of SourceEstimate
+        The object to be computed. Can be Epochs, Evoked, any type of
+        SourceEstimate, or a list of multiple SourceEstimates of the same type.
     fmin : None, float
         The minimum frequency to include. If None defaults to the minimum fft
         frequency greater than zero.
@@ -234,9 +234,9 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
 
     Returns
     -------
-    power : AverageTFR
+    power : AverageTFR | SourceTFR
         The averaged power.
-    itc : AverageTFR
+    itc : AverageTFR | SourceTFR
         The intertrial coherence. Only returned if return_itc is True.
 
     See Also
@@ -258,7 +258,6 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
         for idx, obj in enumerate(inst):
             if idx == 0:
                 data = _get_data(obj, return_itc=False)  # don't provoke an error
-                times = obj.times[::decim].copy()
                 inst = obj # overwrite this in order to determine the object type later
             else:
                 data = np.concatenate((data, _get_data(obj, return_itc=False)), axis=0)
@@ -271,9 +270,6 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
         times = inst.times[::decim].copy()
         nave = len(data)
 
-    print("DATAAAA SHAPPPPE : ", data.shape)
-
-    # TODO: Make sure the itc stuff is handled accordingly. + clean this up
     if isinstance(inst, _BaseSourceEstimate):
         sfreq = inst.sfreq
 
@@ -291,7 +287,6 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                                             n_jobs=n_jobs)
 
     if isinstance(inst, _BaseSourceEstimate):
-        #TODO: use _create_stfr here
         out = _create_stfr(inst, power, freqs, method='stockwell-power')
         if return_itc:
             out = (out, _create_stfr(inst, itc, freqs, method='stockwell-itc'))

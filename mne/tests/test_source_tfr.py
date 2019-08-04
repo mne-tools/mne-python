@@ -5,36 +5,18 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
-from scipy.fftpack import fft
-from scipy import sparse
-
-from mne.datasets import testing
-from mne import (stats, SourceEstimate, VectorSourceEstimate,
-                 VolSourceEstimate, Label, read_source_spaces,
-                 read_evokeds, MixedSourceEstimate, find_events, Epochs,
-                 read_source_estimate, extract_label_time_course,
-                 spatio_temporal_tris_connectivity,
-                 spatio_temporal_src_connectivity,
-                 spatial_inter_hemi_connectivity,
-                 spatial_src_connectivity, spatial_tris_connectivity,
-                 SourceSpaces, VolVectorSourceEstimate)
-from mne.source_estimate import grade_to_tris, _get_vol_mask
-
-from mne.minimum_norm import (read_inverse_operator, apply_inverse,
-                              apply_inverse_epochs)
-from mne.label import read_labels_from_annot, label_sign_flip
-from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main, requires_nibabel)
-from mne.io import read_raw_fif
+from mne.utils import _TempDir, requires_h5py, run_tests_if_main
 from mne.source_tfr import SourceTFR
 
 
 def _fake_stfr():
+    """Create a fake SourceTFR object for testing."""
     verts = [np.arange(10), np.arange(90)]
     return SourceTFR(np.random.rand(100, 20, 10), verts, 0, 1e-1, 'foo')
 
 
 def _fake_kernel_stfr():
+    """Create a fake kernel SourceTFR object for testing."""
     kernel = np.random.rand(100, 40)
     sens_data = np.random.rand(40, 20, 10)
     verts = [np.arange(10), np.arange(90)]
@@ -42,6 +24,7 @@ def _fake_kernel_stfr():
 
 
 def test_stfr_kernel_equality():
+    """Test if kernelized SourceTFR produce correct data."""
     # compare kernelized and normal data
     kernel = np.random.rand(100, 40)
     sens_data = np.random.rand(40, 10, 30)
@@ -166,6 +149,7 @@ def test_stfr_resample():
 
 
 def test_stfr_crop():
+    """Test cropping of SourceTFR data."""
     stfr = _fake_stfr()
     kernel_stfr = _fake_kernel_stfr()
 
@@ -181,6 +165,7 @@ def test_stfr_crop():
 
 
 def test_invalid_params():
+    """Test invalid SourceTFR parameters."""
     data = np.random.rand(40, 10, 20)
     verts = [np.arange(10), np.arange(30)]
     tmin = 0

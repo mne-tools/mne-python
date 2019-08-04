@@ -548,11 +548,13 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     return tfrs
 
 
-def _tfr_loop_list(list_data, freqs, method='morlet',
-                   n_cycles=7.0, zero_mean=None, time_bandwidth=None,
-                   use_fft=True, decim=1, output='complex', n_jobs=None,
-                   verbose=None):
-    from ..source_estimate import VectorSourceEstimate, VolVectorSourceEstimate
+def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
+                   zero_mean=None, time_bandwidth=None, use_fft=True, decim=1,
+                   output='complex', n_jobs=None, verbose=None):
+    from ..source_estimate import (_BaseSourceEstimate, VectorSourceEstimate,
+                                   VolVectorSourceEstimate)
+
+    """Does _compute_tfr and _time_frequency_loop for SourceEstimate lists."""
 
     # Initialize output
     decim = _check_decim(decim)
@@ -564,6 +566,12 @@ def _tfr_loop_list(list_data, freqs, method='morlet',
 
     # loop along the epochs (represented as list elements)
     for epoch_idx, inst in enumerate(list_data):
+
+        if not isinstance(inst, _BaseSourceEstimate):
+            raise TypeError("List or generator input must consist of "
+                            "SourceEstimate objects. Got {}."
+                            .format(type(inst)))
+
         X = inst.data
 
         # combine the dipole and orientation dimensions for vector oris
@@ -820,8 +828,9 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
     Parameters
     ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    inst : Epochs | Evoked | SourceEstimate | list of SourceEstimate
+        The object to be computed. Can be Epochs, Evoked, any type of
+        SourceEstimate, or a list of multiple SourceEstimates of the same type.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -860,9 +869,9 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
     Returns
     -------
-    power : AverageTFR | EpochsTFR
+    power : AverageTFR | EpochsTFR | SourceTFR
         The averaged or single-trial power.
-    itc : AverageTFR | EpochsTFR
+    itc : AverageTFR | EpochsTFR | SourceTFR
         The inter-trial coherence (ITC). Only returned if return_itc
         is True.
 
@@ -964,8 +973,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     Parameters
     ----------
-    inst : Epochs | Evoked
-        The epochs or evoked object.
+    inst : Epochs | Evoked | SourceEstimate | list of SourceEstimate
+        The object to be computed. Can be Epochs, Evoked, any type of
+        SourceEstimate, or a list of multiple SourceEstimates of the same type.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -992,6 +1002,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         .. note:: Decimation may create aliasing artifacts.
 
     %(n_jobs)s
+        Will be ignored for list input.
     %(picks_good_data)s
     average : bool, default True
         If True average across Epochs.
@@ -1001,9 +1012,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     Returns
     -------
-    power : AverageTFR | EpochsTFR
+    power : AverageTFR | EpochsTFR | SourceTFR
         The averaged or single-trial power.
-    itc : AverageTFR | EpochsTFR
+    itc : AverageTFR | EpochsTFR | SourceTFR
         The inter-trial coherence (ITC). Only returned if return_itc
         is True.
 
