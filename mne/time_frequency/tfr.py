@@ -591,12 +591,14 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
 
             # Setup wavelet
             if method == 'morlet':
-                # make a list to have same dimensionality as the 'multitaper' case
-                Ws = [morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)]
+                # make a list to have the same dims as the 'multitaper' case
+                Ws = [morlet(sfreq, freqs, n_cycles=n_cycles,
+                             zero_mean=zero_mean)]
 
             elif method == 'multitaper':
                 Ws = _make_dpss(sfreq, freqs, n_cycles=n_cycles,
-                                time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+                                time_bandwidth=time_bandwidth,
+                                zero_mean=zero_mean)
 
             # check tapers
             if len(Ws[0][0]) > inst.shape[-1]:
@@ -621,17 +623,21 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
 
             # add a new epoch element to the tfrs array after each epoch
             if not (('avg_' in output) or ('itc' in output)):
-                new_epoch = np.zeros((1, n_verts, n_freqs, n_times), dtype=dtype)
+                new_epoch = np.zeros((1, n_verts, n_freqs, n_times),
+                                     dtype=dtype)
                 tfrs = np.concatenate((tfrs, new_epoch), axis=0)
 
             # make sure these elements got the same properties as the first one
             if not isinstance(inst, type_ref):
-                raise TypeError("All computed elements must be of the same SourceEstimate type. Got {} and {}."
+                raise TypeError("All computed elements must be of the same "
+                                "SourceEstimate type. Got {} and {}."
                                 .format(type_ref, type(inst)))
             if not inst.sfreq == sfreq:
-                raise ValueError("All computed elements must have the same sfreq.")
+                raise ValueError("All computed elements must have the same "
+                                 "sfreq.")
             if not inst.tmin == tmin_ref:
-                raise ValueError("All computed elements must have the same tmin.")
+                raise ValueError("All computed elements must have the same "
+                                 "tmin.")
 
         # loop over the tapers
         for W_idx, W in enumerate(Ws):
@@ -774,10 +780,11 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
                              method='%s-power' % method)
         if return_itc:
             if isinstance(inst, _BaseSourceEstimate):
-                out = (out, _create_stfr(inst, itc, freqs, method='%s-itc' % method))
+                out = (out, _create_stfr(inst, itc, freqs,
+                                         method='%s-itc' % method))
             else:
                 out = (out, AverageTFR(info, itc, times, freqs, nave,
-                                   method='%s-itc' % method))
+                                       method='%s-itc' % method))
     else:
         power = out
         if isinstance(inst, BaseEpochs):
@@ -791,8 +798,9 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         if isinstance(inst, _BaseSourceEstimate):
             out = _create_stfr(inst, power, freqs, method='%s-power' % method)
         else:
-            out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
-                        events=evs, event_id=ev_id, metadata=meta)
+            out = EpochsTFR(info, power, times, freqs, events=evs,
+                            event_id=ev_id, metadata=meta,
+                            method='%s-power' % method)
     return out
 
 
@@ -803,21 +811,24 @@ def _create_stfr(inst, out, freqs, method):
 
     if len(out.shape) == 4:  # epoched data
         dims = ["dipoles", "epochs", "freqs", "times"]
-        out = np.moveaxis(out, source=0, destination=1)  # switch the epoch axis according to wanted dims
+        # switch the epoch axis according to wanted dims
+        out = np.moveaxis(out, source=0, destination=1)
 
     else:  # len 3 non-epoched data
-        dims = ["dipoles", "freqs", "times"]  # No need to reshape, only name the axes
+        # No need to reshape, only name the axes
+        dims = ["dipoles", "freqs", "times"]
 
     if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-        dims.insert(1, "orientations")  # put in the orientation dimension after the dipoles
+        # put in the orientation dimension after the dipoles
+        dims.insert(1, "orientations")
         newshape = (out.shape[0] // 3, 3,) + out.shape[1:]
         out = np.reshape(out, newshape)
 
     if inst._sens_data is not None:
         out = (inst._kernel, out)
 
-    return SourceTFR(out, inst.vertices, inst.tmin, inst.tstep, freqs, tuple(dims),
-                     method, inst.subject)
+    return SourceTFR(out, inst.vertices, inst.tmin, inst.tstep, freqs,
+                     tuple(dims), method, inst.subject)
 
 
 @verbose
@@ -2321,7 +2332,8 @@ def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..source_estimate import _BaseSourceEstimate, VectorSourceEstimate, VolVectorSourceEstimate
+    from ..source_estimate import (_BaseSourceEstimate, VectorSourceEstimate,
+                                   VolVectorSourceEstimate)
 
     if not isinstance(inst, (BaseEpochs, Evoked, _BaseSourceEstimate)):
         raise TypeError('inst must be Epochs, Evoked, or any SourceEstimate')
@@ -2329,12 +2341,16 @@ def _get_data(inst, return_itc):
         data = inst.get_data()
     else:
         if return_itc:
-            raise ValueError('return_itc must be False for evoked data or single SourceEstimates')
+            raise ValueError('return_itc must be False for evoked data '
+                             'or single SourceEstimates')
 
         if isinstance(inst, _BaseSourceEstimate):
             data = inst.data[np.newaxis]  # full data representation
-            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-                data = np.reshape(data, [data.shape[0], data.shape[1] * data.shape[2], data.shape[3]])
+            if isinstance(inst, (VectorSourceEstimate,
+                                 VolVectorSourceEstimate)):
+                data = np.reshape(data, [data.shape[0],
+                                         data.shape[1] * data.shape[2],
+                                         data.shape[3]])
         else:  # is Evoked
             data = inst.data[np.newaxis].copy()
 

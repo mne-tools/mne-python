@@ -23,8 +23,10 @@ def _stc_gen(data, sfreq, tmin, combo=False):
         else:
             # simulate a combination of array and source estimate
             arr = d[0]
-            stc = SourceEstimate(data=(np.empty(data[1].shape[0], data[1].shape[0]), d[1:]), vertices=vertices,
-                                 tmin=tmin, tstep=1 / float(sfreq))
+            stc = SourceEstimate(data=(np.empty(data[1].shape[0],
+                                                data[1].shape[0]), d[1:]),
+                                 vertices=vertices, tmin=tmin,
+                                 tstep=1 / float(sfreq))
             yield (arr, stc)
 
 

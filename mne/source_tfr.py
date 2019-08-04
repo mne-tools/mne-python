@@ -2,24 +2,12 @@
 # License: BSD (3-clause)
 
 import copy
-import os.path as op
 import numpy as np
-from scipy import linalg, sparse
-from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
 from .filter import resample
-from .fixes import einsum
-from .evoked import _get_peak
-from .surface import read_surface, _get_ico_surface, mesh_edges
-from .source_space import (_ensure_src, _get_morph_src_reordering,
-                           _ensure_src_subject, SourceSpaces)
-from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    _time_mask, warn as warn_, copy_function_doc_to_method_doc,
-                    fill_doc, _check_option)
-from .viz import (plot_source_estimates, plot_vector_source_estimates,
-                  plot_volume_source_estimates)
+from .utils import _check_subject, verbose, _time_mask, _check_option
 from .io.base import ToDataFrameMixin, TimeMixin
-from .externals.h5io import read_hdf5, write_hdf5
+from .externals.h5io import write_hdf5
 
 
 class SourceTFR(ToDataFrameMixin, TimeMixin):
@@ -61,7 +49,8 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None, freqs=None,
-                 dims=("dipoles", "freqs", "times"), method=None, subject=None, verbose=None):
+                 dims=("dipoles", "freqs", "times"), method=None, subject=None,
+                 verbose=None):
 
         valid_dims = [("dipoles", "freqs", "times"),
                       ("dipoles", "epochs", "freqs", "times"),
@@ -99,13 +88,13 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                 raise ValueError('kernel and sens_data have invalid '
                                  'dimensions')
             if sens_data.ndim != self._data_ndim:
-                raise ValueError('The sensor data must have %s dimensions, got '
-                                 '%s' % (self._data_ndim, sens_data.ndim,))
+                raise ValueError('The sensor data must have %s dimensions, got'
+                                 ' %s' % (self._data_ndim, sens_data.ndim,))
+            # TODO: Make sure this is supported
             if 'orientations' in dims:
                 raise ValueError('Multiple orientations are not supported for '
                                  'data=(kernel, sens_data) ')
 
-        # TODO: Make sure this is supported, or else construct the full data instead
         if isinstance(vertices, list):
             vertices = [np.asarray(v, int) for v in vertices]
             if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
@@ -125,16 +114,15 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                 raise ValueError('Number of vertices (%i) and stfr.shape[0] '
                                  '(%i) must match' % (n_src, data.shape[0]))
             if data.ndim != self._data_ndim:
-                raise ValueError('Data (shape {0}) must have {1} dimensions for '
-                                 'SourceTFR with dims={2}'
-                                 .format(data.shape,self._data_ndim, self.dims))
+                raise ValueError('Data (shape {0}) must have {1} dimensions '
+                                 'for SourceTFR with dims={2}'
+                                 .format(data.shape, self._data_ndim,
+                                         self.dims))
 
             if "orientations" in dims and data.shape[1] != 3:
                 raise ValueError('If multiple orientations are defined, '
                                  'stfr.shape[1] must be 3. Got '
                                  'shape[1] == {}'.format(data.shape[1]))
-
-
 
         self._data = data
         self._tmin = tmin
@@ -162,6 +150,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     def _vertices_list(self):
         return self.vertices
 
+    # TODO: also support loading data
     @verbose
     def save(self, fname, ftype='h5', verbose=None):
         """Save the full SourceTFR to an HDF5 file.
@@ -195,7 +184,8 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         """Remove kernel and sensor space data and compute self._data."""
         if self._kernel is not None or self._sens_data is not None:
             self._kernel_removed = True
-            self._data = np.tensordot(self._kernel, self._sens_data, axes=([-1], [0]))
+            self._data = np.tensordot(self._kernel, self._sens_data,
+                                      axes=([-1], [0]))
             self._kernel = None
             self._sens_data = None
 
@@ -253,7 +243,6 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         return self
-
 
     @property
     def data(self):
@@ -352,4 +341,3 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     def copy(self):
         """Return copy of SourceTFR instance."""
         return copy.deepcopy(self)
-

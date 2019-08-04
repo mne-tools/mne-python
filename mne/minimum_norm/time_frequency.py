@@ -296,8 +296,6 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
     else:
         plv = None
 
-    # FIXME: The following lines cause several Errors. One, when calling with method 'eLORETA'
-    #FIXME: The other Error occurs for pick_ori='vector'
     if method != "MNE":
         power *= noise_norm.ravel()[:, None, None] ** 2
 

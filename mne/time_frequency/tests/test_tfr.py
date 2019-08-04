@@ -8,7 +8,8 @@ import pytest
 import matplotlib.pyplot as plt
 
 import mne
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray, SourceEstimate, VolSourceEstimate
+from mne import (Epochs, read_events, pick_types, find_events, create_info,
+                 EpochsArray, SourceEstimate, VolSourceEstimate)
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
                        requires_pandas, grand_average)
@@ -16,25 +17,15 @@ from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
                                     EpochsTFR)
-from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet, tfr_stockwell
+from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click
 from mne.tests.test_epochs import assert_metadata_equal
 from mne.datasets import testing
-from mne import find_events, Epochs, pick_types
-from mne.io import read_raw_fif
 from mne.label import read_label
-from mne.time_frequency import tfr_morlet, tfr_multitaper
 from mne.minimum_norm.inverse import (read_inverse_operator,
-                                      apply_inverse_epochs,
-                                      apply_inverse,
-                                      prepare_inverse_operator)
-from mne.minimum_norm.time_frequency import (source_band_induced_power,
-                                             source_induced_power,
-                                             compute_source_psd,
-                                             compute_source_psd_epochs)
-from mne.minimum_norm.tests.test_inverse import _check_delayed_data
+                                      apply_inverse_epochs)
+from mne.minimum_norm.time_frequency import source_induced_power
 
-from mne.time_frequency.multitaper import psd_array_multitaper
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
@@ -46,7 +37,8 @@ stc_inv_fname = op.join(testing_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 stc_raw_fname = op.join(testing_path, 'MEG', 'sample',
                         'sample_audvis_trunc_raw.fif')
-stc_label_fname = op.join(testing_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+stc_label_fname = op.join(testing_path, 'MEG', 'sample',
+                          'labels', 'Aud-lh.label')
 
 
 def test_tfr_ctf():
@@ -300,7 +292,6 @@ def test_time_frequency():
     with pytest.raises(TypeError, match="must consist of "
                                         "SourceEstimate objects"):
         tfr_morlet([stc_ref, evoked], [10, 12], 1)
-
 
 
 def test_dpsswavelet():
@@ -805,7 +796,7 @@ def test_getitem_epochsTFR():
 def _prepare_epochs(n_epochs):
     """Load data and create an Epochs object from it."""
     raw = read_raw_fif(stc_raw_fname)
-    tmin, tmax, event_id = -0.2, 0.5, 1
+    tmin, tmax = -0.2, 0.5
     events = find_events(raw, stim_channel='STI 014')
     sel_events = events[:n_epochs]
     epochs = Epochs(raw, sel_events, tmin=tmin, tmax=tmax, preload=True)
@@ -814,7 +805,7 @@ def _prepare_epochs(n_epochs):
 
 
 def _create_ref_data():
-    """Create different types with equal data that should produce equal TFRs."""
+    """Create different data types that should produce equal TFRs."""
     def stc_generator(data, verts, tmin, tstep):
         for i in range(len(data)):
             yield SourceEstimate(data[i], verts, tmin, tstep)
@@ -832,22 +823,21 @@ def _create_ref_data():
 
     epochs_ref = EpochsArray(data, create_info(ch_names, sfreq), tmin=0)
     epochs_ref.set_channel_types(ch_types)
-    stcs_list = [SourceEstimate(data[i], verts, tmin, tstep) for i in range(data.shape[0])]
-    stcs_gen = stc_generator(data, verts, tmin, tstep)
+    stc_list = [SourceEstimate(data[i], verts, tmin, tstep)
+                for i in range(data.shape[0])]
+    stc_gen = stc_generator(data, verts, tmin, tstep)
 
     evoked_ref = epochs_ref.average(picks='all')
     stc_single = SourceEstimate(evoked_ref.data, verts, tmin, tstep)
 
-    return epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single
+    return epochs_ref, stc_list, stc_gen, evoked_ref, stc_single
 
 
-# TODO: for 'vectors' ori, tfr added over all 3 vecs is the same, but distributed differently between vectors. find out the reason for this.
 @testing.requires_testing_data
 @pytest.mark.parametrize('n_epochs', [1, 3])
 @pytest.mark.parametrize('return_itc', [True, False])
 def test_morlet_induced_power_equivalence(n_epochs, return_itc):
     """Test equivalence of tfr_morlet(stc) and source_induced_power."""
-
     epochs = _prepare_epochs(n_epochs)
     inv = read_inverse_operator(stc_inv_fname)
     label = read_label(stc_label_fname)
@@ -893,36 +883,40 @@ def test_stfr_equivalence(tfr_func, return_itc, average):
     n_cycles = 3
     use_fft = True
     decim = 1
-
     freqs = [10, 12, 14, 16]
 
-    epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single = _create_ref_data()
+    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data()
 
-    epoch_tfrs = tfr_func(epochs_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                          return_itc=return_itc, average=average)
-    list_stfrs = tfr_func(stcs_list, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                          return_itc=return_itc, average=average)
-    gen_stfrs = tfr_func(stcs_gen, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
-                         return_itc=return_itc, average=average)
+    ep_tfrs = tfr_func(epochs_ref, freqs=freqs, n_cycles=n_cycles,
+                       use_fft=use_fft, decim=decim, return_itc=return_itc,
+                       average=average)
+    list_stfrs = tfr_func(stc_list, freqs=freqs, n_cycles=n_cycles,
+                          use_fft=use_fft, decim=decim, return_itc=return_itc,
+                          average=average)
+    gen_stfrs = tfr_func(stc_gen, freqs=freqs, n_cycles=n_cycles,
+                         use_fft=use_fft, decim=decim, return_itc=return_itc,
+                         average=average)
 
     # if average is False, stfr shapes need to be switched to epochs shape
     trans = (0, 1, 2) if average else (1, 0, 2, 3)
 
     if not return_itc:
         # make sure we can loop over variables for both return_itc options
-        epoch_tfrs, list_stfrs, gen_stfrs = [epoch_tfrs], [list_stfrs], [gen_stfrs]
+        ep_tfrs, list_stfrs, gen_stfrs = [ep_tfrs], [list_stfrs], [gen_stfrs]
 
     # compare power as well as itc data
-    for epoch_tfr, list_stfr, gen_stfr in zip(epoch_tfrs, list_stfrs, gen_stfrs):
+    for epoch_tfr, list_stfr, gen_stfr in zip(ep_tfrs, list_stfrs, gen_stfrs):
         assert_allclose(list_stfr.data.transpose(trans), epoch_tfr.data)
         assert_allclose(gen_stfr.data.transpose(trans), epoch_tfr.data)
 
         assert_equal(list_stfr.method, epoch_tfr.method)
         assert_equal(gen_stfr.method, epoch_tfr.method)
 
-    evoked_tfr = tfr_func(evoked_ref, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+    evoked_tfr = tfr_func(evoked_ref, freqs=freqs, n_cycles=n_cycles,
+                          use_fft=use_fft, decim=decim,
                           return_itc=False, average=average)
-    single_stfr = tfr_func(stc_single, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft, decim=decim,
+    single_stfr = tfr_func(stc_single, freqs=freqs, n_cycles=n_cycles,
+                           use_fft=use_fft, decim=decim,
                            return_itc=False, average=average)
 
     assert_allclose(single_stfr.data.transpose(trans), evoked_tfr.data)

@@ -142,18 +142,18 @@ def test_stfr_stockwell(return_itc):
     fmin = 10
     fmax = 16
 
-    epochs_ref, stcs_list, stcs_gen, evoked_ref, stc_single = _create_ref_data()
+    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data()
 
-    epoch_tfrs = tfr_stockwell(epochs_ref, fmin, fmax, return_itc=return_itc)
-    list_stfrs = tfr_stockwell(stcs_list, fmin, fmax, return_itc=return_itc)
-    gen_stfrs = tfr_stockwell(stcs_gen, fmin, fmax, return_itc=return_itc)
+    ep_tfr = tfr_stockwell(epochs_ref, fmin, fmax, return_itc=return_itc)
+    list_stfrs = tfr_stockwell(stc_list, fmin, fmax, return_itc=return_itc)
+    gen_stfrs = tfr_stockwell(stc_gen, fmin, fmax, return_itc=return_itc)
 
     if not return_itc:
         # make sure we can loop over variables for both return_itc options
-        epoch_tfrs, list_stfrs, gen_stfrs = [epoch_tfrs], [list_stfrs], [gen_stfrs]
+        ep_tfr, list_stfrs, gen_stfrs = [ep_tfr], [list_stfrs], [gen_stfrs]
 
     # compare power as well as itc data
-    for epoch_tfr, list_stfr, gen_stfr in zip(epoch_tfrs, list_stfrs, gen_stfrs):
+    for epoch_tfr, list_stfr, gen_stfr in zip(ep_tfr, list_stfrs, gen_stfrs):
         assert_allclose(list_stfr.data, epoch_tfr.data)
         assert_allclose(gen_stfr.data, epoch_tfr.data)
 
@@ -165,8 +165,6 @@ def test_stfr_stockwell(return_itc):
 
     assert_allclose(evoked_tfr.data, single_stfr.data)
     assert_equal(evoked_tfr.method, single_stfr.method)
-
-
 
 
 run_tests_if_main()

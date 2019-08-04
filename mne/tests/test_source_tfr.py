@@ -130,8 +130,7 @@ def test_io_stfr_h5():
 
 
 def test_stfr_resample():
-    """test sftr.resample()."""
-
+    """Test sftr.resample()."""
     stfr_ = _fake_stfr()
     kernel_stfr_ = _fake_kernel_stfr()
 
@@ -156,7 +155,7 @@ def test_stfr_crop():
     for inst in [stfr, kernel_stfr]:
         copy_1 = inst.copy()
         assert_allclose(copy_1.crop(tmax=0.8).data, inst.data[:, :, :9])
-        # FIXME: cropping like this does neither work for kernel stfr nor kernel stc
+        # FIXME: cropping like this does not work for kernelized  stfr/stc
         # assert_allclose(copy_1.times, inst.times[:9])
 
         copy_2 = inst.copy()
@@ -171,38 +170,45 @@ def test_invalid_params():
     tmin = 0
     tstep = 1e-3
 
-    with pytest.raises(ValueError, match='Vertices must be a numpy array or a '
-                                         'list of arrays'):
+    with pytest.raises(ValueError, match='Vertices must be a numpy array '
+                                         'or a list of arrays'):
         SourceTFR(data, {"1": 1, "2": 2}, tmin, tstep)
 
-    with pytest.raises(ValueError, match='tuple it has to be length 2'):
+    with pytest.raises(ValueError,
+                       match='tuple it has to be length 2'):
         SourceTFR((data, (42, 42), (42, 42)), verts, tmin, tstep)
 
-    with pytest.raises(ValueError, match='kernel and sens_data have invalid '
-                                         'dimension'):
+    with pytest.raises(ValueError,
+                       match='kernel and sens_data have invalid dimension'):
         SourceTFR((np.zeros((42, 42)), data), verts, tmin, tstep)
 
-    with pytest.raises(ValueError, match='sensor data must have .*? dimensions'):
+    with pytest.raises(ValueError,
+                       match='sensor data must have .*? dimensions'):
         SourceTFR((np.zeros((2, 20)), np.zeros((20, 3))), verts, tmin, tstep)
 
-    with pytest.raises(ValueError, match='Vertices must be ordered in '
-                                         'increasing order.'):
+    with pytest.raises(ValueError,
+                       match='Vertices must be ordered in increasing order.'):
         SourceTFR(data, [np.zeros(10), np.zeros(90)], tmin, tstep)
 
-    with pytest.raises(ValueError, match='vertices .*? and stfr.shape.*? must match'):
+    with pytest.raises(ValueError,
+                       match='vertices .*? and stfr.shape.*? must match'):
         SourceTFR(np.random.rand(42, 10, 20), verts, tmin, tstep)
 
-    with pytest.raises(ValueError, match='(shape .*?) must have .*? dimensions'):
+    with pytest.raises(ValueError,
+                       match='(shape .*?) must have .*? dimensions'):
         SourceTFR(np.random.rand(40, 10, 20, 10), verts, tmin, tstep)
 
-    with pytest.raises(ValueError, match='multiple orientations.*? must be 3'):
+    with pytest.raises(ValueError,
+                       match='multiple orientations.*? must be 3'):
         SourceTFR(np.random.rand(40, 10, 20, 10), verts, tmin, tstep,
                   dims=("dipoles", "orientations", "freqs", "times"))
 
-    with pytest.raises(ValueError, match="Invalid value for the 'dims' parameter"):
+    with pytest.raises(ValueError,
+                       match="Invalid value for the 'dims' parameter"):
         SourceTFR(data, verts, tmin, tstep, dims=("dipoles", "nonsense"))
 
-    with pytest.raises(ValueError, match="Invalid value for the 'method' parameter"):
+    with pytest.raises(ValueError,
+                       match="Invalid value for the 'method' parameter"):
         SourceTFR(data, verts, tmin, tstep, method="multitape")
 
 
