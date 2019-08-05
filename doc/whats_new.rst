@@ -63,7 +63,9 @@ Changelog
 Bug
 ~~~
 
-- Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`
+- Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
+
+- Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`_
 
 - Fix reading of dates in BrainVision files if no "New Segment" marker is specified, no date is given, or data is missing, by `Stefan Appelhoff`_
 
