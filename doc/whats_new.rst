@@ -61,7 +61,7 @@ Changelog
 Bug
 ~~~
 
-- Fix horizontal spacing issues in :func:`mne.viz.utils._plot_psd` by `Jeff Hanna`
+- Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`
 
 - Fix reading of dates in BrainVision files if no "New Segment" marker is specified, no date is given, or data is missing, by `Stefan Appelhoff`_
 

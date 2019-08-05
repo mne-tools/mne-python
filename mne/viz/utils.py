@@ -3063,7 +3063,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
             ax.set_title(title)
     if make_label:
         fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
-                           hspace=0.5)
+                            hspace=0.5)
     return fig
 
 
