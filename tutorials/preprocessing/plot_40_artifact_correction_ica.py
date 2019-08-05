@@ -338,7 +338,7 @@ ica.plot_sources(eog_evoked)
 # a virtual ECG channel, so if you have MEG channels it is usually not
 # necessary to pass a specific channel name.
 # :meth:`~mne.preprocessing.ICA.find_bads_ecg` also has two options for its
-# ``method`` parameter: ``'ctps'`` (cross-trial phase statistics) and
+# ``method`` parameter: ``'ctps'`` (cross-trial phase statistics [3]_) and
 # ``'correlation'`` (Pearson correlation between data and ECG channel).
 
 ica.exclude = []
@@ -405,7 +405,7 @@ del raw, filt_raw, ica, new_ica
 # When dealing with multiple subjects, it is also possible to manually select
 # an IC for exclusion on one subject, and then use that component as a
 # *template* for selecting which ICs to exclude from other subjects' data,
-# using :func:`mne.preprocessing.corrmap`. The idea behind
+# using :func:`mne.preprocessing.corrmap` [4]_. The idea behind
 # :func:`~mne.preprocessing.corrmap` is that the artifact patterns are similar
 # enough across subjects that corresponding ICs can be identified by
 # correlating the ICs from each ICA solution with a common template, and
@@ -415,7 +415,7 @@ del raw, filt_raw, ica, new_ica
 # within it to use as a template.
 #
 # Since our sample dataset only contains data from one subject, we'll use a
-# different dataset with multiple subjects: the EEGBCI dataset [3]_ [4]_. The
+# different dataset with multiple subjects: the EEGBCI dataset [5]_ [6]_. The
 # dataset has 109 subjects, we'll just download one run (a left/right hand
 # movement task) from each of the first 4 subjects:
 
@@ -518,22 +518,36 @@ print(template_eog_component)
 # ^^^^^^^^^^
 #
 # .. [1] Ablin P, Cardoso J, Gramfort A (2018). Faster Independent Component
-#        Analysis by Preconditioning With Hessian Approximations. IEEE
-#        Transactions on Signal Processing 66:4040–4049
+#        Analysis by Preconditioning With Hessian Approximations. *IEEE
+#        Transactions on Signal Processing* 66:4040–4049.
+#        https://doi.org/10.1109/TSP.2018.2844203
 #
 # .. [2] Winkler I, Debener S, Müller K-R, Tangermann M (2015). On the
 #        influence of high-pass filtering on ICA-based artifact reduction in
 #        EEG-ERP. Proceedings of EMBC-2015, 4101–4105.
 #        https://doi.org/10.1109/EMBC.2015.7319296
 #
-# .. [3] Schalk G, McFarland DJ, Hinterberger T, Birbaumer N, Wolpaw JR (2004).
-#        BCI2000: A General-Purpose Brain-Computer Interface (BCI) System. IEEE
-#        TBME 51(6):1034-1043
+# .. [3] Dammers J, Schiek M, Boers F, Silex C, Zvyagintsev M, Pietrzyk U,
+#        Mathiak K (2008). Integration of amplitude and phase statistics for
+#        complete artifact removal in independent components of neuromagnetic
+#        recordings. *IEEE Transactions on Biomedical Engineering*
+#        55(10):2353–2362. https://doi.org/10.1109/TBME.2008.926677
 #
-# .. [4] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
+# .. [4] Viola FC, Thorne J, Edmonds B, Schneider T, Eichele T, Debener S
+#        (2009). Semi-automatic identification of independent components
+#        representing EEG artifact. *Clinical Neurophysiology* 120(5):868–877.
+#        https://doi.org/10.1016/j.clinph.2009.01.015
+#
+# .. [5] Schalk G, McFarland DJ, Hinterberger T, Birbaumer N, Wolpaw JR (2004).
+#        BCI2000: A General-Purpose Brain-Computer Interface (BCI) System.
+#        *IEEE Transactions on Biomedical Engineering* 51(6):1034-1043.
+#        https://doi.org/10.1109/TBME.2004.827072
+#
+# .. [6] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
 #        Mietus JE, Moody GB, Peng C-K, Stanley HE (2000). PhysioBank,
 #        PhysioToolkit, and PhysioNet: Components of a New Research Resource
-#        for Complex Physiologic Signals. Circulation 101(23):e215-e220
+#        for Complex Physiologic Signals. *Circulation* 101(23):e215-e220.
+#        https://doi.org/10.1161/01.CIR.101.23.e215
 #
 #
 # .. LINKS
