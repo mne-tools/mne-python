@@ -4,10 +4,10 @@ Floating-point precision
 ========================
 
 .. NOTE: this file is included in manual/io.rst. changes here will be reflected
-there. If you want to link to this info, link to :doc:`doc/precision`
-rather than linking to :ref:`doc/manual/io/<section_name>`. The next line
-is a target for :start-after: so we can omit the title from the include:
-precision-begin-content
+    there. If you want to link to this info, link to :doc:`doc/precision`
+    rather than linking to :ref:`doc/manual/io/<section_name>`. The next line
+    is a target for :start-after: so we can omit the title from the include:
+    precision-begin-content
 
 MNE-Python performs all computation in memory using the double-precision 64-bit
 floating point format. This means that the data is typecast into float64 format

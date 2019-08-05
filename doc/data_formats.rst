@@ -4,10 +4,10 @@ Supported data formats
 ======================
 
 .. NOTE: this file is included in manual/io.rst. changes here will be reflected
-there. If you want to link to this info, link to :doc:`doc/data_formats`
-rather than linking to :ref:`doc/manual/io/<section_name>`. The next line
-is a target for :start-after: so we can omit the title from the include:
-data-formats-begin-content
+    there. If you want to link to this info, link to :doc:`doc/data_formats`
+    rather than linking to :ref:`doc/manual/io/<section_name>`. The next line
+    is a target for :start-after: so we can omit the title from the include:
+    data-formats-begin-content
 
 When MNE-Python loads sensor data, the data are stored in a Python object of
 type :class:`mne.io.Raw`. Specialized loading functions are provided for the

@@ -4,10 +4,10 @@ Internal representation (units)
 ===============================
 
 .. NOTE: part of this file is included in manual/io.rst. changes here will be
-reflected there. If you want to link to this info, link to :doc:`doc/units`
-rather than linking to :ref:`doc/manual/io/<section_name>`. The next line
-is a target for :start-after: so we can omit the title from the include:
-units-begin-content
+    reflected there. If you want to link to this info, link to :doc:`doc/units`
+    rather than linking to :ref:`doc/manual/io/<section_name>`. The next line
+    is a target for :start-after: so we can omit the title from the include:
+    units-begin-content
 
 Irrespective of the units used in your manufacturer's format, when importing
 data, MNE-Python will always convert measurements to the same standard units.
