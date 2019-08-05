@@ -544,7 +544,6 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
     # Normalization by number of taper
     tfrs /= len(Ws)
-
     return tfrs
 
 

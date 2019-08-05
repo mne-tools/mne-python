@@ -214,9 +214,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
     # phase lock
     plv_e = np.zeros(shape, dtype=np.complex) if with_plv else None
     n_sources, _, n_times = shape
-
     for f, w in enumerate(Ws):
-
         tfr_ = cwt(data, [w], use_fft=use_fft, decim=decim)
         tfr_ = np.asfortranarray(tfr_.reshape(len(data), -1))
 
@@ -225,6 +223,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
             plv_f = np.zeros((n_sources, n_times), dtype=np.complex)
 
         tfr_f = np.zeros((n_sources, n_times), dtype=np.float)
+
         for k, t in enumerate([np.real(tfr_), np.imag(tfr_)]):
             sol = np.dot(K, t)
 
