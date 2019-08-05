@@ -810,10 +810,10 @@ def test_apply_mne_inverse_epochs(epochs):
                                                 lambda2=lambda2,
                                                 method="dSPM")
     for pick_ori in [None, "normal", "vector"]:
-        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                    "dSPM", label=label_lh, pick_ori=pick_ori)
-        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                     "dSPM", label=label_lh, pick_ori=pick_ori,
+        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                    label=label_lh, pick_ori=pick_ori)
+        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                     label=label_lh, pick_ori=pick_ori,
                                      prepared=True)
         # test if using prepared and not prepared inverse operator give the
         # same result
@@ -839,11 +839,11 @@ def test_apply_mne_inverse_epochs(epochs):
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                   "dSPM", label=label_rh, pick_ori="normal",
+    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                   label=label_rh, pick_ori="normal",
                                    prepared=True)
-    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                   "dSPM", label=label_lh + label_rh,
+    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                   label=label_lh + label_rh,
                                    pick_ori="normal",
                                    prepared=True)
 
