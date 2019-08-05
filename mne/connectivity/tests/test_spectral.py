@@ -12,21 +12,17 @@ from mne.filter import filter_data
 
 def _stc_gen(data, sfreq, tmin, combo=False):
     """Simulate a SourceEstimate generator."""
-    vertices = [np.arange(3), np.empty(0)]
-    # sens = data
-    # kern =
-    for d in data[1]:
+    vertices = [np.arange(data.shape[1]), np.empty(0)]
+    for d in data:
         if not combo:
-            stc = SourceEstimate(data=(data[0], data[1]), vertices=vertices,
+            stc = SourceEstimate(data=d, vertices=vertices,
                                  tmin=tmin, tstep=1 / float(sfreq))
             yield stc
         else:
             # simulate a combination of array and source estimate
             arr = d[0]
-            stc = SourceEstimate(data=(np.empty(data[1].shape[0],
-                                                data[1].shape[0]), d[1:]),
-                                 vertices=vertices, tmin=tmin,
-                                 tstep=1 / float(sfreq))
+            stc = SourceEstimate(data=d[1:], vertices=vertices,
+                                 tmin=tmin, tstep=1 / float(sfreq))
             yield (arr, stc)
 
 
@@ -48,9 +44,7 @@ def test_spectral_connectivity(method, mode):
 
     tmin = 0.
     tmax = (n_times - 1) / sfreq
-    kern = np.ones([n_signals, n_signals])
-    sens_data = rng.randn(n_signals, n_epochs * n_times)
-    data = np.dot(kern, sens_data)
+    data = rng.randn(n_signals, n_epochs * n_times)
     times_data = np.linspace(tmin, tmax, n_times)
     # simulate connectivity from 5Hz..15Hz
     fstart, fend = 5.0, 15.0
@@ -151,7 +145,7 @@ def test_spectral_connectivity(method, mode):
         else:
             test_methods = method
 
-        stc_data = _stc_gen((kern, sens_data), sfreq, tmin)
+        stc_data = _stc_gen(data, sfreq, tmin)
         con2, freqs2, times2, n2, _ = spectral_connectivity(
             stc_data, method=test_methods, mode=mode, indices=indices,
             sfreq=sfreq, mt_adaptive=adaptive, mt_low_bias=True,
