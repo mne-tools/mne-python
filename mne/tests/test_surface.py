@@ -132,9 +132,12 @@ def test_make_morph_maps():
             ('fsaverage_ds', 'sample_ds', False),
             ('fsaverage_ds', 'fsaverage_ds', True)):
         # trigger the creation of morph-maps dir and create the map
-        with pytest.warns(None):
+        with catch_logging() as log:
             mmap = read_morph_map(subject_from, subject_to, tempdir,
-                                  xhemi=xhemi)
+                                  xhemi=xhemi, verbose=True)
+        log = log.getvalue()
+        assert 'does not exist' in log
+        assert 'Creating' in log
         mmap2 = read_morph_map(subject_from, subject_to, subjects_dir,
                                xhemi=xhemi)
         assert_equal(len(mmap), len(mmap2))

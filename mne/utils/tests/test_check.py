@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 import os.path as op
-import shutil as sh
+import shutil
 
 import numpy as np
 import pytest
@@ -41,7 +41,7 @@ def test_check():
         check_random_state(np.random.default_rng(0)).choice(1)
 
     # _meg.fif is a valid ending and should not raise an error
-    sh.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))
+    shutil.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))
     mne.io.read_raw_fif(fname_raw.replace('_raw.', '_meg.'))
 
 
