@@ -72,7 +72,7 @@ raw.crop(tmax=60.)
 # algorithms in cases where the sources are not completely independent, which
 # typically happens with real EEG/MEG data. See [1]_ for more information.
 #
-# The ICA interface in MNE-Python mirrors the standard interface in
+# The ICA interface in MNE-Python is similar to the interface in
 # `scikit-learn`_: some general parameters are specified when creating an
 # :class:`~mne.preprocessing.ICA` object, then the
 # :class:`~mne.preprocessing.ICA` object is fit to the data using its
@@ -85,20 +85,27 @@ raw.crop(tmax=60.)
 # :class:`~mne.preprocessing.ICA` object's :meth:`~mne.preprocessing.ICA.apply`
 # method.
 #
-# As is typically done with ICA, the data are first
-# scaled to unit variance and whitened using principal components analysis
-# (PCA) before performing the ICA decomposition. You can impose a
-# dimensionality reduction at this step by specifying ``max_pca_components``.
-# From those retained Principal Components (PCs), the first ``n_components``
-# are then passed to the ICA algorithm (``n_components`` may be an integer
-# number of components to use, or a fraction of explained variance that used
-# components should capture). Then, when reconstructing the signal after
-# excluding the Independent Components (ICs) that capture unwanted artifacts,
-# the signal will be reconstructed from the retained ICs *plus* the retained
-# PCs that were not included in the ICA step. If you want to reduce the number
-# of retained PCs used at the reconstruction stage, it is controlled by the
-# ``n_pca_components`` parameter. The procedure and the parameters that control
-# dimensionality at various stages is summarized in the diagram below:
+# .. sidebar:: ICA with no dimensionality reduction
+#
+#     If you want to perform ICA with no dimensionality reduction (other than
+#     exclusion of ICs specified by the user), pass ``max_pca_components=None``
+#     and ``n_pca_components=None`` (these are the the default values).
+#
+# As is typically done with ICA, the data are first scaled to unit variance and
+# whitened using principal components analysis (PCA) before performing the ICA
+# decomposition. You can impose an optional dimensionality reduction at this
+# step by specifying ``max_pca_components``. From the retained Principal
+# Components (PCs), the first ``n_components`` are then passed to the ICA
+# algorithm (``n_components`` may be an integer number of components to use, or
+# a fraction of explained variance that used components should capture). Then,
+# when reconstructing the signal after excluding the Independent Components
+# (ICs) that capture unwanted artifacts, the signal will be reconstructed from
+# the retained ICs *plus* the retained PCs that were not included in the ICA
+# step (the "PCA residual"). If you want to reduce the number of retained PCs
+# used at the reconstruction stage, it is controlled by the
+# ``n_pca_components`` parameter (which will in turn reduce the rank of your
+# data). The procedure and the parameters that control dimensionality at
+# various stages is summarized in the diagram below:
 #
 # .. graphviz:: ../../_static/diagrams/ica.dot
 #    :alt: Diagram of ICA procedure in MNE-Python
@@ -184,7 +191,7 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 #     just continuous :class:`~mne.io.Raw` objects), or only use every Nth
 #     sample by passing the ``decim`` parameter to ``ICA.fit()``.
 #
-# ICA fitting involves some randomness (e.g., the components may get a sign
+# ICA fitting is not deterministic (e.g., the components may get a sign
 # flip on different runs, or may not always be returned in the same order), so
 # we'll also specify a `random seed`_ so that we get identical results each
 # time this tutorial is built by our web servers.
