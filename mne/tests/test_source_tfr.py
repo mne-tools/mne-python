@@ -53,16 +53,16 @@ def test_stfr_kernel_equality(fake_stfr, fake_kernel_stfr):
     assert_array_equal(stfr.data.shape, kernel_stfr.data.shape)
 
 
-def test_stfr_attributes(fake_stfr, fake_kernel_stfr):
+def test_stfr_attributes(fake_stfr):
     """Test stfr attributes."""
     stfr = fake_stfr.copy()
-    stfr_kernel = fake_kernel_stfr
 
     n_times = len(stfr.times)
     assert_equal(stfr._data.shape[-1], n_times)
     assert_array_equal(stfr.times, stfr.tmin + np.arange(n_times) * stfr.tstep)
 
-    assert_allclose(stfr.times, [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    assert_allclose(stfr.times,
+                    [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
 
     def attempt_times_mutation(stfr):
         stfr.times -= 1

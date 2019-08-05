@@ -109,7 +109,6 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         self._times = None
         self._update_times()
 
-
     def __repr__(self):  # noqa: D105
         s = "{} vertices".format((sum(len(v) for v in self._vertices_list),))
         if self.subject is not None:
@@ -189,7 +188,6 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             File format to use. Currently, the only allowed values is "h5".
         %(verbose_meth)s
         """
-
         # this message looks more informative to me than _check_option().
         if ftype != 'h5':
             raise ValueError('{} objects can only be written as HDF5 files.'
@@ -357,7 +355,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     def times(self, value):
         raise RuntimeError('You cannot write to the .times attribute directly.'
                            ' This property automatically updates whenever '
-                         '.tmin, .tstep or .data changes.')
+                           '.tmin, .tstep or .data changes.')
 
     def _update_times(self):
         """Update the times attribute after changing tmin, tmax, or tstep."""
