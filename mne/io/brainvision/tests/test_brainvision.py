@@ -6,7 +6,7 @@
 # License: BSD (3-clause)
 import os.path as op
 from os import unlink
-import shutil as sh
+import shutil
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -111,7 +111,7 @@ def _mocked_meas_date_data(tmpdir_factory):
         for ff in [vhdr_path, vmrk_path, eeg_path]
     ]
     for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
-        sh.copyfile(orig, dest)
+        shutil.copyfile(orig, dest)
 
     # Get the marker information
     with open(vmrk_path, 'r') as fin:
@@ -155,7 +155,7 @@ def test_vhdr_codepage_ansi():
     ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
     ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
     # copy data file
-    sh.copy(eeg_path, ansi_eeg_path)
+    shutil.copy(eeg_path, ansi_eeg_path)
     # modify header file
     with open(ansi_vhdr_path, 'wb') as fout:
         with open(vhdr_path, 'rb') as fin:
@@ -187,8 +187,8 @@ def test_ascii():
     tempdir = _TempDir()
     ascii_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
     # copy marker file
-    sh.copy(vhdr_path.replace('.vhdr', '.vmrk'),
-            ascii_vhdr_path.replace('.vhdr', '.vmrk'))
+    shutil.copy(vhdr_path.replace('.vhdr', '.vmrk'),
+                ascii_vhdr_path.replace('.vhdr', '.vmrk'))
     # modify header file
     skipping = False
     with open(ascii_vhdr_path, 'wb') as fout:
