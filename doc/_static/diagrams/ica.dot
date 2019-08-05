@@ -7,56 +7,65 @@ digraph ICAdiagram {
 
     /* GLOBAL STYLES */
     splines=true
-    color="gray60"
     fontsize=20
     fontname="Source Code Pro"
 
-    node [colorscheme="paired8"
-          style="filled"
+    node [style="filled"
           fontsize=18
           fontname="Source Sans Pro"]
 
-    edge [color="gray50"
+    edge [arrowsize=1.2
+          penwidth=2.5
+          color="gray50"
           fontsize=12
           fontname="Source Code Pro"]
 
     /* starting node */
-    sensor [label="Sensor data" shape="box" fillcolor=3]
+    sensor [label="Sensor data" shape="box" fillcolor="#bbbbbb"]
 
     /* ICA.FIT() */
     subgraph cluster_0 {
         label="ICA.fit()"
+        color="#009988"
+        fontcolor="#009988"
+        penwidth=1.5
 
         /* PRE-WHITENING */
         subgraph cluster_1 {
             label="Pre-whitening"
             style="dashed"
-            fontsize=20
             fontname="Source Sans Pro"
+            color="gray50"
+            fontcolor="gray50"
             /* nodes & edges */
-            pca        [label="PCA"                   shape="circle" fillcolor=8]
-            pcs        [label="Principal\ncomponents" shape="box"    fillcolor=1]
-            pca -> pcs [label="max_pca_components"]
+            pca        [label="PCA"                   shape="circle" fillcolor="#ee7733"]
+            pcs        [label="Principal\ncomponents" shape="box"    fillcolor="#33bbee"]
+            pca -> pcs [label="max_pca_components\r"]
         }
 
         /* nodes & edges */
-        ica        [label="ICA"                     shape="circle" fillcolor=8]
-        ics        [label="Independent\ncomponents" shape="box"    fillcolor=1]
-        ica -> ics [label="n_components"]
+        ica        [label="ICA"                     shape="circle" fillcolor="#ee7733"]
+        ics        [label="Independent\ncomponents" shape="box"    fillcolor="#33bbee"]
+        ica -> ics [label="n_components\r"]
     }
 
     /* ICA.APPLY() */
     subgraph cluster_2 {
         label="ICA.apply()"
+        color="#ee3377"
+        fontcolor="#ee3377"
+        penwidth=1.5
         /* ending node */
-        recon [label="Reconstructed\nsensor data" shape="box" fillcolor=3]
+        recon [label="Reconstructed\nsensor data" shape="box" fillcolor="#bbbbbb"]
     }
 
     /* subgraph-crossing edges */
-    sensor -> pca  [label="all sensor channels" fontsize=14 fontname="Source Sans Pro"]
-    pcs -> ica     [label="n_components"]
-    ics -> recon   [constraint=false xlabel="n_components -\llen(ICA.exclude)\l"]
-    pcs -> recon   [constraint=false xlabel="n_pca_components\l- n_components\l"]
+    sensor -> pca  [label="all sensor channels\r" fontsize=14 fontname="Source Sans Pro"]
+    pcs -> ica     [label="n_components\l"]
+    ics -> recon   [constraint=false color="#ee3377"
+                    xlabel="Retained ICs:\ln_components -\llen(ICA.exclude)\l"]
+    pcs -> recon   [constraint=false color="#ee3377"
+                    xlabel="PCA residual:\ln_pca_components\l- n_components\l"]
 
     /* position recon box where we want it */
     { rank="same" recon ica }
