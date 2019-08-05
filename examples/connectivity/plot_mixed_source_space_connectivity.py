@@ -68,28 +68,23 @@ vol_src = setup_volume_source_space(
 # Generate the mixed source space
 src += vol_src
 
-# compute the fwd matrix
-fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
-                            mindist=5.0,  # ignore sources<=5mm from innerskull
-                            meg=True, eeg=False, n_jobs=1)
-
 # Load data
 raw = read_raw_fif(fname_raw, preload=True)
+events = mne.find_events(raw)
+raw.pick_types(meg=True, eeg=False, eog=True)
 noise_cov = mne.read_cov(fname_cov)
-events = mne.read_events(fname_event)
 
-# Add a bad channel
-raw.info['bads'] += ['MEG 2443']
-
-# Pick MEG channels
-picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                       exclude='bads')
+# compute the fwd matrix
+fwd = make_forward_solution(raw.info, fname_trans, src, fname_bem,
+                            mindist=5.0)  # ignore sources<=5mm from innerskull
+del src
 
 # Define epochs for left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,
-                                                    eog=150e-6))
+reject = dict(mag=4e-12, grad=4000e-13, eog=150e-6)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                    reject=reject, preload=False)
+del raw
 
 # Compute inverse solution and for each epoch
 snr = 1.0           # use smaller SNR for raw data
@@ -99,9 +94,9 @@ parc = 'aparc'      # the parcellation to use, e.g., 'aparc' 'aparc.a2009s'
 lambda2 = 1.0 / snr ** 2
 
 # Compute inverse operator
-inverse_operator = make_inverse_operator(raw.info, fwd, noise_cov,
-                                         depth=None, fixed=False)
-
+inverse_operator = make_inverse_operator(
+    epochs.info, fwd, noise_cov, depth=None, fixed=False)
+del fwd
 
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, inv_method,
                             pick_ori=None, return_generator=True)
@@ -114,16 +109,15 @@ labels_parc = mne.read_labels_from_annot(subject, parc=parc,
 # and each sub structures contained in the src space
 # If mode = 'mean_flip' this option is used only for the cortical label
 src = inverse_operator['src']
-label_ts = mne.extract_label_time_course(stcs, labels_parc, src,
-                                         mode='mean_flip',
-                                         allow_empty=True,
-                                         return_generator=False)
+label_ts = mne.extract_label_time_course(
+    stcs, labels_parc, src, mode='mean_flip', allow_empty=True,
+    return_generator=True)
 
 # We compute the connectivity in the alpha band and plot it using a circular
 # graph layout
 fmin = 8.
 fmax = 13.
-sfreq = raw.info['sfreq']  # the sampling frequency
+sfreq = epochs.info['sfreq']  # the sampling frequency
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     label_ts, method='pli', mode='multitaper', sfreq=sfreq, fmin=fmin,
     fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=1)
