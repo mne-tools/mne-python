@@ -170,6 +170,14 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 # Fitting and plotting the ICA solution
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
+# .. sidebar:: Ignoring the time domain
+#
+#     The ICA algorithms implemented in MNE-Python find patterns across
+#     channels, but ignore the time domain. This means you can compute ICA on
+#     discontinuous :class:`~mne.Epochs` or :class:`~mne.Evoked` objects (not
+#     just continuous :class:`~mne.io.Raw` objects), or only use every Nth
+#     sample by passing the ``decim`` parameter to ``ICA.fit()``.
+#
 # Now we're ready to set up and fit the ICA. Since we know (from observing our
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
 # those artifacts to be captured in the first few dimensions of the PCA
@@ -182,14 +190,6 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 # advantage that it will run quickly and we will able to tell easily whether it
 # worked or not (because we already know what the EOG / ECG artifacts should
 # look like).
-#
-# .. sidebar:: Ignoring the time domain
-#
-#     The ICA algorithms implemented in MNE-Python find patterns across
-#     channels, but ignore the time domain. This means you can compute ICA on
-#     discontinuous :class:`~mne.Epochs` or :class:`~mne.Evoked` objects (not
-#     just continuous :class:`~mne.io.Raw` objects), or only use every Nth
-#     sample by passing the ``decim`` parameter to ``ICA.fit()``.
 #
 # ICA fitting is not deterministic (e.g., the components may get a sign
 # flip on different runs, or may not always be returned in the same order), so
