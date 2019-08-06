@@ -957,6 +957,12 @@ def test_date_none(tmpdir):
     assert raw_read.info['meas_date'] is None
 
 
+def frmt_meas_stamp(stamp, time_format='%Y-%m-%d%H:%M:%S.%f'):
+    return (datetime
+            .utcfromtimestamp(stamp)
+            .strftime(time_format))
+
+
 def test_negative_meas_dates():
     """Test meas_date previous to 1970."""
     # Regression test for gh-6621
@@ -967,6 +973,23 @@ def test_negative_meas_dates():
                                     duration=[0], orig_time=None))
     events, _ = events_from_annotations(raw)
     assert events[:, 0] == 0
+
+
+def test_crop_when_negative_orig_time():
+    """Test meas_date previous to 1970."""
+    # Regression test for gh-6621
+    meas_date_stamp = -908196945.011331  # 1941-03-2211:04:14.988669
+    new_orig_time = frmt_meas_stamp(meas_date_stamp)
+    print(new_orig_time)
+    aa = Annotations(description='foo', onset=np.arange(0, 1, 0.1),
+                     duration=[0], orig_time=new_orig_time)
+
+    bb = aa.crop()
+    # is tmin absolute or relative? it seems relative but we use it info
+    # absolute because we pass first sample.. in set_annotations
+    cc = aa.crop(tmin=meas_date_stamp + 0.25)
+    import pdb; pdb.set_trace()
+
 
 
 def test_xxxx():
