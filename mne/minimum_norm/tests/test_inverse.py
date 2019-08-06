@@ -781,22 +781,16 @@ def test_apply_mne_inverse_fixed_raw():
     assert_array_almost_equal(stc.data, stc3.data)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def epochs():
     """Create an epochs object used for testing."""
-    event_id, tmin, tmax = 1, -0.2, 0.5
     raw = read_raw_fif(fname_raw)
-
     picks = pick_types(raw.info, meg=True, eeg=False, stim=True, ecg=True,
                        eog=True, include=['STI 014'], exclude='bads')
-    reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
-    flat = dict(grad=1e-15, mag=1e-15)
-
     events = read_events(fname_event)[:15]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject, flat=flat)
-
-    return epochs
+    return Epochs(raw, events, 1, -0.2, 0.5, picks=picks, baseline=(None, 0),
+                  reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6),
+                  flat=dict(grad=1e-15, mag=1e-15))
 
 
 @testing.requires_testing_data
@@ -810,10 +804,10 @@ def test_apply_mne_inverse_epochs(epochs):
                                                 lambda2=lambda2,
                                                 method="dSPM")
     for pick_ori in [None, "normal", "vector"]:
-        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                    "dSPM", label=label_lh, pick_ori=pick_ori)
-        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                     "dSPM", label=label_lh, pick_ori=pick_ori,
+        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                    label=label_lh, pick_ori=pick_ori)
+        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                     label=label_lh, pick_ori=pick_ori,
                                      prepared=True)
         # test if using prepared and not prepared inverse operator give the
         # same result
@@ -839,11 +833,11 @@ def test_apply_mne_inverse_epochs(epochs):
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2,
                                                 method="dSPM")
-    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                   "dSPM", label=label_rh, pick_ori="normal",
+    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                   label=label_rh, pick_ori="normal",
                                    prepared=True)
-    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                   "dSPM", label=label_lh + label_rh,
+    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                   label=label_lh + label_rh,
                                    pick_ori="normal",
                                    prepared=True)
 
@@ -915,10 +909,9 @@ def _check_delayed_data(inst, delayed):
 @pytest.mark.parametrize('pick_ori', ['normal', 'vector'])
 def test_delayed_data(epochs, pick_ori):
     """Test if kernel in apply_inverse_epochs was properly applied."""
-    inverse_operator = read_inverse_operator(fname_full)
-    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
-                                                lambda2=lambda2,
-                                                method="dSPM")
+    inverse_operator = \
+        prepare_inverse_operator(read_inverse_operator(fname_full), nave=1,
+                                 lambda2=lambda2, method="dSPM")
 
     full_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
                                      pick_ori=pick_ori, delayed=False)

@@ -384,6 +384,7 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
                                  warn_text=warn_text)
 
     if vector and isinstance(data, tuple):
+        # perform all actions on the data kernel only
         kernel = True
         data, sens_data = data[0], data[1]
     else:
@@ -406,11 +407,13 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
                                    'number of vertices.')
             for i, d, n in zip(range(data.shape[0]), data, source_nn):
                 data_rot[i] = np.dot(n.T, d)
-            data = data_rot
             if kernel:
-                data = (data, sens_data)
-            stc = VectorSourceEstimate(data, vertices=vertices, tmin=tmin,
-                                       tstep=tstep, subject=subject)
+                stc = VectorSourceEstimate((data_rot, sens_data), vertices,
+                                           tmin=tmin, tstep=tstep,
+                                           subject=subject)
+            else:
+                stc = VectorSourceEstimate(data_rot, vertices, tmin=tmin,
+                                           tstep=tstep, subject=subject)
         else:
             stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
                                  tstep=tstep, subject=subject)
@@ -420,10 +423,13 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
             klass = VolVectorSourceEstimate
         else:
             klass = VolSourceEstimate
+
         if kernel:
-            data = (data, sens_data)
-        stc = klass(data, vertices=vertices, tmin=tmin, tstep=tstep,
-                    subject=subject)
+            stc = klass((data, sens_data), vertices=vertices, tmin=tmin,
+                        tstep=tstep, subject=subject)
+        else:
+            stc = klass(data, vertices=vertices, tmin=tmin, tstep=tstep,
+                        subject=subject)
     elif src_type == 'mixed':
         # make a mixed source estimate
         if vector:  # XXX this should be supported someday
