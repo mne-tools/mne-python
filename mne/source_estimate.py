@@ -395,7 +395,7 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
     if src_type == 'surface':
         Klass = VectorSourceEstimate if vector else SourceEstimate
     elif src_type in ('volume', 'discrete'):
-        Klass = VectorSourceEstimate if vector else SourceEstimate
+        Klass = VolVectorSourceEstimate if vector else VolSourceEstimate
     elif src_type == 'mixed':
         Klass = MixedSourceEstimate
     else:
