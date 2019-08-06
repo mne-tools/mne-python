@@ -928,8 +928,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-    make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
-                                      area_mode)
+        make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
+                                          area_mode)
     del ax
     psd_list = list()
     for picks in picks_list:
@@ -1901,17 +1901,17 @@ def _plot_histogram(params):
     data = list()
     if 'eeg' in params['types']:
         eegs = np.array([p2p.T[i] for i,
-                                      x in enumerate(params['types']) if x == 'eeg'])
+                         x in enumerate(params['types']) if x == 'eeg'])
         data.append(eegs.ravel())
         types.append('eeg')
     if 'mag' in params['types']:
         mags = np.array([p2p.T[i] for i,
-                                      x in enumerate(params['types']) if x == 'mag'])
+                         x in enumerate(params['types']) if x == 'mag'])
         data.append(mags.ravel())
         types.append('mag')
     if 'grad' in params['types']:
         grads = np.array([p2p.T[i] for i,
-                                       x in enumerate(params['types']) if x == 'grad'])
+                          x in enumerate(params['types']) if x == 'grad'])
         data.append(grads.ravel())
         types.append('grad')
     params['histogram'] = plt.figure()
