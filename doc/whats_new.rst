@@ -24,6 +24,12 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Unknown events code in GDF are now visible in the ``event_id`` by `Theodore Papadopoulo`_
+
+- Now :func:`mne.io.read_raw_ctf` populates ``raw.annotations`` with the markers in ``MarkerFile.mrk`` if any by `Joan Massich`_
+
+- Add support to :func:`mne.read_annotations` to read CTF marker files by `Joan Massich`_
+
 - Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
 
 - Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
@@ -33,6 +39,8 @@ Changelog
 - Add option not to orthogonalize power envelopes with ``orthogonalize=False`` in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_
 
 - Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
+
+- Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
 
 - Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
 
@@ -55,7 +63,15 @@ Changelog
 Bug
 ~~~
 
+- Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
+
+- Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`_
+
+- Fix reading of dates in BrainVision files if no "New Segment" marker is specified, no date is given, or data is missing, by `Stefan Appelhoff`_
+
 - Fix side-effect where :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources` changed the ``ICA.exclude`` attribute even when users didn't interact with the plot by `Daniel McCloy`_.
+
+- Fix scaling of sources in :meth:`ica.plot_sources(epochs) <mne.preprocessing.ICA.plot_sources>` by `Eric Larson`_
 
 - Fix wrong assumptions about units in BrainVision montages and add test asserting units in "mm" or "auto", by `Stefan Appelhoff`_
 
@@ -3501,3 +3517,5 @@ of commits):
 .. _Thomas Radman: https://github.com/tradman
 
 .. _Paul Roujansky: https://github.com/paulroujansky
+
+.. _Theodore Papadopoulo: https://github.com/papadop

@@ -350,8 +350,8 @@ class Annotations(object):
         if len(self) == 0:
             return  # no annotations, nothing to do
 
-        offset = 0 if self.orig_time is None else self.orig_time
-        absolute_onset = self.onset + offset
+        orig_time_offset = 0 if self.orig_time is None else self.orig_time
+        absolute_onset = self.onset + orig_time_offset
         absolute_offset = absolute_onset + self.duration
 
         tmin = tmin if tmin is not None else absolute_onset.min()
@@ -360,14 +360,14 @@ class Annotations(object):
         if tmin > tmax:
             raise ValueError('tmax should be greater than tmin.')
 
-        if tmin < 0:
+        if tmin < orig_time_offset:
             raise ValueError('tmin should be positive.')
 
         out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
 
         # clip the left side
         clip_left_elem = (absolute_onset < tmin) & ~out_of_bounds
-        self.onset[clip_left_elem] = tmin - offset
+        self.onset[clip_left_elem] = tmin - orig_time_offset
         diff = tmin - absolute_onset[clip_left_elem]
         self.duration[clip_left_elem] = self.duration[clip_left_elem] - diff
 
@@ -594,6 +594,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.edf.edf import _read_annotations_edf
     from .io.cnt.cnt import _read_annotations_cnt
     from .io.curry.curry import _read_annotations_curry
+    from .io.ctf.markers import _read_annotations_ctf
 
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
@@ -616,6 +617,9 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     elif name.endswith('cnt'):
         annotations = _read_annotations_cnt(fname)
+
+    elif name.endswith('ds'):
+        annotations = _read_annotations_ctf(fname)
 
     elif name.endswith('cef'):
         annotations = _read_annotations_curry(fname, sfreq=sfreq)

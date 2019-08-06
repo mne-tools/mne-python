@@ -88,6 +88,7 @@ For full functionality, some functions require:
 - Mayavi >= 4.6
 - PySurfer >= 0.8
 - Scikit-learn >= 0.18
+- Numba >= 0.40
 - NiBabel >= 2.1.0
 - Pandas >= 0.18
 - Picard >= 0.3

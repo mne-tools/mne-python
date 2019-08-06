@@ -775,8 +775,10 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         Use minimum norm [1]_, dSPM (default) [2]_, sLORETA [3]_, or
         eLORETA [4]_.
     pick_ori : None | "normal" | "vector"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
+        By default (None) pooling is performed by taking the norm of loose/free
+        orientations. In case of a fixed source space no norm is computed
+        leading to signed source activity.
+        If "normal" only the radial component is kept. This is only implemented
         when working with loose orientations.
         If "vector", no pooling of the orientations is done and the vector
         result will be returned in the form of a
@@ -1511,6 +1513,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     logger.info('Computing SVD of whitened and weighted lead field '
                 'matrix.')
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
+    del gain
     logger.info('    largest singular value = %g' % np.max(sing))
     logger.info('    scaling factor to adjust the trace = %g' % trace_GRGT)
 
@@ -1552,17 +1555,20 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                       kind=FIFF.FIFFV_MNE_SOURCE_COV, diag=True,
                       names=[], projs=[], eig=None, eigvec=None,
                       nfree=1, bads=[])
+    # no need to copy any attributes of forward here because there is
+    # a deepcopy in _prepare_forward
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
                   sing=sing, nave=1., depth_prior=depth_prior,
                   source_cov=source_cov, noise_cov=noise_cov,
                   orient_prior=orient_prior,
                   projs=deepcopy(gain_info['projs']),
                   eigen_leads_weighted=False, source_ori=forward['source_ori'],
-                  mri_head_t=deepcopy(forward['mri_head_t']),
+                  mri_head_t=forward['mri_head_t'],
                   methods=methods, nsource=forward['nsource'],
                   coord_frame=forward['coord_frame'],
-                  source_nn=forward['source_nn'].copy(),
-                  src=deepcopy(forward['src']), fmri_prior=None)
+                  source_nn=forward['source_nn'],
+                  src=forward['src'],
+                  fmri_prior=None)
     inv_info = deepcopy(forward['info'])
     inv_info['bads'] = [bad for bad in info['bads']
                         if bad in forward['info']['ch_names']]

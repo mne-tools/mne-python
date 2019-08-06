@@ -151,8 +151,9 @@ def _read_vmrk(fname):
         The onsets in seconds.
     description : array, shape (n_annots,)
         The description of each annotation.
-    orig_time : str
-        The origin time as a string.
+    date_str : str
+        The recording time as a string. Defaults to empty string if no
+        recording time is found.
     """
     # read vmrk file
     with open(fname, 'rb') as fid:
@@ -204,13 +205,15 @@ def _read_vmrk(fname):
     # extract event information
     items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
     onset, duration, description = list(), list(), list()
-    date_str = None
+    date_str = ''
     for info in items:
-        mtype, mdesc, this_onset, this_duration = info.split(',')[:4]
-        if date_str is None and mtype == 'New Segment':
+        info_data = info.split(',')
+        mtype, mdesc, this_onset, this_duration = info_data[:4]
+        if date_str == '' and len(info_data) == 5 and mtype == 'New Segment':
             # to handle the origin of time and handle the presence of multiple
-            # New Segment annotations. We only keep the first one for date_str.
-            date_str = info.split(',')[-1]
+            # New Segment annotations. We only keep the first one that is
+            # different from an empty string for date_str.
+            date_str = info_data[-1]
 
         this_duration = (int(this_duration)
                          if this_duration.isdigit() else 0)
@@ -245,7 +248,7 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
         The annotations present in the file.
     """
     onset, duration, description, date_str = _read_vmrk(fname)
-    orig_time = None if date_str == '' else _str_to_meas_date(date_str)
+    orig_time = _str_to_meas_date(date_str)
 
     if sfreq == 'auto':
         vhdr_fname = op.splitext(fname)[0] + '.vhdr'
@@ -310,7 +313,7 @@ _unit_dict = {'V': 1.,  # V stands for Volt
 def _str_to_meas_date(date_str):
     date_str = date_str.strip()
 
-    if date_str in ['0', '00000000000000000000']:
+    if date_str in ['', '0', '00000000000000000000']:
         return None
 
     try:

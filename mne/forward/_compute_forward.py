@@ -207,14 +207,15 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     sol = np.zeros((bins[-1] + 1, bem['solution'].shape[1]))
 
     lims = np.concatenate([np.arange(0, sol.shape[0], 100), [sol.shape[0]]])
-    # Compute coeffs for each surface, one at a time
-    for o1, o2, surf, mult in zip(lens[:-1], lens[1:],
-                                  bem['surfs'], bem['field_mult']):
-        coeff = _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs)
-        # put through the bem (in chunks to save memory)
-        for start, stop in zip(lims[:-1], lims[1:]):
-            sol[start:stop] += np.dot(coeff[start:stop],
-                                      bem['solution'][o1:o2])
+    # Put through the bem (in channel-based chunks to save memory)
+    for start, stop in zip(lims[:-1], lims[1:]):
+        mask = np.logical_and(bins >= start, bins < stop)
+        r, c, w, b = rmags[mask], cosmags[mask], ws[mask], bins[mask] - start
+        # Compute coeffs for each surface, one at a time
+        for o1, o2, surf, mult in zip(lens[:-1], lens[1:],
+                                      bem['surfs'], bem['field_mult']):
+            coeff = _lin_field_coeff(surf, mult, r, c, w, b, n_jobs)
+            sol[start:stop] += np.dot(coeff, bem['solution'][o1:o2])
     sol *= mults
     return sol
 
@@ -244,8 +245,8 @@ def _bem_specify_els(bem, els, mults):
                           for el in els], axis=0)
     ws = np.concatenate([el['w'] for el in els])
     tri_weights, tri_idx = _project_onto_surface(rrs, scalp)
-    tri_weights *= ws
-    weights = einsum('ij,jik->jk', tri_weights,
+    tri_weights *= ws[:, np.newaxis]
+    weights = einsum('ij,ijk->ik', tri_weights,
                      bem['solution'][scalp['tris'][tri_idx]])
     # there are way more vertices than electrodes generally, so let's iterate
     # over the electrodes
