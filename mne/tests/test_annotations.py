@@ -957,12 +957,6 @@ def test_date_none(tmpdir):
     assert raw_read.info['meas_date'] is None
 
 
-def frmt_meas_stamp(stamp, time_format='%Y-%m-%d %H:%M:%S.%f'):
-    return (datetime
-            .utcfromtimestamp(stamp)
-            .strftime(time_format))
-
-
 def test_negative_meas_dates():
     """Test meas_date previous to 1970."""
     # Regression test for gh-6621
@@ -976,46 +970,22 @@ def test_negative_meas_dates():
 
 
 def test_crop_when_negative_orig_time():
-    """Test meas_date previous to 1970."""
+    """Test croping with orig_time, tmin and tmax previous to 1970."""
     # Regression test for gh-6621
-    meas_date_stamp = -908196945.011331  # 1941-03-22 11:04:14.988669
-    new_orig_time = frmt_meas_stamp(meas_date_stamp)
-    print(new_orig_time)
+    orig_time_stamp = -908196945.011331  # 1941-03-22 11:04:14.988669
     aa = Annotations(description='foo', onset=np.arange(0, 1, 0.1),
-                     duration=[0], orig_time=new_orig_time)
+                     duration=[0], orig_time=orig_time_stamp)
+    assert aa.orig_time == orig_time_stamp
 
-    assert frmt_meas_stamp(aa.orig_time) == new_orig_time
-
+    # do not raise
     aa.crop()
-    # is tmin absolute or relative? it seems relative but we use it info
-    # absolute because we pass first sample.. in set_annotations
-    tmin, tmax = [meas_date_stamp + t for t in (0.25, .75)]
+
+    # Crop with negative tmin, tmax
+    tmin, tmax = [orig_time_stamp + t for t in (0.25, .75)]
     assert tmin < 0 and tmax < 0
     cc = aa.crop(tmin=tmin, tmax=tmax)
     assert_array_equal(cc.osnet, [0.3, 0.4, 0.5, 0.6, 0.7])
-    assert cc.orig_time == meas_date_stamp  # orig_time does not change
-
-
-def test_xxxx():
-    """Test meas_date previous to 1970."""
-    # Regression test for gh-6621
-    raw = RawArray(data=np.empty((376, 36038), dtype=np.float64),
-                   info=create_info(ch_names=376, sfreq=600.614990234375))
-
-    raw.info['meas_date'] = (1038942070, 720100)
-    meas_date = 1038942070.7201
-
-    time_format = '%Y-%m-%d %H:%M:%S.%f'
-    new_orig_time = (datetime
-                     .utcfromtimestamp(meas_date + 50)
-                     .strftime(time_format))
-
-    later_annot = mne.Annotations(onset=[3, 5, 7],
-                                  duration=[1, 0.5, 0.25],
-                                  description=['DDD', 'EEE', 'FFF'],
-                                  orig_time=new_orig_time)
-
-    raw.copy().set_annotations(later_annot)
+    assert cc.orig_time == orig_time_stamp  # orig_time does not change
 
 
 run_tests_if_main()
