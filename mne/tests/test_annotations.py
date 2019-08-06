@@ -475,7 +475,7 @@ def test_annotations_crop():
                     orig_time=0)
 
     # cropping window larger than annotations --> do not modify
-    a_ = a.copy().crop(tmin=0, tmax=42)
+    a_ = a.copy().crop(tmin=-10, tmax=42)
     assert_array_equal(a_.onset, a.onset)
     assert_array_equal(a_.duration, a.duration)
 
@@ -508,8 +508,6 @@ def test_annotations_crop():
     # test error raising
     with pytest.raises(ValueError, match='tmax should be greater than tmin'):
         a.copy().crop(tmin=42, tmax=0)
-    with pytest.raises(ValueError, match='tmin should be positive'):
-        a.copy().crop(tmin=-10, tmax=0)
 
     # test warnings
     with pytest.warns(RuntimeWarning, match='Omitted .* were outside'):
