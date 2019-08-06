@@ -959,4 +959,16 @@ def test_date_none(tmpdir):
     assert raw_read.info['meas_date'] is None
 
 
+def test_negative_meas_dates():
+    """Test meas_date previous to 1970."""
+    # Regression test for gh-6621
+    raw = RawArray(data=np.empty((1, 1), dtype=np.float64),
+                   info=create_info(ch_names=1, sfreq=1.))
+    raw.info['meas_date'] = (-908196946, 988669)
+    raw.set_annotations(Annotations(description='foo', onset=[0],
+                                    duration=[0], orig_time=None))
+    events, _ = events_from_annotations(raw)
+    assert events[:, 0] == 0
+
+
 run_tests_if_main()
