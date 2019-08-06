@@ -157,8 +157,8 @@ def test_stfr_stockwell(return_itc):
         assert_allclose(list_stfr.data, epoch_tfr.data)
         assert_allclose(gen_stfr.data, epoch_tfr.data)
 
-        assert_equal(list_stfr.method, epoch_tfr.method)
-        assert_equal(gen_stfr.method, epoch_tfr.method)
+        assert list_stfr.method == epoch_tfr.method
+        assert gen_stfr.method == epoch_tfr.method
 
     evoked_tfr = tfr_stockwell(evoked_ref, fmin, fmax, return_itc=False)
     single_stfr = tfr_stockwell(stc_single, fmin, fmax, return_itc=False)

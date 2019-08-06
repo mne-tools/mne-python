@@ -756,8 +756,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         if isinstance(inst, _BaseSourceEstimate):
             sfreq = inst.sfreq
         else:
-            info = inst.info
-            info, data = _prepare_picks(info, data, picks, axis=1)
+            info, data = _prepare_picks(inst.info, data, picks, axis=1)
             sfreq = info['sfreq']
             times = inst.times[decim].copy()
             del picks

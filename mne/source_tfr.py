@@ -16,10 +16,11 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     Parameters
     ----------
-    data : array, shape (n_dipoles, n_freqs, n_times) | tuple, shape (2,)
+    data : array | tuple, shape (2,)
         Time-frequency transformed data in source space. The data can either
-        be a single array or a tuple with two arrays: "kernel" shape
-        (n_vertices, n_sensors) and "sens_data" shape (n_sensors, n_freqs,
+        be a single array of shape(n_dipoles[, n_orientations][, n_epochs],
+        n_freqs, n_times) or a tuple with two arrays: "kernel" shape
+        (n_dipoles, n_sensors) and "sens_data" shape (n_sensors, n_freqs,
         n_times). In this case, the source space data corresponds to
         "numpy.dot(kernel, sens_data)".
     vertices : array | list of array
@@ -57,9 +58,6 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         The subject name.
     times : array, shape (n_times,)
         The time vector.
-    vertices : array | list of array of shape (n_dipoles,)
-        The indices of the dipoles in the different source spaces. Can
-        be an array if there is only one source space (e.g., for volumes).
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     dims : tuple
@@ -87,11 +85,9 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         _check_option("method", method, valid_methods)
         _validate_type(vertices, (np.ndarray, list), "vertices")
 
-        data, kernel, sens_data, vertices = self._prepare_data(data, vertices,
-                                                               dims)
+        data, kernel, sens_data, vertices = _prepare_data(data, vertices, dims)
 
         self.dims = dims
-        self.vertices = vertices
         self.method = method
         self.freqs = freqs
         self.verbose = verbose
@@ -100,6 +96,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         # TODO: src_type should rather represent the stc source type
         self._src_type = 'SourceTFR'
         self._data_ndim = len(dims)
+        self._vertices = vertices
         self._data = data
         self._kernel = kernel
         self._sens_data = sens_data
@@ -110,7 +107,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         self._update_times()
 
     def __repr__(self):  # noqa: D105
-        s = "{} vertices".format((sum(len(v) for v in self._vertices_list),))
+        s = "{} vertices".format((sum(len(v) for v in self.vertices),))
         if self.subject is not None:
             s += ", subject : {}".format(self.subject)
         s += ", tmin : {} (ms)".format(1e3 * self.tmin)
@@ -119,60 +116,12 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         s += ", data shape : {}".format(self.shape)
         return "<{0}  |  {1}>".format(type(self).__name__, s)
 
-    def _prepare_data(self, data, vertices, dims):
-        """Prepare the data for the SourceTFR init."""
-        kernel, sens_data = None, None
-        if isinstance(data, tuple):
-            if len(data) != 2:
-                raise ValueError('If data is a tuple it has to be length 2')
-            kernel, sens_data = data
-            data = None
-            if kernel.shape[1] != sens_data.shape[0]:
-                raise ValueError('kernel and sens_data have invalid '
-                                 'dimensions')
-            if sens_data.ndim != len(dims):
-                raise ValueError('The sensor data must have {0} dimensions, '
-                                 'got {1}'.format(len(dims), sens_data.ndim, ))
-            # TODO: Make sure this is supported
-            if 'orientations' in dims:
-                raise ValueError('Multiple orientations are not supported for '
-                                 'data=(kernel, sens_data) ')
-
-        if isinstance(vertices, list):
-            vertices = [np.asarray(v, int) for v in vertices]
-            if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
-                raise ValueError('Vertices must be ordered in increasing '
-                                 'order.')
-
-            n_src = sum([len(v) for v in vertices])
-
-            if len(vertices) == 1:
-                vertices = vertices[0]
-        elif isinstance(vertices, np.ndarray):
-            n_src = len(vertices)
-
-        # safeguard the user against doing something silly
-        if data is not None:
-            if data.shape[0] != n_src:
-                raise ValueError('Number of vertices ({0}) and stfr.shape[0] '
-                                 '({1}) must match'.format(n_src,
-                                                           data.shape[0]))
-            if data.ndim != len(dims):
-                raise ValueError('Data (shape {0}) must have {1} dimensions '
-                                 'for SourceTFR with dims={2}'
-                                 .format(data.shape, len(dims),
-                                         dims))
-
-            if "orientations" in dims and data.shape[1] != 3:
-                raise ValueError('If multiple orientations are defined, '
-                                 'stfr.shape[1] must be 3. Got '
-                                 'shape[1] == {}'.format(data.shape[1]))
-
-        return data, kernel, sens_data, vertices
-
     @property
-    def _vertices_list(self):
-        return self.vertices
+    def vertices(self):
+        """ The indices of the dipoles in the different source spaces. Can
+        be an array if there is only one source space (e.g., for volumes).
+        """
+        return self._vertices
 
     # TODO: also support loading data
     @verbose
@@ -194,9 +143,9 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                              .format(self.__class__.__name__, ))
         fname = fname if fname.endswith('h5') else '{}-stfr.h5'.format(fname)
         write_hdf5(fname,
-                   dict(vertices=self.vertices, data=self.data, tmin=self.tmin,
-                        tstep=self.tstep, subject=self.subject,
-                        src_type=self._src_type),
+                   dict(vertices=self._vertices, data=self.data,
+                        tmin=self.tmin, tstep=self.tstep,
+                        subject=self.subject, src_type=self._src_type),
                    title='mnepython', overwrite=True)
 
     @property
@@ -300,10 +249,10 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                              .format(self._data.ndim))
 
         # vertices can be a single number, so cast to ndarray
-        if isinstance(self.vertices, list):
-            n_verts = sum([len(v) for v in self.vertices])
-        elif isinstance(self.vertices, np.ndarray):
-            n_verts = len(self.vertices)
+        if isinstance(self._vertices, list):
+            n_verts = sum([len(v) for v in self._vertices])
+        elif isinstance(self._vertices, np.ndarray):
+            n_verts = len(self._vertices)
         else:
             raise ValueError('Vertices must be a list or numpy array')
 
@@ -365,3 +314,99 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     def copy(self):
         """Return copy of SourceTFR instance."""
         return copy.deepcopy(self)
+
+
+def _prepare_data(data, vertices, dims):
+    """Check SourceTFR data and construct according data fields.
+
+    Parameters
+    ----------
+    data : array | tuple, shape (2,)
+        Time-frequency transformed data in source space. Can be either
+        the full data array, or a tuple of two arrays (kernel, sens_data),
+        where the full data is equal to np.dot(kernel, sens_data).
+    vertices : array | list of array
+        Vertex numbers corresponding to the data.
+    dims : tuple, default ("dipoles", "freqs", "times")
+        The dimension names of the data, where each element of the tuple
+        corresponds to one axis of the data field. Allowed values are:
+        ("dipoles", "freqs", "times"), ("dipoles", "epochs", "freqs",
+        "times"), ("dipoles", "orientations", "freqs", "times"), ("dipoles",
+         "orientations", "epochs", "freqs", "times").
+
+    Returns
+    -------
+    data : array | None
+        The source level time-frequency transformed data. If an array was
+        passed as the data argument, data will be an array. Else None.
+    kernel : array | None
+        The imaging kernel to construct the source level time-frequency
+        transformed data. If a tuple was passed as the data argument, kernel
+        will be an array. Else None.
+    sens_data : array | None
+        The sensor level data to construct the source level time-frequency
+        transformed data. If a tuple was passed as the data argument
+        sens_data will be an array. Else None.
+    vertices : array | None
+        Flattened vertex numbers corresponding to the data.
+    """
+    kernel, sens_data = None, None
+    if isinstance(data, tuple):
+        if len(data) != 2:
+            raise ValueError('If data is a tuple it has to be length 2')
+        kernel, sens_data = data
+        data = None
+        if kernel.shape[-1] != sens_data.shape[0]:
+            raise ValueError('The last kernel dimension and the first data '
+                             'dimension must be of equal size. Got {0} and '
+                             '{1} instead.'
+                             .format(kernel.shape[-1], sens_data.shape[0]))
+        if sens_data.ndim != len(dims):
+            raise ValueError('The sensor data must have {0} dimensions, '
+                             'got {1}'.format(len(dims), sens_data.ndim, ))
+        # TODO: Make sure this is supported
+        if 'orientations' in dims:
+            raise NotImplementedError('Multiple orientations are not '
+                                      'supported for data=(kernel, sens_data)')
+
+    vertices, n_src = _prepare_vertices(vertices)
+
+    # safeguard the user against doing something silly
+    if data is not None:
+        _check_data_shape(data, dims, n_src)
+
+    return data, kernel, sens_data, vertices
+
+
+def _prepare_vertices(vertices):
+    """Check the vertices and return flattened vertices and their length."""
+    if isinstance(vertices, list):
+        vertices = [np.asarray(v, int) for v in vertices]
+        if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
+            raise ValueError('Vertices must be ordered in increasing '
+                             'order.')
+        n_src = sum([len(v) for v in vertices])
+        if len(vertices) == 1:
+            vertices = vertices[0]
+
+    elif isinstance(vertices, np.ndarray):
+        n_src = len(vertices)
+    return vertices, n_src
+
+
+def _check_data_shape(data, dims, n_src):
+    """Check SourceTFR data according to data and vertices dimensions."""
+    if data.shape[0] != n_src:
+        raise ValueError('Number of vertices ({0}) and stfr.shape[0] '
+                         '({1}) must match'.format(n_src,
+                                                   data.shape[0]))
+    if data.ndim != len(dims):
+        raise ValueError('Data (shape {0}) must have {1} dimensions '
+                         'for SourceTFR with dims={2}'
+                         .format(data.shape, len(dims),
+                                 dims))
+
+    if "orientations" in dims and data.shape[1] != 3:
+        raise ValueError('If multiple orientations are defined, '
+                         'stfr.shape[1] must be 3. Got '
+                         'shape[1] == {}'.format(data.shape[1]))

@@ -8,6 +8,8 @@ import pytest
 from mne.utils import _TempDir, requires_h5py, run_tests_if_main
 from mne.source_tfr import SourceTFR
 
+np.random.seed(seed=23)
+
 
 @pytest.fixture(scope="module")
 def fake_stfr():
@@ -80,7 +82,7 @@ def test_stfr_attributes(fake_stfr):
 
     # Changing .tmin or .tstep re-computes .times
     stfr.tmin = 1
-    assert (type(stfr.tmin) == float)
+    assert type(stfr.tmin) == float
     assert_allclose(stfr.times,
                     [1., 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
 
@@ -148,11 +150,11 @@ def test_stfr_resample(fake_stfr, fake_kernel_stfr):
         o_sfreq = 1.0 / stfr.tstep
         # note that using no padding for this stfr reduces edge ringing...
         stfr_new.resample(2 * o_sfreq, npad=0)
-        assert (stfr_new.data.shape[-1] == 2 * stfr.data.shape[-1])
-        assert (stfr_new.tstep == stfr.tstep / 2)
+        assert stfr_new.data.shape[-1] == 2 * stfr.data.shape[-1]
+        assert stfr_new.tstep == stfr.tstep / 2
         stfr_new.resample(o_sfreq, npad=0)
-        assert (stfr_new.data.shape[-1] == stfr.data.shape[-1])
-        assert (stfr_new.tstep == stfr.tstep)
+        assert stfr_new.data.shape[-1] == stfr.data.shape[-1]
+        assert stfr_new.tstep == stfr.tstep
         assert_allclose(stfr_new.data, stfr.data, 5)
 
 
@@ -174,7 +176,6 @@ def test_stfr_crop(fake_stfr, fake_kernel_stfr):
 
 def test_invalid_params():
     """Test invalid SourceTFR parameters."""
-    np.random.seed(seed=23)
     data = np.random.rand(40, 10, 20)
     verts = [np.arange(10), np.arange(30)]
     tmin = 0
@@ -188,8 +189,8 @@ def test_invalid_params():
                        match='data.*? tuple .*? has to be length 2'):
         SourceTFR((data, (42, 42), (42, 42)), verts, tmin, tstep)
 
-    with pytest.raises(ValueError,
-                       match='kernel and sens_data have invalid dimension'):
+    with pytest.raises(ValueError, match='last kernel.*? first data dimension'
+                                         ' must be of equal size'):
         SourceTFR((np.zeros((42, 42)), data), verts, tmin, tstep)
 
     with pytest.raises(ValueError,
