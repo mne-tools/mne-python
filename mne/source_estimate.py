@@ -405,10 +405,6 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
     # massage the data
     if src_type == 'surface' and vector:
         n_vertices = len(vertices[0]) + len(vertices[1])
-        if data.shape[0] != 3 * n_vertices:
-            raise RuntimeError(
-                'Shape of data array does not match the number of vertices.'
-            )
         data = np.matmul(
             np.transpose(source_nn.reshape(n_vertices, 3, 3), axes=[0, 2, 1]),
             data.reshape(n_vertices, 3, -1)
