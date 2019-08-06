@@ -623,8 +623,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     """
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-    make_label = _set_psd_plot_params(
-        raw.info, proj, picks, ax, area_mode)
+        make_label = _set_psd_plot_params(
+            raw.info, proj, picks, ax, area_mode)
     del ax
     psd_list = list()
     if n_fft is None:
@@ -689,7 +689,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
         for idx, ci in enumerate(cis):
             this_color = (bad_color if info['ch_names'][ci] in
-                                       info['bads'] else color)
+                          info['bads'] else color)
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][ci]]
             ax_vscroll.add_patch(mpl.patches.Rectangle((0, idx), 1, 1,
@@ -700,7 +700,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     else:
         for ci in range(len(inds)):
             this_color = (bad_color if info['ch_names'][inds[ci]] in
-                                       info['bads'] else color)
+                          info['bads'] else color)
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][inds[ci]]]
             ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
@@ -842,10 +842,10 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 x = this_t[0]
                 # This is what our data get multiplied by
                 inv_norm = (
-                        params['scalings'][this_type] *
-                        params['unit_scalings'][this_type] *
-                        2. /
-                        params['scale_factor'])
+                    params['scalings'][this_type] *
+                    params['unit_scalings'][this_type] *
+                    2. /
+                    params['scale_factor'])
                 units = params['units'][this_type]
                 bar = ax.plot([x, x], [offset - 1., offset + 1.],
                               color=scale_color, zorder=5, lw=4)[0]
