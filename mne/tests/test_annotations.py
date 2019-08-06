@@ -971,4 +971,26 @@ def test_negative_meas_dates():
     assert events[:, 0] == 0
 
 
+def test_xxxx():
+    """Test meas_date previous to 1970."""
+    # Regression test for gh-6621
+    raw = RawArray(data=np.empty((376, 36038), dtype=np.float64),
+                   info=create_info(ch_names=376, sfreq=600.614990234375))
+
+    raw.info['meas_date'] = (1038942070, 720100)
+    meas_date = 1038942070.7201
+
+    time_format = '%Y-%m-%d %H:%M:%S.%f'
+    new_orig_time = (datetime
+                     .utcfromtimestamp(meas_date + 50)
+                     .strftime(time_format))
+
+    later_annot = mne.Annotations(onset=[3, 5, 7],
+                                  duration=[1, 0.5, 0.25],
+                                  description=['DDD', 'EEE', 'FFF'],
+                                  orig_time=new_orig_time)
+
+    raw.copy().set_annotations(later_annot)
+
+
 run_tests_if_main()
