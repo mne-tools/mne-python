@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Allow :meth:`mne.Annotations.crop` to support negative ``tmin`` and ``tmax`` by `Joan Massich`_
+
 - Unknown events code in GDF are now visible in the ``event_id`` by `Theodore Papadopoulo`_
 
 - Now :func:`mne.io.read_raw_ctf` populates ``raw.annotations`` with the markers in ``MarkerFile.mrk`` if any by `Joan Massich`_
