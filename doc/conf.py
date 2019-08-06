@@ -359,7 +359,10 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
     # the .. include:: lines, so we need to do it.
     # Eventually this could perhaps live in SG.
     if what in ('attribute', 'method'):
-        lines += """
+        size = os.path.getsize(op.join(
+            op.dirname(__file__), 'generated', '%s.examples' % (name,)))
+        if size > 0:
+            lines += """
 .. rubric:: Examples using ``{0}``
 
 .. include:: {1}.examples
