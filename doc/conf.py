@@ -363,7 +363,7 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
             op.dirname(__file__), 'generated', '%s.examples' % (name,)))
         if size > 0:
             lines += """
-.. rubric:: Examples using ``{0}``
+.. rubric:: Examples using ``{0}``:
 
 .. include:: {1}.examples
    :start-line: 5
