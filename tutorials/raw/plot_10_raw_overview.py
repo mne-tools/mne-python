@@ -145,8 +145,8 @@ print()  # insert a blank line in the output
 
 # some examples of raw.info:
 print('bad channels:', raw.info['bads'])  # chs marked "bad" during acquisition
-print(raw.info['sfreq'], 'Hz')  # sampling frequency
-print(raw.info['description'], '\n')  # miscellaneous acquisition info
+print(raw.info['sfreq'], 'Hz')            # sampling frequency
+print(raw.info['description'], '\n')      # miscellaneous acquisition info
 
 print(raw.info)
 
@@ -328,9 +328,9 @@ print(raw_selection.times.min(), raw_selection.times.max())
 # or combine two or more separate :class:`~mne.io.Raw` objects — you can use
 # the :meth:`~mne.io.Raw.append` method:
 
-raw_selection1 = raw.copy().crop(tmin=30, tmax=30.1)  # 0.1 seconds
-raw_selection2 = raw.copy().crop(tmin=40, tmax=41.1)  # 1.1 seconds
-raw_selection3 = raw.copy().crop(tmin=50, tmax=51.3)  # 1.3 seconds
+raw_selection1 = raw.copy().crop(tmin=30, tmax=30.1)     # 0.1 seconds
+raw_selection2 = raw.copy().crop(tmin=40, tmax=41.1)     # 1.1 seconds
+raw_selection3 = raw.copy().crop(tmin=50, tmax=51.3)     # 1.3 seconds
 raw_selection1.append([raw_selection2, raw_selection3])  # 2.5 seconds total
 print(raw_selection1.times.min(), raw_selection1.times.max())
 
