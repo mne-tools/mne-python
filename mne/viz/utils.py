@@ -43,6 +43,7 @@ from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import _sync_onset
 
+
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
                              'eog': "EOG channel", 'ecg': "ECG sensor",
@@ -151,8 +152,8 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
 def _check_delayed_ssp(container):
     """Handle interactive SSP selection."""
-    if container.proj is True or \
-            all(p['active'] for p in container.info['projs']):
+    if container.proj is True or\
+       all(p['active'] for p in container.info['projs']):
         raise RuntimeError('Projs are already applied. Please initialize'
                            ' the data with proj set to False.')
     elif len(container.info['projs']) < 1:
@@ -263,8 +264,8 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         return colors.LinearSegmentedColormap('mne_analyze', cdict)
     elif format == 'mayavi':
         if len(limits) == 3:
-            limits = np.concatenate((-np.flipud(limits), [0], limits)) / \
-                     limits[-1]
+            limits = np.concatenate((-np.flipud(limits), [0], limits)) /\
+                limits[-1]
         else:
             limits = np.concatenate((limits[:3], [0], limits[3:]))
             limits /= np.max(np.abs(limits))
@@ -684,10 +685,10 @@ def _plot_raw_time(value, params):
     """Deal with changed time value."""
     info = params['info']
     max_times = params['n_times'] / float(info['sfreq']) + \
-                params['first_time'] - params['duration']
+        params['first_time'] - params['duration']
     if value > max_times:
         value = params['n_times'] / float(info['sfreq']) + \
-                params['first_time'] - params['duration']
+            params['first_time'] - params['duration']
     if value < params['first_time']:
         value = params['first_time']
     if params['t_start'] != value:
@@ -2394,7 +2395,6 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
         def log_fix(tval):
             exp = np.log10(np.abs(tval))
             return np.sign(tval) * 10 ** (np.fix(exp) - (exp < 0))
-
         xlims = np.array([xmin, xmax])
         temp_ticks = log_fix(xlims)
         closer_idx = np.argmin(np.abs(xlims - temp_ticks))
@@ -2635,7 +2635,7 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
             logger.info("More than {} channels, truncating title ...".format(
                 max_chans))
             title += ", ...\n({} of {} {})".format(
-                combine, len(ch_names), ch_type, )
+                combine, len(ch_names), ch_type,)
     return title
 
 
@@ -2991,12 +2991,12 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     line_alpha = float(line_alpha)
     ylabels = list()
     for ii, (psd, picks, title, ax, scalings, units) in enumerate(zip(
-            psd_list,
-            picks_list,
-            titles_list,
-            ax_list,
-            scalings_list,  # noqa
-            units_list)):
+                                                                  psd_list,
+                                                                  picks_list,
+                                                                  titles_list,
+                                                                  ax_list,
+                                                                  scalings_list, # noqa
+                                                                  units_list)):
         ylabel = _convert_psds(psd, dB, estimate, scalings, units,
                                [inst.ch_names[pi] for pi in picks])
         ylabels.append(ylabel)
