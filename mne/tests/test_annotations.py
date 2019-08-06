@@ -973,19 +973,19 @@ def test_crop_when_negative_orig_time():
     """Test croping with orig_time, tmin and tmax previous to 1970."""
     # Regression test for gh-6621
     orig_time_stamp = -908196945.011331  # 1941-03-22 11:04:14.988669
-    aa = Annotations(description='foo', onset=np.arange(0, 1, 0.1),
-                     duration=[0], orig_time=orig_time_stamp)
-    assert aa.orig_time == orig_time_stamp
+    annot = Annotations(description='foo', onset=np.arange(0, 1, 0.1),
+                        duration=[0], orig_time=orig_time_stamp)
+    assert annot.orig_time == orig_time_stamp
 
     # do not raise
-    aa.crop()
+    annot.crop()
 
     # Crop with negative tmin, tmax
     tmin, tmax = [orig_time_stamp + t for t in (0.25, .75)]
     assert tmin < 0 and tmax < 0
-    cc = aa.crop(tmin=tmin, tmax=tmax)
-    assert_array_equal(cc.osnet, [0.3, 0.4, 0.5, 0.6, 0.7])
-    assert cc.orig_time == orig_time_stamp  # orig_time does not change
+    crop_annot = annot.crop(tmin=tmin, tmax=tmax)
+    assert_allclose(crop_annot.onset, [0.3, 0.4, 0.5, 0.6, 0.7])
+    assert crop_annot.orig_time == orig_time_stamp  # orig_time does not change
 
 
 run_tests_if_main()
