@@ -1,6 +1,6 @@
 """Functions to plot raw M/EEG data."""
 
-# . Authors: Eric Larson <larson.eric.d@gmail.com>
+# Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: Simplified BSD
