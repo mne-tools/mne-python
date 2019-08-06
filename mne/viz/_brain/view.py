@@ -8,6 +8,7 @@
 
 from collections import namedtuple
 
+
 View = namedtuple('View', 'elev azim')
 
 views_dict = {'lateral': View(elev=5, azim=0),
