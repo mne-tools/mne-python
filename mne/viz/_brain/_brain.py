@@ -221,7 +221,7 @@ class _Brain(object):
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
         elif hemi in ('lh', 'rh'):
-            self._hemis = (hemi,)
+            self._hemis = (hemi, )
         else:
             raise KeyError('hemi has to be either "lh", "rh", "split", '
                            'or "both"')
