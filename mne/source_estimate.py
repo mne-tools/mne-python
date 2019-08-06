@@ -400,6 +400,14 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
                                    'number of vertices.')
             for i, d, n in zip(range(data.shape[0]), data, source_nn):
                 data_rot[i] = np.dot(n.T, d)
+
+            xx = np.matmul(
+                np.transpose(source_nn.reshape(n_vertices, 3, 3),
+                             axes=[0, 2, 1]),
+                data.reshape(n_vertices, 3, -1)
+            )
+            np.testing.assert_allclose(xx, data_rot)
+
             data = data_rot
             stc = VectorSourceEstimate(data, vertices=vertices, tmin=tmin,
                                        tstep=tstep, subject=subject)
