@@ -957,7 +957,7 @@ def test_date_none(tmpdir):
     assert raw_read.info['meas_date'] is None
 
 
-def frmt_meas_stamp(stamp, time_format='%Y-%m-%d%H:%M:%S.%f'):
+def frmt_meas_stamp(stamp, time_format='%Y-%m-%d %H:%M:%S.%f'):
     return (datetime
             .utcfromtimestamp(stamp)
             .strftime(time_format))
@@ -978,18 +978,22 @@ def test_negative_meas_dates():
 def test_crop_when_negative_orig_time():
     """Test meas_date previous to 1970."""
     # Regression test for gh-6621
-    meas_date_stamp = -908196945.011331  # 1941-03-2211:04:14.988669
+    meas_date_stamp = -908196945.011331  # 1941-03-22 11:04:14.988669
     new_orig_time = frmt_meas_stamp(meas_date_stamp)
     print(new_orig_time)
     aa = Annotations(description='foo', onset=np.arange(0, 1, 0.1),
                      duration=[0], orig_time=new_orig_time)
 
-    bb = aa.crop()
+    assert frmt_meas_stamp(aa.orig_time) == new_orig_time
+
+    aa.crop()
     # is tmin absolute or relative? it seems relative but we use it info
     # absolute because we pass first sample.. in set_annotations
-    cc = aa.crop(tmin=meas_date_stamp + 0.25)
-    import pdb; pdb.set_trace()
-
+    tmin, tmax = [meas_date_stamp + t for t in (0.25, .75)]
+    assert tmin < 0 and tmax < 0
+    cc = aa.crop(tmin=tmin, tmax=tmax)
+    assert_array_equal(cc.osnet, [0.3, 0.4, 0.5, 0.6, 0.7])
+    assert cc.orig_time == meas_date_stamp  # orig_time does not change
 
 
 def test_xxxx():
