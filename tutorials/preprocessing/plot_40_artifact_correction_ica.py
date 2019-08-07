@@ -85,11 +85,22 @@ raw.crop(tmax=60.)
 # :class:`~mne.preprocessing.ICA` object's :meth:`~mne.preprocessing.ICA.apply`
 # method.
 #
-# .. sidebar:: ICA with no dimensionality reduction
+# .. sidebar:: ICA and dimensionality reduction
 #
 #     If you want to perform ICA with no dimensionality reduction (other than
-#     exclusion of ICs specified by the user), pass ``max_pca_components=None``
-#     and ``n_pca_components=None`` (these are the the default values).
+#     the number of Independent Components (ICs) given in ``n_components``, and
+#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
+#     ``max_pca_components=None`` and ``n_pca_components=None`` (these are the
+#     default values). If you want to reduce dimensionality, consider this
+#     example: if you have 300 sensor channels and you set
+#     ``max_pca_components=200``, ``n_components=50`` and
+#     ``n_pca_components=None``, then the PCA step yields 200 PCs, the first 50
+#     PCs are sent to the ICA algorithm (yielding 50 ICs), and during
+#     reconstruction :meth:`~mne.preprocessing.ICA.apply` will use the 50 ICs
+#     plus PCs number 51-200 (the full PCA residual). If instead you specify
+#     ``n_pca_components=120`` then :meth:`~mne.preprocessing.ICA.apply` will
+#     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
+#     (numbers 51-120).
 #
 # As is typically done with ICA, the data are first scaled to unit variance and
 # whitened using principal components analysis (PCA) before performing the ICA
@@ -97,20 +108,25 @@ raw.crop(tmax=60.)
 # step by specifying ``max_pca_components``. From the retained Principal
 # Components (PCs), the first ``n_components`` are then passed to the ICA
 # algorithm (``n_components`` may be an integer number of components to use, or
-# a fraction of explained variance that used components should capture). Then,
-# when reconstructing the signal after excluding the Independent Components
-# (ICs) that capture unwanted artifacts, the signal will be reconstructed from
-# the retained ICs *plus* the retained PCs that were not included in the ICA
-# step (the "PCA residual"). If you want to reduce the number of retained PCs
-# used at the reconstruction stage, it is controlled by the
-# ``n_pca_components`` parameter (which will in turn reduce the rank of your
-# data). The procedure and the parameters that control dimensionality at
-# various stages is summarized in the diagram below:
+# a fraction of explained variance that used components should capture).
+#
+# After visualizing the Independent Components (ICs) and excluding any that
+# capture artifacts you want to repair, the sensor signal can be reconstructed
+# using the :class:`~mne.preprocessing.ICA` object's
+# :meth:`~mne.preprocessing.ICA.apply` method. By default, signal
+# reconstruction uses all of the ICs (less any ICs listed in ``ICA.exclude``)
+# plus all of the PCs that were not included in the ICA decomposition (i.e.,
+# the "PCA residual"). If you want to reduce the number of components used at
+# the reconstruction stage, it is controlled by the ``n_pca_components``
+# parameter (which will in turn reduce the rank of your data; by default
+# ``n_pca_components = max_pca_components`` resulting in no additional
+# dimensionality reduction). The fitting and reconstruction procedures and the
+# parameters that control dimensionality at various stages are summarized in
+# the diagram below:
 #
 # .. graphviz:: ../../_static/diagrams/ica.dot
 #    :alt: Diagram of ICA procedure in MNE-Python
 #    :align: left
-#
 #
 # See the Notes section of the :class:`~mne.preprocessing.ICA` documentation
 # for further details. Next we'll walk through an extended example that
@@ -132,8 +148,8 @@ artifact_picks = mne.pick_channels_regexp(raw.ch_names, regexp=regexp)
 raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 
 ###############################################################################
-# We can get a summary of how the ocular artifact manifests across all channels
-# using :func:`~mne.preprocessing.create_eog_epochs` like we did in the
+# We can get a summary of how the ocular artifact manifests across each channel
+# type using :func:`~mne.preprocessing.create_eog_epochs` like we did in the
 # :ref:`tut-artifact-overview` tutorial:
 
 eog_evoked = create_eog_epochs(raw).average()
