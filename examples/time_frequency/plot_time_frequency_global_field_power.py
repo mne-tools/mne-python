@@ -99,7 +99,7 @@ for band, fmin, fmax in iter_freqs:
                         reject=dict(grad=4000e-13, eog=350e-6),
                         preload=True)
     # remove evoked response
-    epochs.subtract_evoked()  # for this we need to construct new epochs.
+    epochs.subtract_evoked()
 
     # get analytic signal (envelope)
     epochs.apply_hilbert(envelope=True)
