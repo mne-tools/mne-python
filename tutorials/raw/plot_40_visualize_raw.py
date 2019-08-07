@@ -23,7 +23,9 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
+raw = mne.io.read_raw_fif(sample_data_raw_file)
+# For speed and to reduce memory use, let's just use the first 60 sec
+raw.crop(0, 60).load_data()
 
 ###############################################################################
 # We've seen in :ref:`a previous tutorial <tut-raw-class>` how to plot data
