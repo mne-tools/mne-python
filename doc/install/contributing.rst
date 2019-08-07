@@ -195,23 +195,6 @@ documentation::
     $ pip install sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome memory_profiler
     $ conda install sphinx-autobuild doc8  # linter packages for reStructuredText (optional)
 
-.. TODO: add this if sphinx-mermaid is officially adopted
-    Our documentation includes diagrams that are built automatically from text
-    using a tool called `mermaid`_. Originally a javascript tool, there is now
-    a command-line interface ``mermaid.cli`` as well as a plugin for ``sphinx``
-    (our documentation build tool) that allows mermaid blocks in the
-    documentation to be rendered into diagrams automatically.
-    .
-    $ wget -O - "https://dl.yarnpkg.com/debian/pubkey.gpg" | sudo apt-key add -
-    $ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list > /dev/null
-    $ sudo apt update
-    $ sudo apt install yarn
-    Once yarn is installed, you can use it to install mermaid
-    $ cd $INSTALL_LOCATION
-    $ yarn add mermaid
-    $ yarn add mermaid.cli
-    $ pip install sphinxcontrib-mermaid
-
 
 .. _basic-git:
 

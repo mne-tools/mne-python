@@ -66,6 +66,15 @@ jobs:
               sudo apt-get install qt5-default
 
         - run:
+            name: Install graphviz and fonts needed for diagrams
+            command: |
+              sudo apt-get install graphviz
+              mkdir -p $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/2.045R-ro/1.095R-it | tar xz -C $HOME/.fonts
+              fc-cache -f
+
+        - run:
             name: Get Python running
             command: |
               pip install --user --upgrade --progress-bar off pip numpy vtk
