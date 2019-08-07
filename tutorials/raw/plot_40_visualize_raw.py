@@ -13,8 +13,9 @@ and projectors stored in Raw objects.
    :local:
    :depth: 2
 
-As usual we'll start by importing the modules we need and loading some
-:ref:`example data <sample-dataset>`:
+As usual we'll start by importing the modules we need, loading some
+:ref:`example data <sample-dataset>`, and cropping the :class:`~mne.io.Raw`
+object to just 60 seconds before loading it into RAM to save memory:
 """
 
 import os
@@ -24,8 +25,7 @@ sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
-# For speed and to reduce memory use, let's just use the first 60 sec
-raw.crop(0, 60).load_data()
+raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # We've seen in :ref:`a previous tutorial <tut-raw-class>` how to plot data
