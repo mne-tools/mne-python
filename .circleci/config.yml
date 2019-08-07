@@ -294,11 +294,14 @@ jobs:
         - image: circleci/python:3.6-jessie
       steps:
         - checkout
+        # Here we use prelease NumPy and SciPy to get the speed boost from
+        # scipy.fft. Once SciPy 1.4.0 is released this can be removed.
         - run:
             name: pip install dependencies
             command: |
                set -e;
-               pip install --user --progress-bar off numpy scipy matplotlib pillow
+               pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --pre numpy scipy
+               pip install --user --progress-bar off matplotlib pillow
                pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
                pip install --user -e .
         - run:
