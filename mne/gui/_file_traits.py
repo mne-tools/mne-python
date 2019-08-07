@@ -303,7 +303,7 @@ class DigSource(HasPrivateTraits):
                 info = read_dig_montage(fif=self.file)
 
             if isinstance(info, DigMontage):
-                info.transform_to_head()
+                info._transform_to_head()
                 digs = list()
                 _append_fiducials(digs, info.lpa, info.nasion, info.rpa)
                 for idx, pos in enumerate(info.hsp):

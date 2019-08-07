@@ -486,7 +486,7 @@ class DigMontage(object):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
 
-    def transform_to_head(self):
+    def _transform_to_head(self):
         """Transform digitizer points to Neuromag head coordinates."""
         if self.coord_frame == 'head':  # nothing to do
             return
@@ -529,7 +529,7 @@ class DigMontage(object):
                 self.dig_ch_pos[key] = apply_trans(native_head_t, val)
         self.coord_frame = 'head'
 
-    def compute_dev_head_t(self):
+    def _compute_dev_head_t(self):
         """Compute the Neuromag dev_head_t from matched points."""
         from ..coreg import fit_matched_points
         if self.elp is None or self.hpi is None:
@@ -834,9 +834,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     out = DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
                      dig_ch_pos=dig_ch_pos, coord_frame=coord_frame)
     if fif is None and transform:  # only need to do this for non-Neuromag
-        out.transform_to_head()
+        out._transform_to_head()
     if dev_head_t:
-        out.compute_dev_head_t()
+        out._compute_dev_head_t()
     return out
 
 
