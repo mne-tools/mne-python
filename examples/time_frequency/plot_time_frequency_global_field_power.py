@@ -79,7 +79,7 @@ event_id, tmin, tmax = 1, -1., 3.
 baseline = None
 
 # get the header to extract events
-raw = mne.io.read_raw_fif(raw_fname, preload=False)
+raw = mne.io.read_raw_fif(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 frequency_map = list()
@@ -89,21 +89,23 @@ for band, fmin, fmax in iter_freqs:
     raw = mne.io.read_raw_fif(raw_fname, preload=True)
     raw.pick_types(meg='grad', eog=True)  # we just look at gradiometers
 
-    # bandpass filter and compute Hilbert
+    # bandpass filter
     raw.filter(fmin, fmax, n_jobs=1,  # use more jobs to speed up.
                l_trans_bandwidth=1,  # make sure filter params are the same
-               h_trans_bandwidth=1,  # in each band and skip "auto" option.
-               fir_design='firwin')
-    raw.apply_hilbert(n_jobs=1, envelope=False)
+               h_trans_bandwidth=1)  # in each band and skip "auto" option.
 
+    # epoch
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=baseline,
-                        reject=dict(grad=4000e-13, eog=350e-6), preload=True)
-    # remove evoked response and get analytic signal (envelope)
-    epochs.subtract_evoked()  # for this we need to construct new epochs.
-    epochs = mne.EpochsArray(
-        data=np.abs(epochs.get_data()), info=epochs.info, tmin=epochs.tmin)
-    # now average and move on
+                        reject=dict(grad=4000e-13, eog=350e-6),
+                        preload=True)
+    # remove evoked response
+    epochs.subtract_evoked()
+
+    # get analytic signal (envelope)
+    epochs.apply_hilbert(envelope=True)
     frequency_map.append(((band, fmin, fmax), epochs.average()))
+    del epochs
+del raw
 
 ###############################################################################
 # Now we can compute the Global Field Power
