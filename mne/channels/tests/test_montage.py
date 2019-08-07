@@ -492,8 +492,8 @@ def test_fif_dig_montage():
     raw_bv.add_channels([raw_bv_2])
 
     for ii in range(2):
-        if ii == 1:
-            dig_montage.transform_to_head()  # should have no meaningful effect
+        if ii == 1:  # XXX: possible test refactor/rethinking
+            dig_montage._transform_to_head()  # should have no meaningful effect  # noqa
 
         # Set the montage
         raw_bv.set_montage(dig_montage)
@@ -532,7 +532,7 @@ def test_egi_dig_montage():
     _check_roundtrip(dig_montage, fname_temp)
 
     # Test coordinate transform
-    dig_montage.transform_to_head()
+    # dig_montage.transform_to_head()  # XXX: this call had no effect!!
     # nasion
     assert_almost_equal(dig_montage.nasion[0], 0)
     assert_almost_equal(dig_montage.nasion[2], 0)
