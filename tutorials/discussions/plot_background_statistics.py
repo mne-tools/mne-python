@@ -395,9 +395,10 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # will be derived from data in a way that preserves these correlations.
 #
 # .. sidebar:: Effect size
-#    For a nice description of how to compute the effect size obtained
-#    in a cluster test, see this
-#    `FieldTrip mailing list discussion <ft_cluster_effect_size_>`_.
+#
+#     For a nice description of how to compute the effect size obtained
+#     in a cluster test, see this
+#     `FieldTrip mailing list discussion <ft_cluster_effect_size_>`_.
 #
 # However, there is a drawback. If a cluster significantly deviates from
 # the null, no further inference on the cluster (e.g., peak location) can be
