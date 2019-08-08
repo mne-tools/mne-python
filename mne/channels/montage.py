@@ -23,15 +23,14 @@ from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
 from ..digitization._utils import (_make_dig_points, _read_dig_points,
-                                   _read_dig_fif, write_dig)
+                                   write_dig)
 from ..io.pick import pick_types
-from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
                      _check_option, Bunch)
 
 from .layout import _pol_to_cart, _cart_to_sph
-from ._dig_montage_utils import _transform_to_head_call
+from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
 
 
 def _digmontage_to_bunch(montage):
@@ -667,44 +666,20 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     .. versionadded:: 0.9.0
     """
     if fif is not None:
-        # Use a different code path
-        if dev_head_t or not transform:
-            raise ValueError('transform must be True and dev_head_t must be '
-                             'False for FIF dig montage')
-        if not all(x is None for x in (hsp, hpi, elp, point_names, egi)):
-            raise ValueError('hsp, hpi, elp, point_names, egi must all be '
-                             'None if fif is not None')
-        _check_fname(fif, overwrite='read', must_exist=True)
-        # Load the dig data
-        f, tree = fiff_open(fif)[:2]
-        with f as fid:
-            dig = _read_dig_fif(fid, tree)
-        # Split up the dig points by category
-        hsp = list()
-        hpi = list()
-        elp = list()
-        point_names = list()
-        fids = dict()
-        dig_ch_pos = dict()
-        for d in dig:
-            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-                _check_frame(d, 'head')
-                fids[_cardinal_ident_mapping[d['ident']]] = d['r']
-            elif d['kind'] == FIFF.FIFFV_POINT_HPI:
-                _check_frame(d, 'head')
-                hpi.append(d['r'])
-                elp.append(d['r'])
-                point_names.append('HPI%03d' % d['ident'])
-            elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
-                _check_frame(d, 'head')
-                hsp.append(d['r'])
-            elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-                _check_frame(d, 'head')
-                dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-        fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
-        hsp = np.array(hsp) if len(hsp) else None
-        elp = np.array(elp) if len(elp) else None
-        coord_frame = 'head'
+        _raise_transform_err = True if dev_head_t or not transform else False
+        data = _read_dig_montage_fif(
+            fname=fif,
+            _raise_transform_err=_raise_transform_err,
+            _all_data_kwargs_are_none=all(
+                x is None for x in (hsp, hpi, elp, point_names, egi)
+            )
+        )
+
+        hsp, hpi, elp, point_names, fids, dig_ch_pos, coord_frame = (
+            data.hsp, data.hpi, data.elp, data.point_names, data.fids,
+            data.dig_ch_pos, data.coord_frame,
+        )
+
     elif egi is not None:
         if not all(x is None for x in (hsp, hpi, elp, point_names, fif)):
             raise ValueError('hsp, hpi, elp, point_names, fif must all be '
