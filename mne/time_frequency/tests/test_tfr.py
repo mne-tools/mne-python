@@ -923,4 +923,39 @@ def test_stfr_equivalence(tfr_func, return_itc, average):
     assert_equal(single_stfr.method, evoked_tfr.method)
 
 
+def plot_stfr():
+
+    n_epochs = 3
+    return_itc = True
+    average = True
+
+    epochs = _prepare_epochs(n_epochs)
+    inv = read_inverse_operator(stc_inv_fname)
+    label = read_label(stc_label_fname)
+    label = None
+
+    method = "dSPM"
+    pick_ori = "normal"
+    l2 = 1. / 9.
+    freqs = np.array([10, 12, 14, 16])
+    n_cycles = 2
+    use_fft = True
+    decim = 1
+    zero_mean = False
+
+    stcs = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
+                                pick_ori=pick_ori, label=label, prepared=False)
+
+    stfr = tfr_morlet(stcs, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft,
+                      decim=decim, zero_mean=zero_mean, return_itc=return_itc,
+                      output='power', average=average)
+
+    subjects_dir = "/home/dirk/mne_data/MNE-testing-data/subjects"
+    surfer_kwargs = dict(
+        hemi='both', subjects_dir=subjects_dir,
+        clim=dict(kind='value', lims=[8, 12, 15]), views='lateral',
+        initial_time=None, time_unit='s', time_viewer=True, size=(800, 800), smoothing_steps=5, scale_factor=23)
+    brain = stfr[0].plot(fmin=10, fmax=16, **surfer_kwargs)
+
+
 run_tests_if_main()
