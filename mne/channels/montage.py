@@ -11,6 +11,7 @@
 # License: Simplified BSD
 
 from collections.abc import Iterable
+from copy import deepcopy
 import os
 import os.path as op
 
@@ -27,9 +28,24 @@ from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
-                     _check_option)
+                     _check_option, Bunch)
 
 from .layout import _pol_to_cart, _cart_to_sph
+from ._dig_montage_utils import _transform_to_head_call
+
+
+def _digmontage_to_bunch(montage):
+    montage_copy = deepcopy(montage)  # XXX: this should not be needed. This is just a precaution while developing  # noqa
+    return Bunch(
+        coord_frame=montage_copy.coord_frame,
+        dig_ch_pos=montage_copy.dig_ch_pos,
+        elp=montage_copy.elp,
+        hsp=montage_copy.hsp,
+        lpa=montage_copy.lpa,
+        nasion=montage_copy.nasion,
+        point_names=montage_copy.point_names,
+        rpa=montage_copy.rpa,
+    )
 
 
 class Montage(object):
@@ -501,49 +517,20 @@ class DigMontage(object):
 
     def _transform_to_head(self):
         """Transform digitizer points to Neuromag head coordinates."""
-        if self.coord_frame == 'head':  # nothing to do
-            return
-        nasion, rpa, lpa = self.nasion, self.rpa, self.lpa
-        if any(x is None for x in (nasion, rpa, lpa)):
-            if self.elp is None or self.point_names is None:
-                raise ValueError('ELP points and names must be specified for '
-                                 'transformation.')
-            names = [name.lower() for name in self.point_names]
+        _data = _transform_to_head_call(_digmontage_to_bunch(self))
 
-            # check that all needed points are present
-            kinds = ('nasion', 'lpa', 'rpa')
-            missing = [name for name in kinds if name not in names]
-            if len(missing) > 0:
-                raise ValueError('The points %s are missing, but are needed '
-                                 'to transform the points to the MNE '
-                                 'coordinate system. Either add the points, '
-                                 'or read the montage with transform=False.'
-                                 % str(missing))
-
-            nasion, lpa, rpa = [self.elp[names.index(kind)] for kind in kinds]
-
-            # remove fiducials from elp
-            mask = np.ones(len(names), dtype=bool)
-            for fid in ['nasion', 'lpa', 'rpa']:
-                mask[names.index(fid)] = False
-            self.elp = self.elp[mask]
-            self.point_names = [p for pi, p in enumerate(self.point_names)
-                                if mask[pi]]
-
-        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-        self.nasion, self.lpa, self.rpa = apply_trans(
-            native_head_t, np.array([nasion, lpa, rpa]))
-        if self.elp is not None:
-            self.elp = apply_trans(native_head_t, self.elp)
-        if self.hsp is not None:
-            self.hsp = apply_trans(native_head_t, self.hsp)
-        if self.dig_ch_pos is not None:
-            for key, val in self.dig_ch_pos.items():
-                self.dig_ch_pos[key] = apply_trans(native_head_t, val)
-        self.coord_frame = 'head'
+        self.coord_frame = _data.coord_frame
+        self.dig_ch_pos = _data.dig_ch_pos
+        self.elp = _data.elp
+        self.hsp = _data.hsp
+        self.lpa = _data.lpa
+        self.nasion = _data.nasion
+        self.point_names = _data.point_names
+        self.rpa = _data.rpa
 
     def _compute_dev_head_t(self):
         """Compute the Neuromag dev_head_t from matched points."""
+        # XXX: This is already a free function
         from ..coreg import fit_matched_points
         if self.elp is None or self.hpi is None:
             raise RuntimeError('must have both elp and hpi to compute the '
