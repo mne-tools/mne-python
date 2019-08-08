@@ -833,6 +833,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     # Transform digitizer coordinates to neuromag space
     out = DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
                      dig_ch_pos=dig_ch_pos, coord_frame=coord_frame)
+
     if fif is None and transform:  # only need to do this for non-Neuromag
         out._transform_to_head()
     if dev_head_t:
@@ -936,13 +937,14 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             info['dev_head_t']['trans'] = montage.dev_head_t
 
         if montage.dig_ch_pos is not None:  # update channel positions, too
+            # XXX: we are calling this with montage.dig_ch_pos={} ??
             eeg_ref_pos = montage.dig_ch_pos.get('EEG000', np.zeros(3))
             did_set = np.zeros(len(info['ch_names']), bool)
             is_eeg = np.zeros(len(info['ch_names']), bool)
             is_eeg[pick_types(info, meg=False, eeg=True, exclude=())] = True
 
             for ch_name, ch_pos in montage.dig_ch_pos.items():
-                if ch_name == 'EEG000':
+                if ch_name == 'EEG000':  # what if eeg ref. has different name?
                     continue
                 if ch_name not in info['ch_names']:
                     raise RuntimeError('Montage channel %s not found in info'
@@ -958,6 +960,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             if len(did_not_set) > 0:
                 warn('Did not set %s channel positions:\n%s'
                      % (len(did_not_set), ', '.join(did_not_set)))
+
     elif montage is None:
         for ch in info['chs']:
             ch['loc'] = np.full(12, np.nan)
