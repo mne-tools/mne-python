@@ -141,7 +141,7 @@ raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 #
 # - include at least ``2 * st_duration`` of post-experiment recording time at
 #   the end of the :class:`~mne.io.Raw` object, so that the data you intend to
-#   futher analyze is guaranteed not to be in the final or penultimate chunks.
+#   further analyze is guaranteed not to be in the final or penultimate chunks.
 #
 # Additional parameters affecting tSSS include ``st_correlation`` (to set the
 # correlation value above which correlated internal and external components
