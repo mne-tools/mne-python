@@ -378,69 +378,54 @@ def _get_src_type(src, vertices, warn_text=None):
 def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
               subject=None, vector=False, source_nn=None, warn_text=None):
     """Generate a surface, vector-surface, volume or mixed source estimate."""
-    if src_type is None:
-        # attempt to guess from vertices
-        src_type = _get_src_type(src=None, vertices=vertices,
-                                 warn_text=warn_text)
+    def guess_src_type():
+        return _get_src_type(src=None, vertices=vertices, warn_text=warn_text)
 
-    if vector and isinstance(data, tuple):
-        # perform all actions on the data kernel only
-        kernel = True
-        data, sens_data = data[0], data[1]
-    else:
-        kernel = False
+    src_type = guess_src_type() if src_type is None else src_type
 
+    if vector and src_type == 'mixed':  # XXX this should be supported someday
+        raise NotImplementedError(
+            'Vector source estimates for mixed source spaces are not supported'
+        )
+
+    if vector and src_type == 'surface' and source_nn is None:
+        raise RuntimeError('No source vectors supplied.')
+
+    # infer Klass from src_type
     if src_type == 'surface':
-        # make a surface source estimate
-        n_vertices = len(vertices[0]) + len(vertices[1])
-        if vector:
-            if source_nn is None:
-                raise RuntimeError('No source vectors supplied.')
-
-            # Rotate data to absolute XYZ coordinates
-            data_rot = np.zeros((n_vertices, 3, data.shape[1]))
-            if data.shape[0] == 3 * n_vertices:
-                source_nn = source_nn.reshape(n_vertices, 3, 3)
-                data = data.reshape(n_vertices, 3, -1)
-            else:
-                raise RuntimeError('Shape of data array does not match the '
-                                   'number of vertices.')
-            for i, d, n in zip(range(data.shape[0]), data, source_nn):
-                data_rot[i] = np.dot(n.T, d)
-            if kernel:
-                stc = VectorSourceEstimate((data_rot, sens_data), vertices,
-                                           tmin=tmin, tstep=tstep,
-                                           subject=subject)
-            else:
-                stc = VectorSourceEstimate(data_rot, vertices, tmin=tmin,
-                                           tstep=tstep, subject=subject)
-        else:
-            stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
-                                 tstep=tstep, subject=subject)
+        Klass = VectorSourceEstimate if vector else SourceEstimate
     elif src_type in ('volume', 'discrete'):
-        if vector:
-            data = data.reshape((-1, 3, data.shape[-1]))
-            klass = VolVectorSourceEstimate
-        else:
-            klass = VolSourceEstimate
-
-        if kernel:
-            stc = klass((data, sens_data), vertices=vertices, tmin=tmin,
-                        tstep=tstep, subject=subject)
-        else:
-            stc = klass(data, vertices=vertices, tmin=tmin, tstep=tstep,
-                        subject=subject)
+        Klass = VolVectorSourceEstimate if vector else VolSourceEstimate
     elif src_type == 'mixed':
-        # make a mixed source estimate
-        if vector:  # XXX this should be supported someday
-            raise RuntimeError('Vector source estimates for mixed source '
-                               'spaces are not supported yet')
-        stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
-                                  tstep=tstep, subject=subject)
+        Klass = MixedSourceEstimate
     else:
         raise ValueError('vertices has to be either a list with one or more '
                          'arrays or an array')
-    return stc
+
+    if isinstance(data, tuple):
+        data, sens_data = data[0], data[1]
+        is_kernel = True
+    else:
+        is_kernel = False
+
+    # massage the data
+    if src_type == 'surface' and vector:
+        n_vertices = len(vertices[0]) + len(vertices[1])
+        data = np.matmul(
+            np.transpose(source_nn.reshape(n_vertices, 3, 3), axes=[0, 2, 1]),
+            data.reshape(n_vertices, 3, -1)
+        )
+    elif src_type in ('volume', 'discrete') and vector:
+        data = data.reshape((-1, 3, data.shape[-1]))
+    else:
+        pass  # noqa
+
+    if is_kernel:
+        return Klass(
+        data=(data,sens_data), vertices=vertices, tmin=tmin, tstep=tstep, subject=subject)
+    else:
+        return Klass(
+                    data=data, vertices=vertices, tmin=tmin, tstep=tstep, subject=subject)
 
 
 def _verify_source_estimate_compat(a, b):
