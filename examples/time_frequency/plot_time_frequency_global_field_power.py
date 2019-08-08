@@ -53,7 +53,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import somato
 from mne.baseline import rescale
-from mne.stats import _bootstrap_ci
+from mne.stats import bootstrap_confidence_interval
 
 ###############################################################################
 # Set parameters
@@ -114,6 +114,13 @@ del raw
 #
 # We see dominant responses in the Alpha and Beta bands.
 
+
+# Helper function for plotting spread
+def stat_fun(x):
+    """Return sum of squares."""
+    return np.sum(x ** 2, axis=0)
+
+# Plot
 fig, axes = plt.subplots(4, 1, figsize=(10, 7), sharex=True, sharey=True)
 colors = plt.get_cmap('winter_r')(np.linspace(0, 1, 4))
 for ((freq_name, fmin, fmax), average), color, ax in zip(
@@ -123,8 +130,8 @@ for ((freq_name, fmin, fmax), average), color, ax in zip(
     gfp = mne.baseline.rescale(gfp, times, baseline=(None, 0))
     ax.plot(times, gfp, label=freq_name, color=color, linewidth=2.5)
     ax.axhline(0, linestyle='--', color='grey', linewidth=2)
-    ci_low, ci_up = _bootstrap_ci(average.data, random_state=0,
-                                  stat_fun=lambda x: np.sum(x ** 2, axis=0))
+    ci_low, ci_up = bootstrap_confidence_interval(average.data, random_state=0,
+                                                  stat_fun=stat_fun)
     ci_low = rescale(ci_low, average.times, baseline=(None, 0))
     ci_up = rescale(ci_up, average.times, baseline=(None, 0))
     ax.fill_between(times, gfp + ci_up, gfp - ci_low, color=color, alpha=0.3)
