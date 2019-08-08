@@ -421,11 +421,11 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
         pass  # noqa
 
     if is_kernel:
-        return Klass(
-        data=(data,sens_data), vertices=vertices, tmin=tmin, tstep=tstep, subject=subject)
+        return Klass(data=(data, sens_data), vertices=vertices, tmin=tmin,
+                     tstep=tstep, subject=subject)
     else:
-        return Klass(
-                    data=data, vertices=vertices, tmin=tmin, tstep=tstep, subject=subject)
+        return Klass(data=data, vertices=vertices, tmin=tmin, tstep=tstep,
+                     subject=subject)
 
 
 def _verify_source_estimate_compat(a, b):

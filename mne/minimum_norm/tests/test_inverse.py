@@ -906,18 +906,21 @@ def _check_delayed_data(inst, delayed):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('pick_ori', ['normal', 'vector'])
-@pytest.mark.parametrize('src_type_inv', [fname_inv, fname_vol_inv])
-def test_delayed_data(epochs, pick_ori, src_type_file):
+@pytest.mark.parametrize('pick_ori, inv_file', [['normal', fname_inv],
+                                                ['vector', fname_inv],
+                                                ['vector', fname_vol_inv]])
+def test_delayed_data(epochs, pick_ori, inv_file):
     """Test if kernel in apply_inverse_epochs was properly applied."""
     inverse_operator = \
-        prepare_inverse_operator(read_inverse_operator(src_type_file), nave=1,
+        prepare_inverse_operator(read_inverse_operator(inv_file), nave=1,
                                  lambda2=lambda2, method="dSPM")
 
     full_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                     pick_ori=pick_ori, delayed=False, prepared=True)
+                                     pick_ori=pick_ori, delayed=False,
+                                     prepared=True)
     kernel_stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2,
-                                       pick_ori=pick_ori, delayed=True, prepared=True)
+                                       pick_ori=pick_ori, delayed=True,
+                                       prepared=True)
 
     for full_stc, kern_stc in zip(full_stcs, kernel_stcs):
         _check_delayed_data(full_stc, delayed=False)
