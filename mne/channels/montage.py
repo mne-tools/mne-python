@@ -420,7 +420,7 @@ class DigMontage(object):
         The position of the left periauricular fidicual point.
     rpa : array, shape (1, 3)
         The position of the right periauricular fidicual point.
-    dev_head_t : array, shape (4, 4)
+    dev_head_t : array, shape (4, 4)  | bool
         A Device-to-Head transformation matrix.
     dig_ch_pos : dict
         Dictionary of channel positions given in meters.
@@ -444,7 +444,12 @@ class DigMontage(object):
 
     def __init__(self, hsp=None, hpi=None, elp=None, point_names=None,
                  nasion=None, lpa=None, rpa=None, dev_head_t=None,
-                 dig_ch_pos=None, coord_frame='unknown'):  # noqa: D102
+                 dig_ch_pos=None, coord_frame='unknown',
+                 #
+                 _is_fif=False, _transform=False,
+                 _run_compute_dev_head_t=False,
+    ):  # noqa: D102
+        # XXX: making dev_head_t (array, None, True or False) needs to be undone  # noqa
         self.hsp = hsp
         self.hpi = hpi
         if elp is not None:
@@ -463,13 +468,21 @@ class DigMontage(object):
         self.nasion = nasion
         self.lpa = lpa
         self.rpa = rpa
-        self.dev_head_t = dev_head_t
         self.dig_ch_pos = dig_ch_pos
         if not isinstance(coord_frame, str) or \
                 coord_frame not in _str_to_frame:
             raise ValueError('coord_frame must be one of %s, got %s'
                              % (sorted(_str_to_frame.keys()), coord_frame))
         self.coord_frame = coord_frame
+
+        if not _is_fif and _transform:  # only need to do this for non-Neuromag
+            self._transform_to_head()
+        else:
+            pass  # noqa
+
+        self.dev_head_t = dev_head_t
+        if _run_compute_dev_head_t:
+            self._compute_dev_head_t()
 
     def __repr__(self):
         """Return string representation."""
@@ -832,12 +845,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
     # Transform digitizer coordinates to neuromag space
     out = DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
-                     dig_ch_pos=dig_ch_pos, coord_frame=coord_frame)
+                     dig_ch_pos=dig_ch_pos, coord_frame=coord_frame,
 
-    if fif is None and transform:  # only need to do this for non-Neuromag
-        out._transform_to_head()
-    if dev_head_t:
-        out._compute_dev_head_t()
+                     # XXX: Sik stuff
+                     _is_fif=(fif is not None), _transform=transform,
+                     _run_compute_dev_head_t=dev_head_t,
+                     )
+
     return out
 
 
