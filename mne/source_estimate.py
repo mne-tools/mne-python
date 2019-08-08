@@ -402,6 +402,12 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
         raise ValueError('vertices has to be either a list with one or more '
                          'arrays or an array')
 
+    if isinstance(data, tuple):
+        data, sens_data = data[0], data[1]
+        is_kernel = True
+    else:
+        is_kernel = False
+
     # massage the data
     if src_type == 'surface' and vector:
         n_vertices = len(vertices[0]) + len(vertices[1])
@@ -414,9 +420,12 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
     else:
         pass  # noqa
 
-    return Klass(
-        data=data, vertices=vertices, tmin=tmin, tstep=tstep, subject=subject
-    )
+    if is_kernel:
+        return Klass(data=(data, sens_data), vertices=vertices, tmin=tmin,
+                     tstep=tstep, subject=subject)
+    else:
+        return Klass(data=data, vertices=vertices, tmin=tmin, tstep=tstep,
+                     subject=subject)
 
 
 def _verify_source_estimate_compat(a, b):
@@ -483,7 +492,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                 raise ValueError('If data is a tuple it has to be length 2')
             kernel, sens_data = data
             data = None
-            if kernel.shape[1] != sens_data.shape[0]:
+            if kernel.shape[-1] != sens_data.shape[0]:
                 raise ValueError('kernel and sens_data have invalid '
                                  'dimensions')
             if sens_data.ndim != 2:
