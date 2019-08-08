@@ -385,7 +385,7 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
 
     if vector and src_type == 'mixed':  # XXX this should be supported someday
         raise NotImplementedError(
-            'Vector source estimates for mixed source spaces is not supported'
+            'Vector source estimates for mixed source spaces are not supported'
         )
 
     if vector and src_type == 'surface' and source_nn is None:
