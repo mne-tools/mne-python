@@ -961,7 +961,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     from matplotlib.colors import colorConverter
     epochs = params['epochs']
     info = info or epochs.info
-    orig_epoch_times, events, name = epochs.times, epochs.events, epochs._name
+    orig_epoch_times, epochs_events = epochs.times, epochs.events
+    name = epochs._name
     del epochs
 
     # Reorganize channels
@@ -990,7 +991,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
-    n_epochs = min(n_epochs, len(events))
+    n_epochs = min(n_epochs, len(epochs_events))
     duration = len(orig_epoch_times) * n_epochs
     n_channels = min(n_channels, len(picks))
     if size is not None:
@@ -1043,7 +1044,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     type_colors = [colorConverter.to_rgba(color[c]) for c in types]
     colors = list()
     for color_idx in range(len(type_colors)):
-        colors.append([type_colors[color_idx]] * len(events))
+        colors.append([type_colors[color_idx]] * len(epochs_events))
     lines = list()
     n_times = len(orig_epoch_times)
 
@@ -1063,7 +1064,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
-    times = np.arange(len(orig_epoch_times) * len(events))
+    times = np.arange(len(orig_epoch_times) * len(epochs_events))
     epoch_times = np.arange(0, len(times), n_times)
 
     ax.set_yticks(offsets)

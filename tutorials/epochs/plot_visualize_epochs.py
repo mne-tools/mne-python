@@ -13,12 +13,10 @@ import mne
 
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
 raw = mne.io.read_raw_fif(
-    op.join(data_path, 'sample_audvis_raw.fif'), preload=True)
-raw.load_data().filter(None, 9, fir_design='firwin')
-raw.set_eeg_reference('average', projection=True)  # set EEG average reference
+    op.join(data_path, 'sample_audvis_filt-0-40_raw.fif'), preload=True)
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
-events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
+events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
                     preload=True)
 del raw

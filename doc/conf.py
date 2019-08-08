@@ -60,6 +60,7 @@ extensions = [
     'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
+    'sphinx.ext.graphviz',
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
     'numpydoc',
@@ -310,6 +311,7 @@ intersphinx_mapping = {
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
     'dipy': ('http://nipy.org/dipy', None),
     'mne_realtime': ('https://mne-tools.github.io/mne-realtime', None),
+    'picard': ('https://pierreablin.github.io/picard/', None),
 }
 
 ##############################################################################
