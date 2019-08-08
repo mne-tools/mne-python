@@ -1,8 +1,8 @@
 """
 .. _tut-artifact-sss:
 
-Signal-space separation and Maxwell filtering
-=============================================
+Signal-space separation (SSS) and Maxwell filtering
+===================================================
 
 This tutorial covers reducing environmental noise and compensating for head
 movement with SSS and Maxwell filtering.
@@ -42,7 +42,7 @@ raw.crop(tmax=60).load_data()
 # EOG or ECG activity, etc) and projects the measurements onto a subspace
 # orthogonal to the noise, SSS mathematically constructs the external and
 # internal subspaces from `spherical harmonics`_ and reconstructs the sensor
-# signals using only the internal subspace.
+# signals using only the internal subspace (i.e., does an oblique projection).
 #
 # .. warning::
 #
@@ -59,7 +59,7 @@ raw.crop(tmax=60).load_data()
 # provide the path to the fine calibration file (which encodes site-specific
 # information about sensor orientation and calibration) as well as a crosstalk
 # compensation file (which reduces interference between Elekta's co-located
-# magnetometer and paired gradiometer sensor units.
+# magnetometer and paired gradiometer sensor units).
 
 fine_cal_file = os.path.join(sample_data_folder, 'SSS', 'sss_cal_mgh.dat')
 crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
@@ -124,15 +124,24 @@ raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 # determine the "chunk duration" over which to compute the temporal projection.
 # The chunk duration effectively acts as a high-pass filter with a cutoff
 # frequency of :math:`\frac{1}{\mathtt{st\_duration}}~\mathrm{Hz}`; this
-# effective high-pass has some important consequences:
+# effective high-pass has an important consequence:
 #
 # - In general, larger values of ``st_duration`` are better (provided that your
 #   computer has sufficient memory) because larger values of ``st_duration``
 #   will have a smaller effect on the signal.
 #
-# - It is best to choose a chunk duration that evenly divides your data length,
-#   so that the effective high-pass filtering is the same for all spans of your
-#   data.
+# If the chunk duration does not evenly divide your data length, the final
+# (shorter) chunk will be added to the prior chunk before filtering, leading
+# to slightly different effective filtering for the combined chunk (the
+# effective cutoff frequency differing at most by a factor of 2). If you need
+# to ensure identical processing of all analyzed chunks, either:
+#
+# - choose a chunk duration that evenly divides your data length (only
+#   recommended if analyzing a single subject or run), or
+#
+# - include at least ``2 * st_duration`` of post-experiment recording time at
+#   the end of the :class:`~mne.io.Raw` object, so that the data you intend to
+#   futher analyze is guaranteed not to be in the final or penultimate chunks.
 #
 # Additional parameters affecting tSSS include ``st_correlation`` (to set the
 # correlation value above which correlated internal and external components
