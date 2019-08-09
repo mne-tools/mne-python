@@ -84,10 +84,10 @@ print(raw.info['projs'])
 ###############################################################################
 # Creating the average reference as a projector has a couple of advantages:
 #
-# 1. it is possible to turn projectors on or off when plotting, so it is easy
-#    to visualize the effect that the reference has on the data
+# 1. It is possible to turn projectors on or off when plotting, so it is easy
+#    to visualize the effect that the reference has on the data.
 #
-# 2. if there are other unapplied projectors affecting the EEG channels (such
+# 2. If there are other unapplied projectors affecting the EEG channels (such
 #    as SSP projectors for removing heartbeat or blink artifacts), EEG
 #    referencing cannot be performed until those projectors are either applied
 #    or removed; adding the EEG reference as a projector is not subject to that
