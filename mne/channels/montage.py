@@ -468,6 +468,7 @@ class DigMontage(object):
         # XXX: making dev_head_t (array, None, True or False) needs to be undone  # noqa
         self.hsp = hsp
         self.hpi = hpi
+        # XXX: in this code elp names prevale over point_names
         if elp is not None:
             if not isinstance(point_names, Iterable):
                 raise TypeError('If elp is specified, point_names must '
@@ -499,6 +500,21 @@ class DigMontage(object):
         self.dev_head_t = dev_head_t
         if _run_compute_dev_head_t:
             self._compute_dev_head_t()
+
+        # XXX: I'm having second thoughts on if we should represent the data
+        #      as a list of dicts, or keep each structure and create the list
+        #      of dicts as it was (but with a getter property)
+        #
+        #      If DigMontage is just constructed and nothing else (maybe some
+        #      plotting helper, or whatever) then `list_of_dicts` is fine. But
+        #      if we have to allow any operation to the points (i.e: rotation,
+        #      scale, change frame of reference, whatever) then it would be
+        #      really complicated.
+
+        self.dig = _make_dig_points(
+            nasion=self.nasion, lpa=self.lpa, rpa=self.rpa, hpi=self.elp,
+            extra_points=self.hsp, dig_ch_pos=self.dig_ch_pos
+        )
 
     def __repr__(self):
         """Return string representation."""
@@ -540,9 +556,7 @@ class DigMontage(object):
 
     def _get_dig(self):
         """Get the digitization list."""
-        return _make_dig_points(
-            nasion=self.nasion, lpa=self.lpa, rpa=self.rpa, hpi=self.elp,
-            extra_points=self.hsp, dig_ch_pos=self.dig_ch_pos)
+        return self.dig
 
     def save(self, fname):
         """Save digitization points to FIF.
