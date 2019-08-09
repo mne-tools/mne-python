@@ -23,15 +23,15 @@ from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
 from ..digitization._utils import (_make_dig_points, _read_dig_points,
-                                   _read_dig_fif, write_dig)
+                                   write_dig)
 from ..io.pick import pick_types
-from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
+from ..utils import (warn, copy_function_doc_to_method_doc,
                      _check_option, Bunch)
 
 from .layout import _pol_to_cart, _cart_to_sph
-from ._dig_montage_utils import _transform_to_head_call
+from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
+from ._dig_montage_utils import _read_dig_montage_egi
 
 
 def _digmontage_to_bunch(montage):
@@ -461,9 +461,6 @@ class DigMontage(object):
     def __init__(self, hsp=None, hpi=None, elp=None, point_names=None,
                  nasion=None, lpa=None, rpa=None, dev_head_t=None,
                  dig_ch_pos=None, coord_frame='unknown',
-                 #
-                 _is_fif=False, _transform=False,
-                 _run_compute_dev_head_t=False,
     ):  # noqa: D102
         # XXX: making dev_head_t (array, None, True or False) needs to be undone  # noqa
         self.hsp = hsp
@@ -492,14 +489,7 @@ class DigMontage(object):
                              % (sorted(_str_to_frame.keys()), coord_frame))
         self.coord_frame = coord_frame
 
-        if not _is_fif and _transform:  # only need to do this for non-Neuromag
-            self._transform_to_head()
-        else:
-            pass  # noqa
-
         self.dev_head_t = dev_head_t
-        if _run_compute_dev_head_t:
-            self._compute_dev_head_t()
 
         # XXX: I'm having second thoughts on if we should represent the data
         #      as a list of dicts, or keep each structure and create the list
@@ -584,6 +574,14 @@ def _check_frame(d, frame_str):
     if d['coord_frame'] != _str_to_frame[frame_str]:
         raise RuntimeError('dig point must be in %s coordinate frame, got %s'
                            % (frame_str, _frame_to_str[d['coord_frame']]))
+
+
+def _get_scaling(unit, scale):
+    if unit not in scale:
+        raise ValueError("Unit needs to be one of %s, not %r" %
+                         (sorted(scale.keys()), unit))
+    else:
+        return scale[unit]
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
@@ -672,92 +670,27 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
     .. versionadded:: 0.9.0
     """
+    from ..coreg import fit_matched_points
+    # XXX: This scaling business seems really dangerous to me.
+    EGI_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
+    NUMPY_DATA_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
+
     if fif is not None:
-        # Use a different code path
-        if dev_head_t or not transform:
-            raise ValueError('transform must be True and dev_head_t must be '
-                             'False for FIF dig montage')
-        if not all(x is None for x in (hsp, hpi, elp, point_names, egi, bvct)):
-            raise ValueError('hsp, hpi, elp, point_names, egi, bvct must all '
-                             'be None if fif is not None.')
-        _check_fname(fif, overwrite='read', must_exist=True)
-        # Load the dig data
-        f, tree = fiff_open(fif)[:2]
-        with f as fid:
-            dig = _read_dig_fif(fid, tree)
-        # Split up the dig points by category
-        hsp = list()
-        hpi = list()
-        elp = list()
-        point_names = list()
-        fids = dict()
-        dig_ch_pos = dict()
-        for d in dig:
-            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-                _check_frame(d, 'head')
-                fids[_cardinal_ident_mapping[d['ident']]] = d['r']
-            elif d['kind'] == FIFF.FIFFV_POINT_HPI:
-                _check_frame(d, 'head')
-                hpi.append(d['r'])
-                elp.append(d['r'])
-                point_names.append('HPI%03d' % d['ident'])
-            elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
-                _check_frame(d, 'head')
-                hsp.append(d['r'])
-            elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-                _check_frame(d, 'head')
-                dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-        fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
-        hsp = np.array(hsp) if len(hsp) else None
-        elp = np.array(elp) if len(elp) else None
-        coord_frame = 'head'
+        _raise_transform_err = True if dev_head_t or not transform else False
+        data = _read_dig_montage_fif(
+            fname=fif,
+            _raise_transform_err=_raise_transform_err,
+            _all_data_kwargs_are_none=all(
+                x is None for x in (hsp, hpi, elp, point_names, egi))
+        )
 
     elif egi is not None:
-        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, bvct)):
-            raise ValueError('hsp, hpi, elp, point_names, fif, bvct must all '
-                             'be None if egi is not None.')
-        _check_fname(egi, overwrite='read', must_exist=True)
-
-        root = ElementTree.parse(egi).getroot()
-        ns = root.tag[root.tag.index('{'):root.tag.index('}') + 1]
-        sensors = root.find('%ssensorLayout/%ssensors' % (ns, ns))
-        fids = dict()
-        dig_ch_pos = dict()
-
-        fid_name_map = {'Nasion': 'nasion',
-                        'Right periauricular point': 'rpa',
-                        'Left periauricular point': 'lpa'}
-
-        scale = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
-        if unit not in scale:
-            raise ValueError("Unit needs to be one of %s, not %r" %
-                             (sorted(scale.keys()), unit))
-
-        for s in sensors:
-            name, number, kind = s[0].text, int(s[1].text), int(s[2].text)
-            coordinates = np.array([float(s[3].text), float(s[4].text),
-                                    float(s[5].text)])
-
-            coordinates *= scale[unit]
-
-            # EEG Channels
-            if kind == 0:
-                dig_ch_pos['EEG %03d' % number] = coordinates
-            # Reference
-            elif kind == 1:
-                dig_ch_pos['EEG %03d' %
-                           (len(dig_ch_pos.keys()) + 1)] = coordinates
-            # Fiducials
-            elif kind == 2:
-                fid_name = fid_name_map[name]
-                fids[fid_name] = coordinates
-            # Unknown
-            else:
-                warn('Unknown sensor type %s detected. Skipping sensor...'
-                     'Proceed with caution!' % kind)
-
-        fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
-        coord_frame = 'unknown'
+        data = _read_dig_montage_egi(
+            fname=egi,
+            _scaling=_get_scaling(unit, EGI_SCALE),
+            _all_data_kwargs_are_none=all(
+                x is None for x in (hsp, hpi, elp, point_names, fif))
+        )
 
     elif bvct is not None:
         if not all(x is None for x in (hsp, hpi, elp, point_names, fif, egi)):
@@ -811,18 +744,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
         coord_frame = 'unknown'
     else:
-        fids = [None] * 3
-        dig_ch_pos = None
-        scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
-        if unit not in scale:
-            raise ValueError("Unit needs to be one of %s, not %r" %
-                             (sorted(scale.keys()), unit))
-
+        # XXX: This should also become a function
+        _scaling = _get_scaling(unit, NUMPY_DATA_SCALE),
         # HSP
         if isinstance(hsp, str):
             hsp = _read_dig_points(hsp, unit=unit)
         elif hsp is not None:
-            hsp *= scale[unit]
+            hsp *= _scaling
 
         # HPI
         if isinstance(hpi, str):
@@ -840,20 +768,55 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         # ELP
         if isinstance(elp, str):
             elp = _read_dig_points(elp, unit=unit)
-        elif elp is not None and scale[unit]:
-            elp *= scale[unit]
-        coord_frame = 'unknown'
+        elif elp is not None:
+            elp *= _scaling
 
-    # Transform digitizer coordinates to neuromag space
-    out = DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
-                     dig_ch_pos=dig_ch_pos, coord_frame=coord_frame,
+        data = Bunch(
+            nasion=None, lpa=None, rpa=None,
+            hsp=hsp, elp=elp, coord_frame='unknown',
+            dig_ch_pos=None,  # silently overwritten if kwarg != None
 
-                     # XXX: Sik stuff
-                     _is_fif=(fif is not None), _transform=transform,
-                     _run_compute_dev_head_t=dev_head_t,
-                     )
+            # values untouched from Kwargs
+            hpi=hpi, point_names=point_names,
+        )
 
-    return out
+    if fif is None and transform:  # only need to do this for non-Neuromag
+        data = _transform_to_head_call(data)
+    else:
+        pass  # noqa
+
+    if dev_head_t:
+        # XXX: hpi is only defined if given by the user or fif.
+        #      So, `dev_head_t` for egi will always hit this error, 'cos we
+        #      force hip=None
+        if data.elp is None or hpi is None:
+            raise RuntimeError('must have both elp and hpi to compute the '
+                               'device to head transform')
+        else:
+            data['dev_head_t'] = fit_matched_points(
+                tgt_pts=data.elp, src_pts=data.hpi, out='trans'
+            )
+    else:
+        data['dev_head_t'] = None
+
+    # XXX: This should work but it does not!!! even if the keys are matching
+    # return DigMontage(*data)
+    __init__expected_keys = set([
+        'hsp', 'hpi', 'elp', 'point_names', 'nasion', 'lpa', 'rpa',
+        'dev_head_t', 'dig_ch_pos', 'coord_frame',
+    ])
+    assert set(data.keys()) == __init__expected_keys
+
+    return DigMontage(hsp=data.hsp,
+                      hpi=data.hpi,
+                      elp=data.elp,
+                      point_names=data.point_names,
+                      nasion=data.nasion,
+                      lpa=data.lpa,
+                      rpa=data.rpa,
+                      dev_head_t=data.dev_head_t,
+                      dig_ch_pos=data.dig_ch_pos,
+                      coord_frame=data.coord_frame,)
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):
