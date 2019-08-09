@@ -80,8 +80,10 @@ print(raw.info['projs'])
 #    as SSP projectors for removing heartbeat or blink artifacts), EEG
 #    referencing cannot be performed until those projectors are either applied
 #    or removed; adding the EEG reference as a projector is not subject to that
-#    constraint. (The reason this wasn't a problem when we created
-#    ``raw_avg_ref`` above is that the projectors )
+#    constraint. (The reason this wasn't a problem when we applied the
+#    non-projector average reference to ``raw_avg_ref`` above is that the
+#    empty-room projectors included in the sample data :file:`.fif` file were
+#    only computed for the magnetometers).
 
 eeg_picks = mne.pick_types(raw.info, meg=False, eeg=True)
 for title, proj in zip(['No reference', 'Average reference'], [False, True]):
