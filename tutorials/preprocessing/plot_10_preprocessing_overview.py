@@ -195,6 +195,14 @@ avg_ecg_epochs = ecg_epochs.average()
 avg_ecg_epochs.plot_topomap(times=np.linspace(-0.05, 0.05, 11))
 
 ###############################################################################
+# Or, we can get an ERP/F plot with :meth:`~mne.Evoked.plot` or a combined
+# scalp field maps and ERP/F plot with :meth:`~mne.Evoked.plot_joint`. Here
+# we've specified the times for scalp field maps manually, but if not provided
+# they will be chosen automatically based on peaks in the signal:
+
+avg_ecg_epochs.plot_joint(times=[-0.25, -0.025, 0, 0.025, 0.25])
+
+###############################################################################
 # Ocular artifacts (EOG)
 # ~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -209,7 +217,7 @@ avg_ecg_epochs.plot_topomap(times=np.linspace(-0.05, 0.05, 11))
 
 eog_epochs = mne.preprocessing.create_eog_epochs(raw)
 eog_epochs.plot_image(combine='mean')
-eog_epochs.average().plot_topomap(times=np.linspace(-0.1, 0.1, 9))
+eog_epochs.average().plot_joint()
 
 ###############################################################################
 # Summary
