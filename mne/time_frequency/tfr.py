@@ -728,7 +728,6 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
              output=None, **tfr_params):
-    from ..epochs import BaseEpochs
     from ..source_estimate import _BaseSourceEstimate
 
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
@@ -747,44 +746,62 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
 
+    info = None
     if isinstance(inst, list) or isgenerator(inst):
 
         out, inst = _tfr_loop_list(inst, freqs, method=method,
                                    output=output, decim=decim, **tfr_params)
+        # nave is not needed for any SourceTFR type
+        nave = None
     else:
         data = _get_data(inst, return_itc)
+        if average:
+            nave = len(data)
         if isinstance(inst, _BaseSourceEstimate):
             sfreq = inst.sfreq
         else:
             info, data = _prepare_picks(inst.info, data, picks, axis=1)
-            sfreq = info['sfreq']
-            times = inst.times[decim].copy()
+            sfreq = inst.info['sfreq']
             del picks
 
         out = _compute_tfr(data, freqs, sfreq, method=method,
                            output=output, decim=decim, **tfr_params)
 
-    if average:
-        if return_itc:
-            power, itc = out.real, out.imag
-        else:
-            power = out
-
-        if isinstance(inst, _BaseSourceEstimate):
-            out = _create_stfr(inst, power, freqs, method='%s-power' % method)
-        else:
-            nave = len(data)
-            out = AverageTFR(info, power, times, freqs, nave,
-                             method='%s-power' % method)
-        if return_itc:
-            if isinstance(inst, _BaseSourceEstimate):
-                out = (out, _create_stfr(inst, itc, freqs,
-                                         method='%s-itc' % method))
-            else:
-                out = (out, AverageTFR(info, itc, times, freqs, nave,
-                                       method='%s-itc' % method))
+    if average and return_itc:
+        power, itc = out.real, out.imag
     else:
         power = out
+
+    times = inst.times[decim].copy()
+
+    # put the output objects together accordingly
+    if average:
+        out = assign_tfr_class(power, inst, info, freqs, times, average,
+                               method='{}-power'.format(method), nave=nave)
+        if return_itc:
+            out = (out, assign_tfr_class(itc, inst, info, freqs, times, average,
+                                         method='{}-itc'.format(method),
+                                         nave=nave))
+    else:
+        out = assign_tfr_class(power, inst, info, freqs, times, average,
+                               method='{}-power'.format(method))
+    return out
+
+
+def assign_tfr_class(data, inst, info, freqs, times, average, method, nave=None):
+    """Create different TFR objects, based on wanted type and output"""
+    from ..epochs import BaseEpochs
+    from ..source_estimate import _BaseSourceEstimate
+
+    # create SourceTFR types
+    if isinstance(inst, _BaseSourceEstimate):
+        out = _create_stfr(inst, data, freqs, method=method)
+
+    # else create Epochs/AverageTFR
+    elif average:
+        out = AverageTFR(info, data, times, freqs, nave,
+                         method=method)
+    else:
         if isinstance(inst, BaseEpochs):
             meta = deepcopy(inst._metadata)
             evs = deepcopy(inst.events)
@@ -792,13 +809,9 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         else:
             # if the input is of class Evoked
             meta = evs = ev_id = None
-
-        if isinstance(inst, _BaseSourceEstimate):
-            out = _create_stfr(inst, power, freqs, method='%s-power' % method)
-        else:
-            out = EpochsTFR(info, power, times, freqs, events=evs,
-                            event_id=ev_id, metadata=meta,
-                            method='%s-power' % method)
+        out = EpochsTFR(info, data, times, freqs, events=evs,
+                        event_id=ev_id, metadata=meta,
+                        method=method)
     return out
 
 
