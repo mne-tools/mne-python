@@ -95,10 +95,11 @@ for title, proj in zip(['No reference', 'Average reference'], [False, True]):
 ###############################################################################
 # .. warning::
 #
-#     MNE-Python will automatically apply an average reference if EEG channels
-#     are present and no reference strategy is specified. Thus if you are
-#     loading partially-preprocessed data that has already had a reference
-#     applied, you should set the reference to an empty list
+#     When performing inverse imaging, MNE-Python will automatically apply an
+#     average reference if EEG channels are present and no reference strategy
+#     has been specified. Thus if you are loading partially-preprocessed data
+#     that has already had a reference applied (and you are going to perform
+#     inverse imaging), you should set the reference to an empty list
 #     (``raw.set_eeg_reference(ref_channels=[])``) to prevent MNE-Python from
 #     subtracting a second average reference signal from your data.
 #
@@ -109,11 +110,11 @@ for title, proj in zip(['No reference', 'Average reference'], [False, True]):
 # If you plan to perform source modeling (either with EEG or combined EEG/MEG
 # data), it is **strongly recommended** to use the average reference approach.
 # The reason is that using a specific reference sensor (or even an average of a
-# few sensors) spreads the forward model error for the reference sensor(s) into
-# all sensors, effectively amplifying the importance of the reference sensor(s)
-# when computing source estimates. In contrast, using the average of all EEG
-# channels as reference spreads the forward modeling error evenly across
-# channels, so no one channel is weighted more strongly during source
+# few sensors) spreads the forward model error from the reference sensor(s)
+# into all sensors, effectively amplifying the importance of the reference
+# sensor(s) when computing source estimates. In contrast, using the average of
+# all EEG channels as reference spreads the forward modeling error evenly
+# across channels, so no one channel is weighted more strongly during source
 # estimation. See also this `FieldTrip FAQ on average referencing`_ for more
 # information.
 #
