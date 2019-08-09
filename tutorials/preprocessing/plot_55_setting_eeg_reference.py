@@ -60,6 +60,17 @@ raw_avg_ref = raw.copy().set_eeg_reference(ref_channels='average')
 # exclude any channels listed in ``raw.info['bads']`` from contributing to the
 # average reference.
 #
+#
+# Adding reference channels
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# TODO: explanation pending.
+
+raw_custom_ref = raw.copy()
+mne.add_reference_channels(raw_custom_ref, ref_channels='Custom Reference',
+                           copy=False)
+
+###############################################################################
 # Creating the average reference as a projector
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
