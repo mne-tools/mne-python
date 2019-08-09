@@ -779,17 +779,18 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         out = assign_tfr_class(power, inst, info, freqs, times, average,
                                method='{}-power'.format(method), nave=nave)
         if return_itc:
-            out = (out, assign_tfr_class(itc, inst, info, freqs, times, average,
-                                         method='{}-itc'.format(method),
-                                         nave=nave))
+            out = (out, assign_tfr_class(itc, inst, info, freqs, times,
+                                         average, nave=nave,
+                                         method='{}-itc'.format(method)))
     else:
         out = assign_tfr_class(power, inst, info, freqs, times, average,
                                method='{}-power'.format(method))
     return out
 
 
-def assign_tfr_class(data, inst, info, freqs, times, average, method, nave=None):
-    """Create different TFR objects, based on wanted type and output"""
+def assign_tfr_class(data, inst, info, freqs, times, average, method,
+                     nave=None):
+    """Create different TFR objects, based on wanted type and output."""
     from ..epochs import BaseEpochs
     from ..source_estimate import _BaseSourceEstimate
 
