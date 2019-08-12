@@ -348,6 +348,8 @@ if any(x in scrapers for x in ('pyvista', 'mayavi')):
     push_exception_handler(reraise_exceptions=True)
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
+else:
+    report_scraper = None
 
 
 def setup(app):
