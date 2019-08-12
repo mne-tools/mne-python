@@ -30,5 +30,4 @@ xlrd
 pydocstyle
 flake8
 pyvista>=0.21.3
-pylsl>=1.12
 panel
