@@ -466,6 +466,7 @@ sphinx_gallery_conf = {
     'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
     'download_section_examples': False,
     'thumbnail_size': (160, 112),
+    'remove_config_comments': True,
     'min_reported_time': 1.,
     'abort_on_example_error': False,
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
