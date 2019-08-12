@@ -35,6 +35,8 @@ raw_ctf_fname = op.join(data_path, 'test_ctf_raw.fif')
 testing_path = testing.data_path(download=False)
 stc_inv_fname = op.join(testing_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+stc_vol_inv_fname = op.join(testing_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
 stc_raw_fname = op.join(testing_path, 'MEG', 'sample',
                         'sample_audvis_trunc_raw.fif')
 stc_label_fname = op.join(testing_path, 'MEG', 'sample',
@@ -930,7 +932,7 @@ def plot_stfr():
     average = True
 
     epochs = _prepare_epochs(n_epochs)
-    inv = read_inverse_operator(stc_inv_fname)
+    inv = read_inverse_operator(stc_vol_inv_fname)
     label = read_label(stc_label_fname)
     label = None
 

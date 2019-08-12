@@ -9,8 +9,10 @@ from .utils import (_check_subject, verbose, _time_mask, _freq_mask,
                     _check_option, _validate_type)
 from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.h5io import write_hdf5
-from .source_estimate import SourceEstimate, VectorSourceEstimate
-from .viz import (plot_source_estimates, plot_vector_source_estimates)
+from .source_estimate import (SourceEstimate, VectorSourceEstimate,
+                              VolSourceEstimate)
+from .viz import (plot_source_estimates, plot_vector_source_estimates,
+                  plot_volume_source_estimates)
 
 
 class SourceTFR(ToDataFrameMixin, TimeMixin):
@@ -71,7 +73,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None, freqs=None,
                  dims=("dipoles", "freqs", "times"), method=None, subject=None,
-                 verbose=None):
+                 src_type = 'surface', verbose=None):
 
         valid_dims = [("dipoles", "freqs", "times"),
                       ("dipoles", "epochs", "freqs", "times"),
@@ -96,7 +98,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         self.subject = _check_subject(None, subject, False)
 
         # TODO: src_type should rather represent the stc source type
-        self._src_type = 'SourceTFR'
+        self._src_type = src_type
         self._data_ndim = len(dims)
         self._vertices = vertices
         self._data = data
@@ -164,13 +166,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             self._kernel = None
             self._sens_data = None
 
-    def plot(self,fmin=0, fmax=None, epoch=0, subject=None, surface='inflated', hemi='lh',
-             colormap='auto', time_label='auto', smoothing_steps=10,
-             transparent=True, brain_alpha=0.4, overlay_alpha=None, alpha=1.0, scale_factor=None, time_viewer=False, subjects_dir=None,
-             figure=None, views='lat', colorbar=True, clim='auto',
-             cortex="classic", size=800, background="black",
-             foreground="white", initial_time=None, time_unit='s',
-             backend='auto', spacing='oct6', title=None, verbose=None):
+    def plot(self,fmin=0, fmax=None, epoch=0, **plot_params):
 
         freq_idx = _freq_mask(self.freqs, self.sfreq, fmin, fmax)
         #FIXME: sum over average? sum is easier to interprete, but will result in bad color scalings
@@ -179,28 +175,19 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         if "epochs" in self.dims:
             data_masked = data_masked[..., epoch, :, :]
 
-        if "orientations" in self.dims:
+        if self._src_type == "volume":
+            # use the magnitude only if it's a VolVectorSourceEstimate (see _BaseVectorSourceEstimate.plot)
+            data_mag = np.linalg.norm(data_masked, axis=1) if "orientations" in self.dims else data_masked
+            brain = plot_volume_source_estimates(
+                VolSourceEstimate(data_mag, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
+
+        elif "orientations" in self.dims:
             brain = plot_vector_source_estimates(
-                VectorSourceEstimate(data_masked, self.vertices, self.tmin, self.tstep, self.subject), subject=subject, hemi=hemi, colormap=colormap,
-                time_label=time_label, smoothing_steps=smoothing_steps,
-                transparent=transparent, brain_alpha=brain_alpha,
-                overlay_alpha=overlay_alpha, vector_alpha=alpha,
-                scale_factor=scale_factor, time_viewer=time_viewer,
-                subjects_dir=subjects_dir, figure=figure, views=views,
-                colorbar=colorbar, clim=clim, cortex=cortex, size=size,
-                background=background, foreground=foreground,
-                initial_time=initial_time, time_unit=time_unit)
+                VectorSourceEstimate(data_masked, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
 
         else:
             brain = plot_source_estimates(
-            SourceEstimate(data_masked, self.vertices, self.tmin, self.tstep, self.subject), subject, surface=surface, hemi=hemi, colormap=colormap,
-            time_label=time_label, smoothing_steps=smoothing_steps,
-            transparent=transparent, alpha=alpha, time_viewer=time_viewer,
-            subjects_dir=subjects_dir, figure=figure, views=views,
-            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
-            background=background, foreground=foreground,
-            initial_time=initial_time, time_unit=time_unit, backend=backend,
-            spacing=spacing, title=title, verbose=verbose)
+            SourceEstimate(data_masked, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
 
         return brain
 

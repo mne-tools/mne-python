@@ -826,7 +826,7 @@ def _create_stfr(inst, out, freqs, method):
         out = (inst._kernel, out)
 
     return SourceTFR(out, inst.vertices, inst.tmin, inst.tstep, freqs,
-                     tuple(dims), method, inst.subject)
+                     tuple(dims), method, inst.subject, inst._src_type)
 
 
 @verbose
