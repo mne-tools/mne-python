@@ -344,14 +344,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
                          time_bandwidth, use_fft, decim, output)
 
-    # Setup wavelet
-    if method == 'morlet':
-        W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
-        Ws = [W]  # to have same dimensionality as the 'multitaper' case
-
-    elif method == 'multitaper':
-        Ws = _make_dpss(sfreq, freqs, n_cycles=n_cycles,
-                        time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+    Ws = _create_tapers(method, sfreq, freqs, n_cycles, zero_mean,
+                        time_bandwidth)
 
     # Check wavelets
     if len(Ws[0][0]) > epoch_data.shape[2]:
@@ -490,9 +484,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         The decimation slice: e.g. power[:, decim]
     """
     # Set output type
-    dtype = np.float
-    if output in ['complex', 'avg_power_itc']:
-        dtype = np.complex
+    # avg_power_itc is stored as power + 1i * itc
+    dtype = np.complex if output in ['complex', 'avg_power_itc'] else np.float
 
     # Init outputs
     decim = _check_decim(decim)
@@ -513,21 +506,16 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
         # Loop across epochs
         for epoch_idx, tfr in enumerate(coefs):
-            # Transform complex values
-            if output in ['power', 'avg_power']:
-                tfr = (tfr * tfr.conj()).real  # power
-            elif output == 'phase':
-                tfr = np.angle(tfr)
-            elif output == 'avg_power_itc':
-                tfr_abs = np.abs(tfr)
-                plf += tfr / tfr_abs  # phase
-                tfr = tfr_abs ** 2  # power
-            elif output == 'itc':
+            # Transform itc complex values
+            if "itc" in output:
                 plf += tfr / np.abs(tfr)  # phase
-                continue  # not need to stack anything else than plf
+            # Transform other tfr complex values
+            tfr = _transform_complex_values(tfr, output)
 
-            # Stack or add
-            if ('avg_' in output) or ('itc' in output):
+            # Stack, add, or continue
+            if output == 'itc':
+                continue
+            elif ('avg_' in output) or ('itc' in output):
                 tfrs += tfr
             else:
                 tfrs[epoch_idx] += tfr
@@ -547,21 +535,47 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     return tfrs
 
 
+def _transform_complex_values(data, output):
+
+    if output in ['power', 'avg_power']:
+        data = (data * data.conj()).real  # power
+    elif output == 'phase':
+        data = np.angle(data)
+    elif output == 'avg_power_itc':
+        data = np.abs(data) ** 2  # power
+
+    return data
+
+
+def _create_tapers(method, sfreq, freqs, n_cycles, zero_mean, time_bandwidth):
+    """Create multitaper or morlet wavelets for TFR functions."""
+    # Setup wavelet
+    if method == 'morlet':
+        # make a list to have the same dims as the 'multitaper' case
+        Ws = [morlet(sfreq, freqs, n_cycles=n_cycles,
+                     zero_mean=zero_mean)]
+
+    elif method == 'multitaper':
+        Ws = _make_dpss(sfreq, freqs, n_cycles=n_cycles,
+                        time_bandwidth=time_bandwidth,
+                        zero_mean=zero_mean)
+    return Ws
+
+
 def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
                    zero_mean=None, time_bandwidth=None, use_fft=True, decim=1,
                    output='complex', n_jobs=None, verbose=None):
+    """Equivalent to _compute_tfr and _time_frequency_loop for stc lists."""
     from ..source_estimate import (_BaseSourceEstimate, VectorSourceEstimate,
                                    VolVectorSourceEstimate)
-
-    """Does _compute_tfr and _time_frequency_loop for SourceEstimate lists."""
 
     # Initialize output
     decim = _check_decim(decim)
     n_freqs = len(freqs)
 
-    dtype = np.float
-    if output in ['complex', 'avg_power_itc']:
-        dtype = np.complex
+    # chose whether the arrays should be of complex or float dtype
+    # avg_power_itc is stored as power + 1i * itc
+    dtype = np.complex if output in ['complex', 'avg_power_itc'] else np.float
 
     # loop along the epochs (represented as list elements)
     for epoch_idx, inst in enumerate(list_data):
@@ -588,16 +602,9 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
                 _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
                                  time_bandwidth, use_fft, decim, output)
 
-            # Setup wavelet
-            if method == 'morlet':
-                # make a list to have the same dims as the 'multitaper' case
-                Ws = [morlet(sfreq, freqs, n_cycles=n_cycles,
-                             zero_mean=zero_mean)]
-
-            elif method == 'multitaper':
-                Ws = _make_dpss(sfreq, freqs, n_cycles=n_cycles,
-                                time_bandwidth=time_bandwidth,
-                                zero_mean=zero_mean)
+            # create tapers
+            Ws = _create_tapers(method, sfreq, freqs, n_cycles, zero_mean,
+                                time_bandwidth)
 
             # check tapers
             if len(Ws[0][0]) > inst.shape[-1]:
@@ -613,12 +620,15 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
             else:
                 tfrs = np.zeros((1, n_verts, n_freqs, n_times), dtype=dtype)
 
-            # Inter-trial phase locking is summed up for each taper
+            # Inter-trial phase locking is summed up along the taper axis
             if 'itc' in output:
                 plf = np.zeros((len(Ws), n_verts, n_freqs, n_times),
                                dtype=np.complex)
 
         else:  # for all iterations except the first
+
+            # make sure these elements got the same properties as the first one
+            _check_stfr_list_elem(inst, type_ref, sfreq, tmin_ref)
 
             # add a new epoch element to the tfrs array after each epoch
             if not (('avg_' in output) or ('itc' in output)):
@@ -626,49 +636,33 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
                                      dtype=dtype)
                 tfrs = np.concatenate((tfrs, new_epoch), axis=0)
 
-            # make sure these elements got the same properties as the first one
-            if not isinstance(inst, type_ref):
-                raise TypeError("All computed elements must be of the same "
-                                "SourceEstimate type. Got {} and {}."
-                                .format(type_ref, type(inst)))
-            if not inst.sfreq == sfreq:
-                raise ValueError("All computed elements must have the same "
-                                 "sfreq.")
-            if not inst.tmin == tmin_ref:
-                raise ValueError("All computed elements must have the same "
-                                 "tmin.")
-
         # loop over the tapers
         for W_idx, W in enumerate(Ws):
 
             tfr = cwt(X, W, use_fft=use_fft, mode='same', decim=decim)
 
-            # Transform complex values
-            if output in ['power', 'avg_power']:
-                tfr = (tfr * tfr.conj()).real  # power
-            elif output == 'phase':
-                tfr = np.angle(tfr)
-            elif output == 'avg_power_itc':
-                tfr_abs = np.abs(tfr)
-                plf[W_idx] += tfr / tfr_abs  # phase
-                tfr = tfr_abs ** 2  # power
-            elif output == 'itc':
+            # Transform itc complex values
+            if "itc" in output:
                 plf[W_idx] += tfr / np.abs(tfr)  # phase
-                continue  # not need to stack anything else than plf
+            # Transform other tfr complex values
+            tfr = _transform_complex_values(tfr, output)
 
-            # Stack or add
-            if ('avg_' in output) or ('itc' in output):
+            # Stack, add, or continue
+            if output == 'itc':
+                continue
+            if ('avg_' in output):
                 tfrs += tfr
             else:
                 tfrs[epoch_idx] += tfr
 
     # process the itc taper sums with the data
-    for W_idx in range(len(Ws)):
-        # Compute inter trial coherence
-        if output == 'avg_power_itc':
-            tfrs += 1j * np.abs(plf[W_idx])
-        elif output == 'itc':
-            tfrs += np.abs(plf[W_idx])
+    if "itc" in output:
+        for W_idx in range(len(Ws)):
+            # Compute inter trial coherence
+            if output == 'avg_power_itc':
+                tfrs += 1j * np.abs(plf[W_idx])
+            elif output == 'itc':
+                tfrs += np.abs(plf[W_idx])
 
     # Normalization of average metrics
     if ('avg_' in output) or ('itc' in output):
@@ -776,20 +770,20 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 
     # put the output objects together accordingly
     if average:
-        out = assign_tfr_class(power, inst, info, freqs, times, average,
-                               method='{}-power'.format(method), nave=nave)
+        out = _assign_tfr_class(power, inst, info, freqs, times, average,
+                                method='{}-power'.format(method), nave=nave)
         if return_itc:
-            out = (out, assign_tfr_class(itc, inst, info, freqs, times,
-                                         average, nave=nave,
-                                         method='{}-itc'.format(method)))
+            out = (out, _assign_tfr_class(itc, inst, info, freqs, times,
+                                          average, nave=nave,
+                                          method='{}-itc'.format(method)))
     else:
-        out = assign_tfr_class(power, inst, info, freqs, times, average,
-                               method='{}-power'.format(method))
+        out = _assign_tfr_class(power, inst, info, freqs, times, average,
+                                method='{}-power'.format(method))
     return out
 
 
-def assign_tfr_class(data, inst, info, freqs, times, average, method,
-                     nave=None):
+def _assign_tfr_class(data, inst, info, freqs, times, average, method,
+                      nave=None):
     """Create different TFR objects, based on wanted type and output."""
     from ..epochs import BaseEpochs
     from ..source_estimate import _BaseSourceEstimate
@@ -814,6 +808,20 @@ def assign_tfr_class(data, inst, info, freqs, times, average, method,
                         event_id=ev_id, metadata=meta,
                         method=method)
     return out
+
+
+def _check_stfr_list_elem(inst, type_ref, freq_ref, tmin_ref):
+    """Check if an stfr list/gen element matches the reference data."""
+    if not isinstance(inst, type_ref):
+        raise TypeError("All computed elements must be of the same "
+                        "SourceEstimate type. Got {} and {}."
+                        .format(type_ref, type(inst)))
+    if not inst.sfreq == freq_ref:
+        raise ValueError("All computed elements must have the same "
+                         "sfreq.")
+    if not inst.tmin == tmin_ref:
+        raise ValueError("All computed elements must have the same "
+                         "tmin.")
 
 
 def _create_stfr(inst, out, freqs, method):
