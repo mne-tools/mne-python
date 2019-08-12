@@ -68,7 +68,8 @@ def test_compensation_mne():
             raw.apply_gradient_compensation(comp)
         picks = pick_types(raw.info, meg=True, ref_meg=True)
         events = np.array([[0, 0, 1]], dtype=np.int)
-        evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks).average()
+        evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks,
+                        baseline=None).average()
         return evoked
 
     def compensate_mne(fname, comp):

@@ -670,7 +670,7 @@ def test_lcmv_ctf_comp():
     raw = mne.io.read_raw_ctf(raw_fname, preload=True)
 
     events = mne.make_fixed_length_events(raw, duration=0.2)[:2]
-    epochs = mne.Epochs(raw, events, tmin=0., tmax=0.2)
+    epochs = mne.Epochs(raw, events, tmin=-0.1, tmax=0.2)
     evoked = epochs.average()
 
     with pytest.warns(RuntimeWarning,
