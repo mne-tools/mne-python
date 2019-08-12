@@ -16,7 +16,7 @@ from mne import (read_label, read_forward_solution, pick_types_forward,
 from mne.label import Label
 from mne.simulation.source import simulate_stc, simulate_sparse_stc
 from mne.simulation.source import SourceSimulator
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, check_version
 
 
 data_path = testing.data_path(download=False)
@@ -97,6 +97,14 @@ def test_simulate_stc(_get_fwd_labels):
                   label_subset, data_subset[:-1], tmin, tstep, fun)
     pytest.raises(RuntimeError, simulate_stc, fwd['src'], label_subset * 2,
                   np.concatenate([data_subset] * 2, axis=0), tmin, tstep, fun)
+
+    i = np.where(fwd['src'][0]['inuse'] == 0)[0][0]
+    label_single_vert = Label(vertices=[i],
+                              pos=fwd['src'][0]['rr'][i:i + 1, :],
+                              hemi='lh')
+    stc = simulate_stc(fwd['src'], [label_single_vert], stc_data[:1], tmin,
+                       tstep)
+    assert_equal(len(stc.lh_vertno), 1)
 
 
 def test_simulate_sparse_stc(_get_fwd_labels):
@@ -227,6 +235,12 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
+
+    # smoke test for new API
+    if check_version('numpy', '1.17'):
+        simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
+                            labels=labels_single_hemi,
+                            random_state=np.random.default_rng(0))
 
 
 @testing.requires_testing_data

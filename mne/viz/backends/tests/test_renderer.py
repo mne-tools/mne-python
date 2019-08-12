@@ -120,8 +120,19 @@ def test_3d_backend(renderer):
                   scalars=qv_scalars,
                   mode=qv_mode)
 
+    # use tube
+    rend.tube(origin=np.array([[0, 0, 0]]),
+              destination=np.array([[0, 1, 0]]))
+    tube = rend.tube(origin=np.array([[1, 0, 0]]),
+                     destination=np.array([[1, 1, 0]]),
+                     scalars=np.array([[1.0, 1.0]]))
+
+    # scalar bar
+    rend.scalarbar(source=tube, title="Scalar Bar")
+
     # use text
-    rend.text(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
+    rend.text2d(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
+    rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(azimuth=180.0, elevation=90.0,
                     distance=cam_distance,
                     focalpoint=center)

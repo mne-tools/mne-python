@@ -6,7 +6,7 @@
 import operator
 import numpy as np
 
-from ..fixes import _get_dpss
+from ..fixes import _get_dpss, rfft, irfft, rfftfreq
 from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
@@ -101,8 +101,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
     n_fft = next_fast_len(rxx_size)
-    dpss_fft = np.fft.rfft(dpss, n_fft)
-    dpss_rxx = np.fft.irfft(dpss_fft * dpss_fft.conj(), n_fft)
+    dpss_fft = rfft(dpss, n_fft)
+    dpss_rxx = irfft(dpss_fft * dpss_fft.conj(), n_fft)
     dpss_rxx = dpss_rxx[:, :N]
 
     r = 4 * W * np.sinc(2 * W * nidx)
@@ -306,7 +306,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     x = x - np.mean(x, axis=-1, keepdims=True)
 
     # only keep positive frequencies
-    freqs = np.fft.rfftfreq(n_fft, 1. / sfreq)
+    freqs = rfftfreq(n_fft, 1. / sfreq)
 
     # The following is equivalent to this, but uses less memory:
     # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
@@ -314,7 +314,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     x_mt = np.zeros(x.shape[:-1] + (n_tapers, len(freqs)),
                     dtype=np.complex128)
     for idx, sig in enumerate(x):
-        x_mt[idx] = np.fft.rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
+        x_mt[idx] = rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
     x_mt[:, :, 0] /= np.sqrt(2.)
     if x.shape[1] % 2 == 0:
@@ -423,7 +423,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         n_times, sfreq, bandwidth, low_bias, adaptive)
 
     # decide which frequencies to keep
-    freqs = np.fft.rfftfreq(n_times, 1. / sfreq)
+    freqs = rfftfreq(n_times, 1. / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
 

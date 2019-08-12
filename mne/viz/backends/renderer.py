@@ -67,10 +67,12 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+
        | :func:`plot_evoked_field`            | ✓      | ✓       |
        +--------------------------------------+--------+---------+
+       | :func:`plot_sensors_connectivity`    | ✓      |         |
+       +--------------------------------------+--------+---------+
        | :func:`snapshot_brain_montage`       | ✓      | -       |
        +--------------------------------------+--------+---------+
        +--------------------------------------+--------+---------+
-       | **3D feature:**                                         +
+       | **3D feature:**                                         |
        +--------------------------------------+--------+---------+
        | Large data                           | ✓      | ✓       |
        +--------------------------------------+--------+---------+
@@ -140,3 +142,59 @@ def _use_test_3d_backend(backend_name):
         if backend_name == 'pyvista':
             MNE_3D_BACKEND_TEST_DATA = True
         yield
+
+
+def set_3d_view(figure, azimuth=None, elevation=None,
+                focalpoint=None, distance=None):
+    """Configure the view of the given scene.
+
+    Parameters
+    ----------
+    figure:
+        The scene which is modified.
+    azimuth: float
+        The azimuthal angle of the view.
+    elevation: float
+        The zenith angle of the view.
+    focalpoint: tuple, shape (3,)
+        The focal point of the view: (x, y, z).
+    distance: float
+        The distance to the focal point.
+    """
+    _mod._set_3d_view(figure=figure, azimuth=azimuth,
+                      elevation=elevation, focalpoint=focalpoint,
+                      distance=distance)
+
+
+def set_3d_title(figure, title, size=40):
+    """Configure the title of the given scene.
+
+    Parameters
+    ----------
+    figure:
+        The scene which is modified.
+    title:
+        The title of the scene.
+    size: int
+        The size of the title.
+    """
+    _mod._set_3d_title(figure=figure, title=title, size=size)
+
+
+def create_3d_figure(size, bgcolor=(0, 0, 0)):
+    """Return an empty figure based on the current 3d backend.
+
+    Parameters
+    ----------
+    size: tuple
+        The dimensions of the 3d figure (width, height).
+    bgcolor: tuple
+        The color of the background.
+
+    Returns
+    -------
+    figure:
+        The requested empty scene.
+    """
+    renderer = _mod._Renderer(size=size, bgcolor=bgcolor)
+    return renderer.scene()

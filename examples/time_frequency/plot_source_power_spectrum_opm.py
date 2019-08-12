@@ -37,7 +37,6 @@ Preprocessing
 import os.path as op
 
 from mne.filter import next_fast_len
-from mayavi import mlab
 
 import mne
 
@@ -116,6 +115,9 @@ for kind in kinds:
 # ---------------------
 
 src = mne.read_source_spaces(src_fname)
+# This line removes source-to-source distances that we will not need.
+# We only do it here to save a bit of memory, in general this is not required.
+del src[0]['dist'], src[1]['dist']
 bem = mne.read_bem_solution(bem_fname)
 fwd = dict()
 trans = dict(vv=vv_trans_fname, opm=opm_trans_fname)
@@ -127,9 +129,11 @@ with mne.use_coil_def(opm_coil_def_fname):
             raws[kind].info, trans=trans[kind], subject=subject,
             subjects_dir=subjects_dir, dig=dig, coord_frame='mri',
             surfaces=('head', 'white'))
-        mlab.view(0, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
+        mne.viz.set_3d_view(figure=fig, azimuth=0, elevation=90,
+                            distance=0.6, focalpoint=(0., 0., 0.))
         fwd[kind] = mne.make_forward_solution(
             raws[kind].info, trans[kind], src, bem, eeg=False, verbose=True)
+del trans, src, bem
 
 ##############################################################################
 # Compute and apply inverse to PSD estimated using multitaper + Welch.
@@ -160,6 +164,9 @@ for kind in kinds:
             100 * data / topo_norm, sensor_psd.info)
         stcs[kind][band] = \
             100 * stc_psd.copy().crop(*limits).sum() / stc_norm.data
+    del inverse_operator
+del fwd, raws, raw_erms
+
 
 ###############################################################################
 # Now we can make some plots of each frequency band. Note that the OPM head
@@ -169,8 +176,8 @@ for kind in kinds:
 # Theta
 # -----
 
-
 def plot_band(kind, band):
+    """Plot activity within a frequency band on the subject's brain."""
     title = "%s %s\n(%d-%d Hz)" % ((titles[kind], band,) + freq_bands[band])
     topos[kind][band].plot_topomap(
         times=0., scalings=1., cbar_fmt='%0.1f', vmin=0, cmap='inferno',

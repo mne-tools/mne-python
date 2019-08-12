@@ -5,16 +5,17 @@
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from matplotlib.cm import get_cmap
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
@@ -23,9 +24,9 @@ from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, catch_logging
 from mne.viz.evoked import plot_compare_evokeds
 from mne.viz.utils import _fake_click
-from mne.stats import _parametric_ci
 from mne.datasets import testing
 from mne.io.constants import FIFF
+from mne.stats.parametric import _parametric_ci
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -216,139 +217,131 @@ def test_plot_white():
 
 def test_plot_compare_evokeds():
     """Test plot_compare_evokeds."""
-    rng = np.random.RandomState(0)
     evoked = _get_epochs().average()
-    # plot_compare_evokeds: test condition contrast, CI, color assignment
-    fig = plot_compare_evokeds(evoked.copy().pick_types(meg='mag'),
-                               show_sensors=True)
-    assert len(fig.axes) == 2
-
-    plot_compare_evokeds(
-        evoked.copy().pick_types(meg='grad'), picks=[1, 2],
-        show_sensors="upper right", show_legend="upper left")
-    evokeds = [evoked.copy() for _ in range(10)]
-    for evoked in evokeds:
-        evoked.data += (rng.randn(*evoked.data.shape) *
-                        np.std(evoked.data, axis=-1, keepdims=True))
-    for picks in ([0], [1], [2], [0, 2], [1, 2], [0, 1, 2],):
-        figs = plot_compare_evokeds([evokeds], picks=picks, ci=0.95)
-        if not isinstance(figs, list):
-            figs = [figs]
-        for fig in figs:
-            ext = fig.axes[0].collections[0].get_paths()[0].get_extents()
-            xs, ylim = ext.get_points().T
-            assert_allclose(xs, evoked.times[[0, -1]])
-            line = fig.axes[0].lines[0]
-            xs = line.get_xdata()
-            assert_allclose(xs, evoked.times)
-            ys = line.get_ydata()
-            assert (ys < ylim[1]).all()
-            assert (ys > ylim[0]).all()
-        plt.close('all')
-
-    evoked.rename_channels({'MEG 2142': "MEG 1642"})
-    assert len(plot_compare_evokeds(evoked)) == 2
-    colors = dict(red='r', blue='b')
-    linestyles = dict(red='--', blue='-')
+    # test defaults
+    figs = plot_compare_evokeds(evoked)
+    assert len(figs) == 2
+    # test picks, combine, and vlines (1-channel pick also shows sensor inset)
+    picks = ['MEG 0113', 'mag'] + 2 * [['MEG 0113', 'MEG 0112']] + [[0, 1]]
+    vlines = [[0.1, 0.2], []] + 3 * ['auto']
+    combine = [None, 'mean', 'std', None, lambda x: np.min(x, axis=1)]
+    title = ['MEG 0113', '(mean)', '(std. dev.)', '(GFP)', 'MEG 0112']
+    for _p, _v, _c, _t in zip(picks, vlines, combine, title):
+        fig = plot_compare_evokeds(evoked, picks=_p, vlines=_v, combine=_c)
+        assert fig[0].axes[0].get_title().endswith(_t)
+    # test passing more than one evoked
     red, blue = evoked.copy(), evoked.copy()
-    red.data *= 1.1
-    blue.data *= 0.9
-    plot_compare_evokeds([red, blue], picks=3)  # list of evokeds
-    plot_compare_evokeds([red, blue], picks=3, truncate_yaxis=True,
-                         vlines=[])  # also testing empty vlines here
-    plot_compare_evokeds([[red, evoked], [blue, evoked]],
-                         picks=3)  # list of lists
-    # test picking & plotting grads
-    contrast = dict()
-    contrast["red/stim"] = list((evoked.copy(), red))
-    contrast["blue/stim"] = list((evoked.copy(), blue))
-    # test a bunch of params at once
-    for evokeds_ in (evoked.copy().pick_types(meg='mag'), contrast,
-                     [red, blue], [[red, evoked], [blue, evoked]]):
-        plot_compare_evokeds(evokeds_, picks=0, ci=True)  # also tests CI
+    red.data *= 1.5
+    blue.data /= 1.5
+    evoked_dict = {'aud/l': blue, 'aud/r': red, 'vis': evoked}
+    huge_dict = {'cond{}'.format(i): ev for i, ev in enumerate([evoked] * 11)}
+    plot_compare_evokeds(evoked_dict)                           # dict
+    plot_compare_evokeds([[red, evoked], [blue, evoked]])       # list of lists
+    figs = plot_compare_evokeds({'cond': [blue, red, evoked]})  # dict of list
+    # test that confidence bands are plausible
+    for fig in figs:
+        extents = fig.axes[0].collections[0].get_paths()[0].get_extents()
+        xlim, ylim = extents.get_points().T
+        assert np.allclose(xlim, evoked.times[[0, -1]])
+        line = fig.axes[0].lines[0]
+        xvals = line.get_xdata()
+        assert np.allclose(xvals, evoked.times)
+        yvals = line.get_ydata()
+        assert (yvals < ylim[1]).all()
+        assert (yvals > ylim[0]).all()
     plt.close('all')
-    # test styling +  a bunch of other params at once
-    colors, linestyles = dict(red='r', blue='b'), dict(red='--', blue='-')
-    plot_compare_evokeds(contrast, colors=colors, linestyles=linestyles,
-                         picks=[0, 2], vlines=[.01, -.04], invert_y=True,
-                         truncate_yaxis=False, ylim=dict(mag=(-10, 10)),
-                         styles={"red/stim": {"linewidth": 1}},
-                         show_sensors=True)
-    # various bad styles
-    params = [dict(picks=3, colors=dict(fake=1)),
-              dict(picks=3, styles=dict(fake=1)), dict(picks=3, gfp=True),
-              dict(picks=3, show_sensors="a"),
-              dict(colors=dict(red=10., blue=-2))]
-    for param in params:
-        pytest.raises(ValueError, plot_compare_evokeds, evoked, **param)
-    pytest.raises(ValueError, plot_compare_evokeds, evoked, picks='str')
-    plot_compare_evokeds(evoked, picks='meg')
-    pytest.raises(TypeError, plot_compare_evokeds, evoked, vlines='x')
+    # test other CI args
+    for _ci in (None, False, 0.5,
+                lambda x: np.stack([x.mean(axis=0) + 1, x.mean(axis=0) - 1])):
+        plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)
+    with pytest.raises(TypeError, match='"ci" must be None, bool, float or'):
+        plot_compare_evokeds(evoked, ci='foo')
+    # test sensor inset, legend location, and axis inversion & truncation
+    plot_compare_evokeds(evoked_dict, invert_y=True, legend='upper left',
+                         show_sensors='center', truncate_xaxis=False,
+                         truncate_yaxis=False)
+    plot_compare_evokeds(evoked, ylim=dict(mag=(-50, 50)), truncate_yaxis=True)
     plt.close('all')
-    # `evoked` must contain Evokeds
-    pytest.raises(TypeError, plot_compare_evokeds, [[1, 2], [3, 4]])
-    # `ci` must be float or None
-    pytest.raises(TypeError, plot_compare_evokeds, contrast, ci='err')
-    # test all-positive ylim
-    contrast["red/stim"], contrast["blue/stim"] = red, blue
-    plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
-                         ylim=dict(mag=(1, 10)), ci=_parametric_ci,
-                         truncate_yaxis='max_ticks', show_sensors=False,
-                         show_legend=False)
+    # test styles
+    plot_compare_evokeds(evoked_dict, colors=['b', 'r', 'g'],
+                         linestyles=[':', '-', '--'], split_legend=True)
+    style_dict = dict(aud=dict(alpha=0.3), vis=dict(linewidth=3, c='k'))
+    plot_compare_evokeds(evoked_dict, styles=style_dict, colors={'aud/r': 'r'},
+                         linestyles=dict(vis='dotted'), ci=False)
+    plot_compare_evokeds(evoked_dict, colors=list(range(3)))
     plt.close('all')
-
-    # sequential colors
-    evokeds = (evoked, blue, red)
-    contrasts = {"a{}/b".format(ii): ev for ii, ev in
-                 enumerate(evokeds)}
-    colors = {"a" + str(ii): ii for ii, _ in enumerate(evokeds)}
-    contrasts["a1/c"] = evoked.copy()
-    for split in (True, False):
-        for linestyles in (["-"], {"b": "-", "c": ":"}):
-            plot_compare_evokeds(
-                contrasts, colors=colors, picks=[0], cmap='Reds',
-                split_legend=split, linestyles=linestyles,
-                ci=False, show_sensors=False)
-    colors = {"a" + str(ii): ii / len(evokeds)
-              for ii, _ in enumerate(evokeds)}
-    plot_compare_evokeds(
-        contrasts, colors=colors, picks=[0], cmap='Reds',
-        split_legend=split, linestyles=linestyles, ci=False,
-        show_sensors=False)
-    red.info["chs"][0]["loc"][:2] = 0  # test plotting channel at zero
-    plot_compare_evokeds(red, picks=[0],
+    # test colormap
+    cmap = get_cmap('viridis')
+    plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=0.4, vis=0.9))
+    plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=1, vis=2))
+    plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
+                         linestyles=['-', ':', '--'])
+    plt.close('all')
+    # test deprecation
+    with pytest.warns(DeprecationWarning, match='"gfp" is deprecated'):
+        plot_compare_evokeds(evoked, gfp=True)
+    with pytest.warns(DeprecationWarning, match='"max_ticks" changed to '):
+        plot_compare_evokeds(evoked, picks=[0], truncate_yaxis='max_ticks')
+    # test warnings
+    with pytest.warns(RuntimeWarning, match='in "picks"; cannot combine'):
+        plot_compare_evokeds(evoked, picks=[0], combine='median')
+    plt.close('all')
+    # test errors
+    with pytest.raises(TypeError, match='"evokeds" must be a dict, list'):
+        plot_compare_evokeds('foo')
+    with pytest.raises(ValueError, match=r'keys in "styles" \(.*\) must '):
+        plot_compare_evokeds(evoked_dict, styles=dict(foo='foo', bar='bar'))
+    with pytest.raises(ValueError, match='colors in the default color cycle'):
+        plot_compare_evokeds(huge_dict, colors=None)
+    with pytest.raises(TypeError, match='"cmap" is specified, then "colors"'):
+        plot_compare_evokeds(evoked_dict, cmap='Reds', colors={'aud/l': 'foo',
+                                                               'aud/r': 'bar',
+                                                               'vis': 'baz'})
+    plt.close('all')
+    for kwargs in [dict(colors=[0, 1]), dict(linestyles=['-', ':'])]:
+        match = r'but there are only \d* (colors|linestyles). Please specify'
+        with pytest.raises(ValueError, match=match):
+            plot_compare_evokeds(evoked_dict, **kwargs)
+    for kwargs in [dict(colors='foo'), dict(linestyles='foo')]:
+        match = r'"(colors|linestyles)" must be a dict, list, or None; got '
+        with pytest.raises(TypeError, match=match):
+            plot_compare_evokeds(evoked_dict, **kwargs)
+    for kwargs in [dict(colors=dict(foo='f')), dict(linestyles=dict(foo='f'))]:
+        match = r'If "(colors|linestyles)" is a dict its keys \(.*\) must '
+        with pytest.raises(ValueError, match=match):
+            plot_compare_evokeds(evoked_dict, **kwargs)
+    for kwargs in [dict(legend='foo'), dict(show_sensors='foo')]:
+        with pytest.raises(ValueError, match='not a legal MPL loc, please'):
+            plot_compare_evokeds(evoked_dict, **kwargs)
+    with pytest.raises(TypeError, match='an instance of list or tuple'):
+        plot_compare_evokeds(evoked_dict, vlines='foo')
+    with pytest.raises(ValueError, match='"truncate_yaxis" must be bool or '):
+        plot_compare_evokeds(evoked_dict, truncate_yaxis='foo')
+    plt.close('all')
+    # test axes='topo'
+    figs = plot_compare_evokeds(evoked_dict, axes='topo', legend=True)
+    for fig in figs:
+        assert len(fig.axes[0].lines) == len(evoked_dict)
+    # old tests
+    red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
+    plot_compare_evokeds([red, blue], picks=[0],
                          ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
-    plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
-                         split_legend=None)
-    with pytest.raises(ValueError, match="If `split_legend` is True"):
-        plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
-    with pytest.raises(ValueError, match='Please supply colors manually'):
-        plot_compare_evokeds([red] * 20)
-    with pytest.raises(ValueError, match='must specify the colors'):
-        plot_compare_evokeds(contrasts, cmap='summer')
-    plt.close('all')
-
-    figs = plot_compare_evokeds(red, picks="meg", gfp=None)
-    for fig in figs:
-        assert "GFP" in fig.axes[0].get_title()
-    figs = plot_compare_evokeds(red, picks="meg", gfp=False)
-    for fig in figs:
-        assert "GFP" not in fig.axes[0].get_title()
-
-    figs = plot_compare_evokeds(contrasts, axes="topo")
-    for fig in figs:
-        assert len(fig.axes[0].lines) == len(contrasts)
-        assert len(fig.axes[-1].lines) == 0
-    plt.close("all")
-
+    plot_compare_evokeds([list(evoked_dict.values())], picks=[0],
+                         ci=_parametric_ci)
     # smoke test for tmin >= 0 (from mailing list)
     red.crop(0.01, None)
     assert len(red.times) > 2
     plot_compare_evokeds(red)
+    # plot a flat channel
+    red.data = np.zeros_like(red.data)
+    plot_compare_evokeds(red)
     # smoke test for one time point (not useful but should not fail)
-    red.crop(0.01, 0.01)
+    red.crop(0.02, 0.02)
     assert len(red.times) == 1
     plot_compare_evokeds(red)
+    # now that we've cropped `red`:
+    with pytest.raises(ValueError, match='not contain the same time instants'):
+        plot_compare_evokeds(evoked_dict)
     plt.close('all')
 
 

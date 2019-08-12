@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+"""Test reading of BrainVision format."""
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
-
 import os.path as op
 from os import unlink
 import shutil
@@ -76,30 +76,74 @@ def test_orig_units(recwarn):
     assert orig_units['ReRef'] == 'C'
 
 
-def test_vmrk_meas_date():
+DATE_TEST_CASES = np.array([
+    ('Mk1=New Segment,,1,1,0,20131113161403794232\n',  # content
+     [1384359243, 794231],  # meas_date internal representation
+     '2013-11-13 16:14:03 GMT'),  # meas_date representation
+
+    (('Mk1=New Segment,,1,1,0,20070716122240937454\n'
+      'Mk2=New Segment,,2,1,0,20070716122240937455\n'),
+     [1184588560, 937453],
+     '2007-07-16 12:22:40 GMT'),
+
+    ('Mk1=New Segment,,1,1,0,\nMk2=New Segment,,2,1,0,20070716122240937454\n',
+     [1184588560, 937453],
+     '2007-07-16 12:22:40 GMT'),
+
+    ('Mk1=STATUS,,1,1,0\n', None, 'unspecified'),
+    ('Mk1=New Segment,,1,1,0,\n', None, 'unspecified'),
+    ('Mk1=New Segment,,1,1,0\n', None, 'unspecified'),
+    ('Mk1=New Segment,,1,1,0,00000000000304125000', None, 'unspecified'),
+
+], dtype=np.dtype({
+    'names': ['content', 'meas_date', 'meas_date_repr'],
+    'formats': [object, object, 'U22']
+}))
+
+
+@pytest.fixture(scope='session')
+def _mocked_meas_date_data(tmpdir_factory):
+    """Prepare files for mocked_meas_date_file fixture."""
+    # Prepare the files
+    tmpdir = str(tmpdir_factory.mktemp('brainvision_mocked_meas_date'))
+    vhdr_fname, vmrk_fname, eeg_fname = [
+        op.join(tmpdir, op.basename(ff))
+        for ff in [vhdr_path, vmrk_path, eeg_path]
+    ]
+    for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
+        shutil.copyfile(orig, dest)
+
+    # Get the marker information
+    with open(vmrk_path, 'r') as fin:
+        lines = fin.readlines()
+
+    return vhdr_fname, vmrk_fname, lines
+
+
+@pytest.fixture(scope='session', params=[tt for tt in DATE_TEST_CASES])
+def mocked_meas_date_file(_mocked_meas_date_data, request):
+    """Prepare a generator for use in test_meas_date."""
+    MEAS_DATE_LINE = 11  # see test.vmrk file
+    vhdr_fname, vmrk_fname, lines = _mocked_meas_date_data
+
+    lines[MEAS_DATE_LINE] = request.param['content']
+    with open(vmrk_fname, 'w') as fout:
+        fout.writelines(lines)
+
+    yield (
+        vhdr_fname, request.param['meas_date'], request.param['meas_date_repr']
+    )
+
+
+def test_meas_date(mocked_meas_date_file):
     """Test successful extraction of measurement date."""
-    # Test file that does have a specific date
-    raw = read_raw_brainvision(vhdr_path)
-    assert_allclose(raw.info['meas_date'], [1384359243, 794231])
-    assert '2013-11-13 16:14:03 GMT' in repr(raw.info)
-
-    # Test file with multiple dates ... we should only take the first
-    with pytest.warns(RuntimeWarning, match='software filter'):
-        raw = read_raw_brainvision(vhdr_old_path)
-    assert_allclose(raw.info['meas_date'], [1184588560, 937453])
-    assert '2007-07-16 12:22:40 GMT' in repr(raw.info)
-
-    # Test files with no date, we should get DATE_NONE from mne.io.write
-    with pytest.warns(RuntimeWarning, match='coordinate information'):
-        raw = read_raw_brainvision(vhdr_v2_path)
-    assert raw.info['meas_date'] is None
-    assert 'unspecified' in repr(raw.info)
-
-    # Test files with faulty dates introduced by segmenting a file without
-    # date information. Should not raise a strptime ValueError
-    raw = read_raw_brainvision(vhdr_bad_date)
-    assert raw.info['meas_date'] is None
-    assert 'unspecified' in repr(raw.info)
+    vhdr_f, expected_meas, expected_meas_repr = mocked_meas_date_file
+    raw = read_raw_brainvision(vhdr_f)
+    assert expected_meas_repr in repr(raw.info)
+    if expected_meas is None:
+        assert raw.info['meas_date'] is None
+    else:
+        assert_allclose(raw.info['meas_date'], expected_meas)
 
 
 def test_vhdr_codepage_ansi():
@@ -422,6 +466,28 @@ def test_brainvision_vectorized_data():
     assert_array_almost_equal(raw._data[:, :2], first_two_samples_all_chs)
 
 
+def test_coodinates_extraction():
+    """Test reading of [Coordinates] section if present."""
+    # vhdr 2 has a Coordinates section
+    with pytest.warns(RuntimeWarning, match='coordinate information'):
+        raw = read_raw_brainvision(vhdr_v2_path)
+
+    # Basic check of extracted coordinates
+    assert raw.info['dig'] is not None
+    diglist = raw.info['dig']
+    coords = np.array([dig['r'] for dig in diglist])
+    assert coords.shape[0] == len(raw.ch_names)
+    assert coords.shape[1] == 3
+
+    # Make sure the scaling seems right
+    # a coordinate more than 20cm away from origin is implausible
+    assert coords.max() < 0.2
+
+    # vhdr 1 does not have a Coordinates section
+    raw2 = read_raw_brainvision(vhdr_path)
+    assert raw2.info['dig'] is None
+
+
 @testing.requires_testing_data
 def test_brainvision_neuroone_export():
     """Test Brainvision file exported with neuroone system."""
@@ -448,7 +514,7 @@ def test_read_vmrk_annotations():
     try:
         temp.close()
         unlink(temp.name)
-    except FileNotFoundError:
+    except IOError:
         pass
 
 
@@ -462,9 +528,9 @@ def test_read_vhdr_annotations_and_events():
          6629., 7629., 7699.]
     )
     expected_annot_description = [
-        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Stimulus/S254',
-        'Stimulus/S255', 'Stimulus/S254', 'Stimulus/S255', 'Stimulus/S253',
-        'Stimulus/S255', 'Response/R255', 'Stimulus/S254', 'Stimulus/S255',
+        'New Segment/', 'Stimulus/S253', 'Stimulus/S255', 'Event/254',
+        'Stimulus/S255', 'Event/254', 'Stimulus/S255', 'Stimulus/S253',
+        'Stimulus/S255', 'Response/R255', 'Event/254', 'Stimulus/S255',
         'SyncStatus/Sync On', 'Optic/O  1'
     ]
     expected_events = np.stack([
@@ -474,7 +540,7 @@ def test_read_vhdr_annotations_and_events():
          2001],
     ]).astype('int64').T
     expected_event_id = {'New Segment/': 99999, 'Stimulus/S253': 253,
-                         'Stimulus/S255': 255, 'Stimulus/S254': 254,
+                         'Stimulus/S255': 255, 'Event/254': 254,
                          'Response/R255': 1255, 'SyncStatus/Sync On': 99998,
                          'Optic/O  1': 2001}
 

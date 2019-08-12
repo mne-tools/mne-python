@@ -156,20 +156,13 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 
 ###############################################################################
 # With the surface-based source space only sources that lie in the plotted MRI
-# slices are shown. Let's write a few lines of mayavi to see all sources in 3D.
+# slices are shown. Let's see how to view all sources in 3D.
 
-import numpy as np  # noqa
-from mayavi import mlab  # noqa
-from surfer import Brain  # noqa
-
-brain = Brain('sample', 'lh', 'inflated', subjects_dir=subjects_dir)
-surf = brain.geo['lh']
-
-vertidx = np.where(src[0]['inuse'])[0]
-
-mlab.points3d(surf.x[vertidx], surf.y[vertidx],
-              surf.z[vertidx], color=(1, 1, 0), scale_factor=1.5)
-
+fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
+                             surfaces='white', coord_frame='head',
+                             src=src)
+mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
+                    distance=0.30, focalpoint=(-0.03, -0.01, 0.03))
 
 ###############################################################################
 # .. _plot_forward_compute_forward_solution:
@@ -228,6 +221,9 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 ###############################################################################
 # This is equivalent to the following code that explicitly applies the
 # forward operator to a source estimate composed of the identity operator:
+
+import numpy as np  # noqa
+
 n_dipoles = leadfield.shape[1]
 vertices = [src_hemi['vertno'] for src_hemi in fwd_fixed['src']]
 stc = mne.SourceEstimate(1e-9 * np.eye(n_dipoles), vertices, tmin=0., tstep=1)

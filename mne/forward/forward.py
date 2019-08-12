@@ -547,7 +547,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     fwd['_orig_source_ori'] = fwd['source_ori']
 
     #   Deal with include and exclude
-    fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
+    pick_channels_forward(fwd, include=include, exclude=exclude, copy=False)
 
     if is_fixed_orient(fwd, orig=True):
         fwd['source_nn'] = np.concatenate([_src['nn'][_src['vertno'], :]
@@ -951,8 +951,7 @@ def write_forward_meas_info(fid, info):
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
 
 
-@verbose
-def _select_orient_forward(forward, info, noise_cov=None, verbose=None):
+def _select_orient_forward(forward, info, noise_cov=None, copy=True):
     """Prepare forward solution for inverse solvers."""
     # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
     fwd_sol_ch_names = forward['sol']['row_names']
@@ -977,7 +976,8 @@ def _select_orient_forward(forward, info, noise_cov=None, verbose=None):
 
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
-    forward = pick_channels_forward(forward, ch_names, ordered=True)
+    forward = pick_channels_forward(forward, ch_names, ordered=True,
+                                    copy=copy)
     info_idx = [info['ch_names'].index(name) for name in ch_names]
     info_picked = pick_info(info, info_idx)
     forward['info']._check_consistency()

@@ -200,7 +200,8 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T: 'T',
                FIFF.FIFF_UNIT_T_M: 'T/m',
                FIFF.FIFF_UNIT_MOL: 'M',
-               FIFF.FIFF_UNIT_NONE: 'NA'}
+               FIFF.FIFF_UNIT_NONE: 'NA',
+               FIFF.FIFF_UNIT_CEL: 'C'}
 
 
 def _check_set(ch, projs, ch_type):
@@ -220,7 +221,7 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_eeg_reference(self, ref_channels='average', projection=False,
-                          verbose=None):
+                          ch_type='auto', verbose=None):
         """Specify which reference to use for EEG data.
 
         By default, MNE-Python will automatically re-reference the EEG signal
@@ -274,6 +275,12 @@ class SetChannelsMixin(object):
             ``projection=False``, the average reference is directly applied to
             the data. If ``ref_channels`` is not ``'average'``, ``projection``
             must be set to ``False`` (the default in this case).
+        ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
+            The name of the channel type to apply the reference to. If 'auto',
+            the first channel type of eeg, ecog or seeg that is found (in that
+            order) will be selected.
+
+            .. versionadded:: 0.19
         %(verbose_meth)s
 
         Returns
@@ -306,7 +313,7 @@ class SetChannelsMixin(object):
         """
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
-                                 projection=projection)[0]
+                                 projection=projection, ch_type=ch_type)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
@@ -458,7 +465,8 @@ class SetChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         from .montage import _set_montage
-        _set_montage(self.info, montage, set_dig=set_dig)
+        _set_montage(self.info, montage, update_ch_names=False,
+                     set_dig=set_dig)
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,

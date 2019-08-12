@@ -118,9 +118,9 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
 class ICA(ContainsMixin):
     u"""M/EEG signal decomposition using Independent Component Analysis (ICA).
 
-    This object can be used to estimate ICA components and then remove some
-    from :class:`mne.io.Raw`, :class:`mne.Epochs`, or :class:`mne.Evoked`
-    for data exploration or artifact correction.
+    This object estimates independent components from :class:`mne.io.Raw`,
+    :class:`mne.Epochs`, or :class:`mne.Evoked` objects. Components can
+    optionally be removed (for artifact repair) prior to signal reconstruction.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
@@ -129,39 +129,33 @@ class ICA(ContainsMixin):
     Parameters
     ----------
     n_components : int | float | None
-        Controls the number of PCA components from the pre-ICA PCA entering the
-        ICA decomposition in the :meth:`ICA.fit` method.
-        If None (default), all PCA components will be used
-        (== `max_pca_components`).
-        If int, must be <= `max_pca_components`.
-        If float between 0 and 1, the number of components selected matches the
-        number of components with a cumulative explained variance below
-        `n_components` (a value of 1. resulting in `max_pca_components`).
-        The actual number of components resulting from evaluating this
-        parameter in the :meth:`ICA.fit` method is stored in the attribute
-        `n_components_` after fitting.
+        Number of principal components (from the pre-whitening PCA step) that
+        are passed to the ICA algorithm during fitting. If :class:`int`, must
+        not be larger than ``max_pca_components``. If :class:`float` between 0
+        and 1, the number of components with cumulative explained variance less
+        than ``n_components`` will be used. If ``None``, ``max_pca_components``
+        will be used. Defaults to ``None``; the actual number used when
+        executing the :meth:`ICA.fit` method will be stored in the attribute
+        ``n_components_`` (note the trailing underscore).
     max_pca_components : int | None
-        The number of components returned by the PCA decomposition in the
-        :meth:`ICA.fit` method.
-        If None (default), no dimensionality reduction will be applied and
-        `max_pca_components` will equal the number of channels supplied for
-        decomposing the data.
-        If > `n_components_`, the additional PCA-only-components can later be
-        used for re-projecting the data into sensor space, additionally
-        controllable by the `n_pca_components` parameter.
-    n_pca_components : int | float
-        The number of PCA components used by the :meth:`ICA.apply` method for
-        re-projecting the decomposed data into sensor space. Has to be
-        >= `n_components(_)` and <= `max_pca_components`.
-        If greater than `n_components_`, the next `n_pca_components` minus
-        `n_components` PCA components will be added before restoring the sensor
-        space data.
-        If None (default), all PCA components will be used.
-        If float between 0 and 1, the number of components selected matches the
-        number of components with a cumulative explained variance below
-        `n_pca_components`. This attribute allows to balance noise reduction
-        against potential loss of features due to dimensionality reduction,
-        independently of the number of ICA components.
+        Number of principal components (from the pre-whitening PCA step) that
+        are retained for later use (i.e., for signal reconstruction in
+        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). If
+        ``None``, no dimensionality reduction occurs and ``max_pca_components``
+        will equal the number of channels in the :class:`mne.io.Raw`,
+        :class:`mne.Epochs`, or :class:`mne.Evoked` object passed to
+        :meth:`ICA.fit`.
+    n_pca_components : int | float | None
+        Total number of components (ICA + PCA) used for signal reconstruction
+        in :meth:`ICA.apply`. At minimum, at least ``n_components`` will be
+        used (unless modified by ``ICA.include`` or ``ICA.exclude``). If
+        ``n_pca_components > n_components``, additional PCA components will be
+        incorporated. If :class:`float` between 0 and 1, the number is chosen
+        as the number of *PCA* components with cumulative explained variance
+        less than ``n_components`` (without accounting for ``ICA.include`` or
+        ``ICA.exclude``). If :class:`int` or :class:`float`, ``n_components_ ≤
+        n_pca_components ≤ max_pca_components`` must hold. If ``None``,
+        ``max_pca_components`` will be used. Defaults to ``None``.
     noise_cov : None | instance of Covariance
         Noise covariance used for pre-whitening. If None (default), channels
         are scaled to unit variance ("z-standardized") prior to the whitening
@@ -242,9 +236,15 @@ class ICA(ContainsMixin):
     scaled to unit variance, also called sphering transformation) by means of
     a Principle Component Analysis (PCA). In addition to the whitening, this
     step introduces the option to reduce the dimensionality of the data, both
-    prior to fitting the ICA and prior to reverting to sensor space.
-    This is controllable by the two parameters `max_pca_components` and
-    `n_pca_components`, respectively.
+    prior to fitting the ICA (with the ``max_pca_components`` parameter) and
+    prior to reconstructing the sensor signals (with the ``n_pca_components``
+    parameter). In this way, we separate the question of how many ICA
+    components to estimate from the question of how much to reduce the
+    dimensionality of the signal. For example: by setting high values for
+    ``max_pca_components`` and ``n_pca_components``, relatively little
+    dimensionality reduction will occur when the signal is reconstructed,
+    regardless of the value of ``n_components`` (the number of ICA components
+    estimated).
 
     .. note:: Commonly used for reasons of i) computational efficiency and
               ii) additional noise reduction, it is a matter of current debate
@@ -271,7 +271,11 @@ class ICA(ContainsMixin):
     Methods currently implemented are FastICA (default), Infomax, and Picard.
     Standard Infomax can be quite sensitive to differences in floating point
     arithmetic. Extended Infomax seems to be more stable in this respect,
-    enhancing reproducibility and stability of results.
+    enhancing reproducibility and stability of results; use Extended Infomax
+    via ``method='infomax', fit_params=dict(extended=True)``. Allowed entries
+    in ``fit_params`` are determined by the various algorithm implementations:
+    see :class:`~sklearn.decomposition.FastICA`, :func:`~picard.picard`,
+    :func:`~mne.preprocessing.infomax`.
 
     Reducing the tolerance (set in `fit_params`) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
@@ -1581,7 +1585,7 @@ class ICA(ContainsMixin):
                                    figsize=figsize, show=show, reject=reject)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
-    def plot_sources(self, inst, picks=None, exclude=None, start=None,
+    def plot_sources(self, inst, picks=None, exclude='deprecated', start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False):
         return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,

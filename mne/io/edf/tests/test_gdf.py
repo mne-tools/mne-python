@@ -32,9 +32,14 @@ def test_gdf_data():
 
     # Test Status is added as event
     EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1]
+    EXPECTED_EVS_ID = {
+        'Undefined({})'.format(evs): i for i, evs in enumerate(
+            [32769, 32770, 33024, 33025, 33026, 33027, 33028, 33029, 33040,
+             33041, 33042, 33043, 33044, 33045, 33285, 33286], 1)
+    }
     evs, evs_id = events_from_annotations(raw)
     assert_array_equal(evs[:, 0], EXPECTED_EVS_ONSETS)
-    assert evs_id == {'Unknown': 1}
+    assert evs_id == EXPECTED_EVS_ID
 
     # this .npy was generated using the official biosig python package
     raw_biosig = np.load(gdf1_path + '_biosig.npy')

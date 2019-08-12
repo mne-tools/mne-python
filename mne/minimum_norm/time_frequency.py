@@ -381,7 +381,8 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
         use_fft=use_fft, pick_ori=pick_ori, pca=pca, n_jobs=n_jobs,
-        prepared=False, method_params=method_params)
+        method_params=method_params, zero_mean=zero_mean,
+        prepared=prepared)
 
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode,

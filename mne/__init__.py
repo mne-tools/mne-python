@@ -25,7 +25,8 @@ from .utils import (set_log_level, set_log_file, verbose, set_config,
 from .io.pick import (pick_types, pick_channels,
                       pick_channels_regexp, pick_channels_forward,
                       pick_types_forward, pick_channels_cov,
-                      pick_channels_evoked, pick_info)
+                      pick_channels_evoked, pick_info,
+                      channel_type, channel_indices_by_type)
 from .io.base import concatenate_raws
 from .io.meas_info import create_info, Info
 from .io.proj import Projection
@@ -59,7 +60,8 @@ from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               spatio_temporal_dist_connectivity,
                               extract_label_time_course)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
-                      read_morph_map, get_head_surf, get_meg_helmet_surf)
+                      read_morph_map, get_head_surf, get_meg_helmet_surf,
+                      dig_mri_distances)
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
                     compute_morph_matrix, compute_source_morph)
 from .source_space import (read_source_spaces, vertex_to_mni,

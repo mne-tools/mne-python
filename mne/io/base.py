@@ -23,7 +23,6 @@ from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
-from ..channels.montage import read_montage, _set_montage, Montage
 from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -32,12 +31,11 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
-from ..filter import (filter_data, notch_filter, resample,
-                      _resample_stim_channels, _filt_check_picks,
-                      _filt_update_info, _check_fun, HilbertMixin)
+from ..filter import (FilterMixin, notch_filter, resample,
+                      _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
-                     _check_pandas_index_arguments, _pl, fill_doc,
+                     _check_pandas_index_arguments, fill_doc, copy_doc,
                      check_fname, _get_stim_channel, deprecated,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
@@ -266,7 +264,7 @@ class TimeMixin(object):
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
               InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin,
-              HilbertMixin):
+              FilterMixin):
     """Base class for Raw data.
 
     Parameters
@@ -359,6 +357,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 load_from_disk = True
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
+        orig_ch_names = info['ch_names']
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
         self.buffer_size_sec = float(buffer_size_sec)
@@ -382,14 +381,21 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._filenames = list(filenames)
         self.orig_format = orig_format
         # Sanity check and set original units, if provided by the reader:
+
         if orig_units:
             if not isinstance(orig_units, dict):
                 raise ValueError('orig_units must be of type dict, but got '
                                  ' {}'.format(type(orig_units)))
 
-            # original units need to be truncated to 15 chars, which is what
-            # the MNE IO procedure also does with the other channels
-            orig_units_trunc = [ch[:15] for ch in orig_units]
+            # original units need to be truncated to 15 chars or renamed
+            # to match MNE conventions (channel name unique and less than
+            # 15 characters).
+            orig_units = deepcopy(orig_units)
+            for old_ch, new_ch in zip(orig_ch_names, info['ch_names']):
+                if old_ch in orig_units:
+                    this_unit = orig_units[old_ch]
+                    del orig_units[old_ch]
+                    orig_units[new_ch] = this_unit
 
             # STI 014 channel is native only to fif ... for all other formats
             # this was artificially added by the IO procedure, so remove it
@@ -400,7 +406,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             # Each channel in the data must have a corresponding channel in
             # the original units.
-            ch_correspond = [ch in orig_units_trunc for ch in ch_names]
+            ch_correspond = [ch in orig_units for ch in ch_names]
             if not all(ch_correspond):
                 ch_without_orig_unit = ch_names[ch_correspond.index(False)]
                 raise ValueError('Channel {} has no associated original '
@@ -1104,111 +1110,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         return self
 
-    @verbose
+    # Need a separate method because the default pad is different for raw
+    @copy_doc(FilterMixin.filter)
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
                skip_by_annotation=('edge', 'bad_acq_skip'),
-               pad='reflect_limited', verbose=None):
-        """Filter a subset of channels.
-
-        Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
-        filter to the channels selected by ``picks``. By default the data
-        of the Raw object is modified inplace.
-
-        Parameters
-        ----------
-        %(l_freq)s
-        %(h_freq)s
-        %(picks_all_data)s
-        %(filter_length)s
-        %(l_trans_bandwidth)s
-        %(h_trans_bandwidth)s
-        %(n_jobs-fir)s
-        %(method-fir)s
-        %(iir_params)s
-        %(phase)s
-        %(fir_window)s
-        %(fir_design)s
-        skip_by_annotation : str | list of str
-            If a string (or list of str), any annotation segment that begins
-            with the given string will not be included in filtering, and
-            segments on either side of the given excluded annotated segment
-            will be filtered separately (i.e., as independent signals).
-            The default (``('edge', 'bad_acq_skip')`` will separately filter
-            any segments that were concatenated by :func:`mne.concatenate_raws`
-            or :meth:`mne.io.Raw.append`, or separated during acquisition.
-            To disable, provide an empty list.
-
-            .. versionadded:: 0.16.
-        %(pad-fir)s
-            The default is ``'reflect-limited'``.
-
-            .. versionadded:: 0.15
-        %(verbose_meth)s
-
-        Returns
-        -------
-        raw : instance of Raw
-            The raw instance with filtered data.
-
-        See Also
-        --------
-        mne.Epochs.savgol_filter
-        mne.io.Raw.notch_filter
-        mne.io.Raw.resample
-        mne.filter.create_filter
-        mne.filter.filter_data
-        mne.filter.construct_iir_filter
-
-        Notes
-        -----
-        The Raw object has to have the data loaded e.g. with ``preload=True``
-        or ``self.load_data()``.
-
-        ``l_freq`` and ``h_freq`` are the frequencies below which and above
-        which, respectively, to filter out of the data. Thus the uses are:
-
-            * ``l_freq < h_freq``: band-pass filter
-            * ``l_freq > h_freq``: band-stop filter
-            * ``l_freq is not None and h_freq is None``: high-pass filter
-            * ``l_freq is None and h_freq is not None``: low-pass filter
-
-        ``self.info['lowpass']`` and ``self.info['highpass']`` are only
-        updated with picks=None.
-
-        .. note:: If n_jobs > 1, more memory is required as
-                  ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
-
-        For more information, see the tutorials
-        :ref:`disc-filtering` and :ref:`tut-filter-resample` and
-        :func:`mne.filter.create_filter`.
-        """
-        _check_preload(self, 'raw.filter')
-        update_info, picks = _filt_check_picks(self.info, picks,
-                                               l_freq, h_freq)
-        # Deal with annotations
-        onsets, ends = _annotations_starts_stops(
-            self, skip_by_annotation, 'skip_by_annotation', invert=True)
-        logger.info('Filtering raw data in %d contiguous segment%s'
-                    % (len(onsets), _pl(onsets)))
-        max_idx = (ends - onsets).argmax()
-        for si, (start, stop) in enumerate(zip(onsets, ends)):
-            # Only output filter params once (for info level), and only warn
-            # once about the length criterion (longest segment is too short)
-            use_verbose = verbose if si == max_idx else 'error'
-            filter_data(
-                self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
-                picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
-                n_jobs, method, iir_params, copy=False, phase=phase,
-                fir_window=fir_window, fir_design=fir_design, pad=pad,
-                verbose=use_verbose)
-        # update info if filter is applied to all data channels,
-        # and it's not a band-stop filter
-        _filt_update_info(self.info, update_info, l_freq, h_freq)
-        return self
+               pad='reflect_limited', verbose=None):  # noqa: D102
+        return super().filter(
+            l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
+            h_trans_bandwidth, n_jobs, method, iir_params, phase,
+            fir_window, fir_design, skip_by_annotation, pad, verbose)
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='auto',
@@ -1291,7 +1204,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, pad='reflect_limited', verbose=None):
+                 n_jobs=1, events=None, pad='reflect_limited',
+                 verbose=None):  # lgtm
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
@@ -1403,8 +1317,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         self._data = np.concatenate(new_data, axis=1)
         self.info['sfreq'] = sfreq
-        if self.info.get('lowpass') is not None:
-            self.info['lowpass'] = min(self.info['lowpass'], sfreq / 2.)
+        lowpass = self.info.get('lowpass')
+        lowpass = np.inf if lowpass is None else lowpass
+        self.info['lowpass'] = min(lowpass, sfreq / 2.)
         self._update_times()
 
         # See the comment above why we ignore all errors here.
@@ -1655,19 +1570,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, tmin=0.0, tmax=np.inf, fmin=0, fmax=np.inf,
-                 proj=False, n_fft=None, picks=None, ax=None,
-                 color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, estimate='auto', average=None,
-                 show=True, n_jobs=1, line_alpha=None, spatial_colors=None,
-                 xscale='linear', reject_by_annotation=True, verbose=None):
-        return plot_raw_psd(
-            self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
-            n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
-            area_alpha=area_alpha, n_overlap=n_overlap, dB=dB,
-            estimate=estimate, average=average, show=show, n_jobs=n_jobs,
-            line_alpha=line_alpha, spatial_colors=spatial_colors,
-            xscale=xscale, reject_by_annotation=reject_by_annotation)
+    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
+                 n_fft=None, n_overlap=0, reject_by_annotation=True,
+                 picks=None, ax=None, color='black', xscale='linear',
+                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
+                 show=True, n_jobs=1, average=False, line_alpha=None,
+                 spatial_colors=True, verbose=None):
+        return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+                            proj=proj, n_fft=n_fft, n_overlap=n_overlap,
+                            reject_by_annotation=reject_by_annotation,
+                            picks=picks, ax=ax, color=color, xscale=xscale,
+                            area_mode=area_mode, area_alpha=area_alpha,
+                            dB=dB, estimate=estimate, show=show, n_jobs=n_jobs,
+                            average=average, line_alpha=line_alpha,
+                            spatial_colors=spatial_colors, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
@@ -1939,7 +1855,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Does nothing for objects that close their file descriptors.
         Things like RawFIF will override this method.
         """
-        pass
+        pass  # noqa
 
     def copy(self):
         """Return copy of Raw instance."""
@@ -2394,36 +2310,6 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
         return raws[0]
     else:
         return raws[0], events
-
-
-def _check_update_montage(info, montage, path=None, update_ch_names=False,
-                          raise_missing=True):
-    """Help eeg readers to add montage."""
-    if montage is not None:
-        if not isinstance(montage, (str, Montage)):
-            err = ("Montage must be str, None, or instance of Montage. "
-                   "%s was provided" % type(montage))
-            raise TypeError(err)
-        if montage is not None:
-            if isinstance(montage, str):
-                montage = read_montage(montage, path=path)
-            _set_montage(info, montage, update_ch_names=update_ch_names)
-
-            missing_positions = []
-            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
-                       FIFF.FIFFV_STIM_CH)
-            for ch in info['chs']:
-                if not ch['kind'] in exclude:
-                    if not np.isfinite(ch['loc'][:3]).all():
-                        missing_positions.append(ch['ch_name'])
-
-            # raise error if positions are missing
-            if missing_positions and raise_missing:
-                raise KeyError(
-                    "The following positions are missing from the montage "
-                    "definitions: %s. If those channels lack positions "
-                    "because they are EOG channels use the eog parameter."
-                    % str(missing_positions))
 
 
 def _check_maxshield(allow_maxshield):

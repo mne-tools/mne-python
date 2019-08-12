@@ -62,8 +62,14 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True, **kwargs):
     """
     tempdir = _TempDir()
     rng = np.random.RandomState(0)
+    montage = None
+    if "montage" in kwargs:
+        montage = kwargs['montage']
+        del kwargs['montage']
     if test_preloading:
         raw = reader(preload=True, **kwargs)
+        if montage is not None:
+            raw.set_montage(montage)
         # don't assume the first is preloaded
         buffer_fname = op.join(tempdir, 'buffer')
         picks = rng.permutation(np.arange(len(raw.ch_names) - 1))[:10]

@@ -41,7 +41,7 @@ this package. You can also find a gallery of these examples in the
         glossary.rst
         auto_examples/index.rst
         generated/commands.rst
-        auto_tutorials/intro/plot_configuration.rst
+        auto_tutorials/intro/plot_50_configure_mne.rst
         cited.rst
         faq.rst
 
@@ -58,12 +58,12 @@ this package. You can also find a gallery of these examples in the
     .. toctree::
         :maxdepth: 1
 
-        auto_tutorials/raw/plot_object_raw.rst
+        auto_tutorials/raw/plot_10_raw_overview.rst
         auto_tutorials/epochs/plot_object_epochs.rst
         auto_tutorials/evoked/plot_object_evoked.rst
         auto_tutorials/source-modeling/plot_object_source_estimate.rst
-        auto_tutorials/intro/plot_info.rst
-        auto_tutorials/intro/plot_object_annotations.rst
+        auto_tutorials/intro/plot_30_info.rst
+        auto_tutorials/intro/plot_20_events_from_raw.rst
 
 
 .. collapse:: Data I/O and datasets
@@ -108,8 +108,6 @@ this package. You can also find a gallery of these examples in the
         auto_tutorials/sample-datasets/plot_sleep.rst
         auto_examples/datasets/plot_brainstorm_data.rst
         auto_examples/datasets/plot_opm_data.rst
-        auto_examples/datasets/plot_megsim_data.rst
-        auto_examples/datasets/plot_megsim_data_single_trial.rst
         auto_examples/datasets/spm_faces_dataset.rst
 
 .. collapse:: Preprocessing (filtering, SSP, ICA, Maxwell filtering, ...)
@@ -130,12 +128,12 @@ this package. You can also find a gallery of these examples in the
     .. toctree::
         :maxdepth: 1
 
-        auto_tutorials/preprocessing/plot_artifacts_detection.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_filtering.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_rejection.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_ssp.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_ica.rst
-        auto_tutorials/preprocessing/plot_artifacts_correction_maxwell_filtering.rst
+        auto_tutorials/preprocessing/plot_10_preprocessing_overview.rst
+        auto_tutorials/preprocessing/plot_30_filtering_resampling.rst
+        auto_tutorials/preprocessing/plot_20_rejecting_bad_data.rst
+        auto_tutorials/preprocessing/plot_50_artifact_correction_ssp.rst
+        auto_tutorials/preprocessing/plot_40_artifact_correction_ica.rst
+        auto_tutorials/preprocessing/plot_60_maxwell_filtering_sss.rst
 
 
     .. details:: Examples
@@ -164,7 +162,7 @@ this package. You can also find a gallery of these examples in the
     .. toctree::
         :maxdepth: 1
 
-        auto_tutorials/raw/plot_visualize_raw.rst
+        auto_tutorials/raw/plot_40_visualize_raw.rst
         auto_tutorials/epochs/plot_visualize_epochs.rst
         auto_tutorials/evoked/plot_visualize_evoked.rst
         auto_tutorials/source-modeling/plot_visualize_stc.rst
@@ -198,8 +196,8 @@ this package. You can also find a gallery of these examples in the
     .. toctree::
         :maxdepth: 1
 
-        auto_tutorials/intro/plot_introduction.rst
-        auto_tutorials/intro/plot_epoching_and_averaging.rst
+        auto_tutorials/intro/plot_10_overview.rst
+        auto_tutorials/epochs/plot_epoching_and_averaging.rst
         auto_tutorials/evoked/plot_eeg_erp.rst
         auto_tutorials/time-freq/plot_sensors_time_frequency.rst
         manual/time_frequency.rst
@@ -256,7 +254,6 @@ this package. You can also find a gallery of these examples in the
         .. toctree::
             :maxdepth: 1
 
-            auto_examples/forward/plot_decimate_head_surface.rst
             auto_examples/forward/plot_forward_sensitivity_maps.rst
             auto_examples/forward/plot_left_cerebellum_volume_source.rst
             auto_examples/forward/plot_source_space_morphing.rst

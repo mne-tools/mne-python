@@ -197,4 +197,5 @@ def test_io_egi_crop_no_preload():
     raw_preload.load_data()
     assert_allclose(raw._data, raw_preload._data)
 
+
 run_tests_if_main()

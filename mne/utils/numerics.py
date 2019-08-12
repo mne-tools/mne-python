@@ -21,6 +21,7 @@ from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
+from .linalg import _svd_lwork, _repeated_svd, dgemm, zgemm
 from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
 from .docs import deprecated, fill_doc
 
@@ -86,7 +87,7 @@ def _compute_row_norms(data):
     return norms
 
 
-def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
+def _reg_pinv(x, reg=0, rank='full', rcond=1e-15, svd_lwork=None):
     """Compute a regularized pseudoinverse of a square matrix.
 
     Regularization is performed by adding a constant value to each diagonal
@@ -140,7 +141,9 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
 
     # Decompose the matrix
-    U, s, V = _safe_svd(x)
+    if svd_lwork is None:
+        svd_lwork = _svd_lwork(x.shape, x.dtype)
+    U, s, V = _repeated_svd(x, lwork=svd_lwork)
 
     # Estimate the rank before regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -148,7 +151,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
     # Decompose the matrix again after regularization
     loading_factor = reg * np.mean(s)
-    U, s, V = _safe_svd(x + loading_factor * np.eye(len(x)))
+    U, s, V = _repeated_svd(x + loading_factor * np.eye(len(x)),
+                            lwork=svd_lwork)
 
     # Estimate the rank after regularization
     tol = 'auto' if rcond == 'auto' else rcond * s.max()
@@ -179,7 +183,13 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
 
     # Compute the pseudo inverse
-    x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
+    U *= s_inv
+    if U.dtype == np.float64:
+        gemm = dgemm
+    else:
+        assert U.dtype == np.complex128
+        gemm = zgemm
+    x_inv = gemm(1., U, V).T
 
     if rank is None or rank == 'full':
         return x_inv, loading_factor, rank_before
@@ -287,7 +297,9 @@ def random_permutation(n_samples, random_state=None):
         Randomly permuted sequence between 0 and n-1.
     """
     rng = check_random_state(random_state)
-    idx = rng.rand(n_samples)
+    # This can't just be rng.permutation(n_samples) because it's not identical
+    # to what MATLAB produces
+    idx = rng.uniform(size=n_samples)
     randperm = np.argsort(idx)
     return randperm
 
@@ -703,6 +715,14 @@ def _sort_keys(x):
     return keys
 
 
+def _array_equal_nan(a, b):
+    try:
+        np.testing.assert_array_equal(a, b)
+    except AssertionError:
+        return False
+    return True
+
+
 def object_diff(a, b, pre=''):
     """Compute all differences between two python variables.
 
@@ -734,7 +754,8 @@ def object_diff(a, b, pre=''):
             if key not in k2s:
                 out += pre + ' right missing key %s\n' % key
             else:
-                out += object_diff(a[key], b[key], pre + '[%s]' % repr(key))
+                out += object_diff(a[key], b[key],
+                                   pre=(pre + '[%s]' % repr(key)))
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
@@ -748,7 +769,7 @@ def object_diff(a, b, pre=''):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if not np.array_equal(a, b):
+        if not _array_equal_nan(a, b):
             out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():

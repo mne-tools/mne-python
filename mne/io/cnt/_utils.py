@@ -6,6 +6,9 @@ from struct import Struct
 from collections import namedtuple
 from math import modf
 from datetime import datetime
+from os import SEEK_END
+import numpy as np
+
 
 from ...utils import warn
 
@@ -93,3 +96,47 @@ def _session_date_2_meas_date(session_date, date_format):
         return None
     else:
         return (int_part, frac_part)
+
+
+def _compute_robust_event_table_position(fid, data_format='int32'):
+    """Compute `event_table_position`.
+
+    When recording event_table_position is computed (as accomulation). If the
+    file recording is large then this value overflows and ends up pointing
+    somewhere else. (SEE #gh-6535)
+
+    If the file is smaller than 2G the value in the SETUP is returned.
+    Otherwise, the address of the table position is computed from:
+    n_samples, n_channels, and the bytes size.
+    """
+    SETUP_NCHANNELS_OFFSET = 370
+    SETUP_NSAMPLES_OFFSET = 864
+    SETUP_EVENTTABLEPOS_OFFSET = 886
+
+    fid_origin = fid.tell()  # save the state
+
+    if fid.seek(0, SEEK_END) < 2e9:
+
+        fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
+        (event_table_pos,) = np.frombuffer(fid.read(4), dtype='<i4')
+
+    else:
+        if data_format == 'auto':
+            warn('Using `data_format=\'auto\' for a CNT file larger'
+                 ' than 2Gb is not granted to work. Please pass'
+                 ' \'int16\' or \'int32\'.` (assuming int32)')
+
+        n_bytes = 2 if data_format == 'int16' else 4
+
+        fid.seek(SETUP_NSAMPLES_OFFSET)
+        (n_samples,) = np.frombuffer(fid.read(4), dtype='<i4')
+
+        fid.seek(SETUP_NCHANNELS_OFFSET)
+        (n_channels,) = np.frombuffer(fid.read(2), dtype='<u2')
+
+        event_table_pos = (900 +
+                           75 * int(n_channels) +
+                           n_bytes * int(n_channels) * int(n_samples))
+
+    fid.seek(fid_origin)  # restore the state
+    return event_table_pos

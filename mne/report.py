@@ -1617,7 +1617,6 @@ class Report(object):
         """Save the report when leaving the context block."""
         if self._fname is not None:
             self.save(self._fname, open_browser=False, overwrite=True)
-        return self
 
     @verbose
     def _render_toc(self, verbose=None):

@@ -360,9 +360,6 @@ class Annotations(object):
         if tmin > tmax:
             raise ValueError('tmax should be greater than tmin.')
 
-        if tmin < 0:
-            raise ValueError('tmin should be positive.')
-
         out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
 
         # clip the left side
@@ -554,8 +551,8 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vrmk, .edf, .txt, .csv or .set file
-    and makes an :class:`mne.Annotations` object.
+    This function reads a .fif, .fif.gz, .vrmk, .edf, .txt, .csv .cnt, .cef,
+    or .set file and makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
@@ -563,11 +560,13 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         The filename.
     sfreq : float | 'auto'
         The sampling frequency in the file. This parameter is necessary for
-        \*.vmrk files as Annotations are expressed in seconds and \*.vmrk files
-        are in samples. For any other file format, ``sfreq`` is omitted.
-        If set to 'auto' then the ``sfreq`` is taken from the \*.vhdr
-        file that has the same name (without file extension). So data.vrmk
-        looks for sfreq in data.vhdr.
+        \*.vmrk and \*.cef files as Annotations are expressed in seconds and
+        \*.vmrk/\*.cef files are in samples. For any other file format,
+        ``sfreq`` is omitted. If set to 'auto' then the ``sfreq`` is taken
+        from the respective info file of the same name with according file
+        extension (\*.vhdr for brainvision; \*.dap for Curry 7; \*.cdt.dpa for
+        Curry 8). So data.vrmk looks for sfreq in data.vhdr, data.cef looks in
+        data.dap and data.cdt.cef looks in data.cdt.dpa.
     uint16_codec : str | None
         This parameter is only used in EEGLAB (\*.set) and omitted otherwise.
         If your \*.set file contains non-ascii characters, sometimes reading
@@ -591,6 +590,8 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.eeglab.eeglab import _read_annotations_eeglab
     from .io.edf.edf import _read_annotations_edf
     from .io.cnt.cnt import _read_annotations_cnt
+    from .io.curry.curry import _read_annotations_curry
+    from .io.ctf.markers import _read_annotations_ctf
 
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
@@ -613,6 +614,12 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     elif name.endswith('cnt'):
         annotations = _read_annotations_cnt(fname)
+
+    elif name.endswith('ds'):
+        annotations = _read_annotations_ctf(fname)
+
+    elif name.endswith('cef'):
+        annotations = _read_annotations_curry(fname, sfreq=sfreq)
 
     elif name.endswith('set'):
         annotations = _read_annotations_eeglab(fname,

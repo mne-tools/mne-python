@@ -24,7 +24,6 @@ public_modules = [
     'mne.datasets',
     'mne.datasets.brainstorm',
     'mne.datasets.hf_sef',
-    'mne.datasets.megsim',
     'mne.datasets.sample',
     'mne.decoding',
     'mne.dipole',
@@ -67,7 +66,6 @@ docstring_ignores = [
 ]
 char_limit = 800  # XX eventually we should probably get this lower
 docstring_length_ignores = [
-    'mne.viz.evoked.plot_compare_evokeds::cmap',
     'mne.filter.construct_iir_filter::iir_params',
 ]
 tab_ignores = [
@@ -216,7 +214,6 @@ BaseEstimator
 ContainsMixin
 CrossSpectralDensity
 FilterMixin
-HilbertMixin
 GeneralizationAcrossTime
 RawFIF
 TimeMixin

@@ -99,17 +99,17 @@ def channel_type(info, idx):
 
     Parameters
     ----------
-    info : dict
-        Measurement info
+    info : instance of Info
+        A measurement info object.
     idx : int
-        Index of channel
+        Index of channel.
 
     Returns
     -------
     type : str
         Type of channel. Will be one of::
 
-            {'grad','mag', 'eeg', 'stim', 'eog', 'emg', 'ecg', 'ref_meg',
+            {'grad', 'mag', 'eeg', 'stim', 'eog', 'emg', 'ecg', 'ref_meg',
              'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'bio', 'chpi',
              'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
 
@@ -538,7 +538,7 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
 
 @verbose
 def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
-                          verbose=None):
+                          copy=True, verbose=None):
     """Pick channels from forward operator.
 
     Parameters
@@ -556,6 +556,10 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
         rather than a set.
 
         .. versionadded:: 0.18
+    copy : bool
+        If True (default), make a copy.
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Returns
@@ -566,7 +570,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     """
     orig['info']._check_consistency()
     if len(include) == 0 and len(exclude) == 0:
-        return orig
+        return orig.copy() if copy else orig
     exclude = _check_excludes_includes(exclude,
                                        info=orig['info'], allow_bads=True)
 
@@ -577,7 +581,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     sel_info = pick_channels(orig['info']['ch_names'], include=include,
                              exclude=exclude, ordered=ordered)
 
-    fwd = deepcopy(orig)
+    fwd = deepcopy(orig) if copy else orig
 
     # Check that forward solution and original data file agree on #channels
     if len(sel_sol) != len(sel_info):
@@ -663,15 +667,15 @@ def channel_indices_by_type(info, picks=None):
 
     Parameters
     ----------
-    info : instance of mne.measuerment_info.Info
-        The info.
+    info : instance of Info
+        A measurement info object.
     %(picks_all)s
 
     Returns
     -------
     idx_by_type : dict
-        The dictionary that maps each channel type to the list of
-        channel indidces.
+        A dictionary that maps each channel type to a (possibly empty) list of
+        channel indices.
     """
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
                    key not in ('meg', 'fnirs')}
@@ -848,9 +852,9 @@ _PICK_TYPES_DATA_DICT = dict(
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
 _DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr')
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
-                                'reg_mag', 'misc', 'stim', 'resp', 'chpi',
-                                'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
-                                'hbo', 'hbr', 'whitened')
+                                'ref_meg', 'misc', 'stim', 'resp',
+                                'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
+                                'ecog', 'hbo', 'hbr', 'whitened')
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',

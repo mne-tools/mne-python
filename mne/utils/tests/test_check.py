@@ -4,7 +4,9 @@
 #
 # License: BSD (3-clause)
 import os.path as op
-import shutil as sh
+import shutil
+
+import numpy as np
 import pytest
 
 import mne
@@ -12,8 +14,8 @@ from mne.datasets import testing
 from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
-                       _check_mayavi_version, _check_info_inv, _check_option)
-
+                       _check_mayavi_version, _check_info_inv, _check_option,
+                       check_version)
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -31,9 +33,15 @@ def test_check():
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
     pytest.raises(TypeError, _check_subject, 1, None)
+    # smoke tests for permitted types
+    check_random_state(None).choice(1)
+    check_random_state(0).choice(1)
+    check_random_state(np.random.RandomState(0)).choice(1)
+    if check_version('numpy', '1.17'):
+        check_random_state(np.random.default_rng(0)).choice(1)
 
     # _meg.fif is a valid ending and should not raise an error
-    sh.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))
+    shutil.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))
     mne.io.read_raw_fif(fname_raw.replace('_raw.', '_meg.'))
 
 

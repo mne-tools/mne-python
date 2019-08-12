@@ -57,17 +57,6 @@ def _fake_fetch_file(url, destination, print_destination=False):
         fid.write(url)
 
 
-def test_megsim(tmpdir, monkeypatch):
-    """Test MEGSIM URL handling."""
-    # Save some time by just faking the download
-    monkeypatch.setattr(datasets.megsim.megsim, '_fetch_file',
-                        _fake_fetch_file)
-    paths = datasets.megsim.load_data(
-        'index', 'text', 'text', path=str(tmpdir), update_path=False)
-    assert len(paths) == 1
-    assert paths[0].endswith('index.html')
-
-
 @requires_good_network
 def test_downloads(tmpdir):
     """Test dataset URL handling."""

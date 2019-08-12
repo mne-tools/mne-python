@@ -30,12 +30,14 @@ from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
-                       pick_info, _picks_by_type, pick_channels_cov)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
+                       pick_info, _picks_by_type, pick_channels_cov,
+                       _picks_to_idx)
+from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, set_config, warn, _check_ch_locs, _check_option,
-                     logger)
+                     logger, fill_doc)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -55,7 +57,7 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     For the normal use-case (when `vmin` and `vmax` are None), the parameter
     `norm` drives the computation. When norm=False, data is supposed to come
     from a mag and the output tuple (vmin, vmax) is symmetric range
-    (-x, x) where x is the max(abs(data)). When norm=False (aka data is the L2
+    (-x, x) where x is the max(abs(data)). When norm=True (aka data is the L2
     norm of a gradiometer pair) the output tuple corresponds to (0, x).
 
     Otherwise, vmin and vmax are callables that drive the operation.
@@ -2374,77 +2376,75 @@ def _set_ax_facecolor(ax, face_color):
         ax.set_axis_bgcolor(face_color)
 
 
-def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
-                     ymax_bound=None, unit=None, truncate_xaxis=True,
-                     skip_axlabel=True):
-    ymin, ymax = axes.get_ylim()
-    y_range = -np.subtract(ymin, ymax)
-
-    # style the spines/axes
-    axes.spines["top"].set_position('zero')
-    if truncate_xaxis:
-        axes.spines["top"].set_smart_bounds(True)
+def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
+                     unit=None, truncate_xaxis=True, truncate_yaxis=True,
+                     skip_axlabel=False, hline=True):
+    # don't show zero line if it coincides with x-axis (even if hline=True)
+    if hline and ymin != 0.:
+        axes.spines['top'].set_position('zero')
     else:
-        axes.spines['top'].set_bounds(tmin, tmax)
-
-    axes.tick_params(direction='out')
-    axes.tick_params(right=False)
-
-    current_ymin = axes.get_ylim()[0]
-
-    # set x label
-    if not skip_axlabel:
-        axes.set_xlabel('Time (s)')
-    axes.xaxis.get_label().set_verticalalignment('center')
-
-    # set y label and ylabel position
-    if unit is not None:
-        if not skip_axlabel:
-            axes.set_ylabel(unit + "\n", rotation=90)
-        ylabel_height = (-(current_ymin / y_range)
-                         if 0 > current_ymin  # ... if we have negative values
-                         else (axes.get_yticks()[-1] / 2 / y_range))
-        axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
-                                    if invert_y else ylabel_height)
-
+        axes.spines['top'].set_visible(False)
     # the axes can become very small with topo plotting. This prevents the
     # x-axis from shrinking to length zero if truncate_xaxis=True, by adding
     # new ticks that are nice round numbers close to (but less extreme than)
-    # tmin and tmax
+    # xmin and xmax
     vlines = [] if vlines is None else vlines
-    xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
-    ticks_in_range = [t for t in xticks if tmax >= t >= tmin]
-    if len(ticks_in_range) < 2:
+    xticks = _trim_ticks(axes.get_xticks(), xmin, xmax)
+    xticks = np.array(sorted(set([x for x in xticks] + vlines)))
+    if len(xticks) < 2:
         def log_fix(tval):
             exp = np.log10(np.abs(tval))
             return np.sign(tval) * 10 ** (np.fix(exp) - (exp < 0))
-        tlims = np.array([tmin, tmax])
-        temp_ticks = log_fix(tlims)
-        closer_idx = np.argmin(np.abs(tlims - temp_ticks))
-        further_idx = np.argmax(np.abs(tlims - temp_ticks))
-        start_stop = [temp_ticks[closer_idx], tlims[further_idx]]
+        xlims = np.array([xmin, xmax])
+        temp_ticks = log_fix(xlims)
+        closer_idx = np.argmin(np.abs(xlims - temp_ticks))
+        further_idx = np.argmax(np.abs(xlims - temp_ticks))
+        start_stop = [temp_ticks[closer_idx], xlims[further_idx]]
         step = np.sign(np.diff(start_stop)) * np.max(np.abs(temp_ticks))
         tts = np.arange(*start_stop, step)
-        ticks_in_range = sorted(ticks_in_range + [tts[0]] + [tts[-1]])
-
-    if truncate_xaxis:
-        axes.spines['bottom'].set_bounds(ticks_in_range[0], ticks_in_range[-1])
+        xticks = np.array(sorted(xticks + [tts[0], tts[-1]]))
+    axes.set_xticks(xticks)
+    # y-axis is simpler
+    yticks = _trim_ticks(axes.get_yticks(), ymin, ymax)
+    axes.set_yticks(yticks)
+    # truncation case 1: truncate both
+    if truncate_xaxis and truncate_yaxis:
+        axes.spines['bottom'].set_bounds(*xticks[[0, -1]])
+        axes.spines['left'].set_bounds(*yticks[[0, -1]])
+    # case 2: truncate only x (only right side; connect to y at left)
+    elif truncate_xaxis:
+        xbounds = np.array(axes.get_xlim())
+        xbounds[1] = axes.get_xticks()[-1]
+        axes.spines['bottom'].set_bounds(*xbounds)
+    # case 3: truncate only y (only top; connect to x at bottom)
+    elif truncate_yaxis:
+        ybounds = np.array(axes.get_ylim())
+        if invert_y:
+            ybounds[0] = axes.get_yticks()[0]
+        else:
+            ybounds[1] = axes.get_yticks()[-1]
+        axes.spines['left'].set_bounds(*ybounds)
+    # handle axis labels
+    if skip_axlabel:
+        axes.set_yticklabels([])
+        axes.set_xticklabels([])
     else:
-        axes.spines['bottom'].set_bounds(tmin, tmax)
-    if ymin >= 0:
-        axes.spines["top"].set_color('none')
-    axes.spines["left"].set_zorder(0)
-    axes.set_xticks(ticks_in_range)
-
-    # finishing touches
+        if unit is not None:
+            axes.set_ylabel(unit, rotation=90)
+        axes.set_xlabel('Time (s)')
+    # plot vertical lines
+    if vlines:
+        _ymin, _ymax = axes.get_ylim()
+        axes.vlines(vlines, _ymax, _ymin, linestyles='--', colors='k',
+                    linewidth=1., zorder=1)
+    # invert?
     if invert_y:
         axes.invert_yaxis()
-    axes.spines['right'].set_color('none')
-    if tmin != tmax:
-        axes.set_xlim(tmin, tmax)
-    if truncate_xaxis is False:
-        axes.axis("tight")
-        axes.set_autoscale_on(False)
+    # changes we always make:
+    axes.tick_params(direction='out')
+    axes.tick_params(right=False)
+    axes.spines['right'].set_visible(False)
+    axes.spines['left'].set_zorder(0)
 
 
 def _handle_decim(info, decim, lowpass):
@@ -2463,21 +2463,6 @@ def _handle_decim(info, decim, lowpass):
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
-
-
-def _grad_pair_pick_and_name(info, picks):
-    """Deal with grads. (Helper for a few viz functions)."""
-    from ..channels.layout import _pair_grad_sensors
-    picked_chans = list()
-    pairpicks = _pair_grad_sensors(info, topomap_coords=False)
-    for ii in np.arange(0, len(pairpicks), 2):
-        first, second = pairpicks[ii], pairpicks[ii + 1]
-        if first in picks or second in picks:
-            picked_chans.append(first)
-            picked_chans.append(second)
-    picks = list(sorted(set(picked_chans)))
-    ch_names = [info["ch_names"][pick] for pick in picks]
-    return picks, ch_names
 
 
 def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
@@ -2643,7 +2628,7 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
         if len(ch_names) > 1:
             ch_type += "s"
         if all is True and isinstance(combine, str):
-            combine = combine[0].upper() + combine[1:]
+            combine = combine.capitalize()
             title = "{} of {} {}".format(
                 combine, len(ch_names), ch_type)
         elif len(ch_names) > max_chans and combine != "gfp":
@@ -2804,6 +2789,33 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     return im, t_end
 
 
+@fill_doc
+def _make_combine_callable(combine):
+    """Convert None or string values of ``combine`` into callables.
+
+    Params
+    ------
+    %(combine)s
+        If callable, the callable must accept one positional input (data of
+        shape ``(n_epochs, n_channels, n_times)`` or ``(n_evokeds, n_channels,
+        n_times)``) and return an :class:`array <numpy.ndarray>` of shape
+        ``(n_epochs, n_times)`` or ``(n_evokeds, n_times)``.
+    """
+    if combine is None:
+        combine = partial(np.squeeze, axis=1)
+    elif isinstance(combine, str):
+        combine_dict = {key: partial(getattr(np, key), axis=1)
+                        for key in ('mean', 'median', 'std')}
+        combine_dict['gfp'] = lambda data: np.sqrt((data ** 2).mean(axis=1))
+        try:
+            combine = combine_dict[combine]
+        except KeyError:
+            raise ValueError('"combine" must be None, a callable, or one of '
+                             '"mean", "median", "std", or "gfp"; got {}'
+                             ''.format(combine))
+    return combine
+
+
 def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     """Center given colormap (ranging from vmin to vmax) at value 0.
 
@@ -2847,3 +2859,215 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
         for color, name in zip(cmap(old), colors):
             cdict[name].append((new, color, color))
     return LinearSegmentedColormap(name, cdict)
+
+
+def _set_psd_plot_params(info, proj, picks, ax, area_mode):
+    """Set PSD plot params."""
+    import matplotlib.pyplot as plt
+    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
+    _check_option('area_mode', area_mode, [None, 'std', 'range'])
+    picks = _picks_to_idx(info, picks)
+
+    # XXX this could be refactored more with e.g., plot_evoked
+    # XXX when it's refactored, Report._render_raw will need to be updated
+    megs = ['mag', 'grad', False, False, False]
+    eegs = [False, False, True, False, False]
+    seegs = [False, False, False, True, False]
+    ecogs = [False, False, False, False, True]
+    titles = _handle_default('titles', None)
+    units = _handle_default('units', None)
+    scalings = _handle_default('scalings', None)
+    picks_list = list()
+    titles_list = list()
+    units_list = list()
+    scalings_list = list()
+    for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
+                                          _data_types):
+        these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
+                                 ref_meg=False)
+        these_picks = np.intersect1d(these_picks, picks)
+        if len(these_picks) > 0:
+            picks_list.append(these_picks)
+            titles_list.append(titles[name])
+            units_list.append(units[name])
+            scalings_list.append(scalings[name])
+    if len(picks_list) == 0:
+        raise RuntimeError('No data channels found')
+    if ax is not None:
+        if isinstance(ax, plt.Axes):
+            ax = [ax]
+        if len(ax) != len(picks_list):
+            raise ValueError('For this dataset with picks=None %s axes '
+                             'must be supplied, got %s'
+                             % (len(picks_list), len(ax)))
+        ax_list = ax
+    del picks
+
+    fig = None
+    if ax is None:
+        fig = plt.figure()
+        ax_list = list()
+        for ii in range(len(picks_list)):
+            # Make x-axes change together
+            if ii > 0:
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
+                                           sharex=ax_list[0]))
+            else:
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
+        make_label = True
+    else:
+        fig = ax_list[0].get_figure()
+        make_label = len(ax_list) == len(fig.axes)
+
+    return (fig, picks_list, titles_list, units_list, scalings_list,
+            ax_list, make_label)
+
+
+def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
+    """Convert PSDs to dB (if necessary) and appropriate units.
+
+    The following table summarizes the relationship between the value of
+    parameters ``dB`` and ``estimate``, and the type of plot and corresponding
+    units.
+
+    | dB    | estimate    | plot | units             |
+    |-------+-------------+------+-------------------|
+    | True  | 'power'     | PSD  | amp**2/Hz (dB)    |
+    | True  | 'amplitude' | ASD  | amp/sqrt(Hz) (dB) |
+    | True  | 'auto'      | PSD  | amp**2/Hz (dB)    |
+    | False | 'power'     | PSD  | amp**2/Hz         |
+    | False | 'amplitude' | ASD  | amp/sqrt(Hz)      |
+    | False | 'auto'      | ASD  | amp/sqrt(Hz)      |
+
+    where amp are the units corresponding to the variable, as specified by
+    ``unit``.
+    """
+    where = np.where(psds.min(1) <= 0)[0]
+    dead_ch = ', '.join(ch_names[ii] for ii in where)
+    if len(where) > 0:
+        if dB:
+            msg = "Infinite value in PSD for channel(s) %s. " \
+                  "These channels might be dead." % dead_ch
+        else:
+            msg = "Zero value in PSD for channel(s) %s. " \
+                  "These channels might be dead." % dead_ch
+        warn(msg, UserWarning)
+
+    if estimate == 'auto':
+        estimate = 'power' if dB else 'amplitude'
+
+    if estimate == 'amplitude':
+        np.sqrt(psds, out=psds)
+        psds *= scaling
+        ylabel = r'$\mathrm{%s / \sqrt{Hz}}$' % unit
+    else:
+        psds *= scaling * scaling
+        ylabel = r'$\mathrm{%s^2/Hz}$' % unit
+
+    if dB:
+        np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
+        psds *= 10
+        ylabel += r'$\ \mathrm{(dB)}$'
+
+    return ylabel
+
+
+def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
+              units_list, scalings_list, ax_list, make_label, color, area_mode,
+              area_alpha, dB, estimate, average, spatial_colors, xscale,
+              line_alpha):
+    # helper function for plot_raw_psd and plot_epochs_psd
+    from matplotlib.ticker import ScalarFormatter
+    from .evoked import _plot_lines
+
+    for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
+                       ['--', '--', '-.']):
+        if inst.info[key] is not None:
+            for ax in ax_list:
+                ax.axvline(inst.info[key], color='k', linestyle=ls,
+                           alpha=0.25, linewidth=2, zorder=2)
+    if line_alpha is None:
+        line_alpha = 1.0 if average else 0.75
+    line_alpha = float(line_alpha)
+    ylabels = list()
+    for ii, (psd, picks, title, ax, scalings, units) in enumerate(zip(
+                                                                  psd_list,
+                                                                  picks_list,
+                                                                  titles_list,
+                                                                  ax_list,
+                                                                  scalings_list, # noqa
+                                                                  units_list)):
+        ylabel = _convert_psds(psd, dB, estimate, scalings, units,
+                               [inst.ch_names[pi] for pi in picks])
+        ylabels.append(ylabel)
+
+        if average:
+            # mean across channels
+            psd_mean = np.mean(psd, axis=0)
+            if area_mode == 'std':
+                # std across channels
+                psd_std = np.std(psd, axis=0)
+                hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+            elif area_mode == 'range':
+                hyp_limits = (np.min(psd, axis=0),
+                              np.max(psd, axis=0))
+            else:  # area_mode is None
+                hyp_limits = None
+
+            ax.plot(freqs, psd_mean, color=color, alpha=line_alpha,
+                    linewidth=0.5)
+            if hyp_limits is not None:
+                ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                                color=color, alpha=area_alpha)
+
+    if not average:
+        picks = np.concatenate(picks_list)
+        psd_list = np.concatenate(psd_list)
+        types = np.array([channel_type(inst.info, idx) for idx in picks])
+        # Needed because the data do not match the info anymore.
+        info = create_info([inst.ch_names[p] for p in picks],
+                           inst.info['sfreq'], types)
+        info['chs'] = [inst.info['chs'][p] for p in picks]
+        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
+                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+                               'hbr', 'misc']
+        ch_types_used = list()
+        for this_type in valid_channel_types:
+            if this_type in types:
+                ch_types_used.append(this_type)
+        assert len(ch_types_used) == len(ax_list)
+        unit = ''
+        units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
+        titles = {c: t for c, t in zip(ch_types_used, titles_list)}
+        picks = np.arange(len(psd_list))
+        if not spatial_colors:
+            spatial_colors = color
+        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+                    unit, units=units, scalings=None, hline=None, gfp=False,
+                    types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
+                    ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
+                    ch_types_used=ch_types_used, selectable=True, psd=True,
+                    line_alpha=line_alpha, nave=None)
+    for ii, (ax, title) in enumerate(zip(ax_list, titles_list)):
+        ax.grid(True, linestyle=':')
+        if xscale == 'log':
+            ax.set(xscale='log')
+            ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
+            ax.get_xaxis().set_major_formatter(ScalarFormatter())
+        else:
+            ax.set(xlim=(freqs[0], freqs[-1]))
+        if make_label:
+            if ii == len(picks_list) - 1:
+                ax.set_xlabel('Frequency (Hz)')
+            ax.set_ylabel(ylabel)
+            ax.set_title(title)
+    if make_label:
+        fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
+                            hspace=0.5)
+    return fig
+
+
+def _trim_ticks(ticks, _min, _max):
+    """Remove ticks that are more extreme than the given limits."""
+    keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
+    return ticks[keep]

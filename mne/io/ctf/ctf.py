@@ -20,6 +20,7 @@ from .eeg import _read_eeg, _read_pos
 from .trans import _make_ctf_coord_trans_set
 from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
+from .markers import _read_annotations_ctf_call
 
 from ...digitization.base import _format_dig_points
 
@@ -38,12 +39,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
         the data file when the system clock drops to zero, and use "ignore"
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
@@ -79,12 +75,7 @@ class RawCTF(BaseRaw):
         the data file when the system clock drops to zero, and use "ignore"
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
@@ -150,7 +141,14 @@ class RawCTF(BaseRaw):
 
         # Add bad segments as Annotations (correct for start time)
         start_time = -res4['pre_trig_pts'] / float(info['sfreq'])
-        self.set_annotations(_annotate_bad_segments(directory, start_time))
+        annot = _annotate_bad_segments(directory, start_time)
+        marker_annot = _read_annotations_ctf_call(
+            directory=directory,
+            total_offset=(res4['pre_trig_pts'] / res4['sfreq']),
+            trial_duration=(res4['nsamp'] / res4['sfreq']),
+        )
+        annot = marker_annot if annot is None else annot + marker_annot
+        self.set_annotations(annot)
 
         if clean_names:
             self._clean_names()

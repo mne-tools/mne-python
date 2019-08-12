@@ -58,6 +58,7 @@ Reading raw data
    read_raw_bti
    read_raw_cnt
    read_raw_ctf
+   read_raw_curry
    read_raw_edf
    read_raw_bdf
    read_raw_gdf
@@ -99,6 +100,8 @@ File I/O
    :toctree: generated
 
    decimate_surface
+   channel_type
+   channel_indices_by_type
    get_head_surf
    get_meg_helmet_surf
    get_volume_labels_from_aseg
@@ -188,8 +191,6 @@ Datasets
    fetch_hcp_mmp_parcellation
    hf_sef.data_path
    kiloword.data_path
-   megsim.data_path
-   megsim.load_data
    misc.data_path
    mtrf.data_path
    multimodal.data_path
@@ -254,6 +255,7 @@ Visualization
    plot_raw
    plot_raw_psd
    plot_sensors
+   plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
    plot_volume_source_estimates
@@ -268,6 +270,9 @@ Visualization
    set_3d_backend
    get_3d_backend
    use_3d_backend
+   set_3d_view
+   set_3d_title
+   create_3d_figure
 
 
 Preprocessing
@@ -545,6 +550,7 @@ Forward Modeling
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   dig_mri_distances
    forward.compute_depth_prior
    forward.compute_orient_prior
    forward.restrict_forward_to_label
@@ -863,6 +869,7 @@ Non-parametric (clustering) resampling methods:
    spatio_temporal_cluster_test
    spatio_temporal_cluster_1samp_test
    summarize_clusters_stc
+   bootstrap_confidence_interval
 
 Compute ``connectivity`` matrices for cluster-level statistics:
 

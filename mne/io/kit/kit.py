@@ -93,12 +93,7 @@ class RawKIT(BaseRaw):
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event. If None, stim must also be set to None.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     stim_code : 'binary' | 'channel'
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.
@@ -762,9 +757,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    %(preload)s
     stim_code : 'binary' | 'channel'
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.

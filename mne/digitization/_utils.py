@@ -253,7 +253,11 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     if dig_ch_pos is not None:
         keys = sorted(dig_ch_pos.keys())
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
-            idents = [int(key[-3:]) for key in keys]
+            idents = []
+            for key in keys:
+                if not isinstance(key, str):
+                    raise ValueError()
+                idents.append(int(key[-3:]))
         except ValueError:  # and if any conversion fails, simply use arange
             idents = np.arange(1, len(keys) + 1)
         for key, ident in zip(keys, idents):

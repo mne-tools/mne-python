@@ -28,10 +28,27 @@ Overview of the MNE tools suite
 - :doc:`MNE-CPP <../mne_cpp>` provides core MNE functionality implemented in
   C++ and is primarily intended for embedded and real-time applications.
 
-There are also Python tools for easily importing MEG data from the Human
-Connectome Project for use with MNE-Python (`MNE-HCP`_), and tools for
-managing MNE projects so that they comply with the
-`Brain Imaging Data Structure`_ specification (`MNE-BIDS`_).
+There is also a growing ecosystem of other Python packages that work alongside
+MNE-Python, including packages for:
+
+- a graphical user interface for MNE-Python (`MNELAB`_)
+- easily importing MEG data from the Human Connectome Project for
+  use with MNE-Python (`MNE-HCP`_)
+- managing MNE projects so that they comply with the `Brain
+  Imaging Data Structure`_ specification (`MNE-BIDS`_)
+- automatic bad channel detection and interpolation (`autoreject`_)
+- convolutional sparse dictionary learning and waveform shape estimation
+  (`alphaCSC`_)
+- independent component analysis (ICA) with good performance on real data
+  (`PICARD`_)
+- phase-amplitude coupling (`pactools`_)
+- representational similarity analysis (`rsa`_)
+- microstate analysis (`microstate`_)
+- connectivity analysis using dynamic imaging of coherent sources (DICS)
+  (`conpy`_)
+- general-purpose statistical analysis of M/EEG data (`eelbrain`_)
+- post-hoc modification of linear models (`posthoc`_)
+
 
 What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -69,3 +86,17 @@ simplify your example script to only the elements necessary to replicate the
 bug.
 
 **Next:** :doc:`mne_python`
+
+
+.. LINKS:
+
+.. _MNELAB: https://github.com/cbrnr/mnelab
+.. _autoreject: https://autoreject.github.io/
+.. _alphaCSC: https://alphacsc.github.io/
+.. _picard: https://pierreablin.github.io/picard/
+.. _pactools: https://pactools.github.io/
+.. _rsa: https://github.com/wmvanvliet/rsa
+.. _microstate: https://github.com/wmvanvliet/mne_microstates
+.. _conpy: https://aaltoimaginglanguage.github.io/conpy/
+.. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html
+.. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/

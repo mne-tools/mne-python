@@ -1,6 +1,7 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal, assert_allclose
+from scipy.signal import welch
 import pytest
 
 from mne import pick_types, Epochs, read_events
@@ -182,10 +183,10 @@ def test_compares_psd():
     # Compute psds with plt.psd
     start, stop = raw.time_as_index([tmin, tmax])
     data, times = raw[picks, start:(stop + 1)]
-    from matplotlib.pyplot import psd
-    out = [psd(d, Fs=raw.info['sfreq'], NFFT=n_fft) for d in data]
-    freqs_mpl = out[0][1]
-    psds_mpl = np.array([o[0] for o in out])
+    out = [welch(d, fs=raw.info['sfreq'], nperseg=n_fft, noverlap=0)
+           for d in data]
+    freqs_mpl = out[0][0]
+    psds_mpl = np.array([o[1] for o in out])
 
     mask = (freqs_mpl >= fmin) & (freqs_mpl <= fmax)
     freqs_mpl = freqs_mpl[mask]

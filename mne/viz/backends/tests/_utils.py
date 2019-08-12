@@ -12,7 +12,9 @@ import warnings
 def has_pyvista():
     """Check that pyvista is installed."""
     try:
-        import pyvista  # noqa: F401
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            import pyvista  # noqa: F401
         return True
     except ImportError:
         return False

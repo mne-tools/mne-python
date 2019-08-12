@@ -13,8 +13,6 @@ across the cortical surface.
 #
 # License: BSD (3-clause)
 
-from mayavi import mlab
-
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, point_spread_function
@@ -66,12 +64,12 @@ stc_psf_meg, _ = point_spread_function(
 time_label = "EEGMEG %d"
 brain_eegmeg = stc_psf_eegmeg.plot(hemi='rh', subjects_dir=subjects_dir,
                                    time_label=time_label,
-                                   figure=mlab.figure(size=(500, 500)))
+                                   figure=1, size=500)
 
 time_label = "MEG %d"
 brain_meg = stc_psf_meg.plot(hemi='rh', subjects_dir=subjects_dir,
                              time_label=time_label,
-                             figure=mlab.figure(size=(500, 500)))
+                             figure=2, size=500)
 
 # The PSF is centred around the right auditory cortex label,
 # but clearly extends beyond it.
