@@ -562,9 +562,68 @@ def _create_tapers(method, sfreq, freqs, n_cycles, zero_mean, time_bandwidth):
     return Ws
 
 
+# FIXME: n_jobs is not needed here, but still needs to be passed since it's a
+# tfr_param. This should be fixed
 def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
                    zero_mean=None, time_bandwidth=None, use_fft=True, decim=1,
                    output='complex', n_jobs=None, verbose=None):
+    """Compute time-frequency transforms for lists of SourceEstimate types.
+
+    Parameters
+    ----------
+    epoch_data : array of shape (n_epochs, n_channels, n_times)
+        The epochs.
+    freqs : array-like of floats, shape (n_freqs)
+        The frequencies.
+    method : 'multitaper' | 'morlet', default 'morlet'
+        The time-frequency method. 'morlet' convolves a Morlet wavelet.
+        'multitaper' uses Morlet wavelets windowed with multiple DPSS
+        multitapers.
+    n_cycles : float | array of float, default 7.0
+        Number of cycles  in the Morlet wavelet. Fixed number
+        or one per frequency.
+    zero_mean : bool | None, default None
+        None means True for method='multitaper' and False for method='morlet'.
+        If True, make sure the wavelets have a mean of zero.
+    time_bandwidth : float, default None
+        If None and method=multitaper, will be set to 4.0 (3 tapers).
+        Time x (Full) Bandwidth product. Only applies if
+        method == 'multitaper'. The number of good tapers (low-bias) is
+        chosen automatically based on this to equal floor(time_bandwidth - 1).
+    use_fft : bool, default True
+        Use the FFT for convolutions or not.
+    decim : int | slice, default 1
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition.
+        If `int`, returns tfr[..., ::decim].
+        If `slice`, returns tfr[..., decim].
+
+        .. note::
+            Decimation may create aliasing artifacts, yet decimation
+            is done after the convolutions.
+
+    output : str, default 'complex'
+
+        * 'complex' : single trial complex.
+        * 'power' : single trial power.
+        * 'phase' : single trial phase.
+        * 'avg_power' : average of single trial power.
+        * 'itc' : inter-trial coherence.
+        * 'avg_power_itc' : average of single trial power and inter-trial
+          coherence across trials.
+    n_jobs : int | str
+        Will bee ignored for this function.
+    %(verbose)s
+
+    Returns
+    -------
+    out : array
+        Time frequency transform of SourceEstimate. If output is in ['complex',
+        'phase', 'power'], then shape of out is (n_dipoles, n_epochs, n_freqs,
+        n_times), else it is (n_dipoles, n_freqs, n_times). If output is
+        'avg_power_itc', the real values code for 'avg_power' and the
+        imaginary values code for the 'itc': out = avg_power + i * itc
+    """
     """Equivalent to _compute_tfr and _time_frequency_loop for stc lists."""
     from ..source_estimate import (_BaseSourceEstimate, VectorSourceEstimate,
                                    VolVectorSourceEstimate)
