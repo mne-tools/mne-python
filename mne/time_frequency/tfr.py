@@ -624,7 +624,6 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
         'avg_power_itc', the real values code for 'avg_power' and the
         imaginary values code for the 'itc': out = avg_power + i * itc
     """
-    """Equivalent to _compute_tfr and _time_frequency_loop for stc lists."""
     from ..source_estimate import (_BaseSourceEstimate, VectorSourceEstimate,
                                    VolVectorSourceEstimate)
 
