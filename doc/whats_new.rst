@@ -65,7 +65,7 @@ Changelog
 Bug
 ~~~
 
-- Fix one-sample baseline issue in :class:`mne.epochs.BaseEpochs` when using `tmin=0` by `Milan Rybar`_
+- Fix one-sample baseline issue in :class:`mne.epochs.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
 
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 
@@ -3523,3 +3523,5 @@ of commits):
 .. _Paul Roujansky: https://github.com/paulroujansky
 
 .. _Theodore Papadopoulo: https://github.com/papadop
+
+.. _Milan Rybář: http://milanrybar.cz
