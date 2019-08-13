@@ -34,6 +34,7 @@ if has_numba:
 @pytest.fixture(scope="function", params=params)
 def numba_conditional(monkeypatch, request):
     """Test both code paths on machines that have Numba."""
+    assert request.param in ('Without Numba', 'With Numba')
     if request.param == 'Without Numba' and has_numba:
         monkeypatch.setattr(
             cluster_level, '_get_buddies', cluster_level._get_buddies_fallback)
