@@ -21,6 +21,36 @@ from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
 from ..source_estimate import SourceEstimate
 
 
+def _get_buddies_fallback(r, s, neighbors, indices=None):
+    if indices is None:
+        buddies = np.where(r)[0]
+    else:
+        buddies = indices[r[indices]]
+    buddies = buddies[np.in1d(s[buddies], neighbors, assume_unique=True)]
+    r[buddies] = False
+    return buddies.tolist()
+
+
+def _get_selves_fallback(r, s, ind, inds, t, t_border, max_step):
+    start = t_border[max(t[ind] - max_step, 0)]
+    stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
+    indices = inds[start:stop]
+    selves = indices[r[indices]]
+    selves = selves[s[ind] == s[selves]]
+    r[selves] = False
+    return selves.tolist()
+
+
+def _where_first_fallback(x):
+    # this is equivalent to np.where(r)[0] for these purposes, but it's
+    # a little bit faster. Unfortunately there's no way to tell numpy
+    # just to find the first instance (to save checking every one):
+    next_ind = int(np.argmax(x))
+    if next_ind == 0:
+        next_ind = -1
+    return next_ind
+
+
 if has_numba:
     @jit()
     def _get_buddies(r, s, neighbors, indices=None):
@@ -64,32 +94,9 @@ if has_numba:
                 return ii
         return -1
 else:  # fastest way we've found with NumPy
-    def _get_buddies(r, s, neighbors, indices=None):
-        if indices is None:
-            buddies = np.where(r)[0]
-        else:
-            buddies = indices[r[indices]]
-        buddies = buddies[np.in1d(s[buddies], neighbors, assume_unique=True)]
-        r[buddies] = False
-        return buddies.tolist()
-
-    def _get_selves(r, s, ind, inds, t, t_border, max_step):
-        start = t_border[max(t[ind] - max_step, 0)]
-        stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
-        indices = inds[start:stop]
-        selves = indices[r[indices]]
-        selves = selves[s[ind] == s[selves]]
-        r[selves] = False
-        return selves.tolist()
-
-    def _where_first(x):
-        # this is equivalent to np.where(r)[0] for these purposes, but it's
-        # a little bit faster. Unfortunately there's no way to tell numpy
-        # just to find the first instance (to save checking every one):
-        next_ind = int(np.argmax(x))
-        if next_ind == 0:
-            next_ind = -1
-        return next_ind
+    _get_buddies = _get_buddies_fallback
+    _get_selves = _get_selves_fallback
+    _where_first = _where_first_fallback
 
 
 @jit()

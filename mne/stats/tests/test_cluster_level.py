@@ -12,7 +12,9 @@ from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal, assert_allclose)
 import pytest
 
+from mne.fixes import has_numba
 from mne.parallel import _force_serial
+from mne.stats import cluster_level
 from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
@@ -22,6 +24,24 @@ from mne.utils import run_tests_if_main, catch_logging, check_version
 
 
 n_space = 50
+
+
+params = ['Without Numba']
+if has_numba:
+    params += ['With Numba']
+
+
+@pytest.fixture(scope="function", params=params)
+def numba_conditional(monkeypatch, request):
+    """Test both code paths on machines that have Numba."""
+    if request.param == 'Without Numba' and has_numba:
+        monkeypatch.setattr(
+            cluster_level, '_get_buddies', cluster_level._get_buddies_fallback)
+        monkeypatch.setattr(
+            cluster_level, '_get_selves', cluster_level._get_selves_fallback)
+        monkeypatch.setattr(
+            cluster_level, '_where_first', cluster_level._where_first_fallback)
+    yield request.param
 
 
 def _get_conditions():
@@ -47,7 +67,7 @@ def _get_conditions():
     return condition1_1d, condition2_1d, condition1_2d, condition2_2d
 
 
-def test_thresholds():
+def test_thresholds(numba_conditional):
     """Test automatic threshold calculations."""
     # within subjects
     rng = np.random.RandomState(0)
@@ -83,7 +103,7 @@ def test_thresholds():
         permutation_cluster_test(X, tail=0)
 
 
-def test_cache_dir(tmpdir):
+def test_cache_dir(tmpdir, numba_conditional):
     """Test use of cache dir."""
     tempdir = str(tmpdir)
     orig_dir = os.getenv('MNE_CACHE_DIR', None)
@@ -120,7 +140,7 @@ def test_cache_dir(tmpdir):
             del os.environ['MNE_MEMMAP_MIN_SIZE']
 
 
-def test_permutation_large_n_samples():
+def test_permutation_large_n_samples(numba_conditional):
     """Test that non-replacement works with large N."""
     X = np.random.RandomState(0).randn(72, 1) + 1
     for n_samples in (11, 72):
@@ -132,7 +152,7 @@ def test_permutation_large_n_samples():
             assert len(np.unique(H0)) >= 1024 - (H0 == 0).sum()
 
 
-def test_permutation_step_down_p():
+def test_permutation_step_down_p(numba_conditional):
     """Test cluster level permutations with step_down_p."""
     try:
         try:
@@ -168,7 +188,7 @@ def test_permutation_step_down_p():
     assert_allclose(p_next, 0.015625, atol=1e-6)
 
 
-def test_cluster_permutation_test():
+def test_cluster_permutation_test(numba_conditional):
     """Test cluster level permutations tests."""
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
@@ -197,7 +217,7 @@ def test_cluster_permutation_test():
                                  stat_fun=stat_fun)
 
 
-def test_cluster_permutation_t_test():
+def test_cluster_permutation_t_test(numba_conditional):
     """Test cluster level permutations T-test."""
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
@@ -246,7 +266,7 @@ def test_cluster_permutation_t_test():
             assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
 
 
-def test_cluster_permutation_with_connectivity():
+def test_cluster_permutation_with_connectivity(numba_conditional):
     """Test cluster level permutations with connectivity matrix."""
     try:
         try:
@@ -395,7 +415,7 @@ def test_cluster_permutation_with_connectivity():
         assert np.min(out_connectivity_6[2]) < 0.05
 
 
-def test_permutation_connectivity_equiv():
+def test_permutation_connectivity_equiv(numba_conditional):
     """Test cluster level permutations with and without connectivity."""
     try:
         try:
@@ -471,7 +491,7 @@ def test_permutation_connectivity_equiv():
         assert_array_equal(stat_map, this_stat_map)
 
 
-def test_spatio_temporal_cluster_connectivity():
+def test_spatio_temporal_cluster_connectivity(numba_conditional):
     """Test spatio-temporal cluster permutations."""
     try:
         try:
@@ -539,7 +559,7 @@ def test_summarize_clusters():
     pytest.raises(RuntimeError, summarize_clusters_stc, clu)
 
 
-def test_permutation_test_H0():
+def test_permutation_test_H0(numba_conditional):
     """Test that H0 is populated properly during testing."""
     rng = np.random.RandomState(0)
     data = rng.rand(7, 10, 1) - 0.5
@@ -561,7 +581,7 @@ def test_permutation_test_H0():
         assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test
 
 
-def test_tfce_thresholds():
+def test_tfce_thresholds(numba_conditional):
     """Test TFCE thresholds."""
     rng = np.random.RandomState(0)
     data = rng.randn(7, 10, 1) - 0.5
