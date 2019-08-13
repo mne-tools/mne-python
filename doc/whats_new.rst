@@ -65,7 +65,7 @@ Changelog
 Bug
 ~~~
 
-- Fix one-sample baseline issue in :class:`mne.epochs.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
+- Fix one-sample baseline issue in :class:`mne.Epochs` when using `tmin=0` by `Milan Rybář`_
 
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 
