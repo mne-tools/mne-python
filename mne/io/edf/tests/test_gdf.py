@@ -32,7 +32,7 @@ def test_gdf_data():
     # Test Status is added as event
     EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1]
     EXPECTED_EVS_ID = {
-        'Undefined({})'.format(evs): i for i, evs in enumerate(
+        '{}'.format(evs): i for i, evs in enumerate(
             [32769, 32770, 33024, 33025, 33026, 33027, 33028, 33029, 33040,
              33041, 33042, 33043, 33044, 33045, 33285, 33286], 1)
     }
