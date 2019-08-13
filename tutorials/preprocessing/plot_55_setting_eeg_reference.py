@@ -67,7 +67,7 @@ raw_avg_ref = raw.copy().set_eeg_reference(ref_channels='average')
 # TODO: explanation pending.
 
 raw_custom_ref = raw.copy()
-mne.add_reference_channels(raw_custom_ref, ref_channels='Custom Reference',
+mne.add_reference_channels(raw_custom_ref, ref_channels='Custom Ref.',
                            copy=False)
 
 ###############################################################################
