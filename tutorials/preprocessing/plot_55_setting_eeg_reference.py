@@ -5,14 +5,16 @@
 Setting the EEG reference
 =========================
 
-This tutorial describes how to set an EEG reference in MNE-Python.
+This tutorial describes how to set or change the EEG reference in MNE-Python.
 
 .. contents:: Page contents
    :local:
    :depth: 2
 
 As usual we'll start by importing the modules we need, loading some
-:ref:`example data <sample-dataset>`, and cropping it to save memory:
+:ref:`example data <sample-dataset>`, and cropping it to save memory. Since
+this tutorial deals specifically with EEG, we'll also discard the other channel
+types at the outset using :meth:`~mne.io.Raw.pick`:
 """
 
 import os
@@ -23,52 +25,104 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
+raw.pick(['eeg'])
 
 ###############################################################################
 # Background
 # ^^^^^^^^^^
 #
-# Typically, one of the first steps in processing EEG recordings is to subtract
-# a *reference signal* from each channel. Conceptually, the reference signal
-# represents environmental or equipment noise that affects all sensors
-# approximately equally, and by subtracting it from the signal at each
-# electrode, what is left will be a less noisy representation of brain activity
-# than the original raw signal.
+# EEG measures a voltage (difference in electric potential) between each
+# electrode and a reference electrode. This means that whatever signal is
+# present at the reference electrode is effectively subtracted from all the
+# measurement electrodes. Therefore, an ideal reference signal is one that
+# captures *none* of the brain-specific fluctuations in electric potential,
+# while capturing *all* of the environmental noise/interference that is being
+# picked up by the measurement electrodes.
 #
-# Sometimes the subtracted reference signal is the signal from a physical
-# electrode (typical reference electrode placements are the earlobe or the
-# mastoid processes) or the average from a pair of such electrodes. Other
-# times, the subtracted reference signal is the average of signals at all
-# electrodes. MNE-Python supports all of these possibilities through the
-# :meth:`~mne.io.Raw.set_eeg_reference` method. Of course, you can only set
-# the reference to a specific (set of) electrode(s) if those electrodes are
-# present in the :class:`~mne.io.Raw` file; the :ref:`example data
-# <sample-dataset>` has numeric EEG channel names (``EEG 001``, etc) so the
-# double mastoid and earlobe examples are commented out here:
+# In practice, this means that the reference electrode is often placed in a
+# location on the subject's body and close to their head (so that any
+# environmental interference affects the reference and measurment electrodes
+# similarly) but as far away from the neural sources as possible (so that the
+# reference signal doesn't pick up brain-based fluctuations). Typical reference
+# locations are the subject's earlobe, nose, mastoid process, or collarbone.
+#
+# Even in cases where no electrode is specifically designated as the reference,
+# EEG recording hardware will still treat one of the scalp electrodes as the
+# reference, and the recording software may or may not display it to you (it
+# might appear as a completely flat channel, or the software might subtract out
+# the average of all signals before displaying, making it *look like* there is
+# no reference).
+#
+#
+# Setting or changing the reference channel
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# If you want to recompute your data with a different reference than was used
+# when the raw data were recorded / saved, MNE-Python provides the
+# :meth:`~mne.io.Raw.set_eeg_reference` method on :class:`~mne.io.Raw` objects,
+# as well as the :func:`mne.add_reference_channels` function. To use an
+# existing channel as the new reference, use the
+# :meth:`~mne.io.Raw.set_eeg_reference` method; you can also designate multiple
+# existing electrodes as reference channels, as is sometimes done with mastoid
+# references:
 
-# use average of mastoid channels as reference
-# raw.set_eeg_reference(ref_channels=['M1', 'M2'])
+# code lines below are commented out because the sample data doesn't have
+# earlobe or mastoid channels, so this is just for demonstration purposes:
 
 # use a single channel reference (left earlobe)
 # raw.set_eeg_reference(ref_channels=['A1'])
 
-# use the average of all channels as reference
-raw_avg_ref = raw.copy().set_eeg_reference(ref_channels='average')
+# use average of mastoid channels as reference
+# raw.set_eeg_reference(ref_channels=['M1', 'M2'])
 
 ###############################################################################
-# When setting ``ref_channels='average'``, MNE-Python will automatically
-# exclude any channels listed in ``raw.info['bads']`` from contributing to the
-# average reference.
+# If a scalp electrode was used as reference but was not saved alongside the
+# raw data (reference channels often aren't), you may wish to add it back to
+# the dataset before re-referencing. For example, if your EEG system recorded
+# with channel ``EEG 999`` as the reference but did not include ``EEG 999`` in
+# the data file, using :meth:`~mne.io.Raw.set_eeg_reference` to set (say)
+# ``EEG 020`` as the new reference will then subtract out ``EEG 020``'s signal
+# *without restoring the signal at ``EEG 999``*). In this situation, you can
+# add back ``EEG 999`` as a flat channel prior to re-referencing using
+# :func:`~mne.add_reference_channels`. By default this function returns a copy,
+# so to alter the existing :class:`~mne.io.Raw` file you have to specify
+# ``copy=False``:
+
+raw_new_ref = raw.copy()
+# original data
+raw_new_ref.plot(n_channels=len(raw_new_ref))
+
+###############################################################################
+# .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
+
+# add new reference channel (all zero)
+mne.add_reference_channels(raw_new_ref, ref_channels=['EEG 999'], copy=False)
+raw_new_ref.plot(n_channels=len(raw_new_ref))
+
+###############################################################################
+# .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
+
+# set reference to `EEG 020`
+raw_new_ref.set_eeg_reference(ref_channels=['EEG 020'])
+raw_new_ref.plot(n_channels=len(raw_new_ref))
+
+###############################################################################
+# Notice that ``EEG 053`` (which is marked as "bad" in ``raw.info['bads']``) is
+# not affected by  re-referencing.
 #
 #
-# Adding reference channels
+# Setting average reference
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# TODO: explanation pending.
+# To set a "virtual reference" that is the average of all channels, you can use
+# :meth:`~mne.io.Raw.set_eeg_reference` with ``ref_channels='average'``. Just
+# as above, this will not affect any channels marked as "bad", nor will it
+# include bad channels when computing the average.
 
-raw_custom_ref = raw.copy()
-mne.add_reference_channels(raw_custom_ref, ref_channels='Custom Ref.',
-                           copy=False)
+# sphinx_gallery_thumbnail_number = 4
+# use the average of all channels as reference
+raw_avg_ref = raw.copy().set_eeg_reference(ref_channels='average')
+raw_avg_ref.plot(n_channels=len(raw_avg_ref))
 
 ###############################################################################
 # Creating the average reference as a projector
@@ -82,52 +136,54 @@ raw.set_eeg_reference('average', projection=True)
 print(raw.info['projs'])
 
 ###############################################################################
-# Creating the average reference as a projector has a couple of advantages:
+# Creating the average reference as a projector has a few advantages:
 #
 # 1. It is possible to turn projectors on or off when plotting, so it is easy
-#    to visualize the effect that the reference has on the data.
+#    to visualize the effect that the average reference has on the data.
 #
-# 2. If there are other unapplied projectors affecting the EEG channels (such
+# 2. If additional channels are marked as "bad" or if a subset of channels are
+#    later selected, the projector will be re-computed to take these changes
+#    into account (thus guaranteeing that the signal is zero-mean).
+#
+# 3. If there are other unapplied projectors affecting the EEG channels (such
 #    as SSP projectors for removing heartbeat or blink artifacts), EEG
-#    referencing cannot be performed until those projectors are either applied
-#    or removed; adding the EEG reference as a projector is not subject to that
-#    constraint. (The reason this wasn't a problem when we applied the
+#    re-referencing cannot be performed until those projectors are either
+#    applied or removed; adding the EEG reference as a projector is not subject
+#    to that constraint. (The reason this wasn't a problem when we applied the
 #    non-projector average reference to ``raw_avg_ref`` above is that the
 #    empty-room projectors included in the sample data :file:`.fif` file were
 #    only computed for the magnetometers).
 
-eeg_picks = mne.pick_types(raw.info, meg=False, eeg=True)
-for title, proj in zip(['No reference', 'Average reference'], [False, True]):
-    fig = raw.plot(proj=proj, order=eeg_picks, n_channels=len(eeg_picks))
+for title, proj in zip(['Original', 'Average'], [False, True]):
+    fig = raw.plot(proj=proj, n_channels=len(raw))
     # make room for title
     fig.subplots_adjust(top=0.94)
-    fig.suptitle(title, size='xx-large', weight='bold')
+    fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
 
 ###############################################################################
-# .. warning::
-#
-#     When performing inverse imaging, MNE-Python will automatically apply an
-#     average reference if EEG channels are present and no reference strategy
-#     has been specified. Thus if you are loading partially-preprocessed data
-#     that has already had a reference applied (and you are going to perform
-#     inverse imaging), you should set the reference to an empty list
-#     (``raw.set_eeg_reference(ref_channels=[])``) to prevent MNE-Python from
-#     subtracting a second average reference signal from your data.
-#
-#
 # EEG references and source modeling
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # If you plan to perform source modeling (either with EEG or combined EEG/MEG
-# data), it is **strongly recommended** to use the average reference approach.
-# The reason is that using a specific reference sensor (or even an average of a
-# few sensors) spreads the forward model error from the reference sensor(s)
-# into all sensors, effectively amplifying the importance of the reference
-# sensor(s) when computing source estimates. In contrast, using the average of
-# all EEG channels as reference spreads the forward modeling error evenly
-# across channels, so no one channel is weighted more strongly during source
-# estimation. See also this `FieldTrip FAQ on average referencing`_ for more
-# information.
+# data), it is **strongly recommended** to use the
+# average-reference-as-projection approach. The reason is that using a specific
+# reference sensor (or even an average of a few sensors) spreads the forward
+# model error from the reference sensor(s) into all sensors, effectively
+# amplifying the importance of the reference sensor(s) when computing source
+# estimates. In contrast, using the average of all EEG channels as reference
+# spreads the forward modeling error evenly across channels, so no one channel
+# is weighted more strongly during source estimation. See also this `FieldTrip
+# FAQ on average referencing`_ for more information.
+#
+# For these reasons, when performing inverse imaging, *MNE-Python will
+# automatically apply an average reference if EEG channels are present and no
+# reference strategy has been specified*. If you want to perform inverse
+# imaging and do not want to use an average reference (and hence you accept the
+# risks presented in the previous paragraph), you can force MNE-Python to relax
+# its average reference requirement by passing an empty list to
+# :meth:`~mne.io.Raw.set_eeg_reference` (i.e., by calling
+# ``raw.set_eeg_reference(ref_channels=[])``) prior to performing inverse
+# imaging.
 #
 #
 # .. LINKS
