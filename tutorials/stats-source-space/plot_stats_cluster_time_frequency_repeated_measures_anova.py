@@ -237,4 +237,4 @@ plt.show()
 
 ###############################################################################
 # Both cluster level and FDR correction help get rid of
-# putatively spots we saw in the naive f-images.
+# potential spots we saw in the naive f-images.

@@ -15,9 +15,91 @@ from scipy import sparse
 
 from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func, check_n_jobs
+from ..fixes import jit, has_numba
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
                      check_random_state, _check_option)
 from ..source_estimate import SourceEstimate
+
+
+if has_numba:
+    @jit()
+    def _get_buddies(r, s, neighbors, indices=None):
+        buddies = list()
+        # At some point we might be able to use the sorted-ness of s or
+        # neighbors to further speed this up
+        if indices is None:
+            n_check = len(r)
+        else:
+            n_check = len(indices)
+        for ii in range(n_check):
+            if indices is None:
+                this_idx = ii
+            else:
+                this_idx = indices[ii]
+            if r[this_idx]:
+                this_s = s[this_idx]
+                for ni in range(len(neighbors)):
+                    if this_s == neighbors[ni]:
+                        buddies.append(this_idx)
+                        r[this_idx] = False
+                        break
+        return buddies
+
+    @jit()
+    def _get_selves(r, s, ind, inds, t, t_border, max_step):
+        selves = list()
+        start = t_border[max(t[ind] - max_step, 0)]
+        stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
+        for ii in range(start, stop):
+            this_idx = inds[ii]
+            if r[this_idx] and s[ind] == s[this_idx]:
+                selves.append(this_idx)
+                r[this_idx] = False
+        return selves
+
+    @jit()
+    def _where_first(x):
+        for ii in range(len(x)):
+            if x[ii]:
+                return ii
+        return -1
+else:  # fastest way we've found with NumPy
+    def _get_buddies(r, s, neighbors, indices=None):
+        if indices is None:
+            buddies = np.where(r)[0]
+        else:
+            buddies = indices[r[indices]]
+        buddies = buddies[np.in1d(s[buddies], neighbors, assume_unique=True)]
+        r[buddies] = False
+        return buddies.tolist()
+
+    def _get_selves(r, s, ind, inds, t, t_border, max_step):
+        start = t_border[max(t[ind] - max_step, 0)]
+        stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
+        indices = inds[start:stop]
+        selves = indices[r[indices]]
+        selves = selves[s[ind] == s[selves]]
+        r[selves] = False
+        return selves.tolist()
+
+    def _where_first(x):
+        # this is equivalent to np.where(r)[0] for these purposes, but it's
+        # a little bit faster. Unfortunately there's no way to tell numpy
+        # just to find the first instance (to save checking every one):
+        next_ind = int(np.argmax(x))
+        if next_ind == 0:
+            next_ind = -1
+        return next_ind
+
+
+@jit()
+def _masked_sum(x, c):
+    return np.sum(x[c])
+
+
+@jit()
+def _masked_sum_power(x, c, t_power):
+    return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
 
 
 def _get_clusters_spatial(s, neighbors):
@@ -29,29 +111,21 @@ def _get_clusters_spatial(s, neighbors):
     # s is a vector of spatial indices that are significant, like:
     #     s = np.where(x_in)[0]
     # for x_in representing a single time-instant
-    r = np.ones(s.shape, dtype=bool)
+    r = np.ones(s.shape, np.bool)
     clusters = list()
-    next_ind = 0 if s.size > 0 else None
-    while next_ind is not None:
+    next_ind = 0 if s.size > 0 else -1
+    while next_ind >= 0:
         # put first point in a cluster, adjust remaining
         t_inds = [next_ind]
-        r[next_ind] = False
+        r[next_ind] = 0
         icount = 1  # count of nodes in the current cluster
         while icount <= len(t_inds):
             ind = t_inds[icount - 1]
             # look across other vertices
-            buddies = np.where(r)[0]
-            buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
-                                      assume_unique=True)]
-            t_inds += buddies.tolist()
-            r[buddies] = False
+            buddies = _get_buddies(r, s, neighbors[s[ind]])
+            t_inds.extend(buddies)
             icount += 1
-        # this is equivalent to np.where(r)[0] for these purposes, but it's
-        # a little bit faster. Unfortunately there's no way to tell numpy
-        # just to find the first instance (to save checking every one):
-        next_ind = np.argmax(r)
-        if next_ind == 0:
-            next_ind = None
+        next_ind = _where_first(r)
         clusters.append(s[t_inds])
     return clusters
 
@@ -137,39 +211,27 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
 
     r = np.ones(t.shape, dtype=bool)
     clusters = list()
-    next_ind = 0
     inds = np.arange(t_border[0], t_border[n_times])
-    if s.size > 0:
-        while next_ind is not None:
-            # put first point in a cluster, adjust remaining
-            t_inds = [next_ind]
-            r[next_ind] = False
-            icount = 1  # count of nodes in the current cluster
-            # look for significant values at the next time point,
-            # same sensor, not placed yet, and add those
-            while icount <= len(t_inds):
-                ind = t_inds[icount - 1]
-                selves = inds[t_border[max(t[ind] - max_step, 0)]:
-                              t_border[min(t[ind] + max_step + 1, n_times)]]
-                selves = selves[r[selves]]
-                selves = selves[s[ind] == s[selves]]
+    next_ind = 0 if s.size > 0 else -1
+    while next_ind >= 0:
+        # put first point in a cluster, adjust remaining
+        t_inds = [next_ind]
+        r[next_ind] = False
+        icount = 1  # count of nodes in the current cluster
+        # look for significant values at the next time point,
+        # same sensor, not placed yet, and add those
+        while icount <= len(t_inds):
+            ind = t_inds[icount - 1]
+            selves = _get_selves(r, s, ind, inds, t, t_border, max_step)
 
-                # look at current time point across other vertices
-                buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
-                buddies = buddies[r[buddies]]
-                buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
-                                          assume_unique=True)]
-                buddies = np.concatenate((selves, buddies))
-                t_inds += buddies.tolist()
-                r[buddies] = False
-                icount += 1
-            # this is equivalent to np.where(r)[0] for these purposes, but it's
-            # a little bit faster. Unfortunately there's no way to tell numpy
-            # just to find the first instance (to save checking every one):
-            next_ind = np.argmax(r)
-            if next_ind == 0:
-                next_ind = None
-            clusters.append(v[t_inds])
+            # look at current time point across other vertices
+            these_inds = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
+            buddies = _get_buddies(r, s, neighbors[s[ind]], these_inds)
+
+            t_inds += buddies + selves
+            icount += 1
+        next_ind = _where_first(r)
+        clusters.append(v[t_inds])
 
     return clusters
 
@@ -458,10 +520,9 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
         if t_power == 1:
-            sums = np.array([np.sum(x[c]) for c in clusters])
+            sums = [_masked_sum(x, c) for c in clusters]
         else:
-            sums = np.array([np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-                             for c in clusters])
+            sums = [_masked_sum_power(x, c, t_power) for c in clusters]
 
     return clusters, np.atleast_1d(sums)
 

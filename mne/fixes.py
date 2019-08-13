@@ -1285,3 +1285,6 @@ except ImportError:
             return func
         return _jit
     prange = range
+    has_numba = False
+else:
+    has_numba = True
