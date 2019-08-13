@@ -65,6 +65,8 @@ Changelog
 Bug
 ~~~
 
+- Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
+
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 
 - Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`_
@@ -3521,3 +3523,5 @@ of commits):
 .. _Paul Roujansky: https://github.com/paulroujansky
 
 .. _Theodore Papadopoulo: https://github.com/papadop
+
+.. _Milan Rybář: http://milanrybar.cz

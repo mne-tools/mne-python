@@ -361,7 +361,8 @@ def test_decim():
     pytest.raises(ValueError, epochs.decimate, 2, offset=2)
     for this_offset in range(decim):
         epochs = Epochs(raw, events, event_id,
-                        tmin=-this_offset / raw.info['sfreq'], tmax=tmax)
+                        tmin=-this_offset / raw.info['sfreq'], tmax=tmax,
+                        baseline=None)
         idx_offsets = np.arange(decim) + this_offset
         for offset, idx_offset in zip(np.arange(decim), idx_offsets):
             expected_times = epochs.times[idx_offset::decim]
@@ -587,7 +588,7 @@ def test_epochs_baseline():
         expected = data.copy()
         assert_array_equal(epochs_data[0], expected)
         # the baseline period (1 sample here)
-        epochs.apply_baseline((None, 0))
+        epochs.apply_baseline((0, 0))
         expected[0] = [0, 1]
         if preload:
             assert_allclose(epochs_data[0][0], expected[0])
