@@ -23,26 +23,23 @@ from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
 from mne.utils import run_tests_if_main, catch_logging, check_version
 
 
-n_space = 50
-
-
-params = ['Without Numba']
-if has_numba:
-    params += ['With Numba']
-
-
-@pytest.fixture(scope="function", params=params)
+@pytest.fixture(scope="function", params=('Numba', 'NumPy'))
 def numba_conditional(monkeypatch, request):
     """Test both code paths on machines that have Numba."""
-    assert request.param in ('Without Numba', 'With Numba')
-    if request.param == 'Without Numba' and has_numba:
+    assert request.param in ('Numba', 'NumPy')
+    if request.param == 'NumPy' and has_numba:
         monkeypatch.setattr(
             cluster_level, '_get_buddies', cluster_level._get_buddies_fallback)
         monkeypatch.setattr(
             cluster_level, '_get_selves', cluster_level._get_selves_fallback)
         monkeypatch.setattr(
             cluster_level, '_where_first', cluster_level._where_first_fallback)
+    if request.param == 'Numba' and not has_numba:
+        pytest.skip('Numba not installed')
     yield request.param
+
+
+n_space = 50
 
 
 def _get_conditions():
