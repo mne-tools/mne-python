@@ -82,7 +82,7 @@ raw.pick(['eeg'])
 # with channel ``EEG 999`` as the reference but did not include ``EEG 999`` in
 # the data file, using :meth:`~mne.io.Raw.set_eeg_reference` to set (say)
 # ``EEG 020`` as the new reference will then subtract out ``EEG 020``'s signal
-# *without restoring the signal at ``EEG 999``*). In this situation, you can
+# *without restoring the signal at* ``EEG 999``). In this situation, you can
 # add back ``EEG 999`` as a flat channel prior to re-referencing using
 # :func:`~mne.add_reference_channels`. By default this function returns a copy,
 # so to alter the existing :class:`~mne.io.Raw` file you have to specify
