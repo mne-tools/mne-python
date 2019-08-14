@@ -166,29 +166,64 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             self._kernel = None
             self._sens_data = None
 
-    def plot(self,fmin=0, fmax=None, epoch=0, **plot_params):
+    def plot(self,fmin=None, fmax=None, epoch=0, **plot_params):
+        """Plot SourceTFR.
 
+        Plots selected frequencies, using mne.viz.plot_source_estimates,
+        mne.viz.plot_vector_source_estimates, or
+        mne.viz.plot_volume_source_estimates, depending on the SourceEstimate
+        type, from which the SourceTFR was created.
+        All included frequencies from fmin to fmax will be averaged into one
+        plot.
+
+        Parameters
+        ----------
+        fmin : float | None
+            The lowest frequency to include.  If None, the lowest frequency
+            in stfr.freqs is used.
+        fmax : float | None
+            The highest frequency to include.  If None, the highest frequency
+            in stfr.freqs is used.
+        epoch : int, default 0
+            If the stfr object contains an "epochs" dimension, only the epoch
+            index defined in epoch will be plotted. Else will be ignored.
+        **plot_params :
+            Additional parameters passed to the respective plotting function.
+
+        Returns
+        -------
+        figure : instance of surfer.Brain | matplotlib.figure.Figure
+            An instance of :class:`surfer.Brain` from PySurfer or
+            matplotlib figure.
+
+        See Also
+        --------
+        mne.viz.plot_source_estimates
+        mne.viz.plot_vector_source_estimates
+        mne.viz.plot_volume_source_estimates
+        """
         freq_idx = _freq_mask(self.freqs, self.sfreq, fmin, fmax)
         #FIXME: sum over average? sum is easier to interprete, but will result in bad color scalings
         data_cropped = np.mean(self.data[..., freq_idx, :], axis=-2)
-
         if "epochs" in self.dims:
             data_cropped = data_cropped[..., epoch, :, :]
 
         if self._src_type == "volume":
-            # use the magnitude only if it's a VolVectorSourceEstimate (see _BaseVectorSourceEstimate.plot)
+            # use the magnitude only if it's a VolVectorSourceEstimate
+            # (see _BaseVectorSourceEstimate.plot)
             if "orientations" in self.dims:
                 data_cropped = np.linalg.norm(data_cropped, axis=1)
             brain = plot_volume_source_estimates(
-                VolSourceEstimate(data_cropped, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
-
+                VolSourceEstimate(data_cropped, self.vertices, self.tmin,
+                                  self.tstep, self.subject), **plot_params)
         elif "orientations" in self.dims:
             brain = plot_vector_source_estimates(
-                VectorSourceEstimate(data_cropped, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
-
+                VectorSourceEstimate(data_cropped, self.vertices, self.tmin,
+                                     self.tstep, self.subject), **plot_params)
         else:
             brain = plot_source_estimates(
-            SourceEstimate(data_cropped, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
+                SourceEstimate(data_cropped, self.vertices, self.tmin,
+                               self.tstep, self.subject), **plot_params)
 
         return brain
 
