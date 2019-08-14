@@ -42,6 +42,9 @@ fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
 egi_dig_montage_fname = op.join(data_path, 'montage', 'coordinates.xml')
 egi_raw_fname = op.join(data_path, 'montage', 'egi_dig_test.raw')
 egi_fif_fname = op.join(data_path, 'montage', 'egi_dig_raw.fif')
+bvct_dig_montage_fname = op.join(data_path, 'montage', 'captrack_coords.bvct')
+bv_raw_fname = op.join(data_path, 'montage', 'bv_dig_test.raw')
+bv_fif_fname = op.join(data_path, 'montage', 'bv_dig_raw.fif')
 locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
 eeglab_fname = op.join(data_path, 'EEGLAB', 'test_raw.set')
@@ -552,6 +555,42 @@ def test_egi_dig_montage():
         assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
         assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
+
+
+@testing.requires_testing_data
+def test_bvct_dig_montage():
+    """Test BrainVision CapTrak XML dig montage support."""
+    with pytest.warns('Using "m" as unit for BVCT file.'):
+        read_dig_montage(bvct=bvct_dig_montage_fname, unit='m')
+
+    dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
+
+    # test round-trip IO
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'bvct_test.fif')
+    _check_roundtrip(dig_montage, fname_temp)
+
+    # Test coordinate transform
+    dig_montage.transform_to_head()
+    # nasion
+    assert_almost_equal(dig_montage.nasion[0], 0)
+    assert_almost_equal(dig_montage.nasion[2], 0)
+    # lpa and rpa
+    assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
+    assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
+
+    # Test accuracy and embedding within raw object
+    raw_bv = read_raw_brainvision(bv_raw_fname)
+    raw_bv.set_montage(dig_montage)
+    test_raw_bv = read_raw_fif(bv_fif_fname)
+
+    assert_equal(len(raw_bv.ch_names), len(test_raw_bv.ch_names))
+    for ch_raw, ch_test_raw in zip(raw_bv.info['chs'],
+                                   test_raw_bv.info['chs']):
+        assert_equal(ch_raw['ch_name'], ch_test_raw['ch_name'])
+        assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
+        assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
+    assert_dig_allclose(raw_bv.info, test_raw_bv.info)
 
 
 def test_set_montage():
