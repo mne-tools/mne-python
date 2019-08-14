@@ -573,8 +573,8 @@ def _check_frame(d, frame_str):
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
-                     unit='auto', fif=None, egi=None, transform=True,
-                     dev_head_t=False):
+                     unit='auto', fif=None, egi=None, bvct=None,
+                     transform=True, dev_head_t=False, ):
     r"""Read subject-specific digitization montage from a file.
 
     Parameters
@@ -620,6 +620,10 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
         .. versionadded:: 0.14
 
+    bvct : None | str
+        BrainVision CapTrak coordinates file from which to read digitization
+        locations. This is typically in XML format. If str (filename), all
+        other arguments are ignored.
     transform : bool
         If True (default), points will be transformed to Neuromag space
         using :meth:`DigMontage.transform_to_head`.
@@ -657,9 +661,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         if dev_head_t or not transform:
             raise ValueError('transform must be True and dev_head_t must be '
                              'False for FIF dig montage')
-        if not all(x is None for x in (hsp, hpi, elp, point_names, egi)):
-            raise ValueError('hsp, hpi, elp, point_names, egi must all be '
-                             'None if fif is not None')
+        if not all(x is None for x in (hsp, hpi, elp, point_names, egi, bvct)):
+            raise ValueError('hsp, hpi, elp, point_names, egi, bvct must all '
+                             'be None if fif is not None.')
         _check_fname(fif, overwrite='read', must_exist=True)
         # Load the dig data
         f, tree = fiff_open(fif)[:2]
@@ -691,10 +695,11 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         hsp = np.array(hsp) if len(hsp) else None
         elp = np.array(elp) if len(elp) else None
         coord_frame = 'head'
+
     elif egi is not None:
-        if not all(x is None for x in (hsp, hpi, elp, point_names, fif)):
-            raise ValueError('hsp, hpi, elp, point_names, fif must all be '
-                             'None if egi is not None')
+        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, bvct)):
+            raise ValueError('hsp, hpi, elp, point_names, fif, bvct must all '
+                             'be None if egi is not None.')
         _check_fname(egi, overwrite='read', must_exist=True)
 
         root = ElementTree.parse(egi).getroot()
@@ -738,6 +743,45 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
         coord_frame = 'unknown'
 
+    elif bvct is not None:
+        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, egi)):
+            raise ValueError('hsp, hpi, elp, point_names, fif, egi must all '
+                             'be None if bvct is not None.')
+        _check_fname(bvct, overwrite='read', must_exist=True)
+
+        root = ElementTree.parse(bvct).getroot()
+        sensors = root.find('CapTrakElectrodeList')
+
+        fids = {}
+        dig_ch_pos = {}
+
+        fid_name_map = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
+
+        # CapTrak is natively in mm
+        scale = dict(mm=1, cm=1e-1, auto=1e-2, m=1e-2)
+        if unit not in scale:
+            raise ValueError("Unit needs to be one of %s, not %r" %
+                             (sorted(scale.keys()), unit))
+
+        for s in sensors:
+            name = s.find('Name').text
+            fid = name in fid_name_map
+            coordinates = np.array([float(s.find('X').text),
+                                    float(s.find('Y').text),
+                                    float(s.find('Z').text)])
+
+            coordinates *= scale[unit]
+
+            # Fiducials
+            if fid:
+                fid_name = fid_name_map[name]
+                fids[fid_name] = coordinates
+            # EEG Channels
+            else:
+                dig_ch_pos[name] = coordinates
+
+        fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
+        coord_frame = 'unknown'
     else:
         fids = [None] * 3
         dig_ch_pos = None
