@@ -263,7 +263,7 @@ def _triangle_neighbors(tris, npts):
 
 
 @jit()
-def _triangle_coords(r, best, r1, nn, r12, r13, a, b, c):
+def _triangle_coords(r, best, r1, nn, r12, r13, a, b, c):  # pragma: no cover
     """Get coordinates of a vertex projected to a triangle."""
     r1 = r1[best]
     tri_nn = nn[best]
@@ -1061,7 +1061,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
 
 
 @jit()
-def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
+def _get_tri_dist(p, q, p0, q0, a, b, c, dist):  # pragma: no cover
     """Get the distance to a triangle edge."""
     p1 = p - p0
     q1 = q - q0
@@ -1161,7 +1161,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
 @jit(parallel=True)
 def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
                           a, b, c, nn, r1, r12, r13, r1213, mat,
-                          run_all=True, reproject=False):
+                          run_all=True, reproject=False):  # pragma: no cover
     """Find nearest point mapping to a set of triangles.
 
     If run_all is False, if the point lies within a triangle, it stops.
@@ -1241,7 +1241,7 @@ def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
 
 
 @jit()
-def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, a, b, c):
+def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, a, b, c):  # pragma: no cover
     """Get nearest location from a point to the edge of a set of triangles."""
     # We might do something intelligent here. However, for now
     # it is ok to do it in the hard way

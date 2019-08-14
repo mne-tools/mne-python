@@ -51,7 +51,7 @@ def _where_first_fallback(x):
     return next_ind
 
 
-if has_numba:
+if has_numba:  # pragma: no cover
     @jit()
     def _get_buddies(r, s, neighbors, indices=None):
         buddies = list()
@@ -93,7 +93,8 @@ if has_numba:
             if x[ii]:
                 return ii
         return -1
-else:  # fastest way we've found with NumPy
+else:  # pragma: no cover
+    # fastest ways we've found with NumPy
     _get_buddies = _get_buddies_fallback
     _get_selves = _get_selves_fallback
     _where_first = _where_first_fallback
