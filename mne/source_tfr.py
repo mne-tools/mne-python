@@ -48,6 +48,8 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     subject : str | None
         The subject name. While not necessary, it is safer to set the
         subject parameter to avoid analysis errors.
+    src_type : str, default "surface"
+        The source type of the object. Can be "surface" or "volume".
     %(verbose)s
 
     Attributes
@@ -73,7 +75,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None, freqs=None,
                  dims=("dipoles", "freqs", "times"), method=None, subject=None,
-                 src_type = 'surface', verbose=None):
+                 src_type="surface", verbose=None):
 
         valid_dims = [("dipoles", "freqs", "times"),
                       ("dipoles", "epochs", "freqs", "times"),
@@ -87,6 +89,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         _check_option("dims", list(dims),
                       [list(v_dims) for v_dims in valid_dims])
         _check_option("method", method, valid_methods)
+        _check_option("src_type", src_type, ["surface", "volume"])
         _validate_type(vertices, (np.ndarray, list), "vertices")
 
         data, kernel, sens_data, vertices = _prepare_data(data, vertices, dims)
@@ -166,7 +169,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             self._kernel = None
             self._sens_data = None
 
-    def plot(self,fmin=None, fmax=None, epoch=0, **plot_params):
+    def plot(self, fmin=None, fmax=None, epoch=0, **plot_params):
         """Plot SourceTFR.
 
         Plots selected frequencies, using mne.viz.plot_source_estimates,
@@ -203,7 +206,8 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         mne.viz.plot_volume_source_estimates
         """
         freq_idx = _freq_mask(self.freqs, self.sfreq, fmin, fmax)
-        #FIXME: sum over average? sum is easier to interprete, but will result in bad color scalings
+        # FIXME: sum over average? sum is easier to interprete
+        # but will result in bad color scalings
         data_cropped = np.mean(self.data[..., freq_idx, :], axis=-2)
         if "epochs" in self.dims:
             data_cropped = data_cropped[..., epoch, :, :]
@@ -226,7 +230,6 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
                                self.tstep, self.subject), **plot_params)
 
         return brain
-
 
     def crop(self, tmin=None, tmax=None):
         """Restrict SourceTFR to a time interval.

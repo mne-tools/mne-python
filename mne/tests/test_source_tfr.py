@@ -220,7 +220,11 @@ def test_invalid_params():
 
     with pytest.raises(ValueError,
                        match="Invalid value for the 'method' parameter"):
-        SourceTFR(data, verts, tmin, tstep, method="multitape")
+        SourceTFR(data, verts, tmin, tstep, method="invalid")
+
+    with pytest.raises(ValueError,
+                       match="Invalid value for the 'src_type' parameter"):
+        SourceTFR(data, verts, tmin, tstep, src_type="invalid")
 
 
 run_tests_if_main()
