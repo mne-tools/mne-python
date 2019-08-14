@@ -758,7 +758,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         fid_name_map = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
 
         # CapTrak is natively in mm
-        scale = dict(mm=1, cm=1e-1, auto=1e-2, m=1e-2)
+        scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
         if unit not in scale:
             raise ValueError("Unit needs to be one of %s, not %r" %
                              (sorted(scale.keys()), unit))
