@@ -13,8 +13,9 @@ This tutorial describes how to set or change the EEG reference in MNE-Python.
 
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping it to save memory. Since
-this tutorial deals specifically with EEG, we'll also discard the other channel
-types at the outset using :meth:`~mne.io.Raw.pick`:
+this tutorial deals specifically with EEG, we'll also restrict the dataset to
+just a few EEG channels so the plots are easier to see (using
+:meth:`~mne.io.Raw.pick`):
 """
 
 import os
@@ -25,7 +26,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
-raw.pick(['eeg'])
+raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 
 ###############################################################################
 # Background
@@ -81,7 +82,7 @@ raw.pick(['eeg'])
 # the dataset before re-referencing. For example, if your EEG system recorded
 # with channel ``EEG 999`` as the reference but did not include ``EEG 999`` in
 # the data file, using :meth:`~mne.io.Raw.set_eeg_reference` to set (say)
-# ``EEG 020`` as the new reference will then subtract out ``EEG 020``'s signal
+# ``EEG 050`` as the new reference will then subtract out ``EEG 050``'s signal
 # *without restoring the signal at* ``EEG 999``). In this situation, you can
 # add back ``EEG 999`` as a flat channel prior to re-referencing using
 # :func:`~mne.add_reference_channels`. By default this function returns a copy,
@@ -90,21 +91,21 @@ raw.pick(['eeg'])
 
 raw_new_ref = raw.copy()
 # original data
-raw_new_ref.plot(n_channels=len(raw_new_ref))
+raw_new_ref.plot()
 
 ###############################################################################
 # .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
 
 # add new reference channel (all zero)
 mne.add_reference_channels(raw_new_ref, ref_channels=['EEG 999'], copy=False)
-raw_new_ref.plot(n_channels=len(raw_new_ref))
+raw_new_ref.plot()
 
 ###############################################################################
 # .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
 
-# set reference to `EEG 020`
-raw_new_ref.set_eeg_reference(ref_channels=['EEG 020'])
-raw_new_ref.plot(n_channels=len(raw_new_ref))
+# set reference to `EEG 050`
+raw_new_ref.set_eeg_reference(ref_channels=['EEG 050'])
+raw_new_ref.plot()
 
 ###############################################################################
 # Notice that ``EEG 053`` (which is marked as "bad" in ``raw.info['bads']``) is
@@ -122,7 +123,7 @@ raw_new_ref.plot(n_channels=len(raw_new_ref))
 # sphinx_gallery_thumbnail_number = 4
 # use the average of all channels as reference
 raw_avg_ref = raw.copy().set_eeg_reference(ref_channels='average')
-raw_avg_ref.plot(n_channels=len(raw_avg_ref))
+raw_avg_ref.plot()
 
 ###############################################################################
 # Creating the average reference as a projector
