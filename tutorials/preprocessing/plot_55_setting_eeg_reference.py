@@ -41,7 +41,7 @@ raw.pick(['eeg'])
 #
 # In practice, this means that the reference electrode is often placed in a
 # location on the subject's body and close to their head (so that any
-# environmental interference affects the reference and measurment electrodes
+# environmental interference affects the reference and measurement electrodes
 # similarly) but as far away from the neural sources as possible (so that the
 # reference signal doesn't pick up brain-based fluctuations). Typical reference
 # locations are the subject's earlobe, nose, mastoid process, or collarbone.
