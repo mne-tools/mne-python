@@ -136,6 +136,7 @@ del onsets, durations, descriptions
 # Here we compute the saccade and EOG projectors for magnetometers and add
 # them to the raw data. The projectors are added to both runs.
 saccade_epochs = mne.Epochs(raw, saccades_events, 1, 0., 0.5, preload=True,
+                            baseline=(None, None),
                             reject_by_annotation=False)
 
 projs_saccade = mne.compute_proj_epochs(saccade_epochs, n_mag=1, n_eeg=0,

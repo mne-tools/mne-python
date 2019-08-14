@@ -547,6 +547,11 @@ class ICA(ContainsMixin):
         if self.current_fit != 'unfitted':
             self._reset()
 
+        if epochs.events.size == 0:
+            raise RuntimeError('Tried to fit ICA with epochs, but none were '
+                               'found: epochs.events is "{}".'
+                               .format(epochs.events))
+
         logger.info('Fitting ICA to data using %i channels '
                     '(please be patient, this may take a while)' % len(picks))
 

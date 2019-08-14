@@ -65,6 +65,8 @@ Changelog
 Bug
 ~~~
 
+- Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
+
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 
 - Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`_
@@ -146,6 +148,7 @@ API
 
 - Add ``update_ch_names`` parameter to :meth:`mne.io.Raw.set_montage` to allow updating the channel names based on the montage by `Joan Massich`_
 
+- Reading annotations contained in GDF files with :func:`mne.io.read_raw_gdf` now returns numeric event codes as descriptions (instead of textual descriptions) due to restrictive licensing of the GDF event code table from BioSig by `Clemens Brunner`_
 
 .. _changes_0_18:
 
@@ -3521,3 +3524,5 @@ of commits):
 .. _Paul Roujansky: https://github.com/paulroujansky
 
 .. _Theodore Papadopoulo: https://github.com/papadop
+
+.. _Milan Rybář: http://milanrybar.cz
