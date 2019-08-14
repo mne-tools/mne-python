@@ -767,12 +767,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                  'specified in "mm". This might lead to errors.'.format(unit))
 
         for s in sensors:
-
-            # XXX: Possibly will have to remove "GND" and "REF" here, which
-            # are included in bvct files ... but not in raw dat. So there
-            # would be an error when trying raw.set_montage(bvct_montage)
-
             name = s.find('Name').text
+
+            # Need to prune "GND" and "REF": these are not included in the raw
+            # data and will raise errors when we try to do raw.set_montage(...)
+            if name in ['GND', 'REF']:
+                continue
+
             fid = name in fid_name_map
             coordinates = np.array([float(s.find('X').text),
                                     float(s.find('Y').text),
