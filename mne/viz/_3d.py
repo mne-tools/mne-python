@@ -2098,7 +2098,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
-                                 transparent=None, brain_alpha=0.4,
+                                 transparent=True, brain_alpha=0.4,
                                  overlay_alpha=None, vector_alpha=1.0,
                                  scale_factor=None, time_viewer=False,
                                  subjects_dir=None, figure=None, views='lat',
