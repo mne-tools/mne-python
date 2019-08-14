@@ -170,24 +170,25 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
         freq_idx = _freq_mask(self.freqs, self.sfreq, fmin, fmax)
         #FIXME: sum over average? sum is easier to interprete, but will result in bad color scalings
-        data_masked = np.mean(self.data[..., freq_idx, :], axis=-2)
+        data_cropped = np.mean(self.data[..., freq_idx, :], axis=-2)
 
         if "epochs" in self.dims:
-            data_masked = data_masked[..., epoch, :, :]
+            data_cropped = data_cropped[..., epoch, :, :]
 
         if self._src_type == "volume":
             # use the magnitude only if it's a VolVectorSourceEstimate (see _BaseVectorSourceEstimate.plot)
-            data_mag = np.linalg.norm(data_masked, axis=1) if "orientations" in self.dims else data_masked
+            if "orientations" in self.dims:
+                data_cropped = np.linalg.norm(data_cropped, axis=1)
             brain = plot_volume_source_estimates(
-                VolSourceEstimate(data_mag, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
+                VolSourceEstimate(data_cropped, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
 
         elif "orientations" in self.dims:
             brain = plot_vector_source_estimates(
-                VectorSourceEstimate(data_masked, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
+                VectorSourceEstimate(data_cropped, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
 
         else:
             brain = plot_source_estimates(
-            SourceEstimate(data_masked, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
+            SourceEstimate(data_cropped, self.vertices, self.tmin, self.tstep, self.subject), **plot_params)
 
         return brain
 
