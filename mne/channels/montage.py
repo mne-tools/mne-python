@@ -762,6 +762,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         if unit not in scale:
             raise ValueError("Unit needs to be one of %s, not %r" %
                              (sorted(scale.keys()), unit))
+        if unit not in ['mm', 'auto']:
+            warn('Using "{}" as unit for BVCT file. BVCT files are usually '
+                 'specified in "mm". This might lead to errors.'.format(unit))
 
         for s in sensors:
             name = s.find('Name').text
