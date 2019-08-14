@@ -42,8 +42,8 @@ fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
 egi_dig_montage_fname = op.join(data_path, 'montage', 'coordinates.xml')
 egi_raw_fname = op.join(data_path, 'montage', 'egi_dig_test.raw')
 egi_fif_fname = op.join(data_path, 'montage', 'egi_dig_raw.fif')
-bvct_dig_montage_fname = op.join(data_path, 'montage', 'captrack_coords.bvct')
-bv_raw_fname = op.join(data_path, 'montage', 'bv_dig_test.raw')
+bvct_dig_montage_fname = op.join(data_path, 'montage', 'captrak_coords.bvct')
+bv_raw_fname = op.join(data_path, 'montage', 'bv_dig_test.vhdr')
 bv_fif_fname = op.join(data_path, 'montage', 'bv_dig_raw.fif')
 locs_montage_fname = op.join(data_path, 'EEGLAB', 'test_chans.locs')
 evoked_fname = op.join(data_path, 'montage', 'level2_raw-ave.fif')
@@ -560,7 +560,7 @@ def test_egi_dig_montage():
 @testing.requires_testing_data
 def test_bvct_dig_montage():
     """Test BrainVision CapTrak XML dig montage support."""
-    with pytest.warns('Using "m" as unit for BVCT file.'):
+    with pytest.warns(RuntimeWarning, match='Using "m" as unit for BVCT file'):
         read_dig_montage(bvct=bvct_dig_montage_fname, unit='m')
 
     dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
@@ -581,7 +581,8 @@ def test_bvct_dig_montage():
 
     # Test accuracy and embedding within raw object
     raw_bv = read_raw_brainvision(bv_raw_fname)
-    raw_bv.set_montage(dig_montage)
+    with pytest.warns(RuntimeWarning, match='Did not set 3 channel pos'):
+        raw_bv.set_montage(dig_montage)
     test_raw_bv = read_raw_fif(bv_fif_fname)
 
     assert_equal(len(raw_bv.ch_names), len(test_raw_bv.ch_names))
