@@ -624,6 +624,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         BrainVision CapTrak coordinates file from which to read digitization
         locations. This is typically in XML format. If str (filename), all
         other arguments are ignored.
+
+        .. versionadded:: 0.19
     transform : bool
         If True (default), points will be transformed to Neuromag space
         using :meth:`DigMontage.transform_to_head`.
@@ -772,6 +774,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
             # Need to prune "GND" and "REF": these are not included in the raw
             # data and will raise errors when we try to do raw.set_montage(...)
+            # XXX eventually this should be stored in ch['loc'][3:6]
+            # but we don't currently have such capabilities here
             if name in ['GND', 'REF']:
                 continue
 
