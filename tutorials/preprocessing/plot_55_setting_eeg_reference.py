@@ -85,19 +85,19 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # ``EEG 050`` as the new reference will then subtract out ``EEG 050``'s signal
 # *without restoring the signal at* ``EEG 999``). In this situation, you can
 # add back ``EEG 999`` as a flat channel prior to re-referencing using
-# :func:`~mne.add_reference_channels`. By default this function returns a copy,
-# so to alter the existing :class:`~mne.io.Raw` file you have to specify
-# ``copy=False``:
+# :func:`~mne.add_reference_channels`. Here's how the data looks in its
+# original state:
 
-raw_new_ref = raw.copy()
-# original data
-raw_new_ref.plot()
+raw.plot()
 
 ###############################################################################
-# .. KEEP THESE BLOCKS SEPARATE SO FIGURES ARE BIG ENOUGH TO READ
+# By default, :func:`~mne.add_reference_channels` returns a copy, so we can go
+# back to our original ``raw`` object later. If you wanted to alter the
+# existing :class:`~mne.io.Raw` object in-place you could specify
+# ``copy=False``.
 
 # add new reference channel (all zero)
-mne.add_reference_channels(raw_new_ref, ref_channels=['EEG 999'], copy=False)
+raw_new_ref = mne.add_reference_channels(raw, ref_channels=['EEG 999'])
 raw_new_ref.plot()
 
 ###############################################################################
@@ -108,8 +108,9 @@ raw_new_ref.set_eeg_reference(ref_channels=['EEG 050'])
 raw_new_ref.plot()
 
 ###############################################################################
-# Notice that ``EEG 053`` (which is marked as "bad" in ``raw.info['bads']``) is
-# not affected by  re-referencing.
+# Notice that ``EEG 050`` is now flat, while ``EEG 999`` has a non-zero signal,
+# and that ``EEG 053`` (which is marked as "bad" in ``raw.info['bads']``) is
+# not affected by the re-referencing.
 #
 #
 # Setting average reference
@@ -118,7 +119,9 @@ raw_new_ref.plot()
 # To set a "virtual reference" that is the average of all channels, you can use
 # :meth:`~mne.io.Raw.set_eeg_reference` with ``ref_channels='average'``. Just
 # as above, this will not affect any channels marked as "bad", nor will it
-# include bad channels when computing the average.
+# include bad channels when computing the average. However, it does modify the
+# :class:`~mne.io.Raw` object in-place, so we'll make a copy first so we can
+# still go back to the unmodified :class:`~mne.io.Raw` object later:
 
 # sphinx_gallery_thumbnail_number = 4
 # use the average of all channels as reference
@@ -162,8 +165,8 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
 
 ###############################################################################
-# EEG references and source modeling
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# EEG reference and source modeling
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # If you plan to perform source modeling (either with EEG or combined EEG/MEG
 # data), it is **strongly recommended** to use the
