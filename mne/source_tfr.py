@@ -69,7 +69,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None, freqs=None,
                  dims=("dipoles", "freqs", "times"), method=None, subject=None,
-                 verbose=None):
+                 verbose=None):  # noqa: D102
 
         valid_dims = [("dipoles", "freqs", "times"),
                       ("dipoles", "epochs", "freqs", "times"),
@@ -227,7 +227,8 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
         Returns
         -------
-        data : The source level time-frequency transformed data.
+        data : array
+            The source level time-frequency transformed data.
 
         """
         if self._data is None:
@@ -235,7 +236,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
             # remove the kernel and sensor data
             self._remove_kernel_sens_data_()
 
-            # we can't yet give full support for TFR complex conversion
+            # we don't yet give full support for TFR complex conversion
             # if 'power' in self.method:
             #    self._data = (self._data * self._data.conj()).real
 
