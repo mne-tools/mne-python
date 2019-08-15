@@ -73,6 +73,8 @@ Bug
 
 - Fix reading of dates in BrainVision files if no "New Segment" marker is specified, no date is given, or data is missing, by `Stefan Appelhoff`_
 
+- Fix bug with y-axis labeling in :meth:`mne.io.Raw.plot_psd` by `Eric Larson`_
+
 - Fix side-effect where :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources` changed the ``ICA.exclude`` attribute even when users didn't interact with the plot by `Daniel McCloy`_.
 
 - Fix scaling of sources in :meth:`ica.plot_sources(epochs) <mne.preprocessing.ICA.plot_sources>` by `Eric Larson`_
