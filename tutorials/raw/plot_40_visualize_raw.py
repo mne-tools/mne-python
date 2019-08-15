@@ -7,7 +7,7 @@ Built-in plotting methods for Raw objects
 
 This tutorial shows how to plot continuous data as a time series, how to plot
 the spectral density of continuous data, and how to plot the sensor locations
-and projectors stored in Raw objects.
+and projectors stored in :class:`~mne.io.Raw` objects.
 
 .. contents:: Page contents
    :local:
