@@ -541,60 +541,6 @@ def _get_figure_size_px(fig):
     return size
 
 
-def _layout_figure(params):
-    """Set figure layout. Shared with raw and epoch plots."""
-    size = _get_figure_size_px(params['fig'])
-    scroll_width = 25
-    hscroll_dist = 25
-    vscroll_dist = 10
-    l_border = 100
-    r_border = 10
-    t_border = 35
-    b_border = 45
-
-    # only bother trying to reset layout if it's reasonable to do so
-    if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
-        return
-
-    # convert to relative units
-    scroll_width_x = scroll_width / size[0]
-    scroll_width_y = scroll_width / size[1]
-    vscroll_dist /= size[0]
-    hscroll_dist /= size[1]
-    l_border /= size[0]
-    r_border /= size[0]
-    t_border /= size[1]
-    b_border /= size[1]
-    # main axis (traces)
-    ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
-    ax_y = hscroll_dist + scroll_width_y + b_border
-    ax_height = 1.0 - ax_y - t_border
-
-    pos = [l_border, ax_y, ax_width, ax_height]
-
-    params['ax'].set_position(pos)
-    if 'ax2' in params:
-        params['ax2'].set_position(pos)
-    params['ax'].set_position(pos)
-    # vscroll (channels)
-    pos = [ax_width + l_border + vscroll_dist, ax_y,
-           scroll_width_x, ax_height]
-    params['ax_vscroll'].set_position(pos)
-    # hscroll (time)
-    pos = [l_border, b_border, ax_width, scroll_width_y]
-    params['ax_hscroll'].set_position(pos)
-    if 'ax_button' in params:
-        # options button
-        pos = [l_border + ax_width + vscroll_dist, b_border,
-               scroll_width_x, scroll_width_y]
-        params['ax_button'].set_position(pos)
-    if 'ax_help_button' in params:
-        pos = [l_border - vscroll_dist - scroll_width_x * 2, b_border,
-               scroll_width_x * 2, scroll_width_y]
-        params['ax_help_button'].set_position(pos)
-    params['fig'].canvas.draw()
-
-
 @verbose
 def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
                  read_limit=np.inf, max_str=30, verbose=None):
@@ -658,13 +604,6 @@ def figure_nobar(*args, **kwargs):
     finally:
         rcParams['toolbar'] = old_val
     return fig
-
-
-def _helper_raw_resize(event, params):
-    """Resize."""
-    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
-    set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
-    _layout_figure(params)
 
 
 def _plot_raw_onscroll(event, params, len_channels=None):
