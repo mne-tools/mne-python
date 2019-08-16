@@ -523,7 +523,7 @@ def _simplify_float(label):
 
 
 def _get_figure_size_px(fig):
-    """Helper to get figure size in pixels."""
+    """Get figure size in pixels."""
     size = fig.get_size_inches() * fig.dpi
     dpi_ratio = 1.
     for key in ('_dpi_ratio', '_device_scale'):
@@ -534,7 +534,6 @@ def _get_figure_size_px(fig):
 
 def _layout_figure(params):
     """Set figure layout. Shared with raw and epoch plots."""
-
     size = _get_figure_size_px(params['fig'])
     scroll_width = 25
     hscroll_dist = 25
