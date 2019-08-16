@@ -11,9 +11,8 @@ from functools import partial
 import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
-                    _layout_figure, _plot_raw_onscroll, _mouse_click,
-                    _helper_raw_resize, _plot_raw_onkey, plt_show,
-                    _convert_psds)
+                    _plot_raw_onscroll, _mouse_click,
+                    _plot_raw_onkey, plt_show, _convert_psds)
 from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
@@ -913,7 +912,6 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['update_fun'] = partial(_update_data, params)
     params['pick_bads_fun'] = partial(_pick_bads, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
-    _layout_figure(params)
     # callbacks
     callback_key = partial(_plot_raw_onkey, params=params)
     params['fig'].canvas.mpl_connect('key_press_event', callback_key)
@@ -921,8 +919,6 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-    callback_resize = partial(_helper_raw_resize, params=params)
-    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     params['fig_proj'] = None
