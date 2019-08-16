@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add support for reading in BrainVision CapTrak (BVCT) digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Stefan Appelhoff`_
+
 - Allow :meth:`mne.Annotations.crop` to support negative ``tmin`` and ``tmax`` by `Joan Massich`_
 
 - Unknown events code in GDF are now visible in the ``event_id`` by `Theodore Papadopoulo`_
