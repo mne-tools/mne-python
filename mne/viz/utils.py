@@ -36,8 +36,8 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import (verbose, set_config, warn, _check_ch_locs, _check_option,
-                     logger, fill_doc)
+from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
+                     _check_option, logger, fill_doc)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -520,6 +520,15 @@ def _simplify_float(label):
     if isinstance(label, float) and float(str(label)) != round(label):
         label = round(label, 2)
     return label
+
+
+def _get_figsize_from_config():
+    """Get default / most recent figure size from config."""
+    figsize = get_config('MNE_BROWSE_RAW_SIZE')
+    if figsize is not None:
+        figsize = figsize.split(',')
+        figsize = tuple([float(s) for s in figsize])
+    return figsize
 
 
 def _get_figure_size_px(fig):

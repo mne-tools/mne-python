@@ -14,15 +14,14 @@ from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels)
-from ..utils import (verbose, get_config, _ensure_int, _validate_type,
-                     _check_option)
+from ..utils import verbose, _ensure_int, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, _get_figure_size_px,
                     _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
-                    _select_bads, _onclick_help,
+                    _select_bads, _onclick_help, _get_figsize_from_config,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
@@ -651,12 +650,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     from mpl_toolkits.axes_grid1.axes_size import Fixed
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
-    size = get_config('MNE_BROWSE_RAW_SIZE')
-    if size is not None:
-        size = size.split(',')
-        size = tuple([float(s) for s in size])
-
-    fig = figure_nobar(facecolor=bgcolor, figsize=size)
+    figsize = _get_figsize_from_config()
+    fig = figure_nobar(facecolor=bgcolor, figsize=figsize)
     fig.canvas.set_window_title(title or "Raw")
     fig_w_px, fig_h_px = _get_figure_size_px(fig)
 
@@ -696,10 +691,9 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax_help_button = div.append_axes(position='left',
                                      size=Fixed(help_width / fig.dpi),
                                      pad=Fixed(vscroll_dist / fig.dpi))
-    # ...then move it down by changing its locator
+    # ...then move it down by changing its locator, and make it a button.
     loc = div.new_locator(nx=0, ny=0)
     ax_help_button.set_axes_locator(loc)
-    # finally, make it a button
     help_button = mpl.widgets.Button(ax_help_button, 'Help')
     help_button.on_clicked(partial(_onclick_help, params=params))
     # style scrollbars
