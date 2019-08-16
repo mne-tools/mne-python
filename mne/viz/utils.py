@@ -522,14 +522,20 @@ def _simplify_float(label):
     return label
 
 
-def _layout_figure(params):
-    """Set figure layout. Shared with raw and epoch plots."""
-    size = params['fig'].get_size_inches() * params['fig'].dpi
+def _get_figure_size_px(fig):
+    """Helper to get figure size in pixels."""
+    size = fig.get_size_inches() * fig.dpi
     dpi_ratio = 1.
     for key in ('_dpi_ratio', '_device_scale'):
-        dpi_ratio = getattr(params["fig"].canvas, key, dpi_ratio)
+        dpi_ratio = getattr(fig.canvas, key, dpi_ratio)
     size /= dpi_ratio  # account for HiDPI resolutions
+    return size
 
+
+def _layout_figure(params):
+    """Set figure layout. Shared with raw and epoch plots."""
+
+    size = _get_figure_size_px(params['fig'])
     scroll_width = 25
     hscroll_dist = 25
     vscroll_dist = 10
