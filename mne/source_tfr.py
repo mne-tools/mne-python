@@ -5,12 +5,13 @@ import copy
 import numpy as np
 
 from .filter import resample
-from .utils import (_check_subject, verbose, _time_mask, _check_option,
-                    _validate_type)
+from .utils import (_check_subject, verbose, fill_doc, _time_mask,
+                    _check_option, _validate_type)
 from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.h5io import write_hdf5
 
 
+@fill_doc
 class SourceTFR(ToDataFrameMixin, TimeMixin):
     """Class for time-frequency transformed source level data.
 
