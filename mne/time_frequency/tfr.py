@@ -35,7 +35,6 @@ from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
-from ..source_tfr import SourceTFR
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
@@ -886,6 +885,7 @@ def _check_stfr_list_elem(inst, type_ref, freq_ref, tmin_ref):
 def _create_stfr(inst, out, freqs, method):
     """Prepare data and create a SourceTFR object from _tfr_aux output."""
     from ..source_estimate import VectorSourceEstimate, VolVectorSourceEstimate
+    from ..source_tfr import SourceTFR
 
     if len(out.shape) == 4:  # epoched data
         dims = ["dipoles", "epochs", "freqs", "times"]
