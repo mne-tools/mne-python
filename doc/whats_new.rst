@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add :class:`mne.SourceTFR` class, a container for time frequency transformed source level data by `Dirk Gütlin`_
+
 - Allow :meth:`mne.Annotations.crop` to support negative ``tmin`` and ``tmax`` by `Joan Massich`_
 
 - Unknown events code in GDF are now visible in the ``event_id`` by `Theodore Papadopoulo`_
