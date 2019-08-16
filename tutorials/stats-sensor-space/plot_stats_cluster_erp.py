@@ -11,15 +11,6 @@ and how to visualise the results.
 
 The underlying data comes from [1]_; we contrast long vs. short words.
 TFCE is described in [2]_.
-
-References
-----------
-.. [1] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand
-   words are worth a picture: Snapshots of printed-word processing in an
-   event-related potential megastudy. Psychological Science, 2015
-.. [2] Smith and Nichols 2009, "Threshold-free cluster enhancement:
-   addressing problems of smoothing, threshold dependence, and
-   localisation in cluster inference", NeuroImage 44 (2009) 83-98.
 """
 
 import numpy as np
@@ -125,3 +116,13 @@ plt.colorbar(axes["Left"].images[-1], ax=list(axes.values()), shrink=.3,
              label="uV")
 
 plt.show()
+
+###############################################################################
+# References
+# ----------
+# .. [1] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand
+#    words are worth a picture: Snapshots of printed-word processing in an
+#    event-related potential megastudy. Psychological Science, 2015
+# .. [2] Smith and Nichols 2009, "Threshold-free cluster enhancement:
+#    addressing problems of smoothing, threshold dependence, and
+#    localisation in cluster inference", NeuroImage 44 (2009) 83-98.
