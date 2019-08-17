@@ -1030,24 +1030,23 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, copy=False, verbose=None):
+                       show=False, copy=False, T1=None, brainmask='ws',
+                       verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
     Parameters
     ----------
     subject : str
-        Subject name (required)
-    subjects_dir : str
-        Directory containing subjects data. If None use
-        the Freesurfer SUBJECTS_DIR environment variable.
+        Subject name.
+    $(subjects_dir)s
     overwrite : bool
-        Write over existing files
+        Write over existing files.
     volume : str
-        Defaults to T1
+        Defaults to T1.
     atlas : bool
-        Specify the --atlas option for mri_watershed
+        Specify the --atlas option for mri_watershed.
     gcaatlas : bool
-        Use the subcortical atlas
+        Specify the --brain_atlas option for mri_watershed.
     preflood : int
         Change the preflood height
     show : bool
@@ -1060,6 +1059,18 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         (if they do not already exist).
 
         .. versionadded:: 0.18
+    T1 : bool | None
+        If True, pass the ``-T1`` flag.
+        By default (None), this takes the same value as ``gcaatlas``.
+
+        .. versionadded:: 0.19
+    brainmask : str
+        The filename for the brainmask output file relative to the
+        ``$SUBJECTS_DIR/$SUBJECT/bem/watershed/`` directory.
+        Can be for example ``"../../mri/brainmask.mgz"`` to overwrite
+        the brainmask obtained via ``recon-all -autorecon1``.
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Notes
@@ -1077,13 +1088,16 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     subject_dir = op.join(subjects_dir, subject)
     mri_dir = op.join(subject_dir, 'mri')
     T1_dir = op.join(mri_dir, volume)
-    T1_mgz = op.join(mri_dir, volume + '.mgz')
+    T1_mgz = T1_dir
+    if not T1_dir.endswith('.mgz'):
+        T1_mgz += '.mgz'
     bem_dir = op.join(subject_dir, 'bem')
     ws_dir = op.join(subject_dir, 'bem', 'watershed')
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
     if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
-        raise RuntimeError('Could not find the MRI data')
+        raise RuntimeError('Could not find the MRI data:\n%s\nor\n%s'
+                           % (T1_dir, T1_mgz))
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError('%s already exists. Use the --overwrite option'
@@ -1095,27 +1109,31 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if preflood:
         cmd += ["-h", "%s" % int(preflood)]
 
+    if T1 is None:
+        T1 = gcaatlas
+    if T1:
+        cmd += ['-T1']
     if gcaatlas:
-        cmd += ['-atlas', '-T1', '-brain_atlas', env['FREESURFER_HOME'] +
-                '/average/RB_all_withskull_2007-08-08.gca',
+        fname = op.join(env['FREESURFER_HOME'], 'average',
+                        'RB_all_withskull_*.gca')
+        fname = sorted(glob.glob(fname))[::-1][0]
+        logger.info('Using GCA atlas: %s' % (fname,))
+        cmd += ['-atlas', '-brain_atlas', fname,
                 subject_dir + '/mri/transforms/talairach_with_skull.lta']
     elif atlas:
         cmd += ['-atlas']
     if op.exists(T1_mgz):
         cmd += ['-useSRAS', '-surf', op.join(ws_dir, subject), T1_mgz,
-                op.join(ws_dir, 'ws')]
+                op.join(ws_dir, brainmask)]
     else:
         cmd += ['-useSRAS', '-surf', op.join(ws_dir, subject), T1_dir,
-                op.join(ws_dir, 'ws')]
+                op.join(ws_dir, brainmask)]
     # report and run
     logger.info('\nRunning mri_watershed for BEM segmentation with the '
-                'following parameters:\n\n'
-                'SUBJECTS_DIR = %s\n'
-                'SUBJECT = %s\n'
-                'Results dir = %s\n' % (subjects_dir, subject, ws_dir))
-    os.makedirs(op.join(ws_dir, 'ws'))
+                'following parameters:\n\nResults dir = %s\nCommand = %s\n'
+                % (ws_dir, ' '.join(cmd)))
+    os.makedirs(op.join(ws_dir))
     run_subprocess_env(cmd)
-
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
         if new_info is None:
