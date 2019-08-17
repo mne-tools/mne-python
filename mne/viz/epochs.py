@@ -25,7 +25,7 @@ from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
-                    _get_figure_size_px, _setup_vmin_vmax, _channels_changed,
+                    _prepare_mne_browse, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
@@ -957,8 +957,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
     from matplotlib.colors import colorConverter
-    from mpl_toolkits.axes_grid1.axes_size import Fixed
-    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
     epochs = params['epochs']
     info = info or epochs.info
     orig_epoch_times, epochs_events = epochs.times, epochs.events
@@ -1001,56 +999,12 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     figsize = _get_figsize_from_config()
     fig = figure_nobar(facecolor='w', figsize=figsize, dpi=80)
-    fig.canvas.set_window_title(title or "Epochs")
-    fig_w_px, fig_h_px = _get_figure_size_px(fig)
+    fig.canvas.set_window_title(title or 'Epochs')
+    _prepare_mne_browse(fig, params, xlabel='Epochs')
+    ax = params['ax']
+    ax_hscroll = params['ax_hscroll']
+    ax_vscroll = params['ax_vscroll']
 
-    # default sizes (pixels)
-    scroll_width = 25
-    hscroll_dist = 25
-    vscroll_dist = 10
-    l_border = 100
-    r_border = 10
-    t_border = 35
-    b_border = 45
-    help_width = scroll_width * 2
-    # borders
-    borders = dict(left=(l_border - vscroll_dist - help_width) / fig_w_px,
-                   right=1 - r_border / fig_w_px,
-                   bottom=b_border / fig_h_px,
-                   top=1 - t_border / fig_h_px)
-    fig.subplots_adjust(**borders)
-    # Main axes must be a `subplot` for `subplots_adjust` to work (allows user
-    # to adjust margins). That's why we don't do it with the Divider class.
-    ax = fig.add_subplot()
-    div = make_axes_locatable(ax)
-    ax_hscroll = div.append_axes(position='bottom',
-                                 size=Fixed(scroll_width / fig.dpi),
-                                 pad=Fixed(hscroll_dist / fig.dpi))
-    ax_vscroll = div.append_axes(position='right',
-                                 size=Fixed(scroll_width / fig.dpi),
-                                 pad=Fixed(vscroll_dist / fig.dpi))
-    # proj button (optionally) added later, but easiest to compute position now
-    proj_button_pos = [1 - (r_border + scroll_width) / fig_w_px,  # left
-                       b_border / fig_h_px,                       # bottom
-                       scroll_width / fig_w_px,                   # width
-                       scroll_width / fig_h_px]                   # height
-    params['proj_button_pos'] = proj_button_pos
-    params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
-    # initialize help button in the wrong spot...
-    ax_help_button = div.append_axes(position='left',
-                                     size=Fixed(help_width / fig.dpi),
-                                     pad=Fixed(vscroll_dist / fig.dpi))
-    # ...then move it down by changing its locator, and make it a button.
-    loc = div.new_locator(nx=0, ny=0)
-    ax_help_button.set_axes_locator(loc)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(partial(_onclick_help, params=params))
-    # style scrollbars
-    ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Epochs')
-    ax_vscroll.set_axis_off()
-    ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
-                                               facecolor='w', zorder=3))
     # add secondary x axis for annotations / event labels
     ax2 = ax.twiny()
     ax2.set_zorder(-1)
@@ -1060,6 +1014,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ax2.axis([0, duration, 0, 200])
 
     # populate vertical and horizontal scrollbars
+    ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
+                                               facecolor='w', zorder=3))
     for ci in range(len(picks)):
         if ch_names[ci] in params['info']['bads']:
             this_color = params['bad_color']
@@ -1179,7 +1135,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'vertline_t': vertline_t,
                    'butterfly': butterfly,
                    'text': text,
-                   'help_button': help_button,  # reference needed for clicks
                    'fig_options': None,
                    'settings': [True, True, epoch_nr, True],
                    'image_plot': None,
@@ -1205,9 +1160,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     # Draw event lines for the first time.
     _plot_vert_lines(params)
-
-    # default key to close window
-    params['close_key'] = 'escape'
 
 
 def _prepare_projectors(params):

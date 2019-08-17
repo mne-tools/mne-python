@@ -541,6 +541,68 @@ def _get_figure_size_px(fig):
     return size
 
 
+def _prepare_mne_browse(fig, params, xlabel):
+    """Setup axes for mne_browse_* style raw/epochs/ICA plots."""
+    import matplotlib as mpl
+    from mpl_toolkits.axes_grid1.axes_size import Fixed
+    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
+    fig_w_px, fig_h_px = _get_figure_size_px(fig)
+    # default sizes (pixels)
+    scroll_width = 25
+    hscroll_dist = 25
+    vscroll_dist = 10
+    l_border = 100
+    r_border = 10
+    t_border = 35
+    b_border = 45
+    help_width = scroll_width * 2
+    # borders
+    borders = dict(left=(l_border - vscroll_dist - help_width) / fig_w_px,
+                   right=1 - r_border / fig_w_px,
+                   bottom=b_border / fig_h_px,
+                   top=1 - t_border / fig_h_px)
+    fig.subplots_adjust(**borders)
+    # Main axes must be a `subplot` for `subplots_adjust` to work (allows user
+    # to adjust margins). That's why we don't do it with the Divider class.
+    ax = fig.add_subplot()
+    div = make_axes_locatable(ax)
+    ax_hscroll = div.append_axes(position='bottom',
+                                 size=Fixed(scroll_width / fig.dpi),
+                                 pad=Fixed(hscroll_dist / fig.dpi))
+    ax_vscroll = div.append_axes(position='right',
+                                 size=Fixed(scroll_width / fig.dpi),
+                                 pad=Fixed(vscroll_dist / fig.dpi))
+    # proj button (optionally) added later, but easiest to compute position now
+    proj_button_pos = [1 - (r_border + scroll_width) / fig_w_px,  # left
+                       b_border / fig_h_px,                       # bottom
+                       scroll_width / fig_w_px,                   # width
+                       scroll_width / fig_h_px]                   # height
+    params['proj_button_pos'] = proj_button_pos
+    params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
+    # initialize help button in the wrong spot...
+    ax_help_button = div.append_axes(position='left',
+                                     size=Fixed(help_width / fig.dpi),
+                                     pad=Fixed(vscroll_dist / fig.dpi))
+    # ...then move it down by changing its locator, and make it a button.
+    loc = div.new_locator(nx=0, ny=0)
+    ax_help_button.set_axes_locator(loc)
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(partial(_onclick_help, params=params))
+    # style scrollbars
+    ax_hscroll.get_yaxis().set_visible(False)
+    ax_hscroll.set_xlabel(xlabel)
+    ax_vscroll.set_axis_off()
+    # store these so they can be modified elsewhere
+    params['fig'] = fig
+    params['ax'] = ax
+    params['ax_hscroll'] = ax_hscroll
+    params['ax_vscroll'] = ax_vscroll
+    params['help_button'] = help_button
+    # default key to close window
+    params['close_key'] = 'escape'
+
+
 @verbose
 def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
                  read_limit=np.inf, max_str=30, verbose=None):

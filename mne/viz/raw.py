@@ -18,7 +18,7 @@ from ..utils import verbose, _ensure_int, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
-from .utils import (_toggle_options, _toggle_proj, _get_figure_size_px,
+from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _select_bads, _onclick_help, _get_figsize_from_config,
@@ -647,65 +647,15 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels):
     """Set up the mne_browse_raw window."""
     import matplotlib as mpl
-    from mpl_toolkits.axes_grid1.axes_size import Fixed
-    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
     figsize = _get_figsize_from_config()
     fig = figure_nobar(facecolor=bgcolor, figsize=figsize)
     fig.canvas.set_window_title(title or "Raw")
-    fig_w_px, fig_h_px = _get_figure_size_px(fig)
-
-    # default sizes (pixels)
-    scroll_width = 25
-    hscroll_dist = 25
-    vscroll_dist = 10
-    l_border = 100
-    r_border = 10
-    t_border = 35
-    b_border = 45
-    help_width = scroll_width * 2
-    # borders
-    borders = dict(left=(l_border - vscroll_dist - help_width) / fig_w_px,
-                   right=1 - r_border / fig_w_px,
-                   bottom=b_border / fig_h_px,
-                   top=1 - t_border / fig_h_px)
-    fig.subplots_adjust(**borders)
-    # Main axes must be a `subplot` for `subplots_adjust` to work (allows user
-    # to adjust margins). That's why we don't do it with the Divider class.
-    ax = fig.add_subplot()
-    div = make_axes_locatable(ax)
-    ax_hscroll = div.append_axes(position='bottom',
-                                 size=Fixed(scroll_width / fig.dpi),
-                                 pad=Fixed(hscroll_dist / fig.dpi))
-    ax_vscroll = div.append_axes(position='right',
-                                 size=Fixed(scroll_width / fig.dpi),
-                                 pad=Fixed(vscroll_dist / fig.dpi))
-    # proj button (optionally) added later, but easiest to compute position now
-    proj_button_pos = [1 - (r_border + scroll_width) / fig_w_px,  # left
-                       b_border / fig_h_px,                       # bottom
-                       scroll_width / fig_w_px,                   # width
-                       scroll_width / fig_h_px]                   # height
-    params['proj_button_pos'] = proj_button_pos
-    params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
-    # initialize help button in the wrong spot...
-    ax_help_button = div.append_axes(position='left',
-                                     size=Fixed(help_width / fig.dpi),
-                                     pad=Fixed(vscroll_dist / fig.dpi))
-    # ...then move it down by changing its locator, and make it a button.
-    loc = div.new_locator(nx=0, ny=0)
-    ax_help_button.set_axes_locator(loc)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(partial(_onclick_help, params=params))
-    # style scrollbars
-    ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Time (s)')
-    ax_vscroll.set_axis_off()
-    # store these so they can be modified elsewhere
-    params['fig'] = fig
-    params['ax'] = ax
-    params['ax_hscroll'] = ax_hscroll
-    params['ax_vscroll'] = ax_vscroll
-    params['help_button'] = help_button
+    # most of the axes setup is done in _prepare_mne_browse...
+    _prepare_mne_browse(fig, params, xlabel='Time (s)')
+    ax = params['ax']
+    ax_hscroll = params['ax_hscroll']
+    ax_vscroll = params['ax_vscroll']
 
     # populate vertical and horizontal scrollbars
     info = params['info']
@@ -774,9 +724,6 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
-
-    # default key to close window
-    params['close_key'] = 'escape'
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
