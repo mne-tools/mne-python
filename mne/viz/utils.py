@@ -542,7 +542,7 @@ def _get_figure_size_px(fig):
 
 
 def _prepare_mne_browse(fig, params, xlabel):
-    """Setup axes for mne_browse_* style raw/epochs/ICA plots."""
+    """Set up axes for mne_browse_* style raw/epochs/ICA plots."""
     import matplotlib as mpl
     from mpl_toolkits.axes_grid1.axes_size import Fixed
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
