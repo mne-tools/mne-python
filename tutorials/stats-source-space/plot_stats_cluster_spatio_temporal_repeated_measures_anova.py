@@ -246,7 +246,7 @@ brain.show_view('medial')
 
 ###############################################################################
 # Finally, let's investigate interaction effect by reconstructing the time
-# courses
+# courses:
 
 inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
                   enumerate(good_cluster_inds)][0]  # first cluster

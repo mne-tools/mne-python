@@ -7,14 +7,15 @@ Built-in plotting methods for Raw objects
 
 This tutorial shows how to plot continuous data as a time series, how to plot
 the spectral density of continuous data, and how to plot the sensor locations
-and projectors stored in Raw objects.
+and projectors stored in :class:`~mne.io.Raw` objects.
 
 .. contents:: Page contents
    :local:
    :depth: 2
 
-As usual we'll start by importing the modules we need and loading some
-:ref:`example data <sample-dataset>`:
+As usual we'll start by importing the modules we need, loading some
+:ref:`example data <sample-dataset>`, and cropping the :class:`~mne.io.Raw`
+object to just 60 seconds before loading it into RAM to save memory:
 """
 
 import os
@@ -23,7 +24,8 @@ import mne
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
+raw = mne.io.read_raw_fif(sample_data_raw_file)
+raw.crop(tmax=60).load_data()
 
 ###############################################################################
 # We've seen in :ref:`a previous tutorial <tut-raw-class>` how to plot data

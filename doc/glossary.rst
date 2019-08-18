@@ -109,6 +109,16 @@ MNE-Python core terminology and general concepts
         it is a one-dimensional time series capturing the spatial variability
         of the signal across sensor locations.
 
+    HPI
+        Head position indicators (abbr. ``HPI``, or sometimes ``cHPI`` for
+        *continuous* head position indicators) are small coils attached to a
+        subject's head during MEG acquisition. Each coil emits a sinusoidal
+        signal of a different frequency, which is picked up by the MEG sensors
+        and can be used to infer the head position. With cHPI, the sinusoidal
+        signals are typically set at frequencies above any neural signal of
+        interest, and thus can be removed after head position correction via
+        low-pass filtering.
+
     info
         Also called ``measurement info``, it is a collection of metadata regarding
         a Raw, Epochs or Evoked object; e.g.,

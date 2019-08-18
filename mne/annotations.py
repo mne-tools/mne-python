@@ -350,8 +350,8 @@ class Annotations(object):
         if len(self) == 0:
             return  # no annotations, nothing to do
 
-        orig_time_offset = 0 if self.orig_time is None else self.orig_time
-        absolute_onset = self.onset + orig_time_offset
+        offset = 0 if self.orig_time is None else self.orig_time
+        absolute_onset = self.onset + offset
         absolute_offset = absolute_onset + self.duration
 
         tmin = tmin if tmin is not None else absolute_onset.min()
@@ -360,14 +360,11 @@ class Annotations(object):
         if tmin > tmax:
             raise ValueError('tmax should be greater than tmin.')
 
-        if tmin < orig_time_offset:
-            raise ValueError('tmin should be positive.')
-
         out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
 
         # clip the left side
         clip_left_elem = (absolute_onset < tmin) & ~out_of_bounds
-        self.onset[clip_left_elem] = tmin - orig_time_offset
+        self.onset[clip_left_elem] = tmin - offset
         diff = tmin - absolute_onset[clip_left_elem]
         self.duration[clip_left_elem] = self.duration[clip_left_elem] - diff
 

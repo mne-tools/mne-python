@@ -24,13 +24,23 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add :class:`mne.SourceTFR` class, a container for time frequency transformed source level data by `Dirk Gütlin`_
+
+- Add support for reading in BrainVision CapTrak (BVCT) digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Stefan Appelhoff`_
+
+- Allow :meth:`mne.Annotations.crop` to support negative ``tmin`` and ``tmax`` by `Joan Massich`_
+
 - Unknown events code in GDF are now visible in the ``event_id`` by `Theodore Papadopoulo`_
 
 - Now :func:`mne.io.read_raw_ctf` populates ``raw.annotations`` with the markers in ``MarkerFile.mrk`` if any by `Joan Massich`_
 
+- Add options for controlling the use of the ``-T1`` flag and the location of the brainmask output in :ref:`mne watershed_bem <gen_mne_watershed_bem>` by `Eric Larson`_
+
 - Add support to :func:`mne.read_annotations` to read CTF marker files by `Joan Massich`_
 
 - Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
+
+- Add support for :ref:`mne coreg <gen_mne_coreg>` scaling surrogate subjects without surface reconstructions, such as those created for volumetric analyses only (e.g., with ``recon-all -autorecon1``) by `Eric Larson`_
 
 - Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
 
@@ -63,11 +73,15 @@ Changelog
 Bug
 ~~~
 
+- Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
+
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 
 - Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`_
 
 - Fix reading of dates in BrainVision files if no "New Segment" marker is specified, no date is given, or data is missing, by `Stefan Appelhoff`_
+
+- Fix bug with y-axis labeling in :meth:`mne.io.Raw.plot_psd` by `Eric Larson`_
 
 - Fix side-effect where :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources` changed the ``ICA.exclude`` attribute even when users didn't interact with the plot by `Daniel McCloy`_.
 
@@ -144,6 +158,7 @@ API
 
 - Add ``update_ch_names`` parameter to :meth:`mne.io.Raw.set_montage` to allow updating the channel names based on the montage by `Joan Massich`_
 
+- Reading annotations contained in GDF files with :func:`mne.io.read_raw_gdf` now returns numeric event codes as descriptions (instead of textual descriptions) due to restrictive licensing of the GDF event code table from BioSig by `Clemens Brunner`_
 
 .. _changes_0_18:
 
@@ -3519,3 +3534,5 @@ of commits):
 .. _Paul Roujansky: https://github.com/paulroujansky
 
 .. _Theodore Papadopoulo: https://github.com/papadop
+
+.. _Milan Rybář: http://milanrybar.cz
