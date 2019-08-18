@@ -5,11 +5,11 @@
 import os.path as op
 import glob as glob
 import pandas as pd
+import numpy as np
 import configparser as cp
 import re as re
 
 from ..base import BaseRaw
-from ..utils import _read_segments_file, _file_size
 from ..meas_info import create_info
 from ...utils import logger, verbose, warn, fill_doc
 
@@ -74,11 +74,11 @@ class RawNIRX(BaseRaw):
         assert (len(file_cfg) == 1), "Should be one config file"
         assert (len(file_mat) == 1), "Should be one mat file"
 
-        # Read wavelength data
-
-        wl1 = pd.read_csv(file_wl1[0], sep = ' ' )
-        wl2 = pd.read_csv(file_wl2[0], sep = ' ' )
-        assert (wl1.shape == wl2.shape), "Wavelength files should contain same amount of data"
+        # Read number of rows of wavelength data which corresponds to 
+        # number of samples
+        last_sample = 0
+        for line in open(file_wl1[0]): last_sample += 1
+        last_sample -= 2
 
         # Read demographic information file
 
@@ -86,34 +86,56 @@ class RawNIRX(BaseRaw):
         inf.read(file_inf)
         print(inf['Subject Demographics']['Age'])
 
-        # Read event/triggers file
-
-
         # Read header file
 
         hdr = cp.ConfigParser(allow_no_value=True)
         hdr.read(file_hdr)
-        #print(hdr['GeneralInfo']['Mod'])
-        #print(hdr['ImagingParameters']['SamplingRate'])
-        #print(hdr['DataStructure']['S-D-Key'])
-        #print(hdr['ChannelsDistance']['ChanDis'])
-
-        # This solution gets 90% of the way there, but fails on the key values
-        # where data has been stored in comments. All the failing fields are listed
-        # below. They all evaluate to #
-        # TODO: Write custom parser for these fields
-        print(hdr['GainSettings']['Gains'])
-        print(hdr['Markers']['Events'])
-        print(hdr['DataStructure']['S-D-Mask'])
-        print(hdr['DarkNoise']['Wavelength1'])
-        print(hdr['DarkNoise']['Wavelength2'])
 
         # Parse required header fields
-
-        ## Extract requested Source Detector Keys
 
         sources = [int(s) for s in re.findall('(\d)-\d:\d+', hdr['DataStructure']['S-D-Key'])]
         detectors = [int(s) for s in  re.findall('\d-(\d):\d+', hdr['DataStructure']['S-D-Key'])]
         sdindex = [int(s) for s in re.findall('\d-\d:(\d+)', hdr['DataStructure']['S-D-Key'])]
         assert (len(sources) == len(detectors)), "Same amount of sources and detectors required"
         assert (len(sources) == len(sdindex)), "Same amount of sources and keys required"
+
+        # Create mne 
+        # TODO: ch_type is currently misc as I could not find appropriate other type. 
+        #       the hbo and hbr type are not relevant under the signal has been converted
+        # TODO: nchan needs to be multiplied by two as we have two wavelengths per sensor
+        #       should the underlying type be modified to support (wavelength x channels x data)?
+        info = create_info(len(sources)*2, hdr['ImagingParameters']['SamplingRate'], ch_types = 'misc')
+        # Overload info
+        # TODO: Is this even allowed?
+        info['sources'] = np.asarray(sources)
+        info['detectors'] = np.asarray(detectors)
+        info['sdindex'] = np.asarray(sdindex)
+
+        super(RawNIRX, self).__init__(
+            info, preload, filenames=[fname], last_samps=[last_sample],
+            raw_extras=[hdr])
+
+
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a segment of data from a file.
+        The NIRX machine records raw data as two different wavelengths.
+        These are stored in two files [wl1, wl2]. This function will 
+        return the data as ([wl1, wl2] x samples)
+        """
+
+        file_wl1 = glob.glob(self.filenames[fi] + '/*.wl1')
+        file_wl2 = glob.glob(self.filenames[fi] + '/*.wl2')
+
+        wl1 = pd.read_csv(file_wl1[0], sep = ' ' ).values
+        wl2 = pd.read_csv(file_wl2[0], sep = ' ' ).values
+        assert (wl1.shape == wl2.shape), "Wavelength files should contain same amount of data"
+
+        wl1 = wl1[start:stop, self.info['sdindex']-1].T  # As indexing is 1 based
+        wl2 = wl2[start:stop, self.info['sdindex']-1].T  # As indexing is 1 based
+
+        data[0:self.info['nchan']//2, :] = wl1
+        data[self.info['nchan']//2:, :] = wl2
+
+        return data
+    
+       
