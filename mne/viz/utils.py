@@ -36,8 +36,8 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
-                     _check_option, logger, fill_doc)
+from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
+                     logger, fill_doc)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)

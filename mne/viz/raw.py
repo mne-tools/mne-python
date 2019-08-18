@@ -21,7 +21,7 @@ from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
-                    _select_bads, _onclick_help, _get_figsize_from_config,
+                    _select_bads, _get_figsize_from_config,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
