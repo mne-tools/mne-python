@@ -247,6 +247,10 @@ def test_ica_core(method):
         pytest.raises(RuntimeError, ica.get_sources, raw)
         pytest.raises(RuntimeError, ica.get_sources, epochs)
 
+        # Test error upon empty epochs fitting
+        with pytest.raises(RuntimeError, match='none were found'):
+            ica.fit(epochs[0:0])
+
         # test decomposition
         with pytest.warns(UserWarning, match='did not converge'):
             ica.fit(raw, picks=pcks, start=start, stop=stop)

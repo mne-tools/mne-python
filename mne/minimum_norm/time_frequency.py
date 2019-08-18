@@ -510,7 +510,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     n_fft = int(n_fft)
     duration = ((1. - overlap) * n_fft) / raw.info['sfreq']
     events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
-    epochs = Epochs(raw, events, 1, 0, (n_fft - 1) / raw.info['sfreq'])
+    epochs = Epochs(raw, events, 1, 0, (n_fft - 1) / raw.info['sfreq'],
+                    baseline=None)
     out = compute_source_psd_epochs(
         epochs, inverse_operator, lambda2, method, fmin, fmax,
         pick_ori, label, nave, pca, inv_split, bandwidth, adaptive, low_bias,

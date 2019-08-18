@@ -1588,6 +1588,11 @@ def _check_baseline(baseline, tmin, tmax, sfreq):
         if not isinstance(baseline, tuple) or len(baseline) != 2:
             raise ValueError('`baseline=%s` is an invalid argument, must be '
                              'a tuple of length 2 or None' % str(baseline))
+        # check default value of baseline and `tmin=0`
+        if baseline == (None, 0) and tmin == 0:
+            raise ValueError('Baseline interval is only one sample. Use '
+                             '`baseline=(0, 0)` if this is desired.')
+
         baseline_tmin, baseline_tmax = baseline
         tstep = 1. / float(sfreq)
         if baseline_tmin is None:

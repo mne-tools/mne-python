@@ -8,3 +8,8 @@ omit =
     */setup.py
     */mne/fixes*
     */mne/utils/linalg.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:

@@ -80,7 +80,7 @@ def test_scaler():
     pytest.raises(ValueError, Scaler, None, None)
     pytest.raises(ValueError, scaler.fit, epochs, y)
     pytest.raises(ValueError, scaler.transform, epochs)
-    epochs_bad = Epochs(raw, events, event_id, 0, 0.01,
+    epochs_bad = Epochs(raw, events, event_id, 0, 0.01, baseline=None,
                         picks=np.arange(len(raw.ch_names)))  # non-data chs
     scaler = Scaler(epochs_bad.info, None)
     pytest.raises(ValueError, scaler.fit, epochs_bad.get_data(), y)

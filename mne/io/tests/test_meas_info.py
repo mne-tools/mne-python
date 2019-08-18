@@ -153,8 +153,7 @@ def test_info():
     event_id, tmin, tmax = 1, -0.2, 0.5
     events = read_events(event_name)
     event_id = int(events[0, 2])
-    epochs = Epochs(raw, events[:1], event_id, tmin, tmax, picks=None,
-                    baseline=(None, 0))
+    epochs = Epochs(raw, events[:1], event_id, tmin, tmax, picks=None)
 
     evoked = epochs.average()
 
@@ -507,7 +506,7 @@ def test_anonymize():
 
     # Test instance method
     events = read_events(event_name)
-    epochs = Epochs(raw, events[:1], 2, 0., 0.1)
+    epochs = Epochs(raw, events[:1], 2, 0., 0.1, baseline=None)
 
     assert not any(_is_anonymous(raw))
     raw.anonymize()

@@ -8,7 +8,7 @@ power estimates between conditions. It uses a non-parametric
 statistical procedure based on permutations and cluster
 level statistics.
 
-The procedure consists in:
+The procedure consists of:
 
   - extracting epochs for 2 conditions
   - compute single trial power estimates
