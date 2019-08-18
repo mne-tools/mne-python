@@ -643,11 +643,18 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
                             "SourceEstimate objects. Got {}."
                             .format(type(inst)))
 
-        X = inst.data
-
-        # combine the dipole and orientation dimensions for vector oris
-        if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-            X = np.reshape(X, [X.shape[0] * X.shape[1], X.shape[2]])
+        # get the data array
+        if inst._sens_data is not None:
+            X = inst._sens_data
+            K = inst._kernel
+            # combine the kernel dipole and orientation dims for vector oris
+            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+                K = np.reshape(K, [K.shape[0]*K.shape[1], K.shape[2]])
+        else:
+            X = inst.data
+            # combine the dipole and orientation dimensions for vector oris
+            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+                X = np.reshape(X, [X.shape[0] * X.shape[1], X.shape[2]])
 
         if epoch_idx == 0:  # initialize some stuff in the first epoch
 
@@ -672,7 +679,11 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
 
             # initiate tfrs
             n_times = X.shape[-1]
-            n_verts = X.shape[0]
+            if inst._sens_data is not None:
+                n_verts = K.shape[0]
+            else:
+                n_verts = X.shape[0]
+
             if ('avg_' in output) or ('itc' in output):
                 tfrs = np.zeros((n_verts, n_freqs, n_times), dtype=dtype)
             else:
@@ -699,6 +710,10 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
 
             tfr = cwt(X, W, use_fft=use_fft, mode='same', decim=decim)
 
+            # compute the full source time series from kernel and tfr
+            if inst._sens_data is not None:
+                tfr = np.tensordot(K, tfr, [1, 0])
+
             # Transform itc complex values
             if "itc" in output:
                 plf[W_idx] += tfr / np.abs(tfr)  # phase
@@ -708,7 +723,7 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
             # Stack, add, or continue
             if output == 'itc':
                 continue
-            if ('avg_' in output):
+            elif ('avg_' in output):
                 tfrs += tfr
             else:
                 tfrs[epoch_idx] += tfr
@@ -901,9 +916,6 @@ def _create_stfr(inst, out, freqs, method):
         dims.insert(1, "orientations")
         newshape = (out.shape[0] // 3, 3,) + out.shape[1:]
         out = np.reshape(out, newshape)
-
-    if inst._sens_data is not None:
-        out = (inst._kernel, out)
 
     return SourceTFR(out, inst.vertices, inst.tmin, inst.tstep, freqs,
                      tuple(dims), method, inst.subject)
