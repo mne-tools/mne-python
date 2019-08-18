@@ -860,7 +860,6 @@ def test_morlet_induced_power_equivalence(n_epochs, return_itc, delayed):
                       decim=decim, zero_mean=zero_mean, return_itc=return_itc,
                       output='power', average=True)
 
-    # make sure both are lists, so we can compare them if return_itc=True
     stfr_ref, itc_ref = \
         source_induced_power(epochs, inv, lambda2=l2, method=method,
                              pick_ori=pick_ori, label=label, prepared=False,
