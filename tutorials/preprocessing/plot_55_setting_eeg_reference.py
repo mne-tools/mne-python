@@ -46,6 +46,11 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # similarly) but as far away from the neural sources as possible (so that the
 # reference signal doesn't pick up brain-based fluctuations). Typical reference
 # locations are the subject's earlobe, nose, mastoid process, or collarbone.
+# Each of these has advantages and disadvantages regarding how much brain
+# signal it picks up (e.g., the mastoids pick up a fair amount compared to the
+# others), and regarding the environmental noise it picks up (e.g., earlobe
+# electrodes may shift easily, and have signal more similar to electrodes on
+# the same side of the head).
 #
 # Even in cases where no electrode is specifically designated as the reference,
 # EEG recording hardware will still treat one of the scalp electrodes as the
@@ -80,13 +85,14 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # If a scalp electrode was used as reference but was not saved alongside the
 # raw data (reference channels often aren't), you may wish to add it back to
 # the dataset before re-referencing. For example, if your EEG system recorded
-# with channel ``EEG 999`` as the reference but did not include ``EEG 999`` in
-# the data file, using :meth:`~mne.io.Raw.set_eeg_reference` to set (say)
-# ``EEG 050`` as the new reference will then subtract out ``EEG 050``'s signal
-# *without restoring the signal at* ``EEG 999``). In this situation, you can
-# add back ``EEG 999`` as a flat channel prior to re-referencing using
-# :func:`~mne.add_reference_channels`. Here's how the data looks in its
-# original state:
+# with channel ``Fp1`` as the reference but did not include ``Fp1`` in the data
+# file, using :meth:`~mne.io.Raw.set_eeg_reference` to set (say) ``Cz`` as the
+# new reference will then subtract out ``Cz``'s signal *without restoring the
+# signal at* ``Fp1``). In this situation, you can add back ``Fp1`` as a flat
+# channel prior to re-referencing using :func:`~mne.add_reference_channels`.
+# (Since our example data doesn't use the `10-20 electrode naming system`_, the
+# example below adds ``EEG 999`` as the missing reference, then sets the
+# reference to ``EEG 050``). Here's how the data looks in its original state:
 
 raw.plot()
 
@@ -108,9 +114,10 @@ raw_new_ref.set_eeg_reference(ref_channels=['EEG 050'])
 raw_new_ref.plot()
 
 ###############################################################################
-# Notice that ``EEG 050`` is now flat, while ``EEG 999`` has a non-zero signal,
-# and that ``EEG 053`` (which is marked as "bad" in ``raw.info['bads']``) is
-# not affected by the re-referencing.
+# Notice that the new reference (``EEG 050``) is now flat, while the original
+# reference channel that we added back to the data (``EEG 999``) has a non-zero
+# signal. Notice also that ``EEG 053`` (which is marked as "bad" in
+# ``raw.info['bads']``) is not affected by the re-referencing.
 #
 #
 # Setting average reference
@@ -180,7 +187,7 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
 # FAQ on average referencing`_ for more information.
 #
 # For these reasons, when performing inverse imaging, *MNE-Python will
-# automatically apply an average reference if EEG channels are present and no
+# automatically average-reference the EEG channels if they are present and no
 # reference strategy has been specified*. If you want to perform inverse
 # imaging and do not want to use an average reference (and hence you accept the
 # risks presented in the previous paragraph), you can force MNE-Python to relax
@@ -194,3 +201,5 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
 #
 # .. _`FieldTrip FAQ on average referencing`:
 #    http://www.fieldtriptoolbox.org/faq/why_should_i_use_an_average_reference_for_eeg_source_reconstruction/
+# .. _`10-20 electrode naming system`:
+#    https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
