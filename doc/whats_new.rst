@@ -24,6 +24,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+- Add :class:`mne.SourceTFR` class, a container for time frequency transformed source level data by `Dirk Gütlin`_
+
 - Add support for reading in BrainVision CapTrak (BVCT) digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Stefan Appelhoff`_
 
 - Allow :meth:`mne.Annotations.crop` to support negative ``tmin`` and ``tmax`` by `Joan Massich`_

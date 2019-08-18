@@ -562,7 +562,7 @@ numpydoc_xref_aliases = {
     'FilterEstimator': 'mne.decoding.FilterEstimator',
     'EMS': 'mne.decoding.EMS', 'CSP': 'mne.decoding.CSP',
     'Beamformer': 'mne.beamformer.Beamformer',
-    'Transform': 'mne.transforms.Transform',
+    'Transform': 'mne.transforms.Transform', 'SourceTFR': 'mne.SourceTFR'
 }
 numpydoc_xref_ignore = {
     # words
