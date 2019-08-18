@@ -14,8 +14,8 @@ This tutorial describes how to set or change the EEG reference in MNE-Python.
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping it to save memory. Since
 this tutorial deals specifically with EEG, we'll also restrict the dataset to
-just a few EEG channels so the plots are easier to see (using
-:meth:`~mne.io.Raw.pick`):
+just a few EEG channels (using :meth:`~mne.io.Raw.pick`) so the plots are
+easier to see:
 """
 
 import os
@@ -87,12 +87,12 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # the dataset before re-referencing. For example, if your EEG system recorded
 # with channel ``Fp1`` as the reference but did not include ``Fp1`` in the data
 # file, using :meth:`~mne.io.Raw.set_eeg_reference` to set (say) ``Cz`` as the
-# new reference will then subtract out ``Cz``'s signal *without restoring the
-# signal at* ``Fp1``). In this situation, you can add back ``Fp1`` as a flat
+# new reference will then subtract out the signal at ``Cz`` *without restoring
+# the signal at* ``Fp1``. In this situation, you can add back ``Fp1`` as a flat
 # channel prior to re-referencing using :func:`~mne.add_reference_channels`.
 # (Since our example data doesn't use the `10-20 electrode naming system`_, the
 # example below adds ``EEG 999`` as the missing reference, then sets the
-# reference to ``EEG 050``). Here's how the data looks in its original state:
+# reference to ``EEG 050``.) Here's how the data looks in its original state:
 
 raw.plot()
 
@@ -168,7 +168,7 @@ print(raw.info['projs'])
 for title, proj in zip(['Original', 'Average'], [False, True]):
     fig = raw.plot(proj=proj, n_channels=len(raw))
     # make room for title
-    fig.subplots_adjust(top=0.94)
+    fig.subplots_adjust(top=0.9)
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
 
 ###############################################################################
