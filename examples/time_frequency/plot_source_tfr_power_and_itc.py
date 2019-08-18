@@ -61,14 +61,14 @@ inverse_operator = read_inverse_operator(fname_inv)
 
 # return_generator=True will reduce memory load
 # delayed=True will reduce time needed for computation
-stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2=1./9.,
+stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                             method="dSPM", prepared=False,
                             return_generator=True, delayed=True)
 
 # calculate a time-frequency transform in source space
 freqs = np.arange(8, 18, 2)
 pow, itc = tfr_multitaper(stcs, freqs=freqs, n_cycles=2, use_fft=True,
-                              average=True, return_itc=True)
+                          average=True, return_itc=True)
 
 ###############################################################################
 # plot mean power, itc between fmin and fmax
@@ -77,9 +77,9 @@ fmin, fmax = 8, 12
 initial_time = 0.1
 
 pow.plot(fmin=fmin, fmax=fmax, subjects_dir=subjects_dir,
-           initial_time=initial_time)
+         initial_time=initial_time)
 itc.plot(fmin=fmin, fmax=fmax, subjects_dir=subjects_dir,
-           initial_time=initial_time)
+         initial_time=initial_time)
 
 ###############################################################################
 # compute SourceTFR for a list of VolVectorSourceEstimates
@@ -88,18 +88,24 @@ inverse_operator = read_inverse_operator(fname_inv_vol)
 
 # return_generator=True will reduce memory load
 # delayed=True will reduce time needed for computation
-stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2=1./9.,
+stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                             method="dSPM", pick_ori="vector", prepared=False,
                             return_generator=True, delayed=True)
 
 # calculate a time-frequency transform in source space
 freqs = np.arange(8, 18, 2)
-pow, _ = tfr_multitaper(stcs, freqs=freqs, n_cycles=2, use_fft=True,
-                              average=True, return_itc=True)
+pow, itc = tfr_multitaper(stcs, freqs=freqs, n_cycles=2, use_fft=True,
+                          average=True, return_itc=True)
 
 ###############################################################################
-# plot mean power between fmin and fmax for volume estimates
+# plot mean power and itc between fmin and fmax for volume estimates
+
+fmin, fmax = 8, 12
+initial_time = 0.1
 
 src = inverse_operator["src"]
 pow.plot(fmin=fmin, fmax=fmax, src=src, subject="sample",
-           subjects_dir=subjects_dir, mode='glass_brain')
+         subjects_dir=subjects_dir, mode='glass_brain')
+
+itc.plot(fmin=fmin, fmax=fmax, src=src, subject="sample",
+         subjects_dir=subjects_dir, mode='glass_brain')
