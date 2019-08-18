@@ -648,12 +648,14 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
             X = inst._sens_data
             K = inst._kernel
             # combine the kernel dipole and orientation dims for vector oris
-            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-                K = np.reshape(K, [K.shape[0]*K.shape[1], K.shape[2]])
+            if isinstance(inst, (VectorSourceEstimate,
+                                 VolVectorSourceEstimate)):
+                K = np.reshape(K, [K.shape[0] * K.shape[1], K.shape[2]])
         else:
             X = inst.data
             # combine the dipole and orientation dimensions for vector oris
-            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
+            if isinstance(inst, (VectorSourceEstimate,
+                                 VolVectorSourceEstimate)):
                 X = np.reshape(X, [X.shape[0] * X.shape[1], X.shape[2]])
 
         if epoch_idx == 0:  # initialize some stuff in the first epoch
