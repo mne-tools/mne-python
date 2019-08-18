@@ -836,7 +836,8 @@ def _create_ref_data():
 @testing.requires_testing_data
 @pytest.mark.parametrize('n_epochs', [1, 3])
 @pytest.mark.parametrize('return_itc', [True, False])
-def test_morlet_induced_power_equivalence(n_epochs, return_itc):
+@pytest.mark.parametrize('delayed', [True, False])
+def test_morlet_induced_power_equivalence(n_epochs, return_itc, delayed):
     """Test equivalence of tfr_morlet(stc) and source_induced_power."""
     epochs = _prepare_epochs(n_epochs)
     inv = read_inverse_operator(stc_inv_fname)
@@ -852,7 +853,8 @@ def test_morlet_induced_power_equivalence(n_epochs, return_itc):
     zero_mean = False
 
     stcs = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
-                                pick_ori=pick_ori, label=label, prepared=False)
+                                pick_ori=pick_ori, label=label, prepared=False,
+                                delayed=delayed)
 
     stfr = tfr_morlet(stcs, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft,
                       decim=decim, zero_mean=zero_mean, return_itc=return_itc,
