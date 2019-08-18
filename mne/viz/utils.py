@@ -565,7 +565,7 @@ def _prepare_mne_browse(fig, params, xlabel):
     fig.subplots_adjust(**borders)
     # Main axes must be a `subplot` for `subplots_adjust` to work (allows user
     # to adjust margins). That's why we don't do it with the Divider class.
-    ax = fig.add_subplot()
+    ax = fig.add_subplot(1, 1, 1)
     div = make_axes_locatable(ax)
     ax_hscroll = div.append_axes(position='bottom',
                                  size=Fixed(scroll_width / fig.dpi),
