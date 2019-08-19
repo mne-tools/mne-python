@@ -799,24 +799,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     else:
         data['dev_head_t'] = None
 
-    # XXX: This should work but it does not!!! even if the keys are matching
-    # return DigMontage(*data)
-    __init__expected_keys = set([
-        'hsp', 'hpi', 'elp', 'point_names', 'nasion', 'lpa', 'rpa',
-        'dev_head_t', 'dig_ch_pos', 'coord_frame',
-    ])
-    assert set(data.keys()) == __init__expected_keys
-
-    return DigMontage(hsp=data.hsp,
-                      hpi=data.hpi,
-                      elp=data.elp,
-                      point_names=data.point_names,
-                      nasion=data.nasion,
-                      lpa=data.lpa,
-                      rpa=data.rpa,
-                      dev_head_t=data.dev_head_t,
-                      dig_ch_pos=data.dig_ch_pos,
-                      coord_frame=data.coord_frame,)
+    return DigMontage(**data)
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):
