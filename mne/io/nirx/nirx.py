@@ -92,6 +92,10 @@ class RawNIRX(BaseRaw):
         hdr = cp.ConfigParser(allow_no_value=True)
         hdr.read(file_hdr)
 
+        # Check that the file format version is supported
+        assert (hdr['GeneralInfo']['NIRStar'] == "\"15.2\""), \
+            "Only NIRStar version 15.2 is supported"
+
         # Parse required header fields
 
         sources = [int(s) for s in re.findall(r'(\d)-\d:\d+',
