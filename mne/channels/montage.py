@@ -26,12 +26,13 @@ from ..digitization._utils import (_make_dig_points, _read_dig_points,
                                    write_dig)
 from ..io.pick import pick_types
 from ..io.constants import FIFF
-from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
+from ..utils import (warn, copy_function_doc_to_method_doc,
                      _check_option, Bunch)
 
 from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
+from ._dig_montage_utils import _foo_get_data_from_dig
 
 
 def _digmontage_to_bunch(montage):
@@ -462,9 +463,6 @@ class DigMontage(object):
                  nasion=None, lpa=None, rpa=None, dev_head_t=None,
                  dig_ch_pos=None, coord_frame='unknown',
     ):  # noqa: D102
-        # XXX: making dev_head_t (array, None, True or False) needs to be undone  # noqa
-        self.hsp = hsp
-        self.hpi = hpi
         # XXX: in this code elp names prevale over point_names
         if elp is not None:
             if not isinstance(point_names, Iterable):
@@ -476,19 +474,15 @@ class DigMontage(object):
                 raise ValueError('elp contains %i points but %i '
                                  'point_names were specified.' %
                                  (len(elp), len(point_names)))
-        self.elp = elp
-        self.point_names = point_names
 
-        self.nasion = nasion
-        self.lpa = lpa
-        self.rpa = rpa
-        self.dig_ch_pos = dig_ch_pos
         if not isinstance(coord_frame, str) or \
                 coord_frame not in _str_to_frame:
             raise ValueError('coord_frame must be one of %s, got %s'
                              % (sorted(_str_to_frame.keys()), coord_frame))
-        self.coord_frame = coord_frame
 
+        self.point_names = point_names
+        self.dig_ch_pos = dig_ch_pos
+        self.coord_frame = coord_frame
         self.dev_head_t = dev_head_t
 
         # XXX: I'm having second thoughts on if we should represent the data
@@ -502,47 +496,53 @@ class DigMontage(object):
         #      really complicated.
 
         self.dig = _make_dig_points(
-            nasion=self.nasion, lpa=self.lpa, rpa=self.rpa, hpi=self.elp,
-            extra_points=self.hsp, dig_ch_pos=self.dig_ch_pos
+            nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
+            extra_points=hsp, dig_ch_pos=dig_ch_pos
         )
+        # XXX: we are losing the HPI points and overwriting them with ELP
 
     def __repr__(self):
         """Return string representation."""
+        # XXX: uses internal representation
+        _data = _foo_get_data_from_dig(self.dig)  # XXX: dig_ch_pos will always be None. I'm not sure if I'm breaking something. # noqa
         s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
              'channels>' %
-             (len(self.hsp) if self.hsp is not None else 0,
+             (len(_data.hsp) if _data.hsp is not None else 0,
               len(self.point_names) if self.point_names is not None else 0,
-              sum(x is not None for x in (self.lpa, self.rpa, self.nasion)),
-              len(self.dig_ch_pos) if self.dig_ch_pos is not None else 0,))
+              sum(x is not None for x in (_data.lpa, _data.rpa, _data.nasion)),
+              len(_data.dig_ch_pos) if _data.dig_ch_pos is not None else 0,))
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
+        # XXX: plot_montage takes an empty info and sets 'self'
+        #      Therefore it should not be a representation problem.
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
 
     def _transform_to_head(self):
         """Transform digitizer points to Neuromag head coordinates."""
-        _data = _transform_to_head_call(_digmontage_to_bunch(self))
+        _data = _foo_get_data_from_dig(self.dig)  # XXX: dig_ch_pos will always be None. I'm not sure if I'm breaking something. # noqa
+        _data['point_names'] = self.point_names  # XXX: this attribute should remain  # noqa
 
         self.coord_frame = _data.coord_frame
         self.dig_ch_pos = _data.dig_ch_pos
-        self.elp = _data.elp
-        self.hsp = _data.hsp
-        self.lpa = _data.lpa
-        self.nasion = _data.nasion
-        self.point_names = _data.point_names
-        self.rpa = _data.rpa
+
+        self.dig = _make_dig_points(
+            nasion=_data.nasion, lpa=_data.lpa, rpa=_data.rpa, hpi=_data.elp,
+            extra_points=_data.hsp, dig_ch_pos=_data.dig_ch_pos
+        )
 
     def _compute_dev_head_t(self):
         """Compute the Neuromag dev_head_t from matched points."""
         # XXX: This is already a free function
         from ..coreg import fit_matched_points
-        if self.elp is None or self.hpi is None:
+        data = _foo_get_data_from_dig(self.dig)
+        if data.elp is None or data.hpi is None:
             raise RuntimeError('must have both elp and hpi to compute the '
                                'device to head transform')
-        self.dev_head_t = fit_matched_points(tgt_pts=self.elp,
-                                             src_pts=self.hpi, out='trans')
+        data.dev_head_t = fit_matched_points(tgt_pts=data.elp,
+                                             src_pts=data.hpi, out='trans')
 
     def _get_dig(self):
         """Get the digitization list."""
@@ -700,9 +700,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                 x is None for x in (hsp, hpi, elp, point_names, fif, egi))
         )
 
-        _check_fname(bvct, overwrite='read', must_exist=True)
-
-
     else:
         # XXX: This should also become a function
         _scaling = _get_scaling(unit, NUMPY_DATA_SCALE),
@@ -738,6 +735,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
             # values untouched from Kwargs
             hpi=hpi, point_names=point_names,
+            # XXX: hpi is not touched if np.array, but is loaded if string.
         )
 
     if fif is None and transform:  # only need to do this for non-Neuromag

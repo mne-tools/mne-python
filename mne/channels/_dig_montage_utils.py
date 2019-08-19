@@ -180,6 +180,44 @@ def _read_dig_montage_egi(
     )
 
 
+def _foo_get_data_from_dig(dig):
+    # XXXX:
+    # This does something really similar to _read_dig_montage_fif but:
+    #   - does not check coord_frame
+    #   - does not do any operation that implies assumptions with the names
+
+    # Split up the dig points by category
+    hsp, hpi, elp = list(), list(), list()
+    fids, dig_ch_pos = dict(), dict()
+
+    for d in dig:
+        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+            fids[_cardinal_ident_mapping[d['ident']]] = d['r']
+        elif d['kind'] == FIFF.FIFFV_POINT_HPI:
+            hpi.append(d['r'])
+            elp.append(d['r'])
+            # XXX: point_names.append('HPI%03d' % d['ident'])
+        elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
+            hsp.append(d['r'])
+        elif d['kind'] == FIFF.FIFFV_POINT_EEG:
+            # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
+            pass  # noqa
+
+    dig_coord_frames = set([d['coord_frame'] for d in dig])
+    assert len(dig_coord_frames) == 1, 'Only single coordinate frame in dig is supported' # noqa # XXX
+
+    return Bunch(
+        nasion=fids.get('nasion', None),
+        lpa=fids.get('lpa', None),
+        rpa=fids.get('rpa', None),
+        hsp=np.array(hsp) if len(hsp) else None,
+        hpi=np.array(hpi) if len(hpi) else None,
+        elp=np.array(elp) if len(elp) else None,
+        dig_ch_pos=dig_ch_pos,
+        coord_frame=dig_coord_frames.pop(),
+    )
+
+
 def _read_dig_montage_bvct(
         fname,
         unit,
