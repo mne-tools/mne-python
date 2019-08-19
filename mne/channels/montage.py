@@ -510,7 +510,7 @@ class DigMontage(object):
              (len(_data.hsp) if _data.hsp is not None else 0,
               len(self.point_names) if self.point_names is not None else 0,
               sum(x is not None for x in (_data.lpa, _data.rpa, _data.nasion)),
-              len(_data.dig_ch_pos) if _data.dig_ch_pos is not None else 0,))
+              len(self.dig_ch_pos) if self.dig_ch_pos is not None else 0,))
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
@@ -526,11 +526,13 @@ class DigMontage(object):
         _data['point_names'] = self.point_names  # XXX: this attribute should remain  # noqa
 
         self.coord_frame = _data.coord_frame
-        self.dig_ch_pos = _data.dig_ch_pos
+        # self.dig_ch_pos = _data.dig_ch_pos  # XXX: do not touch dig_ch_pos
 
         self.dig = _make_dig_points(
             nasion=_data.nasion, lpa=_data.lpa, rpa=_data.rpa, hpi=_data.elp,
-            extra_points=_data.hsp, dig_ch_pos=_data.dig_ch_pos
+            extra_points=_data.hsp,
+
+            dig_ch_pos=self.dig_ch_pos
         )
 
     def _compute_dev_head_t(self):
@@ -681,7 +683,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             fname=fif,
             _raise_transform_err=_raise_transform_err,
             _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, egi))  # XXX: add bvct # noqa
+                x is None for x in (hsp, hpi, elp, point_names, egi, bvct))
         )
 
     elif egi is not None:
@@ -689,7 +691,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             fname=egi,
             _scaling=_get_scaling(unit, EGI_SCALE),
             _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, fif))  # XXX: add bvct # noqa
+                x is None for x in (hsp, hpi, elp, point_names, fif, bvct))
         )
 
     elif bvct is not None:

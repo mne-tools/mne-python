@@ -569,7 +569,7 @@ def test_egi_dig_montage():
 
 
 @testing.requires_testing_data
-@pytest.mark.skip(reason="I mess up something")  # XXX
+# @pytest.mark.skip(reason="I mess up something")  # XXX
 def test_bvct_dig_montage():
     """Test BrainVision CapTrak XML dig montage support."""
     with pytest.warns(RuntimeWarning, match='Using "m" as unit for BVCT file'):
