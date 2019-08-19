@@ -178,3 +178,66 @@ def _read_dig_montage_egi(
         # not EGI stuff
         hsp=None, hpi=None, elp=None, point_names=None,
     )
+
+
+def _read_dig_montage_bvct(
+        fname,
+        unit,
+        _all_data_kwargs_are_none,
+):
+
+    if not _all_data_kwargs_are_none:
+        raise ValueError('hsp, hpi, elp, point_names, fif must all be '
+                         'None if egi is not None')
+    _check_fname(fname, overwrite='read', must_exist=True)
+
+    # CapTrak is natively in mm
+    scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
+    if unit not in scale:
+        raise ValueError("Unit needs to be one of %s, not %r" %
+                         (sorted(scale.keys()), unit))
+    if unit not in ['mm', 'auto']:
+        warn('Using "{}" as unit for BVCT file. BVCT files are usually '
+             'specified in "mm". This might lead to errors.'.format(unit),
+             RuntimeWarning)
+
+    root = ElementTree.parse(fname).getroot()
+    sensors = root.find('CapTrakElectrodeList')
+
+    fids = {}
+    dig_ch_pos = {}
+
+    fid_name_map = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
+
+    for s in sensors:
+        name = s.find('Name').text
+
+        # Need to prune "GND" and "REF": these are not included in the raw
+        # data and will raise errors when we try to do raw.set_montage(...)
+        # XXX eventually this should be stored in ch['loc'][3:6]
+        # but we don't currently have such capabilities here
+        if name in ['GND', 'REF']:
+            continue
+
+        fid = name in fid_name_map
+        coordinates = np.array([float(s.find('X').text),
+                                float(s.find('Y').text),
+                                float(s.find('Z').text)])
+
+        coordinates *= scale[unit]
+
+        # Fiducials
+        if fid:
+            fid_name = fid_name_map[name]
+            fids[fid_name] = coordinates
+        # EEG Channels
+        else:
+            dig_ch_pos[name] = coordinates
+
+    return Bunch(
+        # EGI stuff
+        nasion=fids['nasion'], lpa=fids['lpa'], rpa=fids['rpa'],
+        dig_ch_pos=dig_ch_pos, coord_frame='unknown',
+        # not EGI stuff
+        hsp=None, hpi=None, elp=None, point_names=None,
+    )

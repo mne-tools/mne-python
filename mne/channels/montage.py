@@ -26,12 +26,12 @@ from ..digitization._utils import (_make_dig_points, _read_dig_points,
                                    write_dig)
 from ..io.pick import pick_types
 from ..io.constants import FIFF
-from ..utils import (warn, copy_function_doc_to_method_doc,
+from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
                      _check_option, Bunch)
 
 from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
-from ._dig_montage_utils import _read_dig_montage_egi
+from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 
 
 def _digmontage_to_bunch(montage):
@@ -681,7 +681,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             fname=fif,
             _raise_transform_err=_raise_transform_err,
             _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, egi))
+                x is None for x in (hsp, hpi, elp, point_names, egi))  # XXX: add bvct # noqa
         )
 
     elif egi is not None:
@@ -689,60 +689,20 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             fname=egi,
             _scaling=_get_scaling(unit, EGI_SCALE),
             _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, fif))
+                x is None for x in (hsp, hpi, elp, point_names, fif))  # XXX: add bvct # noqa
         )
 
     elif bvct is not None:
-        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, egi)):
-            raise ValueError('hsp, hpi, elp, point_names, fif, egi must all '
-                             'be None if bvct is not None.')
+        data = _read_dig_montage_bvct(
+            fname=bvct,
+            unit=unit,  # XXX: this should change
+            _all_data_kwargs_are_none=all(
+                x is None for x in (hsp, hpi, elp, point_names, fif, egi))
+        )
+
         _check_fname(bvct, overwrite='read', must_exist=True)
 
-        root = ElementTree.parse(bvct).getroot()
-        sensors = root.find('CapTrakElectrodeList')
 
-        fids = {}
-        dig_ch_pos = {}
-
-        fid_name_map = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
-
-        # CapTrak is natively in mm
-        scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
-        if unit not in scale:
-            raise ValueError("Unit needs to be one of %s, not %r" %
-                             (sorted(scale.keys()), unit))
-        if unit not in ['mm', 'auto']:
-            warn('Using "{}" as unit for BVCT file. BVCT files are usually '
-                 'specified in "mm". This might lead to errors.'.format(unit),
-                 RuntimeWarning)
-
-        for s in sensors:
-            name = s.find('Name').text
-
-            # Need to prune "GND" and "REF": these are not included in the raw
-            # data and will raise errors when we try to do raw.set_montage(...)
-            # XXX eventually this should be stored in ch['loc'][3:6]
-            # but we don't currently have such capabilities here
-            if name in ['GND', 'REF']:
-                continue
-
-            fid = name in fid_name_map
-            coordinates = np.array([float(s.find('X').text),
-                                    float(s.find('Y').text),
-                                    float(s.find('Z').text)])
-
-            coordinates *= scale[unit]
-
-            # Fiducials
-            if fid:
-                fid_name = fid_name_map[name]
-                fids[fid_name] = coordinates
-            # EEG Channels
-            else:
-                dig_ch_pos[name] = coordinates
-
-        fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
-        coord_frame = 'unknown'
     else:
         # XXX: This should also become a function
         _scaling = _get_scaling(unit, NUMPY_DATA_SCALE),

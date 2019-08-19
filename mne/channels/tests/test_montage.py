@@ -571,7 +571,7 @@ def test_bvct_dig_montage():
     _check_roundtrip(dig_montage, fname_temp)
 
     # Test coordinate transform
-    dig_montage.transform_to_head()
+    dig_montage._transform_to_head()
     # nasion
     assert_almost_equal(dig_montage.nasion[0], 0)
     assert_almost_equal(dig_montage.nasion[2], 0)
