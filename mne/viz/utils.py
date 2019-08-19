@@ -548,42 +548,40 @@ def _prepare_mne_browse(fig, params, xlabel):
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
     fig_w_px, fig_h_px = _get_figure_size_px(fig)
-    # default sizes (pixels)
-    scroll_width = 25
-    hscroll_dist = 25
-    vscroll_dist = 10
-    l_border = 100
-    r_border = 10
-    t_border = 35
-    b_border = 45
+    # default sizes (inches)
+    scroll_width = 0.25
+    hscroll_dist = 0.25
+    vscroll_dist = 0.1
+    l_border = 1.
+    r_border = 0.1
+    t_border = 0.35
+    b_border = 0.45
     help_width = scroll_width * 2
-    # borders
-    borders = dict(left=(l_border - vscroll_dist - help_width) / fig_w_px,
-                   right=1 - r_border / fig_w_px,
-                   bottom=b_border / fig_h_px,
-                   top=1 - t_border / fig_h_px)
+    # borders (figure relative coordinates)
+    borders = dict(
+        left=(l_border - vscroll_dist - help_width) * fig.dpi / fig_w_px,
+        right=1 - r_border * fig.dpi / fig_w_px,
+        bottom=b_border * fig.dpi / fig_h_px,
+        top=1 - t_border * fig.dpi / fig_h_px)
     fig.subplots_adjust(**borders)
     # Main axes must be a `subplot` for `subplots_adjust` to work (allows user
     # to adjust margins). That's why we don't do it with the Divider class.
     ax = fig.add_subplot(1, 1, 1)
     div = make_axes_locatable(ax)
-    ax_hscroll = div.append_axes(position='bottom',
-                                 size=Fixed(scroll_width / fig.dpi),
-                                 pad=Fixed(hscroll_dist / fig.dpi))
-    ax_vscroll = div.append_axes(position='right',
-                                 size=Fixed(scroll_width / fig.dpi),
-                                 pad=Fixed(vscroll_dist / fig.dpi))
+    ax_hscroll = div.append_axes(position='bottom', size=Fixed(scroll_width),
+                                 pad=Fixed(hscroll_dist))
+    ax_vscroll = div.append_axes(position='right', size=Fixed(scroll_width),
+                                 pad=Fixed(vscroll_dist))
     # proj button (optionally) added later, but easiest to compute position now
-    proj_button_pos = [1 - (r_border + scroll_width) / fig_w_px,  # left
-                       b_border / fig_h_px,                       # bottom
-                       scroll_width / fig_w_px,                   # width
-                       scroll_width / fig_h_px]                   # height
+    proj_button_pos = [1 - (r_border + scroll_width) * fig.dpi / fig_w_px,  # l
+                       b_border * fig.dpi / fig_h_px,                       # b
+                       scroll_width * fig.dpi / fig_w_px,                   # w
+                       scroll_width * fig.dpi / fig_h_px]                   # h
     params['proj_button_pos'] = proj_button_pos
     params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
     # initialize help button in the wrong spot...
-    ax_help_button = div.append_axes(position='left',
-                                     size=Fixed(help_width / fig.dpi),
-                                     pad=Fixed(vscroll_dist / fig.dpi))
+    ax_help_button = div.append_axes(position='left', size=Fixed(help_width),
+                                     pad=Fixed(vscroll_dist))
     # ...then move it down by changing its locator, and make it a button.
     loc = div.new_locator(nx=0, ny=0)
     ax_help_button.set_axes_locator(loc)
