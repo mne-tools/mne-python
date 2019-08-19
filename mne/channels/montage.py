@@ -481,7 +481,6 @@ class DigMontage(object):
                              % (sorted(_str_to_frame.keys()), coord_frame))
 
         self.point_names = point_names
-        self.dig_ch_pos = dig_ch_pos
         self.coord_frame = coord_frame
         self.dev_head_t = dev_head_t
 
@@ -526,7 +525,6 @@ class DigMontage(object):
         _data['point_names'] = self.point_names  # XXX: this attribute should remain  # noqa
 
         self.coord_frame = _data.coord_frame
-        self.dig_ch_pos = _data.dig_ch_pos
 
         self.dig = _make_dig_points(
             nasion=_data.nasion, lpa=_data.lpa, rpa=_data.rpa, hpi=_data.elp,
@@ -560,6 +558,49 @@ class DigMontage(object):
             raise RuntimeError('Can only write out digitization points in '
                                'head coordinates.')
         write_dig(fname, self._get_dig())
+
+    @property
+    def dig_ch_pos(self):
+        # XXX : should be deprecated too
+        # warn('"dig_ch_pos" attribute is deprecated and will be removed in '
+        #      'v0.20', DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).dig_ch_pos
+
+    @property
+    def elp(self):
+        warn('"elp" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).elp
+
+    @property
+    def hpi(self):
+        warn('"hpi" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).hpi
+
+    @property
+    def hsp(self):
+        warn('"hsp" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).hsp
+
+    @property
+    def lpa(self):
+        warn('"lpa" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).lpa
+
+    @property
+    def rpa(self):
+        warn('"rpa" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).rpa
+
+    @property
+    def nasion(self):
+        warn('"nasion" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).nasion
 
 
 _cardinal_ident_mapping = {

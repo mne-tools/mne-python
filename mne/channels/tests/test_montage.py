@@ -28,7 +28,6 @@ from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne.digitization._utils import _read_dig_points
-from mne.channels._dig_montage_utils import _foo_get_data_from_dig
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
@@ -378,24 +377,27 @@ def test_read_dig_montage():
     hsp_points = _read_dig_points(hsp)
     hpi_points = read_mrk(hpi)
     assert_equal(montage.point_names, names)
-    montage_data = _foo_get_data_from_dig(montage.dig)
-    assert_array_equal(montage_data.elp, elp_points)
-    assert_array_equal(montage_data.hsp, hsp_points)
-    # assert_array_equal(montage_data.hpi, hpi_points)  # XXX: HPI is messed up
+    with pytest.deprecated_call():
+        assert_array_equal(montage.elp, elp_points)
+        assert_array_equal(montage.hsp, hsp_points)
+    # assert_array_equal(montage.hpi, hpi_points)  # XXX: HPI is messed up
     assert (montage.dev_head_t is None)
     montage = read_dig_montage(hsp, hpi, elp, names,
                                transform=True, dev_head_t=True)
-    montage_data = _foo_get_data_from_dig(montage.dig)
+    # montage_data = _foo_get_data_from_dig(montage.dig)
     # check coordinate transformation
     # nasion
-    assert_almost_equal(montage_data.nasion[0], 0)
-    assert_almost_equal(montage_data.nasion[2], 0)
+    with pytest.deprecated_call():
+        assert_almost_equal(montage.nasion[0], 0)
+        assert_almost_equal(montage.nasion[2], 0)
     # lpa and rpa
-    assert_allclose(montage_data.lpa[1:], 0, atol=1e-16)
-    assert_allclose(montage_data.rpa[1:], 0, atol=1e-16)
+    with pytest.deprecated_call():
+        assert_allclose(montage.lpa[1:], 0, atol=1e-16)
+        assert_allclose(montage.rpa[1:], 0, atol=1e-16)
     # device head transform
-    dev_head_t = fit_matched_points(tgt_pts=montage_data.elp,
-                                    src_pts=hpi_points, out='trans') # XXX: expected_dev_head_t  # noqa
+    with pytest.deprecated_call():
+        dev_head_t = fit_matched_points(tgt_pts=montage.elp,
+                                        src_pts=hpi_points, out='trans') # XXX: expected_dev_head_t  # noqa
     # XXX: why I can not use this
     # expected_dev_head_t = fit_matched_points(tgt_pts=elp_points,
     #                                          src_pts=hpi_points, out='trans')
@@ -403,21 +405,21 @@ def test_read_dig_montage():
 
     # Digitizer as array
     m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names, unit='m')
-    m2_data = _foo_get_data_from_dig(m2.dig)
-    assert_array_equal(m2_data.hsp, montage_data.hsp)
+    with pytest.deprecated_call():
+        assert_array_equal(m2.hsp, montage.hsp)
     m3 = read_dig_montage(hsp_points * 1000, hpi_points, elp_points * 1000,
                           names)
-    m3_data = _foo_get_data_from_dig(m3.dig)
-    assert_allclose(m3_data.hsp, montage_data.hsp)
+    with pytest.deprecated_call():
+        assert_allclose(m3.hsp, montage.hsp)
 
     # test unit parameter and .mat support
     tempdir = _TempDir()
     mat_hsp = op.join(tempdir, 'test.mat')
     savemat(mat_hsp, dict(Points=(1000 * hsp_points).T), oned_as='row')
     montage_cm = read_dig_montage(mat_hsp, hpi, elp, names, unit='cm')
-    montage_cm_data = _foo_get_data_from_dig(montage_cm.dig)
-    assert_allclose(montage_cm_data.hsp, montage_data.hsp * 10.)
-    assert_allclose(montage_cm_data.elp, montage_data.elp * 10.)
+    with pytest.deprecated_call():
+        assert_allclose(montage_cm.hsp, montage.hsp * 10.)
+        assert_allclose(montage_cm.elp, montage.elp * 10.)
     # assert_array_equal(montage_cm_data.hpi, montage_data.hpi)  # XXX: no HPI
     pytest.raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
                   unit='km')
@@ -433,9 +435,9 @@ def test_read_dig_montage():
                     fout.write(line.rstrip() + b' 0.0 0.0 0.0\n')
     with pytest.warns(RuntimeWarning, match='Found .* columns instead of 3'):
         montage_extra = read_dig_montage(extra_hsp, hpi, elp, names)
-    montage_extra_data = _foo_get_data_from_dig(montage_extra.dig)
-    assert_allclose(montage_extra_data.hsp, montage_data.hsp)
-    assert_allclose(montage_extra_data.elp, montage_data.elp)
+    with pytest.deprecated_call():
+        assert_allclose(montage_extra.hsp, montage.hsp)
+        assert_allclose(montage_extra.elp, montage.elp)
 
 
 def test_set_dig_montage():
@@ -546,13 +548,12 @@ def test_egi_dig_montage():
 
     # Test coordinate transform
     # dig_montage.transform_to_head()  # XXX: this call had no effect!!
-    dig_montage_data = _foo_get_data_from_dig(dig_montage.dig)
     # nasion
-    assert_almost_equal(dig_montage_data.nasion[0], 0)
-    assert_almost_equal(dig_montage_data.nasion[2], 0)
+    assert_almost_equal(dig_montage.nasion[0], 0)
+    assert_almost_equal(dig_montage.nasion[2], 0)
     # lpa and rpa
-    assert_allclose(dig_montage_data.lpa[1:], 0, atol=1e-16)
-    assert_allclose(dig_montage_data.rpa[1:], 0, atol=1e-16)
+    assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
+    assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
 
     # Test accuracy and embedding within raw object
     raw_egi = read_raw_egi(egi_raw_fname, channel_naming='EEG %03d')
@@ -584,13 +585,12 @@ def test_bvct_dig_montage():
 
     # Test coordinate transform
     dig_montage._transform_to_head()  # XXX: This has no effect
-    dig_montage_data = _foo_get_data_from_dig(dig_montage.dig)
     # nasion
-    assert_almost_equal(dig_montage_data.nasion[0], 0)
-    assert_almost_equal(dig_montage_data.nasion[2], 0)
+    assert_almost_equal(dig_montage.nasion[0], 0)
+    assert_almost_equal(dig_montage.nasion[2], 0)
     # lpa and rpa
-    assert_allclose(dig_montage_data.lpa[1:], 0, atol=1e-16)
-    assert_allclose(dig_montage_data.rpa[1:], 0, atol=1e-16)
+    assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
+    assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
 
     # Test accuracy and embedding within raw object
     raw_bv = read_raw_brainvision(bv_raw_fname)
@@ -630,12 +630,11 @@ def _check_roundtrip(montage, fname):
     montage.save(fname)
     montage_read = read_dig_montage(fif=fname)
     assert_equal(str(montage), str(montage_read))
-    montage_data = _foo_get_data_from_dig(montage.dig)
-    montage_read_data = _foo_get_data_from_dig(montage_read.dig)
-    for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
-        if getattr(montage_data, kind, None) is not None:
-            assert_allclose(getattr(montage_data, kind),
-                            getattr(montage_read_data, kind), err_msg=kind)
+    with pytest.deprecated_call():
+        for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
+            if getattr(montage, kind, None) is not None:
+                assert_allclose(getattr(montage, kind),
+                                getattr(montage_read, kind), err_msg=kind)
     assert_equal(montage_read.coord_frame, 'head')
 
 
