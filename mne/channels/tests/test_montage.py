@@ -546,14 +546,15 @@ def test_egi_dig_montage():
     fname_temp = op.join(temp_dir, 'egi_test.fif')
     _check_roundtrip(dig_montage, fname_temp)
 
-    # Test coordinate transform
-    # dig_montage.transform_to_head()  # XXX: this call had no effect!!
-    # nasion
-    assert_almost_equal(dig_montage.nasion[0], 0)
-    assert_almost_equal(dig_montage.nasion[2], 0)
-    # lpa and rpa
-    assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
-    assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
+    with pytest.deprecated_call():
+        # Test coordinate transform
+        # dig_montage.transform_to_head()  # XXX: this call had no effect!!
+        # nasion
+        assert_almost_equal(dig_montage.nasion[0], 0)
+        assert_almost_equal(dig_montage.nasion[2], 0)
+        # lpa and rpa
+        assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
+        assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
 
     # Test accuracy and embedding within raw object
     raw_egi = read_raw_egi(egi_raw_fname, channel_naming='EEG %03d')
@@ -570,7 +571,6 @@ def test_egi_dig_montage():
 
 
 @testing.requires_testing_data
-# @pytest.mark.skip(reason="I mess up something")  # XXX
 def test_bvct_dig_montage():
     """Test BrainVision CapTrak XML dig montage support."""
     with pytest.warns(RuntimeWarning, match='Using "m" as unit for BVCT file'):
@@ -583,14 +583,15 @@ def test_bvct_dig_montage():
     fname_temp = op.join(temp_dir, 'bvct_test.fif')
     _check_roundtrip(dig_montage, fname_temp)
 
-    # Test coordinate transform
-    dig_montage._transform_to_head()  # XXX: This has no effect
-    # nasion
-    assert_almost_equal(dig_montage.nasion[0], 0)
-    assert_almost_equal(dig_montage.nasion[2], 0)
-    # lpa and rpa
-    assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
-    assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
+    with pytest.deprecated_call():
+        # Test coordinate transform
+        dig_montage._transform_to_head()  # XXX: This has no effect
+        # nasion
+        assert_almost_equal(dig_montage.nasion[0], 0)
+        assert_almost_equal(dig_montage.nasion[2], 0)
+        # lpa and rpa
+        assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
+        assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
 
     # Test accuracy and embedding within raw object
     raw_bv = read_raw_brainvision(bv_raw_fname)
