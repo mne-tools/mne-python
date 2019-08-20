@@ -559,7 +559,7 @@ class DigMontage(object):
         _data = _foo_get_data_from_dig(self.dig)  # XXX: dig_ch_pos will always be None. I'm not sure if I'm breaking something. # noqa
         _data['point_names'] = self.point_names  # XXX: this attribute should remain  # noqa
 
-        self.coord_frame = _data.coord_frame
+        self._coord_frame = _data.coord_frame
 
         self.dig = _make_dig_points(
             nasion=_data.nasion, lpa=_data.lpa, rpa=_data.rpa, hpi=_data.elp,
@@ -937,7 +937,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         if montage.dev_head_t is not None:
             info['dev_head_t']['trans'] = montage.dev_head_t
 
-        if not montage.ch_names:  # update channel positions, too
+        if montage.ch_names:  # update channel positions, too
             dig_ch_pos = dict(zip(montage.ch_names, [
                 d['r'] for d in montage.dig
                 if d['kind'] == FIFF.FIFFV_POINT_EEG
