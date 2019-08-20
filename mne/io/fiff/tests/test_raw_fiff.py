@@ -8,6 +8,7 @@ from copy import deepcopy
 from functools import partial
 from io import BytesIO
 import os.path as op
+import pathlib
 import pickle
 import sys
 
@@ -1536,6 +1537,14 @@ def test_file_like(kind, preload, split, tmpdir):
         assert not fid.closed
         assert not file_fid.closed
     assert file_fid.closed
+
+
+def test_str_like():
+    """Test handling with str-like objects."""
+    fname = pathlib.Path(test_fif_fname)
+    raw_path = read_raw_fif(fname, preload=True)
+    raw_str = read_raw_fif(test_fif_fname, preload=True)
+    assert_allclose(raw_path._data, raw_str._data)
 
 
 run_tests_if_main()
