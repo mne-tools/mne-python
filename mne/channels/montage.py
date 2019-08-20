@@ -480,7 +480,7 @@ class DigMontage(object):
             raise ValueError('coord_frame must be one of %s, got %s'
                              % (sorted(_str_to_frame.keys()), coord_frame))
 
-        self.point_names = point_names
+        self._point_names = point_names
         self.coord_frame = coord_frame
         self.dev_head_t = dev_head_t
 
@@ -499,6 +499,10 @@ class DigMontage(object):
             extra_points=hsp, dig_ch_pos=dig_ch_pos
         )
         # XXX: we are losing the HPI points and overwriting them with ELP
+
+    @property
+    def point_names(self):
+        return self._point_names
 
     def __repr__(self):
         """Return string representation."""
