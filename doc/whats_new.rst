@@ -58,6 +58,8 @@ Changelog
 
 - Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
+- Add option ``include_tmax=True`` to cropping methods :meth:`mne.io.Raw.crop`, :meth:`mne.Epochs.crop`, :meth:`mne.Evoked.crop`, :meth:`mne.SourceEstimate.crop`, :meth:`mne.Dipole.crop`, and :meth:`mne.time_frequency.AverageTFR.crop` by `Eric Larson`_
+
 - Change the behavior of :meth:`mne.io.Raw.plot` for ``scalings='auto'`` and ``remove_dc=True`` to compute the scalings on the data with DC removed by `Clemens Brunner`_
 
 - Allow creating annotations within existing annotations in :func:`mne.io.Raw.plot` by default (the old snapping behavior can be toggled by pressing 'p') by `Clemens Brunner`_
