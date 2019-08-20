@@ -162,6 +162,8 @@ def _read_dig_montage_egi(
         elif kind == 1:
             dig_ch_pos['EEG %03d' %
                        (len(dig_ch_pos.keys()) + 1)] = coordinates
+            # XXX: we should do something with this (ref and eeg get mixed)
+
         # Fiducials
         elif kind == 2:
             fid_name = fid_name_map[name]
@@ -188,7 +190,7 @@ def _foo_get_data_from_dig(dig):
 
     # Split up the dig points by category
     hsp, hpi, elp = list(), list(), list()
-    fids, dig_ch_pos = dict(), dict()
+    fids, dig_ch_pos_location = dict(), list()
 
     for d in dig:
         if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
@@ -201,7 +203,7 @@ def _foo_get_data_from_dig(dig):
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
             # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-            pass  # noqa
+            dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
     assert len(dig_coord_frames) == 1, 'Only single coordinate frame in dig is supported' # noqa # XXX
@@ -213,7 +215,7 @@ def _foo_get_data_from_dig(dig):
         hsp=np.array(hsp) if len(hsp) else None,
         hpi=np.array(hpi) if len(hpi) else None,
         elp=np.array(elp) if len(elp) else None,
-        dig_ch_pos=dig_ch_pos,
+        dig_ch_pos_location=dig_ch_pos_location,
         coord_frame=dig_coord_frames.pop(),
     )
 
@@ -273,9 +275,9 @@ def _read_dig_montage_bvct(
             dig_ch_pos[name] = coordinates
 
     return Bunch(
-        # EGI stuff
+        # BVCT stuff
         nasion=fids['nasion'], lpa=fids['lpa'], rpa=fids['rpa'],
         dig_ch_pos=dig_ch_pos, coord_frame='unknown',
-        # not EGI stuff
+        # not BVCT stuff
         hsp=None, hpi=None, elp=None, point_names=None,
     )

@@ -481,19 +481,12 @@ class DigMontage(object):
                              % (sorted(_str_to_frame.keys()), coord_frame))
 
         self._point_names = point_names
+
+
         self.coord_frame = coord_frame
+
         self.dev_head_t = dev_head_t
-
-        # XXX: I'm having second thoughts on if we should represent the data
-        #      as a list of dicts, or keep each structure and create the list
-        #      of dicts as it was (but with a getter property)
-        #
-        #      If DigMontage is just constructed and nothing else (maybe some
-        #      plotting helper, or whatever) then `list_of_dicts` is fine. But
-        #      if we have to allow any operation to the points (i.e: rotation,
-        #      scale, change frame of reference, whatever) then it would be
-        #      really complicated.
-
+        self.ch_names = [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))  # noqa
         self.dig = _make_dig_points(
             nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
             extra_points=hsp, dig_ch_pos=dig_ch_pos
@@ -513,7 +506,7 @@ class DigMontage(object):
              (len(_data.hsp) if _data.hsp is not None else 0,
               len(self.point_names) if self.point_names is not None else 0,
               sum(x is not None for x in (_data.lpa, _data.rpa, _data.nasion)),
-              len(self.dig_ch_pos) if self.dig_ch_pos is not None else 0,))
+              len(_data.dig_ch_pos_location) if _data.dig_ch_pos_location is not None else 0,))  # noqa
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
@@ -534,7 +527,7 @@ class DigMontage(object):
             nasion=_data.nasion, lpa=_data.lpa, rpa=_data.rpa, hpi=_data.elp,
             extra_points=_data.hsp,
 
-            dig_ch_pos=self.dig_ch_pos
+            dig_ch_pos=dict(zip(self.ch_names, _data.dig_ch_pos_location))
         )
 
     def _compute_dev_head_t(self):
@@ -570,7 +563,8 @@ class DigMontage(object):
         # XXX : should be deprecated too
         # warn('"dig_ch_pos" attribute is deprecated and will be removed in '
         #      'v0.20', DeprecationWarning)
-        return _foo_get_data_from_dig(self.dig).dig_ch_pos
+        return dict(zip(self.ch_names,
+                        _foo_get_data_from_dig(self.dig).dig_ch_pos_location))
 
     @property
     def elp(self):
