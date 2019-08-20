@@ -606,11 +606,17 @@ def test_array_epochs():
     pytest.raises(ValueError, EvokedArray, data1, info, tmin=-0.01)
 
 
-def test_time_as_index():
-    """Test time as index."""
-    evoked = read_evokeds(fname, condition=0).crop(-.1, .1)
+def test_time_as_index_and_crop():
+    """Test time as index and cropping."""
+    tmin, tmax = -0.1, 0.1
+    evoked = read_evokeds(fname, condition=0).crop(tmin, tmax)
+    delta = 1. / evoked.info['sfreq']
+    atol = 0.5 * delta
+    assert_allclose(evoked.times[[0, -1]], [tmin, tmax], atol=atol)
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
+    evoked.crop(tmin, tmax, include_tmax=False)
+    assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)
 
 
 def test_add_channels():

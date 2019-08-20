@@ -938,6 +938,11 @@ def test_crop():
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
         raws[ri] = raw.copy().crop(tmin, tmax)
+        if ri < len(tmins) - 1:
+            assert_allclose(
+                raws[ri].times,
+                raw.copy().crop(tmin, tmins[ri + 1], include_tmax=False).times)
+        assert raws[ri]
     all_raw_2 = concatenate_raws(raws, preload=False)
     assert raw.first_samp == all_raw_2.first_samp
     assert raw.last_samp == all_raw_2.last_samp
@@ -968,6 +973,10 @@ def test_crop():
     for tmin in range(0, 1001, 100):
         raw1 = raw.copy().crop(tmin=tmin, tmax=tmin + 2)
         assert raw1[:][0].shape == (1, 2001)
+
+    # degenerate
+    with pytest.raises(ValueError, match='No samples.*when include_tmax=Fals'):
+        raw.crop(0, 0, include_tmax=False)
 
 
 @testing.requires_testing_data
