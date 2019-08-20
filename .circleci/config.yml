@@ -2,7 +2,7 @@
 # Tagging a commit with [circle full] will build everything.
 version: 2
 jobs:
-    build:
+    build_docs:
       docker:
         - image: circleci/python:3.7-stretch
       steps:
@@ -234,7 +234,7 @@ jobs:
         - run:
             name: Reduce artifact upload time
             command: |
-              if grep -q html_dev pattern.txt; then
+              if grep -q html_dev build.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
               fi
@@ -395,10 +395,10 @@ workflows:
 
   default:
     jobs:
-      - build
+      - build_docs
       - deploy:
           requires:
-            - build
+            - build_docs
           filters:
             branches:
               only:
