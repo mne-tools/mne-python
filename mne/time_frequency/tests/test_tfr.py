@@ -783,13 +783,25 @@ def _prepare_epochs(n_epochs):
     return epochs
 
 
-def _create_ref_data():
+def _create_ref_data(return_kernel=False):
     """Create different data types that should produce equal TFRs."""
-    def stc_generator(data, verts, tmin, tstep):
+    def stc_generator(kernel, sens_data, data, verts, tmin, tstep):
         for i in range(len(data)):
-            yield SourceEstimate(data[i], verts, tmin, tstep)
+            tmp_dat = (kernel[i], sens_data) if return_kernel else data[i]
+            yield SourceEstimate(tmp_dat, verts, tmin, tstep)
 
-    data = np.random.rand(4, 33, 211)
+    def create_stc_list(kernel, sens_data, data, verts, tmin, tstep):
+        if return_kernel:
+            stcs = [SourceEstimate((kernel[i], sens_data), verts, tmin, tstep)
+                    for i in range(len(data))]
+        else:
+            stcs = [SourceEstimate(data[i], verts, tmin, tstep)
+                    for i in range(data.shape[0])]
+        return stcs
+
+    sens_data = np.random.rand(21, 211)
+    kernel = np.random.rand(4, 33, 21)
+    data = np.tensordot(kernel, sens_data, axes=(-1, 0))
     chans = np.array([i for i in range(data.shape[1])])
     ch_names = list(chans.astype(str))
     ch_types = {}
@@ -802,12 +814,14 @@ def _create_ref_data():
 
     epochs_ref = EpochsArray(data, create_info(ch_names, sfreq), tmin=0)
     epochs_ref.set_channel_types(ch_types)
-    stc_list = [SourceEstimate(data[i], verts, tmin, tstep)
-                for i in range(data.shape[0])]
-    stc_gen = stc_generator(data, verts, tmin, tstep)
+    stc_list = create_stc_list(kernel, sens_data, data, verts, tmin, tstep)
+    stc_gen = stc_generator(kernel, sens_data, data, verts, tmin, tstep)
 
     evoked_ref = epochs_ref.average(picks='all')
-    stc_single = SourceEstimate(evoked_ref.data, verts, tmin, tstep)
+    if return_kernel:
+        stc_single = SourceEstimate((np.mean(kernel, axis=0), sens_data), verts, tmin, tstep)
+    else:
+        stc_single = SourceEstimate(evoked_ref.data, verts, tmin, tstep)
 
     return epochs_ref, stc_list, stc_gen, evoked_ref, stc_single
 
@@ -860,11 +874,9 @@ def test_morlet_induced_power_equivalence(n_epochs, return_itc, delayed):
     stcs = apply_inverse_epochs(epochs, inv, lambda2=l2, method=method,
                                 pick_ori=pick_ori, label=label, prepared=False,
                                 delayed=delayed)
-
     stfr = tfr_morlet(stcs, freqs=freqs, n_cycles=n_cycles, use_fft=use_fft,
                       decim=decim, zero_mean=zero_mean, return_itc=return_itc,
                       output='power', average=True)
-
     stfr_ref, itc_ref = \
         source_induced_power(epochs, inv, lambda2=l2, method=method,
                              pick_ori=pick_ori, label=label, prepared=False,
@@ -884,14 +896,15 @@ def test_morlet_induced_power_equivalence(n_epochs, return_itc, delayed):
                          [[False, False],
                           [False, True],
                           [True, True]])
-def test_stfr_equivalence(tfr_func, return_itc, average):
+@pytest.mark.parametrize('kernel', [True, False])
+def test_stfr_equivalence(tfr_func, return_itc, average, kernel):
     """Test if SourceTFRs are computed in the same way as sensor space TFRs."""
     n_cycles = 3
     use_fft = True
     decim = 1
     freqs = [10, 12, 14, 16]
 
-    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data()
+    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data(kernel)
 
     ep_tfrs = tfr_func(epochs_ref, freqs=freqs, n_cycles=n_cycles,
                        use_fft=use_fft, decim=decim, return_itc=return_itc,

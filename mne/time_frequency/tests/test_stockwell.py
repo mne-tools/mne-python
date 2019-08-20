@@ -140,12 +140,13 @@ def test_stockwell_api():
 @pytest.mark.filterwarnings('ignore:.*The unit .*? has changed from NA to V.')
 @pytest.mark.filterwarnings('ignore:.*Applying zero padding.')
 @pytest.mark.parametrize('return_itc', [True, False])
-def test_stfr_stockwell(return_itc):
+@pytest.mark.parametrize('kernel', [True, False])
+def test_stfr_stockwell(return_itc, kernel):
     """Test if SourceTFRs are computed in the same way as sensor space TFRs."""
     fmin = 10
     fmax = 16
 
-    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data()
+    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data(kernel)
 
     ep_tfr = tfr_stockwell(epochs_ref, fmin, fmax, return_itc=return_itc)
     list_stfrs = tfr_stockwell(stc_list, fmin, fmax, return_itc=return_itc)
