@@ -98,6 +98,5 @@ def main():
     else:
         cmd = sys.argv[1]
         cmd = importlib.import_module('.mne_%s' % (cmd,), 'mne.commands')
-        print(sys.argv)
-        sys.argv = sys.argv[2:]
+        sys.argv = sys.argv[1:]
         cmd.run()
