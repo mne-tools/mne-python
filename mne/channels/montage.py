@@ -27,7 +27,7 @@ from ..digitization._utils import (_make_dig_points, _read_dig_points,
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
-                     _check_option, Bunch)
+                     _check_option, Bunch, deprecated)
 
 from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
@@ -569,21 +569,23 @@ class DigMontage(object):
             dig_ch_pos=dict(zip(self.ch_names, _data.dig_ch_pos_location))
         )
 
+    @deprecated(
+        'compute_dev_head_t is deprecated and will be removed in 0.20.'
+    )
     def compute_dev_head_t(self):
-        pass
-        # return self.dev_head_t
-
-    def _compute_dev_head_t(self):
         """Compute the Neuromag dev_head_t from matched points."""
-        # XXX: This is already a free function
+        if not hasattr(self, '_hpi'):
+            raise RuntimeError(
+                'Cannot compute dev_head_t if DigMontage was not created'
+                ' from arrays')
+
         from ..coreg import fit_matched_points
         data = _foo_get_data_from_dig(self.dig)
-        _hpi = getattr(self, '_hpi', None)
-        if data.elp is None or _hpi is None:
+        if data.elp is None or self._hpi is None:
             raise RuntimeError('must have both elp and hpi to compute the '
                                'device to head transform')
-        data.dev_head_t = fit_matched_points(tgt_pts=data.elp,
-                                             src_pts=_hpi, out='trans')
+        self.dev_head_t = fit_matched_points(tgt_pts=data.elp,
+                                             src_pts=self._hpi, out='trans')
 
     def save(self, fname):
         """Save digitization points to FIF.
@@ -827,10 +829,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         pass  # noqa
 
     if dev_head_t:
-        # XXX: hpi is only defined if given by the user or fif.
-        #      So, `dev_head_t` for egi will always hit this error, 'cos we
-        #      force hip=None
-        if data.elp is None or hpi is None:
+        if data.elp is None or data.hpi is None:
             raise RuntimeError('must have both elp and hpi to compute the '
                                'device to head transform')
         else:

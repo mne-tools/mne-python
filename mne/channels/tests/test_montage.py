@@ -815,4 +815,20 @@ def test_setting_hydrocel_montage():
         assert actual == expected
 
 
+def test_dig_dev_head_t_regression():
+    """Test deprecated compute_dev_head_t behavior."""
+    EXPECTED_DEV_HEAD_T = \
+        [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],
+         [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
+         [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
+         [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    montage = read_dig_montage(hsp, hpi, elp, names,
+                               transform=True, dev_head_t=False)
+    assert montage.dev_head_t is None
+    with pytest.deprecated_call():
+        montage.compute_dev_head_t()
+    assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T)
+
 run_tests_if_main()
