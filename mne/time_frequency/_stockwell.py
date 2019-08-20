@@ -13,7 +13,7 @@ from scipy import fftpack
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn, fill_doc
 from ..parallel import parallel_func, check_n_jobs
-from .tfr import AverageTFR, _get_data, _create_stfr, _check_stfr_list_elem
+from .tfr import AverageTFR, _get_data, _create_stfr, _check_stfr_list_elem, _assign_tfr_class
 
 
 def _check_input_st(x_in, n_fft):
@@ -101,8 +101,14 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
 
 
 def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc, n_jobs):
+    from ..source_estimate import _BaseSourceEstimate
 
     for ep_idx, obj in enumerate(inst):
+
+        if not isinstance(obj, _BaseSourceEstimate):
+            raise TypeError("List or generator input must consist of "
+                            "SourceEstimate objects. Got {}."
+                            .format(type(inst)))
 
         data = obj.data
         data, n_fft_, zero_pad = _check_input_st(data, n_fft)
@@ -321,37 +327,39 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     .. versionadded:: 0.9.0
     """
     from ..source_estimate import _BaseSourceEstimate
+    # verbose dec is used b/c subfunctions are verbose
 
     n_jobs = check_n_jobs(n_jobs)
 
+    info = None
+    nave = None
     if isinstance(inst, list) or isgenerator(inst):
 
         power, itc, freqs, inst = \
             _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim,
                                 return_itc, n_jobs)
-        out = _create_stfr(inst, power, freqs, method='stockwell-power')
-        if return_itc:
-            out = (out, _create_stfr(inst, itc, freqs, method='stockwell-itc'))
 
-    # verbose dec is used b/c subfunctions are verbose
     else:
         data = _get_data(inst, return_itc)
-        times = inst.times[::decim].copy()
-        nave = len(data)
-        picks = _pick_data_channels(inst.info)
-        data = data[:, picks, :]
-        info = pick_info(inst.info, picks)
-        sfreq = info['sfreq']
+        if isinstance(inst, _BaseSourceEstimate):
+            sfreq = inst.sfreq
+        else:
+            nave = len(data)
+            picks = _pick_data_channels(inst.info)
+            data = data[:, picks, :]
+            info = pick_info(inst.info, picks)
+            sfreq = info['sfreq']
 
         power, itc, freqs = \
             tfr_array_stockwell(data, sfreq=sfreq, fmin=fmin, fmax=fmax,
                                 n_fft=n_fft, width=width, decim=decim,
                                 return_itc=return_itc, n_jobs=n_jobs)
 
-        out = AverageTFR(info, power, times, freqs, nave,
-                         method='stockwell-power')
-        if return_itc:
-            out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
-                                   freqs.copy(), nave, method='stockwell-itc'))
-
+    times = inst.times[::decim].copy()
+    out = _assign_tfr_class(power, inst, info, freqs, times, average=True,
+                            nave=nave, method='stockwell-power')
+    if return_itc:
+        out = (out, _assign_tfr_class(itc, inst, info, freqs, times,
+                                      average=True, nave=nave,
+                                      method='stockwell-itc'))
     return out

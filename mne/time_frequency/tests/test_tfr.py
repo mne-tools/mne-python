@@ -270,28 +270,7 @@ def test_time_frequency():
     assert_equal(psd.shape, (2, 1, 420))
 
     # check errors for contradicting SourceEstimate input
-    stc_data = np.ones([3, 40])
-    verts = [np.array([1, 2, 3]), np.array([])]
-    tstep = 1. / 128.
-    tmin = 0.1
-    stc_ref = SourceEstimate(stc_data, verts, tmin, tstep)
-    stc_1 = VolSourceEstimate(stc_data, verts, tmin, tstep)
-    stc_2 = SourceEstimate(stc_data, verts, tmin=0.2, tstep=tstep)
-    stc_3 = SourceEstimate(stc_data, verts, tmin, tstep=1. / 129.)
-
-    with pytest.raises(TypeError, match="must be of the same "
-                                        "SourceEstimate type"):
-        tfr_morlet([stc_ref, stc_1], [10, 12], 1)
-
-    with pytest.raises(ValueError, match="must have the same tmin"):
-        tfr_morlet([stc_ref, stc_2], [10, 12], 1)
-
-    with pytest.raises(ValueError, match="must have the same sfreq"):
-        tfr_morlet([stc_ref, stc_3], [10, 12], 1)
-
-    with pytest.raises(TypeError, match="must consist of "
-                                        "SourceEstimate objects"):
-        tfr_morlet([stc_ref, evoked], [10, 12], 1)
+    _check_tfr_list_input(tfr_morlet, freqs=[10, 12], n_cycles=1)
 
 
 def test_dpsswavelet():
@@ -831,6 +810,32 @@ def _create_ref_data():
     stc_single = SourceEstimate(evoked_ref.data, verts, tmin, tstep)
 
     return epochs_ref, stc_list, stc_gen, evoked_ref, stc_single
+
+
+def _check_tfr_list_input(func, **kwargs):
+
+    stc_data = np.ones([3, 64])
+    verts = [np.array([1, 2, 3]), np.array([])]
+    tstep = 1. / 128.
+    tmin = 0.1
+    stc_ref = SourceEstimate(stc_data, verts, tmin, tstep)
+    stc_1 = VolSourceEstimate(stc_data, verts, tmin, tstep)
+    stc_2 = SourceEstimate(stc_data, verts, tmin=0.2, tstep=tstep)
+    stc_3 = SourceEstimate(stc_data, verts, tmin, tstep=1. / 129.)
+
+    with pytest.raises(TypeError, match="must be of the same "
+                                        "SourceEstimate type"):
+        func([stc_ref, stc_1], **kwargs)
+
+    with pytest.raises(ValueError, match="must have the same tmin"):
+        func([stc_ref, stc_2], **kwargs)
+
+    with pytest.raises(ValueError, match="must have the same sfreq"):
+        func([stc_ref, stc_3], **kwargs)
+
+    with pytest.raises(TypeError, match="must consist of "
+                                        "SourceEstimate objects"):
+        func([dict(invalid="invalid"), stc_ref], **kwargs)
 
 
 @testing.requires_testing_data
