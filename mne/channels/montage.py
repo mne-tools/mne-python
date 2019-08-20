@@ -514,6 +514,7 @@ class DigMontage(object):
             self.dig = dig
             self.ch_names = ch_names
             self._coord_frame = _check_get_coord_frame(self.dig)
+            # XXX: we are losing the HPI points and overwriting them with ELP
         else:
             self._coord_frame = \
                 'unkown' if coord_frame is DEPRECATED_PARAM else coord_frame
@@ -524,7 +525,6 @@ class DigMontage(object):
                 coord_frame=self._coord_frame,
             )
             self._hpi = hpi
-        # XXX: we are losing the HPI points and overwriting them with ELP
 
     @property
     def point_names(self):
@@ -538,8 +538,7 @@ class DigMontage(object):
 
     def __repr__(self):
         """Return string representation."""
-        # XXX: uses internal representation
-        _data = _foo_get_data_from_dig(self.dig)  # XXX: dig_ch_pos will always be None. I'm not sure if I'm breaking something. # noqa
+        _data = _foo_get_data_from_dig(self.dig)
         s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
              'channels>' %
              (len(_data.hsp) if _data.hsp is not None else 0,
@@ -557,7 +556,7 @@ class DigMontage(object):
 
     def _transform_to_head(self):
         """Transform digitizer points to Neuromag head coordinates."""
-        _data = _foo_get_data_from_dig(self.dig)  # XXX: dig_ch_pos will always be None. I'm not sure if I'm breaking something. # noqa
+        _data = _foo_get_data_from_dig(self.dig)
         _data['point_names'] = self.point_names  # XXX: this attribute should remain  # noqa
 
         self._coord_frame = _data.coord_frame
@@ -620,7 +619,7 @@ class DigMontage(object):
         warn('"hpi" attribute is deprecated and will be removed in v0.20',
              DeprecationWarning)
         # return _foo_get_data_from_dig(self.dig).hpi
-        return getattr(self, '_hpi', None)
+        return getattr(self, '_hpi', None)  # XXX: do we want to return None for the new objects # noqa
 
     @property
     def hsp(self):
