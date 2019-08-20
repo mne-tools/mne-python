@@ -541,10 +541,6 @@ class DigMontage(object):
         data.dev_head_t = fit_matched_points(tgt_pts=data.elp,
                                              src_pts=data.hpi, out='trans')
 
-    def _get_dig(self):
-        """Get the digitization list."""
-        return self.dig
-
     def save(self, fname):
         """Save digitization points to FIF.
 
@@ -556,7 +552,7 @@ class DigMontage(object):
         if self.coord_frame != 'head':
             raise RuntimeError('Can only write out digitization points in '
                                'head coordinates.')
-        write_dig(fname, self._get_dig())
+        write_dig(fname, self.dig)
 
     @property
     def dig_ch_pos(self):
@@ -891,7 +887,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
 
     elif isinstance(montage, DigMontage):
         if set_dig:
-            info['dig'] = montage._get_dig()
+            info['dig'] = montage.dig
 
         if montage.dev_head_t is not None:
             info['dev_head_t']['trans'] = montage.dev_head_t
