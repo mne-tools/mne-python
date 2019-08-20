@@ -146,6 +146,4 @@ def run():
         with open(origin_out, 'w') as fid:
             fid.write(origin + '\n')
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()
