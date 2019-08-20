@@ -34,6 +34,8 @@ from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _foo_get_data_from_dig
 
+DEPRECATED_PARAM = object()
+
 
 def _digmontage_to_bunch(montage):
     montage_copy = deepcopy(montage)  # XXX: this should not be needed. This is just a precaution while developing  # noqa
@@ -49,16 +51,16 @@ def _digmontage_to_bunch(montage):
     )
 
 
-def make_dig_montage(
-    hsp=None, hpi=None, elp=None, point_names=None,
-    nasion=None, lpa=None, rpa=None, dev_head_t=None,
-    dig_ch_pos=None,
-):
-    return DigMontage(
-        ch_names=[] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys())),
-        dig=_make_dig_points(nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
-                             extra_points=hsp, dig_ch_pos=dig_ch_pos)
-    )
+# def make_dig_montage(
+#     hsp=None, hpi=None, elp=None, point_names=None,
+#     nasion=None, lpa=None, rpa=None, dev_head_t=None,
+#     dig_ch_pos=None,
+# ):
+#     return DigMontage(
+#         ch_names=[] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys())),  # noqa
+#         dig=_make_dig_points(nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
+#                              extra_points=hsp, dig_ch_pos=dig_ch_pos)
+#     )
 
 
 def _check_get_coord_frame(dig):
@@ -429,7 +431,6 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection,
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
-DEPRECATED_PARAM = object()
 
 class DigMontage(object):
     """Montage for digitized electrode and headshape position data.
