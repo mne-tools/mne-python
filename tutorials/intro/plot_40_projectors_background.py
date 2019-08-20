@@ -239,11 +239,8 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # the trigger" in our example above). SSP is also often used for removing
 # heartbeat and eye movement artifacts — in those cases, instead of empty room
 # recordings the direction of the noise is estimated by detecting the
-# artifacts, extracting epochs around them, and averaging.
-#
-# .. TODO: add EOG/ECG examples to
-#    :doc:`../preprocessing/plot_artifacts_correction_ssp` and then add
-#    crossref here.
+# artifacts, extracting epochs around them, and averaging. See
+# :ref:`tut-artifact-ssp` for examples.
 #
 # Once you know the noise vectors, you can create a hyperplane that is
 # orthogonal
