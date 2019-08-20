@@ -444,30 +444,46 @@ class DigMontage(object):
     hsp : array, shape (n_points, 3)
         The positions of the headshape points in 3d.
         These points are in the native digitizer space.
+        Deprecated, will be removed in 0.20.
     hpi : array, shape (n_hpi, 3)
         The positions of the head-position indicator coils in 3d.
         These points are in the MEG device space.
+        Deprecated, will be removed in 0.20.
     elp : array, shape (n_hpi, 3)
         The positions of the head-position indicator coils in 3d.
         This is typically in the native digitizer space.
+        Deprecated, will be removed in 0.20.
     point_names : list, shape (n_elp)
         The names of the digitized points for hpi and elp.
+        Deprecated, will be removed in 0.20.
     nasion : array, shape (1, 3)
         The position of the nasion fidicual point.
+        Deprecated, will be removed in 0.20.
     lpa : array, shape (1, 3)
         The position of the left periauricular fidicual point.
+        Deprecated, will be removed in 0.20.
     rpa : array, shape (1, 3)
         The position of the right periauricular fidicual point.
+        Deprecated, will be removed in 0.20.
     dev_head_t : array, shape (4, 4)  | bool
         A Device-to-Head transformation matrix.
     dig_ch_pos : dict
         Dictionary of channel positions given in meters.
+        Deprecated, will be removed in 0.20.
 
         .. versionadded:: 0.12
 
     coord_frame : str
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space.
+
+        .. versionadded:: 0.19
+
+    dig : dig | None
+    ch_names : list of strings | None
+        The names of the eeg channels.
+    hpi_names : list of strings | None
+        The names of the digitized points for hpi and elp.
 
     See Also
     --------
@@ -486,45 +502,54 @@ class DigMontage(object):
         lpa=DEPRECATED_PARAM, rpa=DEPRECATED_PARAM,
         dev_head_t=None, dig_ch_pos=DEPRECATED_PARAM,
         coord_frame=DEPRECATED_PARAM,
-        dig=None, ch_names=None,
+        dig=None, ch_names=None, hpi_names=None,
     ):  # noqa: D102
+        _non_deprecated_kwargs = [
+            key for key, val in dict(
+                hsp=hsp, hpi=hpi, elp=elp, point_names=point_names,
+                nasion=nasion, lpa=lpa, rpa=rpa, dev_head_t=dev_head_t,
+                dig_ch_pos=dig_ch_pos, coord_frame=coord_frame,
+            ).items() if val is not DEPRECATED_PARAM
+        ]
 
-        if any([kwarg is not DEPRECATED_PARAM for kwarg in (
-                hsp, hpi, elp, point_names, nasion, lpa, rpa, dev_head_t,
-                dig_ch_pos, coord_frame,)]):
-            # warn('bla', DeprecationWarning)
-            pass  # noqa # XXX
-
-        # XXX: in this code elp names prevale over point_names
-        if elp is not None:
-            if not isinstance(point_names, Iterable):
-                raise TypeError('If elp is specified, point_names must '
-                                'provide a list of str with one entry per ELP '
-                                'point')
-            point_names = list(point_names)
-            if len(point_names) != len(elp):
-                raise ValueError('elp contains %i points but %i '
-                                 'point_names were specified.' %
-                                 (len(elp), len(point_names)))
-
-        self._point_names = point_names
-
-        self.dev_head_t = dev_head_t
-        if dig is not None or ch_names is not None:
+        if not _non_deprecated_kwargs:
+            self.dev_head_t = dev_head_t
             self.dig = dig
             self.ch_names = ch_names
             self._coord_frame = _check_get_coord_frame(self.dig)
-            # XXX: we are losing the HPI points and overwriting them with ELP
+            self._point_names = [] if hpi_names is None else hpi_names
         else:
+            # Old behavior
+            _msg = (
+                "Using {params} in DigMontage constructor is deprecated."
+                " Use 'dig', 'ch_names', and 'hpi_names' instead."
+            ).format(params=", ".join(
+                ["'{}'".format(k) for k in _non_deprecated_kwargs]
+            ))
+            warn(_msg, DeprecationWarning)
+            self.dev_head_t = dev_head_t
+            if elp is not None:
+                if not isinstance(point_names, Iterable):
+                    raise TypeError('If elp is specified, point_names must'
+                                    ' provide a list of str with one entry per'
+                                    ' ELP point.')
+                point_names = list(point_names)
+                if len(point_names) != len(elp):
+                    raise ValueError('elp contains %i points but %i '
+                                     'point_names were specified.' %
+                                     (len(elp), len(point_names)))
+
+            self._point_names = point_names
+            self.ch_names = \
+                [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))
+            self._hpi = None if hpi is DEPRECATED_PARAM else hpi
             self._coord_frame = \
                 'unkown' if coord_frame is DEPRECATED_PARAM else coord_frame
-            self.ch_names = [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))  # noqa
             self.dig = _make_dig_points(
                 nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
                 extra_points=hsp, dig_ch_pos=dig_ch_pos,
                 coord_frame=self._coord_frame,
             )
-            self._hpi = hpi
 
     @property
     def point_names(self):
