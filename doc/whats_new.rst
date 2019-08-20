@@ -125,6 +125,8 @@ Bug
 
 - Fix :func:`mne.io.read_raw_brainvision` not handling ``Event`` markers created by PyCorder correctly by `Richard Höchenberger`_
 
+- Fix support for string-like objects (such as :class:`python:pathlib.Path`) by `Eric Larson`_
+
 - Fix :class:`mne.Report` silently suppressing exceptions when used as a context manager by `Marijn van Vliet`_
 
 API
