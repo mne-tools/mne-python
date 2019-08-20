@@ -569,6 +569,10 @@ class DigMontage(object):
             dig_ch_pos=dict(zip(self.ch_names, _data.dig_ch_pos_location))
         )
 
+    def compute_dev_head_t(self):
+        pass
+        # return self.dev_head_t
+
     def _compute_dev_head_t(self):
         """Compute the Neuromag dev_head_t from matched points."""
         # XXX: This is already a free function
