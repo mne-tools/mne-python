@@ -422,10 +422,10 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
 
     if is_kernel:
         stc = Klass(data=(data, sens_data), vertices=vertices, tmin=tmin,
-                     tstep=tstep, subject=subject)
+                    tstep=tstep, subject=subject)
     else:
         stc = Klass(data=data, vertices=vertices, tmin=tmin, tstep=tstep,
-                     subject=subject)
+                    subject=subject)
     return stc
 
 
