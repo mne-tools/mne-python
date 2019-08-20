@@ -30,6 +30,7 @@ from ..transforms import Transform
 from ..transforms import combine_transforms
 from ..transforms import invert_transform
 from ..transforms import _to_const
+from ..transforms import _str_to_frame
 
 from ..utils.check import _check_option
 from .. import __version__
@@ -182,9 +183,10 @@ def _write_dig_points(fname, dig_points):
         raise ValueError(msg)
 
 
-# XXX: all points are supposed to be in FIFFV_COORD_HEAD
+# XXX: coord_frame is always called with 'head'
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     extra_points=None, dig_ch_pos=None):
+                     extra_points=None, dig_ch_pos=None,
+                     coord_frame='head'):
     """Construct digitizer info for the info.
 
     Parameters
@@ -201,12 +203,21 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         Points designed as the headshape points.
     dig_ch_pos : dict
         Dict of EEG channel positions.
+    coord_frame : str
+        The coordinate frame of the points. Usually this is "unknown"
+        for native digitizer space. Defaults to "head".
 
     Returns
     -------
     dig : list of dicts
         A container of DigPoints to be added to the info['dig'].
     """
+    if not isinstance(coord_frame, str) or coord_frame not in _str_to_frame:
+        raise ValueError('coord_frame must be one of %s, got %s'
+                         % (sorted(_str_to_frame.keys()), coord_frame))
+    else:
+        coord_frame = _str_to_frame[coord_frame]
+
     dig = []
     if lpa is not None:
         lpa = np.asarray(lpa)
@@ -215,7 +226,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                              % (lpa.shape,))
         dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
                     'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
+                    'coord_frame': coord_frame})
     if nasion is not None:
         nasion = np.asarray(nasion)
         if nasion.shape != (3,):
@@ -223,7 +234,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                              % (nasion.shape,))
         dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
                     'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
+                    'coord_frame': coord_frame})
     if rpa is not None:
         rpa = np.asarray(rpa)
         if rpa.shape != (3,):
@@ -231,7 +242,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                              % (rpa.shape,))
         dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
                     'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
+                    'coord_frame': coord_frame})
     if hpi is not None:
         hpi = np.asarray(hpi)
         if hpi.ndim != 2 or hpi.shape[1] != 3:
@@ -240,7 +251,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         for idx, point in enumerate(hpi):
             dig.append({'r': point, 'ident': idx + 1,
                         'kind': FIFF.FIFFV_POINT_HPI,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+                        'coord_frame': coord_frame})
     if extra_points is not None:
         extra_points = np.asarray(extra_points)
         if extra_points.shape[1] != 3:
@@ -249,7 +260,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         for idx, point in enumerate(extra_points):
             dig.append({'r': point, 'ident': idx + 1,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+                        'coord_frame': coord_frame})
     if dig_ch_pos is not None:
         keys = sorted(dig_ch_pos.keys())
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
@@ -263,7 +274,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         for key, ident in zip(keys, idents):
             dig.append({'r': dig_ch_pos[key], 'ident': ident,
                         'kind': FIFF.FIFFV_POINT_EEG,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+                        'coord_frame': coord_frame})
 
     return _format_dig_points(dig)
 

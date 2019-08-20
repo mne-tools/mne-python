@@ -24,7 +24,6 @@ from mne.channels.montage import _set_montage
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
                        object_diff)
 from mne.bem import _fit_sphere
-from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne.digitization._utils import _read_dig_points
@@ -395,13 +394,14 @@ def test_read_dig_montage():
         assert_allclose(montage.lpa[1:], 0, atol=1e-16)
         assert_allclose(montage.rpa[1:], 0, atol=1e-16)
     # device head transform
-    with pytest.deprecated_call():
-        dev_head_t = fit_matched_points(tgt_pts=montage.elp,
-                                        src_pts=hpi_points, out='trans') # XXX: expected_dev_head_t  # noqa
-    # XXX: why I can not use this
-    # expected_dev_head_t = fit_matched_points(tgt_pts=elp_points,
-    #                                          src_pts=hpi_points, out='trans')
-    assert_array_equal(montage.dev_head_t, dev_head_t)
+
+    EXPECTED_DEV_HEAD_T = np.array(
+        [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],
+         [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
+         [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
+         [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+    )
+    assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T)
 
     # Digitizer as array
     m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names, unit='m')
@@ -627,7 +627,8 @@ def test_set_montage():
 
 def _check_roundtrip(montage, fname):
     """Check roundtrip writing."""
-    assert_equal(montage.coord_frame, 'head')
+    with pytest.deprecated_call():
+        assert_equal(montage.coord_frame, 'head')
     montage.save(fname)
     montage_read = read_dig_montage(fif=fname)
     assert_equal(str(montage), str(montage_read))
@@ -636,7 +637,8 @@ def _check_roundtrip(montage, fname):
             if getattr(montage, kind, None) is not None:
                 assert_allclose(getattr(montage, kind),
                                 getattr(montage_read, kind), err_msg=kind)
-    assert_equal(montage_read.coord_frame, 'head')
+    with pytest.deprecated_call():
+        assert_equal(montage_read.coord_frame, 'head')
 
 
 def _fake_montage(ch_names):

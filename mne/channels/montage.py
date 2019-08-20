@@ -49,6 +49,25 @@ def _digmontage_to_bunch(montage):
     )
 
 
+def make_dig_montage(
+    hsp=None, hpi=None, elp=None, point_names=None,
+    nasion=None, lpa=None, rpa=None, dev_head_t=None,
+    dig_ch_pos=None,
+):
+    return DigMontage(
+        ch_names=[] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys())),
+        dig=_make_dig_points(nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
+                             extra_points=hsp, dig_ch_pos=dig_ch_pos)
+    )
+
+
+def _check_get_coord_frame(dig):
+    _MSG = 'Only single coordinate frame in dig is supported'
+    dig_coord_frames = set([d['coord_frame'] for d in dig])
+    assert len(dig_coord_frames) == 1, _MSG
+    return _frame_to_str[dig_coord_frames.pop()]
+
+
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
@@ -410,6 +429,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection,
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
+DEPRECATED_PARAM = object()
 
 class DigMontage(object):
     """Montage for digitized electrode and headshape position data.
@@ -459,10 +479,21 @@ class DigMontage(object):
     .. versionadded:: 0.9.0
     """
 
-    def __init__(self, hsp=None, hpi=None, elp=None, point_names=None,
-                 nasion=None, lpa=None, rpa=None, dev_head_t=None,
-                 dig_ch_pos=None, coord_frame='unknown',
+    def __init__(self,
+        hsp=DEPRECATED_PARAM, hpi=DEPRECATED_PARAM, elp=DEPRECATED_PARAM,
+        point_names=DEPRECATED_PARAM, nasion=DEPRECATED_PARAM,
+        lpa=DEPRECATED_PARAM, rpa=DEPRECATED_PARAM,
+        dev_head_t=None, dig_ch_pos=DEPRECATED_PARAM,
+        coord_frame=DEPRECATED_PARAM,
+        dig=None, ch_names=None,
     ):  # noqa: D102
+
+        if any([kwarg is not DEPRECATED_PARAM for kwarg in (
+                hsp, hpi, elp, point_names, nasion, lpa, rpa, dev_head_t,
+                dig_ch_pos, coord_frame,)]):
+            # warn('bla', DeprecationWarning)
+            pass  # noqa # XXX
+
         # XXX: in this code elp names prevale over point_names
         if elp is not None:
             if not isinstance(point_names, Iterable):
@@ -475,27 +506,34 @@ class DigMontage(object):
                                  'point_names were specified.' %
                                  (len(elp), len(point_names)))
 
-        if not isinstance(coord_frame, str) or \
-                coord_frame not in _str_to_frame:
-            raise ValueError('coord_frame must be one of %s, got %s'
-                             % (sorted(_str_to_frame.keys()), coord_frame))
-
         self._point_names = point_names
 
-
-        self.coord_frame = coord_frame
-
         self.dev_head_t = dev_head_t
-        self.ch_names = [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))  # noqa
-        self.dig = _make_dig_points(
-            nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
-            extra_points=hsp, dig_ch_pos=dig_ch_pos
-        )
+        if dig is not None or ch_names is not None:
+            self.dig = dig
+            self.ch_names = ch_names
+            self._coord_frame = _check_get_coord_frame(self.dig)
+        else:
+            self._coord_frame = \
+                'unkown' if coord_frame is DEPRECATED_PARAM else coord_frame
+            self.ch_names = [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))  # noqa
+            self.dig = _make_dig_points(
+                nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
+                extra_points=hsp, dig_ch_pos=dig_ch_pos,
+                coord_frame=self._coord_frame,
+            )
+            self._hpi = hpi
         # XXX: we are losing the HPI points and overwriting them with ELP
 
     @property
     def point_names(self):
         return self._point_names
+
+    @property
+    def coord_frame(self):
+        warn('"coord_frame" attribute is deprecated and will be removed'
+             ' in v0.20', DeprecationWarning)
+        return self._coord_frame
 
     def __repr__(self):
         """Return string representation."""
@@ -535,11 +573,12 @@ class DigMontage(object):
         # XXX: This is already a free function
         from ..coreg import fit_matched_points
         data = _foo_get_data_from_dig(self.dig)
-        if data.elp is None or data.hpi is None:
+        _hpi = getattr(self, '_hpi', None)
+        if data.elp is None or _hpi is None:
             raise RuntimeError('must have both elp and hpi to compute the '
                                'device to head transform')
         data.dev_head_t = fit_matched_points(tgt_pts=data.elp,
-                                             src_pts=data.hpi, out='trans')
+                                             src_pts=_hpi, out='trans')
 
     def save(self, fname):
         """Save digitization points to FIF.
@@ -549,7 +588,7 @@ class DigMontage(object):
         fname : str
             The filename to use. Should end in .fif or .fif.gz.
         """
-        if self.coord_frame != 'head':
+        if self._coord_frame != 'head':
             raise RuntimeError('Can only write out digitization points in '
                                'head coordinates.')
         write_dig(fname, self.dig)
@@ -570,9 +609,11 @@ class DigMontage(object):
 
     @property
     def hpi(self):
+        # XXXX: make sure we did not lose HPIs
         warn('"hpi" attribute is deprecated and will be removed in v0.20',
              DeprecationWarning)
-        return _foo_get_data_from_dig(self.dig).hpi
+        # return _foo_get_data_from_dig(self.dig).hpi
+        return getattr(self, '_hpi', None)
 
     @property
     def hsp(self):
@@ -886,20 +927,27 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
+
+        # info['dig'] = montage.dig
+        # info['dev_head_t'] = montage.dev_head_t
+
         if set_dig:
             info['dig'] = montage.dig
 
         if montage.dev_head_t is not None:
             info['dev_head_t']['trans'] = montage.dev_head_t
 
-        if montage.dig_ch_pos is not None:  # update channel positions, too
-            # XXX: we are calling this with montage.dig_ch_pos={} ??
-            eeg_ref_pos = montage.dig_ch_pos.get('EEG000', np.zeros(3))
+        if not montage.ch_names:  # update channel positions, too
+            dig_ch_pos = dict(zip(montage.ch_names, [
+                d['r'] for d in montage.dig
+                if d['kind'] == FIFF.FIFFV_POINT_EEG
+            ]))
+            eeg_ref_pos = dig_ch_pos.get('EEG000', np.zeros(3))
             did_set = np.zeros(len(info['ch_names']), bool)
             is_eeg = np.zeros(len(info['ch_names']), bool)
             is_eeg[pick_types(info, meg=False, eeg=True, exclude=())] = True
 
-            for ch_name, ch_pos in montage.dig_ch_pos.items():
+            for ch_name, ch_pos in dig_ch_pos.items():
                 if ch_name == 'EEG000':  # what if eeg ref. has different name?
                     continue
                 if ch_name not in info['ch_names']:
