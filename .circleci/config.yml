@@ -234,7 +234,7 @@ jobs:
         - run:
             name: Reduce artifact upload time
             command: |
-              if grep -q html_dev my_list.txt; then
+              if grep -q html_dev pattern.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
               fi
