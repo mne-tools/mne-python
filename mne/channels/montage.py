@@ -504,7 +504,7 @@ class DigMontage(object):
         s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
              'channels>' %
              (len(_data.hsp) if _data.hsp is not None else 0,
-              len(self.point_names) if self.point_names is not None else 0,
+              len(_data.hpi) if _data.hpi is not None else 0,
               sum(x is not None for x in (_data.lpa, _data.rpa, _data.nasion)),
               len(_data.dig_ch_pos_location) if _data.dig_ch_pos_location is not None else 0,))  # noqa
         return s
