@@ -110,12 +110,14 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc, n_job
                             "SourceEstimate objects. Got {}."
                             .format(type(inst)))
 
-        data = obj.data
+        # load the data. Set return_itc=False to omit an Error
+        data, kernel = _get_data(obj, return_itc=False, fill_dims=False)
+
         data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
         if ep_idx == 0:
 
-            n_channels = data.shape[0]
+            n_channels = len(kernel) if kernel is not None else len(data)
             sfreq = obj.sfreq
             type_ref = type(obj)
             tmin_ref = obj._tmin
@@ -139,9 +141,8 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc, n_job
             psd = np.zeros((n_channels, len(W), n_out))
             itc = np.zeros_like(psd, dtype=np.complex) if return_itc else None
 
-        else:  # for all iterations except the first
-
-            # make sure these elements got the same properties as the first one
+        else:
+            # make sure all elements got the same properties as the first one
             _check_stfr_list_elem(obj, type_ref, sfreq, tmin_ref)
 
         X = fftpack.fft(data)
@@ -150,11 +151,15 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc, n_job
         for i_f, window in enumerate(W):
             f = start_f + i_f
             ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
-            print("ST SHAPE:", ST.shape)
             if zero_pad > 0:
                 TFR = ST[:, :-zero_pad:decim]
             else:
                 TFR = ST[:, ::decim]
+
+            # compute the full source time series from kernel and tfr
+            if kernel is not None:
+                TFR = np.tensordot(kernel, TFR, [-1, 0])
+
             TFR_abs = np.abs(TFR)
             TFR_abs[TFR_abs == 0] = 1.
             if return_itc:
@@ -340,7 +345,7 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                                 return_itc, n_jobs)
 
     else:
-        data = _get_data(inst, return_itc)
+        data, _ = _get_data(inst, return_itc)
         if isinstance(inst, _BaseSourceEstimate):
             sfreq = inst.sfreq
         else:
