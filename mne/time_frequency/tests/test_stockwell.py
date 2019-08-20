@@ -164,7 +164,7 @@ def test_stfr_stockwell(return_itc):
     single_stfr = tfr_stockwell(stc_single, fmin, fmax, return_itc=False)
 
     assert_allclose(evoked_tfr.data, single_stfr.data)
-    assert_equal(evoked_tfr.method, single_stfr.method)
+    assert evoked_tfr.method == single_stfr.method
 
 
 run_tests_if_main()

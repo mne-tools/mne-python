@@ -13,7 +13,7 @@ from scipy import fftpack
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn, fill_doc
 from ..parallel import parallel_func, check_n_jobs
-from .tfr import AverageTFR, _get_data, _create_stfr
+from .tfr import AverageTFR, _get_data, _create_stfr, _check_stfr_list_elem
 
 
 def _check_input_st(x_in, n_fft):
@@ -96,7 +96,77 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
             itc[i_f] = np.abs(np.mean(TFR, axis=0))
         TFR_abs *= TFR_abs
         psd[i_f] = np.mean(TFR_abs, axis=0)
+
     return psd, itc
+
+
+def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc, n_jobs):
+
+    for ep_idx, obj in enumerate(inst):
+
+        data = obj.data
+        data, n_fft_, zero_pad = _check_input_st(data, n_fft)
+
+        if ep_idx == 0:
+
+            n_channels = data.shape[0]
+            sfreq = obj.sfreq
+            type_ref = type(obj)
+            tmin_ref = obj._tmin
+
+            freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
+            if fmin is None:
+                fmin = freqs[freqs > 0][0]
+            if fmax is None:
+                fmax = freqs.max()
+
+            start_f = np.abs(freqs - fmin).argmin()
+            stop_f = np.abs(freqs - fmax).argmin()
+            freqs = freqs[start_f:stop_f]
+
+            n_samp = data.shape[-1]
+
+            W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
+
+            n_out = (n_samp - zero_pad)
+            n_out = n_out // decim + bool(n_out % decim)
+            psd = np.zeros((n_channels, len(W), n_out))
+            itc = np.zeros_like(psd, dtype=np.complex) if return_itc else None
+
+        else:  # for all iterations except the first
+
+            # make sure these elements got the same properties as the first one
+            _check_stfr_list_elem(obj, type_ref, sfreq, tmin_ref)
+
+        X = fftpack.fft(data)
+        XX = np.concatenate([X, X], axis=-1)
+
+        for i_f, window in enumerate(W):
+            f = start_f + i_f
+            ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
+            print("ST SHAPE:", ST.shape)
+            if zero_pad > 0:
+                TFR = ST[:, :-zero_pad:decim]
+            else:
+                TFR = ST[:, ::decim]
+            TFR_abs = np.abs(TFR)
+            TFR_abs[TFR_abs == 0] = 1.
+            if return_itc:
+                TFR /= TFR_abs
+                itc[:,i_f,:] += TFR
+            TFR_abs *= TFR_abs
+            psd[:,i_f,:] += TFR_abs
+
+    psd /= ep_idx + 1
+
+    if return_itc:
+        itc /= ep_idx + 1
+        for i_f, window in enumerate(W):
+            itc[:,i_f,:] = np.abs(itc[:,i_f,:])
+        itc = itc.real
+
+    # one list object is passed for type references etc.
+    return psd, itc, freqs, obj
 
 
 @fill_doc
@@ -255,46 +325,33 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     n_jobs = check_n_jobs(n_jobs)
 
     if isinstance(inst, list) or isgenerator(inst):
-        for idx, obj in enumerate(inst):
-            if idx == 0:
-                data = _get_data(obj, return_itc=False)  # don't provoke errors
-                inst = obj  # overwrite this to determine the object type later
-            else:
-                # data is simply concatenated. This should be changed later.
-                data = np.concatenate((data, _get_data(obj, return_itc=False)),
-                                      axis=0)
 
-        nave = len(data)
+        power, itc, freqs, inst = \
+            _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim,
+                                return_itc, n_jobs)
+        out = _create_stfr(inst, power, freqs, method='stockwell-power')
+        if return_itc:
+            out = (out, _create_stfr(inst, itc, freqs, method='stockwell-itc'))
 
     # verbose dec is used b/c subfunctions are verbose
     else:
         data = _get_data(inst, return_itc)
         times = inst.times[::decim].copy()
         nave = len(data)
-
-    if isinstance(inst, _BaseSourceEstimate):
-        sfreq = inst.sfreq
-
-    else:
         picks = _pick_data_channels(inst.info)
         data = data[:, picks, :]
         info = pick_info(inst.info, picks)
         sfreq = info['sfreq']
 
-    power, itc, freqs = tfr_array_stockwell(data, sfreq=sfreq,
-                                            fmin=fmin, fmax=fmax, n_fft=n_fft,
-                                            width=width, decim=decim,
-                                            return_itc=return_itc,
-                                            n_jobs=n_jobs)
+        power, itc, freqs = \
+            tfr_array_stockwell(data, sfreq=sfreq, fmin=fmin, fmax=fmax,
+                                n_fft=n_fft, width=width, decim=decim,
+                                return_itc=return_itc, n_jobs=n_jobs)
 
-    if isinstance(inst, _BaseSourceEstimate):
-        out = _create_stfr(inst, power, freqs, method='stockwell-power')
-        if return_itc:
-            out = (out, _create_stfr(inst, itc, freqs, method='stockwell-itc'))
-    else:
         out = AverageTFR(info, power, times, freqs, nave,
                          method='stockwell-power')
         if return_itc:
             out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
                                    freqs.copy(), nave, method='stockwell-itc'))
+
     return out
