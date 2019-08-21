@@ -920,7 +920,8 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_raw_resize, params=params)
-    params['fig'].canvas.mpl_connect('resize_event', callback_resize)    callback_close = partial(_close_event, params=params)
+    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
+    callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     params['fig_proj'] = None
     params['event_times'] = None
