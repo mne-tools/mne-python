@@ -402,13 +402,9 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
         raise ValueError('vertices has to be either a list with one or more '
                          'arrays or an array')
 
-    if isinstance(data, tuple):
-        data, sens_data = data[0], data[1]
-        is_kernel = True
-    else:
-        is_kernel = False
-
     # massage the data
+    SENTINEL = object()  # a sentinel for the non kernel case
+    data, sens_data = data if isinstance(data, tuple) else (data, SENTINEL)
     if src_type == 'surface' and vector:
         n_vertices = len(vertices[0]) + len(vertices[1])
         data = np.matmul(
@@ -420,13 +416,8 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
     else:
         pass  # noqa
 
-    if is_kernel:
-        stc = Klass(data=(data, sens_data), vertices=vertices, tmin=tmin,
-                    tstep=tstep, subject=subject)
-    else:
-        stc = Klass(data=data, vertices=vertices, tmin=tmin, tstep=tstep,
-                    subject=subject)
-    return stc
+    return Klass(data=data if sens_data is SENTINEL else (data, sens_data),
+                 vertices=vertices, tmin=tmin, tstep=tstep, subject=subject)
 
 
 def _verify_source_estimate_compat(a, b):
