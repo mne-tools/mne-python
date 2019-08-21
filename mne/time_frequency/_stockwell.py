@@ -72,6 +72,19 @@ def _st(x, start_f, windows):
     return ST
 
 
+def _select_st_freqs(fmin, fmax, n_fft, sfreq):
+    """Select st frequencies based on input freqs and window length."""
+    freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
+    if fmin is None:
+        fmin = freqs[freqs > 0][0]
+    if fmax is None:
+        fmax = freqs.max()
+    start_f = np.abs(freqs - fmin).argmin()
+    stop_f = np.abs(freqs - fmax).argmin()
+    freqs = freqs[start_f:stop_f]
+    return freqs, start_f, stop_f
+
+
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
     n_samp = x.shape[-1]
@@ -123,15 +136,8 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc,
             type_ref = type(obj)
             tmin_ref = obj._tmin
 
-            freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
-            if fmin is None:
-                fmin = freqs[freqs > 0][0]
-            if fmax is None:
-                fmax = freqs.max()
-
-            start_f = np.abs(freqs - fmin).argmin()
-            stop_f = np.abs(freqs - fmax).argmin()
-            freqs = freqs[start_f:stop_f]
+            freqs, start_f, stop_f = _select_st_freqs(fmin, fmax, n_fft_,
+                                                      sfreq)
 
             n_samp = data.shape[-1]
 
@@ -255,15 +261,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
-    freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
-    if fmin is None:
-        fmin = freqs[freqs > 0][0]
-    if fmax is None:
-        fmax = freqs.max()
-
-    start_f = np.abs(freqs - fmin).argmin()
-    stop_f = np.abs(freqs - fmax).argmin()
-    freqs = freqs[start_f:stop_f]
+    freqs, start_f, stop_f = _select_st_freqs(fmin, fmax, n_fft_, sfreq)
 
     W = _precompute_st_windows(data.shape[-1], start_f, stop_f, sfreq, width)
     n_freq = stop_f - start_f
