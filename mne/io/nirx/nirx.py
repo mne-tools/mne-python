@@ -15,7 +15,7 @@ from ...utils import logger, verbose, fill_doc
 
 @fill_doc
 def read_raw_nirx(fname, preload=False, verbose=None):
-    """Reader for a NIRX fNIRS file.
+    """Reader for a NIRX fNIRS recording.
     Parameters
     ----------
     fname : str
@@ -85,7 +85,6 @@ class RawNIRX(BaseRaw):
 
         inf = cp.ConfigParser()
         inf.read(file_inf)
-        print(inf['Subject Demographics']['Age'])
 
         # Read header file
 
@@ -98,6 +97,7 @@ class RawNIRX(BaseRaw):
 
         # Parse required header fields
 
+        # Extract source-detectors requested by user
         sources = [int(s) for s in re.findall(r'(\d)-\d:\d+',
                    hdr['DataStructure']['S-D-Key'])]
         detectors = [int(s) for s in re.findall(r'\d-(\d):\d+',
@@ -119,15 +119,26 @@ class RawNIRX(BaseRaw):
         info = create_info(len(sources) * 2,
                            hdr['ImagingParameters']['SamplingRate'],
                            ch_types='misc')
-        # Overload info
-        # TODO: Is this even allowed?
-        info['sources'] = np.asarray(sources)
-        info['detectors'] = np.asarray(detectors)
-        info['sdindex'] = np.asarray(sdindex)
+
+        # Store the subset of sources and detectors requested by user
+        # The signals between all source-detectors are stored even if they
+        # are meaningless, the user pre specifies which combinations are
+        # meaningful
+        # TODO: Is this style of info overloading allowed?
+        #       Currently I am marking all things as fnirs_ to make easier to
+        #       find and remove if there is more appropriate storage locations
+        info['fnirs_sources'] = np.asarray(sources)
+        info['fnirs_detectors'] = np.asarray(detectors)
+        info['fnirs_sdindex'] = np.asarray(sdindex)
+
+        fnirs_wavelengths = [int(s) for s in
+                             re.findall(r'(\d+)',
+                             hdr['ImagingParameters']['Wavelengths'])]
+        info['fnirs_wavelengths'] = np.asarray(fnirs_wavelengths)
 
         super(RawNIRX, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
-            raw_extras=[hdr])
+            raw_extras=[hdr], verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
@@ -139,14 +150,19 @@ class RawNIRX(BaseRaw):
         file_wl1 = glob.glob(self.filenames[fi] + '/*.wl1')
         file_wl2 = glob.glob(self.filenames[fi] + '/*.wl2')
 
+        sdindex = self.info['fnirs_sdindex'] - 1  # As idx is 1 based
+
         wl1 = pd.read_csv(file_wl1[0], sep=' ').values
         wl2 = pd.read_csv(file_wl2[0], sep=' ').values
         assert (wl1.shape == wl2.shape), \
             "Wavelength files should contain same amount of data"
 
-        wl1 = wl1[start:stop, self.info['sdindex'] - 1].T  # As idx is 1 based
-        wl2 = wl2[start:stop, self.info['sdindex'] - 1].T  # As idx is 1 based
+        wl1 = wl1[start:stop, sdindex].T
+        wl2 = wl2[start:stop, sdindex].T
 
+        # Currently saving the two wavelengths in same dimension
+        # this seems like a bad idea
+        # TODO: Can mne return (num_wavelengths x num_channels x num_samples)?
         data[0:self.info['nchan'] // 2, :] = wl1
         data[self.info['nchan'] // 2:, :] = wl2
 
