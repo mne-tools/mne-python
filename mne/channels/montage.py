@@ -33,9 +33,9 @@ from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _foo_get_data_from_dig
+from ._dig_montage_utils import _fix_data_fiducials
 
 DEPRECATED_PARAM = object()
-NEVER_USED_PARAM = object()
 
 
 def _digmontage_to_bunch(montage):
@@ -50,18 +50,6 @@ def _digmontage_to_bunch(montage):
         point_names=montage_copy.point_names,
         rpa=montage_copy.rpa,
     )
-
-
-# def make_dig_montage(
-#     hsp=None, hpi=None, elp=None, point_names=None,
-#     nasion=None, lpa=None, rpa=None, dev_head_t=None,
-#     dig_ch_pos=None,
-# ):
-#     return DigMontage(
-#         ch_names=[] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys())),  # noqa
-#         dig=_make_dig_points(nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
-#                              extra_points=hsp, dig_ch_pos=dig_ch_pos)
-#     )
 
 
 def _check_get_coord_frame(dig):
@@ -433,26 +421,101 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
-def _from_data_to_dig(
-    nasion=None,
-    lpa=None,
-    rpa=None,
-    hpi=NEVER_USED_PARAM,
-    hsp=None,
-    elp=None,
+def make_dig_montage(
+
+    # transform
+    nasion=None, lpa=None, rpa=None,
+
+    # dev_head_t
+    hpi=None, hpi_dev=None,
+
+    # data (to transform)
     dig_ch_pos=None,
-    coord_frame='unknown'
+    hsp=None,
+
+    coord_frame='unknown',
+
+    transform_to_head=False, compute_dev_head_t=False,
 ):
-    assert hpi is NEVER_USED_PARAM, 'hpi was wrongly assumed to never be used'
+    r"""Make montage from arrays.
+
+    Parameters
+    ----------
+    nasion : None | array, shape (3,)
+        The position of the nasion fiducial point.
+        This point is assumed to be in the native digitizer space in m.
+    lpa : None | array, shape (3,)
+        The position of the left periauricular fiducial point.
+        This point is assumed to be in the native digitizer space in m.
+    rpa : None | array, shape (3,)
+        The position of the right periauricular fiducial point.
+        This point is assumed to be in the native digitizer space in m.
+    hsp : None | array, shape (n_points, 3)
+        This corresponds to an array of positions of the headshape points in
+        3d. These points are assumed to be in the native digitizer space in m.
+    hpi : None | array, shape (n_hpi, 3)
+        This corresponds to an array of HPI points in the native digitizer
+        space. They only necessary if computation of a ``compute_dev_head_t``
+        is True.
+    hpi_dev : None | array, shape (n_hpi, 3)
+        This corresponds to an array of HPI points. These points are in device
+        space, and are only necessary if computation of a
+        ``compute_dev_head_t`` is True.
+    transform_to_head : bool
+        If True (default), points will be transformed to Neuromag head space.
+        The fiducials (nasion, lpa, and rpa) must be specified. This is useful
+        for points captured using a device that does not automatically convert
+        points to Neuromag head coordinates
+        (e.g., Polhemus FastSCAN).
+    compute_dev_head_t : bool
+        If True, a Dev-to-Head transformation matrix will be added to the
+        montage. To get a proper `dev_head_t`, the hpi and the hpi_dev points
+        must be in the same order. If False (default), no transformation will
+        be added to the montage.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    Montage
+    read_montage
+    DigMontage
+    read_dig_montage
+
+    """
+    # XXX: hpi was historicaly elp
+    # XXX: hpi_dev historicaly hpi
+    from ..coreg import fit_matched_points
+    data = Bunch(
+        nasion=nasion, lpa=lpa, rpa=rpa,
+        elp=hpi, dig_ch_pos=dig_ch_pos, hsp=hsp,
+        coord_frame=coord_frame,
+    )
+    if transform_to_head:
+        data = _transform_to_head_call(data)
+
+    if compute_dev_head_t:
+        if data.elp is None or hpi_dev is None:
+            raise RuntimeError('must have both elp and hpi to compute the '
+                               'device to head transform')
+        else:
+            # here is hpi
+            dev_head_t = fit_matched_points(
+                tgt_pts=data.elp, src_pts=hpi_dev, out='trans'
+            )  # XXX: shall we make it a Transform? rather than np.array
+    else:
+        dev_head_t = None
 
     ch_names = [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))
     dig = _make_dig_points(
-        nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
-        extra_points=hsp, dig_ch_pos=dig_ch_pos,
-        coord_frame=coord_frame,
+        nasion=data.nasion, lpa=data.lpa, rpa=data.rpa, hpi=data.elp,
+        extra_points=data.hsp, dig_ch_pos=data.dig_ch_pos,
+        coord_frame=data.coord_frame,
     )
-
-    return dig, ch_names
+    return DigMontage(dig=dig, ch_names=ch_names, dev_head_t=dev_head_t)
 
 
 class DigMontage(object):
@@ -480,13 +543,13 @@ class DigMontage(object):
         The names of the digitized points for hpi and elp.
         Deprecated, will be removed in 0.20.
     nasion : array, shape (1, 3)
-        The position of the nasion fidicual point.
+        The position of the nasion fiducial point.
         Deprecated, will be removed in 0.20.
     lpa : array, shape (1, 3)
-        The position of the left periauricular fidicual point.
+        The position of the left periauricular fiducial point.
         Deprecated, will be removed in 0.20.
     rpa : array, shape (1, 3)
-        The position of the right periauricular fidicual point.
+        The position of the right periauricular fiducial point.
         Deprecated, will be removed in 0.20.
     dev_head_t : array, shape (4, 4)  | bool
         A Device-to-Head transformation matrix.
@@ -505,8 +568,6 @@ class DigMontage(object):
     dig : dig | None
     ch_names : list of strings | None
         The names of the eeg channels.
-    hpi_names : list of strings | None
-        The names of the digitized points for hpi and elp.
 
     See Also
     --------
@@ -525,7 +586,7 @@ class DigMontage(object):
         lpa=DEPRECATED_PARAM, rpa=DEPRECATED_PARAM,
         dev_head_t=None, dig_ch_pos=DEPRECATED_PARAM,
         coord_frame=DEPRECATED_PARAM,
-        dig=None, ch_names=None, hpi_names=None,
+        dig=None, ch_names=None,
     ):  # noqa: D102
         _non_deprecated_kwargs = [
             key for key, val in dict(
@@ -540,12 +601,11 @@ class DigMontage(object):
             self.dig = dig
             self.ch_names = ch_names
             self._coord_frame = _check_get_coord_frame(self.dig)
-            self._point_names = [] if hpi_names is None else hpi_names
         else:
             # Deprecated
             _msg = (
                 "Using {params} in DigMontage constructor is deprecated."
-                " Use 'dig', 'ch_names', and 'hpi_names' instead."
+                " Use 'dig', and 'ch_names' instead."
             ).format(params=", ".join(
                 ["'{}'".format(k) for k in _non_deprecated_kwargs]
             ))
@@ -730,7 +790,7 @@ def _get_scaling(unit, scale):
         return scale[unit]
 
 
-def read_dig_montage(hsp=None, hpi=NEVER_USED_PARAM, elp=None,
+def read_dig_montage(hsp=None, hpi=None, elp=None,
                      point_names=None, unit='auto', fif=None, egi=None,
                      bvct=None, transform=True, dev_head_t=False, ):
     r"""Read subject-specific digitization montage from a file.
@@ -787,7 +847,7 @@ def read_dig_montage(hsp=None, hpi=NEVER_USED_PARAM, elp=None,
     transform : bool
         If True (default), points will be transformed to Neuromag space
         using :meth:`DigMontage.transform_to_head`.
-        The fidicuals (nasion, lpa, and rpa) must be specified.
+        The fiducials (nasion, lpa, and rpa) must be specified.
         This is useful for points captured using a device that does
         not automatically convert points to Neuromag head coordinates
         (e.g., Polhemus FastSCAN).
@@ -816,7 +876,6 @@ def read_dig_montage(hsp=None, hpi=NEVER_USED_PARAM, elp=None,
 
     .. versionadded:: 0.9.0
     """
-    from ..coreg import fit_matched_points
     # XXX: This scaling business seems really dangerous to me.
     EGI_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
     NUMPY_DATA_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
@@ -827,8 +886,7 @@ def read_dig_montage(hsp=None, hpi=NEVER_USED_PARAM, elp=None,
             fname=fif,
             _raise_transform_err=_raise_transform_err,
             _all_data_kwargs_are_none=all(
-                x is None or x is NEVER_USED_PARAM
-                for x in (hsp, hpi, elp, point_names, egi, bvct))
+                x is None for x in (hsp, hpi, elp, point_names, egi, bvct))
         )
 
     elif egi is not None:
@@ -836,8 +894,7 @@ def read_dig_montage(hsp=None, hpi=NEVER_USED_PARAM, elp=None,
             fname=egi,
             _scaling=_get_scaling(unit, EGI_SCALE),
             _all_data_kwargs_are_none=all(
-                x is None or x is NEVER_USED_PARAM
-                for x in (hsp, hpi, elp, point_names, fif, bvct))
+                x is None for x in (hsp, hpi, elp, point_names, fif, bvct))
         )
 
     elif bvct is not None:
@@ -845,8 +902,7 @@ def read_dig_montage(hsp=None, hpi=NEVER_USED_PARAM, elp=None,
             fname=bvct,
             unit=unit,  # XXX: this should change
             _all_data_kwargs_are_none=all(
-                x is None or x is NEVER_USED_PARAM
-                for x in (hsp, hpi, elp, point_names, fif, egi))
+                x is None for x in (hsp, hpi, elp, point_names, fif, egi))
         )
 
     else:
@@ -887,31 +943,19 @@ def read_dig_montage(hsp=None, hpi=NEVER_USED_PARAM, elp=None,
             # XXX: hpi is not touched if np.array, but is loaded if string.
         )
 
-    if fif is None and transform:  # only need to do this for non-Neuromag
-        data = _transform_to_head_call(data)
-    else:
-        pass  # noqa
+    if any(x is None for x in (data.nasion, data.rpa, data.lpa)) and transform:
+        data = _fix_data_fiducials(data)
 
-    if dev_head_t:
-        if data.elp is None or data.hpi is None:
-            raise RuntimeError('must have both elp and hpi to compute the '
-                               'device to head transform')
-        else:
-            data['dev_head_t'] = fit_matched_points(
-                tgt_pts=data.elp, src_pts=data.hpi, out='trans'
-            )
-    else:
-        data['dev_head_t'] = None
-
-    dig, ch_names = _from_data_to_dig(
-        nasion=data.nasion, lpa=data.lpa, rpa=data.rpa, hsp=data.hsp,
-        elp=data.elp, dig_ch_pos=data.dig_ch_pos, coord_frame=data.coord_frame,
+    point_names = data.pop('point_names')  # XXX: fine to overwrite
+    data['hpi_dev'] = data['hpi']
+    data['hpi'] = data.pop('elp')
+    montage = make_dig_montage(
+        **data, transform_to_head=transform,
+        compute_dev_head_t=dev_head_t,
     )
 
-    return DigMontage(
-        dev_head_t=data.dev_head_t, dig=dig,
-        ch_names=ch_names, hpi_names=point_names
-    )
+    montage._point_names = point_names  # XXX: hack this should go!!
+    return montage
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):

@@ -14,23 +14,7 @@ import xml.etree.ElementTree as ElementTree
 from ..utils import warn
 
 
-def _transform_to_head_call(data):
-    """Transform digitizer points to Neuromag head coordinates.
-
-    Parameters
-    ----------
-    data : Bunch.
-        replicates DigMontage old structure. Requires the following fields:
-        ['nasion', 'lpa', 'rpa', 'hsp', 'hpi', 'elp', 'coord_frame',
-         'point_names', 'dig_ch_pos']
-
-    Returns
-    -------
-    data : Bunch.
-        transformed version of input data.
-    """
-    if data.coord_frame == 'head':  # nothing to do
-        return data
+def _fix_data_fiducials(data):
     nasion, rpa, lpa = data.nasion, data.rpa, data.lpa
     if any(x is None for x in (nasion, rpa, lpa)):
         if data.elp is None or data.point_names is None:
@@ -49,7 +33,9 @@ def _transform_to_head_call(data):
                              'or read the montage with transform=False.'
                              % str(missing))
 
-        nasion, lpa, rpa = [data.elp[names.index(kind)] for kind in kinds]
+        data.nasion, data.lpa, data.rpa = [
+            data.elp[names.index(kind)] for kind in kinds
+        ]
 
         # remove fiducials from elp
         mask = np.ones(len(names), dtype=bool)
@@ -58,6 +44,28 @@ def _transform_to_head_call(data):
         data.elp = data.elp[mask]
         data.point_names = [p for pi, p in enumerate(data.point_names)
                             if mask[pi]]
+    return data
+
+
+def _transform_to_head_call(data):
+    """Transform digitizer points to Neuromag head coordinates.
+
+    Parameters
+    ----------
+    data : Bunch.
+        replicates DigMontage old structure. Requires the following fields:
+        ['nasion', 'lpa', 'rpa', 'hsp', 'hpi', 'elp', 'coord_frame',
+         'dig_ch_pos']
+
+    Returns
+    -------
+    data : Bunch.
+        transformed version of input data.
+    """
+    if data.coord_frame == 'head':  # nothing to do
+        return data
+    nasion, rpa, lpa = data.nasion, data.rpa, data.lpa
+    # _fix_data_fiducials() was here.
 
     native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     data.nasion, data.lpa, data.rpa = apply_trans(

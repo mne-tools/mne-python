@@ -22,6 +22,7 @@ from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage)
 from mne.channels.montage import _set_montage
 from mne.channels._dig_montage_utils import _transform_to_head_call
+from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
                        object_diff, Bunch)
 from mne.bem import _fit_sphere
@@ -839,6 +840,7 @@ def test_dig_dev_head_t_regression():
                      hsp=hsp, hpi=hpi, elp=elp, coord_frame='unknown',
                      point_names=point_names, dig_ch_pos=None)
 
+        data = _fix_data_fiducials(data)
         data = _transform_to_head_call(data)
         with pytest.deprecated_call():
             montage = DigMontage(**data)

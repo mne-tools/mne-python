@@ -29,7 +29,7 @@ mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode positions given in meters
 dig_ch_pos = dict(zip(ch_names, elec))
-mon = mne.channels.DigMontage(dig_ch_pos=dig_ch_pos)
+mon = mne.channels.make_dig_montage(dig_ch_pos=dig_ch_pos)
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################
