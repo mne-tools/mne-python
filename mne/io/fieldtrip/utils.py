@@ -149,7 +149,8 @@ def _create_montage(ft_struct):
     if (len(montage_ch_names) > 0 and len(montage_pos) > 0 and
             len(montage_ch_names) == len(montage_pos)):
         montage = make_dig_montage(
-            dig_ch_pos=dict(zip(montage_ch_names, montage_pos)))
+            ch_pos=dict(zip(montage_ch_names, montage_pos))
+        )
     return montage
 
 
