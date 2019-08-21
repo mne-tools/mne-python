@@ -1,4 +1,4 @@
-:orphan:
+.. _data-formats:
 
 Supported data formats
 ======================

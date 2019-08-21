@@ -1,4 +1,4 @@
-:orphan:
+.. _precision:
 
 Floating-point precision
 ========================
