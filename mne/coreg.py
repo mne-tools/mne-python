@@ -1206,3 +1206,67 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                 F_mri_ras, 'ras', 'ras'),
             F_ras_mni, 'ras', 'mni_tal')
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
+
+
+def get_mni_fiducials(subject, subjects_dir):
+    """Estimate fiducials for a subject.
+
+    Parameters
+    ----------
+    subject : str
+        Name of the mri subject
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+
+    Returns
+    -------
+    fids_mri : list
+        List of estimated fiducials (each point in a dict)
+    """
+    from .transforms import _read_fs_xfm
+    from .io.tests import data_dir as fsaverage_dir
+    if not has_nibabel():
+        raise ImportError('This function requires nibabel.')
+        return
+    from nibabel import freesurfer as fs
+    
+    subjects_dir = op.join(
+            get_subjects_dir(subjects_dir, raise_error=True), subject)
+    fname_orig = subjects_dir + '/mri/T1.mgz'
+    fname_tal = subjects_dir + '/mri/transforms/talairach.xfm'
+    fname_fids_fs = fsaverage_dir + '/fsaverage-fiducials.fif'
+    
+    if not op.isfile(fname_fids_fs):
+        raise IOError('This function requires the MNE testing dataset')
+        return
+    fids_default, coord_frame = read_fiducials(fname_fids_fs)
+    xfm_tal = np.matrix(_read_fs_xfm(fname_tal)[0])
+    
+    # Get Freesurfer vox2ras and vox2ras-tkr as matrices
+    mgh = fs.mghformat.load(fname_orig)
+    vox2ras = np.matrix(mgh.header.get_vox2ras())
+    vox2ras_tkr = np.matrix(mgh.header.get_vox2ras_tkr())
+    
+    # Get transform for RAS to MNI305:
+    mni305ras = xfm_tal*vox2ras*np.linalg.inv(vox2ras_tkr)
+    mni2ras = np.linalg.inv(mni305ras)
+    
+    # Split up fiducials. There is probably a better way to do this but...
+    lpa = np.append(fids_default[0]['r']*1000, 1)
+    nas = np.append(fids_default[1]['r']*1000, 1)
+    rpa = np.append(fids_default[2]['r']*1000, 1)
+    
+    # Apply transformation, to fsaverage (MNI) fiducials, convert to mm
+    lpa_ras = np.delete(np.dot(mni2ras, lpa.T), 3)/1000
+    nas_ras = np.delete(np.dot(mni2ras, nas.T), 3)/1000
+    rpa_ras = np.delete(np.dot(mni2ras, rpa.T), 3)/1000
+    
+    # Use old structure for new fiducials
+    fids_mri = fids_default
+    # Copy to fiducials
+    fids_mri[0]['r'] = lpa_ras
+    fids_mri[1]['r'] = nas_ras
+    fids_mri[2]['r'] = rpa_ras
+    
+    return fids_mri
