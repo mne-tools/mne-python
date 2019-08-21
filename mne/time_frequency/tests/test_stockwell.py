@@ -21,7 +21,7 @@ from mne.time_frequency._stockwell import (tfr_stockwell, _st,
 
 from mne.time_frequency.tfr import AverageTFR
 from mne.time_frequency.tests.test_tfr import (_create_ref_data,
-                                               _check_tfr_list_input)
+                                               _check_stc_list_input)
 from mne.utils import run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -135,7 +135,7 @@ def test_stockwell_api():
     assert (np.log(power.data.max()) * 20 <= 0.0)
 
     # test list input
-    _check_tfr_list_input(tfr_stockwell)
+    _check_stc_list_input(tfr_stockwell)
 
 
 @pytest.mark.filterwarnings('ignore:.*The unit .*? has changed from NA to V.')

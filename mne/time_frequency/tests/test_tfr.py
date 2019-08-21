@@ -270,7 +270,7 @@ def test_time_frequency():
     assert_equal(psd.shape, (2, 1, 420))
 
     # check errors for contradicting SourceEstimate input
-    _check_tfr_list_input(tfr_morlet, freqs=[10, 12], n_cycles=1)
+    _check_stc_list_input(tfr_morlet, freqs=[10, 12], n_cycles=1)
 
 
 def test_dpsswavelet():
@@ -827,7 +827,7 @@ def _create_ref_data(return_kernel=False):
     return epochs_ref, stc_list, stc_gen, evoked_ref, stc_single
 
 
-def _check_tfr_list_input(func, **kwargs):
+def _check_stc_list_input(func, **kwargs):
     """Check if functions raise Errors for invalid stc list input."""
     stc_data = np.ones([3, 64])
     verts = [np.array([1, 2, 3]), np.array([])]
