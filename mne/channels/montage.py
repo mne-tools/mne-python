@@ -715,6 +715,9 @@ class DigMontage(object):
     def dig_ch_pos(self):
         warn('"dig_ch_pos" attribute is deprecated and will be removed in '
              'v0.20', DeprecationWarning)
+        return self._ch_pos()
+
+    def _get_ch_pos(self):
         return dict(zip(self.ch_names,
                         _foo_get_data_from_dig(self.dig).dig_ch_pos_location))
 

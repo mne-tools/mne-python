@@ -58,7 +58,7 @@ mne.viz.set_3d_view(fig, 200, 70)
 fig_scatter = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                              surfaces='pial')
 mne.viz.set_3d_view(fig_scatter, 200, 70)
-xy, im = snapshot_brain_montage(fig_scatter, mon)
+xy, im = snapshot_brain_montage(fig_scatter, montage)
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
