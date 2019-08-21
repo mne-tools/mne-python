@@ -402,7 +402,7 @@ def test_read_dig_montage():
          [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
          [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
     )
-    assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T)
+    assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
     # Digitizer as array
     m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names, unit='m')
@@ -858,6 +858,7 @@ def test_dig_dev_head_t_regression():
     assert montage.dev_head_t is None
     with pytest.deprecated_call():
         montage.compute_dev_head_t()
-    assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T)
+    assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
+
 
 run_tests_if_main()
