@@ -19,10 +19,11 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
-                          get_builtin_montages)
+                          get_builtin_montages, DigMontage)
 from mne.channels.montage import _set_montage
+from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
-                       object_diff)
+                       object_diff, Bunch)
 from mne.bem import _fit_sphere
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
@@ -817,6 +818,33 @@ def test_setting_hydrocel_montage():
 
 def test_dig_dev_head_t_regression():
     """Test deprecated compute_dev_head_t behavior."""
+    def _read_dig_montage(
+        hsp=None, hpi=None, elp=None, point_names=None, unit='auto',
+        fif=None, egi=None, bvct=None, transform=True, dev_head_t=False,
+    ):
+        """Unfolds the `read_dig_montage` old behavior of the call below.
+
+        montage = read_dig_montage(hsp, hpi, elp, names,
+                                   transform=True, dev_head_t=False)
+        """
+        assert isinstance(hsp, str), 'original call hsp was string'
+        assert op.splitext(hpi)[-1] == '.sqd', 'original call hpi was .sqd'
+        assert isinstance(elp, str), 'original call elp was string'
+
+        hsp = _read_dig_points(hsp, unit=unit)
+        hpi = read_mrk(hpi)
+        elp = _read_dig_points(elp, unit=unit)
+
+        data = Bunch(nasion=None, lpa=None, rpa=None,
+                     hsp=hsp, hpi=hpi, elp=elp, coord_frame='unknown',
+                     point_names=point_names, dig_ch_pos=None)
+
+        data = _transform_to_head_call(data)
+        with pytest.deprecated_call():
+            montage = DigMontage(**data)
+
+        return montage
+
     EXPECTED_DEV_HEAD_T = \
         [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],
          [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
@@ -824,8 +852,9 @@ def test_dig_dev_head_t_regression():
          [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
 
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    montage = read_dig_montage(hsp, hpi, elp, names,
-                               transform=True, dev_head_t=False)
+    montage = _read_dig_montage(
+        hsp, hpi, elp, names, transform=True, dev_head_t=False)
+
     assert montage.dev_head_t is None
     with pytest.deprecated_call():
         montage.compute_dev_head_t()

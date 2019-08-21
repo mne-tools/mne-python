@@ -730,7 +730,7 @@ def _get_scaling(unit, scale):
         return scale[unit]
 
 
-def read_dig_montage(hsp=NEVER_USED_PARAM, hpi=None, elp=None,
+def read_dig_montage(hsp=None, hpi=NEVER_USED_PARAM, elp=None,
                      point_names=None, unit='auto', fif=None, egi=None,
                      bvct=None, transform=True, dev_head_t=False, ):
     r"""Read subject-specific digitization montage from a file.

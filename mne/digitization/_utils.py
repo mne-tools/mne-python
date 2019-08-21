@@ -183,7 +183,6 @@ def _write_dig_points(fname, dig_points):
         raise ValueError(msg)
 
 
-# XXX: coord_frame is always called with 'head'
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                      extra_points=None, dig_ch_pos=None,
                      coord_frame='head'):

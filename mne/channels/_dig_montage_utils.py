@@ -20,7 +20,14 @@ def _transform_to_head_call(data):
     Parameters
     ----------
     data : Bunch.
-        replicates DigMontage structure
+        replicates DigMontage old structure. Requires the following fields:
+        ['nasion', 'lpa', 'rpa', 'hsp', 'hpi', 'elp', 'coord_frame',
+         'point_names', 'dig_ch_pos']
+
+    Returns
+    -------
+    data : Bunch.
+        transformed version of input data.
     """
     if data.coord_frame == 'head':  # nothing to do
         return data
@@ -35,6 +42,7 @@ def _transform_to_head_call(data):
         kinds = ('nasion', 'lpa', 'rpa')
         missing = [name for name in kinds if name not in names]
         if len(missing) > 0:
+            # XXX: this error message might be misleading now.
             raise ValueError('The points %s are missing, but are needed '
                              'to transform the points to the MNE '
                              'coordinate system. Either add the points, '
