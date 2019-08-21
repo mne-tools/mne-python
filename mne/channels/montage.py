@@ -572,7 +572,7 @@ class DigMontage(object):
         dig=None, ch_names=None,
     ):  # noqa: D102
         # XXX: dev_head_t now is np.array, we should add dev_head_transform
-        #      (being instance of Transfromation) and move the parameter to the
+        #      (being instance of Transformation) and move the parameter to the
         #      end of the call.
         _non_deprecated_kwargs = [
             key for key, val in dict(
