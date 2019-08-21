@@ -159,15 +159,14 @@ def test_array_raw():
     n_elec = 10
     ts_size = 10000
     Fs = 512.
-    elec_labels = [str(i) for i in range(n_elec)]
-    elec_coords = np.random.randint(60, size=(n_elec, 3)).tolist()
+    ch_names = [str(i) for i in range(n_elec)]
+    ch_pos_loc = np.random.randint(60, size=(n_elec, 3)).tolist()
 
-    electrode = np.random.rand(n_elec, ts_size)
-    dig_ch_pos = dict(zip(elec_labels, elec_coords))
-    mon = make_dig_montage(dig_ch_pos=dig_ch_pos)
-    info = create_info(elec_labels, Fs, 'ecog', montage=mon)
+    data = np.random.rand(n_elec, ts_size)
+    montage = make_dig_montage(ch_pos=dict(zip(ch_names, ch_pos_loc)))
+    info = create_info(ch_names, Fs, 'ecog', montage=montage)
 
-    raw = RawArray(electrode, info)
+    raw = RawArray(data, info)
     raw.plot_psd(average=False)  # looking for inexistent layout
     raw.plot_psd_topo()
 

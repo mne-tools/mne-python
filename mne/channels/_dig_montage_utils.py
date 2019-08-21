@@ -65,7 +65,6 @@ def _transform_to_head_call(data):
     if data.coord_frame == 'head':  # nothing to do
         return data
     nasion, rpa, lpa = data.nasion, data.rpa, data.lpa
-    # _fix_data_fiducials() was here.
 
     native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     data.nasion, data.lpa, data.rpa = apply_trans(

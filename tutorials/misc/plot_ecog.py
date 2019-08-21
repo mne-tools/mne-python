@@ -28,15 +28,14 @@ print(__doc__)
 mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode positions given in meters
-dig_ch_pos = dict(zip(ch_names, elec))
-mon = mne.channels.make_dig_montage(dig_ch_pos=dig_ch_pos)
+montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)))
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################
 # Now that we have our electrode positions in MRI coordinates, we can create
 # our measurement info structure.
 
-info = mne.create_info(ch_names, 1000., 'ecog', montage=mon)
+info = mne.create_info(ch_names, 1000., 'ecog', montage=montage)
 
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.

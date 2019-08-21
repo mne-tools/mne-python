@@ -11,7 +11,6 @@
 # License: Simplified BSD
 
 from collections.abc import Iterable
-from copy import deepcopy
 import os
 import os.path as op
 
@@ -22,12 +21,13 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
+from ..digitization import Digitization
 from ..digitization._utils import (_make_dig_points, _read_dig_points,
                                    write_dig)
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
-                     _check_option, Bunch, deprecated)
+                     _check_option, Bunch, deprecated, _validate_type)
 
 from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
@@ -36,20 +36,6 @@ from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
 
 DEPRECATED_PARAM = object()
-
-
-def _digmontage_to_bunch(montage):
-    montage_copy = deepcopy(montage)  # XXX: this should not be needed. This is just a precaution while developing  # noqa
-    return Bunch(
-        coord_frame=montage_copy.coord_frame,
-        dig_ch_pos=montage_copy.dig_ch_pos,
-        elp=montage_copy.elp,
-        hsp=montage_copy.hsp,
-        lpa=montage_copy.lpa,
-        nasion=montage_copy.nasion,
-        point_names=montage_copy.point_names,
-        rpa=montage_copy.rpa,
-    )
 
 
 def _check_get_coord_frame(dig):
@@ -422,25 +408,19 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
 
 def make_dig_montage(
-
-    # transform
+    ch_pos=None,
     nasion=None, lpa=None, rpa=None,
-
-    # dev_head_t
-    hpi=None, hpi_dev=None,
-
-    # data (to transform)
-    dig_ch_pos=None,
-    hsp=None,
-
+    hsp=None, hpi=None, hpi_dev=None,
     coord_frame='unknown',
-
     transform_to_head=False, compute_dev_head_t=False,
 ):
     r"""Make montage from arrays.
 
     Parameters
     ----------
+    ch_pos : dict
+        Dictionary of channel positions. These points are assumed to be in the
+        native digitizer space in m.
     nasion : None | array, shape (3,)
         The position of the nasion fiducial point.
         This point is assumed to be in the native digitizer space in m.
@@ -461,6 +441,9 @@ def make_dig_montage(
         This corresponds to an array of HPI points. These points are in device
         space, and are only necessary if computation of a
         ``compute_dev_head_t`` is True.
+    coord_frame : str
+        The coordinate frame of the points. Usually this is "unknown"
+        for native digitizer space.
     transform_to_head : bool
         If True (default), points will be transformed to Neuromag head space.
         The fiducials (nasion, lpa, and rpa) must be specified. This is useful
@@ -488,10 +471,11 @@ def make_dig_montage(
     """
     # XXX: hpi was historicaly elp
     # XXX: hpi_dev historicaly hpi
+    assert coord_frame in ('unknown', 'head')
     from ..coreg import fit_matched_points
     data = Bunch(
         nasion=nasion, lpa=lpa, rpa=rpa,
-        elp=hpi, dig_ch_pos=dig_ch_pos, hsp=hsp,
+        elp=hpi, dig_ch_pos=ch_pos, hsp=hsp,
         coord_frame=coord_frame,
     )
     if transform_to_head:
@@ -509,7 +493,7 @@ def make_dig_montage(
     else:
         dev_head_t = None
 
-    ch_names = [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))
+    ch_names = list() if ch_pos is None else list(sorted(ch_pos.keys()))
     dig = _make_dig_points(
         nasion=data.nasion, lpa=data.lpa, rpa=data.rpa, hpi=data.elp,
         extra_points=data.hsp, dig_ch_pos=data.dig_ch_pos,
@@ -551,7 +535,7 @@ class DigMontage(object):
     rpa : array, shape (1, 3)
         The position of the right periauricular fiducial point.
         Deprecated, will be removed in 0.20.
-    dev_head_t : array, shape (4, 4)  | bool
+    dev_head_t : array, shape (4, 4)
         A Device-to-Head transformation matrix.
     dig_ch_pos : dict
         Dictionary of channel positions given in meters.
@@ -565,9 +549,10 @@ class DigMontage(object):
 
         .. versionadded:: 0.19
 
-    dig : dig | None
-    ch_names : list of strings | None
-        The names of the eeg channels.
+    dig : instance of Digitization
+        The object containing all the dig points.
+    ch_names : list of strings
+        The names of the EEG channels.
 
     See Also
     --------
@@ -588,6 +573,9 @@ class DigMontage(object):
         coord_frame=DEPRECATED_PARAM,
         dig=None, ch_names=None,
     ):  # noqa: D102
+        # XXX: dev_head_t now is np.array, we should add dev_head_transform
+        #      (being instance of Transfromation) and move the parameter to the
+        #      end of the call.
         _non_deprecated_kwargs = [
             key for key, val in dict(
                 hsp=hsp, hpi=hpi, elp=elp, point_names=point_names,
@@ -595,8 +583,17 @@ class DigMontage(object):
                 dig_ch_pos=dig_ch_pos, coord_frame=coord_frame,
             ).items() if val is not DEPRECATED_PARAM
         ]
-
         if not _non_deprecated_kwargs:
+            _validate_type(item=dig, types=Digitization,
+                           item_name='dig', type_name='Digitization')
+            ch_names = list() if ch_names is None else ch_names
+            n_eeg = sum([1 for d in dig if d['kind'] == FIFF.FIFFV_EEG_CH])
+            if n_eeg != len(ch_names):
+                raise ValueError(
+                    'The number of EEG channels (%d) does not match the number'
+                    ' of channel names provided (%d)' % (n_eeg, len(ch_names))
+                )
+
             self.dev_head_t = dev_head_t
             self.dig = dig
             self.ch_names = ch_names
@@ -650,6 +647,8 @@ class DigMontage(object):
 
     @property
     def point_names(self):
+        warn('"point_names" attribute is deprecated and will be removed'
+             ' in v0.20', DeprecationWarning)
         return self._point_names
 
     @property
@@ -766,13 +765,6 @@ class DigMontage(object):
         warn('"nasion" attribute is deprecated and will be removed in v0.20',
              DeprecationWarning)
         return _foo_get_data_from_dig(self.dig).nasion
-
-
-_cardinal_ident_mapping = {
-    FIFF.FIFFV_POINT_NASION: 'nasion',
-    FIFF.FIFFV_POINT_LPA: 'lpa',
-    FIFF.FIFFV_POINT_RPA: 'rpa',
-}
 
 
 def _check_frame(d, frame_str):
@@ -949,6 +941,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     point_names = data.pop('point_names')  # XXX: fine to overwrite
     data['hpi_dev'] = data['hpi']
     data['hpi'] = data.pop('elp')
+    data['ch_pos'] = data.pop('dig_ch_pos')
     montage = make_dig_montage(
         **data, transform_to_head=transform,
         compute_dev_head_t=dev_head_t,

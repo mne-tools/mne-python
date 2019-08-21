@@ -28,6 +28,7 @@ from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
 from mne.bem import _fit_sphere
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
+from mne.digitization import Digitization
 from mne.digitization._utils import _read_dig_points
 from mne.viz._3d import _fiducial_coords
 
@@ -862,5 +863,12 @@ def test_dig_dev_head_t_regression():
         montage.compute_dev_head_t()
     assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
+
+def test_make_dig_montage_errors():
+    """Test proper error messaging."""
+    with pytest.raises(ValueError, match='does not match the number'):
+        _ = DigMontage(ch_names=['foo', 'bar'], dig=Digitization())
+    with pytest.raises(TypeError, match='must be an instance of Digitization'):
+        _ = DigMontage(ch_names=['foo', 'bar'], dig=None)
 
 run_tests_if_main()
