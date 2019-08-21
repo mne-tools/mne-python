@@ -8,6 +8,7 @@
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Clemens Brunner <clemens.brunner@gmail.com>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
@@ -626,13 +627,15 @@ def _prepare_mne_browse(params, xlabel):
     ax_hscroll.set_xlabel(xlabel)
     ax_vscroll.set_axis_off()
     # store these so they can be modified elsewhere
-    params['fig'] = fig
     params['ax'] = ax
     params['ax_hscroll'] = ax_hscroll
     params['ax_vscroll'] = ax_vscroll
     params['help_button'] = help_button
     # default key to close window
     params['close_key'] = 'escape'
+    # add resize callback (it's the same for Raw/Epochs/ICA)
+    callback_resize = partial(_resize_event, params=params)
+    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
 
 
 @verbose
@@ -700,11 +703,10 @@ def figure_nobar(*args, **kwargs):
     return fig
 
 
-def _helper_raw_resize(event, params):
-    """Store new size in config, and reset borders to fixed width in inches."""
-    new_size = ','.join([str(s) for s in params['fig'].get_size_inches()])
-    set_config('MNE_BROWSE_RAW_SIZE', new_size, set_env=False)
-    # maintain consistent border width in inches (not figure-relative).
+def _resize_event(event, params):
+    """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
+    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
+    set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
     _update_borders(params, event.width, event.height)
     params['fig_size_px'] = _get_figsize_px(params['fig'])
 

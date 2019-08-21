@@ -18,7 +18,7 @@ from copy import deepcopy
 import numpy as np
 
 from ..defaults import _handle_default
-from ..utils import verbose, set_config, logger, warn, fill_doc, check_version
+from ..utils import verbose, logger, warn, fill_doc, check_version
 from ..io.meas_info import create_info
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
@@ -30,7 +30,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
                     _set_title_multiple_electrodes, _make_combine_callable,
-                    _get_figsize_from_config, _get_figsize_px, _update_borders)
+                    _get_figsize_from_config)
 from .misc import _handle_event_colors
 
 
@@ -1154,8 +1154,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     params['fig'].canvas.mpl_connect('button_press_event', callback_click)
     callback_key = partial(_plot_onkey, params=params)
     params['fig'].canvas.mpl_connect('key_press_event', callback_key)
-    callback_resize = partial(_resize_event, params=params)
-    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
     params['fig'].canvas.mpl_connect('pick_event', partial(_onpick,
                                                            params=params))
     params['callback_key'] = callback_key
@@ -1759,14 +1757,6 @@ def _close_event(event, params):
     params['epochs'].drop(params['bads'])
     params['epochs'].info['bads'] = params['info']['bads']
     logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
-
-
-def _resize_event(event, params):
-    """Handle resize event."""
-    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
-    set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
-    _update_borders(params, event.width, event.height)
-    params['fig_size_px'] = _get_figsize_px(params['fig'])
 
 
 def _update_channels_epochs(event, params):

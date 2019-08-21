@@ -3,6 +3,7 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
@@ -11,7 +12,7 @@ from functools import partial
 import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
-                    _plot_raw_onscroll, _mouse_click, _helper_raw_resize,
+                    _plot_raw_onscroll, _mouse_click,
                     _plot_raw_onkey, plt_show, _convert_psds)
 from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap)
@@ -919,8 +920,6 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-    callback_resize = partial(_helper_raw_resize, params=params)
-    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     params['fig_proj'] = None
