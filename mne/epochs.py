@@ -245,6 +245,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See :class:`mne.Epochs` docstring.
 
         .. versionadded:: 0.16
+    event_repeated : str
+        Can be 'error' (default), to raise an error if event time samples are
+        not unique, or 'merge' to merge event codes with the same event time
+        sample according to the following general pattern:
+        '%s/%s' % (event_1_key, event_2_key)
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Notes
@@ -260,7 +267,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
                  detrend=None, proj=True, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
-                 filename=None, metadata=None, verbose=None):  # noqa: D102
+                 filename=None, metadata=None, event_repeated='error',
+                 verbose=None):  # noqa: D102
         self.verbose = verbose
 
         _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
@@ -309,7 +317,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self.drop_log = drop_log
             events = events[selected]
             if len(np.unique(events[:, 0])) != len(events):
-                raise RuntimeError('Event time samples were not unique')
+                if event_repeated == 'error':
+                    raise RuntimeError('Event time samples were not unique')
+                elif event_repeated == 'merge':
+                    pass  # XXX: magic should happen here
+                else:
+                    raise ValueError('`event_repeated` must be one of '
+                                     '"error", "merge" but is "{}"'
+                                     .format(event_repeated))
+
             n_events = len(events)
             if n_events > 1:
                 if np.diff(events.astype(np.int64)[:, 0]).min() <= 0:
