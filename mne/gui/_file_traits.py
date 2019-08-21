@@ -7,7 +7,6 @@
 
 import os
 import os.path as op
-from copy import deepcopy
 
 import numpy as np
 
@@ -304,7 +303,7 @@ class DigSource(HasPrivateTraits):
                 info = read_dig_montage(fif=self.file, transform=True)
 
             if isinstance(info, DigMontage):
-                dig = deepcopy(info.dig)
+                dig = info.dig
                 info = _empty_info(1)
                 info['dig'] = dig
             elif info is None or info['dig'] is None:
