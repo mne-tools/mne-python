@@ -178,9 +178,10 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc,
     # divide summed epochs to get the average
     psd /= ep_idx + 1
 
-    # calculate itc
     if return_itc:
+        # average the epochs
         itc /= ep_idx + 1
+        # calculate the abs for each taper
         for i_f, window in enumerate(W):
             itc[:, i_f, :] = np.abs(itc[:, i_f, :])
         itc = itc.real
