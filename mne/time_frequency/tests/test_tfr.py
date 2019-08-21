@@ -819,7 +819,8 @@ def _create_ref_data(return_kernel=False):
 
     evoked_ref = epochs_ref.average(picks='all')
     if return_kernel:
-        stc_single = SourceEstimate((np.mean(kernel, axis=0), sens_data), verts, tmin, tstep)
+        stc_single = SourceEstimate((np.mean(kernel, axis=0), sens_data),
+                                    verts, tmin, tstep)
     else:
         stc_single = SourceEstimate(evoked_ref.data, verts, tmin, tstep)
 
@@ -903,7 +904,8 @@ def test_stfr_equivalence(tfr_func, return_itc, average, kernel):
     decim = 1
     freqs = [10, 12, 14, 16]
 
-    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data(kernel)
+    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single =\
+        _create_ref_data(kernel)
 
     ep_tfrs = tfr_func(epochs_ref, freqs=freqs, n_cycles=n_cycles,
                        use_fft=use_fft, decim=decim, return_itc=return_itc,

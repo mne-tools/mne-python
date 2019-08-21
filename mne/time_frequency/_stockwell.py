@@ -3,7 +3,6 @@
 #
 # License : BSD 3-clause
 
-from copy import deepcopy
 from inspect import isgenerator
 import math
 import numpy as np
@@ -13,7 +12,7 @@ from scipy import fftpack
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn, fill_doc
 from ..parallel import parallel_func, check_n_jobs
-from .tfr import AverageTFR, _get_data, _create_stfr, _check_stfr_list_elem, _assign_tfr_class
+from .tfr import _get_data, _check_stfr_list_elem, _assign_tfr_class
 
 
 def _check_input_st(x_in, n_fft):
@@ -100,7 +99,9 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     return psd, itc
 
 
-def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc, n_jobs):
+def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc,
+                        n_jobs):
+    """Perform stockwell transform for stc lists/generator objects."""
     from ..source_estimate import _BaseSourceEstimate
 
     for ep_idx, obj in enumerate(inst):
@@ -164,16 +165,16 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc, n_job
             TFR_abs[TFR_abs == 0] = 1.
             if return_itc:
                 TFR /= TFR_abs
-                itc[:,i_f,:] += TFR
+                itc[:, i_f, :] += TFR
             TFR_abs *= TFR_abs
-            psd[:,i_f,:] += TFR_abs
+            psd[:, i_f, :] += TFR_abs
 
     psd /= ep_idx + 1
 
     if return_itc:
         itc /= ep_idx + 1
         for i_f, window in enumerate(W):
-            itc[:,i_f,:] = np.abs(itc[:,i_f,:])
+            itc[:, i_f, :] = np.abs(itc[:, i_f, :])
         itc = itc.real
 
     # one list object is passed for type references etc.

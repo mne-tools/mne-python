@@ -624,8 +624,7 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
         'avg_power_itc', the real values code for 'avg_power' and the
         imaginary values code for the 'itc': out = avg_power + i * itc
     """
-    from ..source_estimate import (_BaseSourceEstimate, VectorSourceEstimate,
-                                   VolVectorSourceEstimate)
+    from ..source_estimate import _BaseSourceEstimate
 
     # Initialize output
     decim = _check_decim(decim)
@@ -2432,7 +2431,7 @@ def _get_data(inst, return_itc, fill_dims=True):
             if inst._sens_data is not None:
                 data = inst._sens_data
                 kern = inst._kernel
-                # combine the kernel dipole and orientation dims for vector oris
+                # combine the dipole and orientation dims for vector oris
                 if isinstance(inst, (VectorSourceEstimate,
                                      VolVectorSourceEstimate)):
                     kern = np.reshape(kern, [kern.shape[0] * kern.shape[1],
@@ -2442,7 +2441,8 @@ def _get_data(inst, return_itc, fill_dims=True):
                 # combine the dipole and orientation dimensions for vector oris
                 if isinstance(inst, (VectorSourceEstimate,
                                      VolVectorSourceEstimate)):
-                    data = np.reshape(data, [data.shape[0] * data.shape[1], data.shape[2]])
+                    data = np.reshape(data, [data.shape[0] * data.shape[1],
+                                             data.shape[2]])
 
             if fill_dims:
                 data = inst.data[np.newaxis]

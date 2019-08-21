@@ -20,7 +20,8 @@ from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _st_power_itc)
 
 from mne.time_frequency.tfr import AverageTFR
-from mne.time_frequency.tests.test_tfr import _create_ref_data, _check_tfr_list_input
+from mne.time_frequency.tests.test_tfr import (_create_ref_data,
+                                               _check_tfr_list_input)
 from mne.utils import run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -146,7 +147,8 @@ def test_stfr_stockwell(return_itc, kernel):
     fmin = 10
     fmax = 16
 
-    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data(kernel)
+    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single =\
+        _create_ref_data(kernel)
 
     ep_tfr = tfr_stockwell(epochs_ref, fmin, fmax, return_itc=return_itc)
     list_stfrs = tfr_stockwell(stc_list, fmin, fmax, return_itc=return_itc)
