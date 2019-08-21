@@ -675,20 +675,6 @@ class DigMontage(object):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
 
-    def _transform_to_head(self):
-        """Transform digitizer points to Neuromag head coordinates."""
-        _data = _foo_get_data_from_dig(self.dig)
-        _data['point_names'] = self.point_names  # XXX: this attribute should remain  # noqa
-
-        self._coord_frame = _data.coord_frame
-
-        self.dig = _make_dig_points(
-            nasion=_data.nasion, lpa=_data.lpa, rpa=_data.rpa, hpi=_data.elp,
-            extra_points=_data.hsp,
-
-            dig_ch_pos=dict(zip(self.ch_names, _data.dig_ch_pos_location))
-        )
-
     @deprecated(
         'compute_dev_head_t is deprecated and will be removed in 0.20.'
     )
