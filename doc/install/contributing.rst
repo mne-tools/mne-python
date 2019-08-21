@@ -717,7 +717,7 @@ because then you can drop into a :func:`post-mortem debugger <python:pdb.pm>`:
 
 .. code-block:: python
 
-    >>> import pdb; pdb.pm()
+    >>> import pdb; pdb.pm()  # doctest:+SKIP
 
 
 .. _`github-workflow`:
