@@ -7,6 +7,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: Simplified BSD
 
@@ -407,20 +408,17 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
-def make_dig_montage(
-    ch_pos=None,
-    nasion=None, lpa=None, rpa=None,
-    hsp=None, hpi=None, hpi_dev=None,
-    coord_frame='unknown',
-    transform_to_head=False, compute_dev_head_t=False,
-):
+def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
+                     hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
+                     transform_to_head=False, compute_dev_head_t=False):
     r"""Make montage from arrays.
 
     Parameters
     ----------
     ch_pos : dict
-        Dictionary of channel positions. These points are assumed to be in the
-        native digitizer space in m.
+        Dictionary of channel positions. Keys are channel names and values
+        are 3D coordinates - array of shape (3,) - in native digitizer space
+        in m.
     nasion : None | array, shape (3,)
         The position of the nasion fiducial point.
         This point is assumed to be in the native digitizer space in m.
@@ -469,8 +467,8 @@ def make_dig_montage(
     read_dig_montage
 
     """
-    # XXX: hpi was historicaly elp
-    # XXX: hpi_dev historicaly hpi
+    # XXX: hpi was historically elp
+    # XXX: hpi_dev was historically hpi
     assert coord_frame in ('unknown', 'head')
     from ..coreg import fit_matched_points
     data = Bunch(
@@ -675,6 +673,13 @@ class DigMontage(object):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
 
+    def transform_to_head(self):
+        """Transform digitizer points to Neuromag head coordinates."""
+        raise RuntimeError('The transform_to_head method has been removed to '
+                           'enforce that DigMontage are constructed already '
+                           'in the correct coordinate system. This method '
+                           'will disappear in version 0.20.')
+
     @deprecated(
         'compute_dev_head_t is deprecated and will be removed in 0.20.'
     )
@@ -708,9 +713,8 @@ class DigMontage(object):
 
     @property
     def dig_ch_pos(self):
-        # XXX : should be deprecated too
-        # warn('"dig_ch_pos" attribute is deprecated and will be removed in '
-        #      'v0.20', DeprecationWarning)
+        warn('"dig_ch_pos" attribute is deprecated and will be removed in '
+             'v0.20', DeprecationWarning)
         return dict(zip(self.ch_names,
                         _foo_get_data_from_dig(self.dig).dig_ch_pos_location))
 
@@ -722,11 +726,9 @@ class DigMontage(object):
 
     @property
     def hpi(self):
-        # XXXX: make sure we did not lose HPIs
         warn('"hpi" attribute is deprecated and will be removed in v0.20',
              DeprecationWarning)
-        # return _foo_get_data_from_dig(self.dig).hpi
-        return getattr(self, '_hpi', None)  # XXX: do we want to return None for the new objects # noqa
+        return getattr(self, '_hpi', None)
 
     @property
     def hsp(self):
@@ -914,17 +916,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
         data = Bunch(
             nasion=None, lpa=None, rpa=None,
             hsp=hsp, elp=elp, coord_frame='unknown',
-            dig_ch_pos=None,  # silently overwritten if kwarg != None
-
-            # values untouched from Kwargs
-            hpi=hpi, point_names=point_names,
-            # XXX: hpi is not touched if np.array, but is loaded if string.
+            dig_ch_pos=None, hpi=hpi, point_names=point_names,
         )
 
     if any(x is None for x in (data.nasion, data.rpa, data.lpa)) and transform:
         data = _fix_data_fiducials(data)
 
-    point_names = data.pop('point_names')  # XXX: fine to overwrite
+    point_names = data.pop('point_names')
     data['hpi_dev'] = data['hpi']
     data['hpi'] = data.pop('elp')
     data['ch_pos'] = data.pop('dig_ch_pos')
@@ -1026,9 +1024,6 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
-
-        # info['dig'] = montage.dig
-        # info['dev_head_t'] = montage.dev_head_t
 
         if set_dig:
             info['dig'] = montage.dig

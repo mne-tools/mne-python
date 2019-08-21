@@ -1,17 +1,26 @@
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Marijn van Vliet <w.m.vanvliet@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Joan Massich <mailsik@gmail.com>
+#
+# License: Simplified BSD
+
+import xml.etree.ElementTree as ElementTree
+
 import numpy as np
 
-# _transform_to_head_call imports
 from ..transforms import apply_trans, get_ras_to_neuromag_trans
 
-# _read_dig_fif imports
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..digitization._utils import _read_dig_fif
-from ..utils import _check_fname, Bunch
-
-# _read_dig_egi imports
-import xml.etree.ElementTree as ElementTree
-from ..utils import warn
+from ..utils import _check_fname, Bunch, warn
 
 
 def _fix_data_fiducials(data):
@@ -26,7 +35,6 @@ def _fix_data_fiducials(data):
         kinds = ('nasion', 'lpa', 'rpa')
         missing = [name for name in kinds if name not in names]
         if len(missing) > 0:
-            # XXX: this error message might be misleading now.
             raise ValueError('The points %s are missing, but are needed '
                              'to transform the points to the MNE '
                              'coordinate system. Either add the points, '

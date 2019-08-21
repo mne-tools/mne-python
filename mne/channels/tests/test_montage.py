@@ -382,11 +382,9 @@ def test_read_dig_montage():
         assert_equal(montage.point_names, names)
         assert_array_equal(montage.elp, elp_points)
         assert_array_equal(montage.hsp, hsp_points)
-    # assert_array_equal(montage.hpi, hpi_points)  # XXX: HPI is messed up
     assert (montage.dev_head_t is None)
     montage = read_dig_montage(hsp, hpi, elp, names,
                                transform=True, dev_head_t=True)
-    # montage_data = _foo_get_data_from_dig(montage.dig)
     # check coordinate transformation
     # nasion
     with pytest.deprecated_call():
@@ -423,7 +421,6 @@ def test_read_dig_montage():
     with pytest.deprecated_call():
         assert_allclose(montage_cm.hsp, montage.hsp * 10.)
         assert_allclose(montage_cm.elp, montage.elp * 10.)
-    # assert_array_equal(montage_cm_data.hpi, montage_data.hpi)  # XXX: no HPI
     pytest.raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
                   unit='km')
     # extra columns
