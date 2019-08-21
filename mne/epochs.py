@@ -316,11 +316,24 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 self.drop_log = drop_log
             events = events[selected]
-            if len(np.unique(events[:, 0])) != len(events):
+            unique_events, counts = np.unique(events[:, 0], return_counts=True)
+            if len(unique_events) != len(events):
                 if event_repeated == 'error':
                     raise RuntimeError('Event time samples were not unique')
                 elif event_repeated == 'merge':
-                    pass  # XXX: magic should happen here
+                    new_events = events.copy()
+                    non_uniques = unique_events[counts > 1]
+                    for uu in non_uniques:
+                        idxs = (events[:, 0] == uu).nonzero()[0]
+                        event_times = events[idxs, 0]
+                        prior_codes = events[idxs, 1]
+                        event_codes = events[idxs, 2]
+
+                        # Merge event codes
+                        # XXX: will fail: Cannot use str in int array
+                        new_events[idxs[0], 2] = '{}'.format(event_codes)
+                        new_events = np.delete(new_events, idxs[1:], 0)
+
                 else:
                     raise ValueError('`event_repeated` must be one of '
                                      '"error", "merge" but is "{}"'
