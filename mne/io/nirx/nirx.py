@@ -81,10 +81,30 @@ class RawNIRX(BaseRaw):
         for line in open(file_wl1[0]):
             last_sample += 1
 
-        # Read demographic information file
+        # Read participant information file
 
-        inf = cp.ConfigParser()
+        inf = cp.ConfigParser(allow_no_value=True)
         inf.read(file_inf)
+        inf = inf._sections['Subject Demographics']
+
+        # mne requires specific fields in here
+        # https://github.com/mne-tools/mne-python/ ...
+        # blob/master/mne/io/meas_info.py#L430
+        # TODO: Can you put more values in subject_info than specified in link?
+        #       NIRX also records "Study Type", "Experiment History",
+        #       "Additional Notes", "Contact Information"
+        subject_info = {}
+        subject_info['last_name'] = inf['name'].split()[-1].replace("\"", "")
+        subject_info['first_name'] = inf['name'].split()[0].replace("\"", "")
+        subject_info['middle_name'] = inf['name'].split()[-2].replace("\"", "")
+        subject_info['birthday'] = inf['age']
+        subject_info['sex'] = inf['gender'].replace("\"", "")
+        # Recode values
+        if subject_info['sex'] in {'M', 'Male'}:
+            subject_info['sex'] = 1
+        if subject_info['sex'] in {'F', 'Female'}:
+            subject_info['sex'] = 2
+        # NIRStar does not record an id, or handedness by default
 
         # Read header file
 
@@ -119,6 +139,7 @@ class RawNIRX(BaseRaw):
         info = create_info(len(sources) * 2,
                            hdr['ImagingParameters']['SamplingRate'],
                            ch_types='misc')
+        info.update({'subject_info': subject_info})
 
         # Store the subset of sources and detectors requested by user
         # The signals between all source-detectors are stored even if they

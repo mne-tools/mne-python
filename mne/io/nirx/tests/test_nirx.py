@@ -19,6 +19,6 @@ def test_nirx():
     logger.info('Calling loader on %s' % fname)
     raw = read_raw_nirx(fname, preload=True)
     assert raw._data.shape == (288, 16069)
-
+    assert raw.info['subject_info']['sex'] == 2
 
 run_tests_if_main()
