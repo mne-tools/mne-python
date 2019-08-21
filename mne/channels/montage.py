@@ -35,6 +35,7 @@ from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _foo_get_data_from_dig
 
 DEPRECATED_PARAM = object()
+NEVER_USED_PARAM = object()
 
 
 def _digmontage_to_bunch(montage):
@@ -432,6 +433,28 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
+def _from_data_to_dig(
+    nasion=None,
+    lpa=None,
+    rpa=None,
+    hpi=NEVER_USED_PARAM,
+    hsp=None,
+    elp=None,
+    dig_ch_pos=None,
+    coord_frame='unknown'
+):
+    assert hpi is NEVER_USED_PARAM, 'hpi was wrongly assumed to never be used'
+
+    ch_names = [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))
+    dig = _make_dig_points(
+        nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
+        extra_points=hsp, dig_ch_pos=dig_ch_pos,
+        coord_frame=coord_frame,
+    )
+
+    return dig, ch_names
+
+
 class DigMontage(object):
     """Montage for digitized electrode and headshape position data.
 
@@ -507,7 +530,7 @@ class DigMontage(object):
         _non_deprecated_kwargs = [
             key for key, val in dict(
                 hsp=hsp, hpi=hpi, elp=elp, point_names=point_names,
-                nasion=nasion, lpa=lpa, rpa=rpa, dev_head_t=dev_head_t,
+                nasion=nasion, lpa=lpa, rpa=rpa,
                 dig_ch_pos=dig_ch_pos, coord_frame=coord_frame,
             ).items() if val is not DEPRECATED_PARAM
         ]
@@ -519,7 +542,7 @@ class DigMontage(object):
             self._coord_frame = _check_get_coord_frame(self.dig)
             self._point_names = [] if hpi_names is None else hpi_names
         else:
-            # Old behavior
+            # Deprecated
             _msg = (
                 "Using {params} in DigMontage constructor is deprecated."
                 " Use 'dig', 'ch_names', and 'hpi_names' instead."
@@ -527,7 +550,21 @@ class DigMontage(object):
                 ["'{}'".format(k) for k in _non_deprecated_kwargs]
             ))
             warn(_msg, DeprecationWarning)
-            self.dev_head_t = dev_head_t
+
+            # Restore old defaults
+            hsp = None if hsp is DEPRECATED_PARAM else hsp
+            hpi = None if hpi is DEPRECATED_PARAM else hpi
+            elp = None if elp is DEPRECATED_PARAM else elp
+            nasion = None if nasion is DEPRECATED_PARAM else nasion
+            lpa = None if lpa is DEPRECATED_PARAM else lpa
+            rpa = None if rpa is DEPRECATED_PARAM else rpa
+            dig_ch_pos = None if dig_ch_pos is DEPRECATED_PARAM else dig_ch_pos
+            coord_frame = \
+                'unknown' if coord_frame is DEPRECATED_PARAM else coord_frame
+            point_names = \
+                None if point_names is DEPRECATED_PARAM else point_names
+
+            # Old behavior
             if elp is not None:
                 if not isinstance(point_names, Iterable):
                     raise TypeError('If elp is specified, point_names must'
@@ -539,12 +576,12 @@ class DigMontage(object):
                                      'point_names were specified.' %
                                      (len(elp), len(point_names)))
 
+            self.dev_head_t = dev_head_t
             self._point_names = point_names
             self.ch_names = \
                 [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))
-            self._hpi = None if hpi is DEPRECATED_PARAM else hpi
-            self._coord_frame = \
-                'unkown' if coord_frame is DEPRECATED_PARAM else coord_frame
+            self._hpi = hpi
+            self._coord_frame = coord_frame
             self.dig = _make_dig_points(
                 nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
                 extra_points=hsp, dig_ch_pos=dig_ch_pos,
@@ -693,9 +730,9 @@ def _get_scaling(unit, scale):
         return scale[unit]
 
 
-def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
-                     unit='auto', fif=None, egi=None, bvct=None,
-                     transform=True, dev_head_t=False, ):
+def read_dig_montage(hsp=NEVER_USED_PARAM, hpi=None, elp=None,
+                     point_names=None, unit='auto', fif=None, egi=None,
+                     bvct=None, transform=True, dev_head_t=False, ):
     r"""Read subject-specific digitization montage from a file.
 
     Parameters
@@ -790,7 +827,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             fname=fif,
             _raise_transform_err=_raise_transform_err,
             _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, egi, bvct))
+                x is None or x is NEVER_USED_PARAM
+                for x in (hsp, hpi, elp, point_names, egi, bvct))
         )
 
     elif egi is not None:
@@ -798,7 +836,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             fname=egi,
             _scaling=_get_scaling(unit, EGI_SCALE),
             _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, fif, bvct))
+                x is None or x is NEVER_USED_PARAM
+                for x in (hsp, hpi, elp, point_names, fif, bvct))
         )
 
     elif bvct is not None:
@@ -806,7 +845,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             fname=bvct,
             unit=unit,  # XXX: this should change
             _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, fif, egi))
+                x is None or x is NEVER_USED_PARAM
+                for x in (hsp, hpi, elp, point_names, fif, egi))
         )
 
     else:
@@ -863,7 +903,15 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     else:
         data['dev_head_t'] = None
 
-    return DigMontage(**data)
+    dig, ch_names = _from_data_to_dig(
+        nasion=data.nasion, lpa=data.lpa, rpa=data.rpa, hsp=data.hsp,
+        elp=data.elp, dig_ch_pos=data.dig_ch_pos, coord_frame=data.coord_frame,
+    )
+
+    return DigMontage(
+        dev_head_t=data.dev_head_t, dig=dig,
+        ch_names=ch_names, hpi_names=point_names
+    )
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):
