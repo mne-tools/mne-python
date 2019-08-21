@@ -72,8 +72,8 @@ def _st(x, start_f, windows):
     return ST
 
 
-def _select_st_freqs(fmin, fmax, n_fft, sfreq):
-    """Select st frequencies based on input freqs and window length."""
+def _select_st_freqs(fmin, fmax, sfreq, n_fft):
+    """Select stockwell freqs based on input freqs and window length."""
     freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
     if fmin is None:
         fmin = freqs[freqs > 0][0]
@@ -114,7 +114,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
 
 def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc,
                         n_jobs):
-    """Perform stockwell transform for stc lists/generator objects."""
+    """Perform stockwell transform on stc lists/generator objects."""
     from ..source_estimate import _BaseSourceEstimate
 
     for ep_idx, obj in enumerate(inst):
@@ -130,22 +130,21 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc,
         data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
         if ep_idx == 0:
-
-            n_channels = len(kernel) if kernel is not None else len(data)
+            # initiate stuff for the first input
             sfreq = obj.sfreq
             type_ref = type(obj)
             tmin_ref = obj._tmin
 
-            freqs, start_f, stop_f = _select_st_freqs(fmin, fmax, n_fft_,
-                                                      sfreq)
-
             n_samp = data.shape[-1]
-
-            W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
-
             n_out = (n_samp - zero_pad)
             n_out = n_out // decim + bool(n_out % decim)
-            psd = np.zeros((n_channels, len(W), n_out))
+            n_dipoles = len(kernel) if kernel is not None else len(data)
+
+            freqs, start_f, stop_f = _select_st_freqs(fmin, fmax, sfreq,
+                                                      n_fft_)
+            W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
+
+            psd = np.zeros((n_dipoles, len(W), n_out))
             itc = np.zeros_like(psd, dtype=np.complex) if return_itc else None
 
         else:
@@ -163,10 +162,11 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc,
             else:
                 TFR = ST[:, ::decim]
 
-            # compute the full source time series from kernel and tfr
             if kernel is not None:
+                # get the full source time series from kernel and tfr
                 TFR = np.tensordot(kernel, TFR, [-1, 0])
 
+            # transform complex values
             TFR_abs = np.abs(TFR)
             TFR_abs[TFR_abs == 0] = 1.
             if return_itc:
@@ -175,8 +175,10 @@ def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc,
             TFR_abs *= TFR_abs
             psd[:, i_f, :] += TFR_abs
 
+    # divide summed epochs to get the average
     psd /= ep_idx + 1
 
+    # calculate itc
     if return_itc:
         itc /= ep_idx + 1
         for i_f, window in enumerate(W):
@@ -261,7 +263,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
-    freqs, start_f, stop_f = _select_st_freqs(fmin, fmax, n_fft_, sfreq)
+    freqs, start_f, stop_f = _select_st_freqs(fmin, fmax, sfreq, n_fft_)
 
     W = _precompute_st_windows(data.shape[-1], start_f, stop_f, sfreq, width)
     n_freq = stop_f - start_f

@@ -828,7 +828,7 @@ def _create_ref_data(return_kernel=False):
 
 
 def _check_tfr_list_input(func, **kwargs):
-
+    """Check if functions raise Errors for invalid stc list input."""
     stc_data = np.ones([3, 64])
     verts = [np.array([1, 2, 3]), np.array([])]
     tstep = 1. / 128.
