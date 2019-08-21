@@ -1700,8 +1700,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             if surf['coord_frame'] != FIFF.FIFFV_COORD_MRI:
                 raise ValueError('BEM is not in MRI coordinates, got %s'
                                  % (_coord_frame_name(surf['coord_frame']),))
-            logger.info('Taking inner skull from %s'
-                        % bem)
+            logger.info('Taking inner skull from %s' % bem)
         elif surface is not None:
             if isinstance(surface, str):
                 # read the surface in the MRI coordinate frame
@@ -1866,7 +1865,9 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
     sp['inuse'][bads] = False
     sp['nuse'] -= len(bads)
-    logger.info('%d sources after omitting infeasible sources.', sp['nuse'])
+    logger.info('%d sources after omitting infeasible sources not within '
+                '%0.1f - %0.1f mm.',
+                sp['nuse'], 1000 * exclude, 1000 * maxdist)
 
     if 'rr' in surf:
         _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
@@ -2212,17 +2213,22 @@ def _add_interpolator(s, mri_name, add_interpolator):
     logger.info(' %d/%d nonzero values [done]' % (len(data), nvox))
 
 
-@verbose
+def _pts_in_hull(pts, hull, tolerance=1e-12):
+    return np.all([np.dot(eq[:-1], pts.T) + eq[-1] <= tolerance
+                   for eq in hull.equations], axis=0)
+
+
+#@verbose
 def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
                           verbose=None):
     """Remove all source space points closer than a given limit (in mm)."""
+    from scipy.spatial import Delaunay
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
         raise RuntimeError('Source spaces are in head coordinates and no '
                            'coordinate transform was provided!')
 
     # How close are the source points to the surface?
     out_str = 'Source spaces are in '
-
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
         inv_trans = invert_transform(mri_head_t)
         out_str += 'head coordinates.'
@@ -2231,49 +2237,94 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
     else:
         out_str += 'unknown (%d) coordinates.' % src[0]['coord_frame']
     logger.info(out_str)
-    out_str = 'Checking that the sources are inside the bounding surface'
+    out_str = 'Checking that the sources are inside the surface'
     if limit > 0.0:
         out_str += ' and at least %6.1f mm away' % (limit)
     logger.info(out_str + ' (will take a few...)')
 
+    # fit a sphere to a surf quickly
+    cm = surf['rr'].mean(0)
+    inner_r = None
+    if not _points_outside_surface(cm[np.newaxis], surf)[0]:  # actually inside
+        # Immediately cull some points from the checks
+        inner_r = np.linalg.norm(surf['rr'] - cm, axis=-1).min()
+    # We could use Delaunay or ConvexHull here, Delaunay is slighly slower
+    # to construct but faster to evaluate
+    # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
+    del_tri = Delaunay(surf['rr'])
     for s in src:
         vertno = np.where(s['inuse'])[0]  # can't trust s['vertno'] this deep
         # Convert all points here first to save time
         r1s = s['rr'][vertno]
         if s['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
             r1s = apply_trans(inv_trans['trans'], r1s)
+        inside = np.ones(len(vertno), bool)  # innocent until proven guilty
 
         # Check that the source is inside surface (often the inner skull)
-        outside = _points_outside_surface(r1s, surf, n_jobs)
-        omit_outside = np.sum(outside)
+        idx = np.where(inside)[0]
+        check_r1s = r1s[idx]
+
+        # Limit to indices that can plausibly be outside the surf
+        if inner_r is not None:
+            mask = np.linalg.norm(check_r1s - cm, axis=-1) >= inner_r
+            idx = idx[mask]
+            check_r1s = check_r1s[mask]
+            logger.info('    Skipping interior check for %d sources that fit '
+                        'inside a sphere of radius %6.1f mm'
+                        % ((~mask).sum(), inner_r * 1000))
+
+        # Use qhull as our first pass (*much* faster than our check)
+        del_outside = del_tri.find_simplex(check_r1s) < 0
+        omit_outside = sum(del_outside)
+        inside[idx[del_outside]] = False
+        idx = idx[~del_outside]
+        check_r1s = check_r1s[~del_outside]
+        logger.info('    Skipping solid angle check for %d points using Qhull'
+                    % (omit_outside,))
+        del del_outside
+
+        # use our more accurate check
+        solid_outside = _points_outside_surface(check_r1s, surf, n_jobs)
+        omit_outside += np.sum(solid_outside)
+        inside[idx[solid_outside]] = False
+        del solid_outside, idx
 
         # vectorized nearest using BallTree (or cdist)
-        omit = 0
+        omit_limit = 0
         if limit > 0.0:
-            dists = _compute_nearest(surf['rr'], r1s, return_dists=True)[1]
-            close = np.logical_and(dists < limit / 1000.0,
-                                   np.logical_not(outside))
-            omit = np.sum(close)
-            outside = np.logical_or(outside, close)
-        s['inuse'][vertno[outside]] = False
-        s['nuse'] -= (omit + omit_outside)
+            # only check "inside" points
+            idx = np.where(inside)[0]
+            check_r1s = r1s[idx]
+            if inner_r is not None:
+                # ... and those that are at least inner_sphere + limit away
+                mask = (np.linalg.norm(check_r1s - cm, axis=-1) >=
+                        inner_r - limit / 1000.)
+                idx = idx[mask]
+                check_r1s = check_r1s[mask]
+            dists = _compute_nearest(
+                surf['rr'], check_r1s, return_dists=True, method='cKDTree')[1]
+            close = (dists < limit / 1000.0)
+            omit_limit = np.sum(close)
+            inside[idx[close]] = False
+        s['inuse'][vertno[~inside]] = False
+        del vertno
+        s['nuse'] -= (omit_outside + omit_limit)
         s['vertno'] = np.where(s['inuse'])[0]
 
         if omit_outside > 0:
             extras = [omit_outside]
             extras += ['s', 'they are'] if omit_outside > 1 else ['', 'it is']
-            logger.info('%d source space point%s omitted because %s '
+            logger.info('    %d source space point%s omitted because %s '
                         'outside the inner skull surface.' % tuple(extras))
-        if omit > 0:
-            extras = [omit]
+        if omit_limit > 0:
+            extras = [omit_limit]
             extras += ['s'] if omit_outside > 1 else ['']
             extras += [limit]
-            logger.info('%d source space point%s omitted because of the '
+            logger.info('    %d source space point%s omitted because of the '
                         '%6.1f-mm distance limit.' % tuple(extras))
         # Adjust the patch inds as well if necessary
-        if omit + omit_outside > 0:
+        if omit_limit + omit_outside > 0:
             _adjust_patch_info(s)
-    logger.info('Thank you for waiting.')
 
 
 @verbose
