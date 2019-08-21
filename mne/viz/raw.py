@@ -21,7 +21,7 @@ from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
-                    _select_bads, _get_figsize_from_config,
+                    _helper_raw_resize, _select_bads, _get_figsize_from_config,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
@@ -445,6 +445,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
+    callback_resize = partial(_helper_raw_resize, params=params)
+    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -649,10 +651,10 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     import matplotlib as mpl
 
     figsize = _get_figsize_from_config()
-    fig = figure_nobar(facecolor=bgcolor, figsize=figsize)
-    fig.canvas.set_window_title(title or "Raw")
-    # most of the axes setup is done in _prepare_mne_browse...
-    _prepare_mne_browse(fig, params, xlabel='Time (s)')
+    params['fig'] = figure_nobar(facecolor=bgcolor, figsize=figsize)
+    params['fig'].canvas.set_window_title(title or "Raw")
+    # most of the axes setup is done in _prepare_mne_browse
+    _prepare_mne_browse(params, xlabel='Time (s)')
     ax = params['ax']
     ax_hscroll = params['ax_hscroll']
     ax_vscroll = params['ax_vscroll']

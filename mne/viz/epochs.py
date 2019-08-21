@@ -998,9 +998,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     color = _handle_default('color', None)
 
     figsize = _get_figsize_from_config()
-    fig = figure_nobar(facecolor='w', figsize=figsize, dpi=80)
-    fig.canvas.set_window_title(title or 'Epochs')
-    _prepare_mne_browse(fig, params, xlabel='Epochs')
+    params['fig'] = figure_nobar(facecolor='w', figsize=figsize, dpi=80)
+    params['fig'].canvas.set_window_title(title or 'Epochs')
+    _prepare_mne_browse(params, xlabel='Epochs')
     ax = params['ax']
     ax_hscroll = params['ax_hscroll']
     ax_vscroll = params['ax_vscroll']
@@ -1150,12 +1150,13 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
-    fig.canvas.mpl_connect('scroll_event', callback_scroll)
+    params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_click = partial(_mouse_click, params=params)
-    fig.canvas.mpl_connect('button_press_event', callback_click)
+    params['fig'].canvas.mpl_connect('button_press_event', callback_click)
     callback_key = partial(_plot_onkey, params=params)
-    fig.canvas.mpl_connect('key_press_event', callback_key)
-    fig.canvas.mpl_connect('pick_event', partial(_onpick, params=params))
+    params['fig'].canvas.mpl_connect('key_press_event', callback_key)
+    params['fig'].canvas.mpl_connect('pick_event', partial(_onpick,
+                                                           params=params))
     params['callback_key'] = callback_key
 
     # Draw event lines for the first time.

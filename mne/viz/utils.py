@@ -36,8 +36,8 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
-                     logger, fill_doc)
+from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
+                     _check_option, logger, fill_doc)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -531,41 +531,73 @@ def _get_figsize_from_config():
     return figsize
 
 
-def _get_figure_size_px(fig):
+def _get_figsize_px(fig):
     """Get figure size in pixels."""
-    size = fig.get_size_inches() * fig.dpi
-    dpi_ratio = 1.
-    for key in ('_dpi_ratio', '_device_scale'):
-        dpi_ratio = getattr(fig.canvas, key, dpi_ratio)
-    size /= dpi_ratio  # account for HiDPI resolutions
+    dpi_ratio = _get_dpi_ratio(fig)
+    size = fig.get_size_inches() * fig.dpi / dpi_ratio
     return size
 
 
-def _prepare_mne_browse(fig, params, xlabel):
+def _get_dpi_ratio(fig):
+    """Get DPI ratio (to handle hi-DPI screens)."""
+    dpi_ratio = 1.
+    for key in ('_dpi_ratio', '_device_scale'):
+        dpi_ratio = getattr(fig.canvas, key, dpi_ratio)
+    return dpi_ratio
+
+
+def _inch_to_rel_dist(fig, dim_inches, horiz=True):
+    """Convert inches to figure-relative distances."""
+    fig_w_px, fig_h_px = _get_figsize_px(fig)
+    w_or_h = fig_w_px if horiz else fig_h_px
+    return dim_inches * fig.dpi / _get_dpi_ratio(fig) / w_or_h
+
+
+def _update_borders(params, new_width, new_height):
+    """Update figure borders to maintain fixed size in inches/pixels."""
+    old_width, old_height = params['fig_size_px']
+    new_borders = dict()
+    sides = ('left', 'right', 'bottom', 'top')
+    for side in sides:
+        horiz = side in ('left', 'right')
+        ratio = (old_width / new_width) if horiz else (old_height / new_height)
+        rel_dim = getattr(params['fig'].subplotpars, side)
+        if side in ('right', 'top'):
+            rel_dim = (1 - rel_dim)
+        rel_dim = rel_dim * ratio
+        if side in ('right', 'top'):
+            rel_dim = (1 - rel_dim)
+        new_borders[side] = rel_dim
+    params['fig'].subplots_adjust(**new_borders)
+
+
+def _prepare_mne_browse(params, xlabel):
     """Set up axes for mne_browse_* style raw/epochs/ICA plots."""
     import matplotlib as mpl
     from mpl_toolkits.axes_grid1.axes_size import Fixed
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
-    fig_w_px, fig_h_px = _get_figure_size_px(fig)
+    fig = params['fig']
+    fig_w_px, fig_h_px = _get_figsize_px(fig)
+    params['fig_size_px'] = fig_w_px, fig_h_px  # store for on_resize callback
     # default sizes (inches)
     scroll_width = 0.25
     hscroll_dist = 0.25
     vscroll_dist = 0.1
     l_border = 1.
     r_border = 0.1
-    t_border = 0.35
     b_border = 0.45
+    t_border = 0.25
     help_width = scroll_width * 2
-    # borders (figure relative coordinates)
-    borders = dict(
-        left=(l_border - vscroll_dist - help_width) * fig.dpi / fig_w_px,
-        right=1 - r_border * fig.dpi / fig_w_px,
-        bottom=b_border * fig.dpi / fig_h_px,
-        top=1 - t_border * fig.dpi / fig_h_px)
-    fig.subplots_adjust(**borders)
-    # Main axes must be a `subplot` for `subplots_adjust` to work (allows user
-    # to adjust margins). That's why we don't do it with the Divider class.
+    # default borders (figure-relative coordinates)
+    fig.subplots_adjust(
+        left=_inch_to_rel_dist(fig, l_border - vscroll_dist - help_width),
+        right=1 - _inch_to_rel_dist(fig, r_border),
+        bottom=_inch_to_rel_dist(fig, b_border, horiz=False),
+        top=1 - _inch_to_rel_dist(fig, t_border, horiz=False)
+    )
+    # Main axes must be a `subplot` for `subplots_adjust` to work (so user can
+    # adjust margins). That's why we don't use the Divider class directly.
     ax = fig.add_subplot(1, 1, 1)
     div = make_axes_locatable(ax)
     ax_hscroll = div.append_axes(position='bottom', size=Fixed(scroll_width),
@@ -573,10 +605,12 @@ def _prepare_mne_browse(fig, params, xlabel):
     ax_vscroll = div.append_axes(position='right', size=Fixed(scroll_width),
                                  pad=Fixed(vscroll_dist))
     # proj button (optionally) added later, but easiest to compute position now
-    proj_button_pos = [1 - (r_border + scroll_width) * fig.dpi / fig_w_px,  # l
-                       b_border * fig.dpi / fig_h_px,                       # b
-                       scroll_width * fig.dpi / fig_w_px,                   # w
-                       scroll_width * fig.dpi / fig_h_px]                   # h
+    proj_button_pos = [
+        1 - _inch_to_rel_dist(fig, r_border + scroll_width),  # left
+        _inch_to_rel_dist(fig, b_border, horiz=False),        # bottom
+        _inch_to_rel_dist(fig, scroll_width),                 # width
+        _inch_to_rel_dist(fig, scroll_width, horiz=False)     # height
+    ]
     params['proj_button_pos'] = proj_button_pos
     params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
     # initialize help button in the wrong spot...
@@ -664,6 +698,15 @@ def figure_nobar(*args, **kwargs):
     finally:
         rcParams['toolbar'] = old_val
     return fig
+
+
+def _helper_raw_resize(event, params):
+    """Store new size in config, and reset borders to fixed width in inches."""
+    new_size = ','.join([str(s) for s in params['fig'].get_size_inches()])
+    set_config('MNE_BROWSE_RAW_SIZE', new_size, set_env=False)
+    # maintain consistent border width in inches (not figure-relative).
+    _update_borders(params, event.width, event.height)
+    params['fig_size_px'] = _get_figsize_px(params['fig'])
 
 
 def _plot_raw_onscroll(event, params, len_channels=None):
