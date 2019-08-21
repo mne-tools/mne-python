@@ -41,6 +41,7 @@ Before running this script do the following:
 """
 # Authors: Lorenzo De Santis
 
+import mne
 from mne.bem import convert_flash_mris, make_flash_bem
 
 
@@ -104,6 +105,4 @@ def run():
                    copy=copy, verbose=True)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

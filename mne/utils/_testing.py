@@ -262,6 +262,13 @@ def run_tests_if_main():
         raise AssertionError('pytest finished with errors (%d)' % (code,))
 
 
+def run_command_if_main():
+    """Run a given command if it's __main__."""
+    local_vars = inspect.currentframe().f_back.f_locals
+    if local_vars.get('__name__', '') == '__main__':
+        local_vars['run']()
+
+
 class ArgvSetter(object):
     """Temporarily set sys.argv."""
 
