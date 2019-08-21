@@ -378,8 +378,8 @@ def test_read_dig_montage():
     elp_points = _read_dig_points(elp)
     hsp_points = _read_dig_points(hsp)
     hpi_points = read_mrk(hpi)
-    assert_equal(montage.point_names, names)
     with pytest.deprecated_call():
+        assert_equal(montage.point_names, names)
         assert_array_equal(montage.elp, elp_points)
         assert_array_equal(montage.hsp, hsp_points)
     # assert_array_equal(montage.hpi, hpi_points)  # XXX: HPI is messed up

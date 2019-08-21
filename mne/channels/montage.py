@@ -587,7 +587,7 @@ class DigMontage(object):
             _validate_type(item=dig, types=Digitization,
                            item_name='dig', type_name='Digitization')
             ch_names = list() if ch_names is None else ch_names
-            n_eeg = sum([1 for d in dig if d['kind'] == FIFF.FIFFV_EEG_CH])
+            n_eeg = sum([1 for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG])
             if n_eeg != len(ch_names):
                 raise ValueError(
                     'The number of EEG channels (%d) does not match the number'
