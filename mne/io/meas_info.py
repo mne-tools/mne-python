@@ -316,9 +316,19 @@ class Info(dict):
         save_calibrated : bool
             Were the compensation data saved in calibrated form.
 
-    * ``dig`` list:
+    * ``dig`` list of dict:
 
-        See :class:`~mne.digitization.DigPoint`.
+        kind : int
+            The kind of channel,
+            e.g. ``FIFFV_POINT_EEG``, ``FIFFV_POINT_CARDINAL``.
+        r : array, shape (3,)
+            3D position in m. and coord_frame.
+        ident : int
+            Number specifying the identity of the point.
+            e.g.  ``FIFFV_POINT_NASION`` if kind is ``FIFFV_POINT_CARDINAL``,
+                  or 42 if kind is ``FIFFV_POINT_EEG``.
+        coord_frame : int
+            The coordinate frame used, e.g. ``FIFFV_COORD_HEAD``.
 
     * ``events`` list of dict:
 
