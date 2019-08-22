@@ -7,6 +7,7 @@
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -1820,12 +1821,10 @@ class Epochs(BaseEpochs):
 
         .. versionadded:: 0.16
     event_repeated : str
-        How to handle duplicate time samples with different event codes.
-        Can be 'error' (default), to raise an error, 'drop' to only retain the
-        row occurring first in the events array, or 'merge' to create a new
-        event code that reflects a co-occurrence of several events at the same
-        time. For the 'merge' option, the event_id dictionary will be updated
-        accordingly (see Notes for details).
+        How to handle duplicates in `events[:, 0]`. Can be 'error' (default),
+        to raise an error, 'drop' to only retain the row occurring first in the
+        `events`, or 'merge' to combine the coinciding events (=duplicates)
+        into a new event (see Notes for details).
 
         .. versionadded:: 0.19
     %(verbose)s
@@ -1880,10 +1879,9 @@ class Epochs(BaseEpochs):
     :meth:`mne.Epochs.iter_evoked` or :meth:`mne.Epochs.next`) use the same
     internal state.
 
-    If `event_repeated` is set to "merge", the simultaneous events will be
-    merged into a single event_id and assigned a new id_number as follows:
-
-    event_id['{event_id_1}/{event_id_2}/...'] = new_id_number
+    If `event_repeated` is set to "merge", the coinciding events (duplicates)
+    will be merged into a single event_id and assigned a new id_number as
+    follows: `event_id['{event_id_1}/{event_id_2}/...'] = new_id_number`
 
     """
     @verbose

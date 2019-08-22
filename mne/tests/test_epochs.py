@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
