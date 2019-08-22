@@ -22,9 +22,9 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
-from ..digitization import Digitization
-from ..digitization._utils import (_make_dig_points, _read_dig_points,
-                                   write_dig)
+from .._digitization import Digitization
+from .._digitization._utils import (_make_dig_points, _read_dig_points,
+                                    write_dig)
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
@@ -710,6 +710,7 @@ class DigMontage(object):
             raise RuntimeError('Can only write out digitization points in '
                                'head coordinates.')
         write_dig(fname, self.dig)
+        # XXX: This is broken, as it only saves dig and not ch_names
 
     @property
     def dig_ch_pos(self):
