@@ -188,8 +188,9 @@ def _read_events_fif(fid, tree):
     return event_list, mappings
 
 
+@verbose
 def read_events(filename, include=None, exclude=None, mask=None,
-                mask_type='and'):
+                mask_type='and', verbose=None):
     """Read events from fif or text file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
@@ -219,6 +220,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
         Choose 'and' (default) for MNE-C masking behavior.
 
         .. versionadded:: 0.13
+    %(verbose)s
 
     Returns
     -------
