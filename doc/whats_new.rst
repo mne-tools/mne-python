@@ -50,7 +50,7 @@ Changelog
 
 - Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
 
-- Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
+- Add ``Digitization`` class to simplify montage by `Joan Massich`_
 
 - Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
 
@@ -274,7 +274,7 @@ Changelog
 
 - The ``mri`` parameter in :func:`mne.setup_volume_source_space` is now automatically set to ``T1.mgz`` if ``subject`` is provided. This allows to get a :class:`mne.SourceSpaces` of kind ``volume`` more automatically. By `Alex Gramfort`_
 
-- Add better ``__repr__`` for constants, and :class:`info['dig'] <mne.Info>` entries via :class:`mne.digitization.DigPoint` by `Eric Larson`_
+- Add better ``__repr__`` for constants, and :class:`info['dig'] <mne.Info>` entries via ``DigPoint`` by `Eric Larson`_
 
 - Allow string argument in :meth:`mne.io.Raw.drop_channels` to remove a single channel by `Clemens Brunner`_
 
