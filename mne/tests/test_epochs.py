@@ -63,8 +63,20 @@ def test_handle_duplicate_events():
     """Test handling of duplicate events."""
     event_id = {'aud': 1, 'vis': 2}
     events = np.array([[0, 0, 1], [0, 0, 2]])
+
+    with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
+        _handle_duplicate_events(events, event_id, event_repeated='error')
+
     with pytest.raises(ValueError, match='`event_repeated` must be one of '):
-        _handle_duplicate_events(events, event_id, event_repeated='Bogus')
+        _handle_duplicate_events(events, event_id, event_repeated='bogus')
+
+    events2, event_id2 = _handle_duplicate_events(events, event_id, 'drop')
+    np.testing.assert_array_equal(events2, np.array([[0, 0, 1], ]))
+    assert event_id2 == event_id
+
+    events3, event_id3 = _handle_duplicate_events(events, event_id, 'merge')
+    np.testing.assert_array_equal(events3, np.array([[0, 0, 3], ]))
+    assert 'aud/vis' in event_id3.keys()
 
 
 def _get_data(preload=False):
