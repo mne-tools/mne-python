@@ -29,12 +29,13 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff, _validate_type
-from ..digitization.base import _format_dig_points
+from .._digitization.base import _format_dig_points
 from .compensator import get_current_comp
 
 # XXX: most probably the functions needing this, should go somewhere else
-from ..digitization.base import _dig_kind_proper, _dig_kind_rev, _dig_kind_ints
-from ..digitization._utils import _read_dig_fif
+from .._digitization.base import _dig_kind_proper, _dig_kind_rev
+from .._digitization.base import _dig_kind_ints
+from .._digitization._utils import _read_dig_fif
 
 b = bytes  # alias
 
@@ -667,7 +668,7 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
         mne.io.constants.FIFF.FIFFV_COORD_...).
     %(verbose)s
     """
-    from ..digitization._utils import write_dig as ff
+    from .._digitization._utils import write_dig as ff
     ff(fname, pts, coord_frame)
 
 
@@ -686,7 +687,7 @@ def write_dig(fname, pts, coord_frame=None):
         here. Can be None (default) if the points could have varying
         coordinate frames.
     """
-    from ..digitization._utils import write_dig as ff
+    from .._digitization._utils import write_dig as ff
     return ff(fname, pts, coord_frame=None)
 
 
