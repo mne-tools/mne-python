@@ -250,6 +250,14 @@ def _handle_duplicate_events(events, event_id, event_repeated):
         raise ValueError('`event_repeated` must be one of "error", "drop",'
                          ' "merge" but is "{}"'.format(event_repeated))
 
+    # Remove obsolete kv-pairs from event_id after handling
+    to_delete = list()
+    for key, val in event_id.items():
+        if val not in new_events[:, 1:].flatten():
+            to_delete.append(key)
+    for key in to_delete:
+        event_id.pop(key)
+
     return new_events, event_id
 
 

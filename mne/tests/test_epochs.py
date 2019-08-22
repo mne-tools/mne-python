@@ -73,15 +73,15 @@ def test_handle_duplicate_events():
 
     events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'drop')
     np.testing.assert_array_equal(events, np.array([[0, 0, 1], ]))
-    assert event_id == EVENT_ID
+    assert event_id == {'aud': 1}
 
     events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'merge')
     np.testing.assert_array_equal(events, np.array([[0, 0, 3], ]))
     assert 'aud/vis' in event_id.keys()
-    assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
+    assert set(event_id.keys()) == set(['aud/vis'])
     assert event_id['aud/vis'] == 3
 
-    # Test early return with no changes
+    # Test early return with no changes: no error for wrong event_repeated arg
     fine_events = np.array([[0, 0, 1], [1, 0, 2]])
     events, event_id = _handle_duplicate_events(fine_events, EVENT_ID, 'no')
     assert event_id == EVENT_ID
@@ -95,7 +95,7 @@ def test_handle_duplicate_events():
     events, event_id = _handle_duplicate_events(heterogeneous_events,
                                                 EVENT_ID, 'merge')
     assert 'vis/aud' in event_id.keys()
-    assert set(event_id.keys()) == set(['aud', 'vis', 'vis/aud'])
+    assert set(event_id.keys()) == set(['vis/aud'])
     assert event_id['vis/aud'] == 5
     np.testing.assert_array_equal(events, np.array([[0, 0, 5], ]))
     del heterogeneous_events
