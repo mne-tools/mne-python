@@ -461,7 +461,7 @@ def test_simulate_round_trip(raw_data):
     assert trans == old_trans
     _compare_source_spaces(src, old_src)
     data = np.eye(fwd['nsource'])
-    raw.crop(0, (len(data) - 1) / raw.info['sfreq'])
+    raw.crop(0, len(data) / raw.info['sfreq'], include_tmax=False)
     stc = SourceEstimate(data, [s['vertno'] for s in fwd['src']],
                          0, 1. / raw.info['sfreq'])
     for use_fwd in (None, fwd):

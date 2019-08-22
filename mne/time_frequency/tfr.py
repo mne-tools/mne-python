@@ -1145,7 +1145,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         """Channel names."""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None, fmin=None, fmax=None):
+    @fill_doc
+    def crop(self, tmin=None, tmax=None, fmin=None, fmax=None,
+             include_tmax=True):
         """Crop data to a given time interval in place.
 
         Parameters
@@ -1162,6 +1164,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             Highest frequency of selection in Hz.
 
             .. versionadded:: 0.18.0
+        %(include_tmax)s
 
         Returns
         -------
@@ -1169,8 +1172,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             The modified instance.
         """
         if tmin is not None or tmax is not None:
-            time_mask = _time_mask(self.times, tmin, tmax,
-                                   sfreq=self.info['sfreq'])
+            time_mask = _time_mask(
+                self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                include_tmax=include_tmax)
 
         else:
             time_mask = slice(None)
