@@ -248,7 +248,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     event_repeated : str
         How to handle duplicate time samples with different event codes.
         Can be 'error' (default), to raise an error, 'drop' to only retain the
-        row occurring dirst in the events array, or 'merge' to create a new
+        row occurring first in the events array, or 'merge' to create a new
         event code that reflects a co-occurrence of several events at the same
         time. For the 'merge' option, the event_id dictionary will be updated
         accordingly.
