@@ -11,7 +11,6 @@ as importing raw data from NumPy arrays.
    :local:
    :depth: 2
 
-.. _data-formats:
 
 Summary of supported data formats
 #################################
@@ -22,7 +21,7 @@ Summary of supported data formats
 .. note::
     MNE-Python is aware of the measurement units used by each manufacturer, and
     will always convert data into a common internal representation. See
-    :doc:`../units` for more information.
+    :ref:`units` for more information.
 
 Importing data from MEG devices
 ###############################

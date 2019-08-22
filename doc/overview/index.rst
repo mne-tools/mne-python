@@ -46,6 +46,7 @@ outside of the five categories above:
 .. toctree::
     :maxdepth: 2
 
+    faq
     learn_python
     get_help
     cite
