@@ -41,7 +41,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         corresponds to one axis of the data field. Allowed values are:
         ("dipoles", "freqs", "times"), ("dipoles", "epochs", "freqs",
         "times"), ("dipoles", "orientations", "freqs", "times"), ("dipoles",
-         "orientations", "epochs", "freqs", "times").
+        "orientations", "epochs", "freqs", "times").
     method : str | None, default None
         Comment on the method used to compute the data, as a combination of
         the used method and the compued product (e.g. "morlet-power" or
