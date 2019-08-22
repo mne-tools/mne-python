@@ -41,13 +41,16 @@ class DigPoint(dict):
     Parameters
     ----------
     kind : int
-        Digitization kind, e.g. ``FIFFV_POINT_EXTRA``.
+        The kind of channel,
+        e.g. ``FIFFV_POINT_EEG``, ``FIFFV_POINT_CARDINAL``.
+    r : array, shape (3,)
+        3D position in m. and coord_frame.
     ident : int
-        Identifier.
-    r : ndarray, shape (3,)
-        Position.
+        Number specifying the identity of the point.
+        e.g.  ``FIFFV_POINT_NASION`` if kind is ``FIFFV_POINT_CARDINAL``,
+                or 42 if kind is ``FIFFV_POINT_EEG``.
     coord_frame : int
-        Coordinate frame, e.g. ``FIFFV_COORD_HEAD``.
+        The coordinate frame used, e.g. ``FIFFV_COORD_HEAD``.
     """
 
     def __repr__(self):  # noqa: D105
