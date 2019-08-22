@@ -28,7 +28,8 @@ from mne.fixes import rfft, rfftfreq
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
-    EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
+    EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
+    _handle_duplicate_events)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
                        requires_version, catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version)
@@ -56,6 +57,14 @@ evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
+
+
+def test_handle_duplicate_events():
+    """Test handling of duplicate events."""
+    event_id = {'aud': 1, 'vis': 2}
+    events = np.array([[0, 0, 1], [0, 0, 2]])
+    with pytest.raises(ValueError, match='`event_repeated` must be one of '):
+        _handle_duplicate_events(events, event_id, event_repeated='Bogus')
 
 
 def _get_data(preload=False):
