@@ -919,7 +919,7 @@ def events_from_annotations(raw, event_id="auto",
         annotations.description, event_id=event_id, regexp=regexp)
 
     if return_durations:
-        fs = raw.info["sfreq"]
+        sfreq = raw.info["sfreq"]
 
     if chunk_duration is None:
         inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
@@ -928,7 +928,7 @@ def events_from_annotations(raw, event_id="auto",
         values = [event_id_[kk] for kk in annotations.description[event_sel]]
         inds = inds[event_sel]
         if return_durations:
-            durs = annotations.duration * fs
+            durs = annotations.duration * sfreq
             durs = durs[event_sel]
     else:
         inds = values = np.array([]).astype(int)
@@ -952,7 +952,7 @@ def events_from_annotations(raw, event_id="auto",
                 values = np.append(values, _values)
                 if return_durations:
                     _durs = np.full(shape=len(_inds),
-                                    fill_value=annot['duration'] * fs,
+                                    fill_value=annot['duration'] * sfreq,
                                     dtype=int)
                     durs = np.append(durs, _durs)
 
