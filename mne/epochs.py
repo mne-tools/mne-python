@@ -215,7 +215,12 @@ def _handle_duplicate_events(events, event_id, event_repeated):
 
                 # Make an event_id for the merged event
                 ev_codes = events[idxs, 2]
-                new_event_id = '{}'.format(ev_codes)
+                new_event_id = list()
+                for code in ev_codes:
+                    # inverse dict lookup, because event_id is a one-to-one map
+                    key = event_id.keys()[event_id.values().index(code)]
+                    new_event_id.append(key)
+                new_event_id = '/'.join(new_event_id)
 
                 # Check if we already have a corresponding code
                 new_event_code = event_id.get(new_event_id, False)
