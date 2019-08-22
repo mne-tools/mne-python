@@ -1,5 +1,7 @@
 :orphan:
 
+.. _mne_manual_toc:
+
 MNE Manual
 ==========
 
