@@ -59,10 +59,13 @@ isn't out there already.
 I think I found a bug, what do I do?
 ------------------------------------
 
-If you're *confident* that you've found a bug, please report it by creating an
-issue on the `GitHub issues page`_. If you're *not sure* whether it's a bug,
-user error, bad data file, etc., try asking on the `MNE mailing list`_ or the
-`MNE gitter channel`_ first. In either case, you should:
+If you're *confident* that you've found a bug, head over to the `GitHub issues
+page`_ and do a quick search to see if it's already been reported, and if not,
+`open a new issue
+<https://github.com/mne-tools/mne-python/issues/new?template=bug_report.md>`__.
+If you're *not sure* whether it's a bug, user error, bad data file, etc., try
+asking on the `MNE mailing list`_ or the `MNE gitter channel`_ first. In either
+case, you should:
 
 - Try :ref:`using the latest master version <installing_master>` to see if the
   problem persists before reporting the bug, as it may have been fixed since
@@ -228,8 +231,9 @@ of data. We'll discuss some major ones here, with some of their implications:
 Resampling raw data is taking forever! What do I do?
 ----------------------------------------------------
 
-:func:`mne.io.Raw.resample` was significantly sped up for version 0.12 by
-using the parameter ``npad=='auto'``. Try it, it might help!
+:func:`mne.io.Raw.resample` has a parameter ``npad=='auto'``. This is the
+default, but if you've changed it you could try changing it back to ``'auto'``,
+it might help.
 
 If you have an NVIDIA GPU you could also try using :ref:`CUDA`, which can
 sometimes speed up filtering and resampling operations by an order of
