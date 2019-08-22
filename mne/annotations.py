@@ -850,6 +850,7 @@ def _check_event_id(event_id, raw):
 def events_from_annotations(raw, event_id="auto",
                             regexp=r'^(?![Bb][Aa][Dd]|[Ee][Dd][Gg][Ee]).*$',
                             use_rounding=True, chunk_duration=None,
+                            return_durations=False,
                             verbose=None):
     """Get events and event_id from an Annotations object.
 
@@ -882,16 +883,18 @@ def events_from_annotations(raw, event_id="auto",
 
         .. versionchanged:: 0.18
            Default ignores bad and edge descriptions.
-    use_rounding : boolean
+    use_rounding : bool
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
-    chunk_duration: float | None
+    chunk_duration : float | None
         Chunk duration in seconds. If ``chunk_duration`` is set to None
         (default), generated events correspond to the annotation onsets.
         If not, :func:`mne.events_from_annotations` returns as many events as
         they fit within the annotation duration spaced according to
         ``chunk_duration``. As a consequence annotations with duration shorter
         than ``chunk_duration`` will not contribute events.
+    return_durations : bool
+        If True, also return event durations (in samples).
     %(verbose)s
 
     Returns
@@ -900,6 +903,9 @@ def events_from_annotations(raw, event_id="auto",
         The events.
     event_id : dict
         The event_id variable that can be passed to Epochs.
+    event_duration : ndarray, shape (n_events,)
+        Event durations (in samples). This is returned only if
+        ``return_durations=True``.
     """
     if len(raw.annotations) == 0:
         event_id = dict() if not isinstance(event_id, dict) else event_id
@@ -912,14 +918,22 @@ def events_from_annotations(raw, event_id="auto",
     event_sel, event_id_ = _select_annotations_based_on_description(
         annotations.description, event_id=event_id, regexp=regexp)
 
+    if return_durations:
+        fs = raw.info["sfreq"]
+
     if chunk_duration is None:
         inds = raw.time_as_index(annotations.onset, use_rounding=use_rounding,
                                  origin=annotations.orig_time) + raw.first_samp
 
         values = [event_id_[kk] for kk in annotations.description[event_sel]]
         inds = inds[event_sel]
+        if return_durations:
+            durs = annotations.duration * fs
+            durs = durs[event_sel]
     else:
         inds = values = np.array([]).astype(int)
+        if return_durations:
+            durs = np.array([]).astype(int)
         for annot in annotations[event_sel]:
             annot_offset = annot['onset'] + annot['duration']
             _onsets = np.arange(start=annot['onset'], stop=annot_offset,
@@ -936,10 +950,17 @@ def events_from_annotations(raw, event_id="auto",
                                   fill_value=event_id_[annot['description']],
                                   dtype=int)
                 values = np.append(values, _values)
+                if return_durations:
+                    _durs = np.full(shape=len(_inds),
+                                    fill_value=annot['duration'] * fs,
+                                    dtype=int)
+                    durs = np.append(durs, _durs)
 
     events = np.c_[inds, np.zeros(len(inds)), values].astype(int)
 
     logger.info('Used Annotations descriptions: %s' %
                 (list(event_id_.keys()),))
-
-    return events, event_id_
+    if return_durations:
+        return events, event_id_, durs.astype(int)
+    else:
+        return events, event_id_

@@ -225,6 +225,32 @@ def test_chunk_duration(first_samp):
     assert_array_equal(events, expected_events)
 
 
+def test_events_from_annotations_durations():
+    """Test if durations are returned correctly."""
+    raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
+                   info=create_info(ch_names=10, sfreq=1.))
+    raw.info['meas_date'] = 0
+    raw.set_annotations(Annotations(description=['foo', 'bar', 'baz'],
+                                    onset=[0, 5, 6],
+                                    duration=[6, 1, 3], orig_time=None))
+
+    # get all events
+    expected_events = np.array([[0, 5, 6], [0, 0, 0], [3, 1, 2]], dtype=int).T
+    expected_durs = np.array([6, 1, 3], dtype=int)
+
+    events, ids, durs = events_from_annotations(raw, return_durations=True)
+    assert_array_equal(events, expected_events)
+    assert_array_equal(durs, expected_durs)
+
+    # get events longer than 5s (chunk_duration=5)
+    expected_events = np.array([[0], [0], [3]], dtype=int).T
+    expected_durs = np.array([6], dtype=int)
+    events, ids, durs = events_from_annotations(raw, return_durations=True,
+                                                chunk_duration=5)
+    assert_array_equal(events, expected_events)
+    assert_array_equal(durs, expected_durs)
+
+
 def test_crop_more():
     """Test more cropping."""
     raw = mne.io.read_raw_fif(fif_fname).crop(0, 11).load_data()
