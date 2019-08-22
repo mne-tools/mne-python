@@ -1902,7 +1902,10 @@ class Epochs(BaseEpochs):
 
     If `event_repeated` is set to "merge", the coinciding events (duplicates)
     will be merged into a single event_id and assigned a new id_number as
-    follows: `event_id['{event_id_1}/{event_id_2}/...'] = new_id_number`
+    follows: `event_id['{event_id_1}/{event_id_2}/...'] = new_id_number`.
+    For example with the event_id {'aud': 1, 'vis': 2} and the events
+    [[0, 0, 1], [0, 0, 2]], the "merge" behavior will update both event_id and
+    events to be: {'aud/vis': 3} and [[0, 0, 3], ] respectively.
 
     """
     @verbose
