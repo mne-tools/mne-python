@@ -8,21 +8,20 @@ import pytest
 from mne.utils import _TempDir, requires_h5py, run_tests_if_main
 from mne.source_tfr import SourceTFR
 
-np.random.seed(seed=23)
-
+rnd = np.random.RandomState(23)
 
 @pytest.fixture(scope="module")
 def fake_stfr():
     """Create a fake SourceTFR object for testing."""
     verts = [np.arange(10), np.arange(90)]
-    return SourceTFR(np.random.rand(100, 20, 10), verts, 0, 1e-1, 'foo')
+    return SourceTFR(rnd.rand(100, 20, 10), verts, 0, 1e-1, 'foo')
 
 
 @pytest.fixture(scope="module")
 def fake_kernel_stfr():
     """Create a fake kernel SourceTFR object for testing."""
-    kernel = np.random.rand(100, 40)
-    sens_data = np.random.rand(40, 20, 10)
+    kernel = rnd.rand(100, 40)
+    sens_data = rnd.rand(40, 20, 10)
     verts = [np.arange(10), np.arange(90)]
     return SourceTFR((kernel, sens_data), verts, 0, 1e-1, 'foo')
 
@@ -30,8 +29,8 @@ def fake_kernel_stfr():
 def test_stfr_kernel_equality(fake_stfr, fake_kernel_stfr):
     """Test if kernelized SourceTFR produce correct data."""
     # compare kernelized and normal data
-    kernel = np.random.rand(100, 40)
-    sens_data = np.random.rand(40, 10, 30)
+    kernel = rnd.rand(100, 40)
+    sens_data = rnd.rand(40, 10, 30)
     verts = [np.arange(10), np.arange(90)]
     data = np.tensordot(kernel, sens_data, axes=([-1], [0]))
     tmin = 0
@@ -98,7 +97,7 @@ def test_stfr_attributes(fake_stfr):
         attempt_assignment(stfr, 'tstep', -1)
 
     # Changing .data re-computes .times
-    stfr.data = np.random.rand(100, 20, 5)
+    stfr.data = rnd.rand(100, 20, 5)
     assert_allclose(stfr.times, [1., 2., 3., 4., 5.])
 
     # .data must match the number of vertices
@@ -176,7 +175,7 @@ def test_stfr_crop(fake_stfr, fake_kernel_stfr):
 
 def test_invalid_params():
     """Test invalid SourceTFR parameters."""
-    data = np.random.rand(40, 10, 20)
+    data = rnd.rand(40, 10, 20)
     verts = [np.arange(10), np.arange(30)]
     tmin = 0
     tstep = 1e-3
@@ -203,15 +202,15 @@ def test_invalid_params():
 
     with pytest.raises(ValueError,
                        match='vertices .*? and stfr.shape.*? must match'):
-        SourceTFR(np.random.rand(42, 10, 20), verts, tmin, tstep)
+        SourceTFR(np.ones([42, 10, 20]), verts, tmin, tstep)
 
     with pytest.raises(ValueError,
                        match='(shape .*?) must have .*? dimensions'):
-        SourceTFR(np.random.rand(40, 10, 20, 10), verts, tmin, tstep)
+        SourceTFR(np.ones([40, 10, 20, 10]), verts, tmin, tstep)
 
     with pytest.raises(ValueError,
                        match='multiple orientations.*? must be 3'):
-        SourceTFR(np.random.rand(40, 10, 20, 10), verts, tmin, tstep,
+        SourceTFR(np.ones([40, 10, 20, 10]), verts, tmin, tstep,
                   dims=("dipoles", "orientations", "freqs", "times"))
 
     with pytest.raises(ValueError,
