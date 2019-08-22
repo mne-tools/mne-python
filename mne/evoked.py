@@ -206,7 +206,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Channel names."""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None):
+    @fill_doc
+    def crop(self, tmin=None, tmax=None, include_tmax=True):
         """Crop data to a given time interval.
 
         Parameters
@@ -215,6 +216,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        %(include_tmax)s
 
         Returns
         -------
@@ -226,7 +228,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Unlike Python slices, MNE time intervals include both their end points;
         crop(tmin, tmax) returns the interval tmin <= t <= tmax.
         """
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                          include_tmax=include_tmax)
         self.times = self.times[mask]
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1

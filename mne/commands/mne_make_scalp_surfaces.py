@@ -15,10 +15,11 @@ Examples
     $ mne make_scalp_surfaces --overwrite --subject sample
 
 """
-import os
 import copy
+import os
 import os.path as op
 import sys
+
 import mne
 from mne.utils import (run_subprocess, verbose, logger, ETSContext,
                        get_subjects_dir)
@@ -134,5 +135,4 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
         mne.write_bem_surfaces(dec_fname, dec_surf)
 
 
-if (__name__ == '__main__'):
-    run()
+mne.utils.run_command_if_main()

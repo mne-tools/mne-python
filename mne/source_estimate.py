@@ -589,7 +589,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             self._kernel = None
             self._sens_data = None
 
-    def crop(self, tmin=None, tmax=None):
+    @fill_doc
+    def crop(self, tmin=None, tmax=None, include_tmax=True):
         """Restrict SourceEstimate to a time interval.
 
         Parameters
@@ -598,8 +599,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             The first time point in seconds. If None the first present is used.
         tmax : float | None
             The last time point in seconds. If None the last present is used.
+        %(include_tmax)s
         """
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.sfreq)
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.sfreq,
+                          include_tmax=include_tmax)
         self.tmin = self.times[np.where(mask)[0][0]]
         if self._kernel is not None and self._sens_data is not None:
             self._sens_data = self._sens_data[..., mask]

@@ -15,6 +15,7 @@ Examples
 import sys
 import time
 
+import mne
 from mne.report import Report
 from mne.utils import verbose, logger
 
@@ -98,6 +99,4 @@ def run():
     log_elapsed(time.time() - t0, verbose=verbose)
     report.save(open_browser=open_browser, overwrite=overwrite)
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

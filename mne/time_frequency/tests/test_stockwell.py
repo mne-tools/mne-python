@@ -20,7 +20,8 @@ from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _st_power_itc)
 
 from mne.time_frequency.tfr import AverageTFR
-from mne.time_frequency.tests.test_tfr import _create_ref_data
+from mne.time_frequency.tests.test_tfr import (_create_ref_data,
+                                               _check_stc_list_input)
 from mne.utils import run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -133,16 +134,21 @@ def test_stockwell_api():
     assert (np.log(power.data.max()) * 20 <= 0.0)
     assert (np.log(power.data.max()) * 20 <= 0.0)
 
+    # test list input
+    _check_stc_list_input(tfr_stockwell)
+
 
 @pytest.mark.filterwarnings('ignore:.*The unit .*? has changed from NA to V.')
 @pytest.mark.filterwarnings('ignore:.*Applying zero padding.')
 @pytest.mark.parametrize('return_itc', [True, False])
-def test_stfr_stockwell(return_itc):
+@pytest.mark.parametrize('kernel', [True, False])
+def test_stfr_stockwell(return_itc, kernel):
     """Test if SourceTFRs are computed in the same way as sensor space TFRs."""
     fmin = 10
     fmax = 16
 
-    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single = _create_ref_data()
+    epochs_ref, stc_list, stc_gen, evoked_ref, stc_single =\
+        _create_ref_data(kernel)
 
     ep_tfr = tfr_stockwell(epochs_ref, fmin, fmax, return_itc=return_itc)
     list_stfrs = tfr_stockwell(stc_list, fmin, fmax, return_itc=return_itc)
@@ -164,7 +170,7 @@ def test_stfr_stockwell(return_itc):
     single_stfr = tfr_stockwell(stc_single, fmin, fmax, return_itc=False)
 
     assert_allclose(evoked_tfr.data, single_stfr.data)
-    assert_equal(evoked_tfr.method, single_stfr.method)
+    assert evoked_tfr.method == single_stfr.method
 
 
 run_tests_if_main()

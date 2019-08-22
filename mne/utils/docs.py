@@ -37,6 +37,15 @@ preload : bool or str (default False)
     file name of a memory-mapped file which is used to store the data
     on the hard drive (slower, requires less memory)."""
 
+# Cropping
+docdict['include_tmax'] = """
+include_tmax : bool
+    If True (default), include tmax. If False, exclude tmax (similar to how
+    Python indexing typically works).
+
+    .. versionadded:: 0.19
+"""
+
 # General plotting
 docdict["show"] = """
 show : bool

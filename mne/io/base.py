@@ -1346,7 +1346,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             )
             return self, events
 
-    def crop(self, tmin=0.0, tmax=None):
+    @fill_doc
+    def crop(self, tmin=0.0, tmax=None, include_tmax=True):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1363,6 +1364,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             New start time in seconds (must be >= 0).
         tmax : float | None
             New end time in seconds of the data (cannot exceed data duration).
+        %(include_tmax)s
 
         Returns
         -------
@@ -1382,8 +1384,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('tmax (%s) must be less than or equal to the max '
                              'time (%0.4f sec)' % (tmax, max_time))
 
-        smin, smax = np.where(_time_mask(self.times, tmin, tmax,
-                                         sfreq=self.info['sfreq']))[0][[0, -1]]
+        smin, smax = np.where(_time_mask(
+            self.times, tmin, tmax, sfreq=self.info['sfreq'],
+            include_tmax=include_tmax))[0][[0, -1]]
         cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
                                                    dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)

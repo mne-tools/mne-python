@@ -230,6 +230,15 @@ jobs:
             command: |
               python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
+        # Reduce upload time of artifacts we will (almost) never look at
+        - run:
+            name: Reduce artifact upload time
+            command: |
+              if grep -q html_dev build.txt; then
+                tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
+                rm -Rf doc/_build/html/_downloads
+              fi
+
         # Save the JUnit file
         - store_test_results:
             path: doc/_build/test-results
