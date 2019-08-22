@@ -55,5 +55,6 @@ outside of the five categories above:
     data_formats
     channel_types
     units
+    ../generated/commands
     command_line
     report
