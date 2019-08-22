@@ -220,7 +220,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     @property
     def data(self):
-        """create the SourceTFR data field.
+        """Create the SourceTFR data field.
 
         Parameters
         ----------
@@ -230,16 +230,11 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         -------
         data : array
             The source level time-frequency transformed data.
-
         """
         if self._data is None:
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
             self._remove_kernel_sens_data_()
-
-            # we don't yet give full support for TFR complex conversion
-            # if 'power' in self.method:
-            #    self._data = (self._data * self._data.conj()).real
 
         return self._data
 
