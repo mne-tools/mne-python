@@ -4,10 +4,11 @@
 #
 # License: BSD (3-clause)
 
-
-import operator
 from distutils.version import LooseVersion
+import operator
+import os
 import os.path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -39,6 +40,8 @@ def check_fname(fname, filetype, endings, endings_err=()):
     endings_err : tuple
         Obligatory possible endings for the filename.
     """
+    _validate_type(fname, 'path-like', 'fname')
+    fname = str(fname)
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = ' or '.join([', '.join(endings_err[:-1]),
                                      endings_err[-1]])
@@ -134,7 +137,7 @@ def _check_event_id(event_id, events):
 
 def _check_fname(fname, overwrite=False, must_exist=False):
     """Check for file existence."""
-    _validate_type(fname, 'str', 'fname')
+    _validate_type(fname, 'path-like', 'fname')
     if must_exist and not op.isfile(fname):
         raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
@@ -266,6 +269,17 @@ def _is_numeric(n):
     return isinstance(n, (np.integer, np.floating, int, float))
 
 
+_multi = {
+    'str': (str,),
+    'numeric': (np.integer, np.floating, int, float),
+    'path-like': (str, Path),
+}
+try:
+    _multi['path-like'] += (os.PathLike,)
+except AttributeError:  # only on 3.6+
+    pass
+
+
 def _validate_type(item, types=None, item_name=None, type_name=None):
     """Validate that `item` is an instance of `types`.
 
@@ -273,31 +287,26 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     ----------
     item : object
         The thing to be checked.
-    types : type | tuple of types | str
-         The types to be checked against. If str, must be one of 'str', 'int',
-         'numeric'.
+    types : type | str | tuple of types | tuple of str
+         The types to be checked against.
+         If str, must be one of {'int', 'str', 'numeric', 'info', 'path-like'}.
     """
     if types == "int":
         _ensure_int(item, name=item_name)
         return  # terminate prematurely
-    elif types == "str":
-        types = str
-        type_name = "str" if type_name is None else type_name
-    elif types == "numeric":
-        types = (np.integer, np.floating, int, float)
-        type_name = "numeric" if type_name is None else type_name
     elif types == "info":
         from mne.io import Info as types
-        type_name = "Info" if type_name is None else type_name
-        item_name = "Info" if item_name is None else item_name
+
     if not isinstance(types, (list, tuple)):
         types = [types]
 
-    check_types = tuple(type(None) if type_ is None else type_
-                        for type_ in types)
+    check_types = sum(((type(None),) if type_ is None else (type_,)
+                       if not isinstance(type_, str) else _multi[type_]
+                       for type_ in types), ())
     if not isinstance(item, check_types):
         if type_name is None:
             type_name = ['None' if cls_ is None else cls_.__name__
+                         if not isinstance(cls_, str) else cls_
                          for cls_ in types]
             if len(type_name) == 1:
                 type_name = type_name[0]

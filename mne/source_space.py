@@ -238,7 +238,8 @@ class SourceSpaces(list):
     @verbose
     def export_volume(self, fname, include_surfaces=True,
                       include_discrete=True, dest='mri', trans=None,
-                      mri_resolution=False, use_lut=True, verbose=None):
+                      mri_resolution=False, use_lut=True, overwrite=False,
+                      verbose=None):
         """Export source spaces to nifti or mgz file.
 
         Parameters
@@ -267,12 +268,18 @@ class SourceSpaces(list):
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
+        overwrite : bool
+            If True, overwrite the file if it exists.
+
+            .. versionadded:: 0.19
         %(verbose_meth)s
 
         Notes
         -----
         This method requires nibabel.
         """
+        _check_fname(fname, overwrite)
+        fname = str(fname)
         # import nibabel or raise error
         try:
             import nibabel as nib

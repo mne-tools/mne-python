@@ -13,7 +13,7 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .constants import FIFF
-from ..utils import logger
+from ..utils import logger, _file_like
 from ..externals.jdcal import jcal2jd
 
 
@@ -299,7 +299,11 @@ def start_file(fname, id_=None):
     id_ : dict | None
         ID to use for the FIFF_FILE_ID.
     """
-    if isinstance(fname, str):
+    if _file_like(fname):
+        logger.debug('Writing using %s I/O' % type(fname))
+        fid = fname
+        fid.seek(0)
+    else:
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much
@@ -308,10 +312,6 @@ def start_file(fname, id_=None):
         else:
             logger.debug('Writing using normal I/O')
             fid = open(fname, "wb")
-    else:
-        logger.debug('Writing using %s I/O' % type(fname))
-        fid = fname
-        fid.seek(0)
     #   Write the compulsory items
     write_id(fid, FIFF.FIFF_FILE_ID, id_)
     write_int(fid, FIFF.FIFF_DIR_POINTER, -1)

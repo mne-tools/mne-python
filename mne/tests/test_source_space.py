@@ -93,7 +93,6 @@ def test_add_patch_info(monkeypatch):
 @testing.requires_testing_data
 def test_add_source_space_distances_limited(tmpdir):
     """Test adding distances to source space with a dist_limit."""
-    tempdir = str(tmpdir)
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
@@ -101,7 +100,7 @@ def test_add_source_space_distances_limited(tmpdir):
     n_do = 200  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
-    out_name = op.join(tempdir, 'temp-src.fif')
+    out_name = tmpdir.join('temp-src.fif')
     add_source_space_distances(src_new, dist_limit=0.007)
     write_source_spaces(out_name, src_new)
     src_new = read_source_spaces(out_name)
@@ -128,7 +127,6 @@ def test_add_source_space_distances_limited(tmpdir):
 @testing.requires_testing_data
 def test_add_source_space_distances(tmpdir):
     """Test adding distances to source space."""
-    tempdir = str(tmpdir)
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
@@ -136,7 +134,7 @@ def test_add_source_space_distances(tmpdir):
     n_do = 19  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
-    out_name = op.join(tempdir, 'temp-src.fif')
+    out_name = tmpdir.join('temp-src.fif')
     n_jobs = 2
     assert n_do % n_jobs != 0
     add_source_space_distances(src_new, n_jobs=n_jobs)
@@ -171,15 +169,14 @@ def test_add_source_space_distances(tmpdir):
 @requires_mne
 def test_discrete_source_space(tmpdir):
     """Test setting up (and reading/writing) discrete source spaces."""
-    tempdir = str(tmpdir)
     src = read_source_spaces(fname)
     v = src[0]['vertno']
 
     # let's make a discrete version with the C code, and with ours
-    temp_name = op.join(tempdir, 'temp-src.fif')
+    temp_name = tmpdir.join('temp-src.fif')
     try:
         # save
-        temp_pos = op.join(tempdir, 'temp-pos.txt')
+        temp_pos = tmpdir.join('temp-pos.txt')
         np.savetxt(temp_pos, np.c_[src[0]['rr'][v], src[0]['nn'][v]])
         # let's try the spherical one (no bem or surf supplied)
         run_subprocess(['mne_volume_source_space', '--meters',
@@ -214,9 +211,8 @@ def test_discrete_source_space(tmpdir):
 @testing.requires_testing_data
 def test_volume_source_space(tmpdir):
     """Test setting up volume source spaces."""
-    tempdir = str(tmpdir)
     src = read_source_spaces(fname_vol)
-    temp_name = op.join(tempdir, 'temp-src.fif')
+    temp_name = tmpdir.join('temp-src.fif')
     surf = read_bem_surfaces(fname_bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN)
     surf['rr'] *= 1e3  # convert to mm
     bem_sol = read_bem_solution(fname_bem_3_sol)
@@ -270,8 +266,7 @@ def test_other_volume_source_spaces(tmpdir):
     # Travis doesn't seem to like them
 
     # let's try the spherical one (no bem or surf supplied)
-    tempdir = str(tmpdir)
-    temp_name = op.join(tempdir, 'temp-src.fif')
+    temp_name = tmpdir.join('temp-src.fif')
     run_subprocess(['mne_volume_source_space',
                     '--grid', '7.0',
                     '--src', temp_name,
@@ -355,7 +350,6 @@ def test_accumulate_normals():
 @testing.requires_testing_data
 def test_setup_source_space(tmpdir):
     """Test setting up ico, oct, and all source spaces."""
-    tempdir = str(tmpdir)
     fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
     # first lets test some input params
@@ -390,7 +384,7 @@ def test_setup_source_space(tmpdir):
 
     # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
-    temp_name = op.join(tempdir, 'temp-src.fif')
+    temp_name = tmpdir.join('temp-src.fif')
     with pytest.warns(None):  # sklearn equiv neighbors
         src_new = setup_source_space('sample', spacing='oct6',
                                      subjects_dir=subjects_dir, add_dist=False)
@@ -418,13 +412,12 @@ def test_setup_source_space(tmpdir):
 @pytest.mark.parametrize('spacing', [2, 7])
 def test_setup_source_space_spacing(tmpdir, spacing):
     """Test setting up surface source spaces using a given spacing."""
-    tempdir = str(tmpdir)
-    copytree(op.join(subjects_dir, 'sample'), op.join(tempdir, 'sample'))
+    copytree(op.join(subjects_dir, 'sample'), tmpdir.join('sample'))
     args = [] if spacing == 7 else ['--spacing', str(spacing)]
-    with modified_env(SUBJECTS_DIR=tempdir, SUBJECT='sample'):
+    with modified_env(SUBJECTS_DIR=str(tmpdir), SUBJECT='sample'):
         run_subprocess(['mne_setup_source_space'] + args)
-    src = read_source_spaces(op.join(tempdir, 'sample', 'bem',
-                                     'sample-%d-src.fif' % spacing))
+    src = read_source_spaces(tmpdir.join('sample', 'bem',
+                                         'sample-%d-src.fif' % spacing))
     src_new = setup_source_space('sample', spacing=spacing, add_dist=False,
                                  subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx', nearest=True)
@@ -461,15 +454,14 @@ def test_read_source_spaces():
 @testing.requires_testing_data
 def test_write_source_space(tmpdir):
     """Test reading and writing of source spaces."""
-    tempdir = str(tmpdir)
     src0 = read_source_spaces(fname, patch_stats=False)
-    write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
-    src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'),
-                              patch_stats=False)
+    temp_fname = tmpdir.join('tmp-src.fif')
+    write_source_spaces(temp_fname, src0)
+    src1 = read_source_spaces(temp_fname, patch_stats=False)
     _compare_source_spaces(src0, src1)
 
     # test warnings on bad filenames
-    src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    src_badname = tmpdir.join('test-bad-name.fif.gz')
     with pytest.warns(RuntimeWarning, match='-src.fif'):
         write_source_spaces(src_badname, src0)
     with pytest.warns(RuntimeWarning, match='-src.fif'):
@@ -550,7 +542,6 @@ def test_get_volume_label_names():
 @requires_nibabel()
 def test_source_space_from_label(tmpdir):
     """Test generating a source space from volume label."""
-    tempdir = str(tmpdir)
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_label = label_names[int(np.random.rand() * len(label_names))]
@@ -574,7 +565,7 @@ def test_source_space_from_label(tmpdir):
     assert_equal(volume_label, src[0]['seg_name'])
 
     # test reading and writing
-    out_name = op.join(tempdir, 'temp-src.fif')
+    out_name = tmpdir.join('temp-src.fif')
     write_source_spaces(out_name, src)
     src_from_file = read_source_spaces(out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
@@ -618,7 +609,6 @@ def test_read_volume_from_src():
 @requires_nibabel()
 def test_combine_source_spaces(tmpdir):
     """Test combining source spaces."""
-    tempdir = str(tmpdir)
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_labels = [label_names[int(np.random.rand() * len(label_names))]
@@ -648,7 +638,7 @@ def test_combine_source_spaces(tmpdir):
     assert_equal(len(src), 4)
 
     # test reading and writing
-    src_out_name = op.join(tempdir, 'temp-src.fif')
+    src_out_name = tmpdir.join('temp-src.fif')
     src.save(src_out_name)
     src_from_file = read_source_spaces(src_out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
@@ -660,7 +650,7 @@ def test_combine_source_spaces(tmpdir):
     assert (coord_frames == FIFF.FIFFV_COORD_MRI).all()
 
     # test errors for export_volume
-    image_fname = op.join(tempdir, 'temp-image.mgz')
+    image_fname = tmpdir.join('temp-image.mgz')
 
     # source spaces with no volume
     pytest.raises(ValueError, srf.export_volume, image_fname, verbose='error')
@@ -673,7 +663,7 @@ def test_combine_source_spaces(tmpdir):
                   verbose='error')
 
     # unrecognized file type
-    bad_image_fname = op.join(tempdir, 'temp-image.png')
+    bad_image_fname = tmpdir.join('temp-image.png')
     # vertices outside vol space warning
     pytest.raises(ValueError, src.export_volume, bad_image_fname,
                   verbose='error')
