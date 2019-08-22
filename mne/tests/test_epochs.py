@@ -100,6 +100,15 @@ def test_handle_duplicate_events():
     np.testing.assert_array_equal(events, np.array([[0, 0, 5], ]))
     del heterogeneous_events
 
+    # Test keeping a homogeneous "prior-to-event" code
+    homogeneous_events = np.array([[0, 99, 1], [0, 99, 2],
+                                   [1, 0, 1], [2, 0, 2]])
+    events, event_id = _handle_duplicate_events(homogeneous_events,
+                                                EVENT_ID, 'merge')
+    assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
+    np.testing.assert_array_equal(events, np.array([[0, 99, 3],
+                                                    [1, 0, 1], [2, 0, 2]]))
+
 
 def _get_data(preload=False):
     """Get data."""
