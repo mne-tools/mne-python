@@ -213,9 +213,10 @@ def _handle_duplicate_events(events, event_id, event_repeated):
             # indices at which the non-unique events happened
             idxs = (events[:, 0] == ev).nonzero()[0]
 
-            # Figure out event_codes prior to events to be merged
+            # Figure out event_codes prior to events to be merged, fall back
+            # to 0, if heterogeneous codes exist
             prior_codes = events[idxs, 1]
-            new_prior = np.nan
+            new_prior = 0
             if len(np.unique(prior_codes)) == 1:
                 new_prior = np.unique(prior_codes)[0]
 
