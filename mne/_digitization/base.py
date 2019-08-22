@@ -48,7 +48,7 @@ class DigPoint(dict):
     ident : int
         Number specifying the identity of the point.
         e.g.  ``FIFFV_POINT_NASION`` if kind is ``FIFFV_POINT_CARDINAL``,
-                or 42 if kind is ``FIFFV_POINT_EEG``.
+        or 42 if kind is ``FIFFV_POINT_EEG``.
     coord_frame : int
         The coordinate frame used, e.g. ``FIFFV_COORD_HEAD``.
     """
