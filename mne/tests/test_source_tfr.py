@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+#
+# Authors: Dirk Gütlin <dirk.guetlin@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
+#
+# License: BSD (3-clause)
+
 from copy import deepcopy
 import os.path as op
 
