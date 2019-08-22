@@ -84,8 +84,8 @@ return their object to allow `method chaining`_). In-place operation may lead
 you to frequent use of the ``copy()`` method during interactive, exploratory
 analysis — so you can try out different preprocessing approaches or parameter
 settings without having to re-load the data each time — but it can also be a
-big time-saver when applying a finished script to dozens of subjects' worth of
-data.
+big memory-saver when applying a finished script to dozens of subjects' worth
+of data.
 
 
 
