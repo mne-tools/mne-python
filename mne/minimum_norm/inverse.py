@@ -1082,7 +1082,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 
     if delayed and is_free_ori and pick_ori != "vector":
         raise ValueError("delayed must be False for free orientations other "
-                         "than pick_ori='vector'.")
+                         "than pick_ori='vector' or 'normal'.")
 
     #
     #   Set up the inverse according to the parameters
