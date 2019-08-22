@@ -78,6 +78,12 @@ def test_handle_duplicate_events():
     np.testing.assert_array_equal(events3, np.array([[0, 0, 3], ]))
     assert 'aud/vis' in event_id3.keys()
 
+    # Test early return with no changes
+    fine_events = np.array([[0, 0, 1], [1, 0, 2]])
+    events4, event_id4 = _handle_duplicate_events(fine_events, event_id, 'no')
+    assert event_id == event_id4
+    np.testing.assert_array_equal(events4, fine_events)
+
 
 def _get_data(preload=False):
     """Get data."""
