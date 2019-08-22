@@ -75,15 +75,9 @@ activity, you will most likely need:
 Getting help
 ^^^^^^^^^^^^
 
-There are three main channels for obtaining help with MNE software tools.
+Help with installation is available through the `MNE mailing list`_ and
+`MNE gitter channel`_. See the :ref:`help` page for more information.
 
-The `MNE mailing list`_ and `MNE gitter channel`_ are a good place to start for
-both troubleshooting and general questions.  If you want to request new
-features or if you're confident that you have found a bug, please create a new
-issue on the `GitHub issues page`_. When reporting bugs, please try to
-replicate the bug with the MNE-Python sample data, and make every effort to
-simplify your example script to only the elements necessary to replicate the
-bug.
 
 **Next:** :doc:`mne_python`
 
