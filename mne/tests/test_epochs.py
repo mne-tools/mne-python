@@ -61,28 +61,44 @@ rng = np.random.RandomState(42)
 
 def test_handle_duplicate_events():
     """Test handling of duplicate events."""
-    event_id = {'aud': 1, 'vis': 2}
-    events = np.array([[0, 0, 1], [0, 0, 2]])
+    # A general test case
+    EVENT_ID = {'aud': 1, 'vis': 2}
+    EVENTS = np.array([[0, 0, 1], [0, 0, 2]])
 
     with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
-        _handle_duplicate_events(events, event_id, event_repeated='error')
+        _handle_duplicate_events(EVENTS, EVENT_ID, event_repeated='error')
 
     with pytest.raises(ValueError, match='`event_repeated` must be one of '):
-        _handle_duplicate_events(events, event_id, event_repeated='bogus')
+        _handle_duplicate_events(EVENTS, EVENT_ID, event_repeated='bogus')
 
-    events2, event_id2 = _handle_duplicate_events(events, event_id, 'drop')
-    np.testing.assert_array_equal(events2, np.array([[0, 0, 1], ]))
-    assert event_id2 == event_id
+    events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'drop')
+    np.testing.assert_array_equal(events, np.array([[0, 0, 1], ]))
+    assert event_id == EVENT_ID
 
-    events3, event_id3 = _handle_duplicate_events(events, event_id, 'merge')
-    np.testing.assert_array_equal(events3, np.array([[0, 0, 3], ]))
-    assert 'aud/vis' in event_id3.keys()
+    events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'merge')
+    np.testing.assert_array_equal(events, np.array([[0, 0, 3], ]))
+    assert 'aud/vis' in event_id.keys()
+    assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
+    assert event_id['aud/vis'] == 3
 
     # Test early return with no changes
     fine_events = np.array([[0, 0, 1], [1, 0, 2]])
-    events4, event_id4 = _handle_duplicate_events(fine_events, event_id, 'no')
-    assert event_id == event_id4
-    np.testing.assert_array_equal(events4, fine_events)
+    events, event_id = _handle_duplicate_events(fine_events, EVENT_ID, 'no')
+    assert event_id == EVENT_ID
+    np.testing.assert_array_equal(events, fine_events)
+    del fine_events
+
+    # Test falling back on 0 for heterogeneous "prior-to-event" codes
+    # order of third column determines new event_id key:  aud/vis -> vis/aud
+    # should make new event_id value: 5 (because 1,2,3,4 are taken)
+    heterogeneous_events = np.array([[0, 3, 2], [0, 4, 1]])
+    events, event_id = _handle_duplicate_events(heterogeneous_events,
+                                                EVENT_ID, 'merge')
+    assert 'vis/aud' in event_id.keys()
+    assert set(event_id.keys()) == set(['aud', 'vis', 'vis/aud'])
+    assert event_id['vis/aud'] == 5
+    np.testing.assert_array_equal(events, np.array([[0, 0, 5], ]))
+    del heterogeneous_events
 
 
 def _get_data(preload=False):
