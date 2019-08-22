@@ -85,9 +85,9 @@ def _simulate_data(fwd):
     noise = random.randn(*raw._data.shape) * 1e-14
     raw._data += noise
 
-    # Define a single epoch
+    # Define a single epoch (weird baseline but shouldn't matter)
     epochs = mne.Epochs(raw, [[0, 0, 1]], event_id=1, tmin=0,
-                        tmax=raw.times[-1], preload=True)
+                        tmax=raw.times[-1], baseline=(0., 0.), preload=True)
     evoked = epochs.average()
 
     # Compute the cross-spectral density matrix

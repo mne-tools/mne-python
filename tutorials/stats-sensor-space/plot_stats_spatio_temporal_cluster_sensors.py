@@ -10,8 +10,8 @@ the adjacency between sensors. This serves as a spatial prior
 to the clustering. Spatiotemporal clusters will then
 be visualized using custom matplotlib code.
 
-Caveat for the interpretation of "significant" clusters: see
-the `FieldTrip website`_.
+See the `FieldTrip website`_ for a caveat regarding
+the possible interpretation of "significant" clusters.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>

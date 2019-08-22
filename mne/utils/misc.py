@@ -269,3 +269,13 @@ def sizeof_fmt(num):
         return '0 bytes'
     if num == 1:
         return '1 byte'
+
+
+def _file_like(obj):
+    # An alternative would be::
+    #
+    #   isinstance(obj, (TextIOBase, BufferedIOBase, RawIOBase, IOBase))
+    #
+    # but this might be more robust to file-like objects not properly
+    # inheriting from these classes:
+    return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))

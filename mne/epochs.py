@@ -1307,7 +1307,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s  |  %s>' % (class_name, s)
 
-    def crop(self, tmin=None, tmax=None):
+    @fill_doc
+    def crop(self, tmin=None, tmax=None, include_tmax=True):
         """Crop a time interval from the epochs.
 
         Parameters
@@ -1316,6 +1317,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        %(include_tmax)s
 
         Returns
         -------
@@ -1346,7 +1348,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  'epochs.tmax')
             tmax = self.tmax
 
-        tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                           include_tmax=include_tmax)
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
@@ -1588,6 +1591,11 @@ def _check_baseline(baseline, tmin, tmax, sfreq):
         if not isinstance(baseline, tuple) or len(baseline) != 2:
             raise ValueError('`baseline=%s` is an invalid argument, must be '
                              'a tuple of length 2 or None' % str(baseline))
+        # check default value of baseline and `tmin=0`
+        if baseline == (None, 0) and tmin == 0:
+            raise ValueError('Baseline interval is only one sample. Use '
+                             '`baseline=(0, 0)` if this is desired.')
+
         baseline_tmin, baseline_tmax = baseline
         tstep = 1. / float(sfreq)
         if baseline_tmin is None:

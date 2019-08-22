@@ -8,6 +8,7 @@ from copy import deepcopy
 from functools import partial
 from io import BytesIO
 import os.path as op
+import pathlib
 import pickle
 import sys
 
@@ -937,6 +938,11 @@ def test_crop():
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
         raws[ri] = raw.copy().crop(tmin, tmax)
+        if ri < len(tmins) - 1:
+            assert_allclose(
+                raws[ri].times,
+                raw.copy().crop(tmin, tmins[ri + 1], include_tmax=False).times)
+        assert raws[ri]
     all_raw_2 = concatenate_raws(raws, preload=False)
     assert raw.first_samp == all_raw_2.first_samp
     assert raw.last_samp == all_raw_2.last_samp
@@ -967,6 +973,10 @@ def test_crop():
     for tmin in range(0, 1001, 100):
         raw1 = raw.copy().crop(tmin=tmin, tmax=tmin + 2)
         assert raw1[:][0].shape == (1, 2001)
+
+    # degenerate
+    with pytest.raises(ValueError, match='No samples.*when include_tmax=Fals'):
+        raw.crop(0, 0, include_tmax=False)
 
 
 @testing.requires_testing_data
@@ -1536,6 +1546,14 @@ def test_file_like(kind, preload, split, tmpdir):
         assert not fid.closed
         assert not file_fid.closed
     assert file_fid.closed
+
+
+def test_str_like():
+    """Test handling with str-like objects."""
+    fname = pathlib.Path(test_fif_fname)
+    raw_path = read_raw_fif(fname, preload=True)
+    raw_str = read_raw_fif(test_fif_fname, preload=True)
+    assert_allclose(raw_path._data, raw_str._data)
 
 
 run_tests_if_main()

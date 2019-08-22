@@ -61,9 +61,9 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
     'sphinx.ext.graphviz',
+    'numpydoc',
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
-    'numpydoc',
     'gen_commands',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
@@ -297,7 +297,7 @@ trim_doctests_flags = True
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://www.numpy.org/devdocs', None),
+    'numpy': ('https://numpy.org/devdocs', None),
     'scipy': ('https://scipy.github.io/devdocs', None),
     'matplotlib': ('https://matplotlib.org', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
@@ -309,8 +309,8 @@ intersphinx_mapping = {
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
-    'dipy': ('http://nipy.org/dipy', None),
-    'mne_realtime': ('https://mne-tools.github.io/mne-realtime', None),
+    'dipy': ('https://dipy.org/documentation/latest/', None),
+    'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
 
@@ -348,9 +348,35 @@ if any(x in scrapers for x in ('pyvista', 'mayavi')):
     push_exception_handler(reraise_exceptions=True)
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
+else:
+    report_scraper = None
+
+
+def append_attr_meth_examples(app, what, name, obj, options, lines):
+    """Append SG examples backreferences to method and attr docstrings."""
+    # NumpyDoc nicely embeds method and attribute docstrings for us, but it
+    # does not respect the autodoc templates that would otherwise insert
+    # the .. include:: lines, so we need to do it.
+    # Eventually this could perhaps live in SG.
+    if what in ('attribute', 'method'):
+        size = os.path.getsize(op.join(
+            op.dirname(__file__), 'generated', '%s.examples' % (name,)))
+        if size > 0:
+            lines += """
+.. rubric:: Examples using ``{0}``:
+
+.. include:: {1}.examples
+   :start-line: 5
+
+.. raw:: html
+
+    <div style="clear:both"></div>
+""".format(name.split('.')[-1], name).split('\n')
 
 
 def setup(app):
+    """Set up the Sphinx app."""
+    app.connect('autodoc-process-docstring', append_attr_meth_examples)
     if report_scraper is not None:
         report_scraper.app = app
         app.connect('build-finished', report_scraper.copyfiles)
@@ -464,6 +490,7 @@ sphinx_gallery_conf = {
     'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
     'download_section_examples': False,
     'thumbnail_size': (160, 112),
+    'remove_config_comments': True,
     'min_reported_time': 1.,
     'abort_on_example_error': False,
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script

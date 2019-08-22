@@ -25,10 +25,6 @@ from ..constants import FIFF
 from ...filter import resample
 from ...utils import copy_function_doc_to_method_doc, deprecated, fill_doc
 from ...annotations import Annotations, events_from_annotations
-from ._utils import _load_gdf_events_lut
-
-
-GDF_EVENTS_LUT = _load_gdf_events_lut()
 
 
 @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
@@ -1437,6 +1433,6 @@ def _get_annotations_gdf(edf_info, sfreq):
     if events is not None and events[1].shape[0] > 0:
         onset = events[1] / sfreq
         duration = events[4] / sfreq
-        desc = [GDF_EVENTS_LUT.get(key, 'Undefined(%s)' % (key,))
-                for key in events[2]]
+        desc = events[2]
+
     return onset, duration, desc

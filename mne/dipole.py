@@ -164,7 +164,8 @@ class Dipole(object):
                 fid.write(('## Name "%s dipoles" Style "Dipoles"'
                            % self.name).encode('utf-8'))
 
-    def crop(self, tmin=None, tmax=None):
+    @fill_doc
+    def crop(self, tmin=None, tmax=None, include_tmax=True):
         """Crop data to a given time interval.
 
         Parameters
@@ -173,6 +174,7 @@ class Dipole(object):
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        %(include_tmax)s
 
         Returns
         -------
@@ -182,7 +184,8 @@ class Dipole(object):
         sfreq = None
         if len(self.times) > 1:
             sfreq = 1. / np.median(np.diff(self.times))
-        mask = _time_mask(self.times, tmin, tmax, sfreq=sfreq)
+        mask = _time_mask(self.times, tmin, tmax, sfreq=sfreq,
+                          include_tmax=include_tmax)
         for attr in ('times', 'pos', 'gof', 'amplitude', 'ori',
                      'khi2', 'nfree'):
             if getattr(self, attr) is not None:

@@ -31,6 +31,7 @@ Examples
 
 import sys
 
+import mne
 from mne.io import read_raw_bti
 
 
@@ -89,9 +90,5 @@ def run():
 
     raw.save(out_fname)
     raw.close()
-    if is_main:
-        sys.exit(0)
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()
