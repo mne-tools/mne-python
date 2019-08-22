@@ -1,3 +1,5 @@
+.. include:: ../links.inc
+
 .. _design_philosophy:
 
 MNE-Python design philosophy
@@ -23,11 +25,11 @@ Integration with the scientific python stack
 MNE-Python also integrates well with other standard scientific python
 libraries. For example, MNE-Python objects underlyingly store their data in
 NumPy arrays, making it easy to apply custom algorithms or pass your data into
-one of :mod:`scikit-learn <sklearn>`'s machine learning pipelines. MNE-Python's
-2-D plotting functions also return matplotlib
+one of `scikit-learn's <scikit-learn>`_ machine learning pipelines.
+MNE-Python's 2-D plotting functions also return `matplotlib`_
 :class:`~matplotlib.figure.Figure` objects, and the 3D plotting functions
-return mayavi scenes, so you can customize your MNE-Python plots using any of
-matplotlib or mayavi's plotting commands. The intent is that MNE-Python will
+return `mayavi`_ scenes, so you can customize your MNE-Python plots using any
+of matplotlib or mayavi's plotting commands. The intent is that MNE-Python will
 get most neuroscientists 90% of the way to their desired analysis goal, and
 other packages can get them over the finish line.
 

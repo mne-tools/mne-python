@@ -5,12 +5,12 @@ Documentation overview
 
 The documentation for MNE-Python is divided into five main sections:
 
-1. The :doc:`auto_tutorials/index` provide narrative explanations, sample code,
-   and expected output for the most common MNE-Python analysis tasks. The
-   emphasis is on thorough explanations that get new users up to speed
-   quickly, at the expense of covering only a limited number of topics.
+1. The :doc:`../auto_tutorials/index` provide narrative explanations, sample
+   code, and expected output for the most common MNE-Python analysis tasks. The
+   emphasis is on thorough explanations that get new users up to speed quickly,
+   at the expense of covering only a limited number of topics.
 
-2. The :doc:`Examples Gallery <auto_examples/index>` provides working code
+2. The :doc:`Examples Gallery <../auto_examples/index>` provides working code
    samples demonstrating various analysis and visualization techniques. These
    examples often lack the narrative explanations seen in the tutorials, but
    can be a useful way to discover new analysis or plotting ideas, or to see
@@ -30,7 +30,7 @@ The documentation for MNE-Python is divided into five main sections:
    notebook.
 
 5. The web version of Matti Hämäläinen's original MNE-C documentation,
-   including the :ref:`cookbook`, :ref:`manual/index`, and
+   including the :ref:`cookbook`, :ref:`manual`, and
    :ref:`C API reference <c_reference>`.
 
 .. note::
@@ -55,3 +55,5 @@ outside of the five categories above:
     data_formats
     channel_types
     units
+    command_line
+    report

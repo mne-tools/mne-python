@@ -1,3 +1,5 @@
+:orphan:
+
 .. _contributing:
 
 Contributing to MNE-Python
