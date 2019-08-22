@@ -540,7 +540,6 @@ numpydoc_xref_aliases = {
     'Covariance': 'mne.Covariance', 'Annotations': 'mne.Annotations',
     'Montage': 'mne.channels.Montage',
     'DigMontage': 'mne.channels.DigMontage',
-    'Digitization': 'mne.digitization.Digitization',
     'VectorSourceEstimate': 'mne.VectorSourceEstimate',
     'VolSourceEstimate': 'mne.VolSourceEstimate',
     'VolVectorSourceEstimate': 'mne.VolVectorSourceEstimate',

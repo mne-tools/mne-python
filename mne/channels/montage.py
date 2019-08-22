@@ -547,7 +547,7 @@ class DigMontage(object):
 
         .. versionadded:: 0.19
 
-    dig : instance of Digitization
+    dig : list of dict
         The object containing all the dig points.
     ch_names : list of str
         The names of the EEG channels.
