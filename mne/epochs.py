@@ -224,8 +224,8 @@ def _handle_duplicate_events(events, event_id, event_repeated):
             new_event_id = list()
             for code in ev_codes:
                 # inverse dict lookup, because event_id is a one-to-one map
-                key = event_id.keys()[event_id.values().index(code)]
-                new_event_id.append(key)
+                kk = list(event_id.keys())[list(event_id.values()).index(code)]
+                new_event_id.append(kk)
             new_event_id = '/'.join(new_event_id)
 
             # Check if we already have a corresponding code
@@ -234,8 +234,8 @@ def _handle_duplicate_events(events, event_id, event_repeated):
             # Else, make one and add it to the event_id dict
             if not new_event_code:
                 ev_codes = np.array(list(event_id.values()))
-                ev_codes = np.concat((ev_codes, events[:, 2]), 0)
-                new_event_code = np.setdiff1d(np.arange(900, 9000),
+                ev_codes = np.concatenate((ev_codes, events[:, 2]), 0)
+                new_event_code = np.setdiff1d(np.arange(1, 9999999),
                                               ev_codes).min()
                 event_id[new_event_id] = int(new_event_code)
 
