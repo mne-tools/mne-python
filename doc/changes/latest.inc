@@ -43,8 +43,6 @@ Changelog
 
 - Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
 
-- Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
-
 - Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
 
 - Add scale bars for data channels in :func:`mne.io.Raw.plot` by `Eric Larson`_
