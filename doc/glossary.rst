@@ -5,6 +5,8 @@
 Glossary
 ========
 
+.. currentmodule:: mne
+
 The Glossary provides short definitions of MNE-Python-specific vocabulary and
 general neuroimaging concepts. If you think a term is missing, please consider
 `creating a new issue`_ or `opening a pull request`_ to add it.
