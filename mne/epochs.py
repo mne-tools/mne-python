@@ -1894,7 +1894,7 @@ class Epochs(BaseEpochs):
                  flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, on_missing='error',
                  reject_by_annotation=True, metadata=None,
-                 verbose=None):  # noqa: D102
+                 event_repeated='error', verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of mne.io.BaseRaw')
