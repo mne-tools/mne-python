@@ -1377,7 +1377,6 @@ def test_compensation_raw(tmpdir):
 @requires_mne
 def test_compensation_raw_mne(tmpdir):
     """Test Raw compensation by comparing with MNE-C."""
-
     def compensate_mne(fname, grad):
         tmp_fname = tmpdir.join('mne_ctf_test_raw.fif')
         cmd = ['mne_process_raw', '--raw', fname, '--save', tmp_fname,
