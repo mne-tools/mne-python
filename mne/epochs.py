@@ -336,21 +336,43 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 'simultaneous events and updating event_id.'
                                 .format(msg))
                     new_events = events.copy()
-                    non_uniques = u_evs[counts > 1]
-                    for uu in non_uniques:
-                        idxs = (events[:, 0] == uu).nonzero()[0]
-                        event_times = events[idxs, 0]
-                        prior_codes = events[idxs, 1]
-                        event_codes = events[idxs, 2]
+                    non_u_evs = u_evs[counts > 1]
+                    for ev in non_u_evs:
 
-                        # Merge event codes
-                        # XXX: will fail: Cannot use str in int array
-                        new_events[idxs[0], 2] = '{}'.format(event_codes)
+                        # indices at which the non-unique events happened
+                        idxs = (events[:, 0] == ev).nonzero()[0]
+
+                        # Figure out event_codes prior to events to be merged
+                        prior_codes = events[idxs, 1]
+                        new_prior = np.nan
+                        if len(np.unique(prior_codes)) == 1:
+                            new_prior = np.unique(prior_codes)[0]
+
+                        # Make an event_id for the merged event
+                        ev_codes = events[idxs, 2]
+                        new_event_id = '{}'.format(ev_codes)
+
+                        # Check if we already have a corresponding code
+                        new_event_code = self.event_id.get(new_event_id, False)
+
+                        # Else, make one and add it to the event_id dict
+                        if not new_event_code:
+                            ev_codes = np.array(list(self.event_id.values()))
+                            new_event_code = np.setdiff1d(np.arange(900, 9000),
+                                                          ev_codes).min()
+                            self.event_id[new_event_id] = int(new_event_code)
+
+                        # Replace duplicate event times with merged event
+                        new_events[idxs[0], 1] = new_prior
+                        new_events[idxs[0], 2] = new_event_code
                         new_events = np.delete(new_events, idxs[1:], 0)
+
+                    # Overwrite events with the new events with merged codes
+                    events = new_events
 
                 else:
                     raise ValueError('`event_repeated` must be one of '
-                                     '"error", "merge" but is "{}"'
+                                     '"error", "drop", "merge" but is "{}"'
                                      .format(event_repeated))
 
             n_events = len(events)
