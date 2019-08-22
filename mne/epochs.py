@@ -235,8 +235,8 @@ def _handle_duplicate_events(events, event_id, event_repeated):
 
             # Else, make one and add it to the event_id dict
             if not new_event_code:
-                ev_codes = np.array(list(event_id.values()))
-                ev_codes = np.concatenate((ev_codes, events[:, 2]), 0)
+                ev_codes = np.concatenate((np.array(list(event_id.values())),
+                                           events[:, 1:].flatten()), axis=0)
                 new_event_code = np.setdiff1d(np.arange(1, 9999999),
                                               ev_codes).min()
                 event_id[new_event_id_key] = int(new_event_code)
