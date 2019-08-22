@@ -66,7 +66,7 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{0}{1}] {2:6.02f}% {4} {3}   '
+    template = '\r[{0}{1}] {2} {3} {4}'
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
                  progress_character='.', spinner=False,
@@ -114,10 +114,11 @@ class ProgressBar(object):
             pass a null string, ''.
         """
         cur_time = time.time()
-        cur_rate = ((cur_value - self.cur_value) /
-                    max(float(cur_time - self.cur_time), 1e-6))
+        cur_dt = max(float(cur_time - self.cur_time), 1e-6)
+        cur_rate = (cur_value - self.cur_value) / cur_dt
         # Smooth the estimate a bit
-        cur_rate = 0.1 * cur_rate + 0.9 * self.cur_rate
+        eps = min(cur_dt, 1.)
+        cur_rate = eps * cur_rate + (1 - eps) * self.cur_rate
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
         self.cur_time = cur_time
@@ -135,15 +136,16 @@ class ProgressBar(object):
                     sizeof_fmt(self.cur_value).rjust(8),
                     sizeof_fmt(cur_rate).rjust(8))
             self.mesg = mesg
+        del cur_rate
 
         # The \r tells the cursor to return to the beginning of the line rather
         # than starting a new line.  This allows us to have a progressbar-style
         # display in the console window.
-        bar = self.template.format(self.progress_character * num_chars,
-                                   ' ' * num_left,
-                                   progress * 100,
-                                   self.spinner_symbols[self.spinner_index],
-                                   self.mesg)
+        progress = '%6.02f%%' % (progress * 100,)
+        progress = progress if self.cur_value <= max_value else 'unknown'
+        bar = self.template.format(
+            self.progress_character * num_chars, ' ' * num_left,
+            progress, self.mesg, self.spinner_symbols[self.spinner_index])
         bar = bar[:self.max_total_width]
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.

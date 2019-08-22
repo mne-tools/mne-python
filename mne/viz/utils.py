@@ -2884,7 +2884,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
                                           _data_types):
         these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False)
+                                 ref_meg=False, exclude=[])
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
