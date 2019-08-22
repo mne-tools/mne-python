@@ -125,7 +125,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
 def _check_wrapper(fun):
     def run(*args, **kwargs):
         try:
-            fun(*args, **kwargs)
+            return fun(*args, **kwargs)
         except RuntimeError as err:
             msg = str(err.args[0]) if err.args else ''
             if msg.startswith('The task could not be sent to the workers'):
