@@ -194,6 +194,7 @@ def _handle_duplicate_events(events, event_id, event_repeated):
         return events, event_id
 
     # Else, we have duplicates. Triage ...
+    event_id = event_id.copy()
     msg = 'Multiple event codes for single event times found.'
     if event_repeated == 'error':
         raise RuntimeError('Event time samples were not unique')
@@ -201,7 +202,7 @@ def _handle_duplicate_events(events, event_id, event_repeated):
     elif event_repeated == 'drop':
         logger.info('{} Keeping the first occurrence and dropping all others.'
                     .format(msg))
-        events = events[u_idxs]
+        new_events = events[u_idxs]
 
     elif event_repeated == 'merge':
         logger.info('{} Creating new event code to reflect simultaneous '
@@ -222,15 +223,15 @@ def _handle_duplicate_events(events, event_id, event_repeated):
 
             # Make an event_id for the merged event
             ev_codes = events[idxs, 2]
-            new_event_id = list()
+            new_event_id_key = list()
             for code in ev_codes:
                 # inverse dict lookup, because event_id is a one-to-one map
                 kk = list(event_id.keys())[list(event_id.values()).index(code)]
-                new_event_id.append(kk)
-            new_event_id = '/'.join(new_event_id)
+                new_event_id_key.append(kk)
+            new_event_id_key = '/'.join(new_event_id_key)
 
             # Check if we already have a corresponding code
-            new_event_code = event_id.get(new_event_id, False)
+            new_event_code = event_id.get(new_event_id_key, False)
 
             # Else, make one and add it to the event_id dict
             if not new_event_code:
@@ -238,21 +239,18 @@ def _handle_duplicate_events(events, event_id, event_repeated):
                 ev_codes = np.concatenate((ev_codes, events[:, 2]), 0)
                 new_event_code = np.setdiff1d(np.arange(1, 9999999),
                                               ev_codes).min()
-                event_id[new_event_id] = int(new_event_code)
+                event_id[new_event_id_key] = int(new_event_code)
 
             # Replace duplicate event times with merged event
             new_events[idxs[0], 1] = new_prior
             new_events[idxs[0], 2] = new_event_code
             new_events = np.delete(new_events, idxs[1:], 0)
 
-        # Overwrite events with the new events with merged codes
-        events = new_events
-
     else:
         raise ValueError('`event_repeated` must be one of "error", "drop",'
                          ' "merge" but is "{}"'.format(event_repeated))
 
-    return events, event_id
+    return new_events, event_id
 
 
 @fill_doc
