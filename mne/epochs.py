@@ -358,6 +358,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                         # Else, make one and add it to the event_id dict
                         if not new_event_code:
                             ev_codes = np.array(list(self.event_id.values()))
+                            ev_codes = np.concat((ev_codes, events[:, 2]), 0)
                             new_event_code = np.setdiff1d(np.arange(900, 9000),
                                                           ev_codes).min()
                             self.event_id[new_event_id] = int(new_event_code)
