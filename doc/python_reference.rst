@@ -310,6 +310,7 @@ Projections:
    read_montage
    get_builtin_montages
    read_dig_montage
+   make_dig_montage
    read_layout
    find_layout
    make_eeg_layout

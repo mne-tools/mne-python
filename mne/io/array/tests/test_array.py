@@ -10,12 +10,13 @@ from numpy.testing import (assert_array_almost_equal, assert_allclose,
 import pytest
 import matplotlib.pyplot as plt
 
-from mne import find_events, Epochs, pick_types, channels
+from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
 from mne.utils import requires_version, run_tests_if_main
+from mne.channels import make_dig_montage
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -158,15 +159,14 @@ def test_array_raw():
     n_elec = 10
     ts_size = 10000
     Fs = 512.
-    elec_labels = [str(i) for i in range(n_elec)]
-    elec_coords = np.random.randint(60, size=(n_elec, 3)).tolist()
+    ch_names = [str(i) for i in range(n_elec)]
+    ch_pos_loc = np.random.randint(60, size=(n_elec, 3)).tolist()
 
-    electrode = np.random.rand(n_elec, ts_size)
-    dig_ch_pos = dict(zip(elec_labels, elec_coords))
-    mon = channels.DigMontage(dig_ch_pos=dig_ch_pos)
-    info = create_info(elec_labels, Fs, 'ecog', montage=mon)
+    data = np.random.rand(n_elec, ts_size)
+    montage = make_dig_montage(ch_pos=dict(zip(ch_names, ch_pos_loc)))
+    info = create_info(ch_names, Fs, 'ecog', montage=montage)
 
-    raw = RawArray(electrode, info)
+    raw = RawArray(data, info)
     raw.plot_psd(average=False)  # looking for inexistent layout
     raw.plot_psd_topo()
 

@@ -35,7 +35,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         ch_names = montage.ch_names
         title = montage.kind
     elif isinstance(montage, DigMontage):
-        ch_names = montage.point_names
+        ch_names = montage._point_names
         title = None
     else:
         raise TypeError("montage must be an instance of "
