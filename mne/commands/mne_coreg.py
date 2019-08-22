@@ -12,7 +12,6 @@ Examples
 """
 
 import os.path as op
-import sys
 
 import mne
 from mne.utils import ETSContext
@@ -118,10 +117,5 @@ def run():
             scale=options.scale,
             advanced_rendering=options.advanced_rendering,
             verbose=options.verbose)
-    if is_main:
-        sys.exit(0)
 
-
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

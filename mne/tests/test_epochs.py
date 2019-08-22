@@ -1258,6 +1258,9 @@ def test_crop():
     with pytest.warns(RuntimeWarning, match='aliasing'):
         epochs.decimate(10)
     assert_allclose(last_time, epochs.times[-1])
+    want_time = epochs.times[-1] - 1. / epochs.info['sfreq']
+    epochs.crop(None, epochs.times[-1], include_tmax=False)
+    assert_allclose(epochs.times[-1], want_time)
 
     epochs = Epochs(raw, events[:5], event_id, -1, 1,
                     picks=picks, preload=True, reject=reject, flat=flat)

@@ -12,6 +12,7 @@ Examples
 
 import sys
 
+import mne
 from mne.bem import make_watershed_bem
 from mne.utils import _check_option
 
@@ -81,6 +82,4 @@ def run():
                        gcaatlas=gcaatlas, preflood=preflood, copy=copy,
                        T1=T1, brainmask=brainmask, verbose=verbose)
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

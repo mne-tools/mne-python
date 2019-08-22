@@ -624,8 +624,7 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
         'avg_power_itc', the real values code for 'avg_power' and the
         imaginary values code for the 'itc': out = avg_power + i * itc
     """
-    from ..source_estimate import (_BaseSourceEstimate, VectorSourceEstimate,
-                                   VolVectorSourceEstimate)
+    from ..source_estimate import _BaseSourceEstimate
 
     # Initialize output
     decim = _check_decim(decim)
@@ -644,17 +643,8 @@ def _tfr_loop_list(list_data, freqs, method='morlet', n_cycles=7.0,
                             .format(type(inst)))
 
         # get the data array
-        if inst._sens_data is not None:
-            X = inst._sens_data
-            K = inst._kernel
-            # combine the kernel dipole and orientation dims for vector oris
-            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-                K = np.reshape(K, [K.shape[0]*K.shape[1], K.shape[2]])
-        else:
-            X = inst.data
-            # combine the dipole and orientation dimensions for vector oris
-            if isinstance(inst, (VectorSourceEstimate, VolVectorSourceEstimate)):
-                X = np.reshape(X, [X.shape[0] * X.shape[1], X.shape[2]])
+        # omit Error by setting return_itc=False
+        X, K = _get_data(inst, return_itc=False, fill_dims=False)
 
         if epoch_idx == 0:  # initialize some stuff in the first epoch
 
@@ -821,7 +811,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         # nave is not needed for any SourceTFR type
         nave = None
     else:
-        data = _get_data(inst, return_itc)
+        data, _ = _get_data(inst, return_itc)
         if average:
             nave = len(data)
         if isinstance(inst, _BaseSourceEstimate):
@@ -1155,7 +1145,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         """Channel names."""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None, fmin=None, fmax=None):
+    @fill_doc
+    def crop(self, tmin=None, tmax=None, fmin=None, fmax=None,
+             include_tmax=True):
         """Crop data to a given time interval in place.
 
         Parameters
@@ -1172,6 +1164,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             Highest frequency of selection in Hz.
 
             .. versionadded:: 0.18.0
+        %(include_tmax)s
 
         Returns
         -------
@@ -1179,8 +1172,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             The modified instance.
         """
         if tmin is not None or tmax is not None:
-            time_mask = _time_mask(self.times, tmin, tmax,
-                                   sfreq=self.info['sfreq'])
+            time_mask = _time_mask(
+                self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                include_tmax=include_tmax)
 
         else:
             time_mask = slice(None)
@@ -2418,7 +2412,7 @@ def combine_tfr(all_tfr, weights='nave'):
 # Utils
 
 
-def _get_data(inst, return_itc):
+def _get_data(inst, return_itc, fill_dims=True):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
@@ -2427,6 +2421,8 @@ def _get_data(inst, return_itc):
 
     if not isinstance(inst, (BaseEpochs, Evoked, _BaseSourceEstimate)):
         raise TypeError('inst must be Epochs, Evoked, or any SourceEstimate')
+
+    kern = None
     if isinstance(inst, BaseEpochs):
         data = inst.get_data()
     else:
@@ -2435,16 +2431,29 @@ def _get_data(inst, return_itc):
                              'or single SourceEstimates')
 
         if isinstance(inst, _BaseSourceEstimate):
-            data = inst.data[np.newaxis]  # full data representation
-            if isinstance(inst, (VectorSourceEstimate,
-                                 VolVectorSourceEstimate)):
-                data = np.reshape(data, [data.shape[0],
-                                         data.shape[1] * data.shape[2],
-                                         data.shape[3]])
+            # get the data array
+            if inst._sens_data is not None:
+                data = inst._sens_data
+                kern = inst._kernel
+                # combine the dipole and orientation dims for vector oris
+                if isinstance(inst, (VectorSourceEstimate,
+                                     VolVectorSourceEstimate)):
+                    kern = np.reshape(kern, [kern.shape[0] * kern.shape[1],
+                                             kern.shape[2]])
+            else:
+                data = inst.data
+                # combine the dipole and orientation dimensions for vector oris
+                if isinstance(inst, (VectorSourceEstimate,
+                                     VolVectorSourceEstimate)):
+                    data = np.reshape(data, [data.shape[0] * data.shape[1],
+                                             data.shape[2]])
+
+            if fill_dims:
+                data = inst.data[np.newaxis]
         else:  # is Evoked
             data = inst.data[np.newaxis].copy()
 
-    return data
+    return data, kern
 
 
 def _prepare_picks(info, data, picks, axis):

@@ -3,7 +3,6 @@
 #
 # License : BSD 3-clause
 
-from copy import deepcopy
 from inspect import isgenerator
 import math
 import numpy as np
@@ -13,7 +12,7 @@ from scipy import fftpack
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn, fill_doc
 from ..parallel import parallel_func, check_n_jobs
-from .tfr import AverageTFR, _get_data, _create_stfr
+from .tfr import _get_data, _check_stfr_list_elem, _assign_tfr_class
 
 
 def _check_input_st(x_in, n_fft):
@@ -73,6 +72,19 @@ def _st(x, start_f, windows):
     return ST
 
 
+def _select_st_freqs(fmin, fmax, sfreq, n_fft):
+    """Select stockwell freqs based on input freqs and window length."""
+    freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
+    if fmin is None:
+        fmin = freqs[freqs > 0][0]
+    if fmax is None:
+        fmax = freqs.max()
+    start_f = np.abs(freqs - fmin).argmin()
+    stop_f = np.abs(freqs - fmax).argmin()
+    freqs = freqs[start_f:stop_f]
+    return freqs, start_f, stop_f
+
+
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
     n_samp = x.shape[-1]
@@ -96,7 +108,86 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
             itc[i_f] = np.abs(np.mean(TFR, axis=0))
         TFR_abs *= TFR_abs
         psd[i_f] = np.mean(TFR_abs, axis=0)
+
     return psd, itc
+
+
+def _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim, return_itc,
+                        n_jobs):
+    """Perform stockwell transform on stc lists/generator objects."""
+    from ..source_estimate import _BaseSourceEstimate
+
+    for ep_idx, obj in enumerate(inst):
+
+        if not isinstance(obj, _BaseSourceEstimate):
+            raise TypeError("List or generator input must consist of "
+                            "SourceEstimate objects. Got {}."
+                            .format(type(inst)))
+
+        # load the data. Set return_itc=False to omit an Error
+        data, kernel = _get_data(obj, return_itc=False, fill_dims=False)
+
+        data, n_fft_, zero_pad = _check_input_st(data, n_fft)
+
+        if ep_idx == 0:
+            # initiate stuff for the first input
+            sfreq = obj.sfreq
+            type_ref = type(obj)
+            tmin_ref = obj._tmin
+
+            n_samp = data.shape[-1]
+            n_out = (n_samp - zero_pad)
+            n_out = n_out // decim + bool(n_out % decim)
+            n_dipoles = len(kernel) if kernel is not None else len(data)
+
+            freqs, start_f, stop_f = _select_st_freqs(fmin, fmax, sfreq,
+                                                      n_fft_)
+            W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
+
+            psd = np.zeros((n_dipoles, len(W), n_out))
+            itc = np.zeros_like(psd, dtype=np.complex) if return_itc else None
+
+        else:
+            # make sure all elements got the same properties as the first one
+            _check_stfr_list_elem(obj, type_ref, sfreq, tmin_ref)
+
+        X = fftpack.fft(data)
+        XX = np.concatenate([X, X], axis=-1)
+
+        for i_f, window in enumerate(W):
+            f = start_f + i_f
+            ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
+            if zero_pad > 0:
+                TFR = ST[:, :-zero_pad:decim]
+            else:
+                TFR = ST[:, ::decim]
+
+            if kernel is not None:
+                # get the full source time series from kernel and tfr
+                TFR = np.tensordot(kernel, TFR, [-1, 0])
+
+            # transform complex values
+            TFR_abs = np.abs(TFR)
+            TFR_abs[TFR_abs == 0] = 1.
+            if return_itc:
+                TFR /= TFR_abs
+                itc[:, i_f, :] += TFR
+            TFR_abs *= TFR_abs
+            psd[:, i_f, :] += TFR_abs
+
+    # divide summed epochs to get the average
+    psd /= ep_idx + 1
+
+    if return_itc:
+        # average the epochs
+        itc /= ep_idx + 1
+        # calculate the abs for each taper
+        for i_f, window in enumerate(W):
+            itc[:, i_f, :] = np.abs(itc[:, i_f, :])
+        itc = itc.real
+
+    # one list object is passed for type references etc.
+    return psd, itc, freqs, obj
 
 
 @fill_doc
@@ -173,15 +264,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
-    freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
-    if fmin is None:
-        fmin = freqs[freqs > 0][0]
-    if fmax is None:
-        fmax = freqs.max()
-
-    start_f = np.abs(freqs - fmin).argmin()
-    stop_f = np.abs(freqs - fmax).argmin()
-    freqs = freqs[start_f:stop_f]
+    freqs, start_f, stop_f = _select_st_freqs(fmin, fmax, sfreq, n_fft_)
 
     W = _precompute_st_windows(data.shape[-1], start_f, stop_f, sfreq, width)
     n_freq = stop_f - start_f
@@ -251,50 +334,39 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     .. versionadded:: 0.9.0
     """
     from ..source_estimate import _BaseSourceEstimate
+    # verbose dec is used b/c subfunctions are verbose
 
     n_jobs = check_n_jobs(n_jobs)
 
+    info = None
+    nave = None
     if isinstance(inst, list) or isgenerator(inst):
-        for idx, obj in enumerate(inst):
-            if idx == 0:
-                data = _get_data(obj, return_itc=False)  # don't provoke errors
-                inst = obj  # overwrite this to determine the object type later
-            else:
-                # data is simply concatenated. This should be changed later.
-                data = np.concatenate((data, _get_data(obj, return_itc=False)),
-                                      axis=0)
 
-        nave = len(data)
-
-    # verbose dec is used b/c subfunctions are verbose
-    else:
-        data = _get_data(inst, return_itc)
-        times = inst.times[::decim].copy()
-        nave = len(data)
-
-    if isinstance(inst, _BaseSourceEstimate):
-        sfreq = inst.sfreq
+        power, itc, freqs, inst = \
+            _tfr_list_stockwell(inst, fmin, fmax, n_fft, width, decim,
+                                return_itc, n_jobs)
 
     else:
-        picks = _pick_data_channels(inst.info)
-        data = data[:, picks, :]
-        info = pick_info(inst.info, picks)
-        sfreq = info['sfreq']
+        data, _ = _get_data(inst, return_itc)
+        if isinstance(inst, _BaseSourceEstimate):
+            sfreq = inst.sfreq
+        else:
+            nave = len(data)
+            picks = _pick_data_channels(inst.info)
+            data = data[:, picks, :]
+            info = pick_info(inst.info, picks)
+            sfreq = info['sfreq']
 
-    power, itc, freqs = tfr_array_stockwell(data, sfreq=sfreq,
-                                            fmin=fmin, fmax=fmax, n_fft=n_fft,
-                                            width=width, decim=decim,
-                                            return_itc=return_itc,
-                                            n_jobs=n_jobs)
+        power, itc, freqs = \
+            tfr_array_stockwell(data, sfreq=sfreq, fmin=fmin, fmax=fmax,
+                                n_fft=n_fft, width=width, decim=decim,
+                                return_itc=return_itc, n_jobs=n_jobs)
 
-    if isinstance(inst, _BaseSourceEstimate):
-        out = _create_stfr(inst, power, freqs, method='stockwell-power')
-        if return_itc:
-            out = (out, _create_stfr(inst, itc, freqs, method='stockwell-itc'))
-    else:
-        out = AverageTFR(info, power, times, freqs, nave,
-                         method='stockwell-power')
-        if return_itc:
-            out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
-                                   freqs.copy(), nave, method='stockwell-itc'))
+    times = inst.times[::decim].copy()
+    out = _assign_tfr_class(power, inst, info, freqs, times, average=True,
+                            nave=nave, method='stockwell-power')
+    if return_itc:
+        out = (out, _assign_tfr_class(itc, inst, info, freqs, times,
+                                      average=True, nave=nave,
+                                      method='stockwell-itc'))
     return out
