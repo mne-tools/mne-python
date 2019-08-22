@@ -277,7 +277,13 @@ _multi = {
 try:
     _multi['path-like'] += (os.PathLike,)
 except AttributeError:  # only on 3.6+
-    pass
+    try:
+        # At least make PyTest work
+        from py._path.common import PathBase
+    except Exception:  # no py.path
+        pass
+    else:
+        _multi['path-like'] += (PathBase,)
 
 
 def _validate_type(item, types=None, item_name=None, type_name=None):
