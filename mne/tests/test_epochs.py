@@ -108,6 +108,15 @@ def test_handle_duplicate_events():
     assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
     np.testing.assert_array_equal(events, np.array([[0, 99, 3],
                                                     [1, 0, 1], [2, 0, 2]]))
+    del homogeneous_events
+
+    # Test dropping instead of merging, if event_codes to be merged are equal
+    equal_events = np.array([[0, 0, 1], [0, 0, 1]])
+    events, event_id = _handle_duplicate_events(equal_events,
+                                                EVENT_ID, 'merge')
+    np.testing.assert_array_equal(events, np.array([[0, 0, 1], ]))
+    assert set(event_id.keys()) == set(['aud'])
+    del equal_events
 
 
 def _get_data(preload=False):
