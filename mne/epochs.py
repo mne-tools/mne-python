@@ -318,13 +318,25 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 self.drop_log = drop_log
             events = events[selected]
-            unique_events, counts = np.unique(events[:, 0], return_counts=True)
-            if len(unique_events) != len(events):
+            u_evs, u_idxs, counts = np.unique(events[:, 0],
+                                              return_index=True,
+                                              return_counts=True)
+            if len(u_evs) != len(events):
+                msg = 'Multiple event codes for single event times found.'
                 if event_repeated == 'error':
                     raise RuntimeError('Event time samples were not unique')
+
+                elif event_repeated == 'drop':
+                    logger.info('{} Keeping the first occurrence and '
+                                'dropping all others.'.format(msg))
+                    events = events[u_idxs]
+
                 elif event_repeated == 'merge':
+                    logger.info('{} Creating a new event code to reflect these'
+                                'simultaneous events and updating event_id.'
+                                .format(msg))
                     new_events = events.copy()
-                    non_uniques = unique_events[counts > 1]
+                    non_uniques = u_evs[counts > 1]
                     for uu in non_uniques:
                         idxs = (events[:, 0] == uu).nonzero()[0]
                         event_times = events[idxs, 0]
