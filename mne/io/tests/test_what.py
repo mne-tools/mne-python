@@ -4,19 +4,31 @@
 import glob
 import os.path as op
 
+import numpy as np
 import pytest
 
-from mne import what
-from mne.utils import run_tests_if_main
+from mne import what, create_info
 from mne.datasets import testing
+from mne.io import RawArray
+from mne.preprocessing import ICA
+from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_what():
+def test_what(tmpdir):
     """Test mne.what."""
+    # ICA
+    ica = ICA()
+    raw = RawArray(np.random.RandomState(0).randn(3, 10),
+                   create_info(3, 1000., 'eeg'))
+    ica.fit(raw)
+    fname = op.join(str(tmpdir), 'x-ica.fif')
+    ica.save(fname)
+    assert what(fname) == 'ica'
+    # test files
     fnames = glob.glob(
         op.join(data_path, 'MEG', 'sample', '*.fif'))
     fnames += glob.glob(

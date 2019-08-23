@@ -27,13 +27,14 @@ from .io.pick import (pick_types, pick_channels,
                       pick_types_forward, pick_channels_cov,
                       pick_channels_evoked, pick_info,
                       channel_type, channel_indices_by_type)
-from .io.base import concatenate_raws, what
+from .io.base import concatenate_raws
 from .io.meas_info import create_info, Info
 from .io.proj import Projection
 from .io.kit import read_epochs_kit
 from .io.eeglab import read_epochs_eeglab
 from .io.reference import (set_eeg_reference, set_bipolar_reference,
                            add_reference_channels)
+from .io.what import what
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
                   read_bem_surfaces, write_bem_surfaces,
                   read_bem_solution, write_bem_solution)
