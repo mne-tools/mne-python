@@ -17,7 +17,7 @@ as importing raw data from NumPy arrays.
 Summary of supported data formats
 #################################
 
-.. include:: ../overview/data_formats.rst
+.. include:: ../_includes/data_formats.rst
    :start-after: data-formats-begin-content
 
 .. note::
@@ -47,7 +47,7 @@ saving it to :file:`fif`.
 Unit conversion
 ---------------
 
-.. include:: ../overview/units.rst
+.. include:: ../_includes/units.rst
    :start-after: units-begin-content
    :end-before: units-end-of-list
 
@@ -57,7 +57,7 @@ Unit conversion
 Numerical precision
 -------------------
 
-.. include:: ../overview/precision.rst
+.. include:: ../_includes/precision.rst
    :start-after: precision-begin-content
 
 Importing Elekta NeuroMag (.fif)

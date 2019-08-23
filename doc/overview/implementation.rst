@@ -15,7 +15,7 @@ This page describes some of the technical details of MNE-Python implementation.
 Internal representation (units)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. include:: units.rst
+.. include:: ../_includes/units.rst
    :start-after: units-begin-content
 
 
@@ -24,7 +24,7 @@ Internal representation (units)
 Floating-point precision
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. include:: precision.rst
+.. include:: ../_includes/precision.rst
    :start-after: precision-begin-content
 
 
@@ -33,7 +33,7 @@ Floating-point precision
 Supported channel types
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. include:: channel_types.rst
+.. include:: ../_includes/channel_types.rst
    :start-after: channel-types-begin-content
 
 
@@ -42,5 +42,5 @@ Supported channel types
 Supported data formats
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. include:: data_formats.rst
+.. include:: ../_includes/data_formats.rst
    :start-after: data-formats-begin-content
