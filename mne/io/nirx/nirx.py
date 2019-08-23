@@ -64,16 +64,16 @@ class RawNIRX(BaseRaw):
         file_cfg = glob.glob(fname + '/*config.txt')
         file_mat = glob.glob(fname + '/*probeInfo.mat')
 
-        assert (len(file_dat) == 1), "Should be one dat file"
-        assert (len(file_evt) == 1), "Should be one evt file"
-        assert (len(file_hdr) == 1), "Should be one hdr file"
-        assert (len(file_inf) == 1), "Should be one inf file"
-        assert (len(file_set) == 1), "Should be one set file"
-        assert (len(file_tpl) == 1), "Should be one tpl file"
-        assert (len(file_wl1) == 1), "Should be one wl1 file"
-        assert (len(file_wl2) == 1), "Should be one wl2 file"
-        assert (len(file_cfg) == 1), "Should be one config file"
-        assert (len(file_mat) == 1), "Should be one mat file"
+        assert_one(file_dat, "Should be one dat file")
+        assert_one(file_evt, "Should be one evt file")
+        assert_one(file_hdr, "Should be one hdr file")
+        assert_one(file_inf, "Should be one inf file")
+        assert_one(file_set, "Should be one set file")
+        assert_one(file_tpl, "Should be one tpl file")
+        assert_one(file_wl1, "Should be one wl1 file")
+        assert_one(file_wl2, "Should be one wl2 file")
+        assert_one(file_cfg, "Should be one config file")
+        assert_one(file_mat, "Should be one mat file")
 
         # Read number of rows of wavelength data which corresponds to
         # number of samples
@@ -192,3 +192,8 @@ class RawNIRX(BaseRaw):
         data[self.info['nchan'] // 2:, :] = wl2
 
         return data
+
+
+def assert_one(x, msg):
+    if len(x) != 1:
+        raise RuntimeError(msg + ', got %d' % (len(x),))
