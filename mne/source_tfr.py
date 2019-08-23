@@ -1,4 +1,8 @@
-
+# -*- coding: utf-8 -*-
+#
+# Authors: Dirk Gütlin <dirk.guetlin@gmail.com>
+#          Joan Massich <mailsik@gmail.com>
+#
 # License: BSD (3-clause)
 
 import copy
@@ -41,7 +45,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         corresponds to one axis of the data field. Allowed values are:
         ("dipoles", "freqs", "times"), ("dipoles", "epochs", "freqs",
         "times"), ("dipoles", "orientations", "freqs", "times"), ("dipoles",
-         "orientations", "epochs", "freqs", "times").
+        "orientations", "epochs", "freqs", "times").
     method : str | None, default None
         Comment on the method used to compute the data, as a combination of
         the used method and the compued product (e.g. "morlet-power" or
@@ -289,7 +293,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
     @property
     def data(self):
-        """create the SourceTFR data field.
+        """Create the SourceTFR data field.
 
         Parameters
         ----------
@@ -297,17 +301,13 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
 
         Returns
         -------
-        data : The source level time-frequency transformed data.
-
+        data : array
+            The source level time-frequency transformed data.
         """
         if self._data is None:
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
             self._remove_kernel_sens_data_()
-
-            # we can't yet give full support for TFR complex conversion
-            # if 'power' in self.method:
-            #    self._data = (self._data * self._data.conj()).real
 
         return self._data
 
