@@ -16,16 +16,19 @@ from ...utils import logger, verbose, fill_doc
 @fill_doc
 def read_raw_nirx(fname, preload=False, verbose=None):
     """Reader for a NIRX fNIRS recording.
+
     Parameters
     ----------
     fname : str
         Path to the NIRX data folder.
     %(preload)s
     %(verbose)s
+
     Returns
     -------
     raw : instance of RawNIRX
         A Raw object containing NIRX data.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -36,12 +39,14 @@ def read_raw_nirx(fname, preload=False, verbose=None):
 @fill_doc
 class RawNIRX(BaseRaw):
     """Raw object from a NIRX fNIRS file.
+
     Parameters
     ----------
     fname : str
         Path to the NIRX data folder.
     %(preload)s
     %(verbose)s
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
