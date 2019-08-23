@@ -172,7 +172,8 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     if isinstance(command, str):
         command_str = command
     else:
-        command_str = ' '.join(str(s) for s in command)
+        command = [str(s) for s in command]
+        command_str = ' '.join(s for s in command)
     logger.info("Running subprocess: %s" % command_str)
     try:
         p = subprocess.Popen(command, *args, **kwargs)

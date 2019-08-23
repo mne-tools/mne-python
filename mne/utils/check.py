@@ -138,14 +138,15 @@ def _check_event_id(event_id, events):
 def _check_fname(fname, overwrite=False, must_exist=False):
     """Check for file existence."""
     _validate_type(fname, 'path-like', 'fname')
-    if must_exist and not op.isfile(fname):
-        raise IOError('File "%s" does not exist' % fname)
     if op.isfile(fname):
         if not overwrite:
             raise IOError('Destination file exists. Please use option '
                           '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
+    elif must_exist:
+        raise IOError('File "%s" does not exist' % fname)
+    return str(fname)
 
 
 def _check_subject(class_subject, input_subject, raise_error=True):

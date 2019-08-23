@@ -1,4 +1,9 @@
-import os
+# -*- coding: utf-8 -*-
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import os.path as op
 from shutil import copytree
 
@@ -174,29 +179,25 @@ def test_discrete_source_space(tmpdir):
 
     # let's make a discrete version with the C code, and with ours
     temp_name = tmpdir.join('temp-src.fif')
-    try:
-        # save
-        temp_pos = tmpdir.join('temp-pos.txt')
-        np.savetxt(temp_pos, np.c_[src[0]['rr'][v], src[0]['nn'][v]])
-        # let's try the spherical one (no bem or surf supplied)
-        run_subprocess(['mne_volume_source_space', '--meters',
-                        '--pos', temp_pos, '--src', temp_name])
-        src_c = read_source_spaces(temp_name)
-        pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
-        src_new = setup_volume_source_space(pos=pos_dict)
-        assert src_new.kind == 'discrete'
-        _compare_source_spaces(src_c, src_new, mode='approx')
-        assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
-                        rtol=1e-3, atol=1e-6)
-        assert_allclose(src[0]['nn'][v], src_new[0]['nn'],
-                        rtol=1e-3, atol=1e-6)
+    # save
+    temp_pos = tmpdir.join('temp-pos.txt')
+    np.savetxt(str(temp_pos), np.c_[src[0]['rr'][v], src[0]['nn'][v]])
+    # let's try the spherical one (no bem or surf supplied)
+    run_subprocess(['mne_volume_source_space', '--meters',
+                    '--pos', temp_pos, '--src', temp_name])
+    src_c = read_source_spaces(temp_name)
+    pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
+    src_new = setup_volume_source_space(pos=pos_dict)
+    assert src_new.kind == 'discrete'
+    _compare_source_spaces(src_c, src_new, mode='approx')
+    assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
+                    rtol=1e-3, atol=1e-6)
+    assert_allclose(src[0]['nn'][v], src_new[0]['nn'],
+                    rtol=1e-3, atol=1e-6)
 
-        # now do writing
-        write_source_spaces(temp_name, src_c, overwrite=True)
-        src_c2 = read_source_spaces(temp_name)
-    finally:
-        if op.isfile(temp_name):
-            os.remove(temp_name)
+    # now do writing
+    write_source_spaces(temp_name, src_c, overwrite=True)
+    src_c2 = read_source_spaces(temp_name)
     _compare_source_spaces(src_c, src_c2)
 
     # now do MRI
@@ -412,7 +413,7 @@ def test_setup_source_space(tmpdir):
 @pytest.mark.parametrize('spacing', [2, 7])
 def test_setup_source_space_spacing(tmpdir, spacing):
     """Test setting up surface source spaces using a given spacing."""
-    copytree(op.join(subjects_dir, 'sample'), tmpdir.join('sample'))
+    copytree(op.join(subjects_dir, 'sample'), str(tmpdir.join('sample')))
     args = [] if spacing == 7 else ['--spacing', str(spacing)]
     with modified_env(SUBJECTS_DIR=str(tmpdir), SUBJECT='sample'):
         run_subprocess(['mne_setup_source_space'] + args)

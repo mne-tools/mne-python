@@ -373,7 +373,7 @@ def test_average_forward_solution(tmpdir):
 
     # modify a fwd solution, save it, use MNE to average with old one
     fwd_copy['sol']['data'] *= 0.5
-    fname_copy = tmpdir.join('copy-fwd.fif')
+    fname_copy = str(tmpdir.join('copy-fwd.fif'))
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
     cmd = ('mne_average_forward_solutions', '--fwd', fname_meeg, '--fwd',
            fname_copy, '--out', fname_copy)

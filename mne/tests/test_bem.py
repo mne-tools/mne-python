@@ -147,7 +147,7 @@ def test_bem_model_topology(tmpdir):
     for fname in ('inner_skull', 'outer_skull', 'outer_skin'):
         fname += '.surf'
         copy(op.join(subjects_dir, 'sample', 'bem', fname),
-             tmpdir.join('foo', 'bem', fname))
+             str(tmpdir.join('foo', 'bem', fname)))
     outer_fname = tmpdir.join('foo', 'bem', 'outer_skull.surf')
     rr, tris = read_surface(outer_fname)
     tris = tris[:-1]
