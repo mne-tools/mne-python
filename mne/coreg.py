@@ -1228,7 +1228,6 @@ def get_mni_fiducials(subject, subjects_dir):
         List of estimated fiducials (each point in a dict)
     """
     from .transforms import _read_fs_xfm
-    from .io.tests import data_dir as fsaverage_dir
     if not has_nibabel():
         raise ImportError('This function requires nibabel.')
         return
@@ -1239,7 +1238,8 @@ def get_mni_fiducials(subject, subjects_dir):
                            subject)
     fname_orig = op.join(subjects_dir, 'mri', 'T1.mgz')
     fname_tal = op.join(subjects_dir, 'mri', 'transforms', 'talairach.xfm')
-    fname_fids_fs = op.join(fsaverage_dir, 'fsaverage-fiducials.fif')
+    fname_fids_fs = os.path.join(os.path.dirname(__file__), 'data',
+                                 'fsaverage', 'fsaverage-fiducials.fif')
 
     if not op.isfile(fname_fids_fs):
         raise IOError('This function requires the MNE testing dataset')
