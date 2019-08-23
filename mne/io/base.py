@@ -33,7 +33,6 @@ from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
 from ..filter import (FilterMixin, notch_filter, resample,
                       _resample_stim_channels, _check_fun)
-from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,

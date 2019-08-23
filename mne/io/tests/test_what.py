@@ -11,12 +11,13 @@ from mne import what, create_info
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.preprocessing import ICA
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, requires_sklearn
 
 data_path = testing.data_path(download=False)
 
 
 @pytest.mark.slowtest
+@requires_sklearn
 @testing.requires_testing_data
 def test_what(tmpdir):
     """Test mne.what."""
