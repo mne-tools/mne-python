@@ -12,6 +12,7 @@ import numpy as np
 from scipy.io import savemat
 from copy import deepcopy
 from functools import partial
+from string import ascii_lowercase
 
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
@@ -20,8 +21,9 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage,
-                          read_dig_egi, read_dig_captrack, read_dig_fif)
-from mne.channels.montage import _set_montage
+                          read_dig_egi, read_dig_captrack, read_dig_fif,
+                          get_builtin_montages, DigMontage)
+from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
@@ -441,6 +443,53 @@ def test_read_dig_montage():
     with pytest.deprecated_call():
         assert_allclose(montage_extra.hsp, montage.hsp)
         assert_allclose(montage_extra.elp, montage.elp)
+
+
+# XXXX: this should be a function not an alias
+read_polhemus_fast_scan = _read_dig_points
+
+def test_read_dig_montage_using_polhemus_fastscan():
+    """Test FastScan."""
+    N_EEG_CH = 10
+
+    my_electrode_positions = read_polhemus_fast_scan(
+        op.join(kit_dir, 'test_elp.txt')
+    )/1000
+
+    montage = make_dig_montage(
+        # EEG_CH
+        ch_pos=dict(zip(ascii_lowercase[:N_EEG_CH],
+                        np.random.RandomState(0).rand(N_EEG_CH, 3))),
+        # NO NAMED points
+        nasion=my_electrode_positions[0],
+        lpa=my_electrode_positions[1],
+        rpa=my_electrode_positions[2],
+        hpi=my_electrode_positions[3:],
+        hsp=read_polhemus_fast_scan(op.join(kit_dir, 'test_hsp.txt'))/1000,
+        hpi_dev=None,  # XXX: I'm not sure we should allow hpi_dev
+
+        # Other defaults
+        coord_frame='unknown',
+        compute_dev_head_t=False,  # XXX: this one should fall
+        transform_to_head=False,  # XXXX: maybe this one aswell
+    )
+
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
+    )  # XXX: is this wrong? extra is not in headspace, is it?
+
+    assert set([d['coord_frame'] for d in montage.dig]) == {
+        FIFF.FIFFV_COORD_UNKNOWN
+    }  # XXX: so far we build everything in 'unknown'
+
+    # EXPECTED_DEV_HEAD_T = np.array(
+    #     [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],  # noqa
+    #      [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
+    #      [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
+    #      [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+    # )
+    # assert_allclose(new_montage_A.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
 
 def test_set_dig_montage():
