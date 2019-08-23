@@ -14,13 +14,13 @@ coregistration GUI functions to perform an automated MEG-MRI co-registration.
 
 # License: BSD (3-clause)
 
+import os.path as op
+import numpy as np
 import mne
 from mne.coreg import get_mni_fiducials
 from mne.surface import dig_mri_distances
 from mne.io import write_fiducials
 from mne.io.constants import FIFF
-import numpy as np
-import os.path as op
 from mne.gui._file_traits import DigSource
 from mne.gui._fiducials_gui import MRIHeadWithFiducialsModel
 from mne.gui._coreg_gui import CoregModel
@@ -58,7 +58,7 @@ model.icp_iterations = int(6)
 model.nasion_weight = 2.  # For this fit we know the nasion is not precise
 # Overweighting at this step also seems to throw off the fit for some datasets
 model.fit_icp()
-model.omit_hsp_points(distance=5./1000)  # Distance is in meters
+model.omit_hsp_points(distance=5. / 1000)  # Distance is in meters
 # Do final coreg fit
 model.nasion_weight = 10.
 model.icp_iterations = int(20)
@@ -75,6 +75,6 @@ fig = mne.viz.plot_alignment(raw.info, trans=fname_trans, subject=subject,
 mne.viz.set_3d_view(fig, 45, 90, distance=0.6, focalpoint=(0., 0., 0.))
 
 print('Median distance from digitized points to head surface is %.3f mm'
-      % np.median(errs_icp*1000))
+      % np.median(errs_icp * 1000))
 print('''Median distance from digitized points to head surface using nearest
-neighbor is %.3f mm''' % np.median(errs_nearest*1000))
+neighbor is %.3f mm''' % np.median(errs_nearest * 1000))

@@ -1209,7 +1209,10 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
 
 
 def get_mni_fiducials(subject, subjects_dir):
-    """Estimate fiducials for a subject.
+    """Estimate fiducials for a subject. For more details about the
+       coordinate systems and transformations involved, see
+       https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems
+       and :ref:`plot_source_alignment`
 
     Parameters
     ----------
@@ -1229,10 +1232,11 @@ def get_mni_fiducials(subject, subjects_dir):
     if not has_nibabel():
         raise ImportError('This function requires nibabel.')
         return
+
     from nibabel import freesurfer as fs
 
-    subjects_dir = op.join(
-            get_subjects_dir(subjects_dir, raise_error=True), subject)
+    subjects_dir = op.join(get_subjects_dir(subjects_dir, raise_error=True),
+                           subject)
     fname_orig = op.join(subjects_dir, 'mri', 'T1.mgz')
     fname_tal = op.join(subjects_dir, 'mri', 'transforms', 'talairach.xfm')
     fname_fids_fs = op.join(fsaverage_dir, 'fsaverage-fiducials.fif')
@@ -1240,27 +1244,29 @@ def get_mni_fiducials(subject, subjects_dir):
     if not op.isfile(fname_fids_fs):
         raise IOError('This function requires the MNE testing dataset')
         return
+
+    # Read fsaverage fiducials file and subject Talairach
     fids_default, coord_frame = read_fiducials(fname_fids_fs)
     xfm_tal = np.matrix(_read_fs_xfm(fname_tal)[0])
 
-    # Get Freesurfer vox2ras and vox2ras-tkr as matrices
+    # Get Freesurfer vox2ras and vox2ras-tkr as matrices.
     mgh = fs.mghformat.load(fname_orig)
     vox2ras = np.matrix(mgh.header.get_vox2ras())
     vox2ras_tkr = np.matrix(mgh.header.get_vox2ras_tkr())
 
-    # Get transform for RAS to MNI305:
-    mni305ras = xfm_tal*vox2ras*np.linalg.inv(vox2ras_tkr)
+    # Get transform for RAS to MNI305
+    mni305ras = xfm_tal * vox2ras * np.linalg.inv(vox2ras_tkr)
     mni2ras = np.linalg.inv(mni305ras)
 
-    # Split up fiducials. There is probably a better way to do this but...
-    lpa = np.append(fids_default[0]['r']*1000, 1)
-    nas = np.append(fids_default[1]['r']*1000, 1)
-    rpa = np.append(fids_default[2]['r']*1000, 1)
+    # Split up fiducials. Convert to mm since this is Freesurfer's unit
+    lpa = np.append(fids_default[0]['r'] * 1000, 1)
+    nas = np.append(fids_default[1]['r'] * 1000, 1)
+    rpa = np.append(fids_default[2]['r'] * 1000, 1)
 
-    # Apply transformation, to fsaverage (MNI) fiducials, convert to mm
-    lpa_ras = np.delete(np.dot(mni2ras, lpa.T), 3)/1000
-    nas_ras = np.delete(np.dot(mni2ras, nas.T), 3)/1000
-    rpa_ras = np.delete(np.dot(mni2ras, rpa.T), 3)/1000
+    # Apply transformation, to fsaverage (MNI) fiducials, convert from mm
+    lpa_ras = np.delete(np.dot(mni2ras, lpa.T), 3) / 1000
+    nas_ras = np.delete(np.dot(mni2ras, nas.T), 3) / 1000
+    rpa_ras = np.delete(np.dot(mni2ras, rpa.T), 3) / 1000
 
     # Use old structure for new fiducials
     fids_mri = fids_default
