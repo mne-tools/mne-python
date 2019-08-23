@@ -129,8 +129,11 @@ def _check_wrapper(fun):
         except RuntimeError as err:
             msg = str(err.args[0]) if err.args else ''
             if msg.startswith('The task could not be sent to the workers'):
-                raise RuntimeError(msg + ' Consider using joblib memmap '
-                                   'caching to get around this problem.')
+                raise RuntimeError(
+                    msg + ' Consider using joblib memmap caching to get '
+                    'around this problem. See mne.set_mmap_min_size, '
+                    'mne.set_cache_dir, and buffer_size parallel function '
+                    'arguments (if applicable).')
             raise
     return run
 
