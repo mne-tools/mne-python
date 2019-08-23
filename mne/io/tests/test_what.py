@@ -21,10 +21,11 @@ data_path = testing.data_path(download=False)
 def test_what(tmpdir):
     """Test mne.what."""
     # ICA
-    ica = ICA()
+    ica = ICA(max_iter=1)
     raw = RawArray(np.random.RandomState(0).randn(3, 10),
                    create_info(3, 1000., 'eeg'))
-    ica.fit(raw)
+    with pytest.warns(None):  # convergence sometimes
+        ica.fit(raw)
     fname = op.join(str(tmpdir), 'x-ica.fif')
     ica.save(fname)
     assert what(fname) == 'ica'
