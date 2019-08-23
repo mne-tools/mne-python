@@ -972,7 +972,7 @@ def read_dig_montage_brainvision(fname):
 
     return make_dig_montage(
         **data,
-        transform_to_head=True,  # XXX: testing the roundtrip forces 'head'
+        transform_to_head=False,
         compute_dev_head_t=False,
     )
 
