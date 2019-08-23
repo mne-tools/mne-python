@@ -19,7 +19,7 @@ from ..transforms import apply_trans, get_ras_to_neuromag_trans
 
 from ..io.constants import FIFF
 from ..io.open import fiff_open
-from ..digitization._utils import _read_dig_fif
+from .._digitization._utils import _read_dig_fif
 from ..utils import _check_fname, Bunch, warn
 
 

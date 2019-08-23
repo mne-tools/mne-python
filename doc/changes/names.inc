@@ -253,4 +253,3 @@
 .. _Theodore Papadopoulo: https://github.com/papadop
 
 .. _Milan Rybář: http://milanrybar.cz
-

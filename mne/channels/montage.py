@@ -22,9 +22,9 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
-from ..digitization import Digitization
-from ..digitization._utils import (_make_dig_points, _read_dig_points,
-                                   write_dig)
+from .._digitization import Digitization
+from .._digitization._utils import (_make_dig_points, _read_dig_points,
+                                    write_dig)
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
@@ -547,7 +547,7 @@ class DigMontage(object):
 
         .. versionadded:: 0.19
 
-    dig : instance of Digitization
+    dig : list of dict
         The object containing all the dig points.
     ch_names : list of str
         The names of the EEG channels.
