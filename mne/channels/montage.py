@@ -28,13 +28,15 @@ from .._digitization._utils import (_make_dig_points, _read_dig_points,
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
-                     _check_option, Bunch, deprecated, _validate_type)
+                     _check_option, Bunch, deprecated, _validate_type,
+                     _check_fname)
 
 from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
+from ._dig_montage_utils import _parse_brainvision_dig_montage
 
 DEPRECATED_PARAM = object()
 
@@ -936,6 +938,43 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
 
     montage._point_names = point_names  # XXX: hack this should go!!
     return montage
+
+
+def read_dig_montage_brainvision(fname):
+    r"""Read subject-specific digitization montage from a brainvision file.
+
+    Parameters
+    ----------
+    bvct : path-like
+        BrainVision CapTrak coordinates file from which to read digitization
+        locations. This is typically in XML format. If str (filename), all
+        other arguments are ignored.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The digitizer montage.
+
+    See Also
+    --------
+    DigMontage
+    Montage
+    read_montage
+    """
+    _check_fname(fname, overwrite='read', must_exist=True)
+    data = _parse_brainvision_dig_montage(fname)
+
+    # XXX: to change to the new naming in v.0.20 (all this block should go)
+    data.pop('point_names')
+    data['hpi_dev'] = data['hpi']
+    data['hpi'] = data.pop('elp')
+    data['ch_pos'] = data.pop('dig_ch_pos')
+
+    return make_dig_montage(
+        **data,
+        transform_to_head=True,  # XXX: testing the roundtrip forces 'head'
+        compute_dev_head_t=False,
+    )
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):

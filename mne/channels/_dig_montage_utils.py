@@ -264,6 +264,13 @@ def _read_dig_montage_bvct(
              'specified in "mm". This might lead to errors.'.format(unit),
              RuntimeWarning)
 
+    return _parse_brainvision_dig_montage(fname, scale=scale[unit])
+
+
+BACK_COMPAT = object()  # XXX: to remove in 0.20
+
+
+def _parse_brainvision_dig_montage(fname, scale=BACK_COMPAT):
     root = ElementTree.parse(fname).getroot()
     sensors = root.find('CapTrakElectrodeList')
 
@@ -287,7 +294,7 @@ def _read_dig_montage_bvct(
                                 float(s.find('Y').text),
                                 float(s.find('Z').text)])
 
-        coordinates *= scale[unit]
+        coordinates *= 1e-3 if scale is BACK_COMPAT else scale
 
         # Fiducials
         if fid:
