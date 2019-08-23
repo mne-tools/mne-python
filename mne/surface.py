@@ -795,7 +795,8 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
-def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
+def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
+                  overwrite=False):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -827,13 +828,15 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
             * 'cras' : array of float, shape (3,)
 
         .. versionadded:: 0.13.0
+    overwrite : bool
+        If True, overwrite the file if it exists.
 
     See Also
     --------
     read_surface
     read_tri
     """
-    fname = _check_fname(fname, 'read', True)
+    fname = _check_fname(fname, overwrite=overwrite)
     try:
         import nibabel as nib
         has_nibabel = True

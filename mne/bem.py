@@ -1864,7 +1864,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         nodes, tris = read_tri(out_fname, swap=True)
         # Do not write volume info here because the tris are already in
         # standard Freesurfer coords
-        write_surface(op.splitext(out_fname)[0] + '.surf', nodes, tris)
+        write_surface(op.splitext(out_fname)[0] + '.surf', nodes, tris,
+                      overwrite=True)
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")

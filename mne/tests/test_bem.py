@@ -151,12 +151,12 @@ def test_bem_model_topology(tmpdir):
     outer_fname = tmpdir.join('foo', 'bem', 'outer_skull.surf')
     rr, tris = read_surface(outer_fname)
     tris = tris[:-1]
-    write_surface(outer_fname, rr, tris[:-1])
+    write_surface(outer_fname, rr, tris[:-1], overwrite=True)
     with pytest.raises(RuntimeError, match='Surface outer skull is not compl'):
         make_bem_model('foo', None, subjects_dir=tmpdir)
     # Now get past this error to reach gh-6127 (not enough neighbor tris)
     rr_bad = np.concatenate([rr, np.mean(rr, axis=0, keepdims=True)], axis=0)
-    write_surface(outer_fname, rr_bad, tris)
+    write_surface(outer_fname, rr_bad, tris, overwrite=True)
     with pytest.raises(RuntimeError, match='Surface outer skull.*triangles'):
         make_bem_model('foo', None, subjects_dir=tmpdir)
 
