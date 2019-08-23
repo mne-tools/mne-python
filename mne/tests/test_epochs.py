@@ -62,8 +62,11 @@ rng = np.random.RandomState(42)
 def test_handle_duplicate_events():
     """Test handling of duplicate events."""
     # A general test case
-    EVENT_ID = {'aud': 1, 'vis': 2}
-    EVENTS = np.array([[0, 0, 1], [0, 0, 2]])
+    EVENT_ID = {'aud': 1, 'vis': 2, 'foo': 3}
+    EVENTS = np.array([[0, 0, 1], [0, 0, 2],
+                       [3, 0, 2], [3, 0, 1],
+                       [5, 0, 2], [5, 0, 1], [5, 0, 3],
+                       [7, 0, 1]])
 
     with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
         _handle_duplicate_events(EVENTS, EVENT_ID, event_repeated='error')
@@ -72,11 +75,12 @@ def test_handle_duplicate_events():
         _handle_duplicate_events(EVENTS, EVENT_ID, event_repeated='bogus')
 
     events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'drop')
-    np.testing.assert_array_equal(events, np.array([[0, 0, 1], ]))
-    assert event_id == {'aud': 1}
+    assert_array_equal(events, [[0, 0, 1], [3, 0, 2], [5, 0, 2], [7, 0, 1]])
+    assert event_id == {'aud': 1, 'vis': 2}
 
     events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'merge')
-    np.testing.assert_array_equal(events, np.array([[0, 0, 3], ]))
+    assert_array_equal(events[0], events[1])
+    assert_array_equal(events, [[0, 0, 3], [3, 0, 2], ])
     assert 'aud/vis' in event_id.keys()
     assert set(event_id.keys()) == set(['aud/vis'])
     assert event_id['aud/vis'] == 3
