@@ -271,13 +271,13 @@ BACK_COMPAT = object()  # XXX: to remove in 0.20
 
 
 def _parse_brainvision_dig_montage(fname, scale=BACK_COMPAT):
+    BVCT_SCALE = 1e-3
+    FID_NAME_MAP = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
+
     root = ElementTree.parse(fname).getroot()
     sensors = root.find('CapTrakElectrodeList')
 
-    fids = {}
-    dig_ch_pos = {}
-
-    fid_name_map = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
+    fids, dig_ch_pos = dict(), dict()
 
     for s in sensors:
         name = s.find('Name').text
@@ -289,17 +289,16 @@ def _parse_brainvision_dig_montage(fname, scale=BACK_COMPAT):
         if name in ['GND', 'REF']:
             continue
 
-        fid = name in fid_name_map
+        is_fid = name in FID_NAME_MAP
         coordinates = np.array([float(s.find('X').text),
                                 float(s.find('Y').text),
                                 float(s.find('Z').text)])
 
-        coordinates *= 1e-3 if scale is BACK_COMPAT else scale
+        coordinates *= BVCT_SCALE if scale is BACK_COMPAT else scale
 
         # Fiducials
-        if fid:
-            fid_name = fid_name_map[name]
-            fids[fid_name] = coordinates
+        if is_fid:
+            fids[FID_NAME_MAP[name]] = coordinates
         # EEG Channels
         else:
             dig_ch_pos[name] = coordinates
