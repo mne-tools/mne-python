@@ -12,6 +12,8 @@ as importing raw data from NumPy arrays.
    :depth: 2
 
 
+.. _manual-data-formats:
+
 Summary of supported data formats
 #################################
 
@@ -19,9 +21,9 @@ Summary of supported data formats
    :start-after: data-formats-begin-content
 
 .. note::
-    MNE-Python is aware of the measurement units used by each manufacturer, and
+    MNE is aware of the measurement units used by each manufacturer, and
     will always convert data into a common internal representation. See
-    :ref:`units` for more information.
+    :ref:`manual-units` for more information.
 
 Importing data from MEG devices
 ###############################
@@ -40,12 +42,17 @@ EEG data can be found in :mod:`mne.io` and start with ``read_raw_``. All
 supported data formats can be read in MNE-Python directly without first
 saving it to :file:`fif`.
 
+.. _manual-units:
+
 Unit conversion
 ---------------
 
 .. include:: ../overview/units.rst
    :start-after: units-begin-content
    :end-before: units-end-of-list
+
+
+.. _manual-precision:
 
 Numerical precision
 -------------------

@@ -29,7 +29,7 @@ The documentation for MNE-Python is divided into five main sections:
    when typing :samp:`mne.{<function_name>}?` in an IPython session or Jupyter
    notebook.
 
-5. The web version of Matti Hämäläinen's original MNE-C documentation,
+5. The updated web version of Matti Hämäläinen's original MNE-C documentation,
    including the :ref:`cookbook <cookbook>`, :ref:`manual <mne_manual_toc>`,
    and :ref:`C API reference <c_reference>`.
 
@@ -47,14 +47,11 @@ documentation that are outside of the five categories above:
     :maxdepth: 1
 
     faq
-    learn_python
+    design_philosophy
+    implementation
     get_help
     cite
-    design_philosophy
-    precision
-    data_formats
-    channel_types
-    units
+    learn_python
     ../generated/commands
     command_line
     report

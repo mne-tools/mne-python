@@ -1,13 +1,14 @@
-.. _data-formats:
+:orphan:
 
 Supported data formats
 ======================
 
-.. NOTE: this file is included in manual/io.rst. changes here will be reflected
-    there. If you want to link to this info, link to :doc:`doc/data_formats`
-    rather than linking to :ref:`doc/manual/io/<section_name>`. The next line
-    is a target for :start-after: so we can omit the title from the include:
-    data-formats-begin-content
+.. NOTE: part of this file is included in doc/manual/io.rst and
+   doc/overview/implementation.rst. Changes here are reflected there. If you
+   want to link to this content, link to :ref:`manual-data-formats` for the
+   manual or :ref:`data-formats` for the implementation page. The next line is
+   a target for :start-after: so we can omit the title above:
+   data-formats-begin-content
 
 When MNE-Python loads sensor data, the data are stored in a Python object of
 type :class:`mne.io.Raw`. Specialized loading functions are provided for the
@@ -22,6 +23,9 @@ FieldTrip). Like the equipment-specific loading functions, these will also
 return an object of class :class:`~mne.io.Raw`; additional functions are
 available for reading data that has already been epoched or averaged (see
 table).
+
+.. NOTE: To include only the table, here's a different target for :start-after:
+   data-formats-begin-table
 
 .. cssclass:: table-bordered
 .. rst-class:: midvalign

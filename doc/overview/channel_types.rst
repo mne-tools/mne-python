@@ -1,7 +1,14 @@
-.. _channel-types:
+:orphan:
 
 Supported channel types
 =======================
+
+.. NOTE: part of this file is included in doc/overview/implementation.rst.
+   Changes here are reflected there. If you want to link to this content, link
+   to :ref:`channel-types` to link to that section of the implementation.rst
+   page. The next line is a target for :start-after: so we can omit the title
+   from the include:
+   channel-types-begin-content
 
 Channel types are represented in MNE-Python with shortened or abbreviated
 names. This page lists all supported channel types, their abbreviated names,
@@ -10,11 +17,8 @@ types occur in two or more sub-types, the sub-type abbreviations are given in
 parentheses. More information about measurement units is given on the
 :doc:`units` page.
 
-.. NOTE: If this table gets included in another page, target cross-refs to
-    :doc:`doc/channel_types` rather than to
-    :ref:`doc/<other_page>/<section_name>`. The next line is a target for
-    :start-after: so we can omit title and intro paragraph from the include:
-    channel-types-begin-table
+.. NOTE: To include only the table, here's a different target for :start-after:
+   channel-types-begin-table
 
 .. cssclass:: table-bordered
 .. rst-class:: midvalign
