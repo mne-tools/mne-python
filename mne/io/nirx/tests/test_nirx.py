@@ -13,12 +13,10 @@ from ....utils import logger
 @requires_testing_data
 def test_nirx():
     """Test reading NIRX files."""
-    fname = op.join(data_path(), 'nirx', 'test_nirx.nxe')
-    fname = '/home/rluke/Documents/Repositories/mne-python/mne/io' + \
-            '/nirx/tests/nirx_15_2_recording'
+    fname = op.join(data_path(), 'NIRx', 'nirx_15_2_recording_w_short')
     logger.info('Calling loader on %s' % fname)
     raw = read_raw_nirx(fname, preload=True)
-    assert raw._data.shape == (288, 16069)
-    assert raw.info['subject_info']['sex'] == 2
+    assert raw._data.shape == (90, 144)
+    assert raw.info['subject_info']['sex'] == 1
 
 run_tests_if_main()

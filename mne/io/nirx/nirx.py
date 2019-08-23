@@ -100,16 +100,20 @@ class RawNIRX(BaseRaw):
         subject_info['birthday'] = inf['age']
         subject_info['sex'] = inf['gender'].replace("\"", "")
         # Recode values
-        if subject_info['sex'] in {'M', 'Male'}:
+        if subject_info['sex'] in {'M', 'Male', '1'}:
             subject_info['sex'] = 1
-        if subject_info['sex'] in {'F', 'Female'}:
+        if subject_info['sex'] in {'F', 'Female', '2'}:
             subject_info['sex'] = 2
         # NIRStar does not record an id, or handedness by default
 
         # Read header file
-
-        hdr = cp.ConfigParser(allow_no_value=True)
-        hdr.read(file_hdr)
+        # This is a bit tricky as the header file isnt compliant with
+        # the config specifications. So we need to remove all text
+        # between comments before passing to config parser
+        hdr_str = open(file_hdr[0]).read()
+        hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
+        hdr = cp.RawConfigParser()
+        hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
         assert (hdr['GeneralInfo']['NIRStar'] == "\"15.2\""), \
