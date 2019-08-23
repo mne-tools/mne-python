@@ -410,6 +410,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
+# XXX: shall we avoid transform
 def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
                      hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
                      transform_to_head=False, compute_dev_head_t=False):
@@ -773,6 +774,66 @@ def _get_scaling(unit, scale):
                          (sorted(scale.keys()), unit))
     else:
         return scale[unit]
+
+
+# XXX: this function will evolve with issue-6461
+def transform_to_head(montage):
+    """Transform a DigMontage object into head coord."""
+    _VALID_COORD_FRAMES = {
+        FIFF.FIFFV_COORD_UNKNOWN,
+        # FIFF.FIFFV_COORD_DEVICE,
+        # FIFF.FIFFV_COORD_ISOTRAK,
+        # FIFF.FIFFV_COORD_HPI,
+        FIFF.FIFFV_COORD_HEAD,
+        # FIFF.FIFFV_COORD_MRI,
+        # FIFF.FIFFV_COORD_MRI_SLICE,
+        # FIFF.FIFFV_COORD_MRI_DISPLAY,
+        # FIFF.FIFFV_COORD_DICOM_DEVICE,
+        # FIFF.FIFFV_COORD_IMAGING_DEVICE
+    }
+
+    dig_coord_frames = set([d['coord_frame'] for d in montage.dig])
+    if len(dig_coord_frames) == 1:
+        coord_frame = dig_coord_frames.pop()
+
+        if coord_frame not in _VALID_COORD_FRAMES:
+            raise ValueError(
+                'coord_frame must be one of %s, got %s'
+                % (_VALID_COORD_FRAMES, _frame_to_str(coord_frame))
+            )
+
+        if coord_frame == FIFF.FIFFV_COORD_HEAD:
+            pass  # noqa, All good
+
+        else:  # FIFF.FIFFV_COORD_UNKNOWN:
+            data = _foo_get_data_from_dig(montage.dig)
+            data['dig_ch_pos'] = dict(
+                zip(montage.ch_names, data.pop('dig_ch_pos_location'))
+            )
+            assert all(
+                x is not None for x in (data.nasion, data.rpa, data.lpa)
+            )
+            # montage.dig = _make_dig_points(**_transform_to_head_call(data))
+            #
+            # data cannot be plugged directly to _make_dig_points..
+            # I'm losing data.hpi which is mapped the same as elp
+            # see _foo_get_data_from_dig. I'm not sure what happens with
+            # _transform_to_head_call with respect to elp/hpi. (needs checking)
+            data = _transform_to_head_call(data)
+            montage.dig = _make_dig_points(
+                nasion=data.nasion, lpa=data.lpa, rpa=data.rpa, hpi=data.elp,
+                extra_points=data.hsp, dig_ch_pos=data.dig_ch_pos,
+                coord_frame='head',
+            )
+            montage._coord_frame = 'head'
+
+        return montage
+
+    else:
+        raise(
+            NotImplementedError,
+            'not yet Polhemus will fall in this category'  # XXX: Polhemus
+        )
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None,

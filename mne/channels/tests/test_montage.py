@@ -21,6 +21,7 @@ from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage)
 from mne.channels.montage import _set_montage, read_dig_montage_brainvision
+from mne.channels.montage import transform_to_head
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
@@ -625,6 +626,7 @@ def test_bvct_dig_montage(tmpdir):
         '0 extras (headshape), 0 HPIs, 3 fiducials, 64 channels>'
     )
 
+    montage = transform_to_head(montage)  # transform_to_head has to be tested
     _check_roundtrip(montage=montage, fname=op.join(tmpdir, 'bvct_test.fif'))
 
     with pytest.deprecated_call():
@@ -660,6 +662,7 @@ def test_set_montage():
     assert 'EEG074' in mon.ch_names
 
 
+# XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname):
     """Check roundtrip writing."""
     with pytest.deprecated_call():
