@@ -20,7 +20,7 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage)
-from mne.channels.montage import _set_montage
+from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
@@ -438,6 +438,133 @@ def test_read_dig_montage():
     with pytest.deprecated_call():
         assert_allclose(montage_extra.hsp, montage.hsp)
         assert_allclose(montage_extra.elp, montage.elp)
+
+
+# XXX: I would like those to be plain numbers or fixture not reading.
+elp_points = _read_dig_points(elp)
+hsp_points = _read_dig_points(hsp)  # XXX: I can get a subset of this
+hpi_points = read_mrk(hpi)
+
+
+@pytest.mark.skip(reason='XXX later')
+def test_read_dig_montage_using_arrays_depreacation():
+    """Test deprecated stuff."""
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+    elp_points = _read_dig_points(elp)
+    hsp_points = _read_dig_points(hsp)
+    hpi_points = read_mrk(hpi)
+
+    m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names, unit='m')
+    with pytest.deprecated_call():
+        assert_array_equal(m2.hsp, montage.hsp)
+    m3 = read_dig_montage(hsp_points * 1000, hpi_points, elp_points * 1000,
+                          names)
+    with pytest.deprecated_call():
+        assert_allclose(m3.hsp, montage.hsp)
+
+
+@pytest.mark.skip(reason='Not implemented here wait for next PR')
+def test_read_dig_montage_using_matlab_files():
+    """Test deprecated stuff."""
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+    hsp_points = _read_dig_points(hsp)
+
+    # test unit parameter and .mat support
+    tempdir = _TempDir()
+    mat_hsp = op.join(tempdir, 'test.mat')
+    savemat(mat_hsp, dict(Points=(1000 * hsp_points).T), oned_as='row')
+    montage_cm = read_dig_montage(mat_hsp, hpi, elp, names, unit='cm')
+    with pytest.deprecated_call():
+        assert_allclose(montage_cm.hsp, montage.hsp * 10.)
+        assert_allclose(montage_cm.elp, montage.elp * 10.)
+    pytest.raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
+                  unit='km')
+
+
+def test_make_dig_points_call_with_fiducials():
+    """Test building dig_montage from arrays."""
+    # Old stuff
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+
+    # New stuff
+    data = _fix_data_fiducials(Bunch(  # XXX: populate the fiducials + trim elp
+
+        nasion=None, lpa=None, rpa=None,
+        hsp=hsp_points,
+        coord_frame='unknown',
+        hpi=hpi_points,
+
+        # XXX: elp and point_names go together and do the fiducials magic
+        elp=elp_points,
+        point_names=['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5'],
+    ))
+
+    new_montage_A = make_dig_montage(
+        # default params:
+        ch_pos=None,
+        compute_dev_head_t=False,  # XXX: this one should fall
+        transform_to_head=False,  # XXXX: maybe this one aswell
+
+        # required stuff:
+        nasion=data.nasion, lpa=data.lpa, rpa=data.rpa,
+
+        hsp=data.hsp,  # not transformed by _fix_data_fiducials
+        hpi=data.elp, hpi_dev=data.hpi,   # transformed by _fix_data_fiducials
+    )
+
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 8 HPIs, 0 fiducials, 0 channels>'
+    )
+    assert new_montage_A.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>'
+    )  # XXX: They are different and it makes sense because we force fiducials
+
+    assert new_montage_A.dev_head_t is None  # no dev head computed
+
+    with pytest.deprecated_call():  # XXX: maybe deprecating was BAD idea
+        with pytest.raises(RuntimeError, match='Cannot compute dev_head_t'):
+            # XXX: BOOM !!! the new objects do not allow for it
+            new_montage_A.compute_dev_head_t()
+
+    # EXPECTED_DEV_HEAD_T = np.array(
+    #     [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],  # noqa
+    #      [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
+    #      [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
+    #      [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+    # )
+    # assert_allclose(new_montage_A.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
+
+
+@pytest.mark.skip(reason="This is what eric wanted. But its broken because I'm too rigit")  # noqa
+def test_make_dig_points_call_without_fiducials():
+    """Test building dig_montage from arrays."""
+    # Old stuff
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+
+    # New stuff
+    new_montage = make_dig_montage(
+        # default params:
+        ch_pos=None,
+        compute_dev_head_t=False,  # XXX: this one should fall
+        transform_to_head=False,  # XXXX: maybe this one as well
+
+        # required stuff:
+        nasion=None, lpa=None, rpa=None,
+
+        hsp=hsp, hpi=elp, hpi_dev=hpi,  # Arrays directly from polhimous
+    )
+
+    for m in [montage, new_montage]:
+        assert m.__repr__() == (
+            '<DigMontage | '
+            '500 extras (headshape), 8 HPIs, 0 fiducials, 0 channels>'
+        )
 
 
 def test_set_dig_montage():
