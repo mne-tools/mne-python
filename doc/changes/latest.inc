@@ -41,6 +41,8 @@ Changelog
 
 - Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 
+- Add function to check the type of a FIF file using :func:`mne.what` and `mne what <gen_mne_what>` by `Eric Larson`_
+
 - Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
 
 - Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
