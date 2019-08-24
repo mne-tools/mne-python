@@ -84,12 +84,15 @@ power = tfr_multitaper(stcs, freqs=freqs, n_cycles=7, use_fft=True,
 power
 
 ###############################################################################
-# Plot the induced power for one epoch, averaged over all used frequencies.
+# Plot the induced power for the first two epochs, for the frequency of 8 Hz.
 initial_time = 0.05
 epoch = 2
-# FIXME: The data field for vector/epochs stfrs is passed in wrong order for plotting
-power.plot(epoch=epoch, subjects_dir=subjects_dir, initial_time=initial_time,
-           scale_factor=10)
+fmin, fmax = 8, 8
+
+for epoch_idx in range(2):
+    power.plot(epoch=epoch_idx, fmin=fmin, fmax=fmax,
+               subjects_dir=subjects_dir, initial_time=initial_time,
+               scale_factor=10)
 
 
 
