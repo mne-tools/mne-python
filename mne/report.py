@@ -875,13 +875,10 @@ class Report(object):
 
     Notes
     -----
+    Before geting started with ``mne.Report``, make sure the files you want to
+    render follow the filename conventions defined by MNE:
 
     .. highlight:: python
-
-    **Getting started with mne.Report**
-
-    First, make sure the files you want to render follow the filename
-    conventions defined by MNE:
 
     .. cssclass:: table-bordered
     .. rst-class:: midvalign
