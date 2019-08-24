@@ -4,8 +4,8 @@ Compute induced power for VectorSourceEstimates using multitapers
 =================================================================
 
 Compute induced power for multiple epochs in source space,
-using a multitaper time-frequency transform on a list of source
-estimate objects.
+using a multitaper time-frequency transform on a list of
+VectorSourceEstimate objects.
 
 """
 # Authors: Dirk Gütlin <dirk.guetlin@gmail.com>

@@ -4,8 +4,8 @@ Compute induced power and itc for SourceEstimates using stockwell transform
 ===========================================================================
 
 Compute induced power and inter-trial-coherence in source space,
-using a multitaper time-frequency transform on a list of sourcev
-estimate objects.
+using a multitaper time-frequency transform on a list of SourceEstimate
+objects.
 
 """
 # Authors: Dirk Gütlin <dirk.guetlin@gmail.com>
