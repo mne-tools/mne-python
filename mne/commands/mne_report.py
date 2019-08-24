@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 r"""Create mne report for a folder.
 
-    Getting started with ``mne report``
-    ===================================
+    **Getting started with** mne report``
 
     .. highlight:: console
 

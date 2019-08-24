@@ -876,10 +876,9 @@ class Report(object):
     Notes
     -----
 
-    Getting started with ``mne.Report``
-    ===================================
-
     .. highlight:: python
+
+    **Getting started with mne.Report**
 
     First, make sure the files you want to render follow the filename
     conventions defined by MNE:
