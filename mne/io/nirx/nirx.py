@@ -114,7 +114,7 @@ class RawNIRX(BaseRaw):
         # This is a bit tricky as the header file isnt compliant with
         # the config specifications. So we need to remove all text
         # between comments before passing to config parser
-        hdr_str = open(file_hdr[0]).read()
+        with open(file_hdr[0]).read() as hdr_str:
         hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
         hdr = cp.RawConfigParser()
         hdr.read_string(hdr_str)
