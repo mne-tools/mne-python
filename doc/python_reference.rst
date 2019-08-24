@@ -310,6 +310,7 @@ Projections:
    read_dig_montage
    make_dig_montage
    read_dig_captrack
+   read_dig_egi
    read_layout
    find_layout
    make_eeg_layout

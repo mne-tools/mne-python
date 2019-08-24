@@ -988,6 +988,46 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     return montage
 
 
+def read_dig_egi(fname):
+    r"""Read electrode locations from EGI system.
+
+    Parameters
+    ----------
+    fname : path-like
+        EGI MFF XML coordinates file from which to read digitization locations.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    Montage
+    read_montage
+    """
+    _check_fname(fname, overwrite='read', must_exist=True)
+
+    data = _read_dig_montage_egi(
+        fname=fname,
+        _scaling=1.,
+        _all_data_kwargs_are_none=True
+    )
+
+    # XXX: to change to the new naming in v.0.20 (all this block should go)
+    data.pop('point_names')
+    data['hpi_dev'] = data['hpi']
+    data['hpi'] = data.pop('elp')
+    data['ch_pos'] = data.pop('dig_ch_pos')
+
+    return make_dig_montage(
+        **data,
+        transform_to_head=False,
+        compute_dev_head_t=False,
+    )
+
+
 def read_dig_captrack(fname):
     r"""Read electrode locations from CapTrak Brain Products system.
 

@@ -19,8 +19,9 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
-                          get_builtin_montages, DigMontage)
-from mne.channels.montage import _set_montage, read_dig_captrack
+                          get_builtin_montages, DigMontage,
+                          read_dig_egi, read_dig_captrack)
+from mne.channels.montage import _set_montage
 from mne.channels.montage import transform_to_head
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
@@ -566,6 +567,13 @@ def test_egi_dig_montage():
         assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
         assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
+
+    # Test old way matches new way
+    dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
+    dig_montage_egi = read_dig_egi(egi_dig_montage_fname)
+    dig_montage_egi = transform_to_head(dig_montage_egi)
+    assert dig_montage.dig == dig_montage_egi.dig
+    assert object_diff(dig_montage.ch_names, dig_montage_egi.ch_names) == ''
 
 
 @testing.requires_testing_data
