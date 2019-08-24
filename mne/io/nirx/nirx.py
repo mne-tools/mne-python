@@ -5,12 +5,11 @@
 import configparser as cp
 import re as re
 import glob as glob
-import pandas as pd
 import numpy as np
 
 from ..base import BaseRaw
 from ..meas_info import create_info
-from ...utils import logger, verbose, fill_doc
+from ...utils import logger, verbose, fill_doc, _check_pandas_installed
 
 
 @fill_doc
@@ -126,6 +125,11 @@ class RawNIRX(BaseRaw):
 
         # Parse required header fields
 
+        # Extract frequencies of light used by machine
+        fnirs_wavelengths = [int(s) for s in
+                             re.findall(r'(\d+)',
+                             hdr['ImagingParameters']['Wavelengths'])]
+
         # Extract source-detectors requested by user
         sources = [int(s) for s in re.findall(r'(\d)-\d:\d+',
                    hdr['DataStructure']['S-D-Key'])]
@@ -138,6 +142,18 @@ class RawNIRX(BaseRaw):
         assert (len(sources) == len(sdindex)), \
             "Same amount of sources and keys required"
 
+        # Generate meaninful channel names
+        def prepend(list, str):
+            str += '{0}'
+            list = [str.format(i) for i in list]
+            return(list)
+        snames = prepend(sources, 'S')
+        dnames = prepend(detectors, '-D')
+        sdnames = [m + str(n) for m, n in zip(snames, dnames)]
+        sd1 = [s + ' ' + str(fnirs_wavelengths[0]) + ' (nm)' for s in sdnames]
+        sd2 = [s + ' ' + str(fnirs_wavelengths[1]) + ' (nm)' for s in sdnames]
+        chnames = [val for pair in zip(sd1, sd2) for val in pair]
+
         # Create mne structure
         # TODO: ch_type is currently misc as I could not find appropriate
         #       other type, the hbo and hbr type are not relevant until the
@@ -145,7 +161,7 @@ class RawNIRX(BaseRaw):
         # TODO: nchan needs to be multiplied by two as we have two wavelengths
         #       per sensor should the underlying type be modified to
         #       support (wavelength x channels x data)?
-        info = create_info(len(sources) * 2,
+        info = create_info(chnames,
                            hdr['ImagingParameters']['SamplingRate'],
                            ch_types='misc')
         info.update({'subject_info': subject_info})
@@ -161,9 +177,6 @@ class RawNIRX(BaseRaw):
         info['fnirs_detectors'] = np.asarray(detectors)
         info['fnirs_sdindex'] = np.asarray(sdindex)
 
-        fnirs_wavelengths = [int(s) for s in
-                             re.findall(r'(\d+)',
-                             hdr['ImagingParameters']['Wavelengths'])]
         info['fnirs_wavelengths'] = np.asarray(fnirs_wavelengths)
 
         super(RawNIRX, self).__init__(
@@ -176,6 +189,10 @@ class RawNIRX(BaseRaw):
         These are stored in two files [wl1, wl2]. This function will
         return the data as ([wl1, wl2] x samples)
         """
+
+        # Temporary solution until I write a reader
+        # TODO: Write space separated values file reader
+        pd = _check_pandas_installed(strict=True)
 
         file_wl1 = glob.glob(self.filenames[fi] + '/*.wl1')
         file_wl2 = glob.glob(self.filenames[fi] + '/*.wl2')
