@@ -833,7 +833,7 @@ def _check_image_format(rep, image_format):
 
 @fill_doc
 class Report(object):
-    """Object for rendering HTML.
+    r"""Object for rendering HTML.
 
     Parameters
     ----------
@@ -899,7 +899,7 @@ class Report(object):
     inverse      -inv.fif(.gz)
     ============ ==============================================================
 
-    To generate a barebones report from all the *.fif files in the sample
+    To generate a barebones report from all the \*.fif files in the sample
     dataset, import the required functions::
 
         >>> import os
