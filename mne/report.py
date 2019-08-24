@@ -896,19 +896,61 @@ class Report(object):
     inverse      -inv.fif(.gz)
     ============ ==============================================================
 
-    To generate a barebones report from all the \*.fif files in the sample
-    dataset, import the required functions::
+    To generate a barebones report for all the :file:`.fif` files containing
+    Raw data in the sample dataset, first import the required functions::
 
         >>> import os
         >>> from mne.report import Report
         >>> from mne.datasets import sample
 
-    then generate the report::
+    then generate the report using the pattern ``*raw.fif``::
 
         >>> path = sample.data_path(verbose=False)
         >>> report = Report(verbose=True)
-        >>> report.parse_folder(path)
+        Embedding : jquery.js
+        Embedding : jquery-ui.min.js
+        Embedding : bootstrap.min.js
+        Embedding : jquery-ui.min.css
+        Embedding : bootstrap.min.css
+        >>> report.parse_folder(path, pattern='*raw.fif')
+        Iterating over 3 potential files (this may take some time)
+        Rendering : .../MNE-sample-data/MEG/sample/ernoise_raw.fif
+        Opening raw data file .../MNE-sample-data/MEG/sample/ernoise_raw.fif...
+        Isotrak not found
+            Read a total of 3 projection items:
+                PCA-v1 (1 x 102)  idle
+                PCA-v2 (1 x 102)  idle
+                PCA-v3 (1 x 102)  idle
+            Range : 19800 ... 85867 =     32.966 ...   142.965 secs
+        Ready.
+        Current compensation grade : 0
+        Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif
+        Opening raw data file .../MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif...
+            Read a total of 4 projection items:
+                PCA-v1 (1 x 102)  idle
+                PCA-v2 (1 x 102)  idle
+                PCA-v3 (1 x 102)  idle
+                Average EEG reference (1 x 60)  idle
+            Range : 6450 ... 48149 =     42.956 ...   320.665 secs
+        Ready.
+        Current compensation grade : 0
+        Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_raw.fif
+        Opening raw data file .../MNE-sample-data/MEG/sample/sample_audvis_raw.fif...
+            Read a total of 3 projection items:
+                PCA-v1 (1 x 102)  idle
+                PCA-v2 (1 x 102)  idle
+                PCA-v3 (1 x 102)  idle
+            Range : 25800 ... 192599 =     42.956 ...   320.670 secs
+        Ready.
+        Current compensation grade : 0
         >>> report.save()
+        Saving report to location .../report.html
+        Rendering : Table of Contents
+        raw
+         ... ernoise_raw.fif
+         ... sample_audvis_filt-0-40_raw.fif
+         ... sample_audvis_raw.fif
+        '.../report.html'
 
     On successful creation of the report, it will open the HTML in a new tab in
     the browser. To disable this, use the ``open_browser=False`` parameter of
@@ -916,50 +958,60 @@ class Report(object):
 
     TO generate a report for a single subject, pass the ``subject`` and
     ``subjects_dir`` parameters to the :class:`~mne.Report` constructor and
-    this will generate the MRI slices (with BEM contours overlaid on top if
-    available)::
+    this will generate the MRI slices, with BEM contours overlaid on top if
+    available (we'll omit the output from here on to save space)::
 
         >>> subjects_dir = os.path.join(path, 'subjects')
-        >>> report = Report(subject='sample', subjects_dir=subjects_dir,
-                            verbose=True)
-        >>> report.parse_folder(path)
-        >>> report.save()
+        >>> report = Report(subject='sample',
+        ...                 subjects_dir=subjects_dir,
+        ...                 verbose=True)                 # doctest: +SKIP
+        >>> report.parse_folder(path)                     # doctest: +SKIP
+        >>> report.save()                                 # doctest: +SKIP
 
     To properly render ``trans`` and ``covariance`` files, add a source for the
     measurement information::
 
         >>> info_fname = os.path.join(path, 'MEG', 'sample',
-                                      'sample_audvis-ave.fif')
-        >>> report = Report(subject='sample', subjects_dir=subjects_dir,
-                            info_fname=info_fname, verbose=True)
-        >>> report.parse_folder(path)
-        >>> report.save()
+        ...                           'sample_audvis-ave.fif')
+        >>> report = Report(subject='sample',
+        ...                 subjects_dir=subjects_dir,
+        ...                 info_fname=info_fname,
+        ...                 verbose=True)                 # doctest: +SKIP
+        >>> report.parse_folder(path)                     # doctest: +SKIP
+        >>> report.save()                                 # doctest: +SKIP
 
     To render whitened ``evoked`` files with baseline correction, add the noise
     covariance file::
 
         >>> cov_fname = os.path.join(path, 'MEG', 'sample',
-                                     'sample_audvis-cov.fif')
-        >>> report = Report(subject='sample', subjects_dir=subjects_dir,
-                            info_fname=info_fname, cov_fname=cov_fname,
-                            verbose=True)
-        >>> report.parse_folder(path)
-        >>> report.save()
+        ...                          'sample_audvis-cov.fif')
+        >>> report = Report(subject='sample',
+        ...                 subjects_dir=subjects_dir,
+        ...                 info_fname=info_fname,
+        ...                 cov_fname=cov_fname,
+        ...                 verbose=True)                 # doctest: +SKIP
+        >>> report.parse_folder(path)                     # doctest: +SKIP
+        >>> report.save()                                 # doctest: +SKIP
 
     The python interface has greater flexibility compared to the command line
     interface. Custom plots can be added to the report. Let us first generate a
     custom plot::
 
         >>> from mne import read_evokeds
-        >>> evoked = read_evokeds(fname_evoked, condition='Left Auditory',
-                                  baseline=(None, 0), verbose=True)
-        >>> fig = evoked.plot(show=False, time_unit='s')
+        >>> fname_evoked = os.path.join(path, 'MEG', 'sample',
+        ...                             'sample_audvis-ave.fif')
+        >>> evoked = read_evokeds(fname_evoked,
+        ...                       condition='Left Auditory',
+        ...                       baseline=(None, 0),
+        ...                       verbose=True)             # doctest: +SKIP
+        >>> fig = evoked.plot(show=False, time_unit='s')    # doctest: +SKIP
 
     To add the custom plot to the report, do::
 
         >>> report.add_figs_to_section(fig, captions='Left Auditory',
-                                       section='evoked')
-        >>> report.save('report.html', overwrite=True)
+                                       section='evoked')    # doctest: +SKIP
+        >>> report.save('report.html', overwrite=True)      # doctest: +SKIP
+
 
     The MNE report command internally manages the sections so that plots
     belonging to the same section are rendered consecutively. Within a section,
@@ -974,20 +1026,22 @@ class Report(object):
     to read it back, we can save it as an HDF5 file::
 
         >>> from mne import open_report
-        >>> report.save('report.h5', overwrite=True)
-        >>> open_report('report.h5')
+        >>> report.save('report.h5', overwrite=True)       # doctest: +SKIP
+        >>> report_from_disk = open_report('report.h5')    # doctest: +SKIP
 
     This allows multiple scripts to add figures to the same report. To make
     this even easier, :class:`mne.Report` can be used as a context manager,
     allowing you to do this::
 
         >>> with open_report('report.h5') as report:
-        >>>    report.add_figs_to_section(fig, captions='Left Auditory',
-                                          section='evoked', replace=True)
-        >>>    report.save('report.html', overwrite=True)
+        ...    report.add_figs_to_section(fig,
+        ...                               captions='Left Auditory',
+        ...                               section='evoked',
+        ...                               replace=True)      # doctest: +SKIP
+        >>>    report.save('report.html', overwrite=True)    # doctest: +SKIP
 
-    With the context manager, the updated report is automatically saved back to
-    :file:`report.h5` upon leaving the block.
+    With the context manager, the updated report is also automatically saved
+    back to :file:`report.h5` upon leaving the block.
 
     .. versionadded:: 0.8.0
     """
