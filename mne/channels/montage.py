@@ -780,7 +780,7 @@ def _get_scaling(unit, scale):
 
 
 # XXX: this function will evolve with issue-6461
-# and should be testes as soon as we have the Polhemus
+# and should be tested as soon as we have the Polhemus
 # reader.
 def transform_to_head(montage):
     """Transform a DigMontage object into head coordinate.
@@ -802,7 +802,6 @@ def transform_to_head(montage):
         The montage after transforming the points to head
         coordinate system.
     """
-
     # Get fiducial points and their coord_frame
     fid_coords, coord_frame = _get_fid_coords(montage.dig)
 

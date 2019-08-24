@@ -641,7 +641,7 @@ def test_read_dig_captrack(tmpdir):
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
-    _check_roundtrip(montage=montage, fname=op.join(tmpdir, 'bvct_test.fif'))
+    _check_roundtrip(montage=montage, fname=str(tmpdir.join('bvct_test.fif')))
 
     with pytest.deprecated_call():
         assert_allclose(
