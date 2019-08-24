@@ -69,16 +69,16 @@ class RawNIRX(BaseRaw):
         file_cfg = glob.glob(fname + '/*config.txt')
         file_mat = glob.glob(fname + '/*probeInfo.mat')
 
-        assert_one(file_dat, "Should be one dat file")
-        assert_one(file_evt, "Should be one evt file")
-        assert_one(file_hdr, "Should be one hdr file")
-        assert_one(file_inf, "Should be one inf file")
-        assert_one(file_set, "Should be one set file")
-        assert_one(file_tpl, "Should be one tpl file")
-        assert_one(file_wl1, "Should be one wl1 file")
-        assert_one(file_wl2, "Should be one wl2 file")
-        assert_one(file_cfg, "Should be one config file")
-        assert_one(file_mat, "Should be one mat file")
+        _assert_one(file_dat, "Should be one dat file")
+        _assert_one(file_evt, "Should be one evt file")
+        _assert_one(file_hdr, "Should be one hdr file")
+        _assert_one(file_inf, "Should be one inf file")
+        _assert_one(file_set, "Should be one set file")
+        _assert_one(file_tpl, "Should be one tpl file")
+        _assert_one(file_wl1, "Should be one wl1 file")
+        _assert_one(file_wl2, "Should be one wl2 file")
+        _assert_one(file_cfg, "Should be one config file")
+        _assert_one(file_mat, "Should be one mat file")
 
         # Read number of rows of wavelength data which corresponds to
         # number of samples
@@ -133,24 +133,53 @@ class RawNIRX(BaseRaw):
                              hdr['ImagingParameters']['Wavelengths'])]
 
         # Extract source-detectors requested by user
-        sources = [int(s) for s in re.findall(r'(\d)-\d:\d+',
-                   hdr['DataStructure']['S-D-Key'])]
-        detectors = [int(s) for s in re.findall(r'\d-(\d):\d+',
-                     hdr['DataStructure']['S-D-Key'])]
-        sdindex = [int(s) for s in re.findall(r'\d-\d:(\d+)',
-                   hdr['DataStructure']['S-D-Key'])]
-        assert (len(sources) == len(detectors)), \
-            "Same amount of sources and detectors required"
-        assert (len(sources) == len(sdindex)), \
-            "Same amount of sources and keys required"
+        sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
+                              hdr['DataStructure']['S-D-Key'])])
+        detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
+                                hdr['DataStructure']['S-D-Key'])])
+
+        # Read information about probe/montage/optodes
+        # A word on terminology used here:
+        #   Sources produce light
+        #   Detectors measure light
+        #   Sources and detectors are both called optodes
+        #   Each source - detector pair produces a channel
+        #   Channels are defined as the midpoint between source and detector
+        # Information is available about the sources, detector, and channel
+        # locations. Currently I am storing the location of the channel as this
+        # seems the most similar to EEG. But ideally for each channel we could
+        # store the location of all three (source, detector, channel).
+        # The channel info is most useful for scalp level analysis.
+        # Source detector locations would be useful for photon migration
+        # modelling, determining which region of the brain the fNIRS signal is
+        # likely to originate from.
+        from ...externals.pymatreader import read_mat
+        mat_data = read_mat(file_mat[0], uint16_codec=None)
+        # Following values will be required by commented out to keep flake
+        # happy until i put in locations via info['chs'][ii]['loc']
+        # detector_location_labels =mat_data['probeInfo']['probes']['labels_d']
+        # source_location_labels = mat_data['probeInfo']['probes']['labels_s']
+        # num_sources = mat_data['probeInfo']['probes']['nSource0']
+        # num_detectors = mat_data['probeInfo']['probes']['nDetector0']
+        requested_channels = mat_data['probeInfo']['probes']['index_c']
+
+        # Determine requested channel indicies
+        # The wl1 and wl2 files include all possible source - detector pairs
+        # But most of these are not relevant. We want to extract only subset
+        req_ind = np.array([])
+        for req_idx in range(requested_channels.shape[0]):
+            sd_idx = np.where((sources == requested_channels[req_idx][0]) &
+                              (detectors == requested_channels[req_idx][1]))
+            req_ind = np.concatenate((req_ind, sd_idx[0]))
+        req_ind = req_ind.astype(int)
 
         # Generate meaninful channel names
         def prepend(list, str):
             str += '{0}'
             list = [str.format(i) for i in list]
             return(list)
-        snames = prepend(sources, 'S')
-        dnames = prepend(detectors, '-D')
+        snames = prepend(sources[req_ind], 'S')
+        dnames = prepend(detectors[req_ind], '-D')
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
         sd1 = [s + ' ' + str(fnirs_wavelengths[0]) + ' (nm)' for s in sdnames]
         sd2 = [s + ' ' + str(fnirs_wavelengths[1]) + ' (nm)' for s in sdnames]
@@ -175,23 +204,19 @@ class RawNIRX(BaseRaw):
         # TODO: Is this style of info overloading allowed?
         #       Currently I am marking all things as fnirs_ to make easier to
         #       find and remove if there is more appropriate storage locations
-        info['fnirs_sources'] = np.asarray(sources)
-        info['fnirs_detectors'] = np.asarray(detectors)
-        info['fnirs_sdindex'] = np.asarray(sdindex)
-
-        info['fnirs_wavelengths'] = np.asarray(fnirs_wavelengths)
+        raw_extras = {"sd_index": req_ind}
 
         super(RawNIRX, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
-            raw_extras=[hdr], verbose=verbose)
+            raw_extras=[raw_extras], verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
+
         The NIRX machine records raw data as two different wavelengths.
         These are stored in two files [wl1, wl2]. This function will
         return the data as ([wl1, wl2] x samples)
         """
-
         # Temporary solution until I write a reader
         # TODO: Write space separated values file reader
         pd = _check_pandas_installed(strict=True)
@@ -199,7 +224,7 @@ class RawNIRX(BaseRaw):
         file_wl1 = glob.glob(self.filenames[fi] + '/*.wl1')
         file_wl2 = glob.glob(self.filenames[fi] + '/*.wl2')
 
-        sdindex = self.info['fnirs_sdindex'] - 1  # As idx is 1 based
+        sdindex = self._raw_extras[fi]['sd_index']
 
         wl1 = pd.read_csv(file_wl1[0], sep=' ').values
         wl2 = pd.read_csv(file_wl2[0], sep=' ').values
@@ -218,6 +243,6 @@ class RawNIRX(BaseRaw):
         return data
 
 
-def assert_one(x, msg):
+def _assert_one(x, msg):
     if len(x) != 1:
         raise RuntimeError(msg + ', got %d' % (len(x),))
