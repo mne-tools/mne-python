@@ -3,11 +3,10 @@ r"""Create mne report for a folder.
 
 Examples
 --------
-
-.. highlight:: console
-
 Before getting started with ``mne report``, make sure the files you want to
 render follow the filename conventions defined by MNE:
+
+.. highlight:: console
 
 .. cssclass:: table-bordered
 .. rst-class:: midvalign

@@ -875,7 +875,7 @@ class Report(object):
 
     Notes
     -----
-    Before geting started with ``mne.Report``, make sure the files you want to
+    Before getting started with ``mne.Report``, make sure the files you want to
     render follow the filename conventions defined by MNE:
 
     .. highlight:: python
