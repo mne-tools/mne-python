@@ -25,8 +25,9 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
 from .._digitization import Digitization
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
-                                    write_dig)
+                                    write_dig, _read_dig_fif)
 from ..io.pick import pick_types
+from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
                      _check_option, Bunch, deprecated, _validate_type,
@@ -985,6 +986,42 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     )
 
     montage._point_names = point_names  # XXX: hack this should go!!
+    return montage
+
+
+def read_dig_fif(fname):
+    r"""Read digitized points from a .fif file.
+
+    Note that electrode names are not present in the .fif file.
+
+    Parameters
+    ----------
+    fname : path-like
+        FIF file from which to read digitization locations.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    Montage
+    read_montage
+    """
+    _check_fname(fname, overwrite='read', must_exist=True)
+    # Load the dig data
+    f, tree = fiff_open(fname)[:2]
+    with f as fid:
+        dig = _read_dig_fif(fid, tree)
+
+    ch_names = []
+    for d in dig:
+        if d['kind'] == FIFF.FIFFV_POINT_EEG:
+            ch_names.append('EEG%03d' % d['ident'])
+
+    montage = DigMontage(dig=dig, ch_names=ch_names)
     return montage
 
 

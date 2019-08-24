@@ -20,7 +20,7 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage,
-                          read_dig_egi, read_dig_captrack)
+                          read_dig_egi, read_dig_captrack, read_dig_fif)
 from mne.channels.montage import _set_montage
 from mne.channels.montage import transform_to_head
 from mne.channels._dig_montage_utils import _transform_to_head_call
@@ -533,6 +533,12 @@ def test_fif_dig_montage():
     pytest.raises(RuntimeError, montage.save, fname_temp)  # must be head coord
     montage = read_dig_montage(hsp, hpi, elp, names)
     _check_roundtrip(montage, fname_temp)
+
+    # Test old way matches new way
+    dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+    dig_montage_fif = read_dig_fif(fif_dig_montage_fname)
+    assert dig_montage.dig == dig_montage_fif.dig
+    assert object_diff(dig_montage.ch_names, dig_montage_fif.ch_names) == ''
 
 
 @testing.requires_testing_data
