@@ -106,7 +106,7 @@ class RawNIRX(BaseRaw):
         # Recode values
         if subject_info['sex'] in {'M', 'Male', '1'}:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_MALE
-        if subject_info['sex'] in {'F', 'Female', '2'}:
+        elif subject_info['sex'] in {'F', 'Female', '2'}:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
         # NIRStar does not record an id, or handedness by default
 
