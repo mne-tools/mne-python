@@ -215,7 +215,7 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         # but will result in bad color scalings
         data_cropped = np.mean(self.data[..., freq_idx, :], axis=-2)
         if "epochs" in self.dims:
-            data_cropped = data_cropped[..., epoch, :, :]
+            data_cropped = data_cropped[..., epoch, :]
 
         if self._src_type == "volume":
             # use the magnitude only if it's a VolVectorSourceEstimate
