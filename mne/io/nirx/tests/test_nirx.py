@@ -7,9 +7,10 @@ import os.path as op
 from mne.io import read_raw_nirx
 from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
-from ....utils import logger
+from mne.utils import logger, requires_pandas
 
 
+@requires_pandas
 @requires_testing_data
 def test_nirx():
     """Test reading NIRX files."""
