@@ -10,6 +10,7 @@ import numpy as np
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...utils import logger, verbose, fill_doc, _check_pandas_installed
+from ..constants import FIFF
 
 
 @fill_doc
@@ -114,7 +115,8 @@ class RawNIRX(BaseRaw):
         # This is a bit tricky as the header file isnt compliant with
         # the config specifications. So we need to remove all text
         # between comments before passing to config parser
-        with open(file_hdr[0]).read() as hdr_str:
+        with open(file_hdr[0]) as f:
+            hdr_str = f.read()
         hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
         hdr = cp.RawConfigParser()
         hdr.read_string(hdr_str)
