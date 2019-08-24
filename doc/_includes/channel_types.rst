@@ -14,8 +14,8 @@ Channel types are represented in MNE-Python with shortened or abbreviated
 names. This page lists all supported channel types, their abbreviated names,
 and the measurement unit used to represent data of that type. Where channel
 types occur in two or more sub-types, the sub-type abbreviations are given in
-parentheses. More information about measurement units is given on the
-:doc:`units` page.
+parentheses. More information about measurement units is given in the
+:ref:`units` section.
 
 .. NOTE: To include only the table, here's a different target for :start-after:
    channel-types-begin-table
