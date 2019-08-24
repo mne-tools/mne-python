@@ -30,7 +30,7 @@ header = """\
 Command line tools using Python
 ===============================
 
-.. contents:: Contents
+.. contents:: Page contents
    :local:
    :depth: 1
 
