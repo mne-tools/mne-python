@@ -14,6 +14,7 @@
 from collections.abc import Iterable
 import os
 import os.path as op
+from copy import deepcopy
 
 import numpy as np
 import xml.etree.ElementTree as ElementTree
@@ -37,6 +38,7 @@ from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
+from ._dig_montage_utils import _get_fid_coords
 
 DEPRECATED_PARAM = object()
 
@@ -777,63 +779,48 @@ def _get_scaling(unit, scale):
 
 
 # XXX: this function will evolve with issue-6461
+# and should be testes as soon as we have the Polhemus
+# reader.
 def transform_to_head(montage):
-    """Transform a DigMontage object into head coord."""
-    _VALID_COORD_FRAMES = {
-        FIFF.FIFFV_COORD_UNKNOWN,
-        # FIFF.FIFFV_COORD_DEVICE,
-        # FIFF.FIFFV_COORD_ISOTRAK,
-        # FIFF.FIFFV_COORD_HPI,
-        FIFF.FIFFV_COORD_HEAD,
-        # FIFF.FIFFV_COORD_MRI,
-        # FIFF.FIFFV_COORD_MRI_SLICE,
-        # FIFF.FIFFV_COORD_MRI_DISPLAY,
-        # FIFF.FIFFV_COORD_DICOM_DEVICE,
-        # FIFF.FIFFV_COORD_IMAGING_DEVICE
-    }
+    """Transform a DigMontage object into head coordinate.
 
-    dig_coord_frames = set([d['coord_frame'] for d in montage.dig])
-    if len(dig_coord_frames) == 1:
-        coord_frame = dig_coord_frames.pop()
+    It requires that the LPA, RPA and Nasion fiducial
+    point are available. It requires that all fiducial
+    points are in the same coordinate e.g. 'unknown'
+    and it will convert all the point in this coordinate
+    system to Neuromag head coordinate system.
 
-        if coord_frame not in _VALID_COORD_FRAMES:
-            raise ValueError(
-                'coord_frame must be one of %s, got %s'
-                % (_VALID_COORD_FRAMES, _frame_to_str(coord_frame))
-            )
+    Parameters
+    ----------
+    montage : instance of DigMontage
+        The montage.
 
-        if coord_frame == FIFF.FIFFV_COORD_HEAD:
-            pass  # noqa, All good
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage after transforming the points to head
+        coordinate system.
+    """
 
-        else:  # FIFF.FIFFV_COORD_UNKNOWN:
-            data = _foo_get_data_from_dig(montage.dig)
-            data['dig_ch_pos'] = dict(
-                zip(montage.ch_names, data.pop('dig_ch_pos_location'))
-            )
-            assert all(
-                x is not None for x in (data.nasion, data.rpa, data.lpa)
-            )
-            # montage.dig = _make_dig_points(**_transform_to_head_call(data))
-            #
-            # data cannot be plugged directly to _make_dig_points..
-            # I'm losing data.hpi which is mapped the same as elp
-            # see _foo_get_data_from_dig. I'm not sure what happens with
-            # _transform_to_head_call with respect to elp/hpi. (needs checking)
-            data = _transform_to_head_call(data)
-            montage.dig = _make_dig_points(
-                nasion=data.nasion, lpa=data.lpa, rpa=data.rpa, hpi=data.elp,
-                extra_points=data.hsp, dig_ch_pos=data.dig_ch_pos,
-                coord_frame='head',
-            )
-            montage._coord_frame = 'head'
+    # Get fiducial points and their coord_frame
+    fid_coords, coord_frame = _get_fid_coords(montage.dig)
 
-        return montage
+    montage = deepcopy(montage)  # to avoid inplace modification
 
-    else:
-        raise(
-            NotImplementedError,
-            'not yet Polhemus will fall in this category'  # XXX: Polhemus
-        )
+    if coord_frame != FIFF.FIFFV_COORD_HEAD:
+        nasion, lpa, rpa = \
+            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
+        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        nasion, lpa, rpa = apply_trans(
+            native_head_t, np.array([nasion, lpa, rpa]))
+
+        for d in montage.dig:
+            if d['coord_frame'] == coord_frame:
+                d['r'] = apply_trans(native_head_t, d['r'])
+                d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+
+    montage._coord_frame = 'head'  # XXX : should desappear in 0.20
+    return montage
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None,
@@ -1001,20 +988,19 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     return montage
 
 
-def read_dig_montage_brainvision(fname):
-    r"""Read subject-specific digitization montage from a brainvision file.
+def read_dig_captrack(fname):
+    r"""Read electrode locations from CapTrak Brain Products system.
 
     Parameters
     ----------
-    bvct : path-like
-        BrainVision CapTrak coordinates file from which to read digitization
-        locations. This is typically in XML format. If str (filename), all
-        other arguments are ignored.
+    fname : path-like
+        BrainVision CapTrak coordinates file from which to read EEG electrode
+        locations. This is typically in XML format with the .bvct extension.
 
     Returns
     -------
     montage : instance of DigMontage
-        The digitizer montage.
+        The montage.
 
     See Also
     --------

@@ -20,7 +20,7 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage)
-from mne.channels.montage import _set_montage, read_dig_montage_brainvision
+from mne.channels.montage import _set_montage, read_dig_captrack
 from mne.channels.montage import transform_to_head
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
@@ -605,7 +605,7 @@ def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
 
 
 @testing.requires_testing_data
-def test_bvct_dig_montage(tmpdir):
+def test_read_dig_captrack(tmpdir):
     """Test reading a captrack montage file."""
     EXPECTED_CH_NAMES = [
         'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
@@ -616,7 +616,7 @@ def test_bvct_dig_montage(tmpdir):
         'PO7', 'PO8', 'PO9', 'POz', 'Pz', 'T7', 'T8', 'TP10', 'TP7', 'TP8',
         'TP9'
     ]
-    montage = read_dig_montage_brainvision(
+    montage = read_dig_captrack(
         fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
     )
 
