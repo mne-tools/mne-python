@@ -44,7 +44,7 @@ The documentation for MNE-Python is divided into five main sections:
    - A guide to :ref:`command_line_tutorial`
 
    The MNE-Python codebase is also exposed as a set of Unix command-line
-   programs; see :doc:`<../generated/commands>` for details.
+   programs; see :doc:`../generated/commands` for details.
 
 The rest of the MNE-Python documentation (parts outside of the five categories
 above) are linked here:
