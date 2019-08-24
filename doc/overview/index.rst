@@ -54,4 +54,3 @@ documentation that are outside of the five categories above:
     learn_python
     ../generated/commands
     command_line
-    report

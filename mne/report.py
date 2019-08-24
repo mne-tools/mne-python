@@ -875,7 +875,123 @@ class Report(object):
 
     Notes
     -----
-    To toggle the show/hide state of all sections in the html report, press 't'
+
+    Getting started with ``mne.Report``
+    ===================================
+
+    .. highlight:: python
+
+    First, make sure the files you want to render follow the filename
+    conventions defined by MNE:
+
+    .. cssclass:: table-bordered
+    .. rst-class:: midvalign
+
+    ============ ==============================================================
+    Data object  Filename convention (ends with)
+    ============ ==============================================================
+    raw          -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
+    events       -eve.fif(.gz)
+    epochs       -epo.fif(.gz)
+    evoked       -ave.fif(.gz)
+    covariance   -cov.fif(.gz)
+    trans        -trans.fif(.gz)
+    forward      -fwd.fif(.gz)
+    inverse      -inv.fif(.gz)
+    ============ ==============================================================
+
+    To generate a barebones report from all the *.fif files in the sample
+    dataset, import the required functions::
+
+        >>> import os
+        >>> from mne.report import Report
+        >>> from mne.datasets import sample
+
+    then generate the report::
+
+        >>> path = sample.data_path(verbose=False)
+        >>> report = Report(verbose=True)
+        >>> report.parse_folder(path)
+        >>> report.save()
+
+    On successful creation of the report, it will open the HTML in a new tab in
+    the browser. To disable this, use the ``open_browser=False`` parameter of
+    :meth:`~mne.Report.save`.
+
+    TO generate a report for a single subject, pass the ``subject`` and
+    ``subjects_dir`` parameters to the :class:`~mne.Report` constructor and
+    this will generate the MRI slices (with BEM contours overlaid on top if
+    available)::
+
+        >>> subjects_dir = os.path.join(path, 'subjects')
+        >>> report = Report(subject='sample', subjects_dir=subjects_dir,
+                            verbose=True)
+        >>> report.parse_folder(path)
+        >>> report.save()
+
+    To properly render ``trans`` and ``covariance`` files, add a source for the
+    measurement information::
+
+        >>> info_fname = os.path.join(path, 'MEG', 'sample',
+                                      'sample_audvis-ave.fif')
+        >>> report = Report(subject='sample', subjects_dir=subjects_dir,
+                            info_fname=info_fname, verbose=True)
+        >>> report.parse_folder(path)
+        >>> report.save()
+
+    To render whitened ``evoked`` files with baseline correction, add the noise
+    covariance file::
+
+        >>> cov_fname = os.path.join(path, 'MEG', 'sample',
+                                     'sample_audvis-cov.fif')
+        >>> report = Report(subject='sample', subjects_dir=subjects_dir,
+                            info_fname=info_fname, cov_fname=cov_fname,
+                            verbose=True)
+        >>> report.parse_folder(path)
+        >>> report.save()
+
+    The python interface has greater flexibility compared to the command line
+    interface. Custom plots can be added to the report. Let us first generate a
+    custom plot::
+
+        >>> from mne import read_evokeds
+        >>> evoked = read_evokeds(fname_evoked, condition='Left Auditory',
+                                  baseline=(None, 0), verbose=True)
+        >>> fig = evoked.plot(show=False, time_unit='s')
+
+    To add the custom plot to the report, do::
+
+        >>> report.add_figs_to_section(fig, captions='Left Auditory',
+                                       section='evoked')
+        >>> report.save('report.html', overwrite=True)
+
+    The MNE report command internally manages the sections so that plots
+    belonging to the same section are rendered consecutively. Within a section,
+    the plots are ordered in the same order that they were added using the
+    :meth:`~mne.Report.add_figs_to_section` command. Each section is identified
+    by a toggle button in the navigation bar of the report which can be used to
+    show or hide the contents of the section. To toggle the show/hide state of
+    all sections in the html report, press :kbd:`t`.
+
+    Saving to HTML is a write-only operation, meaning that we cannot read an
+    ``.html`` file back as a :class:`~mne.Report` object. In order to be able
+    to read it back, we can save it as an HDF5 file::
+
+        >>> from mne import open_report
+        >>> report.save('report.h5', overwrite=True)
+        >>> open_report('report.h5')
+
+    This allows multiple scripts to add figures to the same report. To make
+    this even easier, :class:`mne.Report` can be used as a context manager,
+    allowing you to do this::
+
+        >>> with open_report('report.h5') as report:
+        >>>    report.add_figs_to_section(fig, captions='Left Auditory',
+                                          section='evoked', replace=True)
+        >>>    report.save('report.html', overwrite=True)
+
+    With the context manager, the updated report is automatically saved back to
+    :file:`report.h5` upon leaving the block.
 
     .. versionadded:: 0.8.0
     """
