@@ -112,7 +112,7 @@ class RawNIRX(BaseRaw):
         # NIRStar does not record an id, or handedness by default
 
         # Read header file
-        # This is a bit tricky as the header file isnt compliant with
+        # This is a bit tricky as the header file isn't compliant with
         # the config specifications. So we need to remove all text
         # between comments before passing to config parser
         with open(file_hdr[0]) as f:
@@ -173,7 +173,7 @@ class RawNIRX(BaseRaw):
             req_ind = np.concatenate((req_ind, sd_idx[0]))
         req_ind = req_ind.astype(int)
 
-        # Generate meaninful channel names
+        # Generate meaningful channel names
         def prepend(list, str):
             str += '{0}'
             list = [str.format(i) for i in list]
