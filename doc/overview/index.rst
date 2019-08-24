@@ -3,6 +3,13 @@
 Documentation overview
 ======================
 
+.. note::
+
+   If you haven't already installed Python and MNE-Python, here are the
+   :doc:`installation instructions <install/index>`, and some resources for
+   :doc:`learn_python`.
+
+
 The documentation for MNE-Python is divided into five main sections:
 
 1. The :doc:`../auto_tutorials/index` provide narrative explanations, sample
@@ -29,15 +36,16 @@ The documentation for MNE-Python is divided into five main sections:
    when typing :samp:`mne.{<function_name>}?` in an IPython session or Jupyter
    notebook.
 
-5. The updated web version of Matti Hämäläinen's original MNE-C documentation,
-   including the :ref:`cookbook <cookbook>`, :ref:`manual <mne_manual_toc>`,
-   and :ref:`C API reference <c_reference>`.
+5. Resources related to the MNE-C command-line tools, including:
+
+   - The updated web version of Matti Hämäläinen's original MNE-C
+     :ref:`manual <mne_manual_toc>` and :ref:`cookbook <cookbook>`
+   - The :ref:`C API reference <c_reference>`
+   - A guide to :ref:`command_line_tutorial`
 
 .. note::
-
-   If you haven't already installed Python and MNE-Python, here are the
-   :doc:`installation instructions <install/index>`.
-
+   The MNE-Python codebase is also exposed as a set of Unix command-line
+   programs; see :ref:`<python_commands>` for details.
 
 The rest of this page provides links to other parts of the MNE-Python
 documentation that are outside of the five categories above:
@@ -49,8 +57,5 @@ documentation that are outside of the five categories above:
     faq
     design_philosophy
     implementation
-    get_help
     cite
-    learn_python
-    ../generated/commands
-    command_line
+    get_help

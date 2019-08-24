@@ -24,6 +24,8 @@ def setup_module():
 # 4. -   : Command sections (Examples, Notes)
 
 header = """\
+:orphan:
+
 .. _python_commands:
 
 ===============================
