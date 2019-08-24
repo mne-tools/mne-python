@@ -43,12 +43,11 @@ The documentation for MNE-Python is divided into five main sections:
    - The :ref:`C API reference <c_reference>`
    - A guide to :ref:`command_line_tutorial`
 
-.. note::
    The MNE-Python codebase is also exposed as a set of Unix command-line
-   programs; see :ref:`<python_commands>` for details.
+   programs; see :doc:`<../generated/commands>` for details.
 
-The rest of this page provides links to other parts of the MNE-Python
-documentation that are outside of the five categories above:
+The rest of the MNE-Python documentation (parts outside of the five categories
+above) are linked here:
 
 
 .. toctree::
