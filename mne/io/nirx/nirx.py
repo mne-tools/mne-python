@@ -163,7 +163,7 @@ class RawNIRX(BaseRaw):
         # num_detectors = mat_data['probeInfo']['probes']['nDetector0']
         requested_channels = mat_data['probeInfo']['probes']['index_c']
 
-        # Determine requested channel indicies
+        # Determine requested channel indices
         # The wl1 and wl2 files include all possible source - detector pairs
         # But most of these are not relevant. We want to extract only subset
         req_ind = np.array([])
