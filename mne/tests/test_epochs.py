@@ -79,11 +79,11 @@ def test_handle_duplicate_events():
     assert event_id == {'aud': 1, 'vis': 2}
 
     events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'merge')
-    assert_array_equal(events[0], events[1])
-    assert_array_equal(events, [[0, 0, 3], [3, 0, 2], ])
+    assert_array_equal(events[0][-1], events[1][-1])
+    assert_array_equal(events, [[0, 0, 4], [3, 0, 4], [5, 0, 5], [7, 0, 1]])
     assert 'aud/vis' in event_id.keys()
-    assert set(event_id.keys()) == set(['aud/vis'])
-    assert event_id['aud/vis'] == 3
+    assert set(event_id.keys()) == set(['aud', 'aud/vis', 'aud/foo/vis'])
+    assert event_id['aud/vis'] == 4
 
     # Test early return with no changes: no error for wrong event_repeated arg
     fine_events = np.array([[0, 0, 1], [1, 0, 2]])
@@ -93,14 +93,15 @@ def test_handle_duplicate_events():
     del fine_events
 
     # Test falling back on 0 for heterogeneous "prior-to-event" codes
-    # order of third column determines new event_id key:  aud/vis -> vis/aud
+    # order of third column does not determine new event_id key, we always
+    # take components, sort, and join on "/"
     # should make new event_id value: 5 (because 1,2,3,4 are taken)
     heterogeneous_events = np.array([[0, 3, 2], [0, 4, 1]])
     events, event_id = _handle_duplicate_events(heterogeneous_events,
                                                 EVENT_ID, 'merge')
-    assert 'vis/aud' in event_id.keys()
-    assert set(event_id.keys()) == set(['vis/aud'])
-    assert event_id['vis/aud'] == 5
+    assert 'aud/vis' in event_id.keys()
+    assert set(event_id.keys()) == set(['aud/vis'])
+    assert event_id['aud/vis'] == 5
     np.testing.assert_array_equal(events, np.array([[0, 0, 5], ]))
     del heterogeneous_events
 
@@ -110,7 +111,7 @@ def test_handle_duplicate_events():
     events, event_id = _handle_duplicate_events(homogeneous_events,
                                                 EVENT_ID, 'merge')
     assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
-    np.testing.assert_array_equal(events, np.array([[0, 99, 3],
+    np.testing.assert_array_equal(events, np.array([[0, 99, 4],
                                                     [1, 0, 1], [2, 0, 2]]))
     del homogeneous_events
 
