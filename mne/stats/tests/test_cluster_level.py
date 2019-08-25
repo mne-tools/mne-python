@@ -331,10 +331,9 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
         else:
             X1d_3 = np.reshape(X1d_2, (-1, 2, n_space))
 
-        out_connectivity_3 = spatio_temporal_func(X1d_3, n_permutations=50,
-                                                  connectivity=connectivity,
-                                                  max_step=0, threshold=1.67,
-                                                  check_disjoint=True)
+        out_connectivity_3 = spatio_temporal_func(
+            X1d_3, n_permutations=50, connectivity=connectivity,
+            max_step=0, threshold=1.67, check_disjoint=True)
         # make sure we were operating on the same values
         split = len(out[0])
         assert_array_equal(out[0], out_connectivity_3[0][0])
@@ -350,12 +349,12 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
         assert len(data_1.intersection(data_2)) == len(data_1)
 
         # test new versus old method
-        out_connectivity_4 = spatio_temporal_func(X1d_3, n_permutations=50,
-                                                  connectivity=connectivity,
-                                                  max_step=2, threshold=1.67)
-        out_connectivity_5 = spatio_temporal_func(X1d_3, n_permutations=50,
-                                                  connectivity=connectivity,
-                                                  max_step=1, threshold=1.67)
+        out_connectivity_4 = spatio_temporal_func(
+            X1d_3, n_permutations=50, connectivity=connectivity,
+            max_step=2, threshold=1.67)
+        out_connectivity_5 = spatio_temporal_func(
+            X1d_3, n_permutations=50, connectivity=connectivity,
+            max_step=1, threshold=1.67)
 
         # clusters could be in a different order
         sums_4 = [np.sum(out_connectivity_4[0][a])
@@ -372,8 +371,9 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
                           max_step=1, threshold=1.67, n_jobs=-1000)
 
         # not enough TFCE params
-        pytest.raises(KeyError, spatio_temporal_func, X1d_3,
-                      connectivity=connectivity, threshold=dict(me='hello'))
+        with pytest.raises(KeyError, match='threshold, if dict, must have'):
+            spatio_temporal_func(
+                X1d_3, connectivity=connectivity, threshold=dict(me='hello'))
 
         # too extreme a start threshold
         with pytest.warns(None) as w:
@@ -383,26 +383,31 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
             assert len(w) == 1
             did_warn = True
 
-        # too extreme a start threshold
-        pytest.raises(ValueError, spatio_temporal_func, X1d_3,
-                      connectivity=connectivity, tail=-1,
-                      threshold=dict(start=1, step=-1))
-        pytest.raises(ValueError, spatio_temporal_func, X1d_3,
-                      connectivity=connectivity, tail=-1,
-                      threshold=dict(start=-1, step=1))
-        # Make sure connectivity has to be sparse
-        pytest.raises(ValueError, spatio_temporal_func, X1d_3,
-                      n_permutations=50, connectivity=connectivity.todense(),
-                      max_step=1, threshold=1.67)
-
-        # wrong type for threshold
-        pytest.raises(TypeError, spatio_temporal_func, X1d_3,
-                      connectivity=connectivity, threshold=[])
-
-        # wrong value for tail
-        with pytest.warns(None):  # sometimes ignoring tail
-            pytest.raises(ValueError, spatio_temporal_func, X1d_3,
-                          connectivity=connectivity, tail=2)
+        with pytest.raises(ValueError, match='threshold.*<= 0 for tail == -1'):
+            spatio_temporal_func(
+                X1d_3, connectivity=connectivity, tail=-1,
+                threshold=dict(start=1, step=-1))
+        with pytest.warns(RuntimeWarning, match='threshold.* is more extreme'):
+            spatio_temporal_func(
+                X1d_3, connectivity=connectivity, tail=1,
+                threshold=dict(start=100, step=1))
+        bad_con = connectivity.todense()
+        with pytest.raises(ValueError, match='must be a SciPy sparse matrix'):
+            spatio_temporal_func(
+                X1d_3, n_permutations=50, connectivity=bad_con,
+                max_step=1, threshold=1.67)
+        bad_con = connectivity.tocsr()[:-1, :-1].tocoo()
+        with pytest.raises(ValueError, match='connectivity.*the correct size'):
+            spatio_temporal_func(
+                X1d_3, n_permutations=50, connectivity=bad_con,
+                max_step=1, threshold=1.67)
+        with pytest.raises(TypeError, match='must be a'):
+            spatio_temporal_func(
+                X1d_3, connectivity=connectivity, threshold=[])
+        with pytest.raises(ValueError, match='Invalid value for the \'tail\''):
+            with pytest.warns(None):  # sometimes ignoring tail
+                spatio_temporal_func(
+                    X1d_3, connectivity=connectivity, tail=2)
 
         # make sure it actually found a significant point
         out_connectivity_6 = spatio_temporal_func(X1d_3, n_permutations=50,

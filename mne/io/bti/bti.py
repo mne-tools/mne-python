@@ -989,7 +989,7 @@ class RawBTi(BaseRaw):
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
 
-    from ...digitization._utils import _make_bti_dig_points
+    from ..._digitization._utils import _make_bti_dig_points
 
     if head_shape_fname:
         logger.info('... Reading digitization points from %s' %

@@ -289,6 +289,7 @@ def _trans_from_params(param_info, params):
     return trans
 
 
+# XXX this function should be moved out of coreg as used elsewhere
 def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
                        scale=False, tol=None, x0=None, out='trans',
                        weights=None):

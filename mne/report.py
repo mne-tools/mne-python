@@ -1555,7 +1555,7 @@ class Report(object):
         """
         if fname is None:
             if not hasattr(self, 'data_path'):
-                self.data_path = op.dirname(__file__)
+                self.data_path = os.getcwd()
                 warn('`data_path` not provided. Using %s instead'
                      % self.data_path)
             fname = op.realpath(op.join(self.data_path, 'report.html'))
