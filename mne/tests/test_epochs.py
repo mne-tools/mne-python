@@ -60,7 +60,7 @@ rng = np.random.RandomState(42)
 
 
 def test_handle_event_repeated():
-    """Test handling of duplicate events."""
+    """Test handling of repeated events."""
     # A general test case
     EVENT_ID = {'aud': 1, 'vis': 2, 'foo': 3}
     EVENTS = np.array([[0, 0, 1], [0, 0, 2],
@@ -100,7 +100,7 @@ def test_handle_event_repeated():
     np.testing.assert_array_equal(events, np.array([[0, 0, 5], ]))
     del heterogeneous_events
 
-    # Test keeping a homogeneous "prior-to-event" code
+    # Test keeping a homogeneous "prior-to-event" code (=events[:, 1])
     homogeneous_events = np.array([[0, 99, 1], [0, 99, 2],
                                    [1, 0, 1], [2, 0, 2]])
     events, event_id = _handle_event_repeated(homogeneous_events,
