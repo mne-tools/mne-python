@@ -16,7 +16,7 @@ import os.path as op
 import numpy as np
 
 import mne
-from mne.datasets import somato
+from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
 from mne.time_frequency import tfr_morlet
 from mne.source_space import setup_volume_source_space
@@ -27,46 +27,50 @@ print(__doc__)
 
 ###############################################################################
 # Prepare the data
-data_path = somato.data_path()
-fname_raw = op.join(data_path, 'MEG', 'somato', 'sef_raw_sss.fif')
-fname_trans = op.join(data_path, 'MEG', 'somato', 'sef_raw_sss-trans.fif')
 
-subject = 'somato'
+# Set dir
+data_path = sample.data_path()
+subject = 'sample'
+data_dir = op.join(data_path, 'MEG', subject)
 subjects_dir = op.join(data_path, 'subjects')
 bem_dir = op.join(subjects_dir, subject, 'bem')
+
+# Set file names
 fname_aseg = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
+
 fname_model = op.join(bem_dir, '%s-5120-bem.fif' % subject)
 fname_bem = op.join(bem_dir, '%s-5120-bem-sol.fif' % subject)
 
+fname_raw = op.join(data_dir, 'sample_audvis_raw.fif')
+fname_trans = op.join(data_dir, 'sample_audvis_raw-trans.fif')
+fname_cov = op.join(data_dir, 'ernoise-cov.fif')
+fname_event = op.join(data_dir, 'sample_audvis_filt-0-40_raw-eve.fif')
+
+# read data
 raw = mne.io.read_raw_fif(fname_raw)
+noise_cov = mne.read_cov(fname_cov)
 
 # Set picks, use a single sensor type
-picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, exclude='bads')
+volume_label = 'Left-Hippocampus'
+
+# set up a volume source space
+src = setup_volume_source_space(subject, mri=fname_aseg,
+                                volume_label=volume_label,
+                                subjects_dir=subjects_dir)
+# compute the fwd matrix
+fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
+                            mindist=5.0, meg=True, eeg=False, n_jobs=1)
 
 # Read epochs
 events = mne.find_events(raw)[:20]  # crop the events to save computation time
 tmin, tmax= -0.5, 1.5
 epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax, picks=picks)
 
-# estimate noise covarariance
-noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk', rank=None)
+# make the inverse operator
+inv = make_inverse_operator(epochs.info, fwd, noise_cov,
+                            depth=None, fixed=False)
 
-# setup a volume source space of the left cortex
-labels_vol = 'Brain-Stem'
-src = setup_volume_source_space( subject, mri=fname_aseg, pos=10.0,
-                                 bem=fname_model, volume_label=labels_vol,
-                                 subjects_dir=subjects_dir)
-
-# compute the fwd matrix
-fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
-                            mindist=5.0, n_jobs=1)
-
-# make an inverse operator
-snr = 3.0
-lambda2 = 1.0 / snr ** 2
-method = 'dSPM'
-inverse_operator = make_inverse_operator(epochs.info, fwd, noise_cov,
-                                         depth=None, fixed=False)
 
 ###############################################################################
 # Apply the Inverse solution.
@@ -76,9 +80,12 @@ inverse_operator = make_inverse_operator(epochs.info, fwd, noise_cov,
 # computational time, allowing the time frequency transform to be calculated
 # on the channels instead of the dipoles. However, since we have fewer dipoles
 # than channels, `delayed=False` will be faster.
-stcs  = apply_inverse_epochs(epochs, inverse_operator, lambda2=lambda2,
-                             method="dSPM", pick_ori="normal", prepared=False,
-                             return_generator=True, delayed=False)
+snr = 3.0
+lambda2 = 1.0 / snr ** 2
+
+stcs  = apply_inverse_epochs(epochs, inv, lambda2=lambda2, method="dSPM",
+                             pick_ori="normal", prepared=False,
+                             return_generator=True, delayed=True)
 
 ###############################################################################
 # Compute the average power, using a morlet wavelet analysis.
@@ -94,8 +101,9 @@ power = tfr_morlet(stcs, freqs=freqs, n_cycles=4, use_fft=True,
 power
 
 ###############################################################################
-# Make a volume plot of the induced power, averaged over all used frequencies.
+# Make a volume plot of the induced power, averaged for the lower beta band
+# (12 Hz - 16 Hz).
 initial_time = 0.05
-fmin, fmax = 4, 8
-power.plot(fmin=4, fmax=12, src=src, subject=subject,
+fmin, fmax = 12, 16
+power.plot(fmin=fmin, fmax=fmax, src=src, subject=subject,
            subjects_dir=subjects_dir, transparent=True)
