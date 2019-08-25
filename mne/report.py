@@ -914,8 +914,8 @@ class Report(object):
         Embedding : bootstrap.min.css
         >>> report.parse_folder(path, pattern='*raw.fif')
         Iterating over 3 potential files (this may take some time)
-        Rendering : .../MNE-sample-data/MEG/sample/ernoise_raw.fif
-        Opening raw data file .../MNE-sample-data/MEG/sample/ernoise_raw.fif...
+        Rendering : .../MEG/sample/ernoise_raw.fif
+        Opening raw data file .../MEG/sample/ernoise_raw.fif...
         Isotrak not found
             Read a total of 3 projection items:
                 PCA-v1 (1 x 102)  idle
@@ -924,8 +924,8 @@ class Report(object):
             Range : 19800 ... 85867 =     32.966 ...   142.965 secs
         Ready.
         Current compensation grade : 0
-        Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif
-        Opening raw data file .../MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif...
+        Rendering : .../MEG/sample/sample_audvis_filt-0-40_raw.fif
+        Opening raw data file .../MEG/sample/sample_audvis_filt-0-40_raw.fif...
             Read a total of 4 projection items:
                 PCA-v1 (1 x 102)  idle
                 PCA-v2 (1 x 102)  idle
@@ -934,8 +934,8 @@ class Report(object):
             Range : 6450 ... 48149 =     42.956 ...   320.665 secs
         Ready.
         Current compensation grade : 0
-        Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_raw.fif
-        Opening raw data file .../MNE-sample-data/MEG/sample/sample_audvis_raw.fif...
+        Rendering : .../MEG/sample/sample_audvis_raw.fif
+        Opening raw data file .../MEG/sample/sample_audvis_raw.fif...
             Read a total of 3 projection items:
                 PCA-v1 (1 x 102)  idle
                 PCA-v2 (1 x 102)  idle
