@@ -185,7 +185,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
 
 
 def _handle_event_repeated(events, event_id, event_repeated):
-    """Handle duplicated events."""
+    """Handle repeated events."""
     u_evs, u_idxs, counts = np.unique(events[:, 0], return_index=True,
                                       return_counts=True)
 
@@ -201,13 +201,13 @@ def _handle_event_repeated(events, event_id, event_repeated):
                            'setting the `event_repeated` parameter."')
 
     elif event_repeated == 'drop':
-        logger.info('Multiple event codes for single event times found. '
+        logger.info('Multiple event values for single event times found. '
                     'Keeping the first occurrence and dropping all others.')
         new_events = events[u_idxs]
 
     elif event_repeated == 'merge':
-        logger.info('Multiple event codes for single event times found. '
-                    'Creating new event code to reflect simultaneous events.')
+        logger.info('Multiple event values for single event times found. '
+                    'Creating new event value to reflect simultaneous events.')
         new_events = events.copy()
         to_delete = list()
         non_u_evs = u_evs[counts > 1]
@@ -223,44 +223,44 @@ def _handle_event_repeated(events, event_id, event_repeated):
                 new_prior = np.unique(events[idxs, 1])[0]
 
             # Make an event_id for the merged event
-            ev_codes = events[idxs, 2]
+            ev_vals = events[idxs, 2]
 
-            if len(np.unique(ev_codes)) > 1:
+            if len(np.unique(ev_vals)) > 1:
 
                 new_key_comps = list()
-                for code in ev_codes:
+                for val in ev_vals:
                     # inverse dict lookup, because event_id is a one-to-one map
                     kk = list(event_id.keys())[list(event_id.values())
-                                               .index(code)]
+                                               .index(val)]
                     new_key_comps.append(kk)
 
-                # Check if we already have a corresponding code
-                got_code = False
+                # Check if we already have a corresponding val
+                got_val = False
                 for key in event_id.keys():
                     key_comps = key.split('/')
                     if set(key_comps) == set(new_key_comps):
-                        got_code = True
-                        new_event_code = event_id[key]
+                        got_val = True
+                        new_event_val = event_id[key]
                         break
 
                 # Else, make one and add it to the event_id dict
-                if not got_code:
-                    ev_codes = np.concatenate((np.array(list(event_id.values())),  # noqa: E501
+                if not got_val:
+                    ev_vals = np.concatenate((np.array(list(event_id.values())),  # noqa: E501
                                                events[:, 1:].flatten()),
                                               axis=0)
-                    new_event_code = np.setdiff1d(np.arange(1, 9999999),
-                                                  ev_codes).min()
+                    new_event_val = np.setdiff1d(np.arange(1, 9999999),
+                                                 ev_vals).min()
                     new_event_id_key = '/'.join(sorted(new_key_comps))
-                    event_id[new_event_id_key] = int(new_event_code)
+                    event_id[new_event_id_key] = int(new_event_val)
 
-            # However, if duplicate time samples have same event code, revert
+            # However, if duplicate time samples have same event val, revert
             # to "drop" behavior
             else:
-                new_event_code = ev_codes[0]
+                new_event_val = ev_vals[0]
 
             # Replace duplicate event times with merged event
             new_events[idxs[0], 1] = new_prior
-            new_events[idxs[0], 2] = new_event_code
+            new_events[idxs[0], 2] = new_event_val
             to_delete += list(idxs[1:])
 
         # Delete
