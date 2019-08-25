@@ -268,12 +268,8 @@ def _handle_event_repeated(events, event_id, event_repeated):
         new_events = np.delete(new_events, to_delete, 0)
 
     # Remove obsolete kv-pairs from event_id after handling
-    to_delete = list()
-    for key, val in event_id.items():
-        if val not in new_events[:, 1:].flatten():
-            to_delete.append(key)
-    for key in to_delete:
-        event_id.pop(key)
+    keys = new_events[:, 1:].flatten()
+    event_id = {k: v for k, v in event_id.items() if v in keys}
 
     return new_events, event_id
 
