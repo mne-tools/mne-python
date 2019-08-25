@@ -811,8 +811,6 @@ def transform_to_head(montage):
         nasion, lpa, rpa = \
             fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
         native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-        nasion, lpa, rpa = apply_trans(
-            native_head_t, np.array([nasion, lpa, rpa]))
 
         for d in montage.dig:
             if d['coord_frame'] == coord_frame:
@@ -991,7 +989,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
 def read_dig_fif(fname):
     r"""Read digitized points from a .fif file.
 
-    Note that electrode names are not present in the .fif file.
+    Note that electrode names are not present in the .fif file so
+    they are here defined with the convention from VectorView
+    systems (EEG001, EEG002, etc.)
 
     Parameters
     ----------
