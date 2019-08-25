@@ -85,7 +85,7 @@ def test_handle_event_repeated():
     fine_events = np.array([[0, 0, 1], [1, 0, 2]])
     events, event_id = _handle_event_repeated(fine_events, EVENT_ID, 'no')
     assert event_id == EVENT_ID
-    np.testing.assert_array_equal(events, fine_events)
+    assert_array_equal(events, fine_events)
     del fine_events
 
     # Test falling back on 0 for heterogeneous "prior-to-event" codes
@@ -97,7 +97,7 @@ def test_handle_event_repeated():
                                               EVENT_ID, 'merge')
     assert set(event_id.keys()) == set(['aud/vis'])
     assert event_id['aud/vis'] == 5
-    np.testing.assert_array_equal(events, np.array([[0, 0, 5], ]))
+    assert_array_equal(events, np.array([[0, 0, 5], ]))
     del heterogeneous_events
 
     # Test keeping a homogeneous "prior-to-event" code (=events[:, 1])
@@ -106,15 +106,14 @@ def test_handle_event_repeated():
     events, event_id = _handle_event_repeated(homogeneous_events,
                                               EVENT_ID, 'merge')
     assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
-    np.testing.assert_array_equal(events, np.array([[0, 99, 4],
-                                                    [1, 0, 1], [2, 0, 2]]))
+    assert_array_equal(events, np.array([[0, 99, 4], [1, 0, 1], [2, 0, 2]]))
     del homogeneous_events
 
     # Test dropping instead of merging, if event_codes to be merged are equal
     equal_events = np.array([[0, 0, 1], [0, 0, 1]])
     events, event_id = _handle_event_repeated(equal_events,
                                               EVENT_ID, 'merge')
-    np.testing.assert_array_equal(events, np.array([[0, 0, 1], ]))
+    assert_array_equal(events, np.array([[0, 0, 1], ]))
     assert set(event_id.keys()) == set(['aud'])
 
 
