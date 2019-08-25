@@ -38,8 +38,8 @@ raw = mne.io.read_raw_fif(fname_raw)
 picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 # Read epochs
-events = mne.find_events(raw)[:5]  # crop the events to save computation time
-tmin, tmax= -0.2, 1
+events = mne.find_events(raw)[:20]  # crop the events to save computation time
+tmin, tmax= -0.2, 0.5
 epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax, picks=picks)
 
 # estimate noise covarariance

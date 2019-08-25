@@ -37,7 +37,7 @@ picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 # Read epochs
 events = mne.find_events(raw)[:20]  # crop the events to save computation time
-tmin, tmax= -0.2, 0.5
+tmin, tmax= -0.2, 0.648  # use 256 samples for avoid stockwell zero-padding
 epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax, picks=picks)
 
 # estimate noise covarariance
