@@ -116,7 +116,6 @@ def test_handle_event_repeated():
                                               EVENT_ID, 'merge')
     np.testing.assert_array_equal(events, np.array([[0, 0, 1], ]))
     assert set(event_id.keys()) == set(['aud'])
-    del equal_events
 
 
 def _get_data(preload=False):

@@ -196,14 +196,17 @@ def _merge_events(events, event_id):
         idxs = (events[:, 0] == ev).nonzero()[0]
 
         # Figure out new value for events[:, 1]. Set to 0, if mixed vals exist
-        new_prior = 0
-        if len(np.unique(events[idxs, 1])) == 1:
-            new_prior = np.unique(events[idxs, 1])[0]
+        unique_priors = np.unique(events[idxs, 1])
+        new_prior = unique_priors[0] if len(unique_priors) == 1 else 0
 
-        # Make an event_id for the merged event
+        # If duplicate time samples have same event val, "merge" == "drop"
+        # and no new event_id key will be created
         ev_vals = events[idxs, 2]
+        if len(np.unique(ev_vals)) <= 1:
+            new_event_val = ev_vals[0]
 
-        if len(np.unique(ev_vals)) > 1:
+        # Else, make a new event_id for the merged event
+        else:
 
             new_key_comps = list()
             for val in ev_vals:
@@ -211,7 +214,7 @@ def _merge_events(events, event_id):
                 kk = list(event_id.keys())[list(event_id.values()).index(val)]
                 new_key_comps.append(kk)
 
-            # Check if we already have a corresponding val
+            # Check if we already have a corresponding val, if yes, reuse it
             got_val = False
             for key in event_id.keys():
                 key_comps = key.split('/')
@@ -220,7 +223,7 @@ def _merge_events(events, event_id):
                     new_event_val = event_id[key]
                     break
 
-            # Else, make one and add it to the event_id dict
+            # Else, make new one and add it to the event_id dict
             if not got_val:
                 ev_vals = np.concatenate((np.array(list(event_id.values())),
                                           events[:, 1:].flatten()),
@@ -230,17 +233,13 @@ def _merge_events(events, event_id):
                 new_event_id_key = '/'.join(sorted(new_key_comps))
                 event_id[new_event_id_key] = int(new_event_val)
 
-        # However, if duplicate time samples have same event val, revert
-        # to "drop" behavior
-        else:
-            new_event_val = ev_vals[0]
-
-        # Replace duplicate event times with merged event
+        # Replace duplicate event times with merged event and remember which
+        # duplicate indices to delete later
         new_events[idxs[0], 1] = new_prior
         new_events[idxs[0], 2] = new_event_val
-        to_delete += list(idxs[1:])
+        to_delete.extend(idxs[1:])
 
-    # Delete
+    # Delete duplicate event idxs
     new_events = np.delete(new_events, to_delete, 0)
 
     return new_events, event_id
