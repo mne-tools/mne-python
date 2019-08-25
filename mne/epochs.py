@@ -1915,6 +1915,7 @@ class Epochs(BaseEpochs):
     events to be: {'aud/vis': 3} and [[0, 0, 3], ] respectively.
 
     """
+
     @verbose
     def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), picks=None, preload=False, reject=None,
