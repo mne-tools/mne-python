@@ -943,6 +943,7 @@ class Report(object):
             Range : 25800 ... 192599 =     42.956 ...   320.670 secs
         Ready.
         Current compensation grade : 0
+        ...
         >>> report.save()
         Saving report to location .../report.html
         Rendering : Table of Contents
