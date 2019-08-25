@@ -188,7 +188,7 @@ def _merge_events(events, event_id):
     """Merge repeated events."""
     event_id = event_id.copy()
     new_events = events.copy()
-    to_delete = list()
+    event_idxs_to_delete = list()
     unique_events, counts = np.unique(events[:, 0], return_counts=True)
     for ev in unique_events[counts > 1]:
 
@@ -208,15 +208,16 @@ def _merge_events(events, event_id):
         # Else, make a new event_id for the merged event
         else:
 
-            new_key_comps = list()
+            # Find all event_id keys involved in duplicated events. These
+            # keys will be merged to become a new entry in "event_id"
             for val in ev_vals:
-                # inverse dict lookup, because event_id is a one-to-one map
                 event_id_keys = list(event_id.keys())
                 event_id_vals = list(event_id.values())
-                new_key_comps = [event_id_keys[event_id_vals.index(code)]
-                                 for code in ev_vals]
+                new_key_comps = [event_id_keys[event_id_vals.index(value)]
+                                 for value in ev_vals]
 
-            # Check if we already have a corresponding val, if yes, reuse it
+            # Check if we already have an entry for merged keys of duplicate
+            # events ... if yes, reuse it
             got_val = False
             for key in event_id.keys():
                 if set(key.split('/')) == set(new_key_comps):
@@ -224,7 +225,8 @@ def _merge_events(events, event_id):
                     new_event_val = event_id[key]
                     break
 
-            # Else, make new one and add it to the event_id dict
+            # Else, find an unused value for the new key and make an entry into
+            # the event_id dict
             if not got_val:
                 ev_vals = np.concatenate((np.array(list(event_id.values())),
                                           events[:, 1:].flatten()),
@@ -238,10 +240,10 @@ def _merge_events(events, event_id):
         # duplicate indices to delete later
         new_events[idxs[0], 1] = new_prior
         new_events[idxs[0], 2] = new_event_val
-        to_delete.extend(idxs[1:])
+        event_idxs_to_delete.extend(idxs[1:])
 
     # Delete duplicate event idxs
-    new_events = np.delete(new_events, to_delete, 0)
+    new_events = np.delete(new_events, event_idxs_to_delete, 0)
 
     return new_events, event_id
 
