@@ -27,7 +27,8 @@ print(__doc__)
 
 data_path = somato.data_path()
 fname_raw = op.join(data_path, 'sub-01', 'meg', 'sub-01_task-somato_meg.fif')
-fname_fwd = op.join(data_path, 'derivatives', 'sub-01', 'sub-01_task-somato-fwd.fif')
+fname_fwd = op.join(data_path, 'derivatives', 'sub-01',
+                    'sub-01_task-somato-fwd.fif')
 subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
 
 raw = mne.io.read_raw_fif(fname_raw)
@@ -37,7 +38,7 @@ picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 # Read epochs
 events = mne.find_events(raw)[:20]  # crop the events to save computation time
-tmin, tmax= -0.2, 0.648  # use 256 samples for avoid stockwell zero-padding
+tmin, tmax = -0.2, 0.648  # use 256 samples for avoid stockwell zero-padding
 epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax, picks=picks)
 
 # estimate noise covarariance
@@ -64,9 +65,9 @@ inverse_operator = make_inverse_operator(epochs.info, fwd, noise_cov,
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
-stcs  = apply_inverse_epochs(epochs, inverse_operator, lambda2=lambda2,
-                             method="dSPM", pick_ori="normal", prepared=False,
-                             return_generator=True, delayed=True)
+stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2=lambda2,
+                            method="dSPM", pick_ori="normal", prepared=False,
+                            return_generator=True, delayed=True)
 
 ###############################################################################
 # Compute power and inter trial coherence, using a stockwell transform.
@@ -90,4 +91,4 @@ initial_time = 0.1
 power.plot(fmin=fmin, fmax=fmax, subjects_dir=subjects_dir,
            subject='01', initial_time=initial_time)
 itc.plot(fmin=fmin, fmax=fmax, subjects_dir=subjects_dir,
-           subject='01', initial_time=initial_time)
+         subject='01', initial_time=initial_time)

@@ -64,13 +64,12 @@ fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
 
 # Read epochs
 events = mne.find_events(raw)[:20]  # crop the events to save computation time
-tmin, tmax= -0.5, 1.5
+tmin, tmax = -0.5, 1.5
 epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax, picks=picks)
 
 # make the inverse operator
 inv = make_inverse_operator(epochs.info, fwd, noise_cov,
                             depth=None, fixed=False)
-
 
 ###############################################################################
 # Apply the Inverse solution.
@@ -83,16 +82,16 @@ inv = make_inverse_operator(epochs.info, fwd, noise_cov,
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
-stcs  = apply_inverse_epochs(epochs, inv, lambda2=lambda2, method="dSPM",
-                             pick_ori="normal", prepared=False,
-                             return_generator=True, delayed=True)
+stcs = apply_inverse_epochs(epochs, inv, lambda2=lambda2, method="dSPM",
+                            pick_ori="normal", prepared=False,
+                            return_generator=True, delayed=True)
 
 ###############################################################################
 # Compute the average power, using a morlet wavelet analysis.
 # We will investigate the beta band from 12 Hz to 30 Hz, in steps of 3 Hz.
 freqs = np.arange(12, 30, 3)
 power = tfr_morlet(stcs, freqs=freqs, n_cycles=4, use_fft=True,
-                       average=True, return_itc=False)
+                   average=True, return_itc=False)
 
 ###############################################################################
 # As a result, we get SourceTFR objects, a class to store time frequency data
