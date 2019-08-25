@@ -26,11 +26,11 @@ print(__doc__)
 # Prepare the data
 
 data_path = somato.data_path()
-raw_fname = op.join(data_path, 'MEG', 'somato', 'sef_raw_sss.fif')
-fname_fwd = op.join(data_path, 'MEG', 'somato', 'somato-meg-oct-6-fwd.fif')
-subjects_dir = op.join(data_path, 'subjects')
+fname_raw = op.join(data_path, 'sub-01', 'meg', 'sub-01_task-somato_meg.fif')
+fname_fwd = op.join(data_path, 'derivatives', 'sub-01', 'sub-01_task-somato-fwd.fif')
+subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
 
-raw = mne.io.read_raw_fif(raw_fname)
+raw = mne.io.read_raw_fif(fname_raw)
 
 # Set picks, use a single sensor type
 picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
@@ -47,9 +47,6 @@ noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk', rank=None)
 fwd = mne.read_forward_solution(fname_fwd)
 
 # make an inverse operator
-snr = 3.0
-lambda2 = 1.0 / snr ** 2
-method = 'dSPM'
 inverse_operator = make_inverse_operator(epochs.info, fwd, noise_cov,
                                          loose=0.2, depth=0.8)
 
@@ -64,6 +61,9 @@ inverse_operator = make_inverse_operator(epochs.info, fwd, noise_cov,
 #           frequency transform, the full source time series will be computed.
 #           In this case, the time frequency transform will be calculated for
 #           each dipole instead of each sensor (more time consuming).
+snr = 3.0
+lambda2 = 1.0 / snr ** 2
+
 stcs  = apply_inverse_epochs(epochs, inverse_operator, lambda2=lambda2,
                              method="dSPM", pick_ori="normal", prepared=False,
                              return_generator=True, delayed=True)
@@ -88,6 +88,6 @@ fmin, fmax = power.freqs[:2]
 initial_time = 0.1
 
 power.plot(fmin=fmin, fmax=fmax, subjects_dir=subjects_dir,
-           initial_time=initial_time)
+           subject='01', initial_time=initial_time)
 itc.plot(fmin=fmin, fmax=fmax, subjects_dir=subjects_dir,
-           initial_time=initial_time)
+           subject='01', initial_time=initial_time)
