@@ -38,12 +38,16 @@ raw = mne.io.read_raw_fif(fname_raw)
 picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 # Read epochs
-events = mne.find_events(raw)[:20]  # crop the events to save computation time
-tmin, tmax= -0.2, 0.5
-epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax, picks=picks)
+events = mne.find_events(raw)[:7]  # crop the events to save computation time
+tmin, tmax= -0.5, 1.5 # enough time points to calculate a reliable covariance
+epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax, picks=picks,
+                    preload=True)
 
 # estimate noise covarariance
 noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk', rank=None)
+
+# crop the data for faster computation
+epochs.crop(tmin=-0.1, tmax=0.5)
 
 # Read forward operator
 fwd = mne.read_forward_solution(fname_fwd)
@@ -74,7 +78,7 @@ stcs  = apply_inverse_epochs(epochs, inverse_operator, lambda2=lambda2,
 # Compute the power for all epochs, using a multitaper analysis.
 # We will investigate the alpha band from 8 Hz to 12 Hz, in steps of 1 Hz.
 freqs = np.arange(8, 12)
-power = tfr_multitaper(stcs, freqs=freqs, n_cycles=7, use_fft=True,
+power = tfr_multitaper(stcs, freqs=freqs, n_cycles=4, use_fft=True,
                        average=False, return_itc=False)
 
 ###############################################################################
