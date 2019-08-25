@@ -78,7 +78,6 @@ def test_handle_event_repeated():
     events, event_id = _handle_event_repeated(EVENTS, EVENT_ID, 'merge')
     assert_array_equal(events[0][-1], events[1][-1])
     assert_array_equal(events, [[0, 0, 4], [3, 0, 4], [5, 0, 5], [7, 0, 1]])
-    assert 'aud/vis' in event_id.keys()
     assert set(event_id.keys()) == set(['aud', 'aud/vis', 'aud/foo/vis'])
     assert event_id['aud/vis'] == 4
 
@@ -96,7 +95,6 @@ def test_handle_event_repeated():
     heterogeneous_events = np.array([[0, 3, 2], [0, 4, 1]])
     events, event_id = _handle_event_repeated(heterogeneous_events,
                                               EVENT_ID, 'merge')
-    assert 'aud/vis' in event_id.keys()
     assert set(event_id.keys()) == set(['aud/vis'])
     assert event_id['aud/vis'] == 5
     np.testing.assert_array_equal(events, np.array([[0, 0, 5], ]))
