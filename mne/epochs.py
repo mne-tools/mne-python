@@ -196,18 +196,18 @@ def _handle_event_repeated(events, event_id, event_repeated):
     # Else, we have duplicates. Triage ...
     _check_option('event_repeated', event_repeated, ['error', 'drop', 'merge'])
     event_id = event_id.copy()
-    msg = 'Multiple event codes for single event times found.'
     if event_repeated == 'error':
-        raise RuntimeError('Event time samples were not unique')
+        raise RuntimeError('Event time samples were not unique. Consider '
+                           'setting the `event_repeated` parameter."')
 
     elif event_repeated == 'drop':
-        logger.info('{} Keeping the first occurrence and dropping all others.'
-                    .format(msg))
+        logger.info('Multiple event codes for single event times found. '
+                    'Keeping the first occurrence and dropping all others.')
         new_events = events[u_idxs]
 
     elif event_repeated == 'merge':
-        logger.info('{} Creating new event code to reflect simultaneous '
-                    'events and updating event_id.'.format(msg))
+        logger.info('Multiple event codes for single event times found. '
+                    'Creating new event code to reflect simultaneous events.')
         new_events = events.copy()
         to_delete = list()
         non_u_evs = u_evs[counts > 1]
