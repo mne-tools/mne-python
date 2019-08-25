@@ -211,14 +211,15 @@ def _merge_events(events, event_id):
             new_key_comps = list()
             for val in ev_vals:
                 # inverse dict lookup, because event_id is a one-to-one map
-                kk = list(event_id.keys())[list(event_id.values()).index(val)]
-                new_key_comps.append(kk)
+                event_id_keys = list(event_id.keys())
+                event_id_vals = list(event_id.values())
+                new_key_comps = [event_id_keys[event_id_vals.index(code)]
+                                 for code in ev_vals]
 
             # Check if we already have a corresponding val, if yes, reuse it
             got_val = False
             for key in event_id.keys():
-                key_comps = key.split('/')
-                if set(key_comps) == set(new_key_comps):
+                if set(key.split('/')) == set(new_key_comps):
                     got_val = True
                     new_event_val = event_id[key]
                     break
