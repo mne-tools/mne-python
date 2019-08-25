@@ -208,6 +208,7 @@ def _handle_duplicate_events(events, event_id, event_repeated):
         logger.info('{} Creating new event code to reflect simultaneous '
                     'events and updating event_id.'.format(msg))
         new_events = events.copy()
+        to_delete = list()
         non_u_evs = u_evs[counts > 1]
         for ev in non_u_evs:
 
@@ -254,7 +255,10 @@ def _handle_duplicate_events(events, event_id, event_repeated):
             # Replace duplicate event times with merged event
             new_events[idxs[0], 1] = new_prior
             new_events[idxs[0], 2] = new_event_code
-            new_events = np.delete(new_events, idxs[1:], 0)
+            to_delete += list(idxs[1:])
+
+        # Delete
+        new_events = np.delete(new_events, to_delete, 0)
 
     else:
         raise ValueError('`event_repeated` must be one of "error", "drop",'
