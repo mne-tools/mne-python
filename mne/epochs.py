@@ -210,11 +210,10 @@ def _merge_events(events, event_id):
 
             # Find all event_id keys involved in duplicated events. These
             # keys will be merged to become a new entry in "event_id"
-            for val in ev_vals:
-                event_id_keys = list(event_id.keys())
-                event_id_vals = list(event_id.values())
-                new_key_comps = [event_id_keys[event_id_vals.index(value)]
-                                 for value in ev_vals]
+            event_id_keys = list(event_id.keys())
+            event_id_vals = list(event_id.values())
+            new_key_comps = [event_id_keys[event_id_vals.index(value)]
+                             for value in ev_vals]
 
             # Check if we already have an entry for merged keys of duplicate
             # events ... if yes, reuse it
