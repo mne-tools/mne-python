@@ -227,24 +227,30 @@ def _handle_duplicate_events(events, event_id, event_repeated):
 
             if len(np.unique(ev_codes)) > 1:
 
-                new_event_id_key = list()
+                new_key_comps = list()
                 for code in ev_codes:
                     # inverse dict lookup, because event_id is a one-to-one map
                     kk = list(event_id.keys())[list(event_id.values())
                                                .index(code)]
-                    new_event_id_key.append(kk)
-                new_event_id_key = '/'.join(new_event_id_key)
+                    new_key_comps.append(kk)
 
                 # Check if we already have a corresponding code
-                new_event_code = event_id.get(new_event_id_key, False)
+                got_code = False
+                for key in event_id.keys():
+                    key_comps = key.split('/')
+                    if set(key_comps) == set(new_key_comps):
+                        got_code = True
+                        new_event_code = event_id[key]
+                        break
 
                 # Else, make one and add it to the event_id dict
-                if not new_event_code:
+                if not got_code:
                     ev_codes = np.concatenate((np.array(list(event_id.values())),  # noqa: E501
                                                events[:, 1:].flatten()),
                                               axis=0)
                     new_event_code = np.setdiff1d(np.arange(1, 9999999),
                                                   ev_codes).min()
+                    new_event_id_key = '/'.join(sorted(new_key_comps))
                     event_id[new_event_id_key] = int(new_event_code)
 
             # However, if duplicate time samples have same event code, revert
