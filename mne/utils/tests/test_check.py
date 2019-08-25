@@ -8,6 +8,7 @@ import shutil
 
 import numpy as np
 import pytest
+from pathlib import Path
 
 import mne
 from mne.datasets import testing
@@ -29,6 +30,7 @@ def test_check():
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
+    _check_fname(Path('./'))
     pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
