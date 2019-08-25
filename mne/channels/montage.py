@@ -7,6 +7,7 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Joan Massich <mailsik@gmail.com>
 #
 # License: Simplified BSD
 
@@ -21,15 +22,28 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
-from ..digitization._utils import (_make_dig_points, _read_dig_points,
-                                   _read_dig_fif, write_dig)
+from .._digitization import Digitization
+from .._digitization._utils import (_make_dig_points, _read_dig_points,
+                                    write_dig)
 from ..io.pick import pick_types
-from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
-                     _check_option)
+from ..utils import (warn, copy_function_doc_to_method_doc,
+                     _check_option, Bunch, deprecated, _validate_type)
 
 from .layout import _pol_to_cart, _cart_to_sph
+from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
+from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
+from ._dig_montage_utils import _foo_get_data_from_dig
+from ._dig_montage_utils import _fix_data_fiducials
+
+DEPRECATED_PARAM = object()
+
+
+def _check_get_coord_frame(dig):
+    _MSG = 'Only single coordinate frame in dig is supported'
+    dig_coord_frames = set([d['coord_frame'] for d in dig])
+    assert len(dig_coord_frames) == 1, _MSG
+    return _frame_to_str[dig_coord_frames.pop()]
 
 
 class Montage(object):
@@ -394,6 +408,98 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
+def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
+                     hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
+                     transform_to_head=False, compute_dev_head_t=False):
+    r"""Make montage from arrays.
+
+    Parameters
+    ----------
+    ch_pos : dict
+        Dictionary of channel positions. Keys are channel names and values
+        are 3D coordinates - array of shape (3,) - in native digitizer space
+        in m.
+    nasion : None | array, shape (3,)
+        The position of the nasion fiducial point.
+        This point is assumed to be in the native digitizer space in m.
+    lpa : None | array, shape (3,)
+        The position of the left periauricular fiducial point.
+        This point is assumed to be in the native digitizer space in m.
+    rpa : None | array, shape (3,)
+        The position of the right periauricular fiducial point.
+        This point is assumed to be in the native digitizer space in m.
+    hsp : None | array, shape (n_points, 3)
+        This corresponds to an array of positions of the headshape points in
+        3d. These points are assumed to be in the native digitizer space in m.
+    hpi : None | array, shape (n_hpi, 3)
+        This corresponds to an array of HPI points in the native digitizer
+        space. They only necessary if computation of a ``compute_dev_head_t``
+        is True.
+    hpi_dev : None | array, shape (n_hpi, 3)
+        This corresponds to an array of HPI points. These points are in device
+        space, and are only necessary if computation of a
+        ``compute_dev_head_t`` is True.
+    coord_frame : str
+        The coordinate frame of the points. Usually this is "unknown"
+        for native digitizer space.
+    transform_to_head : bool
+        If True (default), points will be transformed to Neuromag head space.
+        The fiducials (nasion, lpa, and rpa) must be specified. This is useful
+        for points captured using a device that does not automatically convert
+        points to Neuromag head coordinates
+        (e.g., Polhemus FastSCAN).
+    compute_dev_head_t : bool
+        If True, a Dev-to-Head transformation matrix will be added to the
+        montage. To get a proper `dev_head_t`, the hpi and the hpi_dev points
+        must be in the same order. If False (default), no transformation will
+        be added to the montage.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    Montage
+    read_montage
+    DigMontage
+    read_dig_montage
+
+    """
+    # XXX: hpi was historically elp
+    # XXX: hpi_dev was historically hpi
+    assert coord_frame in ('unknown', 'head')
+    from ..coreg import fit_matched_points
+    data = Bunch(
+        nasion=nasion, lpa=lpa, rpa=rpa,
+        elp=hpi, dig_ch_pos=ch_pos, hsp=hsp,
+        coord_frame=coord_frame,
+    )
+    if transform_to_head:
+        data = _transform_to_head_call(data)
+
+    if compute_dev_head_t:
+        if data.elp is None or hpi_dev is None:
+            raise RuntimeError('must have both elp and hpi to compute the '
+                               'device to head transform')
+        else:
+            # here is hpi
+            dev_head_t = fit_matched_points(
+                tgt_pts=data.elp, src_pts=hpi_dev, out='trans'
+            )  # XXX: shall we make it a Transform? rather than np.array
+    else:
+        dev_head_t = None
+
+    ch_names = list() if ch_pos is None else list(sorted(ch_pos.keys()))
+    dig = _make_dig_points(
+        nasion=data.nasion, lpa=data.lpa, rpa=data.rpa, hpi=data.elp,
+        extra_points=data.hsp, dig_ch_pos=data.dig_ch_pos,
+        coord_frame=data.coord_frame,
+    )
+    return DigMontage(dig=dig, ch_names=ch_names, dev_head_t=dev_head_t)
+
+
 class DigMontage(object):
     """Montage for digitized electrode and headshape position data.
 
@@ -406,30 +512,45 @@ class DigMontage(object):
     hsp : array, shape (n_points, 3)
         The positions of the headshape points in 3d.
         These points are in the native digitizer space.
+        Deprecated, will be removed in 0.20.
     hpi : array, shape (n_hpi, 3)
         The positions of the head-position indicator coils in 3d.
         These points are in the MEG device space.
+        Deprecated, will be removed in 0.20.
     elp : array, shape (n_hpi, 3)
         The positions of the head-position indicator coils in 3d.
         This is typically in the native digitizer space.
+        Deprecated, will be removed in 0.20.
     point_names : list, shape (n_elp)
         The names of the digitized points for hpi and elp.
+        Deprecated, will be removed in 0.20.
     nasion : array, shape (1, 3)
-        The position of the nasion fidicual point.
+        The position of the nasion fiducial point.
+        Deprecated, will be removed in 0.20.
     lpa : array, shape (1, 3)
-        The position of the left periauricular fidicual point.
+        The position of the left periauricular fiducial point.
+        Deprecated, will be removed in 0.20.
     rpa : array, shape (1, 3)
-        The position of the right periauricular fidicual point.
+        The position of the right periauricular fiducial point.
+        Deprecated, will be removed in 0.20.
     dev_head_t : array, shape (4, 4)
         A Device-to-Head transformation matrix.
     dig_ch_pos : dict
         Dictionary of channel positions given in meters.
+        Deprecated, will be removed in 0.20.
 
         .. versionadded:: 0.12
 
     coord_frame : str
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space.
+
+        .. versionadded:: 0.19
+
+    dig : list of dict
+        The object containing all the dig points.
+    ch_names : list of str
+        The names of the EEG channels.
 
     See Also
     --------
@@ -442,107 +563,140 @@ class DigMontage(object):
     .. versionadded:: 0.9.0
     """
 
-    def __init__(self, hsp=None, hpi=None, elp=None, point_names=None,
-                 nasion=None, lpa=None, rpa=None, dev_head_t=None,
-                 dig_ch_pos=None, coord_frame='unknown'):  # noqa: D102
-        self.hsp = hsp
-        self.hpi = hpi
-        if elp is not None:
-            if not isinstance(point_names, Iterable):
-                raise TypeError('If elp is specified, point_names must '
-                                'provide a list of str with one entry per ELP '
-                                'point')
-            point_names = list(point_names)
-            if len(point_names) != len(elp):
-                raise ValueError('elp contains %i points but %i '
-                                 'point_names were specified.' %
-                                 (len(elp), len(point_names)))
-        self.elp = elp
-        self.point_names = point_names
+    def __init__(self,
+        hsp=DEPRECATED_PARAM, hpi=DEPRECATED_PARAM, elp=DEPRECATED_PARAM,
+        point_names=DEPRECATED_PARAM, nasion=DEPRECATED_PARAM,
+        lpa=DEPRECATED_PARAM, rpa=DEPRECATED_PARAM,
+        dev_head_t=None, dig_ch_pos=DEPRECATED_PARAM,
+        coord_frame=DEPRECATED_PARAM,
+        dig=None, ch_names=None,
+    ):  # noqa: D102
+        # XXX: dev_head_t now is np.array, we should add dev_head_transform
+        #      (being instance of Transformation) and move the parameter to the
+        #      end of the call.
+        _non_deprecated_kwargs = [
+            key for key, val in dict(
+                hsp=hsp, hpi=hpi, elp=elp, point_names=point_names,
+                nasion=nasion, lpa=lpa, rpa=rpa,
+                dig_ch_pos=dig_ch_pos, coord_frame=coord_frame,
+            ).items() if val is not DEPRECATED_PARAM
+        ]
+        if not _non_deprecated_kwargs:
+            _validate_type(item=dig, types=Digitization,
+                           item_name='dig', type_name='Digitization')
+            ch_names = list() if ch_names is None else ch_names
+            n_eeg = sum([1 for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG])
+            if n_eeg != len(ch_names):
+                raise ValueError(
+                    'The number of EEG channels (%d) does not match the number'
+                    ' of channel names provided (%d)' % (n_eeg, len(ch_names))
+                )
 
-        self.nasion = nasion
-        self.lpa = lpa
-        self.rpa = rpa
-        self.dev_head_t = dev_head_t
-        self.dig_ch_pos = dig_ch_pos
-        if not isinstance(coord_frame, str) or \
-                coord_frame not in _str_to_frame:
-            raise ValueError('coord_frame must be one of %s, got %s'
-                             % (sorted(_str_to_frame.keys()), coord_frame))
-        self.coord_frame = coord_frame
+            self.dev_head_t = dev_head_t
+            self.dig = dig
+            self.ch_names = ch_names
+            self._coord_frame = _check_get_coord_frame(self.dig)
+        else:
+            # Deprecated
+            _msg = (
+                "Using {params} in DigMontage constructor is deprecated."
+                " Use 'dig', and 'ch_names' instead."
+            ).format(params=", ".join(
+                ["'{}'".format(k) for k in _non_deprecated_kwargs]
+            ))
+            warn(_msg, DeprecationWarning)
+
+            # Restore old defaults
+            hsp = None if hsp is DEPRECATED_PARAM else hsp
+            hpi = None if hpi is DEPRECATED_PARAM else hpi
+            elp = None if elp is DEPRECATED_PARAM else elp
+            nasion = None if nasion is DEPRECATED_PARAM else nasion
+            lpa = None if lpa is DEPRECATED_PARAM else lpa
+            rpa = None if rpa is DEPRECATED_PARAM else rpa
+            dig_ch_pos = None if dig_ch_pos is DEPRECATED_PARAM else dig_ch_pos
+            coord_frame = \
+                'unknown' if coord_frame is DEPRECATED_PARAM else coord_frame
+            point_names = \
+                None if point_names is DEPRECATED_PARAM else point_names
+
+            # Old behavior
+            if elp is not None:
+                if not isinstance(point_names, Iterable):
+                    raise TypeError('If elp is specified, point_names must'
+                                    ' provide a list of str with one entry per'
+                                    ' ELP point.')
+                point_names = list(point_names)
+                if len(point_names) != len(elp):
+                    raise ValueError('elp contains %i points but %i '
+                                     'point_names were specified.' %
+                                     (len(elp), len(point_names)))
+
+            self.dev_head_t = dev_head_t
+            self._point_names = point_names
+            self.ch_names = \
+                [] if dig_ch_pos is None else list(sorted(dig_ch_pos.keys()))
+            self._hpi = hpi
+            self._coord_frame = coord_frame
+            self.dig = _make_dig_points(
+                nasion=nasion, lpa=lpa, rpa=rpa, hpi=elp,
+                extra_points=hsp, dig_ch_pos=dig_ch_pos,
+                coord_frame=self._coord_frame,
+            )
+
+    @property
+    def point_names(self):
+        warn('"point_names" attribute is deprecated and will be removed'
+             ' in v0.20', DeprecationWarning)
+        return self._point_names
+
+    @property
+    def coord_frame(self):
+        warn('"coord_frame" attribute is deprecated and will be removed'
+             ' in v0.20', DeprecationWarning)
+        return self._coord_frame
 
     def __repr__(self):
         """Return string representation."""
+        _data = _foo_get_data_from_dig(self.dig)
         s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
              'channels>' %
-             (len(self.hsp) if self.hsp is not None else 0,
-              len(self.point_names) if self.point_names is not None else 0,
-              sum(x is not None for x in (self.lpa, self.rpa, self.nasion)),
-              len(self.dig_ch_pos) if self.dig_ch_pos is not None else 0,))
+             (len(_data.hsp) if _data.hsp is not None else 0,
+              len(_data.hpi) if _data.hpi is not None else 0,
+              sum(x is not None for x in (_data.lpa, _data.rpa, _data.nasion)),
+              len(_data.dig_ch_pos_location) if _data.dig_ch_pos_location is not None else 0,))  # noqa
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
+        # XXX: plot_montage takes an empty info and sets 'self'
+        #      Therefore it should not be a representation problem.
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
 
     def transform_to_head(self):
         """Transform digitizer points to Neuromag head coordinates."""
-        if self.coord_frame == 'head':  # nothing to do
-            return
-        nasion, rpa, lpa = self.nasion, self.rpa, self.lpa
-        if any(x is None for x in (nasion, rpa, lpa)):
-            if self.elp is None or self.point_names is None:
-                raise ValueError('ELP points and names must be specified for '
-                                 'transformation.')
-            names = [name.lower() for name in self.point_names]
+        raise RuntimeError('The transform_to_head method has been removed to '
+                           'enforce that DigMontage are constructed already '
+                           'in the correct coordinate system. This method '
+                           'will disappear in version 0.20.')
 
-            # check that all needed points are present
-            kinds = ('nasion', 'lpa', 'rpa')
-            missing = [name for name in kinds if name not in names]
-            if len(missing) > 0:
-                raise ValueError('The points %s are missing, but are needed '
-                                 'to transform the points to the MNE '
-                                 'coordinate system. Either add the points, '
-                                 'or read the montage with transform=False.'
-                                 % str(missing))
-
-            nasion, lpa, rpa = [self.elp[names.index(kind)] for kind in kinds]
-
-            # remove fiducials from elp
-            mask = np.ones(len(names), dtype=bool)
-            for fid in ['nasion', 'lpa', 'rpa']:
-                mask[names.index(fid)] = False
-            self.elp = self.elp[mask]
-            self.point_names = [p for pi, p in enumerate(self.point_names)
-                                if mask[pi]]
-
-        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-        self.nasion, self.lpa, self.rpa = apply_trans(
-            native_head_t, np.array([nasion, lpa, rpa]))
-        if self.elp is not None:
-            self.elp = apply_trans(native_head_t, self.elp)
-        if self.hsp is not None:
-            self.hsp = apply_trans(native_head_t, self.hsp)
-        if self.dig_ch_pos is not None:
-            for key, val in self.dig_ch_pos.items():
-                self.dig_ch_pos[key] = apply_trans(native_head_t, val)
-        self.coord_frame = 'head'
-
+    @deprecated(
+        'compute_dev_head_t is deprecated and will be removed in 0.20.'
+    )
     def compute_dev_head_t(self):
         """Compute the Neuromag dev_head_t from matched points."""
+        if not hasattr(self, '_hpi'):
+            raise RuntimeError(
+                'Cannot compute dev_head_t if DigMontage was not created'
+                ' from arrays')
+
         from ..coreg import fit_matched_points
-        if self.elp is None or self.hpi is None:
+        data = _foo_get_data_from_dig(self.dig)
+        if data.elp is None or self._hpi is None:
             raise RuntimeError('must have both elp and hpi to compute the '
                                'device to head transform')
-        self.dev_head_t = fit_matched_points(tgt_pts=self.elp,
-                                             src_pts=self.hpi, out='trans')
-
-    def _get_dig(self):
-        """Get the digitization list."""
-        return _make_dig_points(
-            nasion=self.nasion, lpa=self.lpa, rpa=self.rpa, hpi=self.elp,
-            extra_points=self.hsp, dig_ch_pos=self.dig_ch_pos)
+        self.dev_head_t = fit_matched_points(tgt_pts=data.elp,
+                                             src_pts=self._hpi, out='trans')
 
     def save(self, fname):
         """Save digitization points to FIF.
@@ -552,17 +706,56 @@ class DigMontage(object):
         fname : str
             The filename to use. Should end in .fif or .fif.gz.
         """
-        if self.coord_frame != 'head':
+        if self._coord_frame != 'head':
             raise RuntimeError('Can only write out digitization points in '
                                'head coordinates.')
-        write_dig(fname, self._get_dig())
+        write_dig(fname, self.dig)
 
+    @property
+    def dig_ch_pos(self):
+        warn('"dig_ch_pos" attribute is deprecated and will be removed in '
+             'v0.20', DeprecationWarning)
+        return self._ch_pos()
 
-_cardinal_ident_mapping = {
-    FIFF.FIFFV_POINT_NASION: 'nasion',
-    FIFF.FIFFV_POINT_LPA: 'lpa',
-    FIFF.FIFFV_POINT_RPA: 'rpa',
-}
+    def _get_ch_pos(self):
+        return dict(zip(self.ch_names,
+                        _foo_get_data_from_dig(self.dig).dig_ch_pos_location))
+
+    @property
+    def elp(self):
+        warn('"elp" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).elp
+
+    @property
+    def hpi(self):
+        warn('"hpi" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return getattr(self, '_hpi', None)
+
+    @property
+    def hsp(self):
+        warn('"hsp" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).hsp
+
+    @property
+    def lpa(self):
+        warn('"lpa" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).lpa
+
+    @property
+    def rpa(self):
+        warn('"rpa" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).rpa
+
+    @property
+    def nasion(self):
+        warn('"nasion" attribute is deprecated and will be removed in v0.20',
+             DeprecationWarning)
+        return _foo_get_data_from_dig(self.dig).nasion
 
 
 def _check_frame(d, frame_str):
@@ -572,9 +765,17 @@ def _check_frame(d, frame_str):
                            % (frame_str, _frame_to_str[d['coord_frame']]))
 
 
-def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
-                     unit='auto', fif=None, egi=None, bvct=None,
-                     transform=True, dev_head_t=False, ):
+def _get_scaling(unit, scale):
+    if unit not in scale:
+        raise ValueError("Unit needs to be one of %s, not %r" %
+                         (sorted(scale.keys()), unit))
+    else:
+        return scale[unit]
+
+
+def read_dig_montage(hsp=None, hpi=None, elp=None,
+                     point_names=None, unit='auto', fif=None, egi=None,
+                     bvct=None, transform=True, dev_head_t=False, ):
     r"""Read subject-specific digitization montage from a file.
 
     Parameters
@@ -629,7 +830,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     transform : bool
         If True (default), points will be transformed to Neuromag space
         using :meth:`DigMontage.transform_to_head`.
-        The fidicuals (nasion, lpa, and rpa) must be specified.
+        The fiducials (nasion, lpa, and rpa) must be specified.
         This is useful for points captured using a device that does
         not automatically convert points to Neuromag head coordinates
         (e.g., Polhemus FastSCAN).
@@ -658,157 +859,43 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
 
     .. versionadded:: 0.9.0
     """
+    # XXX: This scaling business seems really dangerous to me.
+    EGI_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
+    NUMPY_DATA_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
+
     if fif is not None:
-        # Use a different code path
-        if dev_head_t or not transform:
-            raise ValueError('transform must be True and dev_head_t must be '
-                             'False for FIF dig montage')
-        if not all(x is None for x in (hsp, hpi, elp, point_names, egi, bvct)):
-            raise ValueError('hsp, hpi, elp, point_names, egi, bvct must all '
-                             'be None if fif is not None.')
-        _check_fname(fif, overwrite='read', must_exist=True)
-        # Load the dig data
-        f, tree = fiff_open(fif)[:2]
-        with f as fid:
-            dig = _read_dig_fif(fid, tree)
-        # Split up the dig points by category
-        hsp = list()
-        hpi = list()
-        elp = list()
-        point_names = list()
-        fids = dict()
-        dig_ch_pos = dict()
-        for d in dig:
-            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-                _check_frame(d, 'head')
-                fids[_cardinal_ident_mapping[d['ident']]] = d['r']
-            elif d['kind'] == FIFF.FIFFV_POINT_HPI:
-                _check_frame(d, 'head')
-                hpi.append(d['r'])
-                elp.append(d['r'])
-                point_names.append('HPI%03d' % d['ident'])
-            elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
-                _check_frame(d, 'head')
-                hsp.append(d['r'])
-            elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-                _check_frame(d, 'head')
-                dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-        fids = [fids.get(key) for key in ('nasion', 'lpa', 'rpa')]
-        hsp = np.array(hsp) if len(hsp) else None
-        elp = np.array(elp) if len(elp) else None
-        coord_frame = 'head'
+        _raise_transform_err = True if dev_head_t or not transform else False
+        data = _read_dig_montage_fif(
+            fname=fif,
+            _raise_transform_err=_raise_transform_err,
+            _all_data_kwargs_are_none=all(
+                x is None for x in (hsp, hpi, elp, point_names, egi, bvct))
+        )
 
     elif egi is not None:
-        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, bvct)):
-            raise ValueError('hsp, hpi, elp, point_names, fif, bvct must all '
-                             'be None if egi is not None.')
-        _check_fname(egi, overwrite='read', must_exist=True)
-
-        root = ElementTree.parse(egi).getroot()
-        ns = root.tag[root.tag.index('{'):root.tag.index('}') + 1]
-        sensors = root.find('%ssensorLayout/%ssensors' % (ns, ns))
-        fids = dict()
-        dig_ch_pos = dict()
-
-        fid_name_map = {'Nasion': 'nasion',
-                        'Right periauricular point': 'rpa',
-                        'Left periauricular point': 'lpa'}
-
-        scale = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
-        if unit not in scale:
-            raise ValueError("Unit needs to be one of %s, not %r" %
-                             (sorted(scale.keys()), unit))
-
-        for s in sensors:
-            name, number, kind = s[0].text, int(s[1].text), int(s[2].text)
-            coordinates = np.array([float(s[3].text), float(s[4].text),
-                                    float(s[5].text)])
-
-            coordinates *= scale[unit]
-
-            # EEG Channels
-            if kind == 0:
-                dig_ch_pos['EEG %03d' % number] = coordinates
-            # Reference
-            elif kind == 1:
-                dig_ch_pos['EEG %03d' %
-                           (len(dig_ch_pos.keys()) + 1)] = coordinates
-            # Fiducials
-            elif kind == 2:
-                fid_name = fid_name_map[name]
-                fids[fid_name] = coordinates
-            # Unknown
-            else:
-                warn('Unknown sensor type %s detected. Skipping sensor...'
-                     'Proceed with caution!' % kind)
-
-        fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
-        coord_frame = 'unknown'
+        data = _read_dig_montage_egi(
+            fname=egi,
+            _scaling=_get_scaling(unit, EGI_SCALE),
+            _all_data_kwargs_are_none=all(
+                x is None for x in (hsp, hpi, elp, point_names, fif, bvct))
+        )
 
     elif bvct is not None:
-        if not all(x is None for x in (hsp, hpi, elp, point_names, fif, egi)):
-            raise ValueError('hsp, hpi, elp, point_names, fif, egi must all '
-                             'be None if bvct is not None.')
-        _check_fname(bvct, overwrite='read', must_exist=True)
+        data = _read_dig_montage_bvct(
+            fname=bvct,
+            unit=unit,  # XXX: this should change
+            _all_data_kwargs_are_none=all(
+                x is None for x in (hsp, hpi, elp, point_names, fif, egi))
+        )
 
-        root = ElementTree.parse(bvct).getroot()
-        sensors = root.find('CapTrakElectrodeList')
-
-        fids = {}
-        dig_ch_pos = {}
-
-        fid_name_map = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
-
-        # CapTrak is natively in mm
-        scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
-        if unit not in scale:
-            raise ValueError("Unit needs to be one of %s, not %r" %
-                             (sorted(scale.keys()), unit))
-        if unit not in ['mm', 'auto']:
-            warn('Using "{}" as unit for BVCT file. BVCT files are usually '
-                 'specified in "mm". This might lead to errors.'.format(unit),
-                 RuntimeWarning)
-
-        for s in sensors:
-            name = s.find('Name').text
-
-            # Need to prune "GND" and "REF": these are not included in the raw
-            # data and will raise errors when we try to do raw.set_montage(...)
-            # XXX eventually this should be stored in ch['loc'][3:6]
-            # but we don't currently have such capabilities here
-            if name in ['GND', 'REF']:
-                continue
-
-            fid = name in fid_name_map
-            coordinates = np.array([float(s.find('X').text),
-                                    float(s.find('Y').text),
-                                    float(s.find('Z').text)])
-
-            coordinates *= scale[unit]
-
-            # Fiducials
-            if fid:
-                fid_name = fid_name_map[name]
-                fids[fid_name] = coordinates
-            # EEG Channels
-            else:
-                dig_ch_pos[name] = coordinates
-
-        fids = [fids[key] for key in ('nasion', 'lpa', 'rpa')]
-        coord_frame = 'unknown'
     else:
-        fids = [None] * 3
-        dig_ch_pos = None
-        scale = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
-        if unit not in scale:
-            raise ValueError("Unit needs to be one of %s, not %r" %
-                             (sorted(scale.keys()), unit))
-
+        # XXX: This should also become a function
+        _scaling = _get_scaling(unit, NUMPY_DATA_SCALE),
         # HSP
         if isinstance(hsp, str):
             hsp = _read_dig_points(hsp, unit=unit)
         elif hsp is not None:
-            hsp *= scale[unit]
+            hsp *= _scaling
 
         # HPI
         if isinstance(hpi, str):
@@ -826,18 +913,29 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         # ELP
         if isinstance(elp, str):
             elp = _read_dig_points(elp, unit=unit)
-        elif elp is not None and scale[unit]:
-            elp *= scale[unit]
-        coord_frame = 'unknown'
+        elif elp is not None:
+            elp *= _scaling
 
-    # Transform digitizer coordinates to neuromag space
-    out = DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
-                     dig_ch_pos=dig_ch_pos, coord_frame=coord_frame)
-    if fif is None and transform:  # only need to do this for non-Neuromag
-        out.transform_to_head()
-    if dev_head_t:
-        out.compute_dev_head_t()
-    return out
+        data = Bunch(
+            nasion=None, lpa=None, rpa=None,
+            hsp=hsp, elp=elp, coord_frame='unknown',
+            dig_ch_pos=None, hpi=hpi, point_names=point_names,
+        )
+
+    if any(x is None for x in (data.nasion, data.rpa, data.lpa)) and transform:
+        data = _fix_data_fiducials(data)
+
+    point_names = data.pop('point_names')
+    data['hpi_dev'] = data['hpi']
+    data['hpi'] = data.pop('elp')
+    data['ch_pos'] = data.pop('dig_ch_pos')
+    montage = make_dig_montage(
+        **data, transform_to_head=transform,
+        compute_dev_head_t=dev_head_t,
+    )
+
+    montage._point_names = point_names  # XXX: hack this should go!!
+    return montage
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):
@@ -929,20 +1027,25 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
+
         if set_dig:
-            info['dig'] = montage._get_dig()
+            info['dig'] = montage.dig
 
         if montage.dev_head_t is not None:
             info['dev_head_t']['trans'] = montage.dev_head_t
 
-        if montage.dig_ch_pos is not None:  # update channel positions, too
-            eeg_ref_pos = montage.dig_ch_pos.get('EEG000', np.zeros(3))
+        if montage.ch_names:  # update channel positions, too
+            dig_ch_pos = dict(zip(montage.ch_names, [
+                d['r'] for d in montage.dig
+                if d['kind'] == FIFF.FIFFV_POINT_EEG
+            ]))
+            eeg_ref_pos = dig_ch_pos.get('EEG000', np.zeros(3))
             did_set = np.zeros(len(info['ch_names']), bool)
             is_eeg = np.zeros(len(info['ch_names']), bool)
             is_eeg[pick_types(info, meg=False, eeg=True, exclude=())] = True
 
-            for ch_name, ch_pos in montage.dig_ch_pos.items():
-                if ch_name == 'EEG000':
+            for ch_name, ch_pos in dig_ch_pos.items():
+                if ch_name == 'EEG000':  # what if eeg ref. has different name?
                     continue
                 if ch_name not in info['ch_names']:
                     raise RuntimeError('Montage channel %s not found in info'
@@ -958,6 +1061,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             if len(did_not_set) > 0:
                 warn('Did not set %s channel positions:\n%s'
                      % (len(did_not_set), ', '.join(did_not_set)))
+
     elif montage is None:
         for ch in info['chs']:
             ch['loc'] = np.full(12, np.nan)

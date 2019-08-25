@@ -2584,15 +2584,15 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     im : array, shape (m, n, 3)
         The screenshot of the current scene view
     """
-    from ..channels import Montage, DigMontage
+    from ..channels import DigMontage
     from .. import Info
     # Update the backend
     from .backends.renderer import _Renderer
 
     if fig is None:
         raise ValueError('The figure must have a scene')
-    if isinstance(montage, (Montage, DigMontage)):
-        chs = montage.dig_ch_pos
+    if isinstance(montage, DigMontage):
+        chs = montage._get_ch_pos()
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in chs.items()])
     elif isinstance(montage, Info):
         xyz = [ich['loc'][:3] for ich in montage['chs']]

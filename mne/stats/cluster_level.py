@@ -570,15 +570,22 @@ def _pval_from_histogram(T, H0, tail):
     return pval
 
 
-def _setup_connectivity(connectivity, n_vertices, n_times):
+def _setup_connectivity(connectivity, n_tests, n_times):
     if not sparse.issparse(connectivity):
-        raise ValueError("If connectivity matrix is given, it must be a"
-                         "scipy sparse matrix.")
-    if connectivity.shape[0] == n_vertices:  # use global algorithm
+        raise ValueError("If connectivity matrix is given, it must be a "
+                         "SciPy sparse matrix.")
+    if connectivity.shape[0] == n_tests:  # use global algorithm
         connectivity = connectivity.tocoo()
     else:  # use temporal adjacency algorithm
-        if not round(n_vertices / float(connectivity.shape[0])) == n_times:
-            raise ValueError('connectivity must be of the correct size')
+        got_times, mod = divmod(n_tests, connectivity.shape[0])
+        if got_times != n_times or mod != 0:
+            raise ValueError(
+                'connectivity (len %d) must be of the correct size, i.e. be '
+                'equal to or evenly divide the number of tests (%d).\n\n'
+                'If connectivity was computed for a source space, try using '
+                'the fwd["src"] or inv["src"] as some original source space '
+                'vertices can be excluded during forward computation'
+                % (connectivity.shape[0], n_tests))
         # we claim to only use upper triangular part... not true here
         connectivity = (connectivity + connectivity.transpose()).tocsr()
         connectivity = [connectivity.indices[connectivity.indptr[i]:
@@ -810,11 +817,12 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     is elicited.
     """
     _check_option('out_type', out_type, ['mask', 'indices'])
-    if not isinstance(threshold, dict) and (tail < 0 and threshold > 0 or
-                                            tail > 0 and threshold < 0 or
-                                            tail == 0 and threshold < 0):
-        raise ValueError('incompatible tail and threshold signs, got %s and %s'
-                         % (tail, threshold))
+    if not isinstance(threshold, dict):
+        threshold = float(threshold)
+        if (tail < 0 and threshold > 0 or tail > 0 and threshold < 0 or
+                tail == 0 and threshold < 0):
+            raise ValueError('incompatible tail and threshold signs, got '
+                             '%s and %s' % (tail, threshold))
 
     # check dimensions for each group in X (a list at this stage).
     X = [x[:, np.newaxis] if x.ndim == 1 else x for x in X]
