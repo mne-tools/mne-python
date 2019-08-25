@@ -943,7 +943,8 @@ class Report(object):
             Range : 25800 ... 192599 =     42.956 ...   320.670 secs
         Ready.
         Current compensation grade : 0
-        ...
+        <... RuntimeWarning: `subjects_dir` and `subject` not provided. \
+            Cannot render MRI and -trans.fif(.gz) files.
         >>> report.save()
         Saving report to location .../report.html
         Rendering : Table of Contents
@@ -957,10 +958,12 @@ class Report(object):
     the browser. To disable this, use the ``open_browser=False`` parameter of
     :meth:`~mne.Report.save`.
 
-    TO generate a report for a single subject, pass the ``subject`` and
+    To generate a report for a single subject, pass the ``subject`` and
     ``subjects_dir`` parameters to the :class:`~mne.Report` constructor and
     this will generate the MRI slices, with BEM contours overlaid on top if
-    available (we'll omit the output from here on to save space)::
+    available. This will also get rid of the warning we saw above about MRI and
+    trans not being rendered. We'll omit the output from here on to save
+    space::
 
         >>> subjects_dir = os.path.join(path, 'subjects')
         >>> report = Report(subject='sample',
