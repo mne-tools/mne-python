@@ -29,7 +29,7 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
-    _handle_duplicate_events)
+    _handle_event_repeated)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
                        requires_version, catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version)
@@ -59,7 +59,7 @@ event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
-def test_handle_duplicate_events():
+def test_handle_event_repeated():
     """Test handling of duplicate events."""
     # A general test case
     EVENT_ID = {'aud': 1, 'vis': 2, 'foo': 3}
@@ -69,16 +69,16 @@ def test_handle_duplicate_events():
                        [7, 0, 1]])
 
     with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
-        _handle_duplicate_events(EVENTS, EVENT_ID, event_repeated='error')
+        _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='error')
 
     with pytest.raises(ValueError, match='`event_repeated` must be one of '):
-        _handle_duplicate_events(EVENTS, EVENT_ID, event_repeated='bogus')
+        _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='bogus')
 
-    events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'drop')
+    events, event_id = _handle_event_repeated(EVENTS, EVENT_ID, 'drop')
     assert_array_equal(events, [[0, 0, 1], [3, 0, 2], [5, 0, 2], [7, 0, 1]])
     assert event_id == {'aud': 1, 'vis': 2}
 
-    events, event_id = _handle_duplicate_events(EVENTS, EVENT_ID, 'merge')
+    events, event_id = _handle_event_repeated(EVENTS, EVENT_ID, 'merge')
     assert_array_equal(events[0][-1], events[1][-1])
     assert_array_equal(events, [[0, 0, 4], [3, 0, 4], [5, 0, 5], [7, 0, 1]])
     assert 'aud/vis' in event_id.keys()
@@ -87,7 +87,7 @@ def test_handle_duplicate_events():
 
     # Test early return with no changes: no error for wrong event_repeated arg
     fine_events = np.array([[0, 0, 1], [1, 0, 2]])
-    events, event_id = _handle_duplicate_events(fine_events, EVENT_ID, 'no')
+    events, event_id = _handle_event_repeated(fine_events, EVENT_ID, 'no')
     assert event_id == EVENT_ID
     np.testing.assert_array_equal(events, fine_events)
     del fine_events
@@ -97,8 +97,8 @@ def test_handle_duplicate_events():
     # take components, sort, and join on "/"
     # should make new event_id value: 5 (because 1,2,3,4 are taken)
     heterogeneous_events = np.array([[0, 3, 2], [0, 4, 1]])
-    events, event_id = _handle_duplicate_events(heterogeneous_events,
-                                                EVENT_ID, 'merge')
+    events, event_id = _handle_event_repeated(heterogeneous_events,
+                                              EVENT_ID, 'merge')
     assert 'aud/vis' in event_id.keys()
     assert set(event_id.keys()) == set(['aud/vis'])
     assert event_id['aud/vis'] == 5
@@ -108,8 +108,8 @@ def test_handle_duplicate_events():
     # Test keeping a homogeneous "prior-to-event" code
     homogeneous_events = np.array([[0, 99, 1], [0, 99, 2],
                                    [1, 0, 1], [2, 0, 2]])
-    events, event_id = _handle_duplicate_events(homogeneous_events,
-                                                EVENT_ID, 'merge')
+    events, event_id = _handle_event_repeated(homogeneous_events,
+                                              EVENT_ID, 'merge')
     assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
     np.testing.assert_array_equal(events, np.array([[0, 99, 4],
                                                     [1, 0, 1], [2, 0, 2]]))
@@ -117,8 +117,8 @@ def test_handle_duplicate_events():
 
     # Test dropping instead of merging, if event_codes to be merged are equal
     equal_events = np.array([[0, 0, 1], [0, 0, 1]])
-    events, event_id = _handle_duplicate_events(equal_events,
-                                                EVENT_ID, 'merge')
+    events, event_id = _handle_event_repeated(equal_events,
+                                              EVENT_ID, 'merge')
     np.testing.assert_array_equal(events, np.array([[0, 0, 1], ]))
     assert set(event_id.keys()) == set(['aud'])
     del equal_events

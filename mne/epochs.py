@@ -184,7 +184,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     end_file(fid)
 
 
-def _handle_duplicate_events(events, event_id, event_repeated):
+def _handle_event_repeated(events, event_id, event_repeated):
     """Handle duplicated events."""
     u_evs, u_idxs, counts = np.unique(events[:, 0], return_index=True,
                                       return_counts=True)
@@ -412,9 +412,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self.drop_log = drop_log
             events = events[selected]
 
-            events, self.event_id = _handle_duplicate_events(events,
-                                                             self.event_id,
-                                                             event_repeated)
+            events, self.event_id = _handle_event_repeated(events,
+                                                           self.event_id,
+                                                           event_repeated)
 
             n_events = len(events)
             if n_events > 1:
