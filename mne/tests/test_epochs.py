@@ -71,9 +71,6 @@ def test_handle_event_repeated():
     with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
         _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='error')
 
-    with pytest.raises(ValueError, match='`event_repeated` must be one of '):
-        _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='bogus')
-
     events, event_id = _handle_event_repeated(EVENTS, EVENT_ID, 'drop')
     assert_array_equal(events, [[0, 0, 1], [3, 0, 2], [5, 0, 2], [7, 0, 1]])
     assert event_id == {'aud': 1, 'vis': 2}

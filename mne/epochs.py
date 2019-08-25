@@ -194,6 +194,7 @@ def _handle_event_repeated(events, event_id, event_repeated):
         return events, event_id
 
     # Else, we have duplicates. Triage ...
+    _check_option('event_repeated', event_repeated, ['error', 'drop', 'merge'])
     event_id = event_id.copy()
     msg = 'Multiple event codes for single event times found.'
     if event_repeated == 'error':
@@ -265,10 +266,6 @@ def _handle_event_repeated(events, event_id, event_repeated):
 
         # Delete
         new_events = np.delete(new_events, to_delete, 0)
-
-    else:
-        raise ValueError('`event_repeated` must be one of "error", "drop",'
-                         ' "merge" but is "{}"'.format(event_repeated))
 
     # Remove obsolete kv-pairs from event_id after handling
     to_delete = list()
