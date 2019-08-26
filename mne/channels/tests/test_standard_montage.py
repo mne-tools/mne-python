@@ -27,7 +27,6 @@ from mne.channels.montage import _BUILT_IN_MONTAGES
 # from mne.channels._dig_montage_utils import _transform_to_head_call
 # from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.channels._standard_montage_utils import read_standard_montage
-from mne.utils import object_diff
 # from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
 #                        object_diff, Bunch)
 # from mne.bem import _fit_sphere
@@ -45,6 +44,10 @@ from mne.utils import object_diff
 
 # from mne.datasets import testing
 
+# from mock import patch
+
+from unittest.mock import patch
+
 
 @pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
 def test_read_montage(kind):
@@ -55,3 +58,29 @@ def test_read_montage(kind):
     # assert object_diff(new_montage, old_montage) == ''
     # assert new_montage == old_montage
     assert new_montage.__repr__() == old_montage.__repr__()
+
+
+def _custom_compare_true(self, other):
+    return True
+
+
+def _custom_compare_false(self, other):
+    return False
+
+
+@pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
+@patch("mne.channels.Montage.__eq__", _custom_compare_true)
+def test_read_montage_TRUE(kind):
+    """Test difference between old and new standard montages."""
+    old_montage = read_montage(kind)
+    new_montage = read_standard_montage(kind)
+    assert new_montage == old_montage
+
+
+@pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
+@patch("mne.channels.Montage.__eq__", _custom_compare_false)
+def test_read_montage_FALSE(kind):
+    """Test difference between old and new standard montages."""
+    old_montage = read_montage(kind)
+    new_montage = read_standard_montage(kind)
+    assert new_montage != old_montage
