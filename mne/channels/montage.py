@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ElementTree
 from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _str_to_frame, _frame_to_str)
+                          _topo_to_sph, _frame_to_str)
 from .._digitization import Digitization
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
                                     write_dig, _read_dig_fif)
@@ -762,13 +762,6 @@ class DigMontage(object):
         warn('"nasion" attribute is deprecated and will be removed in v0.20',
              DeprecationWarning)
         return _foo_get_data_from_dig(self.dig).nasion
-
-
-def _check_frame(d, frame_str):
-    """Check coordinate frames."""
-    if d['coord_frame'] != _str_to_frame[frame_str]:
-        raise RuntimeError('dig point must be in %s coordinate frame, got %s'
-                           % (frame_str, _frame_to_str[d['coord_frame']]))
 
 
 def _get_scaling(unit, scale):
