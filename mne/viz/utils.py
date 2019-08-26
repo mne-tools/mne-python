@@ -707,8 +707,9 @@ def _resize_event(event, params):
     """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
-    _update_borders(params, event.width, event.height)
-    params['fig_size_px'] = _get_figsize_px(params['fig'])
+    new_width, new_height = _get_figsize_px(params['fig'])
+    _update_borders(params, new_width, new_height)
+    params['fig_size_px'] = (new_width, new_height)
 
 
 def _plot_raw_onscroll(event, params, len_channels=None):
