@@ -217,16 +217,14 @@ def _merge_events(events, event_id):
 
             # Check if we already have an entry for merged keys of duplicate
             # events ... if yes, reuse it
-            got_val = False
-            for key in event_id:
+            for key in event_id.keys():
                 if set(key.split('/')) == set(new_key_comps):
-                    got_val = True
                     new_event_val = event_id[key]
                     break
 
             # Else, find an unused value for the new key and make an entry into
             # the event_id dict
-            if not got_val:
+            else:
                 ev_vals = np.concatenate((list(event_id.values()),
                                           events[:, 1:].flatten()),
                                          axis=0)
