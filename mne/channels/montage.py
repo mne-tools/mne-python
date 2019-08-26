@@ -34,7 +34,7 @@ from ..utils import (warn, copy_function_doc_to_method_doc,
                      _check_fname)
 
 from .layout import _pol_to_cart, _cart_to_sph
-from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
+from ._dig_montage_utils import _transform_to_head_call
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
@@ -913,12 +913,20 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
 
     if fif is not None:
         _raise_transform_err = True if dev_head_t or not transform else False
-        data = _read_dig_montage_fif(
-            fname=fif,
-            _raise_transform_err=_raise_transform_err,
-            _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, egi, bvct))
+        _all_data_kwargs_are_none = all(
+            x is None for x in (hsp, hpi, elp, point_names, egi, bvct)
         )
+
+        if _raise_transform_err:
+            raise ValueError('transform must be True and dev_head_t must be'
+                             ' False for FIF dig montage')
+        if not _all_data_kwargs_are_none:
+            raise ValueError('hsp, hpi, elp, point_names, egi must all be'
+                             ' None if fif is not None')
+
+        warn('Using "read_dig_montage" with "fif" different not None'
+             ' is deprecated and will be removed in v0.20', DeprecationWarning)
+        return read_dig_fif(fname=fif)
 
     elif egi is not None:
         data = _read_dig_montage_egi(

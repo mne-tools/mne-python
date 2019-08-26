@@ -460,7 +460,8 @@ def test_set_dig_montage():
     temp_dir = _TempDir()
     fname_temp = op.join(temp_dir, 'test.fif')
     montage.save(fname_temp)
-    montage_read = read_dig_montage(fif=fname_temp)
+    with pytest.deprecated_call():
+        montage_read = read_dig_montage(fif=fname_temp)
     for use_mon in (montage, montage_read):
         info = create_info(['Test Ch'], 1e3, ['eeg'])
         with pytest.warns(None):  # warns on one run about not all positions
@@ -489,7 +490,8 @@ def test_set_dig_montage():
 @testing.requires_testing_data
 def test_fif_dig_montage():
     """Test FIF dig montage support."""
-    dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
 
     # test round-trip IO
     temp_dir = _TempDir()
@@ -535,7 +537,8 @@ def test_fif_dig_montage():
     _check_roundtrip(montage, fname_temp)
 
     # Test old way matches new way
-    dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
     dig_montage_fif = read_dig_fif(fif_dig_montage_fname)
     assert dig_montage.dig == dig_montage_fif.dig
     assert object_diff(dig_montage.ch_names, dig_montage_fif.ch_names) == ''
@@ -682,7 +685,7 @@ def _check_roundtrip(montage, fname):
     with pytest.deprecated_call():
         assert_equal(montage.coord_frame, 'head')
     montage.save(fname)
-    montage_read = read_dig_montage(fif=fname)
+    montage_read = read_dig_fif(fname=fname)
     assert_equal(str(montage), str(montage_read))
     with pytest.deprecated_call():
         for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
