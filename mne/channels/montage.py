@@ -967,9 +967,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
         )
 
     elif bvct is not None:
-        warn('Using "read_dig_montage" with "bvct" not None'
-             ' is deprecated and will be removed in v0.20.'
-             ' Please use read_dig_captrack instead.', DeprecationWarning)
         data = _read_dig_montage_bvct(
             fname=bvct,
             unit=unit,  # XXX: this should change
