@@ -129,7 +129,7 @@ Bug
 API
 ~~~
 
-- Deprecate :func:`mne.evoked.grand_average` in favor of :func:`mne.grand_average` (which works on both :class:`~mne.Evoked` and :class:`~mne.time_frequency.AverageTFR`) by `Daniel McCloy`_
+- Deprecate ``mne.evoked.grand_average`` in favor of :func:`mne.grand_average` (which works on both :class:`~mne.Evoked` and :class:`~mne.time_frequency.AverageTFR`) by `Daniel McCloy`_
 
 - Deprecate ``exclude`` parameter in :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources`, instead always use the ``exclude`` attribute of the ICA object by `Daniel McCloy`_.
 
