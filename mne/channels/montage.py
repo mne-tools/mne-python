@@ -925,12 +925,14 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
                              ' None if fif is not None')
 
         warn('Using "read_dig_montage" with "fif" not None'
-             ' is deprecated and will be removed in v0.20', DeprecationWarning)
+             ' is deprecated and will be removed in v0.20'
+             ' Please use read_dig_fif instead.', DeprecationWarning)
         return read_dig_fif(fname=fif)
 
     elif egi is not None:
         warn('Using "read_dig_montage" with "egi" not None'
-             ' is deprecated and will be removed in v0.20', DeprecationWarning)
+             ' is deprecated and will be removed in v0.20'
+             ' Please use read_dig_egi instead.', DeprecationWarning)
         data = _read_dig_montage_egi(
             fname=egi,
             _scaling=_get_scaling(unit, EGI_SCALE),
@@ -940,7 +942,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
 
     elif bvct is not None:
         warn('Using "read_dig_montage" with "bvct" not None'
-             ' is deprecated and will be removed in v0.20', DeprecationWarning)
+             ' is deprecated and will be removed in v0.20.'
+             ' Please use read_dig_captrack instead.', DeprecationWarning)
         data = _read_dig_montage_bvct(
             fname=bvct,
             unit=unit,  # XXX: this should change
