@@ -47,6 +47,18 @@ from ._dig_montage_utils import _parse_brainvision_dig_montage
 from ._dig_montage_utils import _get_fid_coords
 
 DEPRECATED_PARAM = object()
+_BUILT_IN_MONTAGES = [
+    'EGI_256',
+    'GSN-HydroCel-128', 'GSN-HydroCel-129', 'GSN-HydroCel-256',
+    'GSN-HydroCel-257', 'GSN-HydroCel-32', 'GSN-HydroCel-64_1.0',
+    'GSN-HydroCel-65_1.0',
+    'biosemi128', 'biosemi16', 'biosemi160', 'biosemi256',
+    'biosemi32', 'biosemi64',
+    'easycap-M1', 'easycap-M10',
+    'mgh60', 'mgh70',
+    'standard_1005', 'standard_1020', 'standard_alphabetic',
+    'standard_postfixed', 'standard_prefixed', 'standard_primed'
+]
 
 
 def _check_get_coord_frame(dig):
@@ -121,11 +133,7 @@ def get_builtin_montages():
         Names of all builtin montages that can be loaded with
         :func:`read_montage`.
     """
-    path = op.join(op.dirname(__file__), 'data', 'montages')
-    supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.loc',
-                 '.locs', '.eloc', '.bvef')
-    files = [op.splitext(f) for f in os.listdir(path)]
-    return sorted([f for f, ext in files if ext in supported])
+    return _BUILT_IN_MONTAGES
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
