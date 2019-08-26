@@ -14,6 +14,7 @@
 from collections.abc import Iterable
 import os
 import os.path as op
+from copy import deepcopy
 
 import numpy as np
 import xml.etree.ElementTree as ElementTree
@@ -24,17 +25,21 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _str_to_frame, _frame_to_str)
 from .._digitization import Digitization
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
-                                    write_dig)
+                                    write_dig, _read_dig_fif)
 from ..io.pick import pick_types
+from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
-                     _check_option, Bunch, deprecated, _validate_type)
+                     _check_option, Bunch, deprecated, _validate_type,
+                     _check_fname)
 
 from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
+from ._dig_montage_utils import _parse_brainvision_dig_montage
+from ._dig_montage_utils import _get_fid_coords
 
 DEPRECATED_PARAM = object()
 
@@ -408,6 +413,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
+# XXX: shall we avoid transform
 def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
                      hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
                      transform_to_head=False, compute_dev_head_t=False):
@@ -773,6 +779,48 @@ def _get_scaling(unit, scale):
         return scale[unit]
 
 
+# XXX: this function will evolve with issue-6461
+# and should be tested as soon as we have the Polhemus
+# reader.
+def transform_to_head(montage):
+    """Transform a DigMontage object into head coordinate.
+
+    It requires that the LPA, RPA and Nasion fiducial
+    point are available. It requires that all fiducial
+    points are in the same coordinate e.g. 'unknown'
+    and it will convert all the point in this coordinate
+    system to Neuromag head coordinate system.
+
+    Parameters
+    ----------
+    montage : instance of DigMontage
+        The montage.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage after transforming the points to head
+        coordinate system.
+    """
+    # Get fiducial points and their coord_frame
+    fid_coords, coord_frame = _get_fid_coords(montage.dig)
+
+    montage = deepcopy(montage)  # to avoid inplace modification
+
+    if coord_frame != FIFF.FIFFV_COORD_HEAD:
+        nasion, lpa, rpa = \
+            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
+        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+
+        for d in montage.dig:
+            if d['coord_frame'] == coord_frame:
+                d['r'] = apply_trans(native_head_t, d['r'])
+                d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+
+    montage._coord_frame = 'head'  # XXX : should desappear in 0.20
+    return montage
+
+
 def read_dig_montage(hsp=None, hpi=None, elp=None,
                      point_names=None, unit='auto', fif=None, egi=None,
                      bvct=None, transform=True, dev_head_t=False, ):
@@ -936,6 +984,120 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
 
     montage._point_names = point_names  # XXX: hack this should go!!
     return montage
+
+
+def read_dig_fif(fname):
+    r"""Read digitized points from a .fif file.
+
+    Note that electrode names are not present in the .fif file so
+    they are here defined with the convention from VectorView
+    systems (EEG001, EEG002, etc.)
+
+    Parameters
+    ----------
+    fname : path-like
+        FIF file from which to read digitization locations.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    Montage
+    read_montage
+    """
+    _check_fname(fname, overwrite='read', must_exist=True)
+    # Load the dig data
+    f, tree = fiff_open(fname)[:2]
+    with f as fid:
+        dig = _read_dig_fif(fid, tree)
+
+    ch_names = []
+    for d in dig:
+        if d['kind'] == FIFF.FIFFV_POINT_EEG:
+            ch_names.append('EEG%03d' % d['ident'])
+
+    montage = DigMontage(dig=dig, ch_names=ch_names)
+    return montage
+
+
+def read_dig_egi(fname):
+    r"""Read electrode locations from EGI system.
+
+    Parameters
+    ----------
+    fname : path-like
+        EGI MFF XML coordinates file from which to read digitization locations.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    Montage
+    read_montage
+    """
+    _check_fname(fname, overwrite='read', must_exist=True)
+
+    data = _read_dig_montage_egi(
+        fname=fname,
+        _scaling=1.,
+        _all_data_kwargs_are_none=True
+    )
+
+    # XXX: to change to the new naming in v.0.20 (all this block should go)
+    data.pop('point_names')
+    data['hpi_dev'] = data['hpi']
+    data['hpi'] = data.pop('elp')
+    data['ch_pos'] = data.pop('dig_ch_pos')
+
+    return make_dig_montage(
+        **data,
+        transform_to_head=False,
+        compute_dev_head_t=False,
+    )
+
+
+def read_dig_captrack(fname):
+    r"""Read electrode locations from CapTrak Brain Products system.
+
+    Parameters
+    ----------
+    fname : path-like
+        BrainVision CapTrak coordinates file from which to read EEG electrode
+        locations. This is typically in XML format with the .bvct extension.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    Montage
+    read_montage
+    """
+    _check_fname(fname, overwrite='read', must_exist=True)
+    data = _parse_brainvision_dig_montage(fname)
+
+    # XXX: to change to the new naming in v.0.20 (all this block should go)
+    data.pop('point_names')
+    data['hpi_dev'] = data['hpi']
+    data['hpi'] = data.pop('elp')
+    data['ch_pos'] = data.pop('dig_ch_pos')
+
+    return make_dig_montage(
+        **data,
+        transform_to_head=False,
+        compute_dev_head_t=False,
+    )
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):

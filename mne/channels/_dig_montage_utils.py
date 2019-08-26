@@ -243,6 +243,32 @@ def _foo_get_data_from_dig(dig):
     )
 
 
+def _get_fid_coords(dig):
+    fid_coords = dict()
+    fid_coord_frames = []
+
+    for d in dig:
+        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+            fid_coords[_cardinal_ident_mapping[d['ident']]] = d['r']
+            fid_coord_frames.append(d['coord_frame'])
+
+    fid_coord_frames = set(fid_coord_frames)
+
+    if len(fid_coord_frames) != 1:
+        raise ValueError(
+            'All fiducial points must be in the same coordinate system '
+            '(got %s)' % len(fid_coord_frames)
+        )
+
+    coord_frame = fid_coord_frames.pop()
+
+    if set(fid_coords.keys()) != set(_cardinal_ident_mapping.values()):
+        raise ValueError("Some fiducial points are missing (got %s)." %
+                         fid_coords.keys())
+
+    return fid_coords, coord_frame
+
+
 def _read_dig_montage_bvct(
         fname,
         unit,
@@ -264,13 +290,20 @@ def _read_dig_montage_bvct(
              'specified in "mm". This might lead to errors.'.format(unit),
              RuntimeWarning)
 
+    return _parse_brainvision_dig_montage(fname, scale=scale[unit])
+
+
+BACK_COMPAT = object()  # XXX: to remove in 0.20
+
+
+def _parse_brainvision_dig_montage(fname, scale=BACK_COMPAT):
+    BVCT_SCALE = 1e-3
+    FID_NAME_MAP = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
+
     root = ElementTree.parse(fname).getroot()
     sensors = root.find('CapTrakElectrodeList')
 
-    fids = {}
-    dig_ch_pos = {}
-
-    fid_name_map = {'Nasion': 'nasion', 'RPA': 'rpa', 'LPA': 'lpa'}
+    fids, dig_ch_pos = dict(), dict()
 
     for s in sensors:
         name = s.find('Name').text
@@ -282,17 +315,16 @@ def _read_dig_montage_bvct(
         if name in ['GND', 'REF']:
             continue
 
-        fid = name in fid_name_map
+        is_fid = name in FID_NAME_MAP
         coordinates = np.array([float(s.find('X').text),
                                 float(s.find('Y').text),
                                 float(s.find('Z').text)])
 
-        coordinates *= scale[unit]
+        coordinates *= BVCT_SCALE if scale is BACK_COMPAT else scale
 
         # Fiducials
-        if fid:
-            fid_name = fid_name_map[name]
-            fids[fid_name] = coordinates
+        if is_fid:
+            fids[FID_NAME_MAP[name]] = coordinates
         # EEG Channels
         else:
             dig_ch_pos[name] = coordinates
