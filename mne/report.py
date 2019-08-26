@@ -903,10 +903,17 @@ class Report(object):
         >>> from mne.report import Report
         >>> from mne.datasets import sample
 
-    then generate the report using the pattern ``*raw.fif``::
+    then generate the report using the pattern ``*raw.fif``. Here we'll also
+    pass a specific ``subject`` and ``subjects_dir`` even though there's only
+    one subject in the sample dataset, because it will avoid printing a warning
+    about the subject being missing (and will generate the MRI slices, with BEM
+    contours overlaid on top if available)::
 
         >>> path = sample.data_path(verbose=False)
-        >>> report = Report(verbose=True)
+        >>> subjects_dir = os.path.join(path, 'subjects')
+        >>> report = Report(subject='sample',
+        ...                 subjects_dir=subjects_dir,
+        ...                 verbose=True)
         Embedding : jquery.js
         Embedding : jquery-ui.min.js
         Embedding : bootstrap.min.js
@@ -943,8 +950,7 @@ class Report(object):
             Range : 25800 ... 192599 =     42.956 ...   320.670 secs
         Ready.
         Current compensation grade : 0
-        <... RuntimeWarning: `subjects_dir` and `subject` not provided. \
-            Cannot render MRI and -trans.fif(.gz) files.
+        Rendering BEM
         >>> report.save()
         Saving report to location .../report.html
         Rendering : Table of Contents
@@ -952,28 +958,17 @@ class Report(object):
          ... ernoise_raw.fif
          ... sample_audvis_filt-0-40_raw.fif
          ... sample_audvis_raw.fif
+        mri
+         ... bem
         '.../report.html'
 
     On successful creation of the report, it will open the HTML in a new tab in
     the browser. To disable this, use the ``open_browser=False`` parameter of
     :meth:`~mne.Report.save`.
 
-    To generate a report for a single subject, pass the ``subject`` and
-    ``subjects_dir`` parameters to the :class:`~mne.Report` constructor and
-    this will generate the MRI slices, with BEM contours overlaid on top if
-    available. This will also get rid of the warning we saw above about MRI and
-    trans not being rendered. We'll omit the output from here on to save
-    space::
-
-        >>> subjects_dir = os.path.join(path, 'subjects')
-        >>> report = Report(subject='sample',
-        ...                 subjects_dir=subjects_dir,
-        ...                 verbose=True)                 # doctest: +SKIP
-        >>> report.parse_folder(path)                     # doctest: +SKIP
-        >>> report.save()                                 # doctest: +SKIP
-
     To properly render ``trans`` and ``covariance`` files, add a source for the
-    measurement information::
+    measurement information (we'll omit the output from here on to save
+    space)::
 
         >>> info_fname = os.path.join(path, 'MEG', 'sample',
         ...                           'sample_audvis-ave.fif')
