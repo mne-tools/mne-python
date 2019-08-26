@@ -821,6 +821,41 @@ def transform_to_head(montage):
     return montage
 
 
+def _read_dig_montage_deprecation_warning_helper(**kwargs):
+    if kwargs.pop('fif') is not None:
+        warn('Using "read_dig_montage" with "fif" not None'
+             ' is deprecated and will be removed in v0.20'
+             ' Please use read_dig_fif instead.', DeprecationWarning)
+        return
+    if kwargs.pop('egi') is not None:
+        warn('Using "read_dig_montage" with "egi" not None'
+             ' is deprecated and will be removed in v0.20'
+             ' Please use read_dig_egi instead.', DeprecationWarning)
+        return
+    if kwargs.pop('bvct') is not None:
+        warn('Using "read_dig_montage" with "bvct" not None'
+             ' is deprecated and will be removed in v0.20.'
+             ' Please use read_dig_captrack instead.', DeprecationWarning)
+        return
+
+    # XXX: for now we only have implemented the case where hsp, hpi and elp
+    #      are np.arrays. we need read_dig_polhemus for the str cases. Plus,
+    #      we need to make sure that we can handle a mix of arrays and str. The
+    #      mixed case is not in our code-base but there was nothing preventing
+    #      a user to do so.
+    #
+    #      we can assume that whatever is not None or np.array is path-like
+    #      therefore str.
+    if [kk for kk in ('hsp', 'hpi', 'elp') if isinstance(kwargs[kk],
+                                                         np.ndarray)]:
+        warn('Passing "np.arrays" to "hsp", "hpi" or "elp" in'
+             ' "read_dig_montage" is deprecated and will be removed in v0.20.'
+             ' Please use "make_dig_montage" instead.', DeprecationWarning)
+        return
+
+    pass  # noqa  # XXX: will grow with issue-6461
+
+
 def read_dig_montage(hsp=None, hpi=None, elp=None,
                      point_names=None, unit='auto', fif=None, egi=None,
                      bvct=None, transform=True, dev_head_t=False, ):
@@ -911,6 +946,10 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     EGI_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
     NUMPY_DATA_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
 
+    _read_dig_montage_deprecation_warning_helper(
+        hsp=hsp, hpi=hpi, elp=elp, fif=fif, egi=egi, bvct=bvct,
+    )
+
     if fif is not None:
         _raise_transform_err = True if dev_head_t or not transform else False
         _all_data_kwargs_are_none = all(
@@ -924,15 +963,9 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
             raise ValueError('hsp, hpi, elp, point_names, egi must all be'
                              ' None if fif is not None')
 
-        warn('Using "read_dig_montage" with "fif" not None'
-             ' is deprecated and will be removed in v0.20'
-             ' Please use read_dig_fif instead.', DeprecationWarning)
         return read_dig_fif(fname=fif)
 
     elif egi is not None:
-        warn('Using "read_dig_montage" with "egi" not None'
-             ' is deprecated and will be removed in v0.20'
-             ' Please use read_dig_egi instead.', DeprecationWarning)
         data = _read_dig_montage_egi(
             fname=egi,
             _scaling=_get_scaling(unit, EGI_SCALE),

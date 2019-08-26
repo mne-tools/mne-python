@@ -12,7 +12,7 @@ import pytest
 from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, traits_test
-from mne.channels import read_dig_montage
+from mne.channels import read_dig_fif
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -77,7 +77,7 @@ def test_inst_source():
     assert_allclose(inst.nasion, nasion)
     assert_allclose(inst.rpa, rpa)
 
-    montage = read_dig_montage(fif=inst_path)  # test reading DigMontage
+    montage = read_dig_fif(inst_path)  # test reading DigMontage
     montage_path = op.join(tempdir, 'temp_montage.fif')
     montage.save(montage_path)
     inst.file = montage_path

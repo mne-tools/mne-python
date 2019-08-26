@@ -407,11 +407,12 @@ def test_read_dig_montage():
     assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
     # Digitizer as array
-    m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names, unit='m')
     with pytest.deprecated_call():
+        m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names,
+                              unit='m')
         assert_array_equal(m2.hsp, montage.hsp)
-    m3 = read_dig_montage(hsp_points * 1000, hpi_points, elp_points * 1000,
-                          names)
+        m3 = read_dig_montage(hsp_points * 1000, hpi_points, elp_points * 1000,
+                              names)
     with pytest.deprecated_call():
         assert_allclose(m3.hsp, montage.hsp)
 
