@@ -547,7 +547,8 @@ def test_fif_dig_montage():
 @testing.requires_testing_data
 def test_egi_dig_montage():
     """Test EGI MFF XML dig montage support."""
-    dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
 
     # # test round-trip IO
     temp_dir = _TempDir()
@@ -578,7 +579,8 @@ def test_egi_dig_montage():
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
 
     # Test old way matches new way
-    dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
     dig_montage_egi = read_dig_egi(egi_dig_montage_fname)
     dig_montage_egi = transform_to_head(dig_montage_egi)
     assert dig_montage.dig == dig_montage_egi.dig
@@ -591,7 +593,8 @@ def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
     with pytest.warns(RuntimeWarning, match='Using "m" as unit for BVCT file'):
         read_dig_montage(bvct=bvct_dig_montage_fname, unit='m')
 
-    dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
 
     # test round-trip IO
     temp_dir = _TempDir()
