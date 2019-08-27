@@ -63,7 +63,7 @@ src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
 #
 # Let's take a look:
 
-fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+fig = mne.viz.plot_alignment(raw.info, trans=trans_fname, subject='sample',
                              subjects_dir=subjects_dir, surfaces='head-dense',
                              show_axes=True, dig=True, eeg=[], meg='sensors',
                              coord_frame='meg')

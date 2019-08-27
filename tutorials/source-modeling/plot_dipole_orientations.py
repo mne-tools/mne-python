@@ -64,7 +64,7 @@ coord_frame = 'mri'
 
 # Plot the cortex
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans, surfaces='white',
+                             trans=trans_fname, surfaces='white',
                              coord_frame=coord_frame, fig=fig)
 
 # Mark the position of the dipoles with small red dots
