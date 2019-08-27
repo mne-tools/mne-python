@@ -165,7 +165,7 @@ report.save('report_custom.html')
 #
 #    Although we've been generating separate reports in each example, you could
 #    easily create a single report for all :file:`.fif` files (raw, evoked,
-#    covariance, etc) by passing ``pattern='*.fif'`.
+#    covariance, etc) by passing ``pattern='*.fif'``.
 #
 #
 # Editing a saved report
