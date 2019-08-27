@@ -3,7 +3,9 @@
 #
 # License: BSD (3-clause)
 
+import os
 import os.path as op
+import sys
 import warnings
 import pytest
 # For some unknown reason, on Travis-xenial there are segfaults caused on
@@ -22,6 +24,7 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
+from mne.fixes import _fn35
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -37,7 +40,7 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config',):
+    for fixture in ('matplotlib_config', 'fix_pytest_tmpdir_35'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -82,6 +85,7 @@ def matplotlib_config():
     # "force" should not really be necessary but should not hurt
     kwargs = dict()
     with warnings.catch_warnings(record=True):  # ignore warning
+        warnings.filterwarnings('ignore')
         matplotlib.use('agg', force=True, **kwargs)  # don't pop up windows
     import matplotlib.pyplot as plt
     assert plt.get_backend() == 'agg'
@@ -103,6 +107,27 @@ def matplotlib_config():
         pass
     else:
         mlab.options.backend = 'test'
+
+
+def _replace(mod, key):
+    orig = getattr(mod, key)
+
+    def func(x, *args, **kwargs):
+        return orig(_fn35(x), *args, **kwargs)
+
+    setattr(mod, key, func)
+
+
+@pytest.fixture(scope='session')
+def fix_pytest_tmpdir_35():
+    """Deal with tmpdir being a LocalPath, which bombs on 3.5."""
+    if sys.version_info >= (3, 6):
+        return
+
+    for key in ('stat', 'mkdir', 'makedirs'):
+        _replace(os, key)
+    for key in ('split', 'splitext', 'realpath', 'join'):
+        _replace(op, key)
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])

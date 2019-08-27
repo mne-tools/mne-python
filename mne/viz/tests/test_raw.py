@@ -389,7 +389,23 @@ def test_plot_raw_psd():
     for dB, estimate in itertools.product((True, False),
                                           ('power', 'amplitude')):
         with pytest.warns(UserWarning, match='[Infinite|Zero]'):
-            raw.plot_psd(average=True, dB=dB, estimate=estimate)
+            fig = raw.plot_psd(average=True, dB=dB, estimate=estimate)
+        ylabel = fig.axes[1].get_ylabel()
+        ends_dB = ylabel.endswith('mathrm{(dB)}$')
+        if dB:
+            assert ends_dB, ylabel
+        else:
+            assert not ends_dB, ylabel
+        if estimate == 'amplitude':
+            assert r'fT/cm/\sqrt{Hz}' in ylabel, ylabel
+        else:
+            assert estimate == 'power'
+            assert '(fT/cm)²/Hz' in ylabel, ylabel
+        ylabel = fig.axes[0].get_ylabel()
+        if estimate == 'amplitude':
+            assert r'fT/\sqrt{Hz}' in ylabel
+        else:
+            assert 'fT²/Hz' in ylabel
     # test reject_by_annotation
     raw = _get_raw()
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))

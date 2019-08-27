@@ -13,7 +13,7 @@ from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  read_evokeds)
 from mne.io import read_info
 from mne.label import read_label
-from mne.utils import (requires_mne, run_subprocess, _TempDir,
+from mne.utils import (requires_mne, run_subprocess,
                        run_tests_if_main)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward, is_fixed_orient, compute_orient_prior,
@@ -85,9 +85,8 @@ def test_convert_forward():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_io_forward():
+def test_io_forward(tmpdir):
     """Test IO for forward solutions."""
-    temp_dir = _TempDir()
     # do extensive tests with MEEG + grad
     n_channels, n_src = 366, 108
     fwd = read_forward_solution(fname_meeg_grad)
@@ -97,7 +96,7 @@ def test_io_forward():
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (n_channels, n_src))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
-    fname_temp = op.join(temp_dir, 'test-fwd.fif')
+    fname_temp = tmpdir.join('test-fwd.fif')
     with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_temp, fwd, overwrite=True)
 
@@ -167,7 +166,7 @@ def test_io_forward():
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
-    fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
+    fwd_badname = tmpdir.join('test-bad-name.fif.gz')
     with pytest.warns(RuntimeWarning, match='end with'):
         write_forward_solution(fwd_badname, fwd)
     with pytest.warns(RuntimeWarning, match='end with'):
@@ -230,7 +229,7 @@ def test_apply_forward():
 
 
 @testing.requires_testing_data
-def test_restrict_forward_to_stc():
+def test_restrict_forward_to_stc(tmpdir):
     """Test restriction of source space to source SourceEstimate."""
     start = 0
     stop = 5
@@ -274,8 +273,7 @@ def test_restrict_forward_to_stc():
 
     # Test saving the restricted forward object. This only works if all fields
     # are properly accounted for.
-    temp_dir = _TempDir()
-    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
+    fname_copy = tmpdir.join('copy-fwd.fif')
     with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
@@ -285,7 +283,7 @@ def test_restrict_forward_to_stc():
 
 
 @testing.requires_testing_data
-def test_restrict_forward_to_label():
+def test_restrict_forward_to_label(tmpdir):
     """Test restriction of source space to label."""
     fwd = read_forward_solution(fname_meeg)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
@@ -344,8 +342,7 @@ def test_restrict_forward_to_label():
 
     # Test saving the restricted forward object. This only works if all fields
     # are properly accounted for.
-    temp_dir = _TempDir()
-    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
+    fname_copy = tmpdir.join('copy-fwd.fif')
     write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
     compare_forwards(fwd_out, fwd_out_read)
@@ -353,9 +350,8 @@ def test_restrict_forward_to_label():
 
 @testing.requires_testing_data
 @requires_mne
-def test_average_forward_solution():
+def test_average_forward_solution(tmpdir):
     """Test averaging forward solutions."""
-    temp_dir = _TempDir()
     fwd = read_forward_solution(fname_meeg)
     # input not a list
     pytest.raises(TypeError, average_forward_solutions, 1)
@@ -377,7 +373,7 @@ def test_average_forward_solution():
 
     # modify a fwd solution, save it, use MNE to average with old one
     fwd_copy['sol']['data'] *= 0.5
-    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
+    fname_copy = str(tmpdir.join('copy-fwd.fif'))
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
     cmd = ('mne_average_forward_solutions', '--fwd', fname_meeg, '--fwd',
            fname_copy, '--out', fname_copy)

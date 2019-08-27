@@ -2884,7 +2884,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
                                           _data_types):
         these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False)
+                                 ref_meg=False, exclude=[])
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
@@ -2959,11 +2959,12 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     if estimate == 'amplitude':
         np.sqrt(psds, out=psds)
         psds *= scaling
-        ylabel = r'$\mathrm{%s / \sqrt{Hz}}$' % unit
+        ylabel = r'$\mathrm{%s/\sqrt{Hz}}$' % unit
     else:
         psds *= scaling * scaling
-        ylabel = r'$\mathrm{%s^2/Hz}$' % unit
-
+        if '/' in unit:
+            unit = '(%s)' % unit
+        ylabel = r'$\mathrm{%s²/Hz}$' % unit
     if dB:
         np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
         psds *= 10
@@ -2991,15 +2992,12 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     line_alpha = float(line_alpha)
     ylabels = list()
     for ii, (psd, picks, title, ax, scalings, units) in enumerate(zip(
-                                                                  psd_list,
-                                                                  picks_list,
-                                                                  titles_list,
-                                                                  ax_list,
-                                                                  scalings_list, # noqa
-                                                                  units_list)):
+            psd_list, picks_list, titles_list, ax_list,
+            scalings_list, units_list)):
         ylabel = _convert_psds(psd, dB, estimate, scalings, units,
                                [inst.ch_names[pi] for pi in picks])
         ylabels.append(ylabel)
+        del ylabel
 
         if average:
             # mean across channels
@@ -3048,7 +3046,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha, nave=None)
-    for ii, (ax, title) in enumerate(zip(ax_list, titles_list)):
+    for ii, ax in enumerate(ax_list):
         ax.grid(True, linestyle=':')
         if xscale == 'log':
             ax.set(xscale='log')
@@ -3059,8 +3057,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Frequency (Hz)')
-            ax.set_ylabel(ylabel)
-            ax.set_title(title)
+            ax.set(ylabel=ylabels[ii], title=titles_list[ii])
     if make_label:
         fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
                             hspace=0.5)

@@ -44,6 +44,4 @@ def run():
     mne.write_bem_surfaces(options.fif, surf)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

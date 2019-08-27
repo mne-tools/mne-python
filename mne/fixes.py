@@ -15,6 +15,7 @@ at which the fix is no longer needed.
 import inspect
 from distutils.version import LooseVersion
 from math import log
+from pathlib import Path
 import warnings
 
 import numpy as np
@@ -1285,3 +1286,22 @@ except ImportError:
             return func
         return _jit
     prange = range
+    has_numba = False
+else:
+    has_numba = True
+
+
+###############################################################################
+# Python 3.5 compat with pathlib.Path-like objects
+
+def _fn35(fname):
+    try:
+        from py._path.common import PathBase
+    except ImportError:
+        pass
+    else:
+        if isinstance(fname, PathBase):
+            fname = str(fname)
+    if isinstance(fname, Path):
+        fname = str(fname)
+    return fname

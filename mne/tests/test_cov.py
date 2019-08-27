@@ -173,7 +173,7 @@ def _assert_reorder(cov_new, cov_orig, order):
 
 def test_ad_hoc_cov(tmpdir):
     """Test ad hoc cov creation and I/O."""
-    out_fname = op.join(str(tmpdir), 'test-cov.fif')
+    out_fname = tmpdir.join('test-cov.fif')
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
@@ -190,12 +190,11 @@ def test_ad_hoc_cov(tmpdir):
 
 def test_io_cov(tmpdir):
     """Test IO for noise covariance matrices."""
-    tempdir = str(tmpdir)
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['loglik'] = -np.inf
-    cov.save(op.join(tempdir, 'test-cov.fif'))
-    cov2 = read_cov(op.join(tempdir, 'test-cov.fif'))
+    cov.save(tmpdir.join('test-cov.fif'))
+    cov2 = read_cov(tmpdir.join('test-cov.fif'))
     assert_array_almost_equal(cov.data, cov2.data)
     assert_equal(cov['method'], cov2['method'])
     assert_equal(cov['loglik'], cov2['loglik'])
@@ -203,24 +202,24 @@ def test_io_cov(tmpdir):
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(op.join(tempdir, 'test-cov.fif.gz'))
-    cov2 = read_cov(op.join(tempdir, 'test-cov.fif.gz'))
+    cov2.save(tmpdir.join('test-cov.fif.gz'))
+    cov2 = read_cov(tmpdir.join('test-cov.fif.gz'))
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert cov_sel['dim'] == (len(cov['data']) - len(cov['bads']))
     assert cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim'])
-    cov_sel.save(op.join(tempdir, 'test-cov.fif'))
+    cov_sel.save(tmpdir.join('test-cov.fif'))
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(op.join(tempdir, 'test-cov.fif.gz'))
-    cov2 = read_cov(op.join(tempdir, 'test-cov.fif.gz'))
+    cov2.save(tmpdir.join('test-cov.fif.gz'))
+    cov2 = read_cov(tmpdir.join('test-cov.fif.gz'))
     assert_array_almost_equal(cov.data, cov2.data)
 
     # test warnings on bad filenames
-    cov_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    cov_badname = tmpdir.join('test-bad-name.fif.gz')
     with pytest.warns(RuntimeWarning, match='-cov.fif'):
         write_cov(cov_badname, cov)
     with pytest.warns(RuntimeWarning, match='-cov.fif'):
@@ -230,7 +229,6 @@ def test_io_cov(tmpdir):
 @pytest.mark.parametrize('method', (None, ['empirical']))
 def test_cov_estimation_on_raw(method, tmpdir):
     """Test estimation from raw (typically empty room)."""
-    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
 
@@ -251,8 +249,8 @@ def test_cov_estimation_on_raw(method, tmpdir):
     assert_snr(cov.data, cov_mne.data, 1e2)
 
     # test IO when computation done in Python
-    cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
-    cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
+    cov.save(tmpdir.join('test-cov.fif'))  # test saving
+    cov_read = read_cov(tmpdir.join('test-cov.fif'))
     assert cov_read.ch_names == cov.ch_names
     assert cov_read.nfree == cov.nfree
     assert_array_almost_equal(cov.data, cov_read.data)
@@ -308,7 +306,6 @@ def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
 @pytest.mark.parametrize('rank', ('full', None))
 def test_cov_estimation_with_triggers(rank, tmpdir):
     """Test estimation from raw with triggers."""
-    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname)
     raw.set_eeg_reference(projection=True).load_data()
     events = find_events(raw, stim_channel='STI 014')
@@ -350,8 +347,8 @@ def test_cov_estimation_with_triggers(rank, tmpdir):
                   keep_sample_mean=False, method='shrunk', rank=rank)
 
     # test IO when computation done in Python
-    cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
-    cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
+    cov.save(tmpdir.join('test-cov.fif'))  # test saving
+    cov_read = read_cov(tmpdir.join('test-cov.fif'))
     _assert_cov(cov, cov_read, 1e-5)
 
     # cov with list of epochs with different projectors

@@ -289,6 +289,7 @@ def _trans_from_params(param_info, params):
     return trans
 
 
+# XXX this function should be moved out of coreg as used elsewhere
 def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
                        scale=False, tol=None, x0=None, out='trans',
                        weights=None):
@@ -496,7 +497,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     paths['dirs'] = [bem_dirname, surf_dirname]
 
     # surf/ files
-    paths['surf'] = surf = []
+    paths['surf'] = []
     surf_fname = os.path.join(surf_dirname, '{name}')
     surf_names = ('inflated', 'white', 'orig', 'orig_avg', 'inflated_avg',
                   'inflated_pre', 'pial', 'pial_avg', 'smoothwm', 'white_avg',
@@ -509,15 +510,15 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
             path = surf_fname.format(subjects_dir=subjects_dir,
                                      subject=subject, name=name)
             if os.path.exists(path):
-                surf.append(pformat(surf_fname, name=name))
+                paths['surf'].append(pformat(surf_fname, name=name))
     surf_fname = os.path.join(bem_dirname, '{name}')
     surf_names = ('inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf')
     for surf_name in surf_names:
         path = surf_fname.format(subjects_dir=subjects_dir,
                                  subject=subject, name=surf_name)
         if os.path.exists(path):
-            surf.append(pformat(surf_fname, name=surf_name))
-    del surf_names, surf_name, path, surf, hemi
+            paths['surf'].append(pformat(surf_fname, name=surf_name))
+    del surf_names, surf_name, path, hemi
 
     # BEM files
     paths['bem'] = bem = []
@@ -548,22 +549,18 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                           "skip_fiducials=True." % subject)
 
     # duplicate files (curvature and some surfaces)
-    paths['duplicate'] = dup = []
+    paths['duplicate'] = []
     path = os.path.join(surf_dirname, '{name}')
     surf_fname = os.path.join(surf_dirname, '{name}')
-    for name in ['lh.curv', 'rh.curv']:
-        fname = pformat(path, name=name)
-        dup.append(fname)
-    del path, name, fname
-    surf_dup_names = ('sphere', 'sphere.reg', 'sphere.reg.avg')
+    surf_dup_names = ('curv', 'sphere', 'sphere.reg', 'sphere.reg.avg')
     for surf_dup_name in surf_dup_names:
         for hemi in ('lh.', 'rh.'):
             name = hemi + surf_dup_name
             path = surf_fname.format(subjects_dir=subjects_dir,
                                      subject=subject, name=name)
             if os.path.exists(path):
-                dup.append(pformat(surf_fname, name=name))
-    del surf_dup_name, name, path, dup, hemi
+                paths['duplicate'].append(pformat(surf_fname, name=name))
+    del surf_dup_name, name, path, hemi
 
     # transform files (talairach)
     paths['transforms'] = []
@@ -572,14 +569,6 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     if os.path.exists(path):
         paths['transforms'].append(transform_fname)
     del transform_fname, path
-
-    # check presence of required files
-    for ftype in ['surf', 'duplicate']:
-        for fname in paths[ftype]:
-            path = fname.format(subjects_dir=subjects_dir, subject=subject)
-            path = os.path.realpath(path)
-            if not os.path.exists(path):
-                raise IOError("Required file not found: %r" % path)
 
     # find source space files
     paths['src'] = src = []

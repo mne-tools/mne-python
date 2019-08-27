@@ -13,13 +13,12 @@ import numpy as np
 
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                SetChannelsMixin, InterpolationMixin,
-                                equalize_channels)
+                                SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option)
+                    fill_doc, _check_option, deprecated)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -206,7 +205,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Channel names."""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None):
+    @fill_doc
+    def crop(self, tmin=None, tmax=None, include_tmax=True):
         """Crop data to a given time interval.
 
         Parameters
@@ -215,6 +215,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        %(include_tmax)s
 
         Returns
         -------
@@ -226,7 +227,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Unlike Python slices, MNE time intervals include both their end points;
         crop(tmin, tmax) returns the interval tmin <= t <= tmax.
         """
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                          include_tmax=include_tmax)
         self.times = self.times[mask]
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
@@ -782,7 +784,9 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def grand_average(all_evoked, interpolate_bads=True):
+@deprecated('mne.evoked.grand_average is deprecated and will be removed in '
+            'v0.20; use mne.grand_average instead.')
+def grand_average(all_evoked, interpolate_bads=True, drop_bads=False):
     """Make grand average of a list evoked data.
 
     The function interpolates bad channels based on `interpolate_bads`
@@ -801,6 +805,11 @@ def grand_average(all_evoked, interpolate_bads=True):
         The evoked datasets.
     interpolate_bads : bool
         If True, bad MEG and EEG channels are interpolated.
+    drop_bads : bool
+        If True, drop all bad channels marked as bad in any data set.
+        If neither interpolate_bads nor drop_bads is True, in the output file,
+        every channel marked as bad in at least one of the input files will be
+        marked as bad, but no interpolation or dropping will be performed.
 
     Returns
     -------
@@ -811,27 +820,8 @@ def grand_average(all_evoked, interpolate_bads=True):
     -----
     .. versionadded:: 0.9.0
     """
-    # check if all elements in the given list are evoked data
-    if not all(isinstance(e, Evoked) for e in all_evoked):
-        raise ValueError("Not all the elements in list are evoked data")
-
-    # Copy channels to leave the original evoked datasets intact.
-    all_evoked = [e.copy() for e in all_evoked]
-
-    # Interpolates if necessary
-    if interpolate_bads:
-        all_evoked = [e.interpolate_bads() if len(e.info['bads']) > 0
-                      else e for e in all_evoked]
-
-    equalize_channels(all_evoked)  # apply equalize_channels
-    # make grand_average object using combine_evoked
-    weights = [1. / len(all_evoked)] * len(all_evoked)
-    grand_average = combine_evoked(all_evoked, weights=weights)
-    # change the grand_average.nave to the number of Evokeds
-    grand_average.nave = len(all_evoked)
-    # change comment field
-    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
-    return grand_average
+    from ..utils import grand_average
+    return grand_average(all_evoked, interpolate_bads, drop_bads)
 
 
 def _check_evokeds_ch_names_times(all_evoked):

@@ -34,6 +34,4 @@ def run():
     print(info)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

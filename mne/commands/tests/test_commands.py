@@ -14,7 +14,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem, mne_watershed_bem,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
-                          mne_show_info)
+                          mne_show_info, mne_what)
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif
 from mne.utils import (run_tests_if_main, requires_mne,
@@ -45,6 +45,14 @@ def test_browse_raw():
     with ArgvSetter(('--raw', raw_fname)):
         with pytest.warns(None):  # mpl show warning sometimes
             mne_browse_raw.run()
+
+
+def test_what():
+    """Test mne browse_raw."""
+    check_usage(mne_browse_raw)
+    with ArgvSetter((raw_fname,)) as out:
+        mne_what.run()
+    assert 'raw' == out.stdout.getvalue().strip()
 
 
 def test_bti2fiff():

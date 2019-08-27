@@ -26,7 +26,7 @@ from .io.write import (write_int, start_file, end_block, start_block, end_file,
 from .channels.channels import _get_meg_system
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans)
-from .utils import logger, verbose, get_subjects_dir, warn
+from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
                     prange)
 
@@ -263,7 +263,7 @@ def _triangle_neighbors(tris, npts):
 
 
 @jit()
-def _triangle_coords(r, best, r1, nn, r12, r13, a, b, c):
+def _triangle_coords(r, best, r1, nn, r12, r13, a, b, c):  # pragma: no cover
     """Get coordinates of a vertex projected to a triangle."""
     r1 = r1[best]
     tri_nn = nn[best]
@@ -575,6 +575,7 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     write_surface
     read_tri
     """
+    fname = _check_fname(fname, 'read', True)
     ret = _get_read_geometry()(fname, read_metadata=read_metadata)
     if return_dict:
         ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
@@ -794,7 +795,8 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
-def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
+def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
+                  overwrite=False):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -826,12 +828,15 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
             * 'cras' : array of float, shape (3,)
 
         .. versionadded:: 0.13.0
+    overwrite : bool
+        If True, overwrite the file if it exists.
 
     See Also
     --------
     read_surface
     read_tri
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     try:
         import nibabel as nib
         has_nibabel = True
@@ -1061,7 +1066,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
 
 
 @jit()
-def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
+def _get_tri_dist(p, q, p0, q0, a, b, c, dist):  # pragma: no cover
     """Get the distance to a triangle edge."""
     p1 = p - p0
     q1 = q - q0
@@ -1161,7 +1166,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
 @jit(parallel=True)
 def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
                           a, b, c, nn, r1, r12, r13, r1213, mat,
-                          run_all=True, reproject=False):
+                          run_all=True, reproject=False):  # pragma: no cover
     """Find nearest point mapping to a set of triangles.
 
     If run_all is False, if the point lies within a triangle, it stops.
@@ -1241,7 +1246,7 @@ def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
 
 
 @jit()
-def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, a, b, c):
+def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, a, b, c):  # pragma: no cover
     """Get nearest location from a point to the edge of a set of triangles."""
     # We might do something intelligent here. However, for now
     # it is ok to do it in the hard way

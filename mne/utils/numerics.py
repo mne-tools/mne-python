@@ -492,7 +492,8 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
+def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True,
+               include_tmax=True):
     """Safely find sample boundaries."""
     orig_tmin = tmin
     orig_tmax = tmax
@@ -502,20 +503,25 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
         tmin = times[0]
     if not np.isfinite(tmax):
         tmax = times[-1]
+        include_tmax = True  # ignore this param when tmax is infinite
     if sfreq is not None:
         # Push to a bit past the nearest sample boundary first
         sfreq = float(sfreq)
         tmin = int(round(tmin * sfreq)) / sfreq - 0.5 / sfreq
-        tmax = int(round(tmax * sfreq)) / sfreq + 0.5 / sfreq
+        tmax = int(round(tmax * sfreq)) / sfreq
+        tmax += (0.5 if include_tmax else -0.5) / sfreq
+    else:
+        assert include_tmax  # can only be used when sfreq is known
     if raise_error and tmin > tmax:
         raise ValueError('tmin (%s) must be less than or equal to tmax (%s)'
                          % (orig_tmin, orig_tmax))
     mask = (times >= tmin)
     mask &= (times <= tmax)
     if raise_error and not mask.any():
-        raise ValueError('No samples remain when using tmin=%s and tmax=%s '
+        extra = '' if include_tmax else 'when include_tmax=False '
+        raise ValueError('No samples remain when using tmin=%s and tmax=%s %s'
                          '(original time bounds are [%s, %s])'
-                         % (orig_tmin, orig_tmax, times[0], times[-1]))
+                         % (orig_tmin, orig_tmax, extra, times[0], times[-1]))
     return mask
 
 
@@ -550,8 +556,8 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     """Make grand average of a list evoked or AverageTFR data.
 
-    For evoked data, the function interpolates bad channels based on
-    `interpolate_bads` parameter. If `interpolate_bads` is True, the grand
+    For evoked data, the function interpolates bad channels based on the
+    ``interpolate_bads`` parameter. If ``interpolate_bads`` is True, the grand
     average file will contain good channels and the bad channels interpolated
     from the good MEG/EEG channels.
     For AverageTFR data, the function takes the subset of channels not marked
@@ -604,8 +610,10 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
                         else inst for inst in all_inst]
         equalize_channels(all_inst)  # apply equalize_channels
         from ..evoked import combine_evoked as combine
+        weights = [1. / len(all_inst)] * len(all_inst)
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
+        weights = 'equal'
 
     if drop_bads:
         bads = list({b for inst in all_inst for b in inst.info['bads']})
@@ -614,7 +622,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
                 inst.drop_channels(bads)
 
     # make grand_average object using combine_[evoked/tfr]
-    grand_average = combine(all_inst, weights='equal')
+    grand_average = combine(all_inst, weights=weights)
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_inst)
     # change comment field

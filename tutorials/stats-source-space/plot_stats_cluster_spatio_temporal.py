@@ -13,7 +13,6 @@ permutation test across space and time.
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-
 import os.path as op
 
 import numpy as np

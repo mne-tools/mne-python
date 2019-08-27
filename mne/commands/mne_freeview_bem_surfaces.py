@@ -14,6 +14,7 @@ import sys
 import os
 import os.path as op
 
+import mne
 from mne.utils import run_subprocess, get_subjects_dir
 
 
@@ -101,6 +102,4 @@ def run():
     freeview_bem_surfaces(subject, subjects_dir, method)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

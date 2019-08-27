@@ -15,6 +15,7 @@ Examples
 import sys
 import time
 
+import mne
 from mne.report import Report
 from mne.utils import verbose, logger
 
@@ -49,8 +50,6 @@ def run():
                       help="The subjects directory")
     parser.add_option("-s", "--subject", dest="subject",
                       help="The subject name")
-    parser.add_option("-v", "--verbose", dest="verbose",
-                      action='store_true', help="run in verbose mode")
     parser.add_option("--no-browser", dest="no_browser", action='store_false',
                       help="Do not open MNE-Report in browser")
     parser.add_option("--overwrite", dest="overwrite", action='store_false',
@@ -63,6 +62,8 @@ def run():
     parser.add_option("--image-format", type="str", dest="image_format",
                       default='png', help="Image format to use "
                       "(can be 'png' or 'svg')")
+    parser.add_option("-v", "--verbose", dest="verbose",
+                      action='store_true', help="run in verbose mode")
 
     options, args = parser.parse_args()
     path = options.path
@@ -98,6 +99,4 @@ def run():
     log_elapsed(time.time() - t0, verbose=verbose)
     report.save(open_browser=open_browser, overwrite=overwrite)
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

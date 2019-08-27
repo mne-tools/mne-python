@@ -551,6 +551,12 @@ we link to.
     ``:func:`mne.set_config``` will work but ``:func:`mne.utils.set_config```
     will not).
 
+A list of external modules available for referencing using ``intersphinx`` can
+be found in ``doc/conf.py``, and thein inventories can be dumped to file and
+examined with commands like::
+
+    $ python -msphinx.ext.intersphinx https://docs.python.org/3/objects.inv > python.txt
+
 
 Other style guidance
 --------------------
@@ -689,6 +695,31 @@ recipes are available; run ``make help`` from the :file:`doc` directory or
 consult the `Sphinx-Gallery`_ documentation for additional details.
 
 
+Modifying command-line tools
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+MNE-Python provides support for a limited set of :ref:`python_commands`.
+These are typically used with a call like::
+
+    $ mne browse_raw ~/mne_data/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
+
+These are generally available for convenience, and can be useful for quick
+debugging (in this case, for :class:`mne.io.Raw.plot`).
+
+If a given command-line function fails, they can also be executed as part of
+the ``mne`` module with ``python -m``. For example::
+
+    $ python -i -m mne browse_raw ...
+
+Because this was launched with ``python -i``, once the script completes
+it will drop to a Python terminal. This is useful when there are errors,
+because then you can drop into a :func:`post-mortem debugger <python:pdb.pm>`:
+
+.. code-block:: python
+
+    >>> import pdb; pdb.pm()  # doctest:+SKIP
+
+
 .. _`github-workflow`:
 
 GitHub workflow
@@ -770,6 +801,7 @@ the upstream master branch; it separates different kinds of changes into
 separate commits and uses labels like ``DOC``, ``FIX``, and ``STY`` to make it
 easier for maintainers to review the changeset; etc. If you are new to GitHub
 it can serve as a useful example of what to expect from the PR review process.
+
 
 .. MNE
 

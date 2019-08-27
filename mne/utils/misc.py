@@ -172,7 +172,8 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     if isinstance(command, str):
         command_str = command
     else:
-        command_str = ' '.join(command)
+        command = [str(s) for s in command]
+        command_str = ' '.join(s for s in command)
     logger.info("Running subprocess: %s" % command_str)
     try:
         p = subprocess.Popen(command, *args, **kwargs)
@@ -269,3 +270,13 @@ def sizeof_fmt(num):
         return '0 bytes'
     if num == 1:
         return '1 byte'
+
+
+def _file_like(obj):
+    # An alternative would be::
+    #
+    #   isinstance(obj, (TextIOBase, BufferedIOBase, RawIOBase, IOBase))
+    #
+    # but this might be more robust to file-like objects not properly
+    # inheriting from these classes:
+    return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))

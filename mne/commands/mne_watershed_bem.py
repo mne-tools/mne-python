@@ -12,7 +12,9 @@ Examples
 
 import sys
 
+import mne
 from mne.bem import make_watershed_bem
+from mne.utils import _check_option
 
 
 def run():
@@ -33,16 +35,25 @@ def run():
                       help="Specify the --atlas option for mri_watershed",
                       default=False, action="store_true")
     parser.add_option("-g", "--gcaatlas", dest="gcaatlas",
-                      help="Use the subcortical atlas", default=False,
-                      action="store_true")
+                      help="Specify the --brain_atlas option for "
+                      "mri_watershed", default=False, action="store_true")
     parser.add_option("-p", "--preflood", dest="preflood",
                       help="Change the preflood height", default=None)
     parser.add_option("--copy", dest="copy",
                       help="Use copies instead of symlinks for surfaces",
                       action="store_true")
-    parser.add_option("--verbose", dest="verbose",
-                      help="If not None, override default verbose level",
+    parser.add_option("-t", "--T1", dest="T1",
+                      help="Whether or not to pass the -T1 flag "
+                      "(can be true, false, 0, or 1). "
+                      "By default it takes the same value as gcaatlas.",
                       default=None)
+    parser.add_option("-b", "--brainmask", dest="brainmask",
+                      help="The filename for the brainmask output file "
+                      "relative to the "
+                      "$SUBJECTS_DIR/$SUBJECT/bem/watershed/ directory.",
+                      default="ws")
+    parser.add_option("--verbose", dest="verbose",
+                      help="Turn on verbose mode.", action="store_true")
 
     options, args = parser.parse_args()
 
@@ -58,13 +69,17 @@ def run():
     gcaatlas = options.gcaatlas
     preflood = options.preflood
     copy = options.copy
+    brainmask = options.brainmask
+    T1 = options.T1
+    if T1 is not None:
+        T1 = T1.lower()
+        _check_option("--T1", T1, ('true', 'false', '0', '1'))
+        T1 = T1 in ('true', '1')
     verbose = options.verbose
 
     make_watershed_bem(subject=subject, subjects_dir=subjects_dir,
                        overwrite=overwrite, volume=volume, atlas=atlas,
                        gcaatlas=gcaatlas, preflood=preflood, copy=copy,
-                       verbose=verbose)
+                       T1=T1, brainmask=brainmask, verbose=verbose)
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

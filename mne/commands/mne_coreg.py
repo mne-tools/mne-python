@@ -12,7 +12,6 @@ Examples
 """
 
 import os.path as op
-import sys
 
 import mne
 from mne.utils import ETSContext
@@ -75,11 +74,11 @@ def run():
     parser.add_option('--scale',
                       type=float, default=None, dest='scale',
                       help='Scale factor for the scene.')
-    parser.add_option('--verbose', action='store_true', dest='verbose',
-                      help='Turn on verbose mode.')
     parser.add_option('--simple-rendering', action='store_false',
                       dest='advanced_rendering',
                       help='Use simplified OpenGL rendering')
+    parser.add_option('--verbose', action='store_true', dest='verbose',
+                      help='Turn on verbose mode.')
 
     options, args = parser.parse_args()
 
@@ -118,10 +117,5 @@ def run():
             scale=options.scale,
             advanced_rendering=options.advanced_rendering,
             verbose=options.verbose)
-    if is_main:
-        sys.exit(0)
 
-
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

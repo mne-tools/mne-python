@@ -22,7 +22,7 @@ from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
 from .markers import _read_annotations_ctf_call
 
-from ...digitization.base import _format_dig_points
+from ..._digitization.base import _format_dig_points
 
 
 @fill_doc

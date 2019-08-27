@@ -8,7 +8,7 @@ in time-frequency power estimates. It uses a non-parametric
 statistical procedure based on permutations and cluster
 level statistics.
 
-The procedure consists in:
+The procedure consists of:
 
   - extracting epochs
   - compute single trial power estimates
