@@ -1,0 +1,15 @@
+mne
+vtk
+pyvista>=0.21.3
+mayavi
+PySurfer[save_movie]
+dipy --only-binary dipy
+nibabel
+nilearn
+neo
+pytest-faulthandler
+pytest-sugar
+pydocstyle
+codespell
+python-picard
+panel
