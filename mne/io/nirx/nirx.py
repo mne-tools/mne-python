@@ -101,11 +101,14 @@ class RawNIRX(BaseRaw):
         subject_info = {}
         names = inf['name'].split()
         if len(names) > 0:
-            subject_info['first_name'] = inf['name'].split()[0].replace("\"", "")
+            subject_info['first_name'] = \
+                inf['name'].split()[0].replace("\"", "")
         if len(names) > 1:
-            subject_info['last_name'] = inf['name'].split()[-1].replace("\"", "")
+            subject_info['last_name'] = \
+                inf['name'].split()[-1].replace("\"", "")
         if len(names) > 2:
-            subject_info['middle_name'] = inf['name'].split()[-2].replace("\"", "")
+            subject_info['middle_name'] = \
+                inf['name'].split()[-2].replace("\"", "")
         subject_info['birthday'] = inf['age']
         subject_info['sex'] = inf['gender'].replace("\"", "")
         # Recode values
@@ -239,8 +242,8 @@ class RawNIRX(BaseRaw):
         # Currently saving the two wavelengths in same dimension
         # this seems like a bad idea
         # TODO: Can mne return (num_wavelengths x num_channels x num_samples)?
-        data[0:self.info['nchan'] // 2, :] = wl1
-        data[self.info['nchan'] // 2:, :] = wl2
+        data[0::2, :] = wl1
+        data[1::2, :] = wl2
 
         return data
 
