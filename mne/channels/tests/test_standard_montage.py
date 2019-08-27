@@ -13,9 +13,7 @@ import pytest
 # from copy import deepcopy
 # from functools import partial
 
-# from numpy.testing import (assert_array_equal, assert_almost_equal,
-#                            assert_allclose, assert_array_almost_equal,
-#                            assert_array_less, assert_equal)
+from numpy.testing import assert_array_equal
 
 # from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 # from mne.channels import (Montage, read_montage, read_dig_montage,
@@ -28,6 +26,7 @@ from mne.channels.montage import _BUILT_IN_MONTAGES
 # from mne.channels._dig_montage_utils import _transform_to_head_call
 # from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.channels._standard_montage_utils import read_standard_montage
+from mne.utils import Bunch
 # from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
 #                        object_diff, Bunch)
 # from mne.bem import _fit_sphere
@@ -48,21 +47,60 @@ from mne.channels._standard_montage_utils import read_standard_montage
 # from mock import patch
 
 from unittest.mock import patch
+from mne.io.constants import FIFF
+# from mne.channels._dig_montage_utils import _get_fid_coords
+from mne.channels._dig_montage_utils import _cardinal_ident_mapping
+
+
+# XXX: this should go in _digitization/utils
+def _get_ch_pos_location(dig):
+    return [d['r'] for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG]
+
+
+# XXX: this should go in _digitization/utils
+# XXX: this is really similar to _get_fid_coords from pr-6706 but I needed
+#      something different so, I'll merge later
+def _get_fid_coords(dig):
+    fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
+    fid_coord_frames = Bunch(nasion=None, lpa=None, rpa=None)
+
+    for d in dig:
+        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+            key = _cardinal_ident_mapping[d['ident']]
+            fid_coords[key] = d['r']
+            fid_coord_frames[key] = d['coord_frame']
+
+    return fid_coords, fid_coord_frames
 
 
 def _compare_dig_montage_and_standard_montage(self, other):
-    """Allows ACTUAL_DigMontage == EXPECTED_Montage"""
+    """Allow ACTUAL_DigMontage == EXPECTED_Montage."""
     assert isinstance(self, DigMontage), 'DigMontage should be left element'
     assert isinstance(other, Montage), 'Montage should be right element'
-    return True
 
+    assert len(self.ch_names) == len(other.ch_names)
+
+    dig_montage_fid, _ = _get_fid_coords(self.dig)
+    assert dig_montage_fid.nasion == other.nasion
+    assert dig_montage_fid.lpa == other.lpa
+    assert dig_montage_fid.rpa == other.rpa
+
+    dig_montage_ch_pos = dict(zip(
+        self.ch_names, _get_ch_pos_location(self.dig)))
+    montage_ch_pos = dict(zip(other.ch_names, other.pos))
+    for kk, expected_pos in montage_ch_pos.items():
+        assert_array_equal(dig_montage_ch_pos[kk], expected_pos)
+
+    return True  # If all assert pass, then they are equal
 
 
 @pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
+# @pytest.mark.parametrize('kind', [_BUILT_IN_MONTAGES[0]])
 @patch("mne.channels.DigMontage.__eq__",
        _compare_dig_montage_and_standard_montage)
 def test_read_montage(kind):
     """Test difference between old and new standard montages."""
     old_montage = read_montage(kind)
     new_montage = read_standard_montage(kind)
+    # import pdb; pdb.set_trace()
     assert new_montage == old_montage

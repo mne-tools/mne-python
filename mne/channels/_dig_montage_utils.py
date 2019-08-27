@@ -94,6 +94,7 @@ _cardinal_ident_mapping = {
 }
 
 
+# XXX: to split as _parse like bvct
 def _read_dig_montage_egi(
         fname,
         _scaling,
@@ -149,6 +150,7 @@ def _read_dig_montage_egi(
     )
 
 
+# XXX: this should go in _digitization/utils
 def _foo_get_data_from_dig(dig):
     # XXXX:
     # This does something really similar to _read_dig_montage_fif but:
@@ -187,6 +189,7 @@ def _foo_get_data_from_dig(dig):
     )
 
 
+# XXX: this should go in _digitization/utils
 def _get_fid_coords(dig):
     fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
     fid_coord_frames = dict()
@@ -213,6 +216,7 @@ def _get_fid_coords(dig):
     return fid_coords, coord_frame
 
 
+# XXX: to remove in 0.20
 def _read_dig_montage_bvct(
         fname,
         unit,
