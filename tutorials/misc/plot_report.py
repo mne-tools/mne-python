@@ -1,4 +1,6 @@
 """
+.. _tut-report:
+
 Getting started with ``mne.Report``
 ===================================
 
