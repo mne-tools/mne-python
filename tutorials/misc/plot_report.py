@@ -67,7 +67,7 @@ import mne
 path = mne.datasets.sample.data_path(verbose=False)
 report = mne.Report(verbose=True)
 report.parse_folder(path, pattern='*raw.fif', render_bem=False)
-report.save(overwrite=True)
+report.save('report_basic.html')
 
 ###############################################################################
 # This report yields a textual summary of the :class:`~mne.io.Raw` files
@@ -80,7 +80,7 @@ report.save(overwrite=True)
 pattern = 'sample_audvis_filt-0-40_raw.fif'
 report = mne.Report(verbose=True, raw_psd=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save(overwrite=True)
+report.save('report_raw_psd.html')
 
 ###############################################################################
 # This time we'll pass a specific ``subject`` and ``subjects_dir`` (even though
@@ -93,7 +93,7 @@ report.save(overwrite=True)
 subjects_dir = os.path.join(path, 'subjects')
 report = mne.Report(subject='sample', subjects_dir=subjects_dir, verbose=True)
 report.parse_folder(path, pattern='', mri_decim=25)
-report.save(overwrite=True)
+report.save('report_mri_bem.html')
 
 ###############################################################################
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
@@ -102,7 +102,7 @@ report.save(overwrite=True)
 pattern = 'sample_audvis-ave.fif'
 report = mne.Report(verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save(overwrite=True)
+report.save('report_evoked.html')
 
 ###############################################################################
 # To render whitened :class:`~mne.Evoked` files with baseline correction, add
@@ -113,7 +113,7 @@ report.save(overwrite=True)
 cov_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 report = mne.Report(cov_fname=cov_fname, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save(overwrite=True)
+report.save('report_evoked_whitened.html')
 
 ###############################################################################
 # If you want to actually *view* the noise covariance in the report, make sure
@@ -127,7 +127,7 @@ pattern = 'sample_audvis-cov.fif'
 info_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 report = mne.Report(info_fname=info_fname, verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
-report.save(overwrite=True)
+report.save('report_cov.html')
 
 ###############################################################################
 # Adding custom plots to a report
@@ -147,7 +147,7 @@ fig = evoked.plot(show=False)
 
 # add the custom plot to the report:
 report.add_figs_to_section(fig, captions='Left Auditory', section='evoked')
-report.save(overwrite=True)
+report.save('report_custom.html')
 
 ###############################################################################
 # Managing report sections
@@ -160,6 +160,12 @@ report.save(overwrite=True)
 # by a toggle button in the top navigation bar of the report which can be used
 # to show or hide the contents of the section. To toggle the show/hide state of
 # all sections in the HTML report, press :kbd:`t`.
+#
+# .. note::
+#
+#    Although we've been generating separate reports in each example, you could
+#    easily create a single report for all :file:`.fif` files (raw, evoked,
+#    covariance, etc) by passing ``pattern='*.fif'`.
 #
 #
 # Editing a saved report
@@ -184,7 +190,7 @@ with mne.open_report('report.h5') as report:
                                captions='Left Auditory',
                                section='evoked',
                                replace=True)
-    report.save('report.html', overwrite=True)
+    report.save('report_final.html')
 
 ###############################################################################
 # With the context manager, the updated report is also automatically saved
