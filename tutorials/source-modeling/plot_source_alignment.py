@@ -172,7 +172,7 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
 # Here is the same plot, this time with the ``trans`` properly defined
 # (using a precomputed matrix).
 
-mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+mne.viz.plot_alignment(raw.info, trans=trans_fname, subject='sample',
                        src=src, subjects_dir=subjects_dir, dig=True,
                        surfaces=['head-dense', 'white'], coord_frame='meg')
 

@@ -97,7 +97,7 @@ fig = mne.viz.create_3d_figure(size=(600, 400))
 
 # Plot the cortex
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans,
+                             trans=trans_fname,
                              surfaces='white', coord_frame='head', fig=fig)
 
 # Show the dipoles as arrows pointing along the surface normal
