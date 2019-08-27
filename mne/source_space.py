@@ -29,7 +29,8 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose, _ensure_int,
-                    check_version, _get_call_line, warn, _check_fname)
+                    check_version, _get_call_line, warn, _check_fname,
+                    _validate_type)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -2386,7 +2387,14 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
 @verbose
 def _ensure_src(src, kind=None, verbose=None):
     """Ensure we have a source space."""
-    if isinstance(src, str):
+    try:
+        _validate_type(src, 'path-like', 'src')
+        src = str(src)
+        path_like = True
+    except TypeError:
+        path_like = False
+
+    if path_like:
         if not op.isfile(src):
             raise IOError('Source space file "%s" not found' % src)
         logger.info('Reading %s...' % src)
