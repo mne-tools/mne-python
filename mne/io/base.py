@@ -661,7 +661,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def _preload_data(self, preload, verbose=None):
         """Actually preload the data."""
-        data_buffer = None if not preload else preload
+        data_buffer = None if (len(preload < 2) and not preload) else preload
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (0, len(self.times) - 1, 0., self.times[-1]))
         self._data = self._read_segment(data_buffer=data_buffer)
