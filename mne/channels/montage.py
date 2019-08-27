@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ElementTree
 from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _str_to_frame, _frame_to_str)
+                          _topo_to_sph, _frame_to_str)
 from .._digitization import Digitization
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
                                     write_dig, _read_dig_fif)
@@ -34,7 +34,7 @@ from ..utils import (warn, copy_function_doc_to_method_doc,
                      _check_fname)
 
 from .layout import _pol_to_cart, _cart_to_sph
-from ._dig_montage_utils import _transform_to_head_call, _read_dig_montage_fif
+from ._dig_montage_utils import _transform_to_head_call
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
@@ -764,13 +764,6 @@ class DigMontage(object):
         return _foo_get_data_from_dig(self.dig).nasion
 
 
-def _check_frame(d, frame_str):
-    """Check coordinate frames."""
-    if d['coord_frame'] != _str_to_frame[frame_str]:
-        raise RuntimeError('dig point must be in %s coordinate frame, got %s'
-                           % (frame_str, _frame_to_str[d['coord_frame']]))
-
-
 def _get_scaling(unit, scale):
     if unit not in scale:
         raise ValueError("Unit needs to be one of %s, not %r" %
@@ -819,6 +812,41 @@ def transform_to_head(montage):
 
     montage._coord_frame = 'head'  # XXX : should desappear in 0.20
     return montage
+
+
+def _read_dig_montage_deprecation_warning_helper(**kwargs):
+    if kwargs.pop('fif') is not None:
+        warn('Using "read_dig_montage" with "fif" not None'
+             ' is deprecated and will be removed in v0.20'
+             ' Please use read_dig_fif instead.', DeprecationWarning)
+        return
+    if kwargs.pop('egi') is not None:
+        warn('Using "read_dig_montage" with "egi" not None'
+             ' is deprecated and will be removed in v0.20'
+             ' Please use read_dig_egi instead.', DeprecationWarning)
+        return
+    if kwargs.pop('bvct') is not None:
+        warn('Using "read_dig_montage" with "bvct" not None'
+             ' is deprecated and will be removed in v0.20.'
+             ' Please use read_dig_captrack instead.', DeprecationWarning)
+        return
+
+    # XXX: for now we only have implemented the case where hsp, hpi and elp
+    #      are np.arrays. we need read_dig_polhemus for the str cases. Plus,
+    #      we need to make sure that we can handle a mix of arrays and str. The
+    #      mixed case is not in our code-base but there was nothing preventing
+    #      a user to do so.
+    #
+    #      we can assume that whatever is not None or np.array is path-like
+    #      therefore str.
+    if [kk for kk in ('hsp', 'hpi', 'elp') if isinstance(kwargs[kk],
+                                                         np.ndarray)]:
+        warn('Passing "np.arrays" to "hsp", "hpi" or "elp" in'
+             ' "read_dig_montage" is deprecated and will be removed in v0.20.'
+             ' Please use "make_dig_montage" instead.', DeprecationWarning)
+        return
+
+    pass  # noqa  # XXX: will grow with issue-6461
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None,
@@ -911,14 +939,24 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     EGI_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-2, m=1)
     NUMPY_DATA_SCALE = dict(mm=1e-3, cm=1e-2, auto=1e-3, m=1)
 
+    _read_dig_montage_deprecation_warning_helper(
+        hsp=hsp, hpi=hpi, elp=elp, fif=fif, egi=egi, bvct=bvct,
+    )
+
     if fif is not None:
         _raise_transform_err = True if dev_head_t or not transform else False
-        data = _read_dig_montage_fif(
-            fname=fif,
-            _raise_transform_err=_raise_transform_err,
-            _all_data_kwargs_are_none=all(
-                x is None for x in (hsp, hpi, elp, point_names, egi, bvct))
+        _all_data_kwargs_are_none = all(
+            x is None for x in (hsp, hpi, elp, point_names, egi, bvct)
         )
+
+        if _raise_transform_err:
+            raise ValueError('transform must be True and dev_head_t must be'
+                             ' False for FIF dig montage')
+        if not _all_data_kwargs_are_none:
+            raise ValueError('hsp, hpi, elp, point_names, egi must all be'
+                             ' None if fif is not None')
+
+        return read_dig_fif(fname=fif)
 
     elif egi is not None:
         data = _read_dig_montage_egi(
