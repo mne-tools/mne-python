@@ -19,7 +19,7 @@ def test_nirx():
     raw = read_raw_nirx(fname, preload=True)
 
     # Test data import
-    assert raw._data.shape == (26, 144)
+    assert raw._data.shape == (26, 145)
     assert raw.info['sfreq'] == 12.5
     assert raw.info['ch_names'][0] == "S1-D1 760 (nm)"
     assert raw.info['ch_names'][1] == "S1-D1 850 (nm)"

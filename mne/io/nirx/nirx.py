@@ -82,7 +82,7 @@ class RawNIRX(BaseRaw):
 
         # Read number of rows of wavelength data which corresponds to
         # number of samples
-        last_sample = -2
+        last_sample = -1
         for line in open(file_wl1[0]):
             last_sample += 1
 
@@ -99,9 +99,13 @@ class RawNIRX(BaseRaw):
         #       NIRX also records "Study Type", "Experiment History",
         #       "Additional Notes", "Contact Information"
         subject_info = {}
-        subject_info['last_name'] = inf['name'].split()[-1].replace("\"", "")
-        subject_info['first_name'] = inf['name'].split()[0].replace("\"", "")
-        subject_info['middle_name'] = inf['name'].split()[-2].replace("\"", "")
+        names = inf['name'].split()
+        if len(names) > 0:
+            subject_info['first_name'] = inf['name'].split()[0].replace("\"", "")
+        if len(names) > 1:
+            subject_info['last_name'] = inf['name'].split()[-1].replace("\"", "")
+        if len(names) > 2:
+            subject_info['middle_name'] = inf['name'].split()[-2].replace("\"", "")
         subject_info['birthday'] = inf['age']
         subject_info['sex'] = inf['gender'].replace("\"", "")
         # Recode values
@@ -226,10 +230,8 @@ class RawNIRX(BaseRaw):
 
         sdindex = self._raw_extras[fi]['sd_index']
 
-        wl1 = pd.read_csv(file_wl1[0], sep=' ').values
-        wl2 = pd.read_csv(file_wl2[0], sep=' ').values
-        assert (wl1.shape == wl2.shape), \
-            "Wavelength files should contain same amount of data"
+        wl1 = pd.read_csv(file_wl1[0], sep=' ', header=None).values
+        wl2 = pd.read_csv(file_wl2[0], sep=' ', header=None).values
 
         wl1 = wl1[start:stop, sdindex].T
         wl2 = wl2[start:stop, sdindex].T
