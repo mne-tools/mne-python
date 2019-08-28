@@ -176,7 +176,8 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
 #
 # If you plan to perform source modeling (either with EEG or combined EEG/MEG
 # data), it is **strongly recommended** to use the
-# average-reference-as-projection approach. The reason is that using a specific
+# average-reference-as-projection approach. It is important to use an average
+# reference because using a specific
 # reference sensor (or even an average of a few sensors) spreads the forward
 # model error from the reference sensor(s) into all sensors, effectively
 # amplifying the importance of the reference sensor(s) when computing source
@@ -185,12 +186,18 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
 # is weighted more strongly during source estimation. See also this `FieldTrip
 # FAQ on average referencing`_ for more information.
 #
+# The main reason for specifying the average reference as a projector was
+# mentioned in the previous section: an average reference projector adapts if
+# channels are dropped, ensuring that the signal will always be zero-mean when
+# the source modeling is performed. In contrast, applying an average reference
+# by the traditional subtraction method offers no such guarantee.
+#
 # For these reasons, when performing inverse imaging, *MNE-Python will
 # automatically average-reference the EEG channels if they are present and no
 # reference strategy has been specified*. If you want to perform inverse
 # imaging and do not want to use an average reference (and hence you accept the
-# risks presented in the previous paragraph), you can force MNE-Python to relax
-# its average reference requirement by passing an empty list to
+# risks presented in the previous paragraphs), you can force MNE-Python to
+# relax its average reference requirement by passing an empty list to
 # :meth:`~mne.io.Raw.set_eeg_reference` (i.e., by calling
 # ``raw.set_eeg_reference(ref_channels=[])``) prior to performing inverse
 # imaging.
