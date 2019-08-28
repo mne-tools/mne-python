@@ -8,7 +8,7 @@
 
 import pytest
 
-# import numpy as np
+import numpy as np
 # from scipy.io import savemat
 # from copy import deepcopy
 # from functools import partial
@@ -32,7 +32,7 @@ from mne.utils import Bunch
 # from mne.bem import _fit_sphere
 # from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 # from mne.io.constants import FIFF
-# from mne._digitization import Digitization
+from mne._digitization import Digitization
 # from mne._digitization._utils import _read_dig_points
 # from mne.viz._3d import _fiducial_coords
 
@@ -42,6 +42,8 @@ from mne.utils import Bunch
 #                     read_raw_bdf, read_raw_eeglab, read_fiducials,
 #                     __file__ as _mne_io_file)
 
+from mne.io import RawArray
+from mne import create_info
 # from mne.datasets import testing
 
 # from mock import patch
@@ -50,6 +52,10 @@ from unittest.mock import patch
 from mne.io.constants import FIFF
 # from mne.channels._dig_montage_utils import _get_fid_coords
 from mne.channels._dig_montage_utils import _cardinal_ident_mapping
+
+MONTAGES_WITHOUT_FIDUCIALS = ['EGI_256', 'easycap-M1', 'easycap-M10']
+MONTAGES_WITH_FIDUCIALS = [k for k in _BUILT_IN_MONTAGES
+                           if k not in MONTAGES_WITHOUT_FIDUCIALS]
 
 
 # XXX: this should go in _digitization/utils
@@ -94,13 +100,66 @@ def _compare_dig_montage_and_standard_montage(self, other):
     return True  # If all assert pass, then they are equal
 
 
-@pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
+def _compare_dig_montage_and_standard_montage_(self, other):
+    """Allow ACTUAL_DigMontage == EXPECTED_Montage."""
+    assert isinstance(self, DigMontage), 'DigMontage should be left element'
+    assert isinstance(other, Montage), 'Montage should be right element'
+
+    assert len(self.ch_names) == len(other.ch_names)
+
+    dig_montage_fid, _ = _get_fid_coords(self.dig)
+    montage_fid = dict(zip(
+        ['nasion', 'lpa', 'rpa'], [other.nasion, other.lpa, other.rpa]
+    ))
+
+    for kk in dig_montage_fid.keys():
+        assert dig_montage_fid[kk] is not None
+        assert montage_fid[kk] is not None
+        assert_array_equal(dig_montage_fid[kk], montage_fid[kk])
+
+    dig_montage_ch_pos = dict(zip(
+        self.ch_names, _get_ch_pos_location(self.dig)))
+    montage_ch_pos = dict(zip(other.ch_names, other.pos))
+    for kk, expected_pos in montage_ch_pos.items():
+        assert_array_equal(dig_montage_ch_pos[kk], expected_pos)
+
+    return True  # If all assert pass, then they are equal
+
+
+# @pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
 # @pytest.mark.parametrize('kind', [_BUILT_IN_MONTAGES[0]])
+@pytest.mark.parametrize('kind', MONTAGES_WITHOUT_FIDUCIALS)
 @patch("mne.channels.DigMontage.__eq__",
        _compare_dig_montage_and_standard_montage)
+def test_no_fid_read_montage(kind):
+    """Test difference between old and new standard montages."""
+    old_montage = read_montage(kind)
+    new_montage = read_standard_montage(kind)
+    assert new_montage == old_montage
+
+@pytest.mark.parametrize('kind', MONTAGES_WITH_FIDUCIALS)
+@patch("mne.channels.DigMontage.__eq__",
+       _compare_dig_montage_and_standard_montage_)
 def test_read_montage(kind):
     """Test difference between old and new standard montages."""
     old_montage = read_montage(kind)
     new_montage = read_standard_montage(kind)
-    # import pdb; pdb.set_trace()
     assert new_montage == old_montage
+    
+    raw = RawArray(
+        data=np.empty((len(old_montage.ch_names), 1), dtype=np.float64),
+        info=create_info(
+            ch_names=old_montage.ch_names, sfreq=1., ch_types='eeg'
+        )
+    ).set_montage(old_montage)
+
+    dig = raw.info['dig']
+    print(dig)
+    # import pdb; pdb.set_trace()
+    # pass
+
+
+
+
+
+
