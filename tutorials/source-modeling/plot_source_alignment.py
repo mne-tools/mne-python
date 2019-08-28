@@ -63,7 +63,7 @@ src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
 #
 # Let's take a look:
 
-fig = mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+fig = mne.viz.plot_alignment(raw.info, trans=trans_fname, subject='sample',
                              subjects_dir=subjects_dir, surfaces='head-dense',
                              show_axes=True, dig=True, eeg=[], meg='sensors',
                              coord_frame='meg')
@@ -172,7 +172,7 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
 # Here is the same plot, this time with the ``trans`` properly defined
 # (using a precomputed matrix).
 
-mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+mne.viz.plot_alignment(raw.info, trans=trans_fname, subject='sample',
                        src=src, subjects_dir=subjects_dir, dig=True,
                        surfaces=['head-dense', 'white'], coord_frame='meg')
 
