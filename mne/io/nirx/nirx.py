@@ -79,9 +79,7 @@ class RawNIRX(BaseRaw):
         inf.read(files['inf'])
         inf = inf._sections['Subject Demographics']
 
-        # mne requires specific fields for participant info
-        # https://github.com/mne-tools/mne-python/ ...
-        # blob/master/mne/io/meas_info.py#L430
+        # Store subject information from inf file in mne format
         # TODO: Can you put more values in subject_info than specified in link?
         #       NIRX also records "Study Type", "Experiment History",
         #       "Additional Notes", "Contact Information"
@@ -106,9 +104,8 @@ class RawNIRX(BaseRaw):
         # NIRStar does not record an id, or handedness by default
 
         # Read header file
-        # This is a bit tricky as the header file isn't compliant with
-        # the config specifications. So we need to remove all text
-        # between comments before passing to config parser
+        # The header file isn't compliant with the configparser. So we need to
+        # remove all text between comments before passing to parser
         with open(files['hdr']) as f:
             hdr_str = f.read()
         hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
@@ -126,13 +123,13 @@ class RawNIRX(BaseRaw):
                              re.findall(r'(\d+)',
                              hdr['ImagingParameters']['Wavelengths'])]
 
-        # Extract source-detectors requested by user
+        # Extract source-detectors
         sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
                               hdr['DataStructure']['S-D-Key'])])
         detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
                                 hdr['DataStructure']['S-D-Key'])])
 
-        # Determine if short channels are present
+        # Determine if short channels are present and on which detectors
         has_short = np.array(hdr['ImagingParameters']['ShortBundles'], int)
         short_det = [int(s) for s in
                      re.findall(r'(\d+)',
@@ -149,30 +146,17 @@ class RawNIRX(BaseRaw):
         #   Sources and detectors are both called optodes
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
-        # Information is available about the sources, detector, and channel
-        # locations. Currently I am storing the location of the channel as this
-        # seems the most similar to EEG. But ideally for each channel we could
-        # store the location of all three (source, detector, channel).
-        # The channel info is most useful for scalp level analysis.
-        # Source detector locations would be useful for photon migration
-        # modelling, determining which region of the brain the fNIRS signal is
-        # likely to originate from.
         from ...externals.pymatreader import read_mat
         mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
-        # Following values will be required by commented out to keep flake
-        # happy until i put in locations via info['chs'][ii]['loc']
-        # detector_location_labels =mat_data['probeInfo']['probes']['labels_d']
-        # source_location_labels = mat_data['probeInfo']['probes']['labels_s']
-        # num_sources = mat_data['probeInfo']['probes']['nSource0']
-        # num_detectors = mat_data['probeInfo']['probes']['nDetector0']
         requested_channels = mat_data['probeInfo']['probes']['index_c']
         src_locs = mat_data['probeInfo']['probes']['coords_s3'] * 10
         det_locs = mat_data['probeInfo']['probes']['coords_d3'] * 10
         ch_locs = mat_data['probeInfo']['probes']['coords_c3'] * 10
 
         # Determine requested channel indices
-        # The wl1 and wl2 files include all possible source - detector pairs
-        # But most of these are not relevant. We want to extract only subset
+        # The wl1 and wl2 files include all possible source - detector pairs.
+        # But most of these are not relevant. We want to extract only the
+        # subset requested in the probe file
         req_ind = np.array([])
         for req_idx in range(requested_channels.shape[0]):
             sd_idx = np.where((sources == requested_channels[req_idx][0]) &
@@ -196,20 +180,17 @@ class RawNIRX(BaseRaw):
         # TODO: ch_type is currently misc as I could not find appropriate
         #       other type, the hbo and hbr type are not relevant until the
         #       signal has been converted
-        # TODO: nchan needs to be multiplied by two as we have two wavelengths
-        #       per sensor should the underlying type be modified to
-        #       support (wavelength x channels x data)?
         info = create_info(chnames,
                            samplingrate,
                            ch_types='eeg')
         info.update({'subject_info': subject_info})
 
         # Store channel, source, and detector locations
-        # The channel location is stored in the first 3 entries of loc
-        # The source location is stored in the second 3 entries of loc
-        # The detector location is stored in the third 3 entries of loc
+        # The channel location is stored in the first 3 entries of loc.
+        # The source location is stored in the second 3 entries of loc.
+        # The detector location is stored in the third 3 entries of loc.
+        # NIRx NIRSite uses MNI coordinates.
         # TODO: pretty sure this should be done using a info.update call
-        # TODO: what are the units here? What coordinate system is it in?
         for ch_idx2 in range(requested_channels.shape[0]):
             # Find source and store location
             src = int(requested_channels[ch_idx2, 0]) - 1
@@ -222,23 +203,15 @@ class RawNIRX(BaseRaw):
             # Store channel location
             # Channel locations for short channels are bodged,
             # for short channels use the source location and add small offset
-            # TODO: once coord system known then make offset 8mm
             if (has_short > 0) & (len(np.where(short_det == det + 1)[0]) > 0):
                 info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2]['loc'][0] += 0.3
-                info['chs'][ch_idx2 * 2 + 1]['loc'][0] += 0.3
+                info['chs'][ch_idx2 * 2]['loc'][0] += 0.8
+                info['chs'][ch_idx2 * 2 + 1]['loc'][0] += 0.8
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
 
-        # Store the subset of sources and detectors requested by user
-        # The signals between all source-detectors are stored even if they
-        # are meaningless, the user pre specifies which combinations are
-        # meaningful
-        # TODO: Is this style of info overloading allowed?
-        #       Currently I am marking all things as fnirs_ to make easier to
-        #       find and remove if there is more appropriate storage locations
         raw_extras = {"sd_index": req_ind, 'files': files}
 
         super(RawNIRX, self).__init__(
