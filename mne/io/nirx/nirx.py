@@ -114,8 +114,8 @@ class RawNIRX(BaseRaw):
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        assert (hdr['GeneralInfo']['NIRStar'] == "\"15.2\""), \
-            "Only NIRStar version 15.2 is supported"
+        if hdr['GeneralInfo']['NIRStar'] != "\"15.2\"":
+            raise RuntimeError('Only NIRStar version 15.2 is supported')
 
         # Parse required header fields
 
