@@ -237,6 +237,7 @@ class RawNIRX(BaseRaw):
                 info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
                 info['chs'][ch_idx2 * 2]['loc'][0] += 0.3
+                info['chs'][ch_idx2 * 2 + 1]['loc'][0] += 0.3
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
