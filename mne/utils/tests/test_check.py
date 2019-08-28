@@ -149,8 +149,7 @@ def test_check_option():
 
 
 def test_check_path_like():
-    """Test _check_path_like().
-    """
+    """Test _check_path_like()."""
     str_path = str(base_dir)
     pathlib_path = Path(base_dir)
     no_path = dict(foo='bar')

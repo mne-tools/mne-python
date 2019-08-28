@@ -19,8 +19,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like)
+from .utils import check_fname, logger, verbose, _ensure_int, _check_path_like
 
 
 # transformation from anterior/left/superior coordinate system to
