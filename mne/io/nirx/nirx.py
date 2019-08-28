@@ -56,43 +56,28 @@ class RawNIRX(BaseRaw):
     def __init__(self, fname, preload=False, verbose=None):
         logger.info('Loading %s' % fname)
 
-        # Check if required files exist
+        # Check if required files exist and store names for later use
+        files = dict()
+        keys = ('dat', 'evt', 'hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
+                'config.txt', 'probeInfo.mat')
+        for key in keys:
+            files[key] = glob.glob('%s/*%s' % (fname, key))
+            if len(files[key]) != 1:
+                raise RuntimeError('Expect one %s file, got %d' %
+                                   (key, len(files[key]),))
+            files[key] = files[key][0]
 
-        file_dat = glob.glob(fname + '/*.dat')
-        file_evt = glob.glob(fname + '/*.evt')
-        file_hdr = glob.glob(fname + '/*.hdr')
-        file_inf = glob.glob(fname + '/*.inf')
-        file_set = glob.glob(fname + '/*.set')
-        file_tpl = glob.glob(fname + '/*.tpl')
-        file_wl1 = glob.glob(fname + '/*.wl1')
-        file_wl2 = glob.glob(fname + '/*.wl2')
-        file_cfg = glob.glob(fname + '/*config.txt')
-        file_mat = glob.glob(fname + '/*probeInfo.mat')
-
-        _assert_one(file_dat, "Should be one dat file")
-        _assert_one(file_evt, "Should be one evt file")
-        _assert_one(file_hdr, "Should be one hdr file")
-        _assert_one(file_inf, "Should be one inf file")
-        _assert_one(file_set, "Should be one set file")
-        _assert_one(file_tpl, "Should be one tpl file")
-        _assert_one(file_wl1, "Should be one wl1 file")
-        _assert_one(file_wl2, "Should be one wl2 file")
-        _assert_one(file_cfg, "Should be one config file")
-        _assert_one(file_mat, "Should be one mat file")
-
-        # Read number of rows of wavelength data which corresponds to
-        # number of samples
+        # Read number of rows/samples of wavelength data
         last_sample = -1
-        for line in open(file_wl1[0]):
+        for line in open(files['wl1']):
             last_sample += 1
 
         # Read participant information file
-
         inf = cp.ConfigParser(allow_no_value=True)
-        inf.read(file_inf)
+        inf.read(files['inf'])
         inf = inf._sections['Subject Demographics']
 
-        # mne requires specific fields in here
+        # mne requires specific fields for participant info
         # https://github.com/mne-tools/mne-python/ ...
         # blob/master/mne/io/meas_info.py#L430
         # TODO: Can you put more values in subject_info than specified in link?
@@ -122,7 +107,7 @@ class RawNIRX(BaseRaw):
         # This is a bit tricky as the header file isn't compliant with
         # the config specifications. So we need to remove all text
         # between comments before passing to config parser
-        with open(file_hdr[0]) as f:
+        with open(files['hdr']) as f:
             hdr_str = f.read()
         hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
         hdr = cp.RawConfigParser()
@@ -168,7 +153,7 @@ class RawNIRX(BaseRaw):
         # modelling, determining which region of the brain the fNIRS signal is
         # likely to originate from.
         from ...externals.pymatreader import read_mat
-        mat_data = read_mat(file_mat[0], uint16_codec=None)
+        mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
         # Following values will be required by commented out to keep flake
         # happy until i put in locations via info['chs'][ii]['loc']
         # detector_location_labels =mat_data['probeInfo']['probes']['labels_d']
@@ -249,7 +234,7 @@ class RawNIRX(BaseRaw):
         # TODO: Is this style of info overloading allowed?
         #       Currently I am marking all things as fnirs_ to make easier to
         #       find and remove if there is more appropriate storage locations
-        raw_extras = {"sd_index": req_ind}
+        raw_extras = {"sd_index": req_ind, 'files': files}
 
         super(RawNIRX, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
@@ -266,13 +251,13 @@ class RawNIRX(BaseRaw):
         # TODO: Write space separated values file reader
         pd = _check_pandas_installed(strict=True)
 
-        file_wl1 = glob.glob(self.filenames[fi] + '/*.wl1')
-        file_wl2 = glob.glob(self.filenames[fi] + '/*.wl2')
+        file_wl1 = self._raw_extras[fi]['files']['wl1']
+        file_wl2 = self._raw_extras[fi]['files']['wl2']
 
         sdindex = self._raw_extras[fi]['sd_index']
 
-        wl1 = pd.read_csv(file_wl1[0], sep=' ', header=None).values
-        wl2 = pd.read_csv(file_wl2[0], sep=' ', header=None).values
+        wl1 = pd.read_csv(file_wl1, sep=' ', header=None).values
+        wl2 = pd.read_csv(file_wl2, sep=' ', header=None).values
 
         wl1 = wl1[start:stop, sdindex].T
         wl2 = wl2[start:stop, sdindex].T
@@ -284,8 +269,3 @@ class RawNIRX(BaseRaw):
         data[1::2, :] = wl2
 
         return data
-
-
-def _assert_one(x, msg):
-    if len(x) != 1:
-        raise RuntimeError(msg + ', got %d' % (len(x),))
