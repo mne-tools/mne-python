@@ -138,6 +138,9 @@ class RawNIRX(BaseRaw):
                      hdr['ImagingParameters']['ShortDetIndex'])]
         short_det = np.array(short_det, int)
 
+        # Extract sampling rate
+        samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
+
         # Read information about probe/montage/optodes
         # A word on terminology used here:
         #   Sources produce light
@@ -196,7 +199,7 @@ class RawNIRX(BaseRaw):
         #       per sensor should the underlying type be modified to
         #       support (wavelength x channels x data)?
         info = create_info(chnames,
-                           hdr['ImagingParameters']['SamplingRate'],
+                           samplingrate,
                            ch_types='misc')
         info.update({'subject_info': subject_info})
 
@@ -227,6 +230,15 @@ class RawNIRX(BaseRaw):
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
+
+        # Read triggers from event file
+        # TODO: where in the raw structure does this go?
+        # t = [re.findall(r'(\d+)', line) for line in open(files['evt'])]
+        # for t_idx in range(len(t)):
+            # binary_value =''.join(t[t_idx][1:])[::-1]
+            # trigger_value = int(binary_value, 2) * 1.
+            # trigger_frame = float(t[t_idx][0])
+            # trigger_time = (trigger_frame) * (1.0 / samplingrate)
 
         # Store the subset of sources and detectors requested by user
         # The signals between all source-detectors are stored even if they
