@@ -34,5 +34,24 @@ def test_nirx():
     assert raw.info['subject_info']['middle_name'] == "Test"
     assert raw.info['subject_info']['last_name'] == "Recording"
 
+    # Test distance between optodes matches values from
+    # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
+    # step 4 figure 2
+    allowed_distance_error = 0.2
+    distances = raw._probe_distances()
+    assert abs(distances[0] - 30.4) < allowed_distance_error
+    assert abs(distances[2] - 7.8) < allowed_distance_error
+    assert abs(distances[4] - 31.0) < allowed_distance_error
+    assert abs(distances[6] - 8.6) < allowed_distance_error
+    assert abs(distances[8] - 41.6) < allowed_distance_error
+    assert abs(distances[10] - 7.2) < allowed_distance_error
+    assert abs(distances[12] - 38.9) < allowed_distance_error
+    assert abs(distances[14] - 7.5) < allowed_distance_error
+    assert abs(distances[16] - 55.8) < allowed_distance_error
+    assert abs(distances[18] - 56.2) < allowed_distance_error
+    assert abs(distances[20] - 56.1) < allowed_distance_error
+    assert abs(distances[22] - 56.5) < allowed_distance_error
+    assert abs(distances[24] - 7.7) < allowed_distance_error
+
 
 run_tests_if_main()

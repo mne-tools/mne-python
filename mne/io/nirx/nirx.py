@@ -6,6 +6,8 @@ import re as re
 import glob as glob
 from configparser import ConfigParser, RawConfigParser
 import numpy as np
+from scipy.spatial.distance import euclidean
+
 
 from ..base import BaseRaw
 from ..meas_info import create_info
@@ -161,9 +163,9 @@ class RawNIRX(BaseRaw):
         # num_sources = mat_data['probeInfo']['probes']['nSource0']
         # num_detectors = mat_data['probeInfo']['probes']['nDetector0']
         requested_channels = mat_data['probeInfo']['probes']['index_c']
-        src_locs = mat_data['probeInfo']['probes']['coords_s3']
-        det_locs = mat_data['probeInfo']['probes']['coords_d3']
-        ch_locs = mat_data['probeInfo']['probes']['coords_c3']
+        src_locs = mat_data['probeInfo']['probes']['coords_s3'] * 10
+        det_locs = mat_data['probeInfo']['probes']['coords_d3'] * 10
+        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] * 10
 
         # Determine requested channel indices
         # The wl1 and wl2 files include all possible source - detector pairs
@@ -269,3 +271,9 @@ class RawNIRX(BaseRaw):
         data[1::2, :] = wl2
 
         return data
+
+    def _probe_distances(self):
+        dist = [euclidean(self.info['chs'][idx]['loc'][3:6],
+                self.info['chs'][idx]['loc'][6:9])
+                for idx in range(len(self.info['chs']))]
+        return np.array(dist, float)
