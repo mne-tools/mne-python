@@ -14,8 +14,7 @@ This tutorial describes how to set or change the EEG reference in MNE-Python.
 As usual we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping it to save memory. Since
 this tutorial deals specifically with EEG, we'll also restrict the dataset to
-just a few EEG channels (using :meth:`~mne.io.Raw.pick`) so the plots are
-easier to see:
+just a few EEG channels so the plots are easier to see:
 """
 
 import os
@@ -49,7 +48,7 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # Each of these has advantages and disadvantages regarding how much brain
 # signal it picks up (e.g., the mastoids pick up a fair amount compared to the
 # others), and regarding the environmental noise it picks up (e.g., earlobe
-# electrodes may shift easily, and have signal more similar to electrodes on
+# electrodes may shift easily, and have signals more similar to electrodes on
 # the same side of the head).
 #
 # Even in cases where no electrode is specifically designated as the reference,
@@ -64,8 +63,8 @@ raw.pick(['EEG 0{:02}'.format(n) for n in range(41, 60)])
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # If you want to recompute your data with a different reference than was used
-# when the raw data were recorded / saved, MNE-Python provides the
-# :meth:`~mne.io.Raw.set_eeg_reference` method on :class:`~mne.io.Raw` objects,
+# when the raw data were recorded and/or saved, MNE-Python provides the
+# :meth:`~mne.io.Raw.set_eeg_reference` method on :class:`~mne.io.Raw` objects
 # as well as the :func:`mne.add_reference_channels` function. To use an
 # existing channel as the new reference, use the
 # :meth:`~mne.io.Raw.set_eeg_reference` method; you can also designate multiple
@@ -141,7 +140,7 @@ raw_avg_ref.plot()
 #
 # If using an average reference, it is possible to create the reference as a
 # :term:`projector` rather than subtracting the reference from the data
-# immediately, by specifying ``projection=True``:
+# immediately by specifying ``projection=True``:
 
 raw.set_eeg_reference('average', projection=True)
 print(raw.info['projs'])
@@ -163,7 +162,7 @@ print(raw.info['projs'])
 #    to that constraint. (The reason this wasn't a problem when we applied the
 #    non-projector average reference to ``raw_avg_ref`` above is that the
 #    empty-room projectors included in the sample data :file:`.fif` file were
-#    only computed for the magnetometers).
+#    only computed for the magnetometers.)
 
 for title, proj in zip(['Original', 'Average'], [False, True]):
     fig = raw.plot(proj=proj, n_channels=len(raw))
