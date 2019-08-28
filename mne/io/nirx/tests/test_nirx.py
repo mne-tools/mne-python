@@ -4,6 +4,8 @@
 
 import os.path as op
 
+import numpy as np
+
 from mne.io import read_raw_nirx
 from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
@@ -52,6 +54,22 @@ def test_nirx():
     assert abs(distances[20] - 56.1) < allowed_distance_error
     assert abs(distances[22] - 56.5) < allowed_distance_error
     assert abs(distances[24] - 7.7) < allowed_distance_error
+
+    # Test which channels are short
+    # These are the ones marked as red at
+    # https://github.com/mne-tools/mne-testing-data/pull/51 step 4 figure 2
+    short_channels = raw._short_channels()
+    assert short_channels[0] is np.False_
+    assert short_channels[2] is np.True_
+    assert short_channels[4] is np.False_
+    assert short_channels[6] is np.True_
+    assert short_channels[8] is np.False_
+    short_channels = raw._short_channels(threshold=3)
+    assert short_channels[0] is np.False_
+    assert short_channels[2] is np.False_
+    short_channels = raw._short_channels(threshold=50)
+    assert short_channels[0] is np.True_
+    assert short_channels[2] is np.True_
 
 
 run_tests_if_main()

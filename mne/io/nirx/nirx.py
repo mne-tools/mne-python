@@ -6,7 +6,6 @@ import re as re
 import glob as glob
 from configparser import ConfigParser, RawConfigParser
 import numpy as np
-from scipy.spatial.distance import euclidean
 
 
 from ..base import BaseRaw
@@ -198,7 +197,7 @@ class RawNIRX(BaseRaw):
         #       support (wavelength x channels x data)?
         info = create_info(chnames,
                            hdr['ImagingParameters']['SamplingRate'],
-                           ch_types='eeg')
+                           ch_types='misc')
         info.update({'subject_info': subject_info})
 
         # Store channel, source, and detector locations
@@ -273,7 +272,17 @@ class RawNIRX(BaseRaw):
         return data
 
     def _probe_distances(self):
+        """Return the distance between each source-detector pair."""
+        # TODO: Write my own euclidean distance function
+        from scipy.spatial.distance import euclidean
         dist = [euclidean(self.info['chs'][idx]['loc'][3:6],
                 self.info['chs'][idx]['loc'][6:9])
                 for idx in range(len(self.info['chs']))]
         return np.array(dist, float)
+
+    def _short_channels(self, threshold=10.0):
+        """Return a vector indicating which channels are short.
+
+        Channels with distance less than `threshold` are reported as short.
+        """
+        return self._probe_distances() < threshold
