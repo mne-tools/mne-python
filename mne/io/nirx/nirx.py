@@ -2,9 +2,9 @@
 #
 # License: BSD (3-clause)
 
-import configparser as cp
 import re as re
 import glob as glob
+from configparser import ConfigParser, RawConfigParser
 import numpy as np
 
 from ..base import BaseRaw
@@ -73,7 +73,7 @@ class RawNIRX(BaseRaw):
             last_sample += 1
 
         # Read participant information file
-        inf = cp.ConfigParser(allow_no_value=True)
+        inf = ConfigParser(allow_no_value=True)
         inf.read(files['inf'])
         inf = inf._sections['Subject Demographics']
 
@@ -110,7 +110,7 @@ class RawNIRX(BaseRaw):
         with open(files['hdr']) as f:
             hdr_str = f.read()
         hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
-        hdr = cp.RawConfigParser()
+        hdr = RawConfigParser()
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
