@@ -71,5 +71,10 @@ def test_nirx():
     assert short_channels[0] is np.True_
     assert short_channels[2] is np.True_
 
+    # Test trigger events
+    assert raw.annotations[0]['description'] == '3.0'
+    assert raw.annotations[1]['description'] == '2.0'
+    assert raw.annotations[2]['description'] == '1.0'
+
 
 run_tests_if_main()

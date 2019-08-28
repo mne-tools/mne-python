@@ -12,6 +12,7 @@ from ..base import BaseRaw
 from ..meas_info import create_info
 from ...utils import logger, verbose, fill_doc, _check_pandas_installed
 from ..constants import FIFF
+from ...annotations import Annotations
 
 
 @fill_doc
@@ -200,7 +201,7 @@ class RawNIRX(BaseRaw):
         #       support (wavelength x channels x data)?
         info = create_info(chnames,
                            samplingrate,
-                           ch_types='misc')
+                           ch_types='eeg')
         info.update({'subject_info': subject_info})
 
         # Store channel, source, and detector locations
@@ -231,15 +232,6 @@ class RawNIRX(BaseRaw):
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
 
-        # Read triggers from event file
-        # TODO: where in the raw structure does this go?
-        # t = [re.findall(r'(\d+)', line) for line in open(files['evt'])]
-        # for t_idx in range(len(t)):
-            # binary_value =''.join(t[t_idx][1:])[::-1]
-            # trigger_value = int(binary_value, 2) * 1.
-            # trigger_frame = float(t[t_idx][0])
-            # trigger_time = (trigger_frame) * (1.0 / samplingrate)
-
         # Store the subset of sources and detectors requested by user
         # The signals between all source-detectors are stored even if they
         # are meaningless, the user pre specifies which combinations are
@@ -252,6 +244,20 @@ class RawNIRX(BaseRaw):
         super(RawNIRX, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
             raw_extras=[raw_extras], verbose=verbose)
+
+        # Read triggers from event file
+        t = [re.findall(r'(\d+)', line) for line in open(files['evt'])]
+        onset = np.zeros(len(t), float)
+        duration = np.zeros(len(t), float)
+        description = [''] * len(t)
+        for t_idx in range(len(t)):
+            binary_value = ''.join(t[t_idx][1:])[::-1]
+            trigger_frame = float(t[t_idx][0])
+            onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
+            duration[t_idx] = 1.0  # No duration info stored in files
+            description[t_idx] = int(binary_value, 2) * 1.
+        annot = Annotations(onset, duration, description)
+        self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
