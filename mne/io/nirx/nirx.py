@@ -145,6 +145,13 @@ class RawNIRX(BaseRaw):
         detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
                                 hdr['DataStructure']['S-D-Key'])])
 
+        # Determine if short channels are present
+        has_short = np.array(hdr['ImagingParameters']['ShortBundles'], int)
+        short_det = [int(s) for s in
+                     re.findall(r'(\d+)',
+                     hdr['ImagingParameters']['ShortDetIndex'])]
+        short_det = np.array(short_det, int)
+
         # Read information about probe/montage/optodes
         # A word on terminology used here:
         #   Sources produce light
@@ -169,6 +176,9 @@ class RawNIRX(BaseRaw):
         # num_sources = mat_data['probeInfo']['probes']['nSource0']
         # num_detectors = mat_data['probeInfo']['probes']['nDetector0']
         requested_channels = mat_data['probeInfo']['probes']['index_c']
+        src_locs = mat_data['probeInfo']['probes']['coords_s3']
+        det_locs = mat_data['probeInfo']['probes']['coords_d3']
+        ch_locs = mat_data['probeInfo']['probes']['coords_c3']
 
         # Determine requested channel indices
         # The wl1 and wl2 files include all possible source - detector pairs
@@ -201,8 +211,35 @@ class RawNIRX(BaseRaw):
         #       support (wavelength x channels x data)?
         info = create_info(chnames,
                            hdr['ImagingParameters']['SamplingRate'],
-                           ch_types='misc')
+                           ch_types='eeg')
         info.update({'subject_info': subject_info})
+
+        # Store channel, source, and detector locations
+        # The channel location is stored in the first 3 entries of loc
+        # The source location is stored in the second 3 entries of loc
+        # The detector location is stored in the third 3 entries of loc
+        # TODO: pretty sure this should be done using a info.update call
+        # TODO: what are the units here? What coordinate system is it in?
+        for ch_idx2 in range(requested_channels.shape[0]):
+            # Find source and store location
+            src = int(requested_channels[ch_idx2, 0]) - 1
+            info['chs'][ch_idx2 * 2]['loc'][3:6] = src_locs[src, :]
+            info['chs'][ch_idx2 * 2 + 1]['loc'][3:6] = src_locs[src, :]
+            # Find detector and store location
+            det = int(requested_channels[ch_idx2, 1]) - 1
+            info['chs'][ch_idx2 * 2]['loc'][6:9] = det_locs[det, :]
+            info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
+            # Store channel location
+            # Channel locations for short channels are bodged,
+            # for short channels use the source location and add small offset
+            # TODO: once coord system known then make offset 8mm
+            if (has_short > 0) & (len(np.where(short_det == det + 1)[0]) > 0):
+                info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
+                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
+                info['chs'][ch_idx2 * 2]['loc'][0] += 0.3
+            else:
+                info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
+                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
 
         # Store the subset of sources and detectors requested by user
         # The signals between all source-detectors are stored even if they
