@@ -125,9 +125,9 @@ class RawNIRX(BaseRaw):
 
         # Extract source-detectors
         sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
-                              hdr['DataStructure']['S-D-Key'])])
+                              hdr['DataStructure']['S-D-Key'])], int)
         detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
-                                hdr['DataStructure']['S-D-Key'])])
+                                hdr['DataStructure']['S-D-Key'])], int)
 
         # Determine if short channels are present and on which detectors
         has_short = np.array(hdr['ImagingParameters']['ShortBundles'], int)
@@ -157,7 +157,7 @@ class RawNIRX(BaseRaw):
         # The wl1 and wl2 files include all possible source - detector pairs.
         # But most of these are not relevant. We want to extract only the
         # subset requested in the probe file
-        req_ind = np.array([])
+        req_ind = np.array([], int)
         for req_idx in range(requested_channels.shape[0]):
             sd_idx = np.where((sources == requested_channels[req_idx][0]) &
                               (detectors == requested_channels[req_idx][1]))
