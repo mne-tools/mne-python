@@ -49,6 +49,10 @@ def get_channel_types():
                 dipole=dict(kind=FIFF.FIFFV_DIPOLE_WAVE),
                 gof=dict(kind=FIFF.FIFFV_GOODNESS_FIT),
                 ecog=dict(kind=FIFF.FIFFV_ECOG_CH),
+                fnirs_raw=dict(kind=FIFF.FIFFV_FNIRS_CH,
+                         coil_type=FIFF.FIFFV_COIL_FNIRS_OPTODE),
+                fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH,
+                         coil_type=FIFF.FIFFV_COIL_FNIRS_OPTODE),
                 hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBO),
                 hbr=dict(kind=FIFF.FIFFV_FNIRS_CH,
@@ -90,7 +94,8 @@ _second_rules = {
     'meg': ('unit', {FIFF.FIFF_UNIT_T_M: 'grad',
                      FIFF.FIFF_UNIT_T: 'mag'}),
     'fnirs': ('coil_type', {FIFF.FIFFV_COIL_FNIRS_HBO: 'hbo',
-                            FIFF.FIFFV_COIL_FNIRS_HBR: 'hbr'}),
+                            FIFF.FIFFV_COIL_FNIRS_HBR: 'hbr',
+                            FIFF.FIFFV_COIL_FNIRS_OPTODE: 'fnirs_raw'}),
 }
 
 
@@ -254,6 +259,8 @@ def _triage_fnirs_pick(ch, fnirs):
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and fnirs == 'hbr':
         return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OPTODE and fnirs == 'fnirs_raw':
+        return True
     return False
 
 
@@ -389,7 +396,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
-            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg')
+            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg', 'fnirs_raw')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
