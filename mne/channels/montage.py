@@ -22,10 +22,11 @@ import xml.etree.ElementTree as ElementTree
 from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _frame_to_str)
+                          _topo_to_sph, _frame_to_str, _str_to_frame)
 from .._digitization import Digitization
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
-                                    write_dig, _read_dig_fif)
+                                    write_dig, _read_dig_fif,
+                                    _format_dig_points)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
@@ -475,7 +476,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     """
     # XXX: hpi was historically elp
     # XXX: hpi_dev was historically hpi
-    assert coord_frame in ('unknown', 'head')
+    assert coord_frame in _str_to_frame
     from ..coreg import fit_matched_points
     data = Bunch(
         nasion=nasion, lpa=lpa, rpa=rpa,
@@ -663,13 +664,20 @@ class DigMontage(object):
 
     def __repr__(self):
         """Return string representation."""
-        _data = _foo_get_data_from_dig(self.dig)
+        n_points = dict(hpi=0, fid=0, eeg=0, extra=0)
+        for d in self.dig:
+            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+                n_points['fid'] += 1
+            elif d['kind'] == FIFF.FIFFV_POINT_HPI:
+                n_points['hpi'] += 1
+            elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
+                n_points['extra'] += 1
+            elif d['kind'] == FIFF.FIFFV_POINT_EEG:
+                n_points['eeg'] += 1
+
         s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
-             'channels>' %
-             (len(_data.hsp) if _data.hsp is not None else 0,
-              len(_data.hpi) if _data.hpi is not None else 0,
-              sum(x is not None for x in (_data.lpa, _data.rpa, _data.nasion)),
-              len(_data.dig_ch_pos_location) if _data.dig_ch_pos_location is not None else 0,))  # noqa
+             'channels>' % (n_points['extra'], n_points['hpi'],
+                            n_points['fid'], n_points['extra'],))
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
@@ -717,29 +725,18 @@ class DigMontage(object):
                                'head coordinates.')
         write_dig(fname, self.dig)
 
-    def __getitem__(self, key):  # XXX: required for concat
-        raise NotImplementedError
-
     def __iadd__(self, other):
-        raise NotImplementedError
-
-    # XXX: this is not used by `reduce(concat, list_of_DigMontages)`
-    # def __concat__(self, other): 
-    #     raise NotImplementedError
+        self.ch_names += other.ch_names
+        # TODO : should guarantee that fiducials match and are in the
+        # same coordframe
+        # TODO : should remove duplicated fiducial points
+        self.dig = _format_dig_points(self.dig + other.dig)
+        return self
 
     def __add__(self, other):
-        foo = deepcopy(self)
-        if foo.ch_names is None:
-            foo.ch_names = other.ch_names
-        elif other.ch_names is not None:
-            foo.ch_names += other.ch_names  # XXX: This is gona be complicated 'cos ch_names is sorted and in sync with foo.dig
-
-        foo.dig += other.dig
-        return foo
-
-    def __radd__(self, other):
-        # return other + self
-        raise NotImplemented
+        out = deepcopy(self)
+        out += other
+        return out
 
     @property
     def dig_ch_pos(self):

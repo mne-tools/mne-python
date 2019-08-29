@@ -21,8 +21,7 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage,
-                          read_dig_egi, read_dig_captrack, read_dig_fif,
-                          get_builtin_montages, DigMontage)
+                          read_dig_egi, read_dig_captrack, read_dig_fif)
 from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
 from mne.channels.montage import read_dig_polhemus_isotrack
@@ -514,43 +513,41 @@ def test_read_dig_montage_using_polhemus_isotrack():
         '0 extras (headshape), 0 HPIs, 3 fiducials, 10 channels>'
     )
 
-def test_foo():
-    rnd = np.random.RandomState(0)
-    aa = make_dig_montage(
-        nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
-        hsp=rnd.rand(500, 3)
+
+def test_concat_dig_montage():
+    """Test concatenation of DigMontage."""
+    rng = np.random.RandomState(0)
+    nasion = rng.rand(3)
+    lpa = rng.rand(3)
+    rpa = rng.rand(3)
+    dig1 = make_dig_montage(
+        nasion=nasion, lpa=lpa, rpa=rpa, hsp=rng.rand(50, 3),
+        hpi=rng.rand(5, 3),
+        coord_frame='unknown'
     )
 
-    bb = make_dig_montage(
-        nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
-        hpi=rnd.rand(5, 3)
+    dig_hpi_no_fids = make_dig_montage(
+        hpi=rng.rand(5, 3), coord_frame='meg',
     )
 
-    cc = make_dig_montage(
-        nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
-        ch_pos=dict(zip(ascii_lowercase[:10], rnd.rand(10, 3))),
+    dig_hpi_wrong_fids = make_dig_montage(
+        nasion=rng.rand(3), lpa=rng.rand(3), rpa=rng.rand(3),
+        hpi=rng.rand(5, 3), coord_frame='unknown'
     )
 
-    # xx = sum([aa, bb, cc])  # XXX: requires DigMontage.__iter__
-    xx = aa + bb + cc  # XXX: uses __add__
-    assert xx.__repr__() == (
+    dig_eeg = make_dig_montage(
+        nasion=nasion, lpa=lpa, rpa=rpa,
+        ch_pos=dict(zip(ascii_lowercase[:10], rng.rand(10, 3))),
+    )
+
+    dig = dig1 + dig_hpi_no_fids + dig_eeg
+    assert dig.__repr__() == (
         '<DigMontage | '
-        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
+        '50 extras (headshape), 10 HPIs, 3 fiducials, 10 channels>'
     )
 
-    from functools import reduce
-    import operator
-    xx = reduce(operator.concat,[aa, bb, cc])  # XXX: requires DigMontage.__getitem__; but uses DigMontage.__add__
-    assert xx.__repr__() == (
-        '<DigMontage | '
-        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
-    )
-
-    xx = reduce(operator.add,[aa, bb, cc])  # XXX: requires DigMontage.__getitem__; but uses DigMontage.__add__
-    assert xx.__repr__() == (
-        '<DigMontage | '
-        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
-    )
+    with pytest.raises(ValueError, match='fiducial locations do not match'):
+        dig = dig1 + dig_hpi_wrong_fids  # XXX : should crash
 
 
 @pytest.mark.skip(reason="not done yet")
