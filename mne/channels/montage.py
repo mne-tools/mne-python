@@ -717,6 +717,30 @@ class DigMontage(object):
                                'head coordinates.')
         write_dig(fname, self.dig)
 
+    def __concat__(self, other):
+        if self.ch_names is None:
+            self.ch_names = other.ch_names
+        elif other.ch_names is not None:
+            self.ch_names += other.ch_names  # XXX: This is gona be complicated 'cos ch_names is sorted and in sync with self.dig
+
+        self.dig += other.dig
+
+    def __iadd__(self, other):
+        if self.ch_names is None:
+            self.ch_names = other.ch_names
+        elif other.ch_names is not None:
+            self.ch_names += other.ch_names  # XXX: This is gona be complicated 'cos ch_names is sorted and in sync with self.dig
+
+        self.dig += other.dig
+
+    def __add__(self, other):
+        new = deepcopy(self)
+        new += other
+        return new
+
+    def __radd__(self, other):
+        return other + self
+
     @property
     def dig_ch_pos(self):
         warn('"dig_ch_pos" attribute is deprecated and will be removed in '
