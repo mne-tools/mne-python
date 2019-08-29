@@ -550,6 +550,59 @@ def test_concat_dig_montage():
         dig = dig1 + dig_hpi_wrong_fids  # XXX : should crash
 
 
+def test_combining_DigMontage_objects():
+    rnd = np.random.RandomState(0)
+    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rnd.rand(3, 3)))
+
+    # hsp positions are [1X, 1X, 1X]
+    hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11))
+    hsp2 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12))
+    hsp3 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 13))
+
+    # elp positions are [2X, 2X, 2X]
+    elp1 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 21))
+    elp2 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 22))
+    elp3 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 23))
+
+    # channels have positions at 40s, 50s, and 60s.
+    ch_pos1 = make_dig_montage(
+        **fiducials,
+        ch_pos={'h': [41, 41, 41], 'b': [42, 42, 42], 'g': [43, 43, 43]}
+    )
+    ch_pos2 = make_dig_montage(
+        **fiducials,
+        ch_pos={'n': [51, 51, 51], 'y': [52, 52, 52], 'p': [53, 53, 53]}
+    )
+    ch_pos3 = make_dig_montage(
+        **fiducials,
+        ch_pos={'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63]}
+    )
+    from functools import reduce
+    from operator import concat
+    montage = reduce(concat,[
+        hsp1, hsp2, hsp3, elp1, elp2, elp3, ch_pos1, ch_pos2, ch_pos3,
+    ])
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>'
+    )
+
+    EXPECTED_MONTAGE = make_dig_montage(
+        **fiducials,
+        hsp=np.concatenate([np.full((2, 3), 11), np.full((2, 3), 12),
+                            np.full((2, 3), 13)]),
+        hpi=np.concatenate([np.full((2, 3), 21), np.full((2, 3), 22),
+                            np.full((2, 3), 23)]),
+        ch_pos={
+            'h': [41, 41, 41], 'b': [42, 42, 42], 'g': [43, 43, 43],
+            'n': [51, 51, 51], 'y': [52, 52, 52], 'p': [53, 53, 53],
+            'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63],
+        }
+    )
+    assert montage.ch_names == EXPECTED_MONTAGE.ch_names
+    assert object_diff(montage.dig, EXPECTED_MONTAGE.dig) == ''
+
+
 @pytest.mark.skip(reason="not done yet")
 def test_read_dig_montage_using_polhemus_isotrack_more():
     """Test ISOTrack."""
