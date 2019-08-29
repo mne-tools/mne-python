@@ -15,6 +15,8 @@ Current (0.19.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add support for making epochs with duplicated events, by allowing three policies: "error" (default), "drop", or "merge" in :class:`mne.Epochs` by `Stefan Appelhoff`_
+
 - Add :func:`mne.channels.make_dig_montage` to create :class:`mne.channels.DigMontage` objects out of np.arrays by `Joan Massich`_
 
 - Add support for reading in BrainVision CapTrak (BVCT) digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Stefan Appelhoff`_

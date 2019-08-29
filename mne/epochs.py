@@ -7,6 +7,7 @@
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -183,6 +184,98 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     end_file(fid)
 
 
+def _merge_events(events, event_id):
+    """Merge repeated events."""
+    event_id = event_id.copy()
+    new_events = events.copy()
+    event_idxs_to_delete = list()
+    unique_events, counts = np.unique(events[:, 0], return_counts=True)
+    for ev in unique_events[counts > 1]:
+
+        # indices at which the non-unique events happened
+        idxs = (events[:, 0] == ev).nonzero()[0]
+
+        # Figure out new value for events[:, 1]. Set to 0, if mixed vals exist
+        unique_priors = np.unique(events[idxs, 1])
+        new_prior = unique_priors[0] if len(unique_priors) == 1 else 0
+
+        # If duplicate time samples have same event val, "merge" == "drop"
+        # and no new event_id key will be created
+        ev_vals = events[idxs, 2]
+        if len(np.unique(ev_vals)) <= 1:
+            new_event_val = ev_vals[0]
+
+        # Else, make a new event_id for the merged event
+        else:
+
+            # Find all event_id keys involved in duplicated events. These
+            # keys will be merged to become a new entry in "event_id"
+            event_id_keys = list(event_id.keys())
+            event_id_vals = list(event_id.values())
+            new_key_comps = [event_id_keys[event_id_vals.index(value)]
+                             for value in ev_vals]
+
+            # Check if we already have an entry for merged keys of duplicate
+            # events ... if yes, reuse it
+            for key in event_id.keys():
+                if set(key.split('/')) == set(new_key_comps):
+                    new_event_val = event_id[key]
+                    break
+
+            # Else, find an unused value for the new key and make an entry into
+            # the event_id dict
+            else:
+                ev_vals = np.concatenate((list(event_id.values()),
+                                          events[:, 1:].flatten()),
+                                         axis=0)
+                new_event_val = np.setdiff1d(np.arange(1, 9999999),
+                                             ev_vals).min()
+                new_event_id_key = '/'.join(sorted(new_key_comps))
+                event_id[new_event_id_key] = int(new_event_val)
+
+        # Replace duplicate event times with merged event and remember which
+        # duplicate indices to delete later
+        new_events[idxs[0], 1] = new_prior
+        new_events[idxs[0], 2] = new_event_val
+        event_idxs_to_delete.extend(idxs[1:])
+
+    # Delete duplicate event idxs
+    new_events = np.delete(new_events, event_idxs_to_delete, 0)
+
+    return new_events, event_id
+
+
+def _handle_event_repeated(events, event_id, event_repeated):
+    """Handle repeated events."""
+    unique_events, u_ev_idxs = np.unique(events[:, 0], return_index=True)
+
+    # Return early if no duplicates
+    if len(unique_events) == len(events):
+        return events, event_id
+
+    # Else, we have duplicates. Triage ...
+    _check_option('event_repeated', event_repeated, ['error', 'drop', 'merge'])
+    if event_repeated == 'error':
+        raise RuntimeError('Event time samples were not unique. Consider '
+                           'setting the `event_repeated` parameter."')
+
+    elif event_repeated == 'drop':
+        logger.info('Multiple event values for single event times found. '
+                    'Keeping the first occurrence and dropping all others.')
+        new_events = events[u_ev_idxs]
+
+    elif event_repeated == 'merge':
+        logger.info('Multiple event values for single event times found. '
+                    'Creating new event value to reflect simultaneous events.')
+        new_events, event_id = _merge_events(events, event_id)
+
+    # Remove obsolete kv-pairs from event_id after handling
+    keys = new_events[:, 1:].flatten()
+    event_id = {k: v for k, v in event_id.items() if v in keys}
+
+    return new_events, event_id
+
+
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
@@ -245,6 +338,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         See :class:`mne.Epochs` docstring.
 
         .. versionadded:: 0.16
+    event_repeated : str
+        See :class:`mne.Epochs` docstring.
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Notes
@@ -260,7 +357,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
                  detrend=None, proj=True, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
-                 filename=None, metadata=None, verbose=None):  # noqa: D102
+                 filename=None, metadata=None, event_repeated='error',
+                 verbose=None):  # noqa: D102
         self.verbose = verbose
 
         _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
@@ -308,8 +406,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 self.drop_log = drop_log
             events = events[selected]
-            if len(np.unique(events[:, 0])) != len(events):
-                raise RuntimeError('Event time samples were not unique')
+
+            events, self.event_id = _handle_event_repeated(events,
+                                                           self.event_id,
+                                                           event_repeated)
+
             n_events = len(events)
             if n_events > 1:
                 if np.diff(events.astype(np.int64)[:, 0]).min() <= 0:
@@ -1745,6 +1846,13 @@ class Epochs(BaseEpochs):
         MNE will modify the row indices to match ``epochs.selection``.
 
         .. versionadded:: 0.16
+    event_repeated : str
+        How to handle duplicates in `events[:, 0]`. Can be 'error' (default),
+        to raise an error, 'drop' to only retain the row occurring first in the
+        `events`, or 'merge' to combine the coinciding events (=duplicates)
+        into a new event (see Notes for details).
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Attributes
@@ -1796,6 +1904,14 @@ class Epochs(BaseEpochs):
     All methods for iteration over objects (using :meth:`mne.Epochs.__iter__`,
     :meth:`mne.Epochs.iter_evoked` or :meth:`mne.Epochs.next`) use the same
     internal state.
+
+    If `event_repeated` is set to "merge", the coinciding events (duplicates)
+    will be merged into a single event_id and assigned a new id_number as
+    follows: `event_id['{event_id_1}/{event_id_2}/...'] = new_id_number`.
+    For example with the event_id {'aud': 1, 'vis': 2} and the events
+    [[0, 0, 1], [0, 0, 2]], the "merge" behavior will update both event_id and
+    events to be: {'aud/vis': 3} and [[0, 0, 3], ] respectively.
+
     """
 
     @verbose
@@ -1804,7 +1920,7 @@ class Epochs(BaseEpochs):
                  flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, on_missing='error',
                  reject_by_annotation=True, metadata=None,
-                 verbose=None):  # noqa: D102
+                 event_repeated='error', verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of mne.io.BaseRaw')
