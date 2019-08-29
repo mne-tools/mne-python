@@ -41,6 +41,7 @@ from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 from ._dig_montage_utils import _get_fid_coords
+from ._dig_montage_utils import _cardinal_ident_mapping
 
 DEPRECATED_PARAM = object()
 
@@ -568,7 +569,24 @@ class DigMontage(object):
     Notes
     -----
     .. versionadded:: 0.9.0
+
     """
+
+    # XXX: To add to doc
+    #
+    # Dig points in DigMontage.dig should either be in known=['head', 'meg'] or
+    # 'unknown' if 'unknown' the digitization can contain (or not) fiducials
+    # also in 'unknown' coordinate system which is supposed to be the same.
+    #
+    # when adding dig_montage_A + dig_montage_B they would only be a valid
+    # operation under the following circumstances:
+    #  - All DigPoints are in known coordinate frames
+    #  - There are DigPoints in unknown coord frame in both DigMontages but
+    #    they share the same fiducials
+    #
+    # Any other operation is not allowed. There is the issue of what happens
+    # if I do transform_to_head(dig1)+dig2, but we can do this if someone
+    # needs it.
 
     def __init__(self,
         hsp=DEPRECATED_PARAM, hpi=DEPRECATED_PARAM, elp=DEPRECATED_PARAM,
@@ -677,7 +695,7 @@ class DigMontage(object):
 
         s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
              'channels>' % (n_points['extra'], n_points['hpi'],
-                            n_points['fid'], n_points['extra'],))
+                            n_points['fid'], n_points['eeg'],))
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
@@ -726,14 +744,65 @@ class DigMontage(object):
         write_dig(fname, self.dig)
 
     def __iadd__(self, other):
+        """Add two DigMontages in place."""
+        # XXX: this is really similar to _get_fid_coords from pr-6706 but I
+        #      needed something different so, I'll merge later
+        def _get_fid_coords(dig):
+            fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
+            fid_coord_frames = Bunch(nasion=None, lpa=None, rpa=None)
+
+            for d in dig:
+                if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+                    key = _cardinal_ident_mapping[d['ident']]
+                    fid_coords[key] = d['r']
+                    fid_coord_frames[key] = d['coord_frame']
+
+            return fid_coords, fid_coord_frames
+
+        def is_fid_defined(fid):
+            return not(
+                fid.nasion is None and fid.lpa is None and fid.rpa is None
+            )
+
+        self_fid, self_coord = _get_fid_coords(self.dig)
+        other_fid, other_coord = _get_fid_coords(other.dig)
+
+        coord = set()
+        coord = coord.union({
+            self_coord[kk] for kk, vv in self_fid.items() if vv is not None
+        })
+        coord = coord.union({
+            other_coord[kk] for kk, vv in other_fid.items() if vv is not None
+        })
+
+        is_posible_to_merge_fid = all([
+            np.array_equal(other_fid[kk], vv) for kk, vv in self_fid.items()
+        ]) if is_fid_defined(self_fid) and is_fid_defined(other_fid) else True
+
+        if (is_posible_to_merge_fid and (
+                coord == {FIFF.FIFFV_COORD_UNKNOWN} or coord == set()
+        )):
+            pass
+        else:
+            raise RuntimeError('Cannot add two DigMontage objects if fiducial'
+                               ' locations do not match')
+
+        # This is executed only if we are good to continue
+
         self.ch_names += other.ch_names
-        # TODO : should guarantee that fiducials match and are in the
-        # same coordframe
-        # TODO : should remove duplicated fiducial points
-        self.dig = _format_dig_points(self.dig + other.dig)
+        if is_fid_defined(self_fid) and is_fid_defined(other_fid):
+            # keep self
+            self.dig = _format_dig_points(
+                self.dig + [d for d in other.dig
+                            if d['kind'] != FIFF.FIFFV_POINT_CARDINAL]
+            )
+        else:
+            self.dig = _format_dig_points(self.dig + other.dig)
+
         return self
 
     def __add__(self, other):
+        """Add two DigMontages."""
         out = deepcopy(self)
         out += other
         return out

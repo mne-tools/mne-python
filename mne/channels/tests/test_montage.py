@@ -448,13 +448,14 @@ def test_read_dig_montage():
 # XXXX: this should be a function not an alias
 read_polhemus_fast_scan = _read_dig_points
 
+
 def test_read_dig_montage_using_polhemus_fastscan():
     """Test FastScan."""
     N_EEG_CH = 10
 
     my_electrode_positions = read_polhemus_fast_scan(
         op.join(kit_dir, 'test_elp.txt')
-    )/1000
+    ) / 1000
 
     montage = make_dig_montage(
         # EEG_CH
@@ -465,7 +466,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
         lpa=my_electrode_positions[1],
         rpa=my_electrode_positions[2],
         hpi=my_electrode_positions[3:],
-        hsp=read_polhemus_fast_scan(op.join(kit_dir, 'test_hsp.txt'))/1000,
+        hsp=read_polhemus_fast_scan(op.join(kit_dir, 'test_hsp.txt')) / 1000,
         hpi_dev=None,  # XXX: I'm not sure we should allow hpi_dev
 
         # Other defaults
@@ -517,16 +518,15 @@ def test_read_dig_montage_using_polhemus_isotrack():
 def test_concat_dig_montage():
     """Test concatenation of DigMontage."""
     rng = np.random.RandomState(0)
-    nasion = rng.rand(3)
-    lpa = rng.rand(3)
-    rpa = rng.rand(3)
+    nasion, lpa, rpa = rng.rand(3), rng.rand(3), rng.rand(3)
+
     dig1 = make_dig_montage(
         nasion=nasion, lpa=lpa, rpa=rpa, hsp=rng.rand(50, 3),
         hpi=rng.rand(5, 3),
         coord_frame='unknown'
     )
 
-    dig_hpi_no_fids = make_dig_montage(
+    dig_meg_hpi = make_dig_montage(
         hpi=rng.rand(5, 3), coord_frame='meg',
     )
 
@@ -540,19 +540,20 @@ def test_concat_dig_montage():
         ch_pos=dict(zip(ascii_lowercase[:10], rng.rand(10, 3))),
     )
 
-    dig = dig1 + dig_hpi_no_fids + dig_eeg
+    dig = dig1 + dig_meg_hpi + dig_eeg
     assert dig.__repr__() == (
         '<DigMontage | '
         '50 extras (headshape), 10 HPIs, 3 fiducials, 10 channels>'
     )
 
-    with pytest.raises(ValueError, match='fiducial locations do not match'):
+    with pytest.raises(RuntimeError, match='fiducial locations do not match'):
         dig = dig1 + dig_hpi_wrong_fids  # XXX : should crash
 
 
 def test_combining_DigMontage_objects():
-    rnd = np.random.RandomState(0)
-    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rnd.rand(3, 3)))
+    """Test combining different DigMontage objects."""
+    rng = np.random.RandomState(0)
+    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
 
     # hsp positions are [1X, 1X, 1X]
     hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11))
@@ -577,11 +578,13 @@ def test_combining_DigMontage_objects():
         **fiducials,
         ch_pos={'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63]}
     )
-    from functools import reduce
-    from operator import concat
-    montage = reduce(concat,[
-        hsp1, hsp2, hsp3, elp1, elp2, elp3, ch_pos1, ch_pos2, ch_pos3,
-    ])
+    # from functools import reduce
+    # from operator import concat
+    # montage = reduce(concat,[
+    #     hsp1, hsp2, hsp3, elp1, elp2, elp3, ch_pos1, ch_pos2, ch_pos3,
+    # ])
+
+    montage = hsp1 + hsp2 + hsp3 + elp1 + elp2 + elp3 + ch_pos1 + ch_pos2 + ch_pos3  # noqa
     assert montage.__repr__() == (
         '<DigMontage | '
         '6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>'
@@ -610,7 +613,7 @@ def test_read_dig_montage_using_polhemus_isotrack_more():
     from operator import concat
     from functools import reduce
 
-    montage = reduce(concat,[
+    montage = reduce(concat, [
         read_dig_polhemus_isotrack(op.join(kit_dir, 'test.elp')),
         read_dig_polhemus_isotrack(op.join(kit_dir, 'test.hsp')),
         read_dig_polhemus_isotrack(op.join(kit_dir, 'test.xx'),
