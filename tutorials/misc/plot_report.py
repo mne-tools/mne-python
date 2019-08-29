@@ -99,7 +99,7 @@ report.save('report_mri_bem.html')
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
 # (we'll skip the MRIs to save computation time):
 
-pattern = 'sample_audvis-ave.fif'
+pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(verbose=True)
 report.parse_folder(path, pattern=pattern, render_bem=False)
 report.save('report_evoked.html')
