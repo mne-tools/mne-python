@@ -514,6 +514,44 @@ def test_read_dig_montage_using_polhemus_isotrack():
         '0 extras (headshape), 0 HPIs, 3 fiducials, 10 channels>'
     )
 
+def test_foo():
+    rnd = np.random.RandomState(0)
+    aa = make_dig_montage(
+        nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
+        hsp=rnd.rand(500, 3)
+    )
+
+    bb = make_dig_montage(
+        nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
+        hpi=rnd.rand(5, 3)
+    )
+
+    cc = make_dig_montage(
+        nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
+        ch_pos=dict(zip(ascii_lowercase[:10], rnd.rand(10, 3))),
+    )
+
+    # xx = sum([aa, bb, cc])  # XXX: requires DigMontage.__iter__
+    xx = aa + bb + cc  # XXX: uses __add__
+    assert xx.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
+    )
+
+    from functools import reduce
+    import operator
+    xx = reduce(operator.concat,[aa, bb, cc])  # XXX: requires DigMontage.__getitem__; but uses DigMontage.__add__
+    assert xx.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
+    )
+
+    xx = reduce(operator.add,[aa, bb, cc])  # XXX: requires DigMontage.__getitem__; but uses DigMontage.__add__
+    assert xx.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
+    )
+
 
 @pytest.mark.skip(reason="not done yet")
 def test_read_dig_montage_using_polhemus_isotrack_more():
