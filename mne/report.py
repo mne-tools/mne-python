@@ -1921,19 +1921,26 @@ class Report(object):
             caption=caption, show=show, image_format=image_format)
         return html
 
-    def _render_cov(self, cov_fname, info_fname, image_format):
+    def _render_cov(self, cov_fname, info_fname, image_format, show_svd=True):
         """Render cov."""
         global_id = self._get_id()
         cov = read_cov(cov_fname)
-        fig, _ = plot_cov(cov, info_fname, show=False)
-        img = _fig_to_img(fig, image_format)
-        caption = 'Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)
-        show = True
-        html = image_template.substitute(
-            img=img, id=global_id, div_klass='covariance',
-            img_klass='covariance', caption=caption, show=show,
-            image_format=image_format)
-        return html
+        fig, svd = plot_cov(cov, info_fname, show=False, show_svd=show_svd)
+        html = []
+        figs = [fig]
+        captions = ['Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)]
+        if svd is not None:
+            figs.append(svd)
+            captions.append('Singular values of the noise covariance')
+        for fig, caption in zip(figs, captions):
+            img = _fig_to_img(fig, image_format)
+            caption = caption
+            show = True
+            html.append(image_template.substitute(
+                img=img, id=global_id, div_klass='covariance',
+                img_klass='covariance', caption=caption, show=show,
+                image_format=image_format))
+        return '\n'.join(html)
 
     def _render_whitened_evoked(self, evoked_fname, noise_cov, baseline,
                                 image_format):
