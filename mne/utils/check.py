@@ -326,6 +326,26 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                         % (item_name, type_name, type(item),))
 
 
+def _check_path_like(item):
+    """Validate that `item` is `path-like`.
+
+    Parameters
+    ----------
+    item : object
+        The thing to be checked.
+
+    Returns
+    -------
+    bool
+        ``True`` if `item` is a `path-like` object; ``False`` otherwise.
+    """
+    try:
+        _validate_type(item, types='path-like')
+        return True
+    except TypeError:
+        return False
+
+
 def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
