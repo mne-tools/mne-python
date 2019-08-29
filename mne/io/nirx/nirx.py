@@ -182,7 +182,7 @@ class RawNIRX(BaseRaw):
         #       signal has been converted
         info = create_info(chnames,
                            samplingrate,
-                           ch_types='eeg')
+                           ch_types='fnirs_raw')
         info.update({'subject_info': subject_info})
 
         # Store channel, source, and detector locations
