@@ -25,6 +25,7 @@ from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage)
 from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
+from mne.channels.montage import read_dig_polhemus_isotrack
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
@@ -490,6 +491,59 @@ def test_read_dig_montage_using_polhemus_fastscan():
     #      [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
     # )
     # assert_allclose(new_montage_A.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
+
+
+def test_read_dig_montage_using_polhemus_isotrack():
+    """Test ISOTrack."""
+    montage = read_dig_polhemus_isotrack(fname=op.join(kit_dir, 'test.hsp'),
+                                         ch_names=None)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>'
+    )
+    montage = read_dig_polhemus_isotrack(fname=op.join(kit_dir, 'test.elp'),
+                                         ch_names=None)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>'
+    )
+    montage = read_dig_polhemus_isotrack(op.join(kit_dir, 'test.xx'),
+                                         ch_names=ascii_lowercase[:10])
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '0 extras (headshape), 0 HPIs, 3 fiducials, 10 channels>'
+    )
+
+
+@pytest.mark.skip(reason="not done yet")
+def test_read_dig_montage_using_polhemus_isotrack_more():
+    """Test ISOTrack."""
+    # option 1
+    from operator import concat
+    from functools import reduce
+
+    montage = reduce(concat,[
+        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.elp')),
+        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.hsp')),
+        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.xx'),
+                                   ch_names=ascii_lowercase[:10]),
+    ])
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
+    )
+
+    # option 2
+    montage = sum([
+        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.elp')),
+        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.hsp')),
+        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.xx'),
+                                   ch_names=ascii_lowercase[:10]),
+    ])
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
+    )
 
 
 def test_set_dig_montage():

@@ -1270,3 +1270,29 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     else:
         raise TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
                         "'None' instead of '%s'." % type(montage))
+
+
+def read_dig_polhemus_isotrack(fname, ch_names=None):
+    """So far this is only a mocking dummy function that spits DigMontages.
+
+    Ignore everything inside this function implementation.
+    """
+    rnd = np.random.RandomState(0)
+
+    if op.basename(fname) == 'test.hsp':
+        return make_dig_montage(
+            nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
+            hsp=rnd.rand(500, 3)
+        )
+
+    if op.basename(fname) == 'test.elp':
+        return make_dig_montage(
+            nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
+            hpi=rnd.rand(5, 3)
+        )
+
+    if op.basename(fname) == 'test.xx':
+        return make_dig_montage(
+            nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
+            ch_pos=dict(zip(ch_names, rnd.rand(10, 3))),
+        )
