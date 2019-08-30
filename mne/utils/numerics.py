@@ -556,8 +556,8 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     """Make grand average of a list evoked or AverageTFR data.
 
-    For evoked data, the function interpolates bad channels based on
-    `interpolate_bads` parameter. If `interpolate_bads` is True, the grand
+    For evoked data, the function interpolates bad channels based on the
+    ``interpolate_bads`` parameter. If ``interpolate_bads`` is True, the grand
     average file will contain good channels and the bad channels interpolated
     from the good MEG/EEG channels.
     For AverageTFR data, the function takes the subset of channels not marked
@@ -610,8 +610,10 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
                         else inst for inst in all_inst]
         equalize_channels(all_inst)  # apply equalize_channels
         from ..evoked import combine_evoked as combine
+        weights = [1. / len(all_inst)] * len(all_inst)
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
+        weights = 'equal'
 
     if drop_bads:
         bads = list({b for inst in all_inst for b in inst.info['bads']})
@@ -620,7 +622,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
                 inst.drop_channels(bads)
 
     # make grand_average object using combine_[evoked/tfr]
-    grand_average = combine(all_inst, weights='equal')
+    grand_average = combine(all_inst, weights=weights)
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_inst)
     # change comment field

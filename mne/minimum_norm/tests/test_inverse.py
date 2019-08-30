@@ -1,4 +1,5 @@
 import os.path as op
+from pathlib import Path
 import re
 
 import numpy as np
@@ -189,6 +190,7 @@ def _compare_io(inv_op, out_file_ext='.fif'):
         out_file = op.join(tempdir, 'test-inv.fif.gz')
     else:
         raise ValueError('IO test could not complete')
+    out_file = Path(out_file)
     # Test io operations
     inv_init = copy.deepcopy(inv_op)
     write_inverse_operator(out_file, inv_op)

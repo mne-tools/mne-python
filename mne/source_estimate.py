@@ -19,7 +19,7 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
-                    fill_doc, _check_option)
+                    fill_doc, _check_option, _validate_type)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
@@ -239,6 +239,8 @@ def read_source_estimate(fname, subject=None):
        '*-lh.w' and '*-rh.w'.
     """  # noqa: E501
     fname_arg = fname
+    _validate_type(fname, 'path-like', 'fname')
+    fname = str(fname)
 
     # make sure corresponding file(s) can be found
     ftype = None
@@ -565,6 +567,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             File format to use. Currently, the only allowed values is "h5".
         %(verbose_meth)s
         """
+        _validate_type(fname, 'path-like', 'fname')
+        fname = str(fname)
         if ftype != 'h5':
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
@@ -1403,6 +1407,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             and "h5". The "w" format only supports a single time point.
         %(verbose_meth)s
         """
+        _validate_type(fname, 'path-like', 'fname')
+        fname = str(fname)
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
 
         lh_data = self.data[:len(self.lh_vertno)]
@@ -1753,6 +1759,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         .. versionadded:: 0.9.0
         """
         import nibabel as nib
+        _validate_type(fname, 'path-like', 'fname')
+        fname = str(fname)
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
                              format=format)
         nib.save(img, fname)
@@ -1888,6 +1896,8 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             and "h5". The "w" format only supports a single time point.
         %(verbose_meth)s
         """
+        _validate_type(fname, 'path-like', 'fname')
+        fname = str(fname)
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
@@ -1902,7 +1912,6 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             _write_w(fname, vertices=self.vertices, data=self.data)
         elif ftype == 'h5':
             super().save(fname, 'h5')
-
         logger.info('[done]')
 
 
