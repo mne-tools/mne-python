@@ -17,6 +17,7 @@ from mne.source_tfr import SourceTFR
 
 rnd = np.random.RandomState(23)
 
+
 @pytest.fixture(scope="module")
 def fake_stfr():
     """Create a fake SourceTFR object for testing."""
