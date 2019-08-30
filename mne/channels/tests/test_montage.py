@@ -496,6 +496,7 @@ def test_read_dig_montage_using_polhemus_isotrak():
     # Old stuff
     from mne.io import read_raw_kit
     from mne.io.kit import __file__ as _KIT_INIT_FILE
+    from mne.channels._dig_montage_utils import _get_fid_coords
 
     data_dir = op.join(op.dirname(_KIT_INIT_FILE), 'tests', 'data')
     sqd_path = op.join(data_dir, 'test.sqd')
@@ -506,6 +507,18 @@ def test_read_dig_montage_using_polhemus_isotrak():
     raw_elp = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     EXPECTED_MONTAGE = DigMontage(dig=raw_elp.info['dig'], ch_names=None)
     xx = read_dig_montage(hsp=op.join(kit_dir, 'test.hsp'), transform=False)
+
+    aa, bb = _get_fid_coords(EXPECTED_MONTAGE.dig)
+
+    # XXX: its in head!!!
+    raw_elp_coord_frames = set([d['coord_frame'] for d in raw_elp.info['dig']])
+    assert raw_elp_coord_frames == {FIFF.FIFFV_COORD_HEAD}
+
+    EXPECTED_FID_IN_HEAD = {
+        'nasion': np.array([-8.94466792e-18,  1.10559624e-01, -3.85185989e-34]),
+        'lpa': np.array([-8.10816716e-02,  6.56321671e-18,  0.00000000e+00]),
+        'rpa': np.array([ 8.05048781e-02, -6.47441364e-18,  0.00000000e+00]),
+    }
 
     # New stuff
     import pdb; pdb.set_trace()
