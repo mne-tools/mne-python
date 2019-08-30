@@ -70,6 +70,8 @@ Changelog
 Bug
 ~~~
 
+- Fix saving raw read from BDF file using ``tmin`` and ``tmax`` using ``preload=False`` by `Alex Gramfort`_
+
 - Fix :func:`mne.grand_average` to use equal sum-to-one weights (like it used to, before changes to underlying :func:`mne.combine_evoked`) by `Daniel McCloy`_
 
 - Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
