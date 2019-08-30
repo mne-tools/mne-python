@@ -49,8 +49,8 @@ DEPRECATED_PARAM = object()
 def _check_get_coord_frame(dig):
     _MSG = 'Only single coordinate frame in dig is supported'
     dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, _MSG
-    return _frame_to_str[dig_coord_frames.pop()]
+    assert len(dig_coord_frames) <= 1, _MSG
+    return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
 class Montage(object):
@@ -607,6 +607,7 @@ class DigMontage(object):
             ).items() if val is not DEPRECATED_PARAM
         ]
         if not _non_deprecated_kwargs:
+            dig = Digitization() if dig is None else dig
             _validate_type(item=dig, types=Digitization,
                            item_name='dig', type_name='Digitization')
             ch_names = list() if ch_names is None else ch_names

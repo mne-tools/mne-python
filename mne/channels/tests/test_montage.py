@@ -579,7 +579,10 @@ def test_combining_DigMontage_objects():
         ch_pos={'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63]}
     )
 
-    montage = hsp1 + hsp2 + hsp3 + hpi1 + hpi2 + hpi3 + ch_pos1 + ch_pos2 + ch_pos3  # noqa
+    montage = (
+        DigMontage() + hsp1 + hsp2 + hsp3 + hpi1 + hpi2 + hpi3 + ch_pos1 +
+        ch_pos2 + ch_pos3
+    )
     assert montage.__repr__() == (
         '<DigMontage | '
         '6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>'
