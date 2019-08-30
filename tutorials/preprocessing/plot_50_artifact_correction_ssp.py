@@ -113,6 +113,7 @@ for average in (False, True):
 # created, the field pattern of the projectors can be easily visualized with
 # :func:`~mne.viz.plot_projs_topomap`.
 
+# sphinx_gallery_thumbnail_number = 3
 empty_room_projs = mne.compute_proj_raw(empty_room_raw, n_grad=3, n_mag=3)
 mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True)
 
@@ -151,12 +152,6 @@ for title, projs in [('system', system_projs),
     fig.suptitle(title, size='xx-large', weight='bold')
 
 ###############################################################################
-# For comparison, here is the same portion of the raw data without any
-# projectors applied:
-
-raw.plot(proj=False, order=mags, duration=2, n_channels=2)
-
-###############################################################################
 # The effect is sometimes easier to see on averaged data. Here we use an
 # interactive feature of :func:`mne.Evoked.plot_topomap` to turn projectors on
 # and off to see the effect on the data. Of course, the interactivity won't
@@ -176,7 +171,7 @@ reject = dict(mag=4000e-15,     # 4000 fT
 times = np.arange(0.05, 0.15, 0.01)
 
 epochs = mne.Epochs(raw, events, event_id, proj='delayed', reject=reject)
-fig = epochs.average().plot_topomap(times, proj='interactive', ch_type='eeg')
+fig = epochs.average().plot_topomap(times, proj='interactive')
 
 ###############################################################################
 # Plotting the ERP/F using ``evoked.plot()`` or ``evoked.plot_joint()`` with
