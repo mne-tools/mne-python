@@ -504,6 +504,7 @@ def test_read_dig_montage_using_polhemus_isotrak():
     hsp_path = op.join(data_dir, 'test.hsp')
 
     raw_elp = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    EXPECTED_MONTAGE = DigMontage(dig=raw_elp.info['dig'], ch_names=None)
     xx = read_dig_montage(hsp=op.join(kit_dir, 'test.hsp'), transform=False)
 
     # New stuff
