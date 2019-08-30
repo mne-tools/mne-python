@@ -103,7 +103,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None):
+             butterfly=False, decim='auto', noise_cov=None, event_id=None,
+             show_scrollbars=True):
     """Plot raw data.
 
     Parameters
@@ -231,6 +232,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         theh event numbers).
 
         .. versionadded:: 0.16.0
+    show_scrollbars : bool
+        Whether to show scrollbars when the plot is initialized. Can be toggled
+        after initialization by pressing :kbd:`z` ("zen mode") while the plot
+        window is focused. Default is ``True``.
+
+        .. versionadded:: 0.19.0
 
     Returns
     -------
@@ -402,7 +409,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, use_scalebars=True)
+                  unit_scalings=unit_scalings, use_scalebars=True,
+                  show_scrollbars=show_scrollbars)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection

@@ -570,6 +570,36 @@ def _update_borders(params, new_width, new_height):
             rel_dim = (1 - rel_dim)
         new_borders[side] = rel_dim
     params['fig'].subplots_adjust(**new_borders)
+    # zen mode
+    params['zen_w_delta'] *= old_width / new_width
+    params['zen_h_delta'] *= old_height / new_height
+
+
+def _toggle_scrollbars(params):
+    """Show or hide scrollbars (AKA zen mode) in mne_browse-style plots."""
+    if params.get('show_scrollbars', None) is not None:
+        # grow/shrink main axes to take up space from/make room for scrollbars
+        # can't use ax.set_position() because axes are locatable, so we have to
+        # fake it with subplots_adjust
+        should_show = not params['show_scrollbars']
+        sides = ('left', 'bottom', 'right', 'top')
+        borders = {side: getattr(params['fig'].subplotpars, side)
+                   for side in sides}
+        # if should_show, bottom margin moves up; right margin moves left
+        borders['bottom'] += (1 if should_show else -1) * params['zen_h_delta']
+        borders['right'] += (-1 if should_show else 1) * params['zen_w_delta']
+        # squeeze a little more because we no longer have "Ch." or "Time (s)"
+        v_delta = _inch_to_rel_dist(params['fig'], 0.15, horiz=False)
+        borders['top'] += (-1 if should_show else 1) * v_delta
+        borders['bottom'] += (1 if should_show else -1) * v_delta
+        params['fig'].subplots_adjust(**borders)
+        # show/hide
+        for element in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
+            # sometimes we don't have a proj button (ax_button)
+            if params.get(element, None) is not None:
+                params[element].set_visible(should_show)
+        params['show_scrollbars'] = should_show
+        params['fig'].canvas.draw()
 
 
 def _prepare_mne_browse(params, xlabel):
@@ -637,6 +667,14 @@ def _prepare_mne_browse(params, xlabel):
     # add resize callback (it's the same for Raw/Epochs/ICA)
     callback_resize = partial(_resize_event, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
+    # zen mode
+    fig.canvas.draw()  # otherwise the get_position() calls are inaccurate
+    params['zen_w_delta'] = (ax_vscroll.get_position().xmax -
+                             ax.get_position().xmax)
+    params['zen_h_delta'] = (ax.get_position().ymin -
+                             ax_hscroll.get_position().ymin)
+    if not params.get('show_scrollbars', True):
+        _toggle_scrollbars(params)
 
 
 @verbose
@@ -958,6 +996,9 @@ def _plot_raw_onkey(event, params):
         if not params['snap_annotations']:
             _on_hover(None, params)
         params['plot_fun']()
+    elif event.key == 'z':
+        # zen mode: remove scrollbars and buttons
+        _toggle_scrollbars(params)
 
 
 def _setup_annotation_fig(params):
