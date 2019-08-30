@@ -588,14 +588,13 @@ def _toggle_scrollbars(params):
         # if should_show, bottom margin moves up; right margin moves left
         borders['bottom'] += (1 if should_show else -1) * params['zen_h_delta']
         borders['right'] += (-1 if should_show else 1) * params['zen_w_delta']
-        # squeeze a little more because we no longer have "Ch." or "Time (s)"
-        v_delta = _inch_to_rel_dist(params['fig'], 0.15, horiz=False)
-        borders['top'] += (-1 if should_show else 1) * v_delta
+        # squeeze a little more because we don't need space for "Time (s)" now
+        v_delta = _inch_to_rel_dist(params['fig'], 0.16, horiz=False)
         borders['bottom'] += (1 if should_show else -1) * v_delta
         params['fig'].subplots_adjust(**borders)
         # show/hide
         for element in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
-            if params['butterfly'] and element == 'ax_vscroll':
+            if params.get('butterfly', False) and element == 'ax_vscroll':
                 continue
             # sometimes we don't have a proj button (ax_button)
             if params.get(element, None) is not None:
