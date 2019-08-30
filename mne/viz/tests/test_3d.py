@@ -186,7 +186,7 @@ def test_plot_alignment(tmpdir, renderer):
         meg = ['helmet', 'sensors']
         if system == 'KIT':
             meg.append('ref')
-        fig = plot_alignment(info, trans_fname, subject='sample',
+        fig = plot_alignment(info, read_trans(trans_fname), subject='sample',
                              subjects_dir=subjects_dir, meg=meg)
         rend = renderer._Renderer(fig=fig)
         rend.close()
