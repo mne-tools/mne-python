@@ -142,10 +142,9 @@ File I/O
    write_source_spaces
    write_surface
    write_trans
+   what
    io.read_info
    io.show_fiff
-   digitization.DigPoint
-   digitization.Digitization
 
 Base class:
 
@@ -310,6 +309,10 @@ Projections:
    read_montage
    get_builtin_montages
    read_dig_montage
+   make_dig_montage
+   read_dig_captrack
+   read_dig_egi
+   read_dig_fif
    read_layout
    find_layout
    make_eeg_layout

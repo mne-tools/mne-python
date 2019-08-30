@@ -8,6 +8,7 @@
 # License: Simplified BSD
 
 import os.path as op
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -19,7 +20,7 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  setup_volume_source_space, read_forward_solution,
                  VolVectorSourceEstimate, convert_forward_solution)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
-from mne.digitization._utils import write_dig
+from mne._digitization._utils import write_dig
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
@@ -209,7 +210,7 @@ def test_plot_alignment(tmpdir, renderer):
     plot_alignment(info, surfaces=[])
     for coord_frame in ('meg', 'head', 'mri'):
         fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
-                             coord_frame=coord_frame, trans=trans_fname,
+                             coord_frame=coord_frame, trans=Path(trans_fname),
                              subject='sample', mri_fiducials=fiducials_path,
                              subjects_dir=subjects_dir, src=src_fname)
     renderer._close_all()

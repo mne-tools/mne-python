@@ -723,7 +723,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
     seeg_picks = pick_types(info, meg=False, seeg=True, ref_meg=False)
 
-    if isinstance(trans, str):
+    if trans is None:
+        trans = Transform('head', 'mri')
+    else:
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -737,10 +739,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                     raise
             else:
                 break
-    elif trans is None:
-        trans = Transform('head', 'mri')
-    else:
-        _validate_type(trans, (Transform,), "str, Transform, or None")
     head_mri_t = _ensure_trans(trans, 'head', 'mri')
     dev_head_t = info['dev_head_t']
     del trans
@@ -2584,15 +2582,15 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     im : array, shape (m, n, 3)
         The screenshot of the current scene view
     """
-    from ..channels import Montage, DigMontage
+    from ..channels import DigMontage
     from .. import Info
     # Update the backend
     from .backends.renderer import _Renderer
 
     if fig is None:
         raise ValueError('The figure must have a scene')
-    if isinstance(montage, (Montage, DigMontage)):
-        chs = montage.dig_ch_pos
+    if isinstance(montage, DigMontage):
+        chs = montage._get_ch_pos()
         ch_names, xyz = zip(*[(ich, ixyz) for ich, ixyz in chs.items()])
     elif isinstance(montage, Info):
         xyz = [ich['loc'][:3] for ich in montage['chs']]

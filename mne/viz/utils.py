@@ -8,6 +8,7 @@
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Clemens Brunner <clemens.brunner@gmail.com>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
@@ -36,8 +37,8 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import (verbose, set_config, warn, _check_ch_locs, _check_option,
-                     logger, fill_doc)
+from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
+                     _check_option, logger, fill_doc)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -522,63 +523,119 @@ def _simplify_float(label):
     return label
 
 
-def _layout_figure(params):
-    """Set figure layout. Shared with raw and epoch plots."""
-    size = params['fig'].get_size_inches() * params['fig'].dpi
+def _get_figsize_from_config():
+    """Get default / most recent figure size from config."""
+    figsize = get_config('MNE_BROWSE_RAW_SIZE')
+    if figsize is not None:
+        figsize = figsize.split(',')
+        figsize = tuple([float(s) for s in figsize])
+    return figsize
+
+
+def _get_figsize_px(fig):
+    """Get figure size in pixels."""
+    dpi_ratio = _get_dpi_ratio(fig)
+    size = fig.get_size_inches() * fig.dpi / dpi_ratio
+    return size
+
+
+def _get_dpi_ratio(fig):
+    """Get DPI ratio (to handle hi-DPI screens)."""
     dpi_ratio = 1.
     for key in ('_dpi_ratio', '_device_scale'):
-        dpi_ratio = getattr(params["fig"].canvas, key, dpi_ratio)
-    size /= dpi_ratio  # account for HiDPI resolutions
+        dpi_ratio = getattr(fig.canvas, key, dpi_ratio)
+    return dpi_ratio
 
-    scroll_width = 25
-    hscroll_dist = 25
-    vscroll_dist = 10
-    l_border = 100
-    r_border = 10
-    t_border = 35
-    b_border = 45
 
-    # only bother trying to reset layout if it's reasonable to do so
-    if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
-        return
+def _inch_to_rel_dist(fig, dim_inches, horiz=True):
+    """Convert inches to figure-relative distances."""
+    fig_w_px, fig_h_px = _get_figsize_px(fig)
+    w_or_h = fig_w_px if horiz else fig_h_px
+    return dim_inches * fig.dpi / _get_dpi_ratio(fig) / w_or_h
 
-    # convert to relative units
-    scroll_width_x = scroll_width / size[0]
-    scroll_width_y = scroll_width / size[1]
-    vscroll_dist /= size[0]
-    hscroll_dist /= size[1]
-    l_border /= size[0]
-    r_border /= size[0]
-    t_border /= size[1]
-    b_border /= size[1]
-    # main axis (traces)
-    ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
-    ax_y = hscroll_dist + scroll_width_y + b_border
-    ax_height = 1.0 - ax_y - t_border
 
-    pos = [l_border, ax_y, ax_width, ax_height]
+def _update_borders(params, new_width, new_height):
+    """Update figure borders to maintain fixed size in inches/pixels."""
+    old_width, old_height = params['fig_size_px']
+    new_borders = dict()
+    sides = ('left', 'right', 'bottom', 'top')
+    for side in sides:
+        horiz = side in ('left', 'right')
+        ratio = (old_width / new_width) if horiz else (old_height / new_height)
+        rel_dim = getattr(params['fig'].subplotpars, side)
+        if side in ('right', 'top'):
+            rel_dim = (1 - rel_dim)
+        rel_dim = rel_dim * ratio
+        if side in ('right', 'top'):
+            rel_dim = (1 - rel_dim)
+        new_borders[side] = rel_dim
+    params['fig'].subplots_adjust(**new_borders)
 
-    params['ax'].set_position(pos)
-    if 'ax2' in params:
-        params['ax2'].set_position(pos)
-    params['ax'].set_position(pos)
-    # vscroll (channels)
-    pos = [ax_width + l_border + vscroll_dist, ax_y,
-           scroll_width_x, ax_height]
-    params['ax_vscroll'].set_position(pos)
-    # hscroll (time)
-    pos = [l_border, b_border, ax_width, scroll_width_y]
-    params['ax_hscroll'].set_position(pos)
-    if 'ax_button' in params:
-        # options button
-        pos = [l_border + ax_width + vscroll_dist, b_border,
-               scroll_width_x, scroll_width_y]
-        params['ax_button'].set_position(pos)
-    if 'ax_help_button' in params:
-        pos = [l_border - vscroll_dist - scroll_width_x * 2, b_border,
-               scroll_width_x * 2, scroll_width_y]
-        params['ax_help_button'].set_position(pos)
-    params['fig'].canvas.draw()
+
+def _prepare_mne_browse(params, xlabel):
+    """Set up axes for mne_browse_* style raw/epochs/ICA plots."""
+    import matplotlib as mpl
+    from mpl_toolkits.axes_grid1.axes_size import Fixed
+    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
+    fig = params['fig']
+    fig_w_px, fig_h_px = _get_figsize_px(fig)
+    params['fig_size_px'] = fig_w_px, fig_h_px  # store for on_resize callback
+    # default sizes (inches)
+    scroll_width = 0.25
+    hscroll_dist = 0.25
+    vscroll_dist = 0.1
+    l_border = 1.
+    r_border = 0.1
+    b_border = 0.45
+    t_border = 0.25
+    help_width = scroll_width * 2
+    # default borders (figure-relative coordinates)
+    fig.subplots_adjust(
+        left=_inch_to_rel_dist(fig, l_border - vscroll_dist - help_width),
+        right=1 - _inch_to_rel_dist(fig, r_border),
+        bottom=_inch_to_rel_dist(fig, b_border, horiz=False),
+        top=1 - _inch_to_rel_dist(fig, t_border, horiz=False)
+    )
+    # Main axes must be a `subplot` for `subplots_adjust` to work (so user can
+    # adjust margins). That's why we don't use the Divider class directly.
+    ax = fig.add_subplot(1, 1, 1)
+    div = make_axes_locatable(ax)
+    ax_hscroll = div.append_axes(position='bottom', size=Fixed(scroll_width),
+                                 pad=Fixed(hscroll_dist))
+    ax_vscroll = div.append_axes(position='right', size=Fixed(scroll_width),
+                                 pad=Fixed(vscroll_dist))
+    # proj button (optionally) added later, but easiest to compute position now
+    proj_button_pos = [
+        1 - _inch_to_rel_dist(fig, r_border + scroll_width),  # left
+        _inch_to_rel_dist(fig, b_border, horiz=False),        # bottom
+        _inch_to_rel_dist(fig, scroll_width),                 # width
+        _inch_to_rel_dist(fig, scroll_width, horiz=False)     # height
+    ]
+    params['proj_button_pos'] = proj_button_pos
+    params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
+    # initialize help button in the wrong spot...
+    ax_help_button = div.append_axes(position='left', size=Fixed(help_width),
+                                     pad=Fixed(vscroll_dist))
+    # ...then move it down by changing its locator, and make it a button.
+    loc = div.new_locator(nx=0, ny=0)
+    ax_help_button.set_axes_locator(loc)
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(partial(_onclick_help, params=params))
+    # style scrollbars
+    ax_hscroll.get_yaxis().set_visible(False)
+    ax_hscroll.set_xlabel(xlabel)
+    ax_vscroll.set_axis_off()
+    # store these so they can be modified elsewhere
+    params['ax'] = ax
+    params['ax_hscroll'] = ax_hscroll
+    params['ax_vscroll'] = ax_vscroll
+    params['help_button'] = help_button
+    # default key to close window
+    params['close_key'] = 'escape'
+    # add resize callback (it's the same for Raw/Epochs/ICA)
+    callback_resize = partial(_resize_event, params=params)
+    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
 
 
 @verbose
@@ -646,11 +703,13 @@ def figure_nobar(*args, **kwargs):
     return fig
 
 
-def _helper_raw_resize(event, params):
-    """Resize."""
+def _resize_event(event, params):
+    """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
-    _layout_figure(params)
+    new_width, new_height = _get_figsize_px(params['fig'])
+    _update_borders(params, new_width, new_height)
+    params['fig_size_px'] = (new_width, new_height)
 
 
 def _plot_raw_onscroll(event, params, len_channels=None):

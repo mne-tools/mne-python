@@ -148,6 +148,21 @@ This must be done *before* running linear algebra functions; subsequent
 changes in the same Python session will have no effect.
 
 
+I have a mystery FIF file, how do I read it?
+--------------------------------------------
+
+The :func:`mne.what` function can be called on any :file:`.fif` file to
+identify the kind of data contained in the file. This will help you determine
+whether to use :func:`mne.read_cov`, :func:`mne.read_epochs`,
+:func:`mne.read_evokeds`, etc. There is also a corresponding command line tool
+:ref:`mne what <gen_mne_what>`:
+
+.. code-block:: console
+
+    $ mne what sample_audvis_eog-eve.fif
+    events
+
+
 Resampling and decimating data
 ==============================
 
