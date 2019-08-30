@@ -2,6 +2,7 @@
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
@@ -14,15 +15,14 @@ from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels)
-from ..utils import (verbose, get_config, _ensure_int, _validate_type,
-                     _check_option)
+from ..utils import verbose, _ensure_int, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
-from .utils import (_toggle_options, _toggle_proj, _layout_figure,
+from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
-                    _helper_raw_resize, _select_bads, _onclick_help,
+                    _select_bads, _get_figsize_from_config,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
@@ -261,7 +261,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     By default, the channel means are removed when ``remove_dc`` is set to
     ``True``. This flag can be toggled by pressing 'd'.
     """
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
     from ..io.base import BaseRaw
@@ -430,23 +429,23 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
     params['scale_factor'] = 1.0
-    # set up callbacks
+    # set up proj button
     opt_button = None
     if len(raw.info['projs']) > 0 and not raw.proj:
-        ax_button = plt.subplot2grid((10, 10), (9, 9))
+        ax_button = params['fig'].add_axes(params['proj_button_pos'])
+        ax_button.set_axes_locator(params['proj_button_locator'])
         params['ax_button'] = ax_button
         params['apply_proj'] = proj
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
         callback_option = partial(_toggle_options, params=params)
         opt_button.on_clicked(callback_option)
+    # set up callbacks
     callback_key = partial(_plot_raw_onkey, params=params)
     params['fig'].canvas.mpl_connect('key_press_event', callback_key)
     callback_scroll = partial(_plot_raw_onscroll, params=params)
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-    callback_resize = partial(_helper_raw_resize, params=params)
-    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -462,7 +461,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # do initial plots
     callback_proj('none')
-    _layout_figure(params)
 
     # deal with projectors
     if show_options:
@@ -649,32 +647,16 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
 def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels):
     """Set up the mne_browse_raw window."""
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
-    size = get_config('MNE_BROWSE_RAW_SIZE')
-    if size is not None:
-        size = size.split(',')
-        size = tuple([float(s) for s in size])
-        size = tuple([float(s) for s in size])
 
-    fig = figure_nobar(facecolor=bgcolor, figsize=size)
-    fig.canvas.set_window_title(title or "Raw")
-    ax = plt.subplot2grid((10, 10), (0, 1), colspan=8, rowspan=9)
-    ax_hscroll = plt.subplot2grid((10, 10), (9, 1), colspan=8)
-    ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Time (s)')
-    ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
-    ax_vscroll.set_axis_off()
-    ax_help_button = plt.subplot2grid((10, 10), (0, 0), colspan=1)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(partial(_onclick_help, params=params))
-    # store these so they can be fixed on resize
-    params['fig'] = fig
-    params['ax'] = ax
-    params['ax_hscroll'] = ax_hscroll
-    params['ax_vscroll'] = ax_vscroll
-    params['ax_help_button'] = ax_help_button
-    params['help_button'] = help_button
+    figsize = _get_figsize_from_config()
+    params['fig'] = figure_nobar(facecolor=bgcolor, figsize=figsize)
+    params['fig'].canvas.set_window_title(title or "Raw")
+    # most of the axes setup is done in _prepare_mne_browse
+    _prepare_mne_browse(params, xlabel='Time (s)')
+    ax = params['ax']
+    ax_hscroll = params['ax_hscroll']
+    ax_vscroll = params['ax_vscroll']
 
     # populate vertical and horizontal scrollbars
     info = params['info']
@@ -743,9 +725,6 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
-
-    # default key to close window
-    params['close_key'] = 'escape'
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,

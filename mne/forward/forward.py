@@ -1792,9 +1792,11 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             mindist = ['--mindist', '%g' % mindist]
 
     # src, spacing, bem
-    for element, name in zip((src, spacing, bem), ("src", "spacing", "bem")):
+    for element, name, kind in zip((src, spacing, bem),
+                                   ("src", "spacing", "bem"),
+                                   ('path-like', 'str', 'path-like')):
         if element is not None:
-            _validate_type(element, "str", name, "string or None")
+            _validate_type(element, kind, name, "%s or None" % kind)
 
     # put together the actual call
     cmd = ['mne_do_forward_solution',

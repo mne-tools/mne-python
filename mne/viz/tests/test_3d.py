@@ -8,6 +8,7 @@
 # License: Simplified BSD
 
 import os.path as op
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -209,7 +210,7 @@ def test_plot_alignment(tmpdir, renderer):
     plot_alignment(info, surfaces=[])
     for coord_frame in ('meg', 'head', 'mri'):
         fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
-                             coord_frame=coord_frame, trans=trans_fname,
+                             coord_frame=coord_frame, trans=Path(trans_fname),
                              subject='sample', mri_fiducials=fiducials_path,
                              subjects_dir=subjects_dir, src=src_fname)
     renderer._close_all()

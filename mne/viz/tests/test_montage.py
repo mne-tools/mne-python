@@ -10,7 +10,7 @@ import os.path as op
 import pytest
 import matplotlib.pyplot as plt
 
-from mne.channels import read_montage, read_dig_montage
+from mne.channels import read_montage, read_dig_montage, read_dig_fif
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')
 elp = op.join(p_dir, 'test_elp.txt')
@@ -38,7 +38,7 @@ def test_plot_montage():
     assert '0 channels' in repr(d)
     with pytest.raises(RuntimeError, match='No valid channel positions'):
         d.plot()
-    d = read_dig_montage(fif=fif_fname)
+    d = read_dig_fif(fname=fif_fname)
     assert '61 channels' in repr(d)
     # XXX this is broken; dm.point_names is used. Sometimes we say this should
     # Just contain the HPI coils, other times that it's all channels (e.g.,

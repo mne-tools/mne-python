@@ -38,7 +38,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
                      check_fname, _get_stim_channel, deprecated,
                      logger, verbose, _time_mask, warn, SizeMixin,
-                     copy_function_doc_to_method_doc,
+                     copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
@@ -348,11 +348,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             if last_samps is None:
                 raise ValueError('last_samps must be given unless preload is '
                                  'an ndarray')
-            if preload is False:
+            if not preload:
                 self.preload = False
                 load_from_disk = False
-            elif preload is not True and not isinstance(preload, str):
-                raise ValueError('bad preload: %s' % preload)
             else:
                 load_from_disk = True
         self._last_samps = np.array(last_samps)
@@ -527,12 +525,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 raise ValueError('data_buffer has incorrect shape: %s != %s'
                                  % (data_buffer.shape, data_shape))
             data = data_buffer
-        elif isinstance(data_buffer, str):
-            # use a memmap
-            data = np.memmap(data_buffer, mode='w+',
-                             dtype=dtype, shape=data_shape)
         else:
-            data = np.zeros(data_shape, dtype=dtype)
+            data = _allocate_data(data_buffer, data_shape, dtype)
 
         # deal with having multiple files accessed by the raw object
         cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
@@ -667,8 +661,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def _preload_data(self, preload, verbose=None):
         """Actually preload the data."""
-        data_buffer = preload if isinstance(preload, (str,
-                                                      np.ndarray)) else None
+        data_buffer = preload
+        if isinstance(preload, (bool, np.bool_)) and not preload:
+            data_buffer = None
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (0, len(self.times) - 1, 0., self.times[-1]))
         self._data = self._read_segment(data_buffer=data_buffer)
@@ -1487,13 +1482,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
+        fname = op.realpath(fname)
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
                                    'raw_tsss.fif.gz', '_meg.fif'))
 
         split_size = _get_split_size(split_size)
-
-        fname = op.realpath(fname)
         if not self.preload and fname in self._filenames:
             raise ValueError('You cannot save data to the same file.'
                              ' Please use a different filename.')
@@ -1805,12 +1799,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 this_data = self._data
 
             # allocate the buffer
-            if isinstance(preload, str):
-                _data = np.memmap(preload, mode='w+', dtype=this_data.dtype,
-                                  shape=(nchan, nsamp))
-            else:
-                _data = np.empty((nchan, nsamp), dtype=this_data.dtype)
-
+            _data = _allocate_data(preload, (nchan, nsamp), this_data.dtype)
             _data[:, 0:c_ns[0]] = this_data
 
             for ri in range(len(raws)):
@@ -1924,16 +1913,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
 
-def _allocate_data(data, data_buffer, data_shape, dtype):
+def _allocate_data(preload, shape, dtype):
     """Allocate data in memory or in memmap for preloading."""
-    if data is None:
-        # if not already done, allocate array with right type
-        if isinstance(data_buffer, str):
-            # use a memmap
-            data = np.memmap(data_buffer, mode='w+',
-                             dtype=dtype, shape=data_shape)
-        else:
-            data = np.zeros(data_shape, dtype=dtype)
+    if preload in (None, True):  # None comes from _read_segment
+        data = np.zeros(shape, dtype)
+    else:
+        _validate_type(preload, 'path-like', 'preload')
+        data = np.memmap(str(preload), mode='w+', dtype=dtype, shape=shape)
     return data
 
 

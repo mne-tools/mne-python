@@ -16,13 +16,13 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 import pytest
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
-                 grand_average, combine_evoked, create_info, read_events,
+                 combine_evoked, create_info, read_events,
                  Epochs, EpochsArray)
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import (_TempDir, requires_pandas, requires_version,
-                       run_tests_if_main)
+                       run_tests_if_main, grand_average)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -541,13 +541,13 @@ def test_arithmetic():
     assert_equal(ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
     pytest.raises(TypeError, grand_average, [1, evoked1])
-    gave = grand_average([ev1, ev1, ev2])
-    assert_allclose(gave.data, np.ones_like(gave.data))
+    gave = grand_average([ev1, ev1, ev2])  # (1 + 1 + -1) / 3  =  1/3
+    assert_allclose(gave.data, np.full_like(gave.data, 1. / 3.))
 
     # test channel (re)ordering
     evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
     data2 = evoked2.data  # assumes everything is ordered to the first evoked
-    data = (evoked1.data + evoked2.data)
+    data = (evoked1.data + evoked2.data) / 2.
     evoked2.reorder_channels(evoked2.ch_names[::-1])
     assert not np.allclose(data2, evoked2.data)
     with pytest.warns(RuntimeWarning, match='reordering'):

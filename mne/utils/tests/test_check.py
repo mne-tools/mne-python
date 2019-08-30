@@ -8,6 +8,7 @@ import shutil
 
 import numpy as np
 import pytest
+from pathlib import Path
 
 import mne
 from mne.datasets import testing
@@ -15,7 +16,7 @@ from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
-                       check_version)
+                       check_version, _check_path_like)
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -29,6 +30,7 @@ def test_check():
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
+    _check_fname(Path('./'))
     pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
@@ -144,3 +146,14 @@ def test_check_option():
            "is 'valid', but got 'bad' instead.")
     with pytest.raises(ValueError, match=msg):
         assert _check_option('option', 'bad', ['valid'])
+
+
+def test_check_path_like():
+    """Test _check_path_like()."""
+    str_path = str(base_dir)
+    pathlib_path = Path(base_dir)
+    no_path = dict(foo='bar')
+
+    assert _check_path_like(str_path) is True
+    assert _check_path_like(pathlib_path) is True
+    assert _check_path_like(no_path) is False
