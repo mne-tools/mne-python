@@ -11,3 +11,5 @@ from .montage import (read_montage, read_dig_montage, Montage, DigMontage,
 from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
                        read_ch_connectivity, _get_ch_type,
                        find_ch_connectivity, make_1020_channel_selections)
+
+from .._digitization._utils import _read_dig_points as read_polhemus_fastscan

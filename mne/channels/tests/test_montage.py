@@ -25,6 +25,8 @@ from mne.channels import (Montage, read_montage, read_dig_montage,
 from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
 from mne.channels.montage import read_dig_polhemus_isotrack
+from mne.channels import read_polhemus_fastscan
+
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
@@ -42,6 +44,7 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
 
 from mne.datasets import testing
+
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
@@ -445,15 +448,11 @@ def test_read_dig_montage():
         assert_allclose(montage_extra.elp, montage.elp)
 
 
-# XXXX: this should be a function not an alias
-read_polhemus_fast_scan = _read_dig_points
-
-
 def test_read_dig_montage_using_polhemus_fastscan():
     """Test FastScan."""
     N_EEG_CH = 10
 
-    my_electrode_positions = read_polhemus_fast_scan(
+    my_electrode_positions = read_polhemus_fastscan(
         op.join(kit_dir, 'test_elp.txt')
     ) / 1000
 
@@ -466,7 +465,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
         lpa=my_electrode_positions[1],
         rpa=my_electrode_positions[2],
         hpi=my_electrode_positions[3:],
-        hsp=read_polhemus_fast_scan(op.join(kit_dir, 'test_hsp.txt')) / 1000,
+        hsp=read_polhemus_fastscan(op.join(kit_dir, 'test_hsp.txt')) / 1000,
         hpi_dev=None,  # XXX: I'm not sure we should allow hpi_dev
 
         # Other defaults
@@ -515,7 +514,7 @@ def test_read_dig_montage_using_polhemus_isotrack():
     )
 
 
-def test_combining_DigMontage_objects():
+def test_combining_digmontage_objects():
     """Test combining different DigMontage objects."""
     rng = np.random.RandomState(0)
     fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
@@ -568,7 +567,7 @@ def test_combining_DigMontage_objects():
     assert montage == EXPECTED_MONTAGE
 
 
-def test_combining_DigMontage_forviden_behaviors():
+def test_combining_digmontage_forviden_behaviors():
     """Test combining different DigMontage objects with repeated names."""
     rng = np.random.RandomState(0)
     fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
@@ -586,10 +585,10 @@ def test_combining_DigMontage_forviden_behaviors():
     )
 
     with pytest.raises(RuntimeError, match='Cannot.*duplicated channel names'):
-        dig1 + dig2
+        _ = dig1 + dig2
 
     with pytest.raises(RuntimeError, match='fiducial locations do not match'):
-        dig1 + dig2_wrong_fid
+        _ = dig1 + dig2_wrong_fid
 
 
 def test_set_dig_montage():
@@ -1069,11 +1068,9 @@ def test_dig_dev_head_t_regression():
     assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
 
-def test_make_dig_montage_errors():
+def test_digmontage_constructor_errors():
     """Test proper error messaging."""
     with pytest.raises(ValueError, match='does not match the number'):
         _ = DigMontage(ch_names=['foo', 'bar'], dig=Digitization())
-    with pytest.raises(TypeError, match='must be an instance of Digitization'):
-        _ = DigMontage(ch_names=['foo', 'bar'], dig=None)
 
 run_tests_if_main()
