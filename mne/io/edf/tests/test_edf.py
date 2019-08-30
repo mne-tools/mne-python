@@ -98,6 +98,13 @@ def test_bdf_data():
 
 
 @testing.requires_testing_data
+def test_bdf_crop_save_stim_channel(tmpdir):
+    """Test EDF with various sampling rates."""
+    raw = read_raw_bdf(bdf_stim_channel_path)
+    raw.save(tmpdir.join('test-raw.fif'), tmin=1.2, tmax=4.0, overwrite=True)
+
+
+@testing.requires_testing_data
 def test_edf_reduced():
     """Test EDF with various sampling rates."""
     _test_raw_reader(read_raw_edf, input_fname=edf_reduced, verbose='error')

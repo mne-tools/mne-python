@@ -19,7 +19,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger, verbose, _ensure_int
+from .utils import check_fname, logger, verbose, _ensure_int, _check_path_like
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -432,7 +432,8 @@ def _ensure_trans(trans, fro='mri', to='head'):
 
 def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
-    if isinstance(trans, str):
+    if _check_path_like(trans):
+        trans = str(trans)
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:

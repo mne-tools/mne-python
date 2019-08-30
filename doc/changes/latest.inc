@@ -17,6 +17,8 @@ Changelog
 
 - Add :class:`mne.SourceTFR` class, a container for time frequency transformed source level data by `Dirk Gütlin`_
 
+- Add support for making epochs with duplicated events, by allowing three policies: "error" (default), "drop", or "merge" in :class:`mne.Epochs` by `Stefan Appelhoff`_
+
 - Add :func:`mne.channels.make_dig_montage` to create :class:`mne.channels.DigMontage` objects out of np.arrays by `Joan Massich`_
 
 - Add support for reading in BrainVision CapTrak (BVCT) digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Stefan Appelhoff`_
@@ -43,9 +45,11 @@ Changelog
 
 - Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 
+- Add function to check the type of a FIF file using :func:`mne.what` and `mne what <gen_mne_what>` by `Eric Larson`_
+
 - Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
 
-- Add :class:`mne.digitization.Digitization` class to simplify montage by `Joan Massich`_
+- Speed up :func:`mne.setup_volume_source_space`, especially when ``volume_label is not None`` by `Eric Larson`_
 
 - Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
 
@@ -67,6 +71,10 @@ Changelog
 
 Bug
 ~~~
+
+- Fix saving raw read from BDF file using ``tmin`` and ``tmax`` using ``preload=False`` by `Alex Gramfort`_
+
+- Fix :func:`mne.grand_average` to use equal sum-to-one weights (like it used to, before changes to underlying :func:`mne.combine_evoked`) by `Daniel McCloy`_
 
 - Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
 
@@ -128,6 +136,12 @@ Bug
 
 API
 ~~~
+
+- Deprecate passing ``np.arrays`` as ``hsp``, ``hpi`` or ``elp`` parameters to ``mne.channels.read_dig_montage`` by `Joan Massich`_.
+
+- Deprecate ``fif`` and ``egi`` parameters in ``mne.channels.read_dig_montage`` by `Joan Massich`_.
+
+- Deprecate ``mne.evoked.grand_average`` in favor of :func:`mne.grand_average` (which works on both :class:`~mne.Evoked` and :class:`~mne.time_frequency.AverageTFR`) by `Daniel McCloy`_
 
 - Deprecate ``exclude`` parameter in :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources`, instead always use the ``exclude`` attribute of the ICA object by `Daniel McCloy`_.
 

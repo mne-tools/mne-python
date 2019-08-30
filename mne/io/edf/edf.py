@@ -395,7 +395,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
                 stim_channel_idx.append(stim_ch_idx)
         stim_channel_idx = np.array(stim_channel_idx).ravel()
 
-    if subtype == 'bdf':
+    if subtype == 'bdf' and len(stim_channel_idx) > 0:
         cal[0, stim_channel_idx] = 1
         offsets[stim_channel_idx, 0] = 0
         gains[0, stim_channel_idx] = 1

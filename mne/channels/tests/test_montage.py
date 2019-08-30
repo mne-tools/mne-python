@@ -19,8 +19,10 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
-                          get_builtin_montages, DigMontage)
+                          get_builtin_montages, DigMontage,
+                          read_dig_egi, read_dig_captrack, read_dig_fif)
 from mne.channels.montage import _set_montage
+from mne.channels.montage import transform_to_head
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
@@ -405,11 +407,12 @@ def test_read_dig_montage():
     assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
     # Digitizer as array
-    m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names, unit='m')
     with pytest.deprecated_call():
+        m2 = read_dig_montage(hsp_points, hpi_points, elp_points, names,
+                              unit='m')
         assert_array_equal(m2.hsp, montage.hsp)
-    m3 = read_dig_montage(hsp_points * 1000, hpi_points, elp_points * 1000,
-                          names)
+        m3 = read_dig_montage(hsp_points * 1000, hpi_points, elp_points * 1000,
+                              names)
     with pytest.deprecated_call():
         assert_allclose(m3.hsp, montage.hsp)
 
@@ -458,7 +461,8 @@ def test_set_dig_montage():
     temp_dir = _TempDir()
     fname_temp = op.join(temp_dir, 'test.fif')
     montage.save(fname_temp)
-    montage_read = read_dig_montage(fif=fname_temp)
+    with pytest.deprecated_call():
+        montage_read = read_dig_montage(fif=fname_temp)
     for use_mon in (montage, montage_read):
         info = create_info(['Test Ch'], 1e3, ['eeg'])
         with pytest.warns(None):  # warns on one run about not all positions
@@ -487,7 +491,8 @@ def test_set_dig_montage():
 @testing.requires_testing_data
 def test_fif_dig_montage():
     """Test FIF dig montage support."""
-    dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
 
     # test round-trip IO
     temp_dir = _TempDir()
@@ -532,11 +537,19 @@ def test_fif_dig_montage():
     montage = read_dig_montage(hsp, hpi, elp, names)
     _check_roundtrip(montage, fname_temp)
 
+    # Test old way matches new way
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+    dig_montage_fif = read_dig_fif(fif_dig_montage_fname)
+    assert dig_montage.dig == dig_montage_fif.dig
+    assert object_diff(dig_montage.ch_names, dig_montage_fif.ch_names) == ''
+
 
 @testing.requires_testing_data
 def test_egi_dig_montage():
     """Test EGI MFF XML dig montage support."""
-    dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
 
     # # test round-trip IO
     temp_dir = _TempDir()
@@ -566,14 +579,23 @@ def test_egi_dig_montage():
         assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
 
+    # Test old way matches new way
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
+    dig_montage_egi = read_dig_egi(egi_dig_montage_fname)
+    dig_montage_egi = transform_to_head(dig_montage_egi)
+    assert dig_montage.dig == dig_montage_egi.dig
+    assert object_diff(dig_montage.ch_names, dig_montage_egi.ch_names) == ''
+
 
 @testing.requires_testing_data
-def test_bvct_dig_montage():
+def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
     """Test BrainVision CapTrak XML dig montage support."""
     with pytest.warns(RuntimeWarning, match='Using "m" as unit for BVCT file'):
         read_dig_montage(bvct=bvct_dig_montage_fname, unit='m')
 
-    dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
+    with pytest.deprecated_call():
+        dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
 
     # test round-trip IO
     temp_dir = _TempDir()
@@ -603,6 +625,47 @@ def test_bvct_dig_montage():
     assert_dig_allclose(raw_bv.info, test_raw_bv.info)
 
 
+@testing.requires_testing_data
+def test_read_dig_captrack(tmpdir):
+    """Test reading a captrack montage file."""
+    EXPECTED_CH_NAMES = [
+        'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
+        'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CPz', 'Cz', 'F1', 'F2', 'F3', 'F4',
+        'F5', 'F6', 'F7', 'F8', 'FC1', 'FC2', 'FC3', 'FC4', 'FC5', 'FC6',
+        'FT10', 'FT7', 'FT8', 'FT9', 'Fp1', 'Fp2', 'Fz', 'O1', 'O2', 'Oz',
+        'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'PO10', 'PO3', 'PO4',
+        'PO7', 'PO8', 'PO9', 'POz', 'Pz', 'T7', 'T8', 'TP10', 'TP7', 'TP8',
+        'TP9'
+    ]
+    montage = read_dig_captrack(
+        fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
+    )
+
+    assert montage.ch_names == EXPECTED_CH_NAMES
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '0 extras (headshape), 0 HPIs, 3 fiducials, 64 channels>'
+    )
+
+    montage = transform_to_head(montage)  # transform_to_head has to be tested
+    _check_roundtrip(montage=montage, fname=str(tmpdir.join('bvct_test.fif')))
+
+    with pytest.deprecated_call():
+        assert_allclose(
+            actual=np.array([montage.nasion, montage.lpa, montage.rpa]),
+            desired=[[0, 0.11309, 0], [-0.09189, 0, 0], [0.09240, 0, 0]],
+            atol=1e-5,
+        )
+
+    # I think that comparing dig should be enough. cc: @sappelhoff
+    raw_bv = read_raw_brainvision(bv_raw_fname)
+    with pytest.warns(RuntimeWarning, match='Did not set 3 channel pos'):
+        raw_bv.set_montage(montage)
+    test_raw_bv = read_raw_fif(bv_fif_fname)
+
+    assert_dig_allclose(raw_bv.info, test_raw_bv.info)
+
+
 def test_set_montage():
     """Test setting a montage."""
     raw = read_raw_fif(fif_fname)
@@ -620,12 +683,13 @@ def test_set_montage():
     assert 'EEG074' in mon.ch_names
 
 
+# XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname):
     """Check roundtrip writing."""
     with pytest.deprecated_call():
         assert_equal(montage.coord_frame, 'head')
     montage.save(fname)
-    montage_read = read_dig_montage(fif=fname)
+    montage_read = read_dig_fif(fname=fname)
     assert_equal(str(montage), str(montage_read))
     with pytest.deprecated_call():
         for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):

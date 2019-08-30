@@ -26,7 +26,7 @@ from .io.write import (write_int, start_file, end_block, start_block, end_file,
 from .channels.channels import _get_meg_system
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans)
-from .utils import logger, verbose, get_subjects_dir, warn
+from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
                     prange)
 
@@ -575,6 +575,7 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     write_surface
     read_tri
     """
+    fname = _check_fname(fname, 'read', True)
     ret = _get_read_geometry()(fname, read_metadata=read_metadata)
     if return_dict:
         ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
@@ -794,7 +795,8 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
-def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
+def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
+                  overwrite=False):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -826,12 +828,15 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None):
             * 'cras' : array of float, shape (3,)
 
         .. versionadded:: 0.13.0
+    overwrite : bool
+        If True, overwrite the file if it exists.
 
     See Also
     --------
     read_surface
     read_tri
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     try:
         import nibabel as nib
         has_nibabel = True

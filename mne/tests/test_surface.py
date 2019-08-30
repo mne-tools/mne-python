@@ -164,7 +164,8 @@ def test_io_surface():
     for fname in (fname_quad, fname_tri):
         with pytest.warns(None):  # no volume info
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
-        write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info)
+        write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info,
+                      overwrite=True)
         with pytest.warns(None):  # no volume info
             c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
                                                     read_metadata=True)
