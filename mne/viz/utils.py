@@ -674,6 +674,8 @@ def _prepare_mne_browse(params, xlabel):
     params['zen_h_delta'] = (ax.get_position().ymin -
                              ax_hscroll.get_position().ymin)
     if not params.get('show_scrollbars', True):
+        # change to True so toggle func will do the right thing
+        params['show_scrollbars'] = True
         _toggle_scrollbars(params)
 
 
