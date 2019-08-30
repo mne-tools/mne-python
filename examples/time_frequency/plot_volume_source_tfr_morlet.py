@@ -46,21 +46,24 @@ fname_trans = op.join(data_dir, 'sample_audvis_raw-trans.fif')
 fname_cov = op.join(data_dir, 'ernoise-cov.fif')
 fname_event = op.join(data_dir, 'sample_audvis_filt-0-40_raw-eve.fif')
 
+# set up a volume source space
+src = setup_volume_source_space(
+    subject, mri=fname_aseg, pos=10.0, bem=fname_model,
+    add_interpolator=False,  # just for speed, usually use True
+    subjects_dir=subjects_dir)
+
+# compute the fwd matrix
+fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
+                            mindist=5.0, meg=True, eeg=False, n_jobs=1)
+
 # read data
 raw = mne.io.read_raw_fif(fname_raw)
 noise_cov = mne.read_cov(fname_cov)
 
-# Set picks, use a single sensor type
-picks = mne.pick_types(raw.info, meg=True, exclude='bads')
-volume_label = 'Left-Hippocampus'
-
-# set up a volume source space
-src = setup_volume_source_space(subject, mri=fname_aseg,
-                                volume_label=volume_label,
-                                subjects_dir=subjects_dir)
-# compute the fwd matrix
-fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem,
-                            mindist=5.0, meg=True, eeg=False, n_jobs=1)
+# pick types and remove bads
+raw.info['bads'] += ['MEG 2443']
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
 # Read epochs
 events = mne.find_events(raw)[:20]  # crop the events to save computation time
