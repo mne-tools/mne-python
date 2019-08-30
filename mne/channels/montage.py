@@ -23,7 +23,7 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, _str_to_frame)
-from .._digitization import Digitization
+from .._digitization import Digitization, digitization_summary
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
                                     write_dig, _read_dig_fif,
                                     _format_dig_points)
@@ -682,21 +682,9 @@ class DigMontage(object):
 
     def __repr__(self):
         """Return string representation."""
-        n_points = dict(hpi=0, fid=0, eeg=0, extra=0)
-        for d in self.dig:
-            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-                n_points['fid'] += 1
-            elif d['kind'] == FIFF.FIFFV_POINT_HPI:
-                n_points['hpi'] += 1
-            elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
-                n_points['extra'] += 1
-            elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-                n_points['eeg'] += 1
-
-        s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
-             'channels>' % (n_points['extra'], n_points['hpi'],
-                            n_points['fid'], n_points['eeg'],))
-        return s
+        n_points = digitization_summary(self.dig)
+        return ('<DigMontage | {extra:d} extras (headshape), {hpi:d} HPIs,'
+                ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):

@@ -560,10 +560,10 @@ def test_combining_DigMontage_objects():
     hsp2 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12))
     hsp3 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 13))
 
-    # elp positions are [2X, 2X, 2X]
-    elp1 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 21))
-    elp2 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 22))
-    elp3 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 23))
+    # hpi positions are [2X, 2X, 2X]
+    hpi1 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 21))
+    hpi2 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 22))
+    hpi3 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 23))
 
     # channels have positions at 40s, 50s, and 60s.
     ch_pos1 = make_dig_montage(
@@ -578,13 +578,8 @@ def test_combining_DigMontage_objects():
         **fiducials,
         ch_pos={'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63]}
     )
-    # from functools import reduce
-    # from operator import concat
-    # montage = reduce(concat,[
-    #     hsp1, hsp2, hsp3, elp1, elp2, elp3, ch_pos1, ch_pos2, ch_pos3,
-    # ])
 
-    montage = hsp1 + hsp2 + hsp3 + elp1 + elp2 + elp3 + ch_pos1 + ch_pos2 + ch_pos3  # noqa
+    montage = hsp1 + hsp2 + hsp3 + hpi1 + hpi2 + hpi3 + ch_pos1 + ch_pos2 + ch_pos3  # noqa
     assert montage.__repr__() == (
         '<DigMontage | '
         '6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>'
@@ -604,37 +599,6 @@ def test_combining_DigMontage_objects():
     )
     assert montage.ch_names == EXPECTED_MONTAGE.ch_names
     assert object_diff(montage.dig, EXPECTED_MONTAGE.dig) == ''
-
-
-@pytest.mark.skip(reason="not done yet")
-def test_read_dig_montage_using_polhemus_isotrack_more():
-    """Test ISOTrack."""
-    # option 1
-    from operator import concat
-    from functools import reduce
-
-    montage = reduce(concat, [
-        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.elp')),
-        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.hsp')),
-        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.xx'),
-                                   ch_names=ascii_lowercase[:10]),
-    ])
-    assert montage.__repr__() == (
-        '<DigMontage | '
-        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
-    )
-
-    # option 2
-    montage = sum([
-        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.elp')),
-        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.hsp')),
-        read_dig_polhemus_isotrack(op.join(kit_dir, 'test.xx'),
-                                   ch_names=ascii_lowercase[:10]),
-    ])
-    assert montage.__repr__() == (
-        '<DigMontage | '
-        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
-    )
 
 
 def test_set_dig_montage():

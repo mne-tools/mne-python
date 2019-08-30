@@ -6,6 +6,7 @@
 # License: BSD (3-clause)
 import numpy as np
 from copy import deepcopy
+from collections import Counter
 
 from ..transforms import _coord_frame_name
 from ..io.constants import FIFF
@@ -30,6 +31,17 @@ def _format_dig_points(dig):
     """Format the dig points nicely."""
     dig_points = [DigPoint(d) for d in dig] if dig is not None else dig
     return Digitization(dig_points)
+
+
+def digitization_summary(dig):  # XXX: should it be a Digitization method?
+    """Get the number of points of each type."""
+    occurences = Counter([d['kind'] for d in dig])
+    return dict(
+        fid=occurences[FIFF.FIFFV_POINT_CARDINAL],
+        hpi=occurences[FIFF.FIFFV_POINT_HPI],
+        eeg=occurences[FIFF.FIFFV_POINT_EEG],
+        extra=occurences[FIFF.FIFFV_POINT_EXTRA],
+    )
 
 
 class DigPoint(dict):
