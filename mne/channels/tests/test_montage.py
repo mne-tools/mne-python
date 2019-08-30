@@ -24,8 +24,7 @@ from mne.channels import (Montage, read_montage, read_dig_montage,
                           read_dig_egi, read_dig_captrack, read_dig_fif)
 from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
-from mne.channels.montage import read_dig_polhemus_isotrak
-from mne.channels import read_polhemus_fastscan
+from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
 
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
