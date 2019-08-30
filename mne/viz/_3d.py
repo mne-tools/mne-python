@@ -725,11 +725,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     if trans is None:
         trans = Transform('head', 'mri')
-    else:
+    elif not isinstance(trans, Transform):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
+        _validate_type(trans, 'path-like', 'trans', 'str, Transform, or None')
         trans = read_trans(trans, return_all=True)
         for ti, trans in enumerate(trans):  # we got at least 1
             try:
