@@ -1934,7 +1934,6 @@ class Report(object):
             captions.append('Singular values of the noise covariance')
         for fig, caption in zip(figs, captions):
             img = _fig_to_img(fig, image_format)
-            caption = caption
             show = True
             html.append(image_template.substitute(
                 img=img, id=global_id, div_klass='covariance',
