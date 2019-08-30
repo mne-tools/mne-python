@@ -126,7 +126,8 @@ class SourceTFR(ToDataFrameMixin, TimeMixin):
         """ The indices of the dipoles in the different source spaces. Can
         be an array if there is only one source space (e.g., for volumes).
         """
-        return self._vertices
+        verts = self._vertices
+        return [verts] if self._src_type == "volume" else verts
 
     # TODO: also support loading data
     @verbose
