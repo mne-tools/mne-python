@@ -687,6 +687,7 @@ class DigMontage(object):
         return ('<DigMontage | {extra:d} extras (headshape), {hpi:d} HPIs,'
                 ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
 
+    # XXX: Check DigMontage_diff
     def __eq__(self, other):
         """Compare two DigMontages.
 
@@ -757,6 +758,7 @@ class DigMontage(object):
         # Check for none duplicated ch_names
         union_len = len(set(self.ch_names + other.ch_names))
         if (union_len != len(self.ch_names) + len(other.ch_names)):
+            # XXX: explicit error in which chanel are different
             raise RuntimeError(
                 'Cannot add two DigMontage objects if duplicated channel names'
             )

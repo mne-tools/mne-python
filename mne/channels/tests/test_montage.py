@@ -514,14 +514,19 @@ def test_read_dig_montage_using_polhemus_isotrak():
     raw_elp_coord_frames = set([d['coord_frame'] for d in raw_elp.info['dig']])
     assert raw_elp_coord_frames == {FIFF.FIFFV_COORD_HEAD}
 
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([ 1.1056e-01, -5.4210e-19,  0]),
+        'lpa': np.array([-2.1075e-04,  8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([ 2.1075e-04, -8.0793e-02, -2.8731e-18]),
+    }
+
     EXPECTED_FID_IN_HEAD = {
-        'nasion': np.array([-8.94466792e-18,  1.10559624e-01, -3.85185989e-34]),
-        'lpa': np.array([-8.10816716e-02,  6.56321671e-18,  0.00000000e+00]),
-        'rpa': np.array([ 8.05048781e-02, -6.47441364e-18,  0.00000000e+00]),
+        'nasion': np.array([-8.94466792e-18, 1.10559624e-01, -3.85185989e-34]),
+        'lpa': np.array([-8.10816716e-02, 6.56321671e-18, 0]),
+        'rpa': np.array([ 8.05048781e-02, -6.47441364e-18, 0]),
     }
 
     # New stuff
-    import pdb; pdb.set_trace()
     montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.hsp'),
                                         ch_names=None)
     assert montage.__repr__() == (
