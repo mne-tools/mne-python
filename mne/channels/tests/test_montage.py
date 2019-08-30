@@ -24,7 +24,7 @@ from mne.channels import (Montage, read_montage, read_dig_montage,
                           read_dig_egi, read_dig_captrack, read_dig_fif)
 from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
-from mne.channels.montage import read_dig_polhemus_isotrack
+from mne.channels.montage import read_dig_polhemus_isotrak
 from mne.channels import read_polhemus_fastscan
 
 from mne.channels._dig_montage_utils import _transform_to_head_call
@@ -492,22 +492,22 @@ def test_read_dig_montage_using_polhemus_fastscan():
     # assert_allclose(new_montage_A.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
 
-def test_read_dig_montage_using_polhemus_isotrack():
+def test_read_dig_montage_using_polhemus_isotrak():
     """Test ISOTrack."""
-    montage = read_dig_polhemus_isotrack(fname=op.join(kit_dir, 'test.hsp'),
-                                         ch_names=None)
+    montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.hsp'),
+                                        ch_names=None)
     assert montage.__repr__() == (
         '<DigMontage | '
         '500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>'
     )
-    montage = read_dig_polhemus_isotrack(fname=op.join(kit_dir, 'test.elp'),
-                                         ch_names=None)
+    montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.elp'),
+                                        ch_names=None)
     assert montage.__repr__() == (
         '<DigMontage | '
         '0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>'
     )
-    montage = read_dig_polhemus_isotrack(op.join(kit_dir, 'test.xx'),
-                                         ch_names=ascii_lowercase[:10])
+    montage = read_dig_polhemus_isotrak(op.join(kit_dir, 'test.xx'),
+                                        ch_names=ascii_lowercase[:10])
     assert montage.__repr__() == (
         '<DigMontage | '
         '0 extras (headshape), 0 HPIs, 3 fiducials, 10 channels>'

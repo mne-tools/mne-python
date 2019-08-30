@@ -41,7 +41,6 @@ from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 from ._dig_montage_utils import _get_fid_coords
-from ._dig_montage_utils import _cardinal_ident_mapping
 
 DEPRECATED_PARAM = object()
 
@@ -749,20 +748,6 @@ class DigMontage(object):
 
     def __iadd__(self, other):
         """Add two DigMontages in place."""
-        # XXX: this is really similar to _get_fid_coords from pr-6706 but I
-        #      needed something different so, I'll merge later
-        def _get_fid_coords(dig):
-            fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
-            fid_coord_frames = Bunch(nasion=None, lpa=None, rpa=None)
-
-            for d in dig:
-                if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-                    key = _cardinal_ident_mapping[d['ident']]
-                    fid_coords[key] = d['r']
-                    fid_coord_frames[key] = d['coord_frame']
-
-            return fid_coords, fid_coord_frames
-
         def is_fid_defined(fid):
             return not(
                 fid.nasion is None and fid.lpa is None and fid.rpa is None
@@ -776,8 +761,8 @@ class DigMontage(object):
             )
 
         # Check for unique matching fiducials
-        self_fid, self_coord = _get_fid_coords(self.dig)
-        other_fid, other_coord = _get_fid_coords(other.dig)
+        self_fid, self_coord = _get_fid_coords(self.dig, raise_error=False)
+        other_fid, other_coord = _get_fid_coords(other.dig, raise_error=False)
 
         coord = set()
         coord = coord.union({
@@ -813,9 +798,19 @@ class DigMontage(object):
 
         return self
 
+    def copy(self):
+        """Copy the Dipoles object.
+
+        Returns
+        -------
+        dig : instance of DigMontage
+            The copied DigMontage instance.
+        """
+        return deepcopy(self)
+
     def __add__(self, other):
         """Add two DigMontages."""
-        out = deepcopy(self)
+        out = self.copy()
         out += other
         return out
 
@@ -1374,7 +1369,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                         "'None' instead of '%s'." % type(montage))
 
 
-def read_dig_polhemus_isotrack(fname, ch_names=None):
+def read_dig_polhemus_isotrak(fname, ch_names=None):
     """So far this is only a mocking dummy function that spits DigMontages.
 
     Ignore everything inside this function implementation.
