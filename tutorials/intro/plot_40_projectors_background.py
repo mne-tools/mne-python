@@ -239,11 +239,8 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # the trigger" in our example above). SSP is also often used for removing
 # heartbeat and eye movement artifacts — in those cases, instead of empty room
 # recordings the direction of the noise is estimated by detecting the
-# artifacts, extracting epochs around them, and averaging.
-#
-# .. TODO: add EOG/ECG examples to
-#    :doc:`../preprocessing/plot_artifacts_correction_ssp` and then add
-#    crossref here.
+# artifacts, extracting epochs around them, and averaging. See
+# :ref:`tut-artifact-ssp` for examples.
 #
 # Once you know the noise vectors, you can create a hyperplane that is
 # orthogonal
@@ -320,8 +317,10 @@ print(first_projector['active'])
 # the file.
 
 mags = raw.copy().crop(tmax=2).pick_types(meg='mag')
-mags.plot(butterfly=True, proj=False)
-mags.plot(butterfly=True, proj=True)
+for proj in (False, True):
+    fig = mags.plot(butterfly=True, proj=proj)
+    fig.subplots_adjust(top=0.9)
+    fig.suptitle('proj={}'.format(proj), size='xx-large', weight='bold')
 
 ###############################################################################
 # Additional ways of visualizing projectors are covered in the tutorial
@@ -383,8 +382,11 @@ raw.add_proj(ecg_projs)
 # projectors:
 
 mags_ecg = raw.copy().crop(tmax=2).pick_types(meg='mag')
-mags.plot(butterfly=True, proj=True)
-mags_ecg.plot(butterfly=True, proj=True)
+for data, title in zip([mags, mags_ecg], ['Without', 'With']):
+    fig = data.plot(butterfly=True, proj=True)
+    fig.subplots_adjust(top=0.9)
+    fig.suptitle('{} ECG projector'.format(title), size='xx-large',
+                 weight='bold')
 
 ###############################################################################
 # When are projectors "applied"?

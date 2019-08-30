@@ -181,10 +181,8 @@ raw.plot_sensors(ch_type='eeg')
 # show one figure per channel type for which projectors are present, and each
 # figure will have one subplot per projector. The three projectors in this file
 # were only computed for magnetometers, so one figure with three subplots is
-# generated.
-#
-# .. TODO: More details on working with and plotting projectors are given in
-#    <add crossref here>
+# generated. More details on working with and plotting projectors are given in
+# :ref:`tut-projectors-background` and :ref:`tut-artifact-ssp`.
 
 raw.plot_projs_topomap()
 
