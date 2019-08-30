@@ -614,13 +614,13 @@ def _prepare_mne_browse(params, xlabel):
     ]
     params['proj_button_pos'] = proj_button_pos
     params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
-    # initialize help button in the wrong spot...
-    ax_help_button = div.append_axes(position='left', size=Fixed(help_width),
-                                     pad=Fixed(vscroll_dist))
+    # initialize help button axes in the wrong spot...
+    ax_help = div.append_axes(position='left', size=Fixed(help_width),
+                              pad=Fixed(vscroll_dist))
     # ...then move it down by changing its locator, and make it a button.
     loc = div.new_locator(nx=0, ny=0)
-    ax_help_button.set_axes_locator(loc)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    ax_help.set_axes_locator(loc)
+    help_button = mpl.widgets.Button(ax_help, 'Help')
     help_button.on_clicked(partial(_onclick_help, params=params))
     # style scrollbars
     ax_hscroll.get_yaxis().set_visible(False)
@@ -630,6 +630,7 @@ def _prepare_mne_browse(params, xlabel):
     params['ax'] = ax
     params['ax_hscroll'] = ax_hscroll
     params['ax_vscroll'] = ax_vscroll
+    params['ax_help'] = ax_help
     params['help_button'] = help_button
     # default key to close window
     params['close_key'] = 'escape'
