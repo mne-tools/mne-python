@@ -515,41 +515,6 @@ def test_read_dig_montage_using_polhemus_isotrack():
     )
 
 
-def test_concat_dig_montage():
-    """Test concatenation of DigMontage."""
-    rng = np.random.RandomState(0)
-    nasion, lpa, rpa = rng.rand(3), rng.rand(3), rng.rand(3)
-
-    dig1 = make_dig_montage(
-        nasion=nasion, lpa=lpa, rpa=rpa, hsp=rng.rand(50, 3),
-        hpi=rng.rand(5, 3),
-        coord_frame='unknown'
-    )
-
-    dig_meg_hpi = make_dig_montage(
-        hpi=rng.rand(5, 3), coord_frame='meg',
-    )
-
-    dig_hpi_wrong_fids = make_dig_montage(
-        nasion=rng.rand(3), lpa=rng.rand(3), rpa=rng.rand(3),
-        hpi=rng.rand(5, 3), coord_frame='unknown'
-    )
-
-    dig_eeg = make_dig_montage(
-        nasion=nasion, lpa=lpa, rpa=rpa,
-        ch_pos=dict(zip(ascii_lowercase[:10], rng.rand(10, 3))),
-    )
-
-    dig = dig1 + dig_meg_hpi + dig_eeg
-    assert dig.__repr__() == (
-        '<DigMontage | '
-        '50 extras (headshape), 10 HPIs, 3 fiducials, 10 channels>'
-    )
-
-    with pytest.raises(RuntimeError, match='fiducial locations do not match'):
-        dig = dig1 + dig_hpi_wrong_fids  # XXX : should crash
-
-
 def test_combining_DigMontage_objects():
     """Test combining different DigMontage objects."""
     rng = np.random.RandomState(0)
@@ -601,6 +566,30 @@ def test_combining_DigMontage_objects():
         }
     )
     assert montage == EXPECTED_MONTAGE
+
+
+def test_combining_DigMontage_forviden_behaviors():
+    """Test combining different DigMontage objects with repeated names."""
+    rng = np.random.RandomState(0)
+    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
+    dig1 = make_dig_montage(
+        **fiducials,
+        ch_pos=dict(zip(list('abc'), rng.rand(3, 3))),
+    )
+    dig2 = make_dig_montage(
+        **fiducials,
+        ch_pos=dict(zip(list('cde'), rng.rand(3, 3))),
+    )
+    dig2_wrong_fid = make_dig_montage(
+        nasion=rng.rand(3), lpa=rng.rand(3), rpa=rng.rand(3),
+        ch_pos=dict(zip(list('ghi'), rng.rand(3, 3))),
+    )
+
+    with pytest.raises(RuntimeError, match='Cannot.*duplicated channel names'):
+        dig1 + dig2
+
+    with pytest.raises(RuntimeError, match='fiducial locations do not match'):
+        dig1 + dig2_wrong_fid
 
 
 def test_set_dig_montage():

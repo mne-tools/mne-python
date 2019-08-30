@@ -768,6 +768,14 @@ class DigMontage(object):
                 fid.nasion is None and fid.lpa is None and fid.rpa is None
             )
 
+        # Check for none duplicated ch_names
+        union_len = len(set(self.ch_names + other.ch_names))
+        if (union_len != len(self.ch_names) + len(other.ch_names)):
+            raise RuntimeError(
+                'Cannot add two DigMontage objects if duplicated channel names'
+            )
+
+        # Check for unique matching fiducials
         self_fid, self_coord = _get_fid_coords(self.dig)
         other_fid, other_coord = _get_fid_coords(other.dig)
 
