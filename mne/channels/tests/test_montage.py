@@ -597,8 +597,7 @@ def test_combining_DigMontage_objects():
             'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63],
         }
     )
-    assert montage.ch_names == EXPECTED_MONTAGE.ch_names
-    assert object_diff(montage.dig, EXPECTED_MONTAGE.dig) == ''
+    assert montage == EXPECTED_MONTAGE
 
 
 def test_set_dig_montage():

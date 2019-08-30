@@ -686,6 +686,21 @@ class DigMontage(object):
         return ('<DigMontage | {extra:d} extras (headshape), {hpi:d} HPIs,'
                 ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
 
+    def __eq__(self, other):
+        """Compare two DigMontages.
+
+        Comparison does not check that dig points location or coord. system.
+        """
+        _ch_names_ok = (
+            len(self.ch_names) == len(other.ch_names) and
+            all([c in self.ch_names for c in other.ch_names])
+        )
+        if _ch_names_ok:
+            return (digitization_summary(self.dig) ==
+                    digitization_summary(other.dig))
+        else:
+            return False
+
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
         # XXX: plot_montage takes an empty info and sets 'self'
