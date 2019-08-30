@@ -595,6 +595,8 @@ def _toggle_scrollbars(params):
         params['fig'].subplots_adjust(**borders)
         # show/hide
         for element in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
+            if params['butterfly'] and element == 'ax_vscroll':
+                continue
             # sometimes we don't have a proj button (ax_button)
             if params.get(element, None) is not None:
                 params[element].set_visible(should_show)
