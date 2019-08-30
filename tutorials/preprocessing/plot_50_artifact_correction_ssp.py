@@ -6,8 +6,9 @@ Repairing artifacts with SSP
 ============================
 
 This tutorial covers the basics of signal-space projection (SSP) and
-shows how SSP can be used for artifact repair; an extended example illustrates
-repair of ocular and heartbeat artifacts.
+shows how SSP can be used for artifact repair; extended examples illustrate use
+of SSP for environmental noise reduction, and for repair of ocular and
+heartbeat artifacts.
 
 .. contents:: Page contents
    :local:
@@ -77,20 +78,19 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 # stored with the system (which are typically generated during annual
 # maintenance and tuning). Since we have this subject-specific empty-room
 # recording, we'll create our own projectors from it and discard the
-# system-provided SSP projectors:
+# system-provided SSP projectors (saving them first, for later comparison with
+# the custom ones):
 
+system_projs = raw.info['projs']
+raw.del_proj()
 empty_room_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                'ernoise_raw.fif')
 empty_room_raw = mne.io.read_raw_fif(empty_room_file)
 
 ###############################################################################
 # Notice that the empty room recording itself has the system-provided SSP
-# projectors in it — we'll remove those from the empty room file and the raw
-# file too. First, we'll save the system-provided projectors, for later
-# comparison with the custom ones:
+# projectors in it — we'll remove those from the empty room file too.
 
-system_projs = raw.info['projs']
-raw.del_proj()
 empty_room_raw.del_proj()
 
 ###############################################################################
@@ -125,7 +125,7 @@ mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True)
 # magnetometers. Comparing the system-provided projectors to the
 # subject-specific ones, we can see they are reasonably similar (though in a
 # different order) and the left-right component seems to have changed
-# direction:
+# polarity.
 
 fig, axs = plt.subplots(2, 3)
 mne.viz.plot_projs_topomap(system_projs, axes=axs[0], colorbar=True)
@@ -147,9 +147,9 @@ mags = mne.pick_types(raw.info, meg='mag')
 for title, projs in [('system', system_projs),
                      ('subject-specific', empty_room_projs[3:])]:
     raw.add_proj(projs, remove_existing=True)
-    fig = raw.plot(proj=True, order=mags, duration=2, n_channels=2)
+    fig = raw.plot(proj=True, order=mags, duration=1, n_channels=2)
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle(title, size='xx-large', weight='bold')
+    fig.suptitle('{} projectors'.format(title), size='xx-large', weight='bold')
 
 ###############################################################################
 # The effect is sometimes easier to see on averaged data. Here we use an
@@ -168,7 +168,7 @@ reject = dict(mag=4000e-15,     # 4000 fT
               eog=250e-6)       # 250 μV
 
 # time range where we expect to see the auditory N100: 50-150 ms post-stimulus
-times = np.arange(0.05, 0.15, 0.01)
+times = np.linspace(0.05, 0.15, 5)
 
 epochs = mne.Epochs(raw, events, event_id, proj='delayed', reject=reject)
 fig = epochs.average().plot_topomap(times, proj='interactive')
@@ -204,6 +204,13 @@ raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 # be used to visualize how the heartbeat artifacts manifest across the sensors:
 
 ecg_evoked = create_ecg_epochs(raw).average()
+ecg_evoked.plot_joint()
+
+###############################################################################
+# Looks like the EEG channels are pretty spread out; let's baseline-correct and
+# plot again:
+
+ecg_evoked.apply_baseline((None, None))
 ecg_evoked.plot_joint()
 
 ###############################################################################
@@ -332,6 +339,7 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 # here is how the ocular artifacts manifests across all the sensors:
 
 eog_evoked = create_eog_epochs(raw).average()
+eog_evoked.apply_baseline((None, None))
 eog_evoked.plot_joint()
 
 ###############################################################################
