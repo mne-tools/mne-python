@@ -493,6 +493,21 @@ def test_read_dig_montage_using_polhemus_fastscan():
 
 def test_read_dig_montage_using_polhemus_isotrak():
     """Test ISOTrack."""
+    # Old stuff
+    from mne.io import read_raw_kit
+    from mne.io.kit import __file__ as _KIT_INIT_FILE
+
+    data_dir = op.join(op.dirname(_KIT_INIT_FILE), 'tests', 'data')
+    sqd_path = op.join(data_dir, 'test.sqd')
+    mrk_path = op.join(data_dir, 'test_mrk.sqd')
+    elp_path = op.join(data_dir, 'test.elp')
+    hsp_path = op.join(data_dir, 'test.hsp')
+
+    raw_elp = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    xx = read_dig_montage(hsp=op.join(kit_dir, 'test.hsp'), transform=False)
+
+    # New stuff
+    import pdb; pdb.set_trace()
     montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.hsp'),
                                         ch_names=None)
     assert montage.__repr__() == (

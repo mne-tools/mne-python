@@ -14,6 +14,7 @@
 from collections.abc import Iterable
 import os
 import os.path as op
+import re
 from copy import deepcopy
 
 import numpy as np
@@ -868,6 +869,12 @@ def _get_scaling(unit, scale):
     else:
         return scale[unit]
 
+def _check_unit_and_get_scaling(unit, valid_scales):
+    _check_option('unit', unit, list(valid_scales.keys()))
+    return valid_scales[unit]
+
+
+
 
 # XXX: this function will evolve with issue-6461
 # and should be tested as soon as we have the Polhemus
@@ -1368,12 +1375,57 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         raise TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
                         "'None' instead of '%s'." % type(montage))
 
+def _read_isotrak_points(fname):
+    """Read Polhemus digitizer data from a file.
 
-def read_dig_polhemus_isotrak(fname, ch_names=None):
-    """So far this is only a mocking dummy function that spits DigMontages.
+    file extension should be ``.hsp`` or ``.elp`` and the points are assumed
+    to be in [m].
 
-    Ignore everything inside this function implementation.
+    Parameters
+    ----------
+    fname : str
+        The filepath of space delimited file with points, or a .mat file
+        (Polhemus FastTrak format).
+
+    Returns
+    -------
+    dig_points : np.ndarray, shape (n_points, 3)
+        Array of dig points in [m].
     """
+    with open(fname) as fid:
+        file_str = fid.read()
+    value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
+    coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+    if fname.endswith('hsp'):
+        coord_pattern = '^' + coord_pattern
+
+    points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
+                                                  re.MULTILINE)]
+    return np.array(points_str, dtype=float)
+
+
+def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
+    """Read Polhemus digitizer data from a file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of Polhemus ISOTrak formated file.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the digitizer file. Polhemus ISOTrak systems data is usually
+        exported in meters. Defaults to 'm'
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+    """
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
+    points = _read_isotrak_points(fname)
+
+    import pdb; pdb.set_trace()
     rnd = np.random.RandomState(0)
 
     if op.basename(fname) == 'test.hsp':
