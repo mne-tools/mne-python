@@ -804,12 +804,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Whether to directly call the butterfly view.
 
         .. versionadded:: 0.18.0
-    show_scrollbars : bool
-        Whether to show scrollbars when the plot is initialized. Can be toggled
-        after initialization by pressing :kbd:`z` ("zen mode") while the plot
-        window is focused. Default is ``True``.
-
-        .. versionadded:: 0.19.0
+    %(zen_mode)s
 
     Returns
     -------
