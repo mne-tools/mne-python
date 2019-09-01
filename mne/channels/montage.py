@@ -1377,7 +1377,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         raise TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
                         "'None' instead of '%s'." % type(montage))
 
-def _read_isotrak_points(fname):
+def _read_isotrak_elp_points(fname):
     """Read Polhemus digitizer data from a file.
 
     file extension should be ``.hsp`` or ``.elp`` and the points are assumed
@@ -1394,16 +1394,48 @@ def _read_isotrak_points(fname):
     dig_points : np.ndarray, shape (n_points, 3)
         Array of dig points in [m].
     """
-    with open(fname) as fid:
-        file_str = fid.read()
     value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
     coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
-    if fname.endswith('hsp'):
-        coord_pattern = '^' + coord_pattern
+
+    with open(fname) as fid:
+        file_str = fid.read()
 
     points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
                                                   re.MULTILINE)]
-    return np.array(points_str, dtype=float)
+    points = np.array(points_str, dtype=float)
+    fiducials = Bunch(
+        nasion=np.array(points_str[0], dtype=float),
+        lpa=np.array(points_str[1], dtype=float),
+        rpa=np.array(points_str[2], dtype=float),
+    )
+
+    return points[3:], fiducials
+
+
+def _read_isotrak_hsp_points(fname):
+    def consume(fid, predicate):  # just a consumer to move around conveniently
+        while(predicate(fid.readline())):
+            pass
+
+    def get_hsp_fiducial(line):
+        return np.fromstring(line.replace('%F', ''), dtype=float, sep='\t')
+
+    fiducials = Bunch()
+    with open(fname) as ff:
+        consume(ff, lambda l: 'position of fiducials' not in l.lower())
+        # num_of_markers = int(fid.readline())
+
+        fiducials['nasion'] = get_hsp_fiducial(ff.readline())
+        fiducials['lpa'] = get_hsp_fiducial(ff.readline())
+        fiducials['rpa'] = get_hsp_fiducial(ff.readline())
+
+        _ = ff.readline()
+        n_points, n_cols = np.fromstring(ff.readline(), dtype=int, sep='\t')
+        points = np.fromstring(
+            string=ff.read(), dtype=float, sep='\t',
+        ).reshape(-1, n_cols)
+
+        return points, fiducials
 
 
 def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
@@ -1425,16 +1457,35 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
     _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
 
-    points = _read_isotrak_points(fname)
+    _file_extension = op.splitext(fname)[-1]
 
-    import pdb; pdb.set_trace()
-    rnd = np.random.RandomState(0)
+    if _file_extension == '.hsp':
+        points, fiducials = _read_isotrak_hsp_points(fname)
+    else:
+        points, fiducials = _read_isotrak_elp_points(fname)
 
-    if op.basename(fname) == 'test.hsp':
-        return make_dig_montage(
-            nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
-            hsp=rnd.rand(500, 3)
-        )
+    # point_type = 'hsp' if _file_extension == '.hsp' else 'hpi'
+    if _scale == 1:
+        if _file_extension == '.hsp':
+            return make_dig_montage(**fiducials, hsp=points)
+        else:
+            return make_dig_montage(**fiducials, hpi=points)
+    else:
+        if _file_extension == '.hsp':
+            return make_dig_montage(
+                nasion=fiducials.nasion * _scale,
+                lpa=fiducials.lpa * _scale,
+                rpa=fiducials.rpa * _scale,
+                hsp=points * _scale
+            )
+        else:
+            return make_dig_montage(
+                nasion=fiducials.nasion * _scale,
+                lpa=fiducials.lpa * _scale,
+                rpa=fiducials.rpa * _scale,
+                hpi=points * _scale
+            )
+
 
     if op.basename(fname) == 'test.elp':
         return make_dig_montage(

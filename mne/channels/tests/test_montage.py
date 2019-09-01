@@ -491,6 +491,107 @@ def test_read_dig_montage_using_polhemus_fastscan():
     # assert_allclose(new_montage_A.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
 
+def test_read_dig_polhemus_isotrak_hsp():
+    from mne.channels._dig_montage_utils import _get_fid_coords
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([ 1.1056e-01, -5.4210e-19,  0]),
+        'lpa': np.array([-2.1075e-04,  8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([ 2.1075e-04, -8.0793e-02, -2.8731e-18]),
+    }
+    montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.hsp'),
+                                        ch_names=None)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>'
+    )
+
+    fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
+
+    for kk, val in fiducials.items():
+        assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
+        assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
+
+
+def test_read_dig_polhemus_isotrak_elp():
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([ 1.1056e-01, -5.4210e-19,  0]),
+        'lpa': np.array([-2.1075e-04,  8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([ 2.1075e-04, -8.0793e-02, -2.8731e-18]),
+    }
+    from mne.channels._dig_montage_utils import _get_fid_coords
+    montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.elp'),
+                                        ch_names=None)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>'
+    )
+    fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
+
+    for kk, val in fiducials.items():
+        assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
+        assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
+
+@pytest.fixture(scope='module')
+def isotrak_eeg(tmpdir_factory):
+    _SEED = 42
+    N_ROWS, N_COLS = 5, 3
+    content = np.random.RandomState(_SEED).randn(N_ROWS, N_COLS)
+
+    fname = tmpdir_factory.mktemp('data').join('test.eeg')
+    with open(fname, 'w') as fid:
+        fid.write((
+            '3	200\n'
+            '//Shape file\n'
+            '//Minor revision number\n'
+            '2\n'
+            '//Subject Name\n'
+            '%N	Name    \n'
+            '////Shape code, number of digitized points\n'
+        ))
+        fid.write('0 {rows:d}\n'.format(rows=N_ROWS))
+        fid.write((
+            '//Position of fiducials X+, Y+, Y- on the subject\n'
+            '%F	0.11056	-5.421e-19	0	\n'
+            '%F	-0.00021075	0.080793	-7.5894e-19	\n'
+            '%F	0.00021075	-0.080793	-2.8731e-18	\n'
+            '//No of rows, no of columns; position of digitized points\n'
+        ))
+        fid.write('{rows:d} {cols:d}\n'.format(rows=N_ROWS, cols=N_COLS))
+        np.savetxt(fid, content, delimiter='\t')
+
+    return fname
+
+
+def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
+    from mne.channels._dig_montage_utils import _get_fid_coords
+    N_CHANNELS = 5
+    _SEED = 42
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([ 1.1056e-01, -5.4210e-19,  0]),
+        'lpa': np.array([-2.1075e-04,  8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([ 2.1075e-04, -8.0793e-02, -2.8731e-18]),
+    }
+    EXPECTED_CH_POS = dict(zip(
+        ['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS)],
+        np.random.RandomState(_SEED).randn(N_CHANNELS, 3),
+    ))
+
+    ch_names = [kk for kk, _ in EXPECTED_CH_POS.items()]
+    montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>'
+    )
+
+    fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
+
+    for kk, val in fiducials.items():
+        assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
+        assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
+
+    for kk, val in dict(zip(montage.ch_names, ))
+
+
 def test_read_dig_montage_using_polhemus_isotrak():
     """Test ISOTrack."""
     # Old stuff
