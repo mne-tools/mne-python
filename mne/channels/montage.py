@@ -1459,25 +1459,40 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
 
     _file_extension = op.splitext(fname)[-1]
 
-    if _file_extension == '.hsp':
+    if _file_extension == '.hsp' or _file_extension == '.eeg':
         points, fiducials = _read_isotrak_hsp_points(fname)
     else:
         points, fiducials = _read_isotrak_elp_points(fname)
 
     # point_type = 'hsp' if _file_extension == '.hsp' else 'hpi'
     if _scale == 1:
-        if _file_extension == '.hsp':
-            return make_dig_montage(**fiducials, hsp=points)
+        if _file_extension == '.hsp' or _file_extension == '.eeg':
+            if ch_names is None:
+                return make_dig_montage(**fiducials, hsp=points)
+            else:
+                # XXX: raise if not equal
+                return make_dig_montage(
+                    **fiducials, ch_pos=dict(zip(ch_names, points)),
+                )
         else:
             return make_dig_montage(**fiducials, hpi=points)
     else:
-        if _file_extension == '.hsp':
-            return make_dig_montage(
-                nasion=fiducials.nasion * _scale,
-                lpa=fiducials.lpa * _scale,
-                rpa=fiducials.rpa * _scale,
-                hsp=points * _scale
-            )
+        if _file_extension == '.hsp' or _file_extension == '.eeg':
+            if ch_names is None:
+                return make_dig_montage(
+                    nasion=fiducials.nasion * _scale,
+                    lpa=fiducials.lpa * _scale,
+                    rpa=fiducials.rpa * _scale,
+                    hsp=points * _scale
+                )
+            else:
+                # XXX: raise if not equal
+                return make_dig_montage(
+                    nasion=fiducials.nasion * _scale,
+                    lpa=fiducials.lpa * _scale,
+                    rpa=fiducials.rpa * _scale,
+                    ch_pos=dict(zip(ch_names, points * _scale)),
+                )
         else:
             return make_dig_montage(
                 nasion=fiducials.nasion * _scale,
@@ -1485,16 +1500,3 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
                 rpa=fiducials.rpa * _scale,
                 hpi=points * _scale
             )
-
-
-    if op.basename(fname) == 'test.elp':
-        return make_dig_montage(
-            nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
-            hpi=rnd.rand(5, 3)
-        )
-
-    if op.basename(fname) == 'test.xx':
-        return make_dig_montage(
-            nasion=rnd.rand(3), lpa=rnd.rand(3), rpa=rnd.rand(3),
-            ch_pos=dict(zip(ch_names, rnd.rand(10, 3))),
-        )

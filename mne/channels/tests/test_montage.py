@@ -494,9 +494,9 @@ def test_read_dig_montage_using_polhemus_fastscan():
 def test_read_dig_polhemus_isotrak_hsp():
     from mne.channels._dig_montage_utils import _get_fid_coords
     EXPECTED_FID_IN_POLHEMUS = {
-        'nasion': np.array([ 1.1056e-01, -5.4210e-19,  0]),
-        'lpa': np.array([-2.1075e-04,  8.0793e-02, -7.5894e-19]),
-        'rpa': np.array([ 2.1075e-04, -8.0793e-02, -2.8731e-18]),
+        'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
+        'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
     }
     montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.hsp'),
                                         ch_names=None)
@@ -514,9 +514,9 @@ def test_read_dig_polhemus_isotrak_hsp():
 
 def test_read_dig_polhemus_isotrak_elp():
     EXPECTED_FID_IN_POLHEMUS = {
-        'nasion': np.array([ 1.1056e-01, -5.4210e-19,  0]),
-        'lpa': np.array([-2.1075e-04,  8.0793e-02, -7.5894e-19]),
-        'rpa': np.array([ 2.1075e-04, -8.0793e-02, -2.8731e-18]),
+        'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
+        'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
     }
     from mne.channels._dig_montage_utils import _get_fid_coords
     montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.elp'),
@@ -530,6 +530,7 @@ def test_read_dig_polhemus_isotrak_elp():
     for kk, val in fiducials.items():
         assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
         assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
+
 
 @pytest.fixture(scope='module')
 def isotrak_eeg(tmpdir_factory):
@@ -562,14 +563,18 @@ def isotrak_eeg(tmpdir_factory):
     return fname
 
 
+def _get_dig_eeg(dig):  # XXX: maybe this should be a Digitization function
+    return [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG]
+
+
 def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
     from mne.channels._dig_montage_utils import _get_fid_coords
     N_CHANNELS = 5
     _SEED = 42
     EXPECTED_FID_IN_POLHEMUS = {
-        'nasion': np.array([ 1.1056e-01, -5.4210e-19,  0]),
-        'lpa': np.array([-2.1075e-04,  8.0793e-02, -7.5894e-19]),
-        'rpa': np.array([ 2.1075e-04, -8.0793e-02, -2.8731e-18]),
+        'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
+        'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
     }
     EXPECTED_CH_POS = dict(zip(
         ['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS)],
@@ -589,10 +594,12 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
         assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
         assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
 
-    for kk, val in dict(zip(montage.ch_names, ))
+    for kk, dig_point in zip(montage.ch_names, _get_dig_eeg(montage.dig)):
+        assert_array_equal(dig_point['r'], EXPECTED_CH_POS[kk])
+        assert dig_point['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
 
 
-def test_read_dig_montage_using_polhemus_isotrak():
+def test_read_dig_montage_using_polhemus_isotrak():  # XXX: needs beter name
     """Test ISOTrack."""
     # Old stuff
     from mne.io import read_raw_kit
@@ -616,9 +623,9 @@ def test_read_dig_montage_using_polhemus_isotrak():
     assert raw_elp_coord_frames == {FIFF.FIFFV_COORD_HEAD}
 
     EXPECTED_FID_IN_POLHEMUS = {
-        'nasion': np.array([ 1.1056e-01, -5.4210e-19,  0]),
-        'lpa': np.array([-2.1075e-04,  8.0793e-02, -7.5894e-19]),
-        'rpa': np.array([ 2.1075e-04, -8.0793e-02, -2.8731e-18]),
+        'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
+        'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
     }
 
     EXPECTED_FID_IN_HEAD = {
@@ -626,26 +633,6 @@ def test_read_dig_montage_using_polhemus_isotrak():
         'lpa': np.array([-8.10816716e-02, 6.56321671e-18, 0]),
         'rpa': np.array([ 8.05048781e-02, -6.47441364e-18, 0]),
     }
-
-    # New stuff
-    montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.hsp'),
-                                        ch_names=None)
-    assert montage.__repr__() == (
-        '<DigMontage | '
-        '500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>'
-    )
-    montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.elp'),
-                                        ch_names=None)
-    assert montage.__repr__() == (
-        '<DigMontage | '
-        '0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>'
-    )
-    montage = read_dig_polhemus_isotrak(op.join(kit_dir, 'test.xx'),
-                                        ch_names=ascii_lowercase[:10])
-    assert montage.__repr__() == (
-        '<DigMontage | '
-        '0 extras (headshape), 0 HPIs, 3 fiducials, 10 channels>'
-    )
 
 
 def test_combining_digmontage_objects():
