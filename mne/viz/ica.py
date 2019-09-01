@@ -67,7 +67,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
         plotter. For evoked, this parameter has no effect. Defaults to False.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
-    %(zen_mode)s
+    %(show_scrollbars)s
 
     Returns
     -------

@@ -804,7 +804,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Whether to directly call the butterfly view.
 
         .. versionadded:: 0.18.0
-    %(zen_mode)s
+    %(show_scrollbars)s
 
     Returns
     -------

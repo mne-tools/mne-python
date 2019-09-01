@@ -234,7 +234,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         theh event numbers).
 
         .. versionadded:: 0.16.0
-    %(zen_mode)s
+    %(show_scrollbars)s
 
     Returns
     -------

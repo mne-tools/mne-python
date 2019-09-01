@@ -282,7 +282,7 @@ combine : None | str | callable
     field power).
 """
 
-docdict['zen_mode'] = """
+docdict['show_scrollbars'] = """
 show_scrollbars : bool
     Whether to show scrollbars when the plot is initialized. Can be toggled
     after initialization by pressing :kbd:`z` ("zen mode") while the plot
