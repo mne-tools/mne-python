@@ -571,10 +571,11 @@ def _update_borders(params, new_width, new_height):
         if side in ('right', 'top'):
             rel_dim = (1 - rel_dim)
         new_borders[side] = rel_dim
-    params['fig'].subplots_adjust(**new_borders)
-    # zen mode
+    # zen mode adjustment
     params['zen_w_delta'] *= old_width / new_width
     params['zen_h_delta'] *= old_height / new_height
+    # update
+    params['fig'].subplots_adjust(**new_borders)
 
 
 def _toggle_scrollbars(params):
