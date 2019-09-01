@@ -1403,13 +1403,11 @@ def _read_isotrak_elp_points(fname):
     points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
                                                   re.MULTILINE)]
     points = np.array(points_str, dtype=float)
-    fiducials = Bunch(
-        nasion=np.array(points_str[0], dtype=float),
-        lpa=np.array(points_str[1], dtype=float),
-        rpa=np.array(points_str[2], dtype=float),
-    )
 
-    return points[3:], fiducials
+    return {
+        'nasion': points[0], 'lpa': points[1], 'rpa': points[2],
+        'points': points[3:]
+    }
 
 
 def _read_isotrak_hsp_points(fname):
@@ -1420,22 +1418,25 @@ def _read_isotrak_hsp_points(fname):
     def get_hsp_fiducial(line):
         return np.fromstring(line.replace('%F', ''), dtype=float, sep='\t')
 
-    fiducials = Bunch()
     with open(fname) as ff:
         consume(ff, lambda l: 'position of fiducials' not in l.lower())
-        # num_of_markers = int(fid.readline())
 
-        fiducials['nasion'] = get_hsp_fiducial(ff.readline())
-        fiducials['lpa'] = get_hsp_fiducial(ff.readline())
-        fiducials['rpa'] = get_hsp_fiducial(ff.readline())
+        nasion = get_hsp_fiducial(ff.readline())
+        lpa = get_hsp_fiducial(ff.readline())
+        rpa = get_hsp_fiducial(ff.readline())
 
         _ = ff.readline()
         n_points, n_cols = np.fromstring(ff.readline(), dtype=int, sep='\t')
         points = np.fromstring(
             string=ff.read(), dtype=float, sep='\t',
         ).reshape(-1, n_cols)
+        assert points.shape[0] == n_points
 
-        return points, fiducials
+    return {
+        'nasion': nasion, 'lpa': lpa, 'rpa': rpa, 'points': points
+    }
+
+
 
 
 def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
@@ -1454,49 +1455,33 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     montage : instance of DigMontage
         The montage.
     """
+    VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
     _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
 
-    _file_extension = op.splitext(fname)[-1]
+    _, ext = op.splitext(fname)
+    _check_option('fname', ext, VALID_FILE_EXT)
 
-    if _file_extension == '.hsp' or _file_extension == '.eeg':
-        points, fiducials = _read_isotrak_hsp_points(fname)
+    if ext == '.elp':
+        data = _read_isotrak_elp_points(fname)
     else:
-        points, fiducials = _read_isotrak_elp_points(fname)
+        # Default case we read points as hsp since is the most likely scenario
+        data = _read_isotrak_hsp_points(fname)
 
-    # point_type = 'hsp' if _file_extension == '.hsp' else 'hpi'
-    if _scale == 1:
-        if _file_extension == '.hsp' or _file_extension == '.eeg':
-            if ch_names is None:
-                return make_dig_montage(**fiducials, hsp=points)
-            else:
-                # XXX: raise if not equal
-                return make_dig_montage(
-                    **fiducials, ch_pos=dict(zip(ch_names, points)),
-                )
-        else:
-            return make_dig_montage(**fiducials, hpi=points)
+    if _scale != 1:
+        data = {key: val * _scale for key, val in  data.items()}
     else:
-        if _file_extension == '.hsp' or _file_extension == '.eeg':
-            if ch_names is None:
-                return make_dig_montage(
-                    nasion=fiducials.nasion * _scale,
-                    lpa=fiducials.lpa * _scale,
-                    rpa=fiducials.rpa * _scale,
-                    hsp=points * _scale
-                )
-            else:
-                # XXX: raise if not equal
-                return make_dig_montage(
-                    nasion=fiducials.nasion * _scale,
-                    lpa=fiducials.lpa * _scale,
-                    rpa=fiducials.rpa * _scale,
-                    ch_pos=dict(zip(ch_names, points * _scale)),
-                )
+        pass  # noqa
+
+    if ch_names is None:
+        keyword = 'hpi' if ext == '.elp' else 'hsp'
+        data[keyword] = data.pop('points')
+
+    else:
+        points = data.pop('points')
+        if points.shape[0] == len(ch_names):
+            data['ch_pos'] = dict(zip(ch_names, points))
         else:
-            return make_dig_montage(
-                nasion=fiducials.nasion * _scale,
-                lpa=fiducials.lpa * _scale,
-                rpa=fiducials.rpa * _scale,
-                hpi=points * _scale
-            )
+            raise RuntimeError('xxxxxx')
+
+    return make_dig_montage(**data)
