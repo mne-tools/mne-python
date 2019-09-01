@@ -78,7 +78,8 @@ the anatomical T1 image of subject B.
 
 MNE-Python uses the Symmetric Diffeomorphic Registration [2]_ as implemented
 in dipy_ [3]_ (See
-`tutorial <http://nipy.org/dipy/examples_built/syn_registration_3d.html>`_
+`this tutorial
+<https://dipy.org/documentation/1.0.0./examples_built/syn_registration_3d>`_
 from dipy_ for more details).
 
 :class:`mne.SourceMorph` uses segmented anatomical MR images computed

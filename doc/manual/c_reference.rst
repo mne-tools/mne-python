@@ -1304,7 +1304,7 @@ The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`mne_
     | eigen_leads           | nchan x nsource | The rows of this matrix are the right singular vectors of  |
     |                       |                 | :math:`A`, i.e., the columns of :math:`V`, see above.      |
     +-----------------------+-----------------+------------------------------------------------------------+
-    | noise_eigenval        | nchan           | In terms of :ref:`c_legacy_CHDDHAGE`, eigenvalues of       | 
+    | noise_eigenval        | nchan           | In terms of :ref:`c_legacy_CHDDHAGE`, eigenvalues of       |
     |                       |                 | :math:`C_0`, i.e., not scaled with number of averages.     |
     +-----------------------+-----------------+------------------------------------------------------------+
     | noise_eigenvec        | nchan           | Eigenvectors of the noise covariance matrix. In terms of   |
@@ -3534,8 +3534,7 @@ The input formats are:
 ``elp``
 
     A text format produced by the *Source
-    Signal Imaging, Inc.* software. For description of this "probe" format,
-    see http://www.sourcesignal.com/formats_probe.html.
+    Signal Imaging, Inc.* software.
 
 The data can be output in fif and hpts formats.
 Only the last command-line option specifying an input file will
@@ -4100,7 +4099,7 @@ None of these formats support electrode location information
 and  head shape digitization information. Therefore, this information
 has to be provided separately. Presently hpts and elp file formats
 are supported to include digitization data. For information on these
-formats, see :ref:`CJADJEBH` and http://www.sourcesignal.com/formats_probe.html.
+formats, see :ref:`CJADJEBH`.
 Note that it is mandatory to have the three fiducial locations (nasion
 and the two auricular points) included in the digitization data.
 Using the locations of the fiducial points the digitization data
@@ -4157,8 +4156,7 @@ The command-line options of mne_edf2fiff are:
 
     Specifies the name of the an electrode location file. This file
     is in the "probe" file format used by the *Source
-    Signal Imaging, Inc.* software. For description of the
-    format, see http://www.sourcesignal.com/formats_probe.html. Note
+    Signal Imaging, Inc.* software. Note
     that some other software packages may produce electrode-position
     files with the elp ending not
     conforming to the above specification. As discussed above, the fiducial
@@ -6271,7 +6269,6 @@ mne_tufts2fiff
     The name of the electrode location file. If this file is missing,
     the electrode locations will be unspecified. This file is in the "probe" file
     format used by the *Source Signal Imaging, Inc.* software.
-    For description of the format, see http://www.sourcesignal.com/formats_probe.html.
     The fiducial marker locations, optional in the "probe" file
     format specification are mandatory for mne_tufts2fiff . Note
     that some other software packages may produce electrode-position
