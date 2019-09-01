@@ -135,6 +135,8 @@ Bug
 API
 ~~~
 
+- New boolean parameter ``show_scrollbars`` for :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, and :meth:`mne.preprocessing.ICA.plot_sources` (and associated functions) that allows hiding the scrollbars and buttons for a "zen mode" data browsing experience. When the plot window has focus, zen mode can be toggled by pressing :kbd:`z`, by `Daniel McCloy`_.
+
 - Deprecate passing ``np.arrays`` as ``hsp``, ``hpi`` or ``elp`` parameters to ``mne.channels.read_dig_montage`` by `Joan Massich`_.
 
 - Deprecate ``fif`` and ``egi`` parameters in ``mne.channels.read_dig_montage`` by `Joan Massich`_.
