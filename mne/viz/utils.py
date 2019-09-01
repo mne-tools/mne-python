@@ -358,6 +358,7 @@ def _get_help_text(params):
             text.append(u'Page down : \n')
             text.append(u'Page up : \n')
 
+    text.append(u'z : \n')
     text.append(u'F11 : \n')
     text.append(u'? : \n')
     text.append(u'Esc : \n\n')
@@ -370,6 +371,7 @@ def _get_help_text(params):
     text2.append('Scale down\n')
     text2.append('Scale up\n')
 
+    text2.append('Toggle scrollbars\n')
     text2.append('Toggle full screen mode\n')
     text2.append('Open help box\n')
     text2.append('Quit\n\n\n')
