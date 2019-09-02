@@ -1727,10 +1727,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
                       views=views)
-
-    ad_kwargs, sd_kwargs = _get_ps_kwargs(
-        initial_time, diverging, scale_pts[1], transparent)
-    del initial_time, transparent
+    center = 0. if diverging else None
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         data = getattr(stc, hemi + '_data')
@@ -1741,10 +1738,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                smoothing_steps=smoothing_steps, time=times,
                                time_label=time_label, alpha=alpha, hemi=hemi,
                                colorbar=colorbar,
-                               min=scale_pts[0], max=scale_pts[2], **ad_kwargs)
-    if 'mid' not in ad_kwargs:  # PySurfer < 0.9
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], **sd_kwargs)
+                               fmin=scale_pts[0], fmid=scale_pts[1],
+                               fmax=scale_pts[2], transparent=transparent,
+                               center=center, verbose=False)
     if time_viewer:
         TimeViewer(brain)
     return brain
