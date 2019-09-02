@@ -51,7 +51,7 @@ class _Brain(object):
                values. Only the first and last colors are used. E.g.,
                ['red', 'blue'] or [(1, 0, 0), (0, 0, 1)].
             5. A container with four entries for colormap (string
-               specifiying the name of a colormap), vmin (float
+               specifying the name of a colormap), vmin (float
                specifying the minimum value for the colormap), vmax
                (float specifying the maximum value for the colormap),
                and reverse (bool specifying whether the colormap
