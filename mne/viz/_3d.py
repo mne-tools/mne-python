@@ -1705,7 +1705,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    from surfer import Brain, TimeViewer
+    from ._brain import _Brain as Brain
+    from surfer import TimeViewer
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)

@@ -36,6 +36,28 @@ class _Brain(object):
         freesurfer surface mesh name (ie 'white', 'inflated', etc.).
     title : str
         Title for the window.
+    cortex : str, tuple, dict, or None
+        Specifies how the cortical surface is rendered. Options:
+
+            1. The name of one of the preset cortex styles:
+               ``'classic'`` (default), ``'high_contrast'``,
+               ``'low_contrast'``, or ``'bone'``.
+            2. A color-like argument to render the cortex as a single
+               color, e.g. ``'red'`` or ``(0.1, 0.4, 1.)``. Setting
+               this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``.
+            3. The name of a colormap used to render binarized
+               curvature values, e.g., ``Grays``.
+            4. A list of colors used to render binarized curvature
+               values. Only the first and last colors are used. E.g.,
+               ['red', 'blue'] or [(1, 0, 0), (0, 0, 1)].
+            5. A container with four entries for colormap (string
+               specifiying the name of a colormap), vmin (float
+               specifying the minimum value for the colormap), vmax
+               (float specifying the maximum value for the colormap),
+               and reverse (bool specifying whether the colormap
+               should be reversed. E.g., ``('Greys', -1, 2, False)``.
+            6. A dict of keyword arguments that is passed on to the
+               call to surface.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
     size : float | tuple(float, float)
@@ -186,12 +208,15 @@ class _Brain(object):
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
-                 alpha=1.0, size=800, background=(0, 0, 0),
+                 cortex=None, alpha=1.0, size=800, background=(0, 0, 0),
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
         if hemi == 'split':
             raise ValueError('Option hemi="split" is not supported yet.')
+
+        if cortex is not None:
+            raise ValueError('cortex parameter is not supported yet.')
 
         if figure is not None:
             raise ValueError('figure parameter is not supported yet.')
