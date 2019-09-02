@@ -208,15 +208,12 @@ class _Brain(object):
     """
 
     def __init__(self, subject_id, hemi, surf, title=None,
-                 cortex=None, alpha=1.0, size=800, background=(0, 0, 0),
+                 cortex=None, alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
         if hemi == 'split':
             raise ValueError('Option hemi="split" is not supported yet.')
-
-        if cortex is not None:
-            raise ValueError('cortex parameter is not supported yet.')
 
         if figure is not None:
             raise ValueError('figure parameter is not supported yet.')
@@ -225,6 +222,12 @@ class _Brain(object):
             raise ValueError('"interaction" parameter is not supported.')
 
         from ..backends.renderer import _Renderer
+        from matplotlib.colors import colorConverter
+
+        if isinstance(background, str):
+            background = colorConverter.to_rgb(background)
+        if isinstance(foreground, str):
+            foreground = colorConverter.to_rgb(foreground)
 
         self._foreground = foreground
         self._hemi = hemi
@@ -257,7 +260,7 @@ class _Brain(object):
             fig_size = size
         else:
             raise ValueError('"size" parameter must be int or tuple.')
-
+        geo_kwargs, geo_reverse, geo_curv = self._get_geo_params(cortex, alpha)
         for h in self._hemis:
             # Initialize a Surface object as the geometry
             geo = Surface(subject_id, h, surf, subjects_dir, offset,
@@ -267,6 +270,8 @@ class _Brain(object):
             geo.load_curvature()
             self.geo[h] = geo
 
+        if isinstance(views, str):
+            views = [views]
         for ri, v in enumerate(views):
             renderer = _Renderer(size=fig_size, bgcolor=background)
             self._renderers[ri].append(renderer)
@@ -552,6 +557,103 @@ class _Brain(object):
             raise ValueError('hemi must be either "lh" or "rh"' +
                              extra + ", got " + str(hemi))
         return hemi
+
+    def _get_geo_params(self, cortex, alpha=1.0):
+        """Return keyword arguments and other parameters for surface
+        rendering.
+
+        Parameters
+        ----------
+        cortex : {str, tuple, dict, None}
+            Can be set to: (1) the name of one of the preset cortex
+            styles ('classic', 'high_contrast', 'low_contrast', or
+            'bone'), (2) the name of a colormap, (3) a tuple with
+            four entries for (colormap, vmin, vmax, reverse)
+            indicating the name of the colormap, the min and max
+            values respectively and whether or not the colormap should
+            be reversed, (4) a valid color specification (such as a
+            3-tuple with RGB values or a valid color name), or (5) a
+            dictionary of keyword arguments that is passed on to the
+            call to surface. If set to None, color is set to (0.5,
+            0.5, 0.5).
+        alpha : float in [0, 1]
+            Alpha level to control opacity of the cortical surface.
+
+        Returns
+        -------
+        kwargs : dict
+            Dictionary with keyword arguments to be used for surface
+            rendering. For colormaps, keys are ['colormap', 'vmin',
+            'vmax', 'alpha'] to specify the name, minimum, maximum,
+            and alpha transparency of the colormap respectively. For
+            colors, keys are ['color', 'alpha'] to specify the name
+            and alpha transparency of the color respectively.
+        reverse : boolean
+            Boolean indicating whether a colormap should be
+            reversed. Set to False if a color (rather than a colormap)
+            is specified.
+        curv : boolean
+            Boolean indicating whether curv file is loaded and binary
+            curvature is displayed.
+
+        """
+        from matplotlib.colors import colorConverter
+        colormap_map = dict(classic=(dict(colormap="Greys",
+                                          vmin=-1, vmax=2,
+                                          opacity=alpha), False, True),
+                            high_contrast=(dict(colormap="Greys",
+                                                vmin=-.1, vmax=1.3,
+                                                opacity=alpha), False, True),
+                            low_contrast=(dict(colormap="Greys",
+                                               vmin=-5, vmax=5,
+                                               opacity=alpha), False, True),
+                            bone=(dict(colormap="bone",
+                                       vmin=-.2, vmax=2,
+                                       opacity=alpha), True, True))
+        if isinstance(cortex, dict):
+            if 'opacity' not in cortex:
+                cortex['opacity'] = alpha
+            if 'colormap' in cortex:
+                if 'vmin' not in cortex:
+                    cortex['vmin'] = -1
+                if 'vmax' not in cortex:
+                    cortex['vmax'] = 2
+            geo_params = cortex, False, True
+        elif isinstance(cortex, str):
+            if cortex in colormap_map:
+                geo_params = colormap_map[cortex]
+            elif cortex in lut_manager.lut_mode_list():
+                geo_params = dict(colormap=cortex, vmin=-1, vmax=2,
+                                  opacity=alpha), False, True
+            else:
+                try:
+                    color = colorConverter.to_rgb(cortex)
+                    geo_params = dict(color=color, opacity=alpha), False, False
+                except ValueError:
+                    geo_params = cortex, False, True
+        # check for None before checking len:
+        elif cortex is None:
+            geo_params = dict(color=(0.5, 0.5, 0.5),
+                              opacity=alpha), False, False
+        # Test for 4-tuple specifying colormap parameters. Need to
+        # avoid 4 letter strings and 4-tuples not specifying a
+        # colormap name in the first position (color can be specified
+        # as RGBA tuple, but the A value will be dropped by to_rgb()):
+        elif (len(cortex) == 4) and (isinstance(cortex[0], string_types)):
+            geo_params = dict(colormap=cortex[0], vmin=cortex[1],
+                              vmax=cortex[2], opacity=alpha), cortex[3], True
+        else:
+            try:  # check if it's a non-string color specification
+                color = colorConverter.to_rgb(cortex)
+                geo_params = dict(color=color, opacity=alpha), False, False
+            except ValueError:
+                try:
+                    lut = create_color_lut(cortex)
+                    geo_params = dict(colormap="Greys", opacity=alpha,
+                                      lut=lut), False, True
+                except ValueError:
+                    geo_params = cortex, False, True
+        return geo_params
 
 
 def _update_limits(fmin, fmid, fmax, center, array):
