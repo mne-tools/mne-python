@@ -437,4 +437,4 @@ done *e.g.*, to ``subject='fsaverage'`` as::
     >>> morph = mne.compute_source_morph(stc, subject_from='sample', subject_to='fsaverage')  # doctest: +SKIP
     >>> stc_fsaverage = morph.apply(stc)  # doctest: +SKIP
 
-See :ref:`ch_morph` for more information.
+See :ref:`c_legacy_ch_morph` for more information.

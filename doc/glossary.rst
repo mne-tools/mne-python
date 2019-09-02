@@ -141,8 +141,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
     morphing
         Morphing refers to the operation of transferring source estimates from
         one anatomy to another. It is commonly referred as realignment in fMRI
-        literature. This operation is necessary for group studies.
-        See :ref:`ch_morph` for more details.
+        literature. This operation is necessary for group studies (to get the
+        data in a common space for statistical analysis).
+        See :ref:`c_legacy_ch_morph` for more details.
 
     pick
         An integer that is the index of a channel in the measurement info.
