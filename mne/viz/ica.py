@@ -183,7 +183,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # compute percentage of dropped epochs
     var_percent = float(len(dropped_indices)) / float(len(epoch_var)) * 100.
 
-    var_ax.set_yticks([])
+    # var_ax.set_yticks([])
 
     # histogram & histogram
     _, counts, _ = hist_ax.hist(epoch_var, orientation="horizontal",
@@ -230,10 +230,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.axhline(0, color='k', linewidth=.5)
 
     # epoch variance
-    var_ax_title = 'Dropped segments : %.2f %%' % var_percent
-    set_title_and_labels(var_ax, var_ax_title,
-                         kind + ' (index)',
-                         'Variance (AU)')
+    var_ax_title = 'Dropped segments: %.2f %%' % var_percent
+    set_title_and_labels(var_ax, var_ax_title, kind, 'Variance (AU)')
 
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
