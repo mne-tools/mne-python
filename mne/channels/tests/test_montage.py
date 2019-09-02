@@ -599,42 +599,6 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
         assert dig_point['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
 
 
-def test_read_dig_montage_using_polhemus_isotrak():  # XXX: needs beter name
-    """Test ISOTrack."""
-    # Old stuff
-    from mne.io import read_raw_kit
-    from mne.io.kit import __file__ as _KIT_INIT_FILE
-    from mne.channels._dig_montage_utils import _get_fid_coords
-
-    data_dir = op.join(op.dirname(_KIT_INIT_FILE), 'tests', 'data')
-    sqd_path = op.join(data_dir, 'test.sqd')
-    mrk_path = op.join(data_dir, 'test_mrk.sqd')
-    elp_path = op.join(data_dir, 'test.elp')
-    hsp_path = op.join(data_dir, 'test.hsp')
-
-    raw_elp = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
-    EXPECTED_MONTAGE = DigMontage(dig=raw_elp.info['dig'], ch_names=None)
-    xx = read_dig_montage(hsp=op.join(kit_dir, 'test.hsp'), transform=False)
-
-    aa, bb = _get_fid_coords(EXPECTED_MONTAGE.dig)
-
-    # XXX: its in head!!!
-    raw_elp_coord_frames = set([d['coord_frame'] for d in raw_elp.info['dig']])
-    assert raw_elp_coord_frames == {FIFF.FIFFV_COORD_HEAD}
-
-    EXPECTED_FID_IN_POLHEMUS = {
-        'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
-        'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
-        'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
-    }
-
-    EXPECTED_FID_IN_HEAD = {
-        'nasion': np.array([-8.94466792e-18, 1.10559624e-01, -3.85185989e-34]),
-        'lpa': np.array([-8.10816716e-02, 6.56321671e-18, 0]),
-        'rpa': np.array([ 8.05048781e-02, -6.47441364e-18, 0]),
-    }
-
-
 def test_combining_digmontage_objects():
     """Test combining different DigMontage objects."""
     rng = np.random.RandomState(0)
