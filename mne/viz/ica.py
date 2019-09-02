@@ -31,7 +31,7 @@ from ..utils import _reject_data_segments
 @fill_doc
 def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False):
+                     show_first_samp=False, show_scrollbars=True):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -67,6 +67,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
         plotter. For evoked, this parameter has no effect. Defaults to False.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
+    %(show_scrollbars)s
 
     Returns
     -------
@@ -96,11 +97,13 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     if isinstance(inst, BaseRaw):
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
-                                block=block, show_first_samp=show_first_samp)
+                                block=block, show_first_samp=show_first_samp,
+                                show_scrollbars=show_scrollbars)
     elif isinstance(inst, BaseEpochs):
         fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
-                                   block=block)
+                                   block=block,
+                                   show_scrollbars=show_scrollbars)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -850,7 +853,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
-                      block, show_first_samp):
+                      block, show_first_samp, show_scrollbars):
     """Plot the ICA components as raw array."""
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
@@ -904,7 +907,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
                   first_time=first_time, data_picks=[], decim=1,
                   noise_cov=None, whitened_ch_names=(), clipping=None,
-                  use_scalebars=False)
+                  use_scalebars=False, show_scrollbars=show_scrollbars)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -960,7 +963,7 @@ def _close_event(events, params):
 
 
 def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
-                         title, block):
+                         title, block, show_scrollbars):
     """Plot the components as epochs."""
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
@@ -1000,7 +1003,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                   bads=list(), bad_color=(1., 0., 0.),
                   t_start=start * len(epochs.times),
                   data_picks=list(), decim=1, whitened_ch_names=(),
-                  noise_cov=None)
+                  noise_cov=None, show_scrollbars=show_scrollbars)
     params['label_click_fun'] = partial(_label_clicked, params=params)
     # changing the order to 'misc' before 'eog' and 'ecg'
     order = list(_DATA_CH_TYPES_ORDER_DEFAULT)

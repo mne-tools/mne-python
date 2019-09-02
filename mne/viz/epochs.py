@@ -30,7 +30,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
                     _set_title_multiple_electrodes, _make_combine_callable,
-                    _get_figsize_from_config)
+                    _get_figsize_from_config, _toggle_scrollbars)
 from .misc import _handle_event_colors
 
 
@@ -720,7 +720,7 @@ def _epochs_axes_onclick(event, params):
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
                 show=True, block=False, decim='auto', noise_cov=None,
-                butterfly=False):
+                butterfly=False, show_scrollbars=True):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -804,6 +804,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Whether to directly call the butterfly view.
 
         .. versionadded:: 0.18.0
+    %(show_scrollbars)s
 
     Returns
     -------
@@ -836,7 +837,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0.,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
-                  use_noise_cov=noise_cov is not None)
+                  use_noise_cov=noise_cov is not None,
+                  show_scrollbars=show_scrollbars)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
@@ -1672,6 +1674,9 @@ def _plot_onkey(event, params):
         _onclick_help(event, params)
     elif event.key == 'escape':
         plt.close(params['fig'])
+    elif event.key == 'z':
+        # zen mode: remove scrollbars and buttons
+        _toggle_scrollbars(params)
 
 
 def _prepare_butterfly(params):

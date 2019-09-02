@@ -282,6 +282,15 @@ combine : None | str | callable
     field power).
 """
 
+docdict['show_scrollbars'] = """
+show_scrollbars : bool
+    Whether to show scrollbars when the plot is initialized. Can be toggled
+    after initialization by pressing :kbd:`z` ("zen mode") while the plot
+    window is focused. Default is ``True``.
+
+    .. versionadded:: 0.19.0
+"""
+
 # PSD plotting
 docdict["plot_psd_doc"] = """
 Plot the power spectral density across channels.

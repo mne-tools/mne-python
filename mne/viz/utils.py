@@ -339,30 +339,31 @@ def _get_help_text(params):
     is_mac = platform.system() == 'Darwin'
     text, text2 = list(), list()
 
-    text.append(u'(Shift +) ← : \n')
-    text.append(u'(Shift +) → : \n')
-    text.append(u'↓ : \n')
-    text.append(u'↑ : \n')
-    text.append(u'- : \n')
-    text.append(u'+ or = : \n')
+    text.append('(Shift +) ← : \n')
+    text.append('(Shift +) → : \n')
+    text.append('↓ : \n')
+    text.append('↑ : \n')
+    text.append('- : \n')
+    text.append('+ or = : \n')
     if is_mac:
-        text.append(u'fn + ← : \n')
-        text.append(u'fn + → : \n')
+        text.append('fn + ← : \n')
+        text.append('fn + → : \n')
         if 'fig_selection' not in params:
-            text.append(u'fn + ↓ : \n')
-            text.append(u'fn + ↑ : \n')
+            text.append('fn + ↓ : \n')
+            text.append('fn + ↑ : \n')
     else:
-        text.append(u'Home : \n')
-        text.append(u'End : \n')
+        text.append('Home : \n')
+        text.append('End : \n')
         if 'fig_selection' not in params:
-            text.append(u'Page down : \n')
-            text.append(u'Page up : \n')
+            text.append('Page down : \n')
+            text.append('Page up : \n')
 
-    text.append(u'F11 : \n')
-    text.append(u'? : \n')
-    text.append(u'Esc : \n\n')
-    text.append(u'Mouse controls\n')
-    text.append(u'click on data :\n')
+    text.append('z : \n')
+    text.append('F11 : \n')
+    text.append('? : \n')
+    text.append('Esc : \n\n')
+    text.append('Mouse controls\n')
+    text.append('click on data :\n')
 
     text2.append('Navigate left\n')
     text2.append('Navigate right\n')
@@ -370,15 +371,16 @@ def _get_help_text(params):
     text2.append('Scale down\n')
     text2.append('Scale up\n')
 
+    text2.append('Toggle scrollbars\n')
     text2.append('Toggle full screen mode\n')
     text2.append('Open help box\n')
     text2.append('Quit\n\n\n')
     if 'raw' in params:
         text2.insert(4, 'Reduce the time shown per view\n')
         text2.insert(5, 'Increase the time shown per view\n')
-        text.append(u'click elsewhere in the plot :\n')
+        text.append('click elsewhere in the plot :\n')
         if 'ica' in params:
-            text.append(u'click component name :\n')
+            text.append('click component name :\n')
             text2.insert(2, 'Navigate components down\n')
             text2.insert(3, 'Navigate components up\n')
             text2.insert(8, 'Reduce the number of components per view\n')
@@ -387,20 +389,20 @@ def _get_help_text(params):
             text2.append('Vertical line at a time instant\n')
             text2.append('Show topography for the component\n')
         else:
-            text.append(u'click channel name :\n')
+            text.append('click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
-            text.insert(6, u'a : \n')
+            text.insert(6, 'a : \n')
             text2.insert(6, 'Toggle annotation mode\n')
 
-            text.insert(7, u'p : \n')
+            text.insert(7, 'p : \n')
             text2.insert(7, 'Toggle snap to annotations on/off\n')
 
-            text.insert(8, u'b : \n')
+            text.insert(8, 'b : \n')
             text2.insert(8, 'Toggle butterfly plot on/off\n')
-            text.insert(9, u'd : \n')
+            text.insert(9, 'd : \n')
             text2.insert(9, 'Toggle remove DC on/off\n')
-            text.insert(10, u's : \n')
+            text.insert(10, 's : \n')
             text2.insert(10, 'Toggle scale bars\n')
             if 'fig_selection' not in params:
                 text2.insert(13, 'Reduce the number of channels per view\n')
@@ -410,11 +412,11 @@ def _get_help_text(params):
             text2.append('Mark bad channel\n')
 
     elif 'epochs' in params:
-        text.append(u'right click :\n')
+        text.append('right click :\n')
         text2.insert(4, 'Reduce the number of epochs per view\n')
         text2.insert(5, 'Increase the number of epochs per view\n')
         if 'ica' in params:
-            text.append(u'click component name :\n')
+            text.append('click component name :\n')
             text2.insert(2, 'Navigate components down\n')
             text2.insert(3, 'Navigate components up\n')
             text2.insert(8, 'Reduce the number of components per view\n')
@@ -423,23 +425,23 @@ def _get_help_text(params):
             text2.append('Vertical line at a time instant\n')
             text2.append('Show topography for the component\n')
         else:
-            text.append(u'click channel name :\n')
-            text.append(u'right click channel name :\n')
+            text.append('click channel name :\n')
+            text.append('right click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
             text2.insert(8, 'Reduce the number of channels per view\n')
             text2.insert(9, 'Increase the number of channels per view\n')
-            text.insert(10, u'b : \n')
+            text.insert(10, 'b : \n')
             text2.insert(10, 'Toggle butterfly plot on/off\n')
-            text.insert(11, u'h : \n')
+            text.insert(11, 'h : \n')
             text2.insert(11, 'Show histogram of peak-to-peak values\n')
             text2.append('Mark bad epoch\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
             text2.append('Plot ERP/ERF image\n')
-            text.append(u'middle click :\n')
+            text.append('middle click :\n')
             text2.append('Show channel name (butterfly plot)\n')
-        text.insert(11, u'o : \n')
+        text.insert(11, 'o : \n')
         text2.insert(11, 'View settings (orig. view only)\n')
 
     return ''.join(text), ''.join(text2)
@@ -569,7 +571,39 @@ def _update_borders(params, new_width, new_height):
         if side in ('right', 'top'):
             rel_dim = (1 - rel_dim)
         new_borders[side] = rel_dim
+    # zen mode adjustment
+    params['zen_w_delta'] *= old_width / new_width
+    params['zen_h_delta'] *= old_height / new_height
+    # update
     params['fig'].subplots_adjust(**new_borders)
+
+
+def _toggle_scrollbars(params):
+    """Show or hide scrollbars (AKA zen mode) in mne_browse-style plots."""
+    if params.get('show_scrollbars', None) is not None:
+        # grow/shrink main axes to take up space from/make room for scrollbars
+        # can't use ax.set_position() because axes are locatable, so we have to
+        # fake it with subplots_adjust
+        should_show = not params['show_scrollbars']
+        sides = ('left', 'bottom', 'right', 'top')
+        borders = {side: getattr(params['fig'].subplotpars, side)
+                   for side in sides}
+        # if should_show, bottom margin moves up; right margin moves left
+        borders['bottom'] += (1 if should_show else -1) * params['zen_h_delta']
+        borders['right'] += (-1 if should_show else 1) * params['zen_w_delta']
+        # squeeze a little more because we don't need space for "Time (s)" now
+        v_delta = _inch_to_rel_dist(params['fig'], 0.16, horiz=False)
+        borders['bottom'] += (1 if should_show else -1) * v_delta
+        params['fig'].subplots_adjust(**borders)
+        # show/hide
+        for element in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
+            if params.get('butterfly', False) and element == 'ax_vscroll':
+                continue
+            # sometimes we don't have a proj button (ax_button)
+            if params.get(element, None) is not None:
+                params[element].set_visible(should_show)
+        params['show_scrollbars'] = should_show
+        params['fig'].canvas.draw()
 
 
 def _prepare_mne_browse(params, xlabel):
@@ -614,13 +648,13 @@ def _prepare_mne_browse(params, xlabel):
     ]
     params['proj_button_pos'] = proj_button_pos
     params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
-    # initialize help button in the wrong spot...
-    ax_help_button = div.append_axes(position='left', size=Fixed(help_width),
-                                     pad=Fixed(vscroll_dist))
+    # initialize help button axes in the wrong spot...
+    ax_help = div.append_axes(position='left', size=Fixed(help_width),
+                              pad=Fixed(vscroll_dist))
     # ...then move it down by changing its locator, and make it a button.
     loc = div.new_locator(nx=0, ny=0)
-    ax_help_button.set_axes_locator(loc)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    ax_help.set_axes_locator(loc)
+    help_button = mpl.widgets.Button(ax_help, 'Help')
     help_button.on_clicked(partial(_onclick_help, params=params))
     # style scrollbars
     ax_hscroll.get_yaxis().set_visible(False)
@@ -630,12 +664,23 @@ def _prepare_mne_browse(params, xlabel):
     params['ax'] = ax
     params['ax_hscroll'] = ax_hscroll
     params['ax_vscroll'] = ax_vscroll
+    params['ax_help'] = ax_help
     params['help_button'] = help_button
     # default key to close window
     params['close_key'] = 'escape'
     # add resize callback (it's the same for Raw/Epochs/ICA)
     callback_resize = partial(_resize_event, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
+    # zen mode
+    fig.canvas.draw()  # otherwise the get_position() calls are inaccurate
+    params['zen_w_delta'] = (ax_vscroll.get_position().xmax -
+                             ax.get_position().xmax)
+    params['zen_h_delta'] = (ax.get_position().ymin -
+                             ax_hscroll.get_position().ymin)
+    if not params.get('show_scrollbars', True):
+        # change to True so toggle func will do the right thing
+        params['show_scrollbars'] = True
+        _toggle_scrollbars(params)
 
 
 @verbose
@@ -957,6 +1002,9 @@ def _plot_raw_onkey(event, params):
         if not params['snap_annotations']:
             _on_hover(None, params)
         params['plot_fun']()
+    elif event.key == 'z':
+        # zen mode: remove scrollbars and buttons
+        _toggle_scrollbars(params)
 
 
 def _setup_annotation_fig(params):

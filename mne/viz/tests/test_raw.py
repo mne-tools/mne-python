@@ -230,15 +230,19 @@ def test_plot_raw():
     # test keypresses
     # test for group_by='original'
     for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd', 'd',
-                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
+                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'z',
+                'escape']:
         fig.canvas.key_press_event(key)
 
     # test for group_by='selection'
     fig = plot_raw(raw, events=events, group_by='selection')
     for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd',
-                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b', 'z',
                 'escape']:
         fig.canvas.key_press_event(key)
+
+    # test zen mode
+    fig = plot_raw(raw, show_scrollbars=False)
 
     # Color setting
     pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
