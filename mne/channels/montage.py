@@ -756,12 +756,14 @@ class DigMontage(object):
             )
 
         # Check for none duplicated ch_names
-        union_len = len(set(self.ch_names + other.ch_names))
-        if (union_len != len(self.ch_names) + len(other.ch_names)):
-            # XXX: explicit error in which chanel are different
-            raise RuntimeError(
-                'Cannot add two DigMontage objects if duplicated channel names'
-            )
+        ch_names_intersection = set(self.ch_names).intersection(other.ch_names)
+        if ch_names_intersection:
+            raise RuntimeError((
+                "Cannot add two DigMontage objects if they contain duplicated"
+                " channel names. Duplicated channel(s) found: {}."
+            ).format(
+                ', '.join(['%r' % v for v in sorted(ch_names_intersection)])
+            ))
 
         # Check for unique matching fiducials
         self_fid, self_coord = _get_fid_coords(self.dig, raise_error=False)

@@ -710,14 +710,15 @@ def test_combining_digmontage_forviden_behaviors():
     )
     dig2 = make_dig_montage(
         **fiducials,
-        ch_pos=dict(zip(list('cde'), rng.rand(3, 3))),
+        ch_pos=dict(zip(list('bcd'), rng.rand(3, 3))),
     )
     dig2_wrong_fid = make_dig_montage(
         nasion=rng.rand(3), lpa=rng.rand(3), rpa=rng.rand(3),
         ch_pos=dict(zip(list('ghi'), rng.rand(3, 3))),
     )
 
-    with pytest.raises(RuntimeError, match='Cannot.*duplicated channel names'):
+    _msg = "Cannot.*duplicated channel.*found: \'b\', \'c\'."
+    with pytest.raises(RuntimeError, match=_msg):
         _ = dig1 + dig2
 
     with pytest.raises(RuntimeError, match='fiducial locations do not match'):
