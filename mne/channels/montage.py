@@ -1484,6 +1484,37 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
         if points.shape[0] == len(ch_names):
             data['ch_pos'] = dict(zip(ch_names, points))
         else:
-            raise RuntimeError('xxxxxx')
+            raise ValueError('xxxxxx')
 
     return make_dig_montage(**data)
+
+
+def _get_polhemus_fastscan_header(fname):
+    header_lines = list()
+    with open(fname, 'r') as fid:
+        line = fid.readline()
+        while line.startswith('%'):
+            header_lines.append(line)
+            line = fid.readline()
+
+    return '\n'.join(header_lines)
+
+
+def read_polhemus_fastscan(fname, ch_names=None, unit='mm'):
+
+    VALID_FILE_EXT = ['.txt']
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
+    _, ext = op.splitext(fname)
+    _check_option('fname', ext, VALID_FILE_EXT)
+
+    if _get_polhemus_fastscan_header(fname).find('FastSCAN') == -1:
+        raise ValueError("%s does not contain Polhemus FastSCAN header" % fname)
+
+    if _scale == 1:
+        points = np.loadtxt(fname, comments='%', ndmin=2)
+    else:
+        points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
+
+    return points

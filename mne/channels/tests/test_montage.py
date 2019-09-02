@@ -453,7 +453,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
 
     my_electrode_positions = read_polhemus_fastscan(
         op.join(kit_dir, 'test_elp.txt')
-    ) / 1000
+    )
 
     montage = make_dig_montage(
         # EEG_CH
@@ -464,7 +464,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
         lpa=my_electrode_positions[1],
         rpa=my_electrode_positions[2],
         hpi=my_electrode_positions[3:],
-        hsp=read_polhemus_fastscan(op.join(kit_dir, 'test_hsp.txt')) / 1000,
+        hsp=read_polhemus_fastscan(op.join(kit_dir, 'test_hsp.txt')),
         hpi_dev=None,  # XXX: I'm not sure we should allow hpi_dev
 
         # Other defaults
@@ -482,22 +482,17 @@ def test_read_dig_montage_using_polhemus_fastscan():
         FIFF.FIFFV_COORD_UNKNOWN
     }  # XXX: so far we build everything in 'unknown'
 
-    # EXPECTED_DEV_HEAD_T = np.array(
-    #     [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],  # noqa
-    #      [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
-    #      [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
-    #      [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
-    # )
-    # assert_allclose(new_montage_A.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
+    from mne.channels._dig_montage_utils import _get_fid_coords
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': array([ 0.001393, 0.0131613, -0.0046967]),
+        'lpa': array([-0.0624997, -0.0737271, 0.07996]),
+        'rpa': array([-0.0748957, 0.0873785, 0.0811943])
+    }
+    fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
+    for kk, val in fiducials.items():
+        assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
+        assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
 
-
-# @pytest.fixture(scope='module')
-# def faulty_fastcan(tmpdir_factory):
-#     fname = tmpdir_factory.mktemp('data').join('faulty_FastSCAN.txt')
-#     with open(op.join(kit_dir, 'test_elp.txt')) as fid:
-#         content = fid.read().replace('FastSCAN', 'XxxxXXXX')
-
-#     with open()
 
 def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
 
@@ -508,12 +503,12 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
     with open(fname, 'w') as fid:
         fid.write(content)
 
-    with pytest.rasies(RuntimeError, match='not match FastSCAN file'):
+    with pytest.raises(ValueError, match='not contain Polhemus FastSCAN'):
         montage = read_polhemus_fastscan(fname)
 
-    with pytest.rasies(RuntimeError, match='xxxx wrong file name'):
+    EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
         montage = read_polhemus_fastscan(fname=tmpdir.join('foo.bar'))
-
 
 
 def test_read_dig_polhemus_isotrak_hsp():
@@ -717,8 +712,8 @@ def test_combining_digmontage_forviden_behaviors():
         ch_pos=dict(zip(list('ghi'), rng.rand(3, 3))),
     )
 
-    _msg = "Cannot.*duplicated channel.*found: \'b\', \'c\'."
-    with pytest.raises(RuntimeError, match=_msg):
+    EXPECTED_ERR_MSG = "Cannot.*duplicated channel.*found: \'b\', \'c\'."
+    with pytest.raises(RuntimeError, match=EXPECTED_ERR_MSG):
         _ = dig1 + dig2
 
     with pytest.raises(RuntimeError, match='fiducial locations do not match'):
