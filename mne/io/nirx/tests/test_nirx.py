@@ -23,12 +23,14 @@ def test_nirx():
     # Test data import
     assert raw._data.shape == (26, 145)
     assert raw.info['sfreq'] == 12.5
-    assert raw.info['ch_names'][0] == "S1-D1 760 (nm)"
-    assert raw.info['ch_names'][1] == "S1-D1 850 (nm)"
-    assert raw.info['ch_names'][2] == "S1-D9 760 (nm)"
-    assert raw.info['ch_names'][3] == "S1-D9 850 (nm)"
-    assert raw.info['ch_names'][24] == "S5-D13 760 (nm)"
-    assert raw.info['ch_names'][25] == "S5-D13 850 (nm)"
+
+    # Test channel naming
+    assert raw.info['ch_names'][0] == "S1-D1 760"
+    assert raw.info['ch_names'][1] == "S1-D1 850"
+    assert raw.info['ch_names'][2] == "S1-D9 760"
+    assert raw.info['ch_names'][3] == "S1-D9 850"
+    assert raw.info['ch_names'][24] == "S5-D13 760"
+    assert raw.info['ch_names'][25] == "S5-D13 850"
 
     # Test info import
     assert raw.info['subject_info']['sex'] == 1

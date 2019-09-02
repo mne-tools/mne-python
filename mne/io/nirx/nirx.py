@@ -172,8 +172,8 @@ class RawNIRX(BaseRaw):
         snames = prepend(sources[req_ind], 'S')
         dnames = prepend(detectors[req_ind], '-D')
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
-        sd1 = [s + ' ' + str(fnirs_wavelengths[0]) + ' (nm)' for s in sdnames]
-        sd2 = [s + ' ' + str(fnirs_wavelengths[1]) + ' (nm)' for s in sdnames]
+        sd1 = [s + ' ' + str(fnirs_wavelengths[0]) for s in sdnames]
+        sd2 = [s + ' ' + str(fnirs_wavelengths[1]) for s in sdnames]
         chnames = [val for pair in zip(sd1, sd2) for val in pair]
 
         # Create mne structure
