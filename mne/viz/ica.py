@@ -183,8 +183,6 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # compute percentage of dropped epochs
     var_percent = float(len(dropped_indices)) / float(len(epoch_var)) * 100.
 
-    # var_ax.set_yticks([])
-
     # histogram & histogram
     _, counts, _ = hist_ax.hist(epoch_var, orientation="horizontal",
                                 color="k", alpha=.5)
