@@ -1,3 +1,5 @@
+:orphan:
+
 .. _command_line_tutorial:
 
 Getting started with MNE Unix command line tools
