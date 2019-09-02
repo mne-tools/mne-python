@@ -491,6 +491,31 @@ def test_read_dig_montage_using_polhemus_fastscan():
     # assert_allclose(new_montage_A.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
 
+# @pytest.fixture(scope='module')
+# def faulty_fastcan(tmpdir_factory):
+#     fname = tmpdir_factory.mktemp('data').join('faulty_FastSCAN.txt')
+#     with open(op.join(kit_dir, 'test_elp.txt')) as fid:
+#         content = fid.read().replace('FastSCAN', 'XxxxXXXX')
+
+#     with open()
+
+def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
+
+    with open(op.join(kit_dir, 'test_elp.txt')) as fid:
+        content = fid.read().replace('FastSCAN', 'XxxxXXXX')
+
+    fname = tmpdir.join('faulty_FastSCAN.txt')
+    with open(fname, 'w') as fid:
+        fid.write(content)
+
+    with pytest.rasies(RuntimeError, match='not match FastSCAN file'):
+        montage = read_polhemus_fastscan(fname)
+
+    with pytest.rasies(RuntimeError, match='xxxx wrong file name'):
+        montage = read_polhemus_fastscan(fname=tmpdir.join('foo.bar'))
+
+
+
 def test_read_dig_polhemus_isotrak_hsp():
     from mne.channels._dig_montage_utils import _get_fid_coords
     EXPECTED_FID_IN_POLHEMUS = {
@@ -597,6 +622,29 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
     for kk, dig_point in zip(montage.ch_names, _get_dig_eeg(montage.dig)):
         assert_array_equal(dig_point['r'], EXPECTED_CH_POS[kk])
         assert dig_point['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
+
+
+def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
+    """Test errors in reading Polhemus IsoTrak files.
+
+    1 - matching ch_names and number of points in isotrak file.
+    2 - error for unsupported file extensions.
+    """
+    # Check ch_names
+    N_CHANNELS = 5
+    with pytest.raises(RuntimeError, match='xx'):
+        montage = read_dig_polhemus_isotrak(
+            fname=isotrak_eeg,
+            ch_names=['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS + 42)]
+        )
+
+    # Check fname extensions
+    fname = op.join(tmpdir, 'foo.bar')
+    with pytest.raises(
+        ValueError,
+        match="Allowed val.*'.hsp', '.elp' and '.eeg', but got '.bar' instead"
+    ):
+        montage = read_dig_polhemus_isotrak(fname=fname, ch_names=None)
 
 
 def test_combining_digmontage_objects():
