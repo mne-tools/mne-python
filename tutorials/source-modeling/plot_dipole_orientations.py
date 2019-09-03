@@ -64,7 +64,7 @@ coord_frame = 'mri'
 
 # Plot the cortex
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans_fname, surfaces='white',
+                             trans=trans, surfaces='white',
                              coord_frame=coord_frame, fig=fig)
 
 # Mark the position of the dipoles with small red dots
@@ -97,7 +97,7 @@ fig = mne.viz.create_3d_figure(size=(600, 400))
 
 # Plot the cortex
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans_fname,
+                             trans=trans,
                              surfaces='white', coord_frame='head', fig=fig)
 
 # Show the dipoles as arrows pointing along the surface normal
@@ -148,12 +148,12 @@ fig = mne.viz.create_3d_figure(size=(600, 400))
 
 # Plot the cortex
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans_fname,
+                             trans=trans,
                              surfaces='white', coord_frame='head', fig=fig)
 
 # Show the three dipoles defined at each location in the source space
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             trans=trans_fname, fwd=fwd,
+                             trans=trans, fwd=fwd,
                              surfaces='white', coord_frame='head', fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)

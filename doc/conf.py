@@ -172,11 +172,11 @@ html_theme_options = {
     'bootstrap_version': "3",  # default
     'navbar_links': [
         ("Install", "install/index"),
-        ("Documentation", "documentation"),
-        ("API", "python_reference"),
-        ("Glossary", "glossary"),
-        ("Examples", "auto_examples/index"),
+        ("Overview", "overview/index"),
         ("Tutorials", "auto_tutorials/index"),
+        ("Examples", "auto_examples/index"),
+        ("Glossary", "glossary"),
+        ("API", "python_reference"),
         ("Contribute", "install/contributing"),
     ],
 }
@@ -309,7 +309,10 @@ intersphinx_mapping = {
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
-    'dipy': ('https://dipy.org/documentation/latest/', None),
+    # There are some problems with dipy's redirect:
+    # https://github.com/nipy/dipy/issues/1955
+    'dipy': ('https://dipy.org/documentation/latest',
+             'https://dipy.org/documentation/1.0.0./objects.inv/'),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }

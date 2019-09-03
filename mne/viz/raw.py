@@ -15,7 +15,8 @@ from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels)
-from ..utils import verbose, _ensure_int, _validate_type, _check_option
+from ..utils import (verbose, _ensure_int, _validate_type, _check_option,
+                     fill_doc)
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -97,13 +98,15 @@ def _pick_bad_channels(event, params):
     _plot_update_raw_proj(params, None)
 
 
+@fill_doc
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None):
+             butterfly=False, decim='auto', noise_cov=None, event_id=None,
+             show_scrollbars=True):
     """Plot raw data.
 
     Parameters
@@ -231,6 +234,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         theh event numbers).
 
         .. versionadded:: 0.16.0
+    %(show_scrollbars)s
 
     Returns
     -------
@@ -242,9 +246,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
     matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
-    left/right arrows will scroll by 25% of ``duration``, whereas
-    shift+left/shift+right will scroll by 100% of ``duration``. The scaling can
-    be adjusted with - and + (or =) keys. The viewport dimensions can be
+    left/right arrows will scroll by 25%% of ``duration``, whereas
+    shift+left/shift+right will scroll by 100%% of ``duration``. The scaling
+    can be adjusted with - and + (or =) keys. The viewport dimensions can be
     adjusted with page up/page down and home/end keys. Full screen mode can be
     toggled with the F11 key. To mark or un-mark a channel as bad, click on a
     channel label or a channel trace. The changes will be reflected immediately
@@ -402,7 +406,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, use_scalebars=True)
+                  unit_scalings=unit_scalings, use_scalebars=True,
+                  show_scrollbars=show_scrollbars)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection

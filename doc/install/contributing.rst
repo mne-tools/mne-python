@@ -1,3 +1,5 @@
+:orphan:
+
 .. _contributing:
 
 Contributing to MNE-Python
@@ -537,11 +539,7 @@ mentioned module, class, function, method, attribute, or documentation page.
 There are sphinx directives for all of these (``:mod:``, ``:class:``,
 ``:func:``, ``:meth:``, ``:attr:``, ``:doc:``) as well as a generic
 cross-reference directive (``:ref:``) for linking to specific sections of a
-documentation page. MNE-Python also uses Intersphinx_, so you can (and should)
-cross-reference to Python built-in classes and functions as well as API
-elements in :mod:`NumPy <numpy>`, :mod:`SciPy <scipy>`, etc. See the Sphinx
-configuration file (:file:`doc/conf.py`) for the list of Intersphinx projects
-we link to.
+documentation page.
 
 .. warning::
 
@@ -551,11 +549,14 @@ we link to.
     ``:func:`mne.set_config``` will work but ``:func:`mne.utils.set_config```
     will not).
 
-A list of external modules available for referencing using ``intersphinx`` can
-be found in ``doc/conf.py``, and thein inventories can be dumped to file and
-examined with commands like::
+MNE-Python also uses Intersphinx_, so you can (and should)
+cross-reference to Python built-in classes and functions as well as API
+elements in :mod:`NumPy <numpy>`, :mod:`SciPy <scipy>`, etc. See the Sphinx
+configuration file (:file:`doc/conf.py`) for the list of Intersphinx projects
+we link to. Their inventories can be examined using a tool like `sphobjinv`_ or
+dumped to file with commands like::
 
-    $ python -msphinx.ext.intersphinx https://docs.python.org/3/objects.inv > python.txt
+    $ python -m sphinx.ext.intersphinx https://docs.python.org/3/objects.inv > python.txt
 
 
 Other style guidance
@@ -854,6 +855,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _reStructuredText: http://sphinx-doc.org/rest.html
 .. _intersphinx: http://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+.. _sphobjinv: https://sphobjinv.readthedocs.io/en/latest/
 
 .. linting
 

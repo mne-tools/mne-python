@@ -518,7 +518,7 @@ print(two_meg_chans_data.shape)
 # :class:`~mne.io.Raw` objects have a built-in :meth:`~mne.io.Raw.save` method,
 # which can be used to write a partially processed :class:`~mne.io.Raw` object
 # to disk as a :file:`.fif` file, such that it can be re-loaded later with its
-# various attributes intact (but see :doc:`../../precision` for an important
+# various attributes intact (but see :ref:`precision` for an important
 # note about numerical precision when saving).
 #
 # There are a few other ways to export just the sensor data from a
@@ -552,7 +552,7 @@ print(df.head())
 # .. note::
 #     When exporting data as a :class:`NumPy array <numpy.ndarray>` or
 #     :class:`Pandas DataFrame <pandas.DataFrame>`, be sure to properly account
-#     for the :doc:`unit of representation <../../units>` in your subsequent
+#     for the :ref:`unit of representation <units>` in your subsequent
 #     analyses.
 #
 #
