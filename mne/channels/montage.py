@@ -858,11 +858,10 @@ def _get_scaling(unit, scale):
     else:
         return scale[unit]
 
+
 def _check_unit_and_get_scaling(unit, valid_scales):
     _check_option('unit', unit, list(valid_scales.keys()))
     return valid_scales[unit]
-
-
 
 
 # XXX: this function will evolve with issue-6461
@@ -1364,22 +1363,20 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         raise TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
                         "'None' instead of '%s'." % type(montage))
 
-def _read_isotrak_elp_points(fname):
-    """Read Polhemus digitizer data from a file.
 
-    file extension should be ``.hsp`` or ``.elp`` and the points are assumed
-    to be in [m].
+def _read_isotrak_elp_points(fname):
+    """Read Polhemus Isotrak digitizer data from a ``.elp`` file.
 
     Parameters
     ----------
     fname : str
-        The filepath of space delimited file with points, or a .mat file
-        (Polhemus FastTrak format).
+        The filepath of .elp Polhemus Isotrak file.
 
     Returns
     -------
-    dig_points : np.ndarray, shape (n_points, 3)
-        Array of dig points in [m].
+    out : dict of np.arrays
+        The dictionary containing np.array locations for 'nasion', 'lpa', 'rpa'
+        and 'points'.
     """
     value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
     coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
@@ -1398,6 +1395,19 @@ def _read_isotrak_elp_points(fname):
 
 
 def _read_isotrak_hsp_points(fname):
+    """Read Polhemus Isotrak digitizer data from a ``.hsp`` file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of .hsp Polhemus Isotrak file.
+
+    Returns
+    -------
+    out : dict of np.arrays
+        The dictionary containing np.array locations for 'nasion', 'lpa', 'rpa'
+        and 'points'.
+    """
     def consume(fid, predicate):  # just a consumer to move around conveniently
         while(predicate(fid.readline())):
             pass
@@ -1422,8 +1432,6 @@ def _read_isotrak_hsp_points(fname):
     return {
         'nasion': nasion, 'lpa': lpa, 'rpa': rpa, 'points': points
     }
-
-
 
 
 def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
@@ -1456,7 +1464,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
         data = _read_isotrak_hsp_points(fname)
 
     if _scale != 1:
-        data = {key: val * _scale for key, val in  data.items()}
+        data = {key: val * _scale for key, val in data.items()}
     else:
         pass  # noqa
 
@@ -1492,7 +1500,18 @@ def _get_polhemus_fastscan_header(fname):
 
 
 def read_polhemus_fastscan(fname, ch_names=None, unit='mm'):
+    """Read Polhemus FastSCAN digitizer data from a ``.txt`` file.
 
+    Parameters
+    ----------
+    fname : str
+        The filepath of .txt Polhemus FastSCAN file.
+
+    Returns
+    -------
+    points : np.ndarray, shape (n_points, 3)
+        The digitization points in digitizer coordinates.
+    """
     VALID_FILE_EXT = ['.txt']
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
     _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
@@ -1501,7 +1520,9 @@ def read_polhemus_fastscan(fname, ch_names=None, unit='mm'):
     _check_option('fname', ext, VALID_FILE_EXT)
 
     if _get_polhemus_fastscan_header(fname).find('FastSCAN') == -1:
-        raise ValueError("%s does not contain Polhemus FastSCAN header" % fname)
+        raise ValueError(
+            "%s does not contain Polhemus FastSCAN header" % fname
+        )
 
     if _scale == 1:
         points = np.loadtxt(fname, comments='%', ndmin=2)

@@ -307,9 +307,11 @@ Projections:
    DigMontage
    fix_mag_coil_types
    read_montage
+   read_polhemus_fastscan
    get_builtin_montages
    read_dig_montage
    make_dig_montage
+   read_dig_polhemus_isotrak
    read_dig_captrack
    read_dig_egi
    read_dig_fif
