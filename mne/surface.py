@@ -483,7 +483,7 @@ class _DistanceQuery(object):
                                      reduce=True, return_distance=True)
 
         # Then cKDTree
-        elif method == 'cKDTree':
+        if method == 'cKDTree':
             try:
                 from scipy.spatial import cKDTree
             except ImportError:
@@ -496,8 +496,7 @@ class _DistanceQuery(object):
         # sets. We can add it later if we think it will help.
 
         # Then the worst: cdist
-        else:
-            assert method == 'cdist'
+        if method == 'cdist':
             self.query = _CDist(xhs).query
 
         self.data = xhs
