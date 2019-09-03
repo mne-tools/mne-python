@@ -204,7 +204,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     set_title_and_labels(image_ax, kind + ' image and ERP/ERF', [], kind)
 
     # erp
-    set_title_and_labels(erp_ax, [], 'Time (s)', 'AU\n')
+    set_title_and_labels(erp_ax, [], 'Time (s)', 'AU')
     erp_ax.spines["right"].set_color('k')
     erp_ax.set_xlim(epochs_src.times[[0, -1]])
     # remove half of yticks if more than 5
