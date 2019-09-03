@@ -38,8 +38,8 @@ The documentation for MNE-Python is divided into five main sections:
 
 5. Resources related to the MNE-C command-line tools, including:
 
-   - The updated web version of Matti Hämäläinen's original MNE-C
-     :ref:`manual <mne_manual_toc>` and :ref:`cookbook <cookbook>`
+   - The web version of Matti Hämäläinen's original MNE-C
+     :ref:`manual <mne_manual_toc>`, including the :ref:`cookbook <cookbook>`
    - The :ref:`C API reference <c_reference>`
    - A guide to :ref:`command_line_tutorial`
 
