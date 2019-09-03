@@ -16,6 +16,7 @@ import os
 import os.path as op
 import re
 from copy import deepcopy
+from itertools import takewhile
 
 import numpy as np
 import xml.etree.ElementTree as ElementTree
@@ -1489,14 +1490,10 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
 
 
 def _get_polhemus_fastscan_header(fname):
-    header_lines = list()
     with open(fname, 'r') as fid:
-        line = fid.readline()
-        while line.startswith('%'):
-            header_lines.append(line)
-            line = fid.readline()
+        header = [l for l in takewhile(lambda line: line.startswith('%'), fid)]
 
-    return '\n'.join(header_lines)
+    return ''.join(header)
 
 
 def read_polhemus_fastscan(fname, ch_names=None, unit='mm'):
