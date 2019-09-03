@@ -26,10 +26,10 @@ from .forward._make_forward import (_get_trans, _setup_bem,
 from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
 
-from .surface import transform_surface_to, _compute_nearest
+from .surface import (transform_surface_to, _compute_nearest,
+                      _points_outside_surface)
 from .bem import _bem_find_surface, _surf_name
-from .source_space import (_make_volume_source_space, SourceSpaces,
-                           _points_outside_surface)
+from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option,

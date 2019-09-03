@@ -24,6 +24,7 @@ from .io.tag import find_tag
 from .io.write import (write_int, start_file, end_block, start_block, end_file,
                        write_string, write_float_sparse_rcs)
 from .channels.channels import _get_meg_system
+from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans)
 from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
@@ -482,7 +483,7 @@ class _DistanceQuery(object):
                                      reduce=True, return_distance=True)
 
         # Then cKDTree
-        if method == 'cKDTree':
+        elif method == 'cKDTree':
             try:
                 from scipy.spatial import cKDTree
             except ImportError:
@@ -495,8 +496,83 @@ class _DistanceQuery(object):
         # sets. We can add it later if we think it will help.
 
         # Then the worst: cdist
-        if method == 'cdist':
+        else:
+            assert method == 'cdist'
             self.query = _CDist(xhs).query
+
+        self.data = xhs
+
+
+@verbose
+def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
+    """Check whether points are outside a surface.
+
+    Parameters
+    ----------
+    rr : ndarray
+        Nx3 array of points to check.
+    surf : dict
+        Surface with entries "rr" and "tris".
+
+    Returns
+    -------
+    outside : ndarray
+        1D logical array of size N for which points are outside the surface.
+    """
+    rr = np.atleast_2d(rr)
+    assert rr.shape[1] == 3
+    assert n_jobs > 0
+    parallel, p_fun, _ = parallel_func(_get_solids, n_jobs)
+    tot_angles = parallel(p_fun(surf['rr'][tris], rr)
+                          for tris in np.array_split(surf['tris'], n_jobs))
+    return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
+
+
+class _CheckInside(object):
+    """Efficiently check if points are inside a surface."""
+
+    def __init__(self, surf):
+        from scipy.spatial import Delaunay
+        self.surf = surf
+        self.inner_r = None
+        self.cm = surf['rr'].mean(0)
+        if not _points_outside_surface(
+                self.cm[np.newaxis], surf)[0]:  # actually inside
+            # Immediately cull some points from the checks
+            self.inner_r = np.linalg.norm(surf['rr'] - self.cm, axis=-1).min()
+        # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
+        # to construct but faster to evaluate
+        # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
+        self.del_tri = Delaunay(surf['rr'])
+
+    @verbose
+    def __call__(self, rr, n_jobs=1, verbose=None):
+        inside = np.ones(len(rr), bool)  # innocent until proven guilty
+        idx = np.arange(len(rr))
+
+        # Limit to indices that can plausibly be outside the surf
+        if self.inner_r is not None:
+            mask = np.linalg.norm(rr - self.cm, axis=-1) >= self.inner_r
+            idx = idx[mask]
+            rr = rr[mask]
+            logger.info('    Skipping interior check for %d sources that fit '
+                        'inside a sphere of radius %6.1f mm'
+                        % ((~mask).sum(), self.inner_r * 1000))
+
+        # Use qhull as our first pass (*much* faster than our check)
+        del_outside = self.del_tri.find_simplex(rr) < 0
+        omit_outside = sum(del_outside)
+        inside[idx[del_outside]] = False
+        idx = idx[~del_outside]
+        rr = rr[~del_outside]
+        logger.info('    Skipping solid angle check for %d points using Qhull'
+                    % (omit_outside,))
+
+        # use our more accurate check
+        solid_outside = _points_outside_surface(rr, self.surf, n_jobs)
+        omit_outside += np.sum(solid_outside)
+        inside[idx[solid_outside]] = False
+        return inside
 
 
 ###############################################################################
