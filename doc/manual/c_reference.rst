@@ -1,4 +1,4 @@
-
+:orphan:
 
 .. _c_reference:
 

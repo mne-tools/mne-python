@@ -7,7 +7,6 @@ MNE Manual
 
 .. toctree::
 
-    c_reference
     cookbook
     gui/browse
     source_localization/c_forward
