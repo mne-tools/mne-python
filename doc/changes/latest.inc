@@ -37,6 +37,8 @@ Changelog
 
 - Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
 
+- Add automatic fiducial position estimation in :ref:`mne coreg <gen_mne_coreg>` using MNI Talairach fiducial locations in :func:`mne.coreg.get_mni_fiducials` by `Jon Houck`_ and `Eric Larson`_
+
 - Add support for :ref:`mne coreg <gen_mne_coreg>` scaling surrogate subjects without surface reconstructions, such as those created for volumetric analyses only (e.g., with ``recon-all -autorecon1``) by `Eric Larson`_
 
 - Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_

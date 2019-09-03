@@ -5,6 +5,7 @@
 
 import os
 import os.path as op
+import shutil
 import sys
 import warnings
 import pytest
@@ -31,6 +32,7 @@ s_path = op.join(test_path, 'MEG', 'sample')
 fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+subjects_dir = op.join(test_path, 'subjects')
 
 
 def pytest_configure(config):
@@ -203,3 +205,11 @@ def renderer(backend_name):
         from mne.viz.backends import renderer
         yield renderer
         renderer._close_all()
+
+
+@pytest.fixture(scope='function', params=[testing._pytest_param()])
+def subjects_dir_tmp(tmpdir):
+    """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
+    for key in ('sample', 'fsaverage'):
+        shutil.copytree(op.join(subjects_dir, key), str(tmpdir.join(key)))
+    return str(tmpdir)
