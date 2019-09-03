@@ -13,7 +13,7 @@ from numpy.testing import (assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 from mne.utils import _TempDir, requires_h5py, run_tests_if_main
-from mne.source_tfr import SourceTFR
+from mne.time_frequency.source_tfr import SourceTFR
 
 rnd = np.random.RandomState(23)
 
