@@ -429,6 +429,12 @@ class SetChannelsMixin(object):
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBO
             elif ch_type == 'hbr':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
+            elif ch_type == 'fnirs_raw':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_RAW
+            elif ch_type == 'fnirs_od':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_OD
+            elif ch_type == 'fnirs_chroma':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_CHROMA
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type

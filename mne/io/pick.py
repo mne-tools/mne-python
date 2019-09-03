@@ -398,14 +398,14 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         for key in ('grad', 'mag'):
             param_dict[key] = meg
     if isinstance(fnirs, bool):
-        for key in ('hbo', 'hbr'):
+        for key in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od', 'fnirs_chroma'):
             param_dict[key] = fnirs
     for k in range(nchan):
         ch_type = channel_type(info, k)
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
-            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg', 'fnirs_raw')
+            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg', 'fnirs_raw', 'fnirs_od', 'fnirs_chroma')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
@@ -695,7 +695,7 @@ def channel_indices_by_type(info, picks=None):
     """
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
                    key not in ('meg', 'fnirs')}
-    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list())
+    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list(), fnirs_raw=list())
     picks = _picks_to_idx(info, picks,
                           none='all', exclude=(), allow_empty=True)
     for k in picks:
@@ -762,7 +762,7 @@ def _contains_ch_type(info, ch_type):
     _validate_type(ch_type, 'str', "ch_type")
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
-    fnirs_extras = ['hbo', 'hbr']
+    fnirs_extras = ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od', 'fnirs_chroma']
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
                                   if key != 'meg'] + meg_extras + fnirs_extras)
     _check_option('ch_type', ch_type, valid_channel_types)
@@ -866,19 +866,19 @@ _PICK_TYPES_DATA_DICT = dict(
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr')
+_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr', 'fnirs_raw')
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
                                 'ref_meg', 'misc', 'stim', 'resp',
                                 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
-                                'ecog', 'hbo', 'hbr', 'whitened')
+                                'ecog', 'hbo', 'hbr', 'fnirs_raw', 'whitened')
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
-                        'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
+                        'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr', 'fnirs_raw',
                         'misc')
 
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
-_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr')
+_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_raw')
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):

@@ -13,7 +13,7 @@ DEFAULTS = dict(
                gof='k', bio='k', ecog='k', hbo='darkblue', hbr='b', fnirs_raw='k'),
     units=dict(mag='fT', grad='fT/cm', eeg='uV', eog='uV', ecg='uV', emg='uV',
                misc='AU', seeg='mV', dipole='nAm', gof='GOF', bio='uV',
-               ecog='uV', hbo='uM', hbr='uM', ref_meg='fT'),
+               ecog='uV', hbo='uM', hbr='uM', ref_meg='fT', fnirs_raw='V'),
     # scalings for the units
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6, emg=1e6, ecg=1e6,
                   misc=1.0, seeg=1e3, dipole=1e9, gof=1.0, bio=1e6, ecog=1e6,
@@ -23,7 +23,7 @@ DEFAULTS = dict(
                            ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc='auto',
                            stim=1, resp=1, chpi=1e-4, exci=1, ias=1, syst=1,
                            seeg=1e-4, bio=1e-6, ecog=1e-4, hbo=10e-6,
-                           hbr=10e-6, whitened=10., fnirs_raw=1e-2),
+                           hbr=10e-6, whitened=10., fnirs_raw=2e-2),
     scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5,  # ~100x scalings
                            seeg=1e1, ecog=1e4, hbo=1e4, hbr=1e4),
     ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
@@ -33,7 +33,7 @@ DEFAULTS = dict(
     titles=dict(mag='Magnetometers', grad='Gradiometers', eeg='EEG', eog='EOG',
                 ecg='ECG', emg='EMG', misc='misc', seeg='sEEG', bio='BIO',
                 dipole='Dipole', ecog='ECoG', hbo='Oxyhemoglobin',
-                ref_meg='Reference Magnetometers',
+                ref_meg='Reference Magnetometers', fnirs_raw='fNIRS',
                 hbr='Deoxyhemoglobin', gof='Goodness of fit'),
     mask_params=dict(marker='o',
                      markerfacecolor='w',

@@ -568,7 +568,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             .. versionadded:: 0.16
         """  # noqa: E501
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
-                     'hbr', 'None')
+                     'hbr', 'None', 'fnirs_raw')
         data_picks = _pick_data_channels(self.info, with_ref_meg=False)
         types_used = {channel_type(self.info, idx) for idx in data_picks}
 
@@ -602,7 +602,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             seeg = True
         elif ch_type == 'ecog':
             ecog = True
-        elif ch_type in ('hbo', 'hbr'):
+        elif ch_type in ('hbo', 'hbr', 'fnirs_raw'):
             fnirs = ch_type
 
         if ch_type is not None:
