@@ -225,7 +225,10 @@ The following input files are optional:
   used for the elp file.
 
 
-.. note:: The output fif file will use the Neuromag head coordinate system convention, see :ref:`BJEBIBAI`. A coordinate transformation between the Polhemus head coordinates and the Neuromag head coordinates is included.
+.. note::
+   The output fif file will use the Neuromag head coordinate system convention,
+   see :ref:`c_legacy_BJEBIBAI`. A coordinate transformation between the
+   Polhemus head coordinates and the Neuromag head coordinates is included.
 
 
 By default, KIT-157 systems assume the first 157 channels are the MEG channels,
@@ -363,7 +366,7 @@ The channel locations can be read from a montage or the file header. If read
 from the header, the data channels (channels that are not assigned to EOG, ECG,
 EMG or misc) are fit to a sphere and assigned a z-value accordingly. If a
 non-data channel does not fit to the sphere, it is assigned a z-value of 0.
-See :ref:`BJEBIBAI`
+See :ref:`c_legacy_BJEBIBAI`
 
 .. warning::
     Reading channel locations from the file header may be dangerous, as the
@@ -440,7 +443,7 @@ digitizer file. This can also be done post-hoc using the
 
 When using the locations of the fiducial points the digitization data
 are converted to the MEG head coordinate system employed in the
-MNE software, see :ref:`BJEBIBAI`.
+MNE software, see :ref:`c_legacy_BJEBIBAI`.
 
 
 Creating MNE data structures from arbitrary data (from memory)

@@ -861,9 +861,15 @@ includes the following lines:
     Shows the location in the *FreeSurfer* Talairach
     coordinates which give a better match to the Talairach atlas.
 
-The above coordinate systems are discussed in detail in :ref:`CHDEDFIB`.
+The above coordinate systems are discussed in detail in
+:ref:`c_legacy_CHDEDFIB`.
 
-.. note:: By default, the tksurfer program,    part of the FreeSurfer package, shows    the vertex locations on the *orig* rather than *white* surfaces.    Therefore, the coordinates shown in mne_analyze and tksurfer are    by default slightly different (usually by < 1 mm). To make the    two programs consistent, you can start tksurfer with    the ``-orig white`` option.
+.. note::
+   By default, the tksurfer program, part of the FreeSurfer package, shows the
+   vertex locations on the *orig* rather than *white* surfaces. Therefore, the
+   coordinates shown in mne_analyze and tksurfer are by default slightly
+   different (usually by < 1 mm). To make the two programs consistent, you can
+   start tksurfer with the ``-orig white`` option.
 
 .. _CACCCGDB:
 
@@ -1472,13 +1478,14 @@ controls:
 
 **SNR estimate**
 
-    This controls the regularization of the estimate, i.e., the amount
-    of allowed mismatch between the measured data and those predicted by
-    the estimated current distribution. Smaller SNR means larger allowed
-    mismatch. Typical range of SNR values is 1...7. As discussed in :ref:`CBBDJFBJ`,
-    the SNR value can be translated to the current variance values expressed
-    in the source-covariance matrix R. This translation is presented
-    as the equivalent current standard-deviation value
+    This controls the regularization of the estimate, i.e., the amount of
+    allowed mismatch between the measured data and those predicted by the
+    estimated current distribution. Smaller SNR means larger allowed mismatch.
+    Typical range of SNR values is 1...7. As discussed in
+    :ref:`c_legacy_CBBDJFBJ`, the SNR value can be translated to the current
+    variance values expressed in the source-covariance matrix R. This
+    translation is presented as the equivalent current standard-deviation
+    value.
 
 **Show**
 
@@ -1608,7 +1615,7 @@ related to the measured data :math:`x(t)` by
 .. math::    \tilde{x}(t) = C^{-^1/_2} x(t)\ ,
 
 where :math:`C^{-^1/_2}` is the whitening
-operator, introduced in :ref:`CHDDHAGE`.
+operator, introduced in :ref:`c_legacy_CHDDHAGE`.
 
 The computation of the apparent SNR will be explained in
 future revisions of this manual.
@@ -1887,18 +1894,19 @@ the dipole list (:ref:`CACGGAIA`). The selection of channels
 included can be adjusted interactively or by predefined selections
 as described in :ref:`CACIBHCI`.
 
-.. warning:: The current dipole fitting has been    added recently and has not been tested comprehensively. Especially    fitting dipoles to EEG data may be unreliable.
+.. warning::
+   The current dipole fitting has been added recently and has not been tested
+   comprehensively. Especially fitting dipoles to EEG data may be unreliable.
 
 .. _CACEDEGA:
 
 Dipole fitting parameters
 =========================
 
-Prior to fitting current dipoles, the fitting parameters
-must be set with the Dipole fitting preferences dialog
-shown in :ref:`CACFEDEJ`. The dialog is brought up from the Setup fitting... choice in the Dipoles menu.
-This dialog contains three sections: Forward model , Modalities ,
-and Noise estimate .
+Prior to fitting current dipoles, the fitting parameters must be set with the
+Dipole fitting preferences dialog shown in :ref:`CACFEDEJ`. The dialog is
+brought up from the Setup fitting... choice in the Dipoles menu. This dialog
+contains three sections: Forward model , Modalities , and Noise estimate .
 
 The Forward model section
 specifies the forward model to be used:
@@ -1906,17 +1914,17 @@ specifies the forward model to be used:
 **Sphere model origin x/y/z [mm]**
 
     Specifies the origin of the spherically symmetric conductor model in
-    MEG/EEG head coordinates, see :ref:`BJEBIBAI`.
+    MEG/EEG head coordinates, see :ref:`c_legacy_BJEBIBAI`.
 
 **EEG scalp radius [mm]**
 
     Specifies the radius of the outermost shell in the EEG sphere model. For
-    details, see :ref:`CHDIAFIG`.
+    details, see :ref:`c_legacy_CHDIAFIG`.
 
 **EEG sphere model name**
 
     Specifies the name of the EEG sphere model to use. For details,
-    see :ref:`CHDIAFIG`.
+    see :ref:`c_legacy_CHDIAFIG`.
 
 **BEM model**
 
@@ -1929,9 +1937,9 @@ specifies the forward model to be used:
 
 **Accurate field calculation**
 
-    Switches on the more accurate geometry definition of MEG coils, see :ref:`BJEIAEIE`.
-    In dipole fitting, there is very little difference between the *accurate* and *normal* coil
-    geometry definitions.
+    Switches on the more accurate geometry definition of MEG coils, see
+    :ref:`c_legacy_BJEIAEIE`. In dipole fitting, there is very little
+    difference between the *accurate* and *normal* coil geometry definitions.
 
 The Modalities section
 defines which kind of data (MEG/EEG) are used in fitting. If an
@@ -1961,8 +1969,8 @@ of the dialog contains the following items:
 
     Regularize the noise covariance before using it in whitening by
     adding a multiple of an identity matrix to the diagonal. This is
-    discussed in more detail in :ref:`cov_regularization`. Especially if
-    EEG is included in fitting it is advisable to enter a non-zero value
+    discussed in more detail in :ref:`c_legacy_cov_regularization`. Especially
+    if EEG is included in fitting it is advisable to enter a non-zero value
     (around 0.1) here.
 
 **Planar fixed [fT/cm]**

@@ -1,4 +1,4 @@
-.. _c_legacy_ch_forward_rev:
+.. _c_legacy_ch_forward:
 
 The forward solution
 ====================
@@ -496,6 +496,9 @@ a total of eight integration points for planar gradiometers and
 sixteen for magnetometers. Detailed information about the integration
 points is given in the next section.
 
+
+.. _implemented_coil_geometries:
+
 Implemented coil geometries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -829,7 +832,7 @@ The EEG sphere model definition file
    In MNE-Python, different sphere models can be specified through
    :func:`mne.make_sphere_model`. The default values (resulting from
    ``sphere = mne.make_sphere_model()``) are given in :ref:`the table below
-   <_c_legacy_BABEBGDA>`.
+   <c_legacy_BABEBGDA>`.
 
 For the computation of the electric potential distribution on the surface of
 the head (EEG) it is necessary to define the conductivities (:math:`\sigma`)

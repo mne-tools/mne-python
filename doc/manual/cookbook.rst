@@ -315,7 +315,7 @@ Aligning coordinate frames
 
 The calculation of the forward solution requires knowledge
 of the relative location and orientation of the MEG/EEG and MRI
-coordinate systems (see :ref:`BJEBIBAI`). The head coordinate
+coordinate systems (see :ref:`c_legacy_BJEBIBAI`). The head coordinate
 frame is defined by identifying the fiducial landmark locations,
 making the origin and orientation of the head coordinate system
 slightly user dependent. As a result, it is safest to reestablish
@@ -403,7 +403,7 @@ and the source covariance matrix. This approach has the benefit
 that the regularization parameter ('SNR') can
 be adjusted easily when the final source estimates or dSPMs are
 computed. For mathematical details of this approach,
-please consult :ref:`CBBDJFBJ`.
+please consult :ref:`c_legacy_CBBDJFBJ`.
 
 This computation stage can be done by using
 :func:`mne.minimum_norm.make_inverse_operator` as::

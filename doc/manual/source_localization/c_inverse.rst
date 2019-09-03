@@ -57,8 +57,8 @@ following from the Bayesian approach is given by the :math:`M \times N` matrix
 .. sidebar:: Inverse operators in MNE-Python
 
    For computational convenience, in MNE-Python the linear inverse operator is
-   not computed explicitly. See :ref:`mne_solution` for mathematical details,
-   and :ref:`CIHCFJEI` for a detailed example.
+   not computed explicitly. See :ref:`c_legacy_mne_solution` for mathematical
+   details, and :ref:`CIHCFJEI` for a detailed example.
 
 where G is the gain matrix relating the source strengths to the measured
 MEG/EEG data, :math:`C` is the data noise-covariance matrix and :math:`R'` is
@@ -333,6 +333,8 @@ source location :math:`d`:
 - The average deviation of the vertex normals in a patch from their average,
   :math:`\sigma_d`, given in degrees.
 
+.. _inverse_orientation_constrains:
+
 The orientation constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -377,11 +379,11 @@ of the surface normal data:
   a given source location, are the fields of unit dipoles pointing to the
   directions of the :math:`x`, :math:`y`, and :math:`z` axis of the coordinate
   system employed in the forward calculation (usually the :ref:`MEG head
-  coordinate frame <BJEBIBAI>`). For LOC the orientation is changed so that the
-  first two source components lie in the plane normal to the surface normal at
-  the source location and the third component is aligned with it. Thereafter,
-  the variance of the source components tangential to the cortical surface are
-  reduced by a factor defined by the ``--loose`` option.
+  coordinate frame <c_legacy_BJEBIBAI>`). For LOC the orientation is changed so
+  that the first two source components lie in the plane normal to the surface
+  normal at the source location and the third component is aligned with it.
+  Thereafter, the variance of the source components tangential to the cortical
+  surface are reduced by a factor defined by the ``--loose`` option.
 
 - A *variable loose orientation constraint* (vLOC) can be employed (the
   ``--loosevar`` option). This is similar to fLOC except that the value given

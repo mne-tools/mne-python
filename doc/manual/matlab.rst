@@ -1124,7 +1124,7 @@ The documented structures are:
     |                         | matrix      |                                                          |
     +-------------------------+-------------+----------------------------------------------------------+
     | sol_grad                | named       | The derivatives of the forward solution with respect to  |
-    |                         | matrix      | the dipole location coordinates, see                     | 
+    |                         | matrix      | the dipole location coordinates, see                     |
     |                         |             | :ref:`c_legacy_BJEFEJJG`.                                |
     |                         |             | This field is present only if the forward solution was   |
     |                         |             | computed with the ``--grad`` option, see                 |
@@ -1171,13 +1171,13 @@ The documented structures are:
     |                     |             | source orientations).                                    |
     +---------------------+-------------+----------------------------------------------------------+
     | sing                | double      | The singular values, *i.e.*, the diagonal values of      |
-    |                     | (nchan)     | :math:`\Lambda`, see :ref:`mne_solution`.                |
+    |                     | (nchan)     | :math:`\Lambda`, see :ref:`c_legacy_mne_solution`.       |
     +---------------------+-------------+----------------------------------------------------------+
-    | eigen_leads         | double      | The matrix :math:`V`, see :ref:`mne_solution`.           |
+    | eigen_leads         | double      | The matrix :math:`V`, see :ref:`c_legacy_mne_solution`.  |
     |                     | (:,nchan)   |                                                          |
     +---------------------+-------------+----------------------------------------------------------+
-    | eigen_fields        | double      | The matrix :math:`U^T`, see :ref:`mne_solution`.         |
-    |                     | (nchan,     |                                                          |
+    | eigen_fields        | double      | The matrix :math:`U^T`, see                              |
+    |                     | (nchan,     | :ref:`c_legacy_mne_solution`.                            |
     |                     | nchan)      |                                                          |
     +---------------------+-------------+----------------------------------------------------------+
     | noise_cov           | cov         | The noise covariance matrix :math:`C`.                   |
@@ -1202,7 +1202,7 @@ The documented structures are:
     |                     |             | orientations) or 3*nsource (all source orientations).    |
     +---------------------+-------------+----------------------------------------------------------+
     | reginv              | double      | The diagonal matrix :math:`\Gamma`, see                  |
-    |                     | (nchan)     | :ref:`mne_solution`.                                     |
+    |                     | (nchan)     | :ref:`c_legacy_mne_solution`.                            |
     +---------------------+-------------+----------------------------------------------------------+
     | noisenorm           | double(:)   | A sparse matrix containing the noise normalization       |
     |                     |             | factors. Dimension is either nsource (fixed source       |

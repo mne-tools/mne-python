@@ -4693,7 +4693,11 @@ To import the data, the following input files are mandatory:
   containing the locations and orientations of the sensors. This file
   can be exported directly from the KIT system.
 
-.. note:: The output fif file will use the Neuromag head    coordinate system convention, see :ref:`c_legacy_BJEBIBAI`. A coordinate    transformation between the CTF/4D head coordinates and the Neuromag    head coordinates is included. This transformation can be read with    MNE Matlab Toolbox routines, see :ref:`ch_matlab`.
+.. note:: The output fif file will use the Neuromag head
+    coordinate system convention, see :ref:`c_legacy_BJEBIBAI`. A coordinate
+    transformation between the CTF/4D head coordinates and the Neuromag
+    head coordinates is included. This transformation can be read with
+    MNE Matlab Toolbox routines, see :ref:`ch_matlab`.
 
 The following input files are optional:
 
