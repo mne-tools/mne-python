@@ -55,6 +55,7 @@ following from the Bayesian approach is given by the :math:`M \times N` matrix
 .. math::    M = R' G^T (G R' G^T + C)^{-1}\ ,
 
 .. sidebar:: Inverse operators in MNE-Python
+
    For computational convenience, in MNE-Python the linear inverse operator is
    not computed explicitly. See :ref:`mne_solution` for mathematical details,
    and :ref:`CIHCFJEI` for a detailed example.
@@ -175,6 +176,7 @@ gradiometers, MEG axial gradiometers and magnetometers, and EEG),
 corresponding to the channels contained in each channel group.
 
 .. sidebar:: Regularized covariance in MNE-Python
+
    See :ref:`plot_compute_covariance_howto` for details on computing and
    regularizing the channel covariance matrix.
 
@@ -305,6 +307,7 @@ Cortical patch statistics
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Cortical patch statistics in MNE-Python
+
    In MNE-Python, the ``use_cps`` parameter in
    :func:`mne.convert_forward_solution`, and
    :func:`mne.minimum_norm.make_inverse_operator` controls whether to use
@@ -334,6 +337,7 @@ The orientation constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Orientation constraints in MNE-Python
+
    In MNE-Python, rigid orientation is employed by specifying ``fixed=True`` in
    :func:`mne.minimum_norm.make_inverse_operator` (forcing dipole orientation
    to be orthogonal to the cortical surface, pointing outwards). If cortical
@@ -390,6 +394,7 @@ Depth weighting
 ~~~~~~~~~~~~~~~
 
 .. sidebar:: Adjusting depth weighting in MNE-Python
+
    The maximal amount of depth weighting can be adjusted with ``depth``
    parameter in :func:`mne.minimum_norm.make_inverse_operator`.
 

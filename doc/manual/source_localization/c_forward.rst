@@ -798,6 +798,7 @@ Implementation of software gradient compensation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Gradient compensation in MNE-Python
+
    Accounting for noise cancellation in MNE-Python is accomplished in
    :meth:`mne.io.Raw.apply_gradient_compensation`.
    See :ref:`plot_brainstorm_phantom_ctf` for an example.
@@ -870,6 +871,7 @@ EEG forward solution in the sphere model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Sphere-model examples in MNE-Python
+
    For examples of using the sphere model when computing the forward model
    (using :func:`mne.make_forward_solution`), see :ref:`Brainstorm CTF phantom
    dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,

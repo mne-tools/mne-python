@@ -19,6 +19,7 @@ Why morphing?
 ^^^^^^^^^^^^^
 
 .. sidebar:: Morphing examples in MNE-Python
+
    Examples of morphing in MNE-Python include :ref:`this tutorial
    <tut-mne-fixed-free>` on surface source estimation or these examples on
    :ref:`surface <ex-morph-surface>` and :ref:`volumetric <ex-morph-volume>`

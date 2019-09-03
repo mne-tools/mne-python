@@ -37,4 +37,3 @@ Additional info
     preprocessing/maxwell
     preprocessing/ssp
     preprocessing/ica
-    source_localization/coil_geometries
