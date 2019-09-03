@@ -197,7 +197,8 @@ def _get_fid_coords(dig, raise_error=True):
             fid_coords[key] = d['r']
             fid_coord_frames[key] = d['coord_frame']
 
-    if not raise_error:  # XXX: this is ugly!
+    if not raise_error:
+        # XXX: this is ugly! return change depending on raise_error flag.
         return fid_coords, fid_coord_frames
 
     else:

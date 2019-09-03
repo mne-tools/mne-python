@@ -497,7 +497,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
 
 
 def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
-
+    """Test reading Polhemus FastSCAN errors."""
     with open(op.join(kit_dir, 'test_elp.txt')) as fid:
         content = fid.read().replace('FastSCAN', 'XxxxXXXX')
 
@@ -514,6 +514,7 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
 
 
 def test_read_dig_polhemus_isotrak_hsp():
+    """Test reading Polhemus IsoTrak HSP file."""
     EXPECTED_FID_IN_POLHEMUS = {
         'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
         'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
@@ -534,6 +535,7 @@ def test_read_dig_polhemus_isotrak_hsp():
 
 
 def test_read_dig_polhemus_isotrak_elp():
+    """Test reading Polhemus IsoTrak ELP file."""
     EXPECTED_FID_IN_POLHEMUS = {
         'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
         'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
@@ -554,6 +556,7 @@ def test_read_dig_polhemus_isotrak_elp():
 
 @pytest.fixture(scope='module')
 def isotrak_eeg(tmpdir_factory):
+    """Mock isotrak file with EEG positions."""
     _SEED = 42
     N_ROWS, N_COLS = 5, 3
     content = np.random.RandomState(_SEED).randn(N_ROWS, N_COLS)
@@ -584,6 +587,7 @@ def isotrak_eeg(tmpdir_factory):
 
 
 def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
+    """Test reading Polhemus IsoTrak EEG positions."""
     N_CHANNELS = 5
     _SEED = 42
     EXPECTED_FID_IN_POLHEMUS = {
@@ -622,7 +626,7 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
     """
     # Check ch_names
     N_CHANNELS = 5
-    EXPECTED_ERR_MSG="not match the number of points.*Expected.*5, given 47"
+    EXPECTED_ERR_MSG = "not match the number of points.*Expected.*5, given 47"
     with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
         _ = read_dig_polhemus_isotrak(
             fname=isotrak_eeg,

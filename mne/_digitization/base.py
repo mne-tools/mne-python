@@ -33,11 +33,11 @@ def _format_dig_points(dig):
     return Digitization(dig_points)
 
 
-def _get_dig_eeg(dig):  # XXX: maybe this should be a Digitization function
+def _get_dig_eeg(dig):
     return [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG]
 
 
-def _count_poinits_by_type(dig):  # XXX: should it be a Digitization method?
+def _count_poinits_by_type(dig):
     """Get the number of points of each type."""
     occurences = Counter([d['kind'] for d in dig])
     return dict(
