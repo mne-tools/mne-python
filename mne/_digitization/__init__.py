@@ -1,5 +1,5 @@
-from .base import DigPoint, Digitization, digitization_summary
+from .base import DigPoint, Digitization
 
 __all__ = [
-    'DigPoint', 'digitization_summary',
+    'DigPoint',
 ]

@@ -24,7 +24,8 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, _str_to_frame)
-from .._digitization import Digitization, digitization_summary
+from .._digitization import Digitization
+from .._digitization.base import _count_poinits_by_type
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
                                     write_dig, _read_dig_fif,
                                     _format_dig_points)
@@ -683,25 +684,9 @@ class DigMontage(object):
 
     def __repr__(self):
         """Return string representation."""
-        n_points = digitization_summary(self.dig)
+        n_points = _count_poinits_by_type(self.dig)
         return ('<DigMontage | {extra:d} extras (headshape), {hpi:d} HPIs,'
                 ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
-
-    # XXX: Check DigMontage_diff
-    def __eq__(self, other):
-        """Compare two DigMontages.
-
-        Comparison does not check that dig points location or coord. system.
-        """
-        _ch_names_ok = (
-            len(self.ch_names) == len(other.ch_names) and
-            all([c in self.ch_names for c in other.ch_names])
-        )
-        if _ch_names_ok:
-            return (digitization_summary(self.dig) ==
-                    digitization_summary(other.dig))
-        else:
-            return False
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
@@ -1484,7 +1469,13 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
         if points.shape[0] == len(ch_names):
             data['ch_pos'] = dict(zip(ch_names, points))
         else:
-            raise ValueError('xxxxxx')
+            raise ValueError((
+                "Length of ``ch_names`` does not match the number of points"
+                " in {fname}. Expected ``ch_names`` length {n_points:d},"
+                " given {n_chnames:d}"
+            ).format(
+                fname=fname, n_points=points.shape[0], n_chnames=len(ch_names)
+            ))
 
     return make_dig_montage(**data)
 

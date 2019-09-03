@@ -28,6 +28,7 @@ from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
 
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
+from mne.channels._dig_montage_utils import _get_fid_coords
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
                        object_diff, Bunch)
 from mne.bem import _fit_sphere
@@ -35,6 +36,8 @@ from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne._digitization import Digitization
 from mne._digitization._utils import _read_dig_points
+from mne._digitization.base import _get_dig_eeg, _count_poinits_by_type
+
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
@@ -482,7 +485,6 @@ def test_read_dig_montage_using_polhemus_fastscan():
         FIFF.FIFFV_COORD_UNKNOWN
     }  # XXX: so far we build everything in 'unknown'
 
-    from mne.channels._dig_montage_utils import _get_fid_coords
     EXPECTED_FID_IN_POLHEMUS = {
         'nasion': [0.001393, 0.0131613, -0.0046967],
         'lpa': [-0.0624997, -0.0737271, 0.07996],
@@ -490,7 +492,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
     }
     fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
     for kk, val in fiducials.items():
-        assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
+        assert_allclose(val, EXPECTED_FID_IN_POLHEMUS[kk])
         assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
 
 
@@ -512,7 +514,6 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
 
 
 def test_read_dig_polhemus_isotrak_hsp():
-    from mne.channels._dig_montage_utils import _get_fid_coords
     EXPECTED_FID_IN_POLHEMUS = {
         'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
         'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
@@ -538,7 +539,6 @@ def test_read_dig_polhemus_isotrak_elp():
         'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
         'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
     }
-    from mne.channels._dig_montage_utils import _get_fid_coords
     montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.elp'),
                                         ch_names=None)
     assert montage.__repr__() == (
@@ -583,12 +583,7 @@ def isotrak_eeg(tmpdir_factory):
     return fname
 
 
-def _get_dig_eeg(dig):  # XXX: maybe this should be a Digitization function
-    return [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG]
-
-
 def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
-    from mne.channels._dig_montage_utils import _get_fid_coords
     N_CHANNELS = 5
     _SEED = 42
     EXPECTED_FID_IN_POLHEMUS = {
@@ -627,7 +622,8 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
     """
     # Check ch_names
     N_CHANNELS = 5
-    with pytest.raises(RuntimeError, match='xx'):
+    EXPECTED_ERR_MSG="not match the number of points.*Expected.*5, given 47"
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
         _ = read_dig_polhemus_isotrak(
             fname=isotrak_eeg,
             ch_names=['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS + 42)]
@@ -692,7 +688,13 @@ def test_combining_digmontage_objects():
             'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63],
         }
     )
-    assert montage == EXPECTED_MONTAGE
+
+    # Do some checks to ensure they are the same DigMontage
+    assert len(montage.ch_names) == len(EXPECTED_MONTAGE.ch_names)
+    assert all([c in montage.ch_names for c in EXPECTED_MONTAGE.ch_names])
+    actual_occurrences = _count_poinits_by_type(montage.dig)
+    expected_occurrences = _count_poinits_by_type(EXPECTED_MONTAGE.dig)
+    assert actual_occurrences == expected_occurrences
 
 
 def test_combining_digmontage_forviden_behaviors():
