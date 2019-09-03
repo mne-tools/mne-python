@@ -36,28 +36,12 @@ class _Brain(object):
         freesurfer surface mesh name (ie 'white', 'inflated', etc.).
     title : str
         Title for the window.
-    cortex : str, tuple, dict, or None
-        Specifies how the cortical surface is rendered. Options:
-
-            1. The name of one of the preset cortex styles:
-               ``'classic'`` (default), ``'high_contrast'``,
-               ``'low_contrast'``, or ``'bone'``.
-            2. A color-like argument to render the cortex as a single
-               color, e.g. ``'red'`` or ``(0.1, 0.4, 1.)``. Setting
-               this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``.
-            3. The name of a colormap used to render binarized
-               curvature values, e.g., ``Grays``.
-            4. A list of colors used to render binarized curvature
-               values. Only the first and last colors are used. E.g.,
-               ['red', 'blue'] or [(1, 0, 0), (0, 0, 1)].
-            5. A container with four entries for colormap (string
-               specifying the name of a colormap), vmin (float
-               specifying the minimum value for the colormap), vmax
-               (float specifying the maximum value for the colormap),
-               and reverse (bool specifying whether the colormap
-               should be reversed. E.g., ``('Greys', -1, 2, False)``.
-            6. A dict of keyword arguments that is passed on to the
-               call to surface.
+    cortex : str or None
+        Specifies how the cortical surface is rendered.
+        The name of one of the preset cortex styles can be:
+        ``'classic'`` (default), ``'high_contrast'``,
+        ``'low_contrast'``, or ``'bone'`` or a valid color name.
+        Setting this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
     size : float | tuple(float, float)
@@ -260,6 +244,7 @@ class _Brain(object):
             fig_size = size
         else:
             raise ValueError('"size" parameter must be int or tuple.')
+
         geo_kwargs, geo_reverse, geo_curv = self._get_geo_params(cortex, alpha)
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -564,18 +549,11 @@ class _Brain(object):
 
         Parameters
         ----------
-        cortex : {str, tuple, dict, None}
-            Can be set to: (1) the name of one of the preset cortex
+        cortex : str or None
+            The name of one of the preset cortex
             styles ('classic', 'high_contrast', 'low_contrast', or
-            'bone'), (2) the name of a colormap, (3) a tuple with
-            four entries for (colormap, vmin, vmax, reverse)
-            indicating the name of the colormap, the min and max
-            values respectively and whether or not the colormap should
-            be reversed, (4) a valid color specification (such as a
-            3-tuple with RGB values or a valid color name), or (5) a
-            dictionary of keyword arguments that is passed on to the
-            call to surface. If set to None, color is set to (0.5,
-            0.5, 0.5).
+            'bone') or a valid color name. If set to None,
+            color is set to (0.5, 0.5, 0.5).
         alpha : float in [0, 1]
             Alpha level to control opacity of the cortical surface.
 
@@ -610,21 +588,9 @@ class _Brain(object):
                             bone=(dict(colormap="bone",
                                        vmin=-.2, vmax=2,
                                        opacity=alpha), True, True))
-        if isinstance(cortex, dict):
-            if 'opacity' not in cortex:
-                cortex['opacity'] = alpha
-            if 'colormap' in cortex:
-                if 'vmin' not in cortex:
-                    cortex['vmin'] = -1
-                if 'vmax' not in cortex:
-                    cortex['vmax'] = 2
-            geo_params = cortex, False, True
-        elif isinstance(cortex, str):
+        if isinstance(cortex, str):
             if cortex in colormap_map:
                 geo_params = colormap_map[cortex]
-            elif cortex in lut_manager.lut_mode_list():
-                geo_params = dict(colormap=cortex, vmin=-1, vmax=2,
-                                  opacity=alpha), False, True
             else:
                 try:
                     color = colorConverter.to_rgb(cortex)
@@ -635,24 +601,9 @@ class _Brain(object):
         elif cortex is None:
             geo_params = dict(color=(0.5, 0.5, 0.5),
                               opacity=alpha), False, False
-        # Test for 4-tuple specifying colormap parameters. Need to
-        # avoid 4 letter strings and 4-tuples not specifying a
-        # colormap name in the first position (color can be specified
-        # as RGBA tuple, but the A value will be dropped by to_rgb()):
-        elif (len(cortex) == 4) and (isinstance(cortex[0], string_types)):
-            geo_params = dict(colormap=cortex[0], vmin=cortex[1],
-                              vmax=cortex[2], opacity=alpha), cortex[3], True
         else:
-            try:  # check if it's a non-string color specification
-                color = colorConverter.to_rgb(cortex)
-                geo_params = dict(color=color, opacity=alpha), False, False
-            except ValueError:
-                try:
-                    lut = create_color_lut(cortex)
-                    geo_params = dict(colormap="Greys", opacity=alpha,
-                                      lut=lut), False, True
-                except ValueError:
-                    geo_params = cortex, False, True
+            raise TypeError("Expected type is `str` or `NoneType`, "
+                            "{} is given.".format(type(cortex)))
         return geo_params
 
 
