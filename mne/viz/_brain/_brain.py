@@ -41,7 +41,7 @@ class _Brain(object):
         The name of one of the preset cortex styles can be:
         ``'classic'`` (default), ``'high_contrast'``,
         ``'low_contrast'``, or ``'bone'`` or a valid color name.
-        Setting this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``
+        Setting this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
     size : float | tuple(float, float)
@@ -212,6 +212,8 @@ class _Brain(object):
             background = colorConverter.to_rgb(background)
         if isinstance(foreground, str):
             foreground = colorConverter.to_rgb(foreground)
+        if isinstance(views, str):
+            views = [views]
 
         self._foreground = foreground
         self._hemi = hemi
@@ -255,8 +257,6 @@ class _Brain(object):
             geo.load_curvature()
             self.geo[h] = geo
 
-        if isinstance(views, str):
-            views = [views]
         for ri, v in enumerate(views):
             renderer = _Renderer(size=fig_size, bgcolor=background)
             self._renderers[ri].append(renderer)
@@ -324,7 +324,6 @@ class _Brain(object):
             if not None, center of a divergent colormap, changes the meaning of
             fmin, fmax and fmid.
         transparent : bool
-            Not supported yet.
             if True: use a linear transparency between fmin and fmid
             and make values below fmin fully transparent (symmetrically for
             divergent colormaps)
@@ -389,14 +388,15 @@ class _Brain(object):
         if len(array.shape) == 3:
             raise ValueError('Vector values in "array" are not supported.')
 
+        _check_option('transparent', type(transparent), [bool])
+        _check_option('verbose', type(verbose), [bool])
+
         # those parameters are not supported yet, only None is allowed
         _check_option('thresh', thresh, [None])
-        _check_option('transparent', transparent, [None])
         _check_option('remove_existing', remove_existing, [None])
         _check_option('time_label_size', time_label_size, [None])
         _check_option('scale_factor', scale_factor, [None])
         _check_option('vector_alpha', vector_alpha, [None])
-        _check_option('verbose', verbose, [None])
 
         from surfer.utils import mesh_edges, smoothing_matrix
 
@@ -450,7 +450,7 @@ class _Brain(object):
 
         # data mapping into [0, 1] interval
         dt_max = fmax
-        dt_min = fmin if center is None else -1 * max
+        dt_min = fmin if center is None else -1 * fmax
         k = 1 / (dt_max - dt_min)
         b = 1 - k * dt_max
         act_data = k * act_data + b
