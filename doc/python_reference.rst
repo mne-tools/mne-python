@@ -750,7 +750,6 @@ Time-Frequency
 
    AverageTFR
    EpochsTFR
-   SourceTFR
    CrossSpectralDensity
 
 Functions that operate on mne-python objects:
