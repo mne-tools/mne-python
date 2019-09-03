@@ -484,9 +484,9 @@ def test_read_dig_montage_using_polhemus_fastscan():
 
     from mne.channels._dig_montage_utils import _get_fid_coords
     EXPECTED_FID_IN_POLHEMUS = {
-        'nasion': array([ 0.001393, 0.0131613, -0.0046967]),
-        'lpa': array([-0.0624997, -0.0737271, 0.07996]),
-        'rpa': array([-0.0748957, 0.0873785, 0.0811943])
+        'nasion': [0.001393, 0.0131613, -0.0046967],
+        'lpa': [-0.0624997, -0.0737271, 0.07996],
+        'rpa': [-0.0748957, 0.0873785, 0.0811943],
     }
     fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
     for kk, val in fiducials.items():
@@ -504,11 +504,11 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
         fid.write(content)
 
     with pytest.raises(ValueError, match='not contain Polhemus FastSCAN'):
-        montage = read_polhemus_fastscan(fname)
+        _ = read_polhemus_fastscan(fname)
 
     EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
     with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
-        montage = read_polhemus_fastscan(fname=tmpdir.join('foo.bar'))
+        _ = read_polhemus_fastscan(fname=tmpdir.join('foo.bar'))
 
 
 def test_read_dig_polhemus_isotrak_hsp():
@@ -628,7 +628,7 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
     # Check ch_names
     N_CHANNELS = 5
     with pytest.raises(RuntimeError, match='xx'):
-        montage = read_dig_polhemus_isotrak(
+        _ = read_dig_polhemus_isotrak(
             fname=isotrak_eeg,
             ch_names=['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS + 42)]
         )
@@ -639,7 +639,7 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
         ValueError,
         match="Allowed val.*'.hsp', '.elp' and '.eeg', but got '.bar' instead"
     ):
-        montage = read_dig_polhemus_isotrak(fname=fname, ch_names=None)
+        _ = read_dig_polhemus_isotrak(fname=fname, ch_names=None)
 
 
 def test_combining_digmontage_objects():
