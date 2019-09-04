@@ -24,7 +24,8 @@ import xml.etree.ElementTree as ElementTree
 from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _frame_to_str, _str_to_frame)
+                          _topo_to_sph, _frame_to_str, _str_to_frame,
+                          Transform)
 from .._digitization import Digitization
 from .._digitization.base import _count_points_by_type
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
@@ -854,9 +855,6 @@ def _check_unit_and_get_scaling(unit, valid_scales):
     return valid_scales[unit]
 
 
-# XXX: this function will evolve with issue-6461
-# and should be tested as soon as we have the Polhemus
-# reader.
 def transform_to_head(montage):
     """Transform a DigMontage object into head coordinate.
 
@@ -1542,3 +1540,37 @@ def read_polhemus_fastscan(fname, ch_names=None, unit='mm'):
         points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
 
     return points
+
+
+def compute_dev_head_t(montage):
+    """Compute device to head transform from a DigMontage
+
+    Parameters
+    ----------
+    montage : instance of DigMontage
+        The DigMontage must contain the fiducials in head
+        coordinate system and hpi points in both head and
+        meg device coordinate system.
+
+    Returns
+    -------
+    dev_head_t : instance of Transform
+        A Device-to-Head transformation matrix.
+    """
+    from ..coreg import fit_matched_points
+
+    _, coord_frame = _get_fid_coords(montage.dig)
+    if coord_frame != FIFF.FIFFV_COORD_HEAD:
+        raise ValueError('montage should have been set to head coordinate '
+                         'system with transform_to_head function.')
+
+    hpi_head = [d['r'] for d in montage.dig
+                if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)]
+    hpi_dev = [d['r'] for d in montage.dig
+               if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)]
+    trans = fit_matched_points(tgt_pts=hpi_head,
+                               src_pts=hpi_dev, out='trans')
+
+    return Transform(fro='meg', to='head', trans=trans)

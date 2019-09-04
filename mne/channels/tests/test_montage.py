@@ -25,6 +25,7 @@ from mne.channels import (Montage, read_montage, read_dig_montage,
 from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
 from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
+from mne.channels import compute_dev_head_t
 
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
@@ -1214,5 +1215,34 @@ def test_digmontage_constructor_errors():
     """Test proper error messaging."""
     with pytest.raises(ValueError, match='does not match the number'):
         _ = DigMontage(ch_names=['foo', 'bar'], dig=Digitization())
+
+
+def test_transform_to_head_and_compute_dev_head_t():
+    """Test transform_to_head and compute_dev_head_t."""
+    hsp_coords = read_polhemus_fastscan(hsp)
+    hpi_coords = read_mrk(hpi)
+    elp_coords = read_polhemus_fastscan(elp)
+
+    mon_unk = make_dig_montage(hsp=hsp_coords, nasion=elp_coords[0],
+                               lpa=elp_coords[1], rpa=elp_coords[2],
+                               hpi=elp_coords[3:], coord_frame='unknown')
+    mon_dev = make_dig_montage(hpi=hpi_coords, coord_frame='meg')
+
+    montage = mon_unk + mon_dev
+
+    with pytest.raises(ValueError, match='set to head coordinate system'):
+        _ = compute_dev_head_t(montage)
+
+    montage = transform_to_head(montage)
+    dev_head_t = compute_dev_head_t(montage)
+
+    EXPECTED_DEV_HEAD_T = \
+        [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],
+         [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
+         [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
+         [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+
+    assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=1e-7)
+
 
 run_tests_if_main()

@@ -315,6 +315,7 @@ Projections:
    read_dig_captrack
    read_dig_egi
    read_dig_fif
+   compute_dev_head_t
    read_layout
    find_layout
    make_eeg_layout
