@@ -1481,16 +1481,13 @@ def _get_polhemus_fastscan_header(fname):
     return ''.join(header)
 
 
-def read_polhemus_fastscan(fname, ch_names=None, unit='mm'):
+def read_polhemus_fastscan(fname, unit='mm'):
     """Read Polhemus FastSCAN digitizer data from a ``.txt`` file.
 
     Parameters
     ----------
     fname : str
         The filepath of .txt Polhemus FastSCAN file.
-    ch_names : None | list of str
-        The names of the points. This will make the points
-        considered as EEG channels.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
         exported in millimeters. Defaults to 'mm'
@@ -1517,10 +1514,7 @@ def read_polhemus_fastscan(fname, ch_names=None, unit='mm'):
             "%s does not contain Polhemus FastSCAN header" % fname
         )
 
-    if _scale == 1:
-        points = np.loadtxt(fname, comments='%', ndmin=2)
-    else:
-        points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
+    points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
 
     return points
 
