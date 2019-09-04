@@ -26,7 +26,7 @@ from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, _str_to_frame)
 from .._digitization import Digitization
-from .._digitization.base import _count_poinits_by_type
+from .._digitization.base import _count_points_by_type
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
                                     write_dig, _read_dig_fif,
                                     _format_dig_points)
@@ -685,7 +685,7 @@ class DigMontage(object):
 
     def __repr__(self):
         """Return string representation."""
-        n_points = _count_poinits_by_type(self.dig)
+        n_points = _count_points_by_type(self.dig)
         return ('<DigMontage | {extra:d} extras (headshape), {hpi:d} HPIs,'
                 ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
 
@@ -763,11 +763,11 @@ class DigMontage(object):
             other_coord[kk] for kk, vv in other_fid.items() if vv is not None
         })
 
-        is_posible_to_merge_fid = all([
+        is_possible_to_merge_fid = all([
             np.array_equal(other_fid[kk], vv) for kk, vv in self_fid.items()
         ]) if is_fid_defined(self_fid) and is_fid_defined(other_fid) else True
 
-        if (is_posible_to_merge_fid and (
+        if (is_possible_to_merge_fid and (
                 coord == {FIFF.FIFFV_COORD_UNKNOWN} or coord == set()
         )):
             pass
@@ -1137,8 +1137,10 @@ def read_dig_fif(fname):
     See Also
     --------
     DigMontage
-    Montage
     read_montage
+    read_dig_egi
+    read_dig_captrack
+    make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
     # Load the dig data
@@ -1171,8 +1173,10 @@ def read_dig_egi(fname):
     See Also
     --------
     DigMontage
-    Montage
     read_montage
+    read_dig_fif
+    read_dig_captrack
+    make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
 
@@ -1212,8 +1216,10 @@ def read_dig_captrack(fname):
     See Also
     --------
     DigMontage
-    Montage
     read_montage
+    read_dig_egi
+    read_dig_fif
+    make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
     data = _parse_brainvision_dig_montage(fname)
@@ -1442,6 +1448,10 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     ----------
     fname : str
         The filepath of Polhemus ISOTrak formatted file.
+        File extension is expected to be '.hsp', '.elp' or '.eeg'.
+    ch_names : None | list of str
+        The names of the points. This will make the points
+        considered as EEG channels.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus ISOTrak systems data is usually
         exported in meters. Defaults to 'm'
@@ -1450,6 +1460,11 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     -------
     montage : instance of DigMontage
         The montage.
+
+    See Also
+    --------
+    make_dig_montage
+    read_polhemus_fastscan
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
@@ -1503,11 +1518,22 @@ def read_polhemus_fastscan(fname, ch_names=None, unit='mm'):
     ----------
     fname : str
         The filepath of .txt Polhemus FastSCAN file.
+    ch_names : None | list of str
+        The names of the points. This will make the points
+        considered as EEG channels.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the digitizer file. Polhemus FastSCAN systems data is usually
+        exported in millimeters. Defaults to 'mm'
 
     Returns
     -------
-    points : np.ndarray, shape (n_points, 3)
+    points : array, shape (n_points, 3)
         The digitization points in digitizer coordinates.
+
+    See Also
+    --------
+    read_dig_polhemus_isotrak
+    make_dig_montage
     """
     VALID_FILE_EXT = ['.txt']
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)

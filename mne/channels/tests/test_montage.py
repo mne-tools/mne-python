@@ -36,7 +36,7 @@ from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne._digitization import Digitization
 from mne._digitization._utils import _read_dig_points
-from mne._digitization.base import _get_dig_eeg, _count_poinits_by_type
+from mne._digitization.base import _get_dig_eeg, _count_points_by_type
 
 from mne.viz._3d import _fiducial_coords
 
@@ -695,8 +695,8 @@ def test_combining_digmontage_objects():
     # Do some checks to ensure they are the same DigMontage
     assert len(montage.ch_names) == len(EXPECTED_MONTAGE.ch_names)
     assert all([c in montage.ch_names for c in EXPECTED_MONTAGE.ch_names])
-    actual_occurrences = _count_poinits_by_type(montage.dig)
-    expected_occurrences = _count_poinits_by_type(EXPECTED_MONTAGE.dig)
+    actual_occurrences = _count_points_by_type(montage.dig)
+    expected_occurrences = _count_points_by_type(EXPECTED_MONTAGE.dig)
     assert actual_occurrences == expected_occurrences
 
 

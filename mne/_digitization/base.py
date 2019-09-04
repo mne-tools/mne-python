@@ -37,7 +37,7 @@ def _get_dig_eeg(dig):
     return [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG]
 
 
-def _count_poinits_by_type(dig):
+def _count_points_by_type(dig):
     """Get the number of points of each type."""
     occurrences = Counter([d['kind'] for d in dig])
     return dict(
