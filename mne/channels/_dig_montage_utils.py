@@ -202,14 +202,15 @@ def _get_fid_coords(dig):
             raise ValueError("Some fiducial points are missing (got %s)." %
                              fid_coords.keys())
 
-        fid_coord_frames = set(fid_coord_frames.values())
-        if len(fid_coord_frames) > 1:
+        if len(set(fid_coord_frames.values())) > 1:
             raise ValueError(
                 'All fiducial points must be in the same coordinate system '
                 '(got %s)' % len(fid_coord_frames)
             )
 
-    return fid_coords, fid_coord_frames.pop() if fid_coord_frames else None
+    coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
+
+    return fid_coords, coord_frame
 
 
 def _read_dig_montage_bvct(
