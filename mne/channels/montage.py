@@ -1441,7 +1441,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     Parameters
     ----------
     fname : str
-        The filepath of Polhemus ISOTrak formated file.
+        The filepath of Polhemus ISOTrak formatted file.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus ISOTrak systems data is usually
         exported in meters. Defaults to 'm'

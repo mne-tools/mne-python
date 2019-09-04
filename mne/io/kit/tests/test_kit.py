@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-import inspect
 import os.path as op
 
 import numpy as np

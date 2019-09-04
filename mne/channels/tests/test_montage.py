@@ -473,7 +473,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
         # Other defaults
         coord_frame='unknown',
         compute_dev_head_t=False,  # XXX: this one should fall
-        transform_to_head=False,  # XXXX: maybe this one aswell
+        transform_to_head=False,  # XXXX: maybe this one as well
     )
 
     assert montage.__repr__() == (

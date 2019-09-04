@@ -39,12 +39,12 @@ def _get_dig_eeg(dig):
 
 def _count_poinits_by_type(dig):
     """Get the number of points of each type."""
-    occurences = Counter([d['kind'] for d in dig])
+    occurrences = Counter([d['kind'] for d in dig])
     return dict(
-        fid=occurences[FIFF.FIFFV_POINT_CARDINAL],
-        hpi=occurences[FIFF.FIFFV_POINT_HPI],
-        eeg=occurences[FIFF.FIFFV_POINT_EEG],
-        extra=occurences[FIFF.FIFFV_POINT_EXTRA],
+        fid=occurrences[FIFF.FIFFV_POINT_CARDINAL],
+        hpi=occurrences[FIFF.FIFFV_POINT_HPI],
+        eeg=occurrences[FIFF.FIFFV_POINT_EEG],
+        extra=occurrences[FIFF.FIFFV_POINT_EXTRA],
     )
 
 
