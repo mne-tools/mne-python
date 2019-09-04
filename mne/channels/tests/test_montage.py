@@ -681,10 +681,10 @@ def test_combining_digmontage_objects():
 
     EXPECTED_MONTAGE = make_dig_montage(
         **fiducials,
-        hsp=np.concatenate([np.full((2, 3), 11), np.full((2, 3), 12),
-                            np.full((2, 3), 13)]),
-        hpi=np.concatenate([np.full((2, 3), 21), np.full((2, 3), 22),
-                            np.full((2, 3), 23)]),
+        hsp=np.concatenate([np.full((2, 3), 11.), np.full((2, 3), 12.),
+                            np.full((2, 3), 13.)]),
+        hpi=np.concatenate([np.full((2, 3), 21.), np.full((2, 3), 22.),
+                            np.full((2, 3), 23.)]),
         ch_pos={
             'h': [41, 41, 41], 'b': [42, 42, 42], 'g': [43, 43, 43],
             'n': [51, 51, 51], 'y': [52, 52, 52], 'p': [53, 53, 53],
