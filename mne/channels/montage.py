@@ -1381,8 +1381,8 @@ def _read_isotrak_elp_points(fname):
 
     Returns
     -------
-    out : dict of np.arrays
-        The dictionary containing np.array locations for 'nasion', 'lpa', 'rpa'
+    out : dict of arrays
+        The dictionary containing locations for 'nasion', 'lpa', 'rpa'
         and 'points'.
     """
     value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
@@ -1411,8 +1411,8 @@ def _read_isotrak_hsp_points(fname):
 
     Returns
     -------
-    out : dict of np.arrays
-        The dictionary containing np.array locations for 'nasion', 'lpa', 'rpa'
+    out : dict of arrays
+        The dictionary containing locations for 'nasion', 'lpa', 'rpa'
         and 'points'.
     """
     def consume(fid, predicate):  # just a consumer to move around conveniently

@@ -472,8 +472,8 @@ def test_read_dig_montage_using_polhemus_fastscan():
 
         # Other defaults
         coord_frame='unknown',
-        compute_dev_head_t=False,  # XXX: this one should fall
-        transform_to_head=False,  # XXXX: maybe this one as well
+        compute_dev_head_t=False,  # XXX: this one should fail
+        transform_to_head=False,  # XXX: maybe this one as well
     )
 
     assert montage.__repr__() == (
@@ -700,7 +700,7 @@ def test_combining_digmontage_objects():
     assert actual_occurrences == expected_occurrences
 
 
-def test_combining_digmontage_forviden_behaviors():
+def test_combining_digmontage_forbiden_behaviors():
     """Test combining different DigMontage objects with repeated names."""
     rng = np.random.RandomState(0)
     fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
