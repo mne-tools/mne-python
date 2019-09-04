@@ -101,7 +101,7 @@ dimension.
 
 SSP-based rejection is often done using the
 :func:`mne.preprocessing.compute_proj_ecg` and
-:func:`mne.preprocessing.compute_proj_eog` methods, see :ref:`ssp`
+:func:`mne.preprocessing.compute_proj_eog` methods, see :ref:`ssp-api`
 section for more information.
 
 ICA
@@ -315,7 +315,7 @@ Aligning coordinate frames
 
 The calculation of the forward solution requires knowledge
 of the relative location and orientation of the MEG/EEG and MRI
-coordinate systems (see :ref:`BJEBIBAI`). The head coordinate
+coordinate systems (see :ref:`c_legacy_BJEBIBAI`). The head coordinate
 frame is defined by identifying the fiducial landmark locations,
 making the origin and orientation of the head coordinate system
 slightly user dependent. As a result, it is safest to reestablish
@@ -403,7 +403,7 @@ and the source covariance matrix. This approach has the benefit
 that the regularization parameter ('SNR') can
 be adjusted easily when the final source estimates or dSPMs are
 computed. For mathematical details of this approach,
-please consult :ref:`CBBDJFBJ`.
+please consult :ref:`c_legacy_CBBDJFBJ`.
 
 This computation stage can be done by using
 :func:`mne.minimum_norm.make_inverse_operator` as::
@@ -437,4 +437,4 @@ done *e.g.*, to ``subject='fsaverage'`` as::
     >>> morph = mne.compute_source_morph(stc, subject_from='sample', subject_to='fsaverage')  # doctest: +SKIP
     >>> stc_fsaverage = morph.apply(stc)  # doctest: +SKIP
 
-See :ref:`ch_morph` for more information.
+See :ref:`c_legacy_ch_morph` for more information.

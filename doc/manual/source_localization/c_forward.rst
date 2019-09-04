@@ -1,34 +1,35 @@
 .. _c_legacy_ch_forward:
 
-====================
 The forward solution
 ====================
 
-.. contents:: Contents
+This page covers the definitions of different coordinate systems employed in
+MNE software and FreeSurfer, the details of the computation of the forward
+solutions, and the associated low-level utilities.
+
+.. contents:: Page contents
    :local:
    :depth: 2
 
 
-Overview
-########
-
-This Chapter covers the definitions of different coordinate
-systems employed in MNE software and FreeSurfer, the details of
-the computation of the forward solutions, and the associated low-level
-utilities.
-
 .. _c_legacy_CHDEDFIB:
 
 MEG/EEG and MRI coordinate systems
-##################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The coordinate systems used in MNE software (and FreeSurfer)
-and their relationships are depicted in :ref:`c_legacy_CHDFFJIJ`.
-Except for the *Sensor coordinates*, all of the
-coordinate systems are Cartesian and have the "RAS" (Right-Anterior-Superior)
-orientation, *i.e.*, the :math:`x` axis
-points to the right, the :math:`y` axis
-to the front, and the :math:`z` axis up.
+.. sidebar:: Coordinate systems in MNE-Python
+
+   In some MNE-Python objects (e.g., :class:`~mne.Forward`,
+   :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is
+   encoded as a constant integer value. The meaning of those integers is
+   determined `in the source code
+   <https://github.com/mne-tools/mne-python/blob/master/mne/io/constants.py#L186-L197>`__.
+
+The coordinate systems used in MNE software (and FreeSurfer) and their
+relationships are depicted in :ref:`c_legacy_CHDFFJIJ`. Except for the *Sensor
+coordinates*, all of the coordinate systems are Cartesian and have the "RAS"
+(Right-Anterior-Superior) orientation, *i.e.*, the :math:`x` axis points to the
+right, the :math:`y` axis to the front, and the :math:`z` axis up.
 
 .. _c_legacy_CHDFFJIJ:
 
@@ -37,87 +38,87 @@ to the front, and the :math:`z` axis up.
 
     MEG/EEG and MRI coordinate systems
 
-    The coordinate transforms present in the fif files in MNE and the FreeSurfer files as well as those set to fixed values are indicated with :math:`T_x`, where :math:`x` identifies the transformation.
+    The coordinate transforms present in the fif files in MNE and the
+    FreeSurfer files as well as those set to fixed values are indicated with
+    :math:`T_x`, where :math:`x` identifies the transformation.
 
-The coordinate systems related
-to MEG/EEG data are:
+The coordinate systems related to MEG/EEG data are:
 
 **Head coordinates**
 
     This is a coordinate system defined with help of the fiducial landmarks
     (nasion and the two auricular points). In fif files, EEG electrode
     locations are given in this coordinate system. In addition, the head
-    digitization data acquired in the beginning of an MEG, MEG/EEG,
-    or EEG acquisition are expressed in head coordinates. For details,
-    see :ref:`c_legacy_CHDEDFIB`.
+    digitization data acquired in the beginning of an MEG, MEG/EEG, or EEG
+    acquisition are expressed in head coordinates. For details, see
+    :ref:`c_legacy_CHDEDFIB`.
 
 **Device coordinates**
 
-    This is a coordinate system tied to the MEG device. The relationship
-    of the Device and Head coordinates is determined during an MEG measurement
-    by feeding current to three to five head-position
-    indicator (HPI) coils and by determining their locations with respect
-    to the MEG sensor array from the magnetic fields they generate.
+    This is a coordinate system tied to the MEG device. The relationship of the
+    Device and Head coordinates is determined during an MEG measurement by
+    feeding current to three to five head-position indicator (HPI) coils and by
+    determining their locations with respect to the MEG sensor array from the
+    magnetic fields they generate.
 
 **Sensor coordinates**
 
-    Each MEG sensor has a local coordinate system defining the orientation
-    and location of the sensor. With help of this coordinate system,
-    the numerical integration data needed for the computation of the
-    magnetic field can be expressed conveniently as discussed in :ref:`c_legacy_BJEIAEIE`. The channel information data in the fif files
-    contain the information to specify the coordinate transformation
-    between the coordinates of each sensor and the MEG device coordinates.
+    Each MEG sensor has a local coordinate system defining the orientation and
+    location of the sensor. With help of this coordinate system, the numerical
+    integration data needed for the computation of the magnetic field can be
+    expressed conveniently as discussed in :ref:`c_legacy_BJEIAEIE`. The
+    channel information data in the fif files contain the information to
+    specify the coordinate transformation between the coordinates of each
+    sensor and the MEG device coordinates.
 
-The coordinate systems related
-to MRI data are:
+The coordinate systems related to MRI data are:
 
 **Surface RAS coordinates**
 
     The FreeSurfer surface data are expressed in this coordinate system. The
     origin of this coordinate system is at the center of the conformed
     FreeSurfer MRI volumes (usually 256 x 256 x 256 isotropic 1-mm3  voxels)
-    and the axes are oriented along the axes of this volume. The BEM
-    surface and the locations of the sources in the source space are
-    usually expressed in this coordinate system in the fif files. In
-    this manual, the *Surface RAS coordinates* are
-    usually referred to as *MRI coordinates* unless
-    there is need to specifically discuss the different MRI-related
-    coordinate systems.
+    and the axes are oriented along the axes of this volume. The BEM surface
+    and the locations of the sources in the source space are usually expressed
+    in this coordinate system in the fif files. In this manual, the *Surface
+    RAS coordinates* are usually referred to as *MRI coordinates* unless there
+    is need to specifically discuss the different MRI-related coordinate
+    systems.
 
 **RAS coordinates**
 
-    This coordinate system has axes identical to the Surface RAS coordinates but the location of the origin
-    is different and defined by the original MRI data, i.e. ,
-    the origin is in a scanner-dependent location. There is hardly any
-    need to refer to this coordinate system explicitly in the analysis
-    with the MNE software. However, since the Talairach coordinates,
-    discussed below, are defined with respect to *RAS coordinates* rather
-    than the *Surface RAS coordinates*, the RAS coordinate
-    system is implicitly involved in the transformation between Surface RAS coordinates and the two *Talairach* coordinate
-    systems.
+    This coordinate system has axes identical to the Surface RAS coordinates
+    but the location of the origin is different and defined by the original MRI
+    data, i.e. , the origin is in a scanner-dependent location. There is hardly
+    any need to refer to this coordinate system explicitly in the analysis with
+    the MNE software. However, since the Talairach coordinates, discussed
+    below, are defined with respect to *RAS coordinates* rather than the
+    *Surface RAS coordinates*, the RAS coordinate system is implicitly involved
+    in the transformation between Surface RAS coordinates and the two
+    *Talairach* coordinate systems.
 
 **MNI Talairach coordinates**
 
-    The definition of this coordinate system is discussed, e.g. ,
-    in  http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach. This
-    transformation is determined during the FreeSurfer reconstruction
-    process.
+    The definition of this coordinate system is discussed, e.g., in
+    http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach. This transformation
+    is determined during the FreeSurfer reconstruction process. These
+    coordinates are in MNI305 space.
 
 **FreeSurfer Talairach coordinates**
 
     The problem with the MNI Talairach coordinates is that the linear MNI
-    Talairach transform does matched the brains completely to the Talairach
-    brain. This is probably because the Talairach atlas brain is a rather
-    odd shape, and as a result, it is difficult to match a standard brain
-    to the atlas brain using an affine transform. As a result, the MNI
-    brains are slightly larger (in particular higher, deeper and longer)
-    than the Talairach brain. The differences are larger as you get
-    further from the middle of the brain, towards the outside. The FreeSurfer
-    Talairach coordinates mitigate this problem by additing a an additional
-    transformation, defined separately for negatice and positive MNI
-    Talairach :math:`z` coordinates. These two
-    transformations, denoted by :math:`T_-` and :math:`T_+` in :ref:`c_legacy_CHDFFJIJ`, are fixed as discussed in http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach
-    (*Approach 2*).
+    Talairach transform does not match the brains completely to the Talairach
+    brain. This is probably because the Talairach atlas brain is a rather odd
+    shape, and as a result, it is difficult to match a standard brain to the
+    atlas brain using an affine transform. As a result, the MNI brains are
+    slightly larger (in particular higher, deeper and longer) than the
+    Talairach brain. The differences are larger as you get further from the
+    middle of the brain, towards the outside. The FreeSurfer Talairach
+    coordinates mitigate this problem by additing a an additional
+    transformation, defined separately for negatice and positive MNI Talairach
+    :math:`z` coordinates. These two transformations, denoted by :math:`T_-`
+    and :math:`T_+` in :ref:`c_legacy_CHDFFJIJ`, are fixed as discussed in
+    http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach (*Approach 2*).
 
 The different coordinate systems are related by coordinate
 transformations depicted in :ref:`c_legacy_CHDFFJIJ`. The arrows and
@@ -137,8 +138,8 @@ files. Generally,
 		1
 	        \end{bmatrix} = \begin{bmatrix}
 		R_{11} & R_{12} & R_{13} & x_0 \\
-		R_{13} & R_{13} & R_{13} & y_0 \\
-		R_{13} & R_{13} & R_{13} & z_0 \\
+		R_{21} & R_{22} & R_{23} & y_0 \\
+		R_{31} & R_{32} & R_{33} & z_0 \\
 		0 & 0 & 0 & 1
 	        \end{bmatrix} \begin{bmatrix}
 		x_1 \\
@@ -147,15 +148,14 @@ files. Generally,
 		1
 	        \end{bmatrix}\ ,
 
-where :math:`x_k`,:math:`y_k`,and :math:`z_k` are the location
-coordinates in two coordinate systems, :math:`T_{12}` is
-the coordinate transformation from coordinate system "1" to "2",
-:math:`x_0`, :math:`y_0`,and :math:`z_0` is the location of the origin
-of coordinate system "1" in coordinate system "2",
-and :math:`R_{jk}` are the elements of the rotation
-matrix relating the two coordinate systems. The coordinate transformations
-are present in different files produced by FreeSurfer and MNE as
-summarized in :ref:`c_legacy_CHDJDEDJ`. The fixed transformations :math:`T_-` and :math:`T_+` are:
+where :math:`x_k`, :math:`y_k`,and :math:`z_k` are the location coordinates in
+two coordinate systems, :math:`T_{12}` is the coordinate transformation from
+coordinate system "1" to "2", :math:`x_0`, :math:`y_0`, and :math:`z_0` is the
+location of the origin of coordinate system "1" in coordinate system "2", and
+:math:`R_{jk}` are the elements of the rotation matrix relating the two
+coordinate systems. The coordinate transformations are present in different
+files produced by FreeSurfer and MNE as summarized in :ref:`c_legacy_CHDJDEDJ`.
+The fixed transformations :math:`T_-` and :math:`T_+` are:
 
 .. math::    T_{-} = \begin{bmatrix}
 		0.99 & 0 & 0 & 0 \\
@@ -173,7 +173,13 @@ and
 		0 & 0 & 0 & 1
 	        \end{bmatrix}
 
-.. note:: This section does not discuss the transformation    between the MRI voxel indices and the different MRI coordinates.    However, it is important to note that in FreeSurfer, MNE, as well    as in Neuromag software an integer voxel coordinate corresponds    to the location of the center of a voxel. Detailed information on    the FreeSurfer MRI systems can be found at  https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems.
+.. note::
+   This section does not discuss the transformation between the MRI voxel
+   indices and the different MRI coordinates. However, it is important to note
+   that in FreeSurfer, MNE, as well as in Neuromag software an integer voxel
+   coordinate corresponds to the location of the center of a voxel. Detailed
+   information on the FreeSurfer MRI systems can be found at
+   https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems.
 
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
@@ -213,75 +219,85 @@ and
     |                              |                               | mgz or mgh format.                   |
     +------------------------------+-------------------------------+--------------------------------------+
 
-.. note:: The symbols :math:`T_x` are defined in :ref:`c_legacy_CHDFFJIJ`. mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
+.. note::
+   The symbols :math:`T_x` are defined in :ref:`c_legacy_CHDFFJIJ`.
+   mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include
+   transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in
+   the fif files produced.
 
 .. _c_legacy_BJEBIBAI:
 
 The head and device coordinate systems
-######################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. figure:: ../pics/HeadCS.png
     :alt: Head coordinate system
 
     The head coordinate system
 
-The MEG/EEG head coordinate system employed in the MNE software
-is a right-handed Cartesian coordinate system. The direction of :math:`x` axis
-is from left to right, that of :math:`y` axis
-to the front, and the :math:`z` axis thus
-points up.
+The MEG/EEG head coordinate system employed in the MNE software is a
+right-handed Cartesian coordinate system. The direction of :math:`x` axis is
+from left to right, that of :math:`y` axis to the front, and the :math:`z` axis
+thus points up.
 
-The :math:`x` axis of the head coordinate
-system passes through the two periauricular or preauricular points
-digitized before acquiring the data with positive direction to the
-right. The :math:`y` axis passes through
-the nasion and is normal to the :math:`x` axis.
-The :math:`z` axis points up according to
+The :math:`x` axis of the head coordinate system passes through the two
+periauricular or preauricular points digitized before acquiring the data with
+positive direction to the right. The :math:`y` axis passes through the nasion
+and is normal to the :math:`x` axis. The :math:`z` axis points up according to
 the right-hand rule and is normal to the :math:`xy` plane.
 
-The origin of the MEG device coordinate system is device
-dependent. Its origin is located approximately at the center of
-a sphere which fits the occipital section of the MEG helmet best
-with :math:`x` axis axis going from left to right
-and :math:`y` axis pointing front. The :math:`z` axis
-is, again, normal to the :math:`xy` plane
-with positive direction up.
+The origin of the MEG device coordinate system is device dependent. Its origin
+is located approximately at the center of a sphere which fits the occipital
+section of the MEG helmet best with :math:`x` axis axis going from left to
+right and :math:`y` axis pointing front. The :math:`z` axis is, again, normal
+to the :math:`xy` plane with positive direction up.
 
-.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The :math:`x` axis    passes through the nasion and the origin with positive direction    to the front. The :math:`y` axis is perpendicular    to the :math:`x` axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The :math:`z` axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on :math:`y` coordinate axis. The file conversion utilities take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
+.. note::
+   The above definition is identical to that of the Neuromag MEG/EEG (head)
+   coordinate system. However, in 4-D Neuroimaging and CTF MEG systems the head
+   coordinate frame definition is different. The origin of the coordinate
+   system is at the midpoint of the left and right auricular points. The
+   :math:`x` axis passes through the nasion and the origin with positive
+   direction to the front. The :math:`y` axis is perpendicular to the :math:`x`
+   axis on the and lies in the plane defined by the three fiducial landmarks,
+   positive direction from right to left. The :math:`z` axis is normal to the
+   plane of the landmarks, pointing up. Note that in this convention the
+   auricular points are not necessarily located on :math:`y` coordinate axis.
+   The file conversion utilities take care of these idiosyncrasies and convert
+   all coordinate information to the MNE software head coordinate frame.
 
 .. _c_legacy_BEHCGJDD:
 
 Creating a surface-based source space
-#####################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The fif format source space files containing the dipole locations
-and orientations are created with the utility :ref:`mne_make_source_space`.
-This utility is usually invoked by the convenience script :ref:`mne_setup_source_space`,
-see :ref:`setting_up_source_space`.
+The fif format source space files containing the dipole locations and
+orientations are created with the utility :ref:`mne_make_source_space`. This
+utility is usually invoked by the convenience script
+:ref:`mne_setup_source_space`, see :ref:`setting_up_source_space`.
 
 
 .. _c_legacy_BJEFEHJI:
 
 Creating a volumetric or discrete source space
-##############################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In addition to source spaces confined to a surface, the MNE
-software provides some support for three-dimensional source spaces
-bounded by a surface as well as source spaces comprised of discrete,
-arbitrarily located source points. The :ref:`mne_volume_source_space` utility
-assists in generating such source spaces.
+In addition to source spaces confined to a surface, the MNE software provides
+some support for three-dimensional source spaces bounded by a surface as well
+as source spaces comprised of discrete, arbitrarily located source points. The
+:ref:`mne_volume_source_space` utility assists in generating such source
+spaces.
 
 
 .. _c_legacy_BEHCACCJ:
 
 Creating the BEM meshes
-#######################
+^^^^^^^^^^^^^^^^^^^^^^^
 
-The :ref:`mne_surf2bem` utility
-converts surface triangle meshes from ASCII and FreeSurfer binary
-file formats to the fif format. The resulting fiff file also contains
-conductivity information so that it can be employed in the BEM calculations.
-See command-line options in :ref:`mne_surf2bem`.
+The :ref:`mne_surf2bem` utility converts surface triangle meshes from ASCII and
+FreeSurfer binary file formats to the fif format. The resulting fiff file also
+contains conductivity information so that it can be employed in the BEM
+calculations. See command-line options in :ref:`mne_surf2bem`.
 
 .. note:: The utility ``mne_tri2fiff`` previously used for this task has been replaced by :ref:`mne_surf2bem`.
 
@@ -293,7 +309,7 @@ See command-line options in :ref:`mne_surf2bem`.
 .. _c_legacy_BEHDEFCD:
 
 Tessellation file format
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The format of the text format surface files is the following:
 
@@ -344,7 +360,7 @@ a triangle.
 .. _c_legacy_BEHCBDDE:
 
 Topology checks
-===============
+~~~~~~~~~~~~~~~
 
 If the ``--check`` option is specified, the following
 topology checks are performed:
@@ -377,33 +393,38 @@ topology checks are performed:
 .. _c_legacy_CHDJFHEB:
 
 Computing the BEM geometry data
-###############################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The utility :ref:`mne_prepare_bem_model` computes
-the geometry information for BEM. This utility is usually invoked
-by the convenience script :ref:`mne_setup_forward_model`,
-see :ref:`CIHDBFEG`. The command-line options are listed under
-:ref:`mne_prepare_bem_model`.
+The utility :ref:`mne_prepare_bem_model` computes the geometry information for
+BEM. This utility is usually invoked by the convenience script
+:ref:`mne_setup_forward_model`, see :ref:`CIHDBFEG`. The command-line options
+are listed under :ref:`mne_prepare_bem_model`.
 
 
 .. _c_legacy_BJEIAEIE:
 
 Coil geometry information
-#########################
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This Section explains the presentation of MEG detection coil
-geometry information the approximations used for different detection
-coils in MNE software. Two pieces of information are needed to characterize
-the detectors:
+This Section explains the presentation of MEG detection coil geometry
+information the approximations used for different detection coils in MNE
+software. Two pieces of information are needed to characterize the detectors:
 
-- The location and orientation a local
-  coordinate system for each detector.
+- The location and orientation a local coordinate system for each detector.
 
-- A unique identifier, which has an one-to-one correspondence
-  to the geometrical description of the coil.
+- A unique identifier, which has an one-to-one correspondence to the
+  geometrical description of the coil.
+
+.. note:: MNE ships with several coil geometry configurations.
+          They can be found in ``mne/data``.
+          See :ref:`ex-plot-meg-sensors`
+          for a comparison between different coil geometries, and
+          :ref:`implemented_coil_geometries` for detailed information regarding
+          the files describing Neuromag coil geometries.
+
 
 The sensor coordinate system
-============================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The sensor coordinate system is completely characterized
 by the location of its origin and the direction cosines of three
@@ -419,7 +440,8 @@ another coordinate transformation to the head-coordinate data to
 bring the coil locations and orientations to the MRI coordinate system.
 
 If :math:`r_0` is a row vector for
-the origin of the local sensor coordinate system and :math:`e_x`, :math:`e_y`, and :math:`e_z` are the row vectors for the
+the origin of the local sensor coordinate system and :math:`e_x`, :math:`e_y`,
+and :math:`e_z` are the row vectors for the
 three orthogonal unit vectors, all given in device coordinates,
 a location of a point :math:`r_C` in sensor coordinates
 is transformed to device coordinates (:math:`r_D`)
@@ -437,7 +459,7 @@ where
 	        \end{bmatrix}\ .
 
 Calculation of the magnetic field
-=================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The forward calculation in the MNE software computes the
 signals detected by each MEG sensor for three orthogonal dipoles
@@ -456,11 +478,11 @@ MEG channel, :math:`b_k` can be approximated by:
 
 where :math:`r_{kp}` are a set of :math:`N_k` integration
 points covering the pickup coil loops of the sensor, :math:`B(r_{kp})` is
-the magnetic field due to the current sources calculated at :math:`r_{kp}`, :math:`n_{kp}` are
-the coil normal directions at these points, and :math:`w_{kp}` are
-the weights associated to the integration points. This formula essentially
-presents numerical integration of the magnetic field over the pickup
-loops of sensor :math:`k`.
+the magnetic field due to the current sources calculated at :math:`r_{kp}`,
+:math:`n_{kp}` are the coil normal directions at these points, and
+:math:`w_{kp}` are the weights associated to the integration points. This
+formula essentially presents numerical integration of the magnetic field over
+the pickup loops of sensor :math:`k`.
 
 There are three accuracy levels for the numerical integration
 expressed above. The *simple* accuracy means
@@ -474,11 +496,14 @@ a total of eight integration points for planar gradiometers and
 sixteen for magnetometers. Detailed information about the integration
 points is given in the next section.
 
+
+.. _implemented_coil_geometries:
+
 Implemented coil geometries
-===========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This section describes the coil geometries currently implemented
-in Neuromag software. The coil types fall in two general categories:
+in MNE. The coil types fall in two general categories:
 
 - Axial gradiometers and planar gradiometers
   and
@@ -520,8 +545,6 @@ The columns of the tables contain the following data:
 
 .. note:: The coil geometry information is stored in the file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created by the utility mne_list_coil_def , see :ref:`c_legacy_BJEHHJIJ`.
 
-.. XXX : table of normal coil description is missing
-
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _c_legacy_BGBBHGEC:
 .. table:: Normal coil descriptions.
@@ -529,7 +552,7 @@ The columns of the tables contain the following data:
     +------+-------------------------+----+----------------------------------+----------------------+
     | Id   | Description             | n  | r/mm                             | w                    |
     +======+=========================+====+==================================+======================+
-    | 2    | Neuromag-122            | 2  | (+/-8.1, 0, 0) mm                | +/-1 ⁄ 16.2mm        | 
+    | 2    | Neuromag-122            | 2  | (+/-8.1, 0, 0) mm                | +/-1 ⁄ 16.2mm        |
     |      | planar gradiometer      |    |                                  |                      |
     +------+-------------------------+----+----------------------------------+----------------------+
     | 2000 | A point magnetometer    | 1  | (0, 0, 0)mm                      | 1                    |
@@ -647,26 +670,27 @@ The columns of the tables contain the following data:
 .. _c_legacy_BJECIGEB:
 
 The coil definition file
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The coil geometry information is stored in the text file
-$MNE_ROOT/share/mne/coil_def.dat. In this file, any lines starting
-with the pound sign (#) are comments. A coil definition starts with
-a description line containing the following fields:
+:file:`{$MNE_ROOT}/share/mne/coil_def.dat`. In this file, any lines starting
+with the pound sign (#) are comments. A coil definition starts with a
+description line containing the following fields:
 
 ** <*class*>**
 
-    This is a number indicating class of this coil. Possible values
-    are listed in :ref:`c_legacy_BJEFABHA`.
+    This is a number indicating class of this coil. Possible values are listed
+    in :ref:`c_legacy_BJEFABHA`.
 
 ** <*id*>**
 
-    Coil id value. This value is listed in the first column of Tables :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`.
+    Coil id value. This value is listed in the first column of Tables
+    :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`.
 
 ** <*accuracy*>**
 
-    The coil representation accuracy. Possible values and their meanings
-    are listed in :ref:`c_legacy_BJEHIBJC`.
+    The coil representation accuracy. Possible values and their meanings are
+    listed in :ref:`c_legacy_BJEHIBJC`.
 
 ** <*np*>**
 
@@ -674,23 +698,22 @@ a description line containing the following fields:
 
 ** <*size/m*>**
 
-    The size of the coil. For circular coils this is the diameter of
-    the coil and for square ones the side length of the square. This
-    information is mainly included to facilitate drawing of the coil
-    geometry. It should not be employed to infer a coil approximation
-    for the forward calculations.
+    The size of the coil. For circular coils this is the diameter of the coil
+    and for square ones the side length of the square. This information is
+    mainly included to facilitate drawing of the coil geometry. It should not
+    be employed to infer a coil approximation for the forward calculations.
 
 ** <*baseline/m*>**
 
     The baseline of a this kind of a coil. This will be zero for magnetometer
-    coils. This information is mainly included to facilitate drawing
-    of the coil geometry. It should not be employed to infer a coil
-    approximation for the forward calculations.
+    coils. This information is mainly included to facilitate drawing of the
+    coil geometry. It should not be employed to infer a coil approximation for
+    the forward calculations.
 
 ** <*description*>**
 
-    Short description of this kind of a coil. If the description contains several
-    words, it is enclosed in quotes.
+    Short description of this kind of a coil. If the description contains
+    several words, it is enclosed in quotes.
 
 .. _c_legacy_BJEFABHA:
 
@@ -719,28 +742,30 @@ a description line containing the following fields:
     3        The most *accurate* representation available (see :ref:`c_legacy_CHDBDFJE`)
     =======  =====================================================================
 
-Each coil description line is followed by one or more integration
-point lines, consisting of seven numbers:
+Each coil description line is followed by one or more integration point lines,
+consisting of seven numbers:
 
 ** <*weight*>**
 
-    Gives the weight for this integration point (last column in Tables :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`).
+    Gives the weight for this integration point (last column in Tables
+    :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`).
 
 ** <*x/m*> <*y/m*> <*z/m*>**
 
-    Indicates the location of the integration point (fourth column in Tables :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`).
+    Indicates the location of the integration point (fourth column in Tables
+    :ref:`c_legacy_BGBBHGEC` and :ref:`c_legacy_CHDBDFJE`).
 
 ** <*nx*> <*ny*> <*nz*>**
 
     Components of a unit vector indicating the field component to be selected.
-    Note that listing a separate unit vector for each integration points
-    allows the implementation of curved coils and coils with the gradiometer
-    loops tilted with respect to each other.
+    Note that listing a separate unit vector for each integration points allows
+    the implementation of curved coils and coils with the gradiometer loops
+    tilted with respect to each other.
 
 .. _c_legacy_BJEHHJIJ:
 
 Creating the coil definition file
-=================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The standard coil definition file $MNE_ROOT/share/mne/coil_def.dat
 is included with the MNE software package. The coil definition file
@@ -752,59 +777,79 @@ mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
 .. _c_legacy_CHDDIBAH:
 
 Computing the forward solution
-##############################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Purpose
-=======
+~~~~~~~
 
-Instead of using the convenience script :ref:`mne_do_forward_solution` it
-is also possible to invoke the forward solution computation program :ref:`mne_forward_solution` directly.
-In this approach, the convenience of the automatic file naming conventions
-present in :ref:`mne_do_forward_solution` are
-lost. However, there are some special-purpose options available
-in :ref:`mne_forward_solution` only.
-Please refer to :ref:`BABCHEJD` for information on :ref:`mne_do_forward_solution`.
-See :ref:`mne_forward_solution` for command-line options.
+.. sidebar:: The forward solution in MNE-Python
+
+   Examples on how to compute the forward solution in MNE-Python using
+   :func:`mne.make_forward_solution` can be found
+   :ref:`plot_forward_compute_forward_solution` and :ref:`BABCHEJD`.
+
+Instead of using the convenience script :ref:`mne_do_forward_solution` it is
+also possible to invoke the forward solution computation program
+:ref:`mne_forward_solution` directly. In this approach, the convenience of the
+automatic file naming conventions present in :ref:`mne_do_forward_solution` are
+lost. However, there are some special-purpose options available in
+:ref:`mne_forward_solution` only. Please refer to :ref:`BABCHEJD` for
+information on :ref:`mne_do_forward_solution`. See :ref:`mne_forward_solution`
+for command-line options.
 
 Implementation of software gradient compensation
-================================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As described in :ref:`BEHDDFBI` the CTF and 4D Neuroimaging
-data may have been subjected to noise cancellation employing the
-data from the reference sensor array. Even though these sensor are
-rather far away from the brain sources, mne_forward_solution takes
-them into account in the computations. If the data file specified
-with the ``--meas`` option has software gradient compensation
-activated, mne_forward_solution computes
-the field of at the reference sensors in addition to the main MEG
-sensor array and computes a compensated forward solution using the
-methods described in :ref:`BEHDDFBI`.
+.. sidebar:: Gradient compensation in MNE-Python
 
-.. warning:: If a data file specified with the ``--meas`` option    and that used in the actual inverse computations with mne_analyze and mne_make_movie have    different software gradient compensation states., the forward solution    will be in mismatch with the data to be analyzed and the current    estimates will be slightly erroneous.
+   Accounting for noise cancellation in MNE-Python is accomplished in
+   :meth:`mne.io.Raw.apply_gradient_compensation`.
+   See :ref:`plot_brainstorm_phantom_ctf` for an example.
+
+As described in :ref:`BEHDDFBI` the CTF and 4D Neuroimaging data may have been
+subjected to noise cancellation employing the data from the reference sensor
+array. Even though these sensor are rather far away from the brain sources,
+``mne_forward_solution`` takes them into account in the computations. If the
+data file specified with the ``--meas`` option has software gradient
+compensation activated, ``mne_forward_solution`` computes the field of at the
+reference sensors in addition to the main MEG sensor array and computes a
+compensated forward solution using the methods described in :ref:`BEHDDFBI`.
+
+.. warning::
+    If a data file specified with the ``--meas`` option and that used in the
+    actual inverse computations with mne_analyze and mne_make_movie have
+    different software gradient compensation states., the forward solution will
+    be in mismatch with the data to be analyzed and the current estimates will
+    be slightly erroneous.
 
 .. _c_legacy_CHDIAFIG:
 
 The EEG sphere model definition file
-====================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For the computation of the electric potential distribution
-on the surface of the head (EEG) it is necessary to define the conductivities
-(:math:`\sigma`) and radiuses of the spherically
-symmetric layers. Different sphere models can be specified with
-the ``--eegmodels`` option.
+.. sidebar:: Sphere models in MNE-Python
 
-The EEG sphere model definition files may contain comment
-lines starting with a # and model
-definition lines in the following format:
+   In MNE-Python, different sphere models can be specified through
+   :func:`mne.make_sphere_model`. The default values (resulting from
+   ``sphere = mne.make_sphere_model()``) are given in :ref:`the table below
+   <c_legacy_BABEBGDA>`.
+
+For the computation of the electric potential distribution on the surface of
+the head (EEG) it is necessary to define the conductivities (:math:`\sigma`)
+and radiuses of the spherically symmetric layers. Different sphere models can
+be specified with the ``--eegmodels`` option.
+
+The EEG sphere model definition files may contain comment lines starting with a
+# and model definition lines in the following format:
 
  <*name*>: <*radius1*>: <*conductivity1*>: <*radius2*>: <*conductivity2*>:...
 
-When the file is loaded the layers are sorted so that the
-radiuses will be in ascending order and the radius of the outermost
-layer is scaled to 1.0. The scalp radius specified with the ``--eegrad`` option
-is then consulted to scale the model to the correct dimensions.
-Even if the model setup file is not present, a model called Default is
-always provided. This model has the structure given in :ref:`c_legacy_BABEBGDA`
+When the file is loaded the layers are sorted so that the radiuses will be in
+ascending order and the radius of the outermost layer is scaled to 1.0. The
+scalp radius specified with the ``--eegrad`` option is then consulted to scale
+the model to the correct dimensions. Even if the model setup file is not
+present, a model called Default is always provided. This model has the
+structure given in :ref:`c_legacy_BABEBGDA`
 
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
@@ -820,72 +865,88 @@ always provided. This model has the structure given in :ref:`c_legacy_BABEBGDA`
     Brain     0.90                     0.33
     ========  =======================  =======================
 
+Although it is not BEM model per se the ``sphere`` structure describes the head
+geometry so it can be passed as ``bem`` parameter in MNE-Python functions such
+as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment` or
+:func:`mne.make_forward_solution`.
+
 EEG forward solution in the sphere model
-========================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When the sphere model is employed, the computation of the
-EEG solution can be substantially accelerated by using approximation
-methods described by Mosher, Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et
-al.* and references therein). mne_forward_solution approximates
-the solution with three dipoles in a homogeneous sphere whose locations
-and amplitudes are determined by minimizing the cost function:
+.. sidebar:: Sphere-model examples in MNE-Python
 
-.. math::    S(r_1,\dotsc,r_m\ ,\ \mu_1,\dotsc,\mu_m) = \int_{scalp} {(V_{true} - V_{approx})}\,dS
+   For examples of using the sphere model when computing the forward model
+   (using :func:`mne.make_forward_solution`), see :ref:`Brainstorm CTF phantom
+   dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
+   :ref:`Brainstorm Elekta phantom dataset tutorial
+   <plt_brainstorm_phantom_elekta_eeg_sphere_geometry>`, and
+   :ref:`plot_source_alignment_without_mri`.
 
-where :math:`r_1,\dotsc,r_m` and :math:`\mu_1,\dotsc,\mu_m` are
-the locations and amplitudes of the approximating dipoles and :math:`V_{true}` and :math:`V_{approx}` are
-the potential distributions given by the true and approximative
-formulas, respectively. It can be shown that this integral can be
-expressed in closed form using an expansion of the potentials in
-spherical harmonics. The formula is evaluated for the most superficial
-dipoles, *i.e.*, those lying just inside the
-inner skull surface.
+When the sphere model is employed, the computation of the EEG solution can be
+substantially accelerated by using approximation methods described by Mosher,
+Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et al.* and references therein).
+``mne_forward_solution`` approximates the solution with three dipoles in a
+homogeneous sphere whose locations and amplitudes are determined by minimizing
+the cost function:
+
+.. math::
+   S(r_1,\dotsc,r_m\ ,\ \mu_1,\dotsc,\mu_m) = \int_{scalp} {(V_{true} - V_{approx})}\,dS
+
+where :math:`r_1,\dotsc,r_m` and :math:`\mu_1,\dotsc,\mu_m` are the locations
+and amplitudes of the approximating dipoles and :math:`V_{true}` and
+:math:`V_{approx}` are the potential distributions given by the true and
+approximative formulas, respectively. It can be shown that this integral can be
+expressed in closed form using an expansion of the potentials in spherical
+harmonics. The formula is evaluated for the most superficial dipoles, *i.e.*,
+those lying just inside the inner skull surface.
 
 .. _c_legacy_BJEFEJJG:
 
 Field derivatives
-=================
+~~~~~~~~~~~~~~~~~
 
-If the ``--grad`` option is specified, mne_forward_solution includes
-the derivatives of the forward solution with respect to the dipole
-location coordinates to the output file. Let
+If the ``--grad`` option is specified, mne_forward_solution includes the
+derivatives of the forward solution with respect to the dipole location
+coordinates to the output file. Let
 
 .. math::    G_k = [g_{xk} g_{yk} g_{zk}]
 
-be the :math:`N_{chan} \times 3` matrix containing
-the signals produced by three orthogonal dipoles at location :math:`r_k` making
-up :math:`N_{chan} \times 3N_{source}` the gain matrix
+be the :math:`N_{chan} \times 3` matrix containing the signals produced by
+three orthogonal dipoles at location :math:`r_k` making up :math:`N_{chan}
+\times 3N_{source}` the gain matrix
 
 .. math::    G = [G_1 \dotso G_{N_{source}}]\ .
 
-With the ``--grad`` option, the output from mne_forward_solution also
-contains the :math:`N_{chan} \times 9N_{source}` derivative matrix
+With the ``--grad`` option, the output from mne_forward_solution also contains
+the :math:`N_{chan} \times 9N_{source}` derivative matrix
 
 .. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
 
 where
 
-.. math::    D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
+.. math::
+   D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
 
-where :math:`x_k`, :math:`y_k`, and :math:`z_k` are the location
-coordinates of the :math:`k^{th}` dipole. If
-the dipole orientations are to the cortical normal with the ``--fixed``
-option, the dimensions of :math:`G` and :math:`D` are :math:`N_{chan} \times N_{source}` and :math:`N_{chan} \times 3N_{source}`,
-respectively. Both :math:`G` and :math:`D` can
-be read with the mne_read_forward_solution Matlab
-function, see Table 10.1.
+where :math:`x_k`, :math:`y_k`, and :math:`z_k` are the location coordinates of
+the :math:`k^{th}` dipole. If the dipole orientations are to the cortical
+normal with the ``--fixed`` option, the dimensions of :math:`G` and :math:`D`
+are :math:`N_{chan} \times N_{source}` and :math:`N_{chan} \times 3N_{source}`,
+respectively. Both :math:`G` and :math:`D` can be read with the
+mne_read_forward_solution Matlab function, see Table 10.1.
 
 .. _c_legacy_CHDBBFCA:
 
 Averaging forward solutions
-###########################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Purpose
-=======
+.. sidebar:: Grand averages in MNE-Python
 
-One possibility to make a grand average over several runs
-of a experiment is to average the data across runs and average the
-forward solutions accordingly. For this purpose, :ref:`mne_average_forward_solutions` computes a
-weighted average of several forward solutions. The program averages both
-MEG and EEG forward solutions. Usually the EEG forward solution is
-identical across runs because the electrode locations do not change.
+   The equivalent function in MNE-Python is
+   :func:`mne.average_forward_solutions`.
+
+One possibility to make a grand average over several runs of a experiment is to
+average the data across runs and average the forward solutions accordingly. For
+this purpose, :ref:`mne_average_forward_solutions` computes a weighted average
+of several forward solutions. The program averages both MEG and EEG forward
+solutions. Usually the EEG forward solution is identical across runs because
+the electrode locations do not change.
