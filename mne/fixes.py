@@ -350,6 +350,19 @@ def _sosfreqz(sos, worN=512, whole=False):
     return w, h
 
 
+def _validate_sos(sos):
+    """Helper to validate a SOS input"""
+    sos = np.atleast_2d(sos)
+    if sos.ndim != 2:
+        raise ValueError('sos array must be 2D')
+    n_sections, m = sos.shape
+    if m != 6:
+        raise ValueError('sos array must be shape (n_sections, 6)')
+    if not (sos[:, 3] == 1).all():
+        raise ValueError('sos[:, 3] should be all ones')
+    return sos, n_sections
+
+
 # SciPy 0.19
 def minimum_phase(h):
     """Convert a linear-phase FIR filter to minimum phase.
