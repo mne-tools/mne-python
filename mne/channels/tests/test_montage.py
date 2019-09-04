@@ -501,7 +501,7 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
     with open(op.join(kit_dir, 'test_elp.txt')) as fid:
         content = fid.read().replace('FastSCAN', 'XxxxXXXX')
 
-    fname = tmpdir.join('faulty_FastSCAN.txt')
+    fname = str(tmpdir.join('faulty_FastSCAN.txt'))
     with open(fname, 'w') as fid:
         fid.write(content)
 
@@ -562,7 +562,7 @@ def isotrak_eeg(tmpdir_factory):
     content = np.random.RandomState(_SEED).randn(N_ROWS, N_COLS)
 
     fname = tmpdir_factory.mktemp('data').join('test.eeg')
-    with open(fname, 'w') as fid:
+    with open(str(fname), 'w') as fid:
         fid.write((
             '3	200\n'
             '//Shape file\n'
@@ -581,9 +581,10 @@ def isotrak_eeg(tmpdir_factory):
             '//No of rows, no of columns; position of digitized points\n'
         ))
         fid.write('{rows:d} {cols:d}\n'.format(rows=N_ROWS, cols=N_COLS))
-        np.savetxt(fid, content, delimiter='\t')
+        for row in content:
+            fid.write('\t'.join('%0.18e' % cell for cell in row) + '\n')
 
-    return fname
+    return str(fname)
 
 
 def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
@@ -595,12 +596,10 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
         'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
         'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
     }
+    ch_names = ['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS)]
     EXPECTED_CH_POS = dict(zip(
-        ['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS)],
-        np.random.RandomState(_SEED).randn(N_CHANNELS, 3),
-    ))
+        ch_names, np.random.RandomState(_SEED).randn(N_CHANNELS, 3)))
 
-    ch_names = [kk for kk, _ in EXPECTED_CH_POS.items()]
     montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
     assert montage.__repr__() == (
         '<DigMontage | '
@@ -648,14 +647,14 @@ def test_combining_digmontage_objects():
     fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
 
     # hsp positions are [1X, 1X, 1X]
-    hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11))
-    hsp2 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12))
-    hsp3 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 13))
+    hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.))
+    hsp2 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12.))
+    hsp3 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 13.))
 
     # hpi positions are [2X, 2X, 2X]
-    hpi1 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 21))
-    hpi2 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 22))
-    hpi3 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 23))
+    hpi1 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 21.))
+    hpi2 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 22.))
+    hpi3 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 23.))
 
     # channels have positions at 40s, 50s, and 60s.
     ch_pos1 = make_dig_montage(
