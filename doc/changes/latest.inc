@@ -65,6 +65,8 @@ Changelog
 
 - Add control over dipole colors in :func:`mne.viz.plot_dipole_locations` when using orthoview mode by `Eric Larson`_
 
+- Use second-order-sections filtering in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw <gen_mne_browse_raw>` by `Eric Larson`_
+
 - Add re-referencing functionality for ecog and seeg channel types in :func:`mne.set_eeg_reference` by `Keith Doelling`_
 
 Bug
