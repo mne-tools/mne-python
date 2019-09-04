@@ -33,4 +33,5 @@ __all__ = [
     fix_mag_coil_types, generate_2d_layout, get_builtin_montages,
 
     # Other
+    compute_dev_head_t
 ]
