@@ -752,33 +752,21 @@ class DigMontage(object):
             ))
 
         # Check for unique matching fiducials
-        self_fid, self_coord = _get_fid_coords(self.dig, raise_error=False)
-        other_fid, other_coord = _get_fid_coords(other.dig, raise_error=False)
+        self_fid, self_coord = _get_fid_coords(self.dig)
+        other_fid, other_coord = _get_fid_coords(other.dig)
 
-        coord = set()
-        coord = coord.union({
-            self_coord[kk] for kk, vv in self_fid.items() if vv is not None
-        })
-        coord = coord.union({
-            other_coord[kk] for kk, vv in other_fid.items() if vv is not None
-        })
-
-        is_possible_to_merge_fid = all([
-            np.array_equal(other_fid[kk], vv) for kk, vv in self_fid.items()
-        ]) if is_fid_defined(self_fid) and is_fid_defined(other_fid) else True
-
-        if (is_possible_to_merge_fid and (
-                coord == {FIFF.FIFFV_COORD_UNKNOWN} or coord == set()
-        )):
-            pass
-        else:
-            raise RuntimeError('Cannot add two DigMontage objects if fiducial'
-                               ' locations do not match')
-
-        # This is executed only if we are good to continue
-
-        self.ch_names += other.ch_names
         if is_fid_defined(self_fid) and is_fid_defined(other_fid):
+            if self_coord != other_coord:
+                raise RuntimeError('Cannot add two DigMontage objects if '
+                                   'fiducial locations are not in the same '
+                                   'coordinate system.')
+
+            for kk in self_fid:
+                if not np.array_equal(self_fid[kk], other_fid[kk]):
+                    raise RuntimeError('Cannot add two DigMontage objects if '
+                                       'fiducial locations do not match '
+                                       '(%s)' % kk)
+
             # keep self
             self.dig = _format_dig_points(
                 self.dig + [d for d in other.dig
@@ -787,6 +775,7 @@ class DigMontage(object):
         else:
             self.dig = _format_dig_points(self.dig + other.dig)
 
+        self.ch_names += other.ch_names
         return self
 
     def copy(self):

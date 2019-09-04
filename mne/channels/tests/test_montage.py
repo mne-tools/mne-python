@@ -490,10 +490,10 @@ def test_read_dig_montage_using_polhemus_fastscan():
         'lpa': [-0.0624997, -0.0737271, 0.07996],
         'rpa': [-0.0748957, 0.0873785, 0.0811943],
     }
-    fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
+    fiducials, fid_coordframe = _get_fid_coords(montage.dig)
+    assert fid_coordframe == FIFF.FIFFV_COORD_UNKNOWN
     for kk, val in fiducials.items():
         assert_allclose(val, EXPECTED_FID_IN_POLHEMUS[kk])
-        assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
 
 
 def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
@@ -527,11 +527,11 @@ def test_read_dig_polhemus_isotrak_hsp():
         '500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>'
     )
 
-    fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
+    fiducials, fid_coordframe = _get_fid_coords(montage.dig)
 
+    assert fid_coordframe == FIFF.FIFFV_COORD_UNKNOWN
     for kk, val in fiducials.items():
         assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
-        assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
 
 
 def test_read_dig_polhemus_isotrak_elp():
@@ -547,11 +547,11 @@ def test_read_dig_polhemus_isotrak_elp():
         '<DigMontage | '
         '0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>'
     )
-    fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
+    fiducials, fid_coordframe = _get_fid_coords(montage.dig)
 
+    assert fid_coordframe == FIFF.FIFFV_COORD_UNKNOWN
     for kk, val in fiducials.items():
         assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
-        assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
 
 
 @pytest.fixture(scope='module')
@@ -606,11 +606,11 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
         '0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>'
     )
 
-    fiducials, fid_coords = _get_fid_coords(montage.dig, raise_error=False)
+    fiducials, fid_coordframe = _get_fid_coords(montage.dig)
 
+    assert fid_coordframe == FIFF.FIFFV_COORD_UNKNOWN
     for kk, val in fiducials.items():
         assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
-        assert fid_coords[kk] == FIFF.FIFFV_COORD_UNKNOWN
 
     for kk, dig_point in zip(montage.ch_names, _get_dig_eeg(montage.dig)):
         assert_array_equal(dig_point['r'], EXPECTED_CH_POS[kk])
@@ -716,6 +716,11 @@ def test_combining_digmontage_forbiden_behaviors():
         nasion=rng.rand(3), lpa=rng.rand(3), rpa=rng.rand(3),
         ch_pos=dict(zip(list('ghi'), rng.rand(3, 3))),
     )
+    dig2_wrong_coordframe = make_dig_montage(
+        **fiducials,
+        ch_pos=dict(zip(list('ghi'), rng.rand(3, 3))),
+        coord_frame='meg'
+    )
 
     EXPECTED_ERR_MSG = "Cannot.*duplicated channel.*found: \'b\', \'c\'."
     with pytest.raises(RuntimeError, match=EXPECTED_ERR_MSG):
@@ -723,6 +728,9 @@ def test_combining_digmontage_forbiden_behaviors():
 
     with pytest.raises(RuntimeError, match='fiducial locations do not match'):
         _ = dig1 + dig2_wrong_fid
+
+    with pytest.raises(RuntimeError, match='not in the same coordinate '):
+        _ = dig1 + dig2_wrong_coordframe
 
 
 def test_set_dig_montage():
