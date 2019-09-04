@@ -418,10 +418,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
-# XXX: shall we avoid transform
 def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
-                     hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
-                     transform_to_head=False, compute_dev_head_t=False):
+                     hsp=None, hpi=None, coord_frame='unknown'):
     r"""Make montage from arrays.
 
     Parameters
@@ -463,8 +461,13 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_montage
 
     """
-    return _make_dig_montage(ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa,
-                             hsp=hsp, hpi=hpi, coord_frame=coord_frame)
+    ch_names = None if ch_pos is None else list(sorted(ch_pos.keys()))
+    dig = _make_dig_points(
+        nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
+        dig_ch_pos=ch_pos, coord_frame=coord_frame
+    )
+
+    return DigMontage(dig=dig, ch_names=ch_names)
 
 
 # XXX : should be kill one read_dig_montage is removed in 0.20
@@ -567,22 +570,6 @@ class DigMontage(object):
     .. versionadded:: 0.9.0
 
     """
-
-    # XXX: To add to doc
-    #
-    # Dig points in DigMontage.dig should either be in known=['head', 'meg'] or
-    # 'unknown' if 'unknown' the digitization can contain (or not) fiducials
-    # also in 'unknown' coordinate system which is supposed to be the same.
-    #
-    # when adding dig_montage_A + dig_montage_B they would only be a valid
-    # operation under the following circumstances:
-    #  - All DigPoints are in known coordinate frames
-    #  - There are DigPoints in unknown coord frame in both DigMontages but
-    #    they share the same fiducials
-    #
-    # Any other operation is not allowed. There is the issue of what happens
-    # if I do transform_to_head(dig1)+dig2, but we can do this if someone
-    # needs it.
 
     def __init__(self,
         hsp=DEPRECATED_PARAM, hpi=DEPRECATED_PARAM, elp=DEPRECATED_PARAM,
@@ -729,7 +716,14 @@ class DigMontage(object):
         write_dig(fname, self.dig)
 
     def __iadd__(self, other):
-        """Add two DigMontages in place."""
+        """Add two DigMontages in place.
+
+        Notes
+        -----
+        Two DigMontages can only be added if there are no duplicated ch_names
+        and if fiducials are present they should share the same coordinate
+        system and location values.
+        """
         def is_fid_defined(fid):
             return not(
                 fid.nasion is None and fid.lpa is None and fid.rpa is None
