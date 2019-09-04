@@ -1219,6 +1219,24 @@ def test_digmontage_constructor_errors():
 
 def test_transform_to_head_and_compute_dev_head_t():
     """Test transform_to_head and compute_dev_head_t."""
+    EXPECTED_DEV_HEAD_T = \
+        [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],
+         [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
+         [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
+         [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([0.001393, 0.0131613, -0.0046967]),
+        'lpa': np.array([-0.0624997, -0.0737271, 0.07996]),
+        'rpa': np.array([-0.0748957, 0.0873785, 0.0811943]),
+    }
+
+    EXPECTED_FID_IN_HEAD = {
+        'nasion': np.array([-8.94466792e-18, 1.10559624e-01, -3.85185989e-34]),
+        'lpa': np.array([-8.10816716e-02, 6.56321671e-18, 0]),
+        'rpa': np.array([8.05048781e-02, -6.47441364e-18, 0]),
+    }
+
     hsp_coords = read_polhemus_fastscan(hsp)
     hpi_coords = read_mrk(hpi)
     elp_coords = read_polhemus_fastscan(elp)
@@ -1230,17 +1248,20 @@ def test_transform_to_head_and_compute_dev_head_t():
 
     montage = mon_unk + mon_dev
 
+    fids, _ = _get_fid_coords(montage.dig)
+    for kk in fids:
+        assert_allclose(fids[kk], EXPECTED_FID_IN_POLHEMUS[kk], atol=1e-5)
+
     with pytest.raises(ValueError, match='set to head coordinate system'):
         _ = compute_dev_head_t(montage)
 
     montage = transform_to_head(montage)
-    dev_head_t = compute_dev_head_t(montage)
 
-    EXPECTED_DEV_HEAD_T = \
-        [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],
-         [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
-         [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
-         [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+    fids, _ = _get_fid_coords(montage.dig)
+    for kk in fids:
+        assert_allclose(fids[kk], EXPECTED_FID_IN_HEAD[kk], atol=1e-5)
+
+    dev_head_t = compute_dev_head_t(montage)
 
     assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=1e-7)
 
