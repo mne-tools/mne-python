@@ -175,6 +175,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Highpass to apply when displaying data.
     lowpass : float | None
         Lowpass to apply when displaying data.
+        If highpass > lowpass, a bandstop rather than bandpass filter
+        will be applied.
     filtorder : int
         Filtering order. 0 will use FIR filtering with MNE defaults.
         Other values will construct an IIR filter of the given order
@@ -278,16 +280,22 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # figure out the IIR filtering parameters
     sfreq = raw.info['sfreq']
-    if (highpass is None or highpass == 0.) and lowpass is None:
+    if highpass is not None and highpass <= 0:
+        raise ValueError('highpass must be > 0, got %s' % (highpass,))
+    if highpass is None and lowpass is None:
         ba = filt_bounds = None
     else:
+
         filtorder = int(filtorder)
-        method = 'fir' if filtorder == 0 else 'iir'
+        if filtorder == 0:
+            method = 'fir'
+            iir_params = None
+        else:
+            method = 'iir'
+            iir_params = dict(order=filtorder, output='sos', ftype='butter')
         ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
                            sfreq, highpass, lowpass, method=method,
-                           iir_params=dict(order=filtorder, output='sos',
-                                           ftype='butter'))
-        assert 'sos' in ba
+                           iir_params=iir_params)
         filt_bounds = _annotations_starts_stops(
             raw, ('edge', 'bad_acq_skip'), invert=True)
 

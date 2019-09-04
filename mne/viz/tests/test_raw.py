@@ -337,22 +337,21 @@ def test_plot_annotations():
     plt.close('all')
 
 
-def test_plot_raw_filtered():
+@pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
+def test_plot_raw_filtered(filtorder):
     """Test filtering of raw plots."""
     raw = _get_raw()
     with pytest.raises(ValueError, match='lowpass.*Nyquist'):
-        raw.plot(lowpass=raw.info['sfreq'] / 2.)
+        raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder)
     with pytest.raises(ValueError, match='highpass must be > 0'):
-        raw.plot(highpass=0)
-    with pytest.raises(ValueError, match=r'lowpass \(1\) must be > highpass'):
-        raw.plot(lowpass=1, highpass=1)
-    with pytest.raises(ValueError, match=r'filtorder \(-1\) must be >= 0'):
+        raw.plot(highpass=0, filtorder=filtorder)
+    with pytest.raises(ValueError, match=r'Filter order must be'):
         raw.plot(lowpass=1, filtorder=-1)
     with pytest.raises(ValueError, match="Invalid value for the 'clipping'"):
         raw.plot(clipping='foo')
-    raw.plot(lowpass=1, clipping='transparent')
-    raw.plot(highpass=1, clipping='clamp')
-    raw.plot(lowpass=40, butterfly=True, filtorder=0)
+    raw.plot(lowpass=40, clipping='transparent', filtorder=filtorder)
+    raw.plot(highpass=1, clipping='clamp', filtorder=filtorder)
+    raw.plot(lowpass=40, butterfly=True, filtorder=filtorder)
     plt.close('all')
 
 
