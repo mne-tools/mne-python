@@ -197,23 +197,19 @@ def _get_fid_coords(dig):
             fid_coords[key] = d['r']
             fid_coord_frames[key] = d['coord_frame']
 
-    coord_frame = None
     if len(fid_coord_frames) > 0:
-        fid_coord_frames = set(fid_coord_frames.values())
+        if set(fid_coord_frames.keys()) != set(['nasion', 'lpa', 'rpa']):
+            raise ValueError("Some fiducial points are missing (got %s)." %
+                             fid_coords.keys())
 
+        fid_coord_frames = set(fid_coord_frames.values())
         if len(fid_coord_frames) > 1:
             raise ValueError(
                 'All fiducial points must be in the same coordinate system '
                 '(got %s)' % len(fid_coord_frames)
             )
 
-        coord_frame = fid_coord_frames.pop()
-
-        if set(fid_coords.keys()) != set(_cardinal_ident_mapping.values()):
-            raise ValueError("Some fiducial points are missing (got %s)." %
-                             fid_coords.keys())
-
-    return fid_coords, coord_frame
+    return fid_coords, fid_coord_frames.pop() if fid_coord_frames else None
 
 
 def _read_dig_montage_bvct(
