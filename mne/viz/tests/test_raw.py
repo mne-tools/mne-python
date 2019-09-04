@@ -340,7 +340,7 @@ def test_plot_annotations():
 def test_plot_raw_filtered():
     """Test filtering of raw plots."""
     raw = _get_raw()
-    with pytest.raises(ValueError, match='lowpass must be < Nyquist'):
+    with pytest.raises(ValueError, match='lowpass.*Nyquist'):
         raw.plot(lowpass=raw.info['sfreq'] / 2.)
     with pytest.raises(ValueError, match='highpass must be > 0'):
         raw.plot(highpass=0)
