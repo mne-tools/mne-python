@@ -1234,16 +1234,25 @@ def test_transform_to_head_and_compute_dev_head_t():
         'rpa': np.array([8.05048781e-02, -6.47441364e-18, 0]),
     }
 
-    hsp_coords = read_polhemus_fastscan(hsp)
-    hpi_coords = read_mrk(hpi)
-    elp_coords = read_polhemus_fastscan(elp)
+    hpi_dev = np.array(
+        [[ 2.13951493e-02,  8.47444056e-02, -5.65431188e-02],  # noqa
+         [ 2.10299433e-02, -8.03141101e-02, -6.34420259e-02],  # noqa
+         [ 1.05916829e-01,  8.18485672e-05,  1.19928083e-02],  # noqa
+         [ 9.26595105e-02,  4.64804385e-02,  8.45141253e-03],  # noqa
+         [ 9.42554419e-02, -4.35206589e-02,  8.78999363e-03]]  # noqa
+    )
 
-    mon_unk = make_dig_montage(hsp=hsp_coords, nasion=elp_coords[0],
-                               lpa=elp_coords[1], rpa=elp_coords[2],
-                               hpi=elp_coords[3:], coord_frame='unknown')
-    mon_dev = make_dig_montage(hpi=hpi_coords, coord_frame='meg')
+    hpi_polhemus = np.array(
+        [[-0.0595004, -0.0704836,  0.075893 ],  # noqa
+         [-0.0646373,  0.0838228,  0.0762123],  # noqa
+         [-0.0135035,  0.0072522, -0.0268405],  # noqa
+         [-0.0202967, -0.0351498, -0.0129305],  # noqa
+         [-0.0277519,  0.0452628, -0.0222407]]  # noqa
+    )
 
-    montage = mon_unk + mon_dev
+    montage = make_dig_montage(
+        **EXPECTED_FID_IN_POLHEMUS, hpi=hpi_polhemus, coord_frame='unknown'
+    ) + make_dig_montage(hpi=hpi_dev, coord_frame='meg')
 
     fids, _ = _get_fid_coords(montage.dig)
     for kk in fids:
@@ -1259,7 +1268,6 @@ def test_transform_to_head_and_compute_dev_head_t():
         assert_allclose(fids[kk], EXPECTED_FID_IN_HEAD[kk], atol=1e-5)
 
     dev_head_t = compute_dev_head_t(montage)
-
     assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=1e-7)
 
 
