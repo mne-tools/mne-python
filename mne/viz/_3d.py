@@ -1737,7 +1737,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
                                time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar,
+                               colorbar=colorbar, initial_time=initial_time,
                                fmin=scale_pts[0], fmid=scale_pts[1],
                                fmax=scale_pts[2], transparent=transparent,
                                center=center, verbose=False)
