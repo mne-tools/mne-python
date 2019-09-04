@@ -1007,7 +1007,6 @@ def _plot_raw_onkey(event, params):
 
 def _setup_annotation_fig(params):
     """Initialize the annotation figure."""
-    from matplotlib import __version__
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
@@ -2157,7 +2156,6 @@ def _setup_annotation_colors(params):
 
 def _annotations_closed(event, params):
     """Clean up on annotation dialog close."""
-    from matplotlib import __version__
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
     if params['ax'].selector is not None:
@@ -2167,8 +2165,7 @@ def _annotations_closed(event, params):
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
-    if LooseVersion(__version__) >= LooseVersion('1.5'):
-        params['fig'].canvas.mpl_disconnect(params['hover_callback'])
+    params['fig'].canvas.mpl_disconnect(params['hover_callback'])
     params['fig_annotation'] = None
     params['fig'].canvas.draw()
 
@@ -2745,7 +2742,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
                        yscale="linear"):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
-    from matplotlib import ticker, __version__ as v
+    from matplotlib import ticker, __version__ as mpl_version
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
@@ -2802,7 +2799,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             yscale = 'linear'
 
     # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and v == "2.1.0":
+    if yscale == "log" and mpl_version == "2.1.0":
         warn("With matplotlib version 2.1.0, lines may not show up in "
              "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
 
