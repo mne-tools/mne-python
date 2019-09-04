@@ -1520,7 +1520,7 @@ def read_polhemus_fastscan(fname, unit='mm'):
 
 
 def compute_dev_head_t(montage):
-    """Compute device to head transform from a DigMontage
+    """Compute device to head transform from a DigMontage.
 
     Parameters
     ----------
@@ -1547,7 +1547,13 @@ def compute_dev_head_t(montage):
     hpi_dev = [d['r'] for d in montage.dig
                if (d['kind'] == FIFF.FIFFV_POINT_HPI and
                    d['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)]
-    trans = fit_matched_points(tgt_pts=hpi_head,
-                               src_pts=hpi_dev, out='trans')
 
+    if not (len(hpi_head) == len(hpi_dev) and len(hpi_dev) > 0):
+        raise ValueError((
+            "To compute Device-to-Head transformation, the same number of HPI"
+            " points in device and head coordinates is required. (Got {dev}"
+            " points in device and {head} points in head coordinate systems)"
+        ).format(dev=len(hpi_dev), head=len(hpi_head)))
+
+    trans = fit_matched_points(tgt_pts=hpi_head, src_pts=hpi_dev, out='trans')
     return Transform(fro='meg', to='head', trans=trans)

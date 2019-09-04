@@ -36,7 +36,7 @@ from mne.bem import _fit_sphere
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne._digitization import Digitization
-from mne._digitization._utils import _read_dig_points
+from mne._digitization._utils import _read_dig_points, _format_dig_points
 from mne._digitization.base import _get_dig_eeg, _count_points_by_type
 
 from mne.viz._3d import _fiducial_coords
@@ -1250,10 +1250,14 @@ def test_transform_to_head_and_compute_dev_head_t():
          [-0.0277519,  0.0452628, -0.0222407]]  # noqa
     )
 
-    montage = make_dig_montage(
+    montage_polhemus = make_dig_montage(
         **EXPECTED_FID_IN_POLHEMUS, hpi=hpi_polhemus, coord_frame='unknown'
-    ) + make_dig_montage(hpi=hpi_dev, coord_frame='meg')
+    )
 
+    montage_meg = make_dig_montage(hpi=hpi_dev, coord_frame='meg')
+
+    # Test regular worflow to get dev_head_t
+    montage = montage_polhemus + montage_meg
     fids, _ = _get_fid_coords(montage.dig)
     for kk in fids:
         assert_allclose(fids[kk], EXPECTED_FID_IN_POLHEMUS[kk], atol=1e-5)
@@ -1269,6 +1273,24 @@ def test_transform_to_head_and_compute_dev_head_t():
 
     dev_head_t = compute_dev_head_t(montage)
     assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=1e-7)
+
+    # Test errors when number of HPI points do not match
+    EXPECTED_ERR_MSG = 'Device-to-Head .*Got 0 .*device and 5 points in head'
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
+        _ = compute_dev_head_t(transform_to_head(montage_polhemus))
+
+    EXPECTED_ERR_MSG = 'Device-to-Head .*Got 5 .*device and 0 points in head'
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
+        _ = compute_dev_head_t(transform_to_head(
+            montage_meg + make_dig_montage(**EXPECTED_FID_IN_POLHEMUS)
+        ))
+
+    EXPECTED_ERR_MSG = 'Device-to-Head .*Got 3 .*device and 5 points in head'
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
+        _ = compute_dev_head_t(transform_to_head(
+            DigMontage(dig=_format_dig_points(montage_meg.dig[:3])) +
+            montage_polhemus
+        ))
 
 
 run_tests_if_main()
