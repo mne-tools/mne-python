@@ -472,12 +472,11 @@ class _Brain(object):
                                  z=self.geo[hemi].coords[:, 2],
                                  triangles=self.geo[hemi].faces,
                                  color=act_color)
+            if array.ndim >= 2:
+                renderer.text2d(x=0.95, y=0.05, text='time={}'.format(time[0]),
+                                width=time_label_size)
+            renderer.scalarbar(source=None, n_labels=8)
             self._overlays[hemi + '_' + v] = mesh
-
-        # How can we make this bit universal as well???
-        # if colorbar and not self._colorbar_added:
-        #     ColorBar(self)
-        #     self._colorbar_added = True
 
     def show(self):
         u"""Display widget."""
