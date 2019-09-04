@@ -446,24 +446,9 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
         This corresponds to an array of HPI points in the native digitizer
         space. They only necessary if computation of a ``compute_dev_head_t``
         is True.
-    hpi_dev : None | array, shape (n_hpi, 3)
-        This corresponds to an array of HPI points. These points are in device
-        space, and are only necessary if computation of a
-        ``compute_dev_head_t`` is True.
     coord_frame : str
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space.
-    transform_to_head : bool
-        If True (default), points will be transformed to Neuromag head space.
-        The fiducials (nasion, lpa, and rpa) must be specified. This is useful
-        for points captured using a device that does not automatically convert
-        points to Neuromag head coordinates
-        (e.g., Polhemus FastSCAN).
-    compute_dev_head_t : bool
-        If True, a Dev-to-Head transformation matrix will be added to the
-        montage. To get a proper `dev_head_t`, the hpi and the hpi_dev points
-        must be in the same order. If False (default), no transformation will
-        be added to the montage.
 
     Returns
     -------
@@ -478,6 +463,14 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_montage
 
     """
+    return _make_dig_montage(ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa,
+                             hsp=hsp, hpi=hpi, coord_frame=coord_frame)
+
+
+# XXX : should be kill one read_dig_montage is removed in 0.20
+def _make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
+                      hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
+                      transform_to_head=False, compute_dev_head_t=False):
     # XXX: hpi was historically elp
     # XXX: hpi_dev was historically hpi
     assert coord_frame in _str_to_frame
@@ -1095,7 +1088,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     data['hpi_dev'] = data['hpi']
     data['hpi'] = data.pop('elp')
     data['ch_pos'] = data.pop('dig_ch_pos')
-    montage = make_dig_montage(
+    montage = _make_dig_montage(
         **data, transform_to_head=transform,
         compute_dev_head_t=dev_head_t,
     )
@@ -1175,15 +1168,10 @@ def read_dig_egi(fname):
 
     # XXX: to change to the new naming in v.0.20 (all this block should go)
     data.pop('point_names')
-    data['hpi_dev'] = data['hpi']
     data['hpi'] = data.pop('elp')
     data['ch_pos'] = data.pop('dig_ch_pos')
 
-    return make_dig_montage(
-        **data,
-        transform_to_head=False,
-        compute_dev_head_t=False,
-    )
+    return make_dig_montage(**data)
 
 
 def read_dig_captrack(fname):
@@ -1213,15 +1201,10 @@ def read_dig_captrack(fname):
 
     # XXX: to change to the new naming in v.0.20 (all this block should go)
     data.pop('point_names')
-    data['hpi_dev'] = data['hpi']
     data['hpi'] = data.pop('elp')
     data['ch_pos'] = data.pop('dig_ch_pos')
 
-    return make_dig_montage(
-        **data,
-        transform_to_head=False,
-        compute_dev_head_t=False,
-    )
+    return make_dig_montage(**data)
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):

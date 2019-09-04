@@ -469,12 +469,9 @@ def test_read_dig_montage_using_polhemus_fastscan():
         rpa=my_electrode_positions[2],
         hpi=my_electrode_positions[3:],
         hsp=read_polhemus_fastscan(op.join(kit_dir, 'test_hsp.txt')),
-        hpi_dev=None,  # XXX: I'm not sure we should allow hpi_dev
 
         # Other defaults
-        coord_frame='unknown',
-        compute_dev_head_t=False,  # XXX: this one should fail
-        transform_to_head=False,  # XXX: maybe this one as well
+        coord_frame='unknown'
     )
 
     assert montage.__repr__() == (
