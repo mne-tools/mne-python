@@ -30,7 +30,6 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
                      _mask_to_onsets_offsets)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
-from ..fixes import get_sosfiltfilt
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
 
 
@@ -735,10 +734,10 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     -----
     .. versionadded:: 0.14
     """
-    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt
+    from scipy.signal import (
+        freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt)
     import matplotlib.pyplot as plt
     from matplotlib.ticker import FormatStrFormatter, NullFormatter
-    sosfiltfilt = get_sosfiltfilt()
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
     flim = _get_flim(flim, fscale, freq, sfreq)

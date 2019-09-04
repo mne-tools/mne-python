@@ -48,7 +48,6 @@ def _get_events():
     return read_events(event_fname)
 
 
-@requires_version('scipy', '0.16')
 def test_plot_filter():
     """Test filter plotting."""
     l_freq, h_freq, sfreq = 2., 40., 1000.

@@ -1237,9 +1237,12 @@ def _plot_traces(params):
                     offset = ticks[offset_pos[chan_types_split.index(ch_type)]]
                 else:
                     lines[line_idx].set_segments(list())
+                    offset = None
             else:
                 tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
+            if offset is None:
+                continue
 
             if params['inds'][ch_idx] in params['data_picks']:
                 this_decim = params['decim']
