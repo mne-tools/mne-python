@@ -120,7 +120,7 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     _, ext = op.splitext(fname)
     if ext == '.elp' or ext == '.hsp':
         # XXX: This should be dead code, but is deeply buried in
-        #      read_dig_montage.
+        #      read_dig_montage. To be deprecated
         # raise RuntimeError('if you are reading isotrak files please use'
         #                    ' read_dig_polhemus_isotrak')
         with open(fname) as fid:

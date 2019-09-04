@@ -16,22 +16,21 @@ from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
 
 __all__ = [
     # Data Structures
-    DigMontage, Layout, Montage,
+    'DigMontage', 'Layout', 'Montage',
 
     # Factory Methods
-    make_dig_montage, make_eeg_layout, make_grid_layout,
+    'make_dig_montage', 'make_eeg_layout', 'make_grid_layout',
 
     # Readers
-    read_ch_connectivity, read_dig_captrack, read_dig_egi, read_dig_fif,
-    read_dig_montage, read_dig_polhemus_isotrak, read_layout, read_montage,
-    read_polhemus_fastscan,
+    'read_ch_connectivity', 'read_dig_captrack', 'read_dig_egi',
+    'read_dig_fif', 'read_dig_montage', 'read_dig_polhemus_isotrak',
+    'read_layout', 'read_montage', 'read_polhemus_fastscan',
 
     # Helpers
-    rename_channels,
-    make_1020_channel_selections,
-    _get_ch_type, equalize_channels, find_ch_connectivity, find_layout,
-    fix_mag_coil_types, generate_2d_layout, get_builtin_montages,
+    'rename_channels', 'make_1020_channel_selections',
+    '_get_ch_type', 'equalize_channels', 'find_ch_connectivity', 'find_layout',
+    'fix_mag_coil_types', 'generate_2d_layout', 'get_builtin_montages',
 
     # Other
-    compute_dev_head_t
+    'compute_dev_head_t',
 ]

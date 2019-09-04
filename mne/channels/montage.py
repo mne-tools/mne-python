@@ -767,7 +767,7 @@ class DigMontage(object):
         return self
 
     def copy(self):
-        """Copy the Dipoles object.
+        """Copy the DigMontage object.
 
         Returns
         -------
