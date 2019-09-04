@@ -109,7 +109,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
             kwargs['max_nbytes'] = max_nbytes
 
         n_jobs = check_n_jobs(n_jobs)
-        parallel = Parallel(n_jobs, **kwargs)
+        parallel = _check_wrapper(Parallel(n_jobs, **kwargs))
         my_func = delayed(func)
 
     if total is not None:
@@ -120,6 +120,22 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
     else:
         parallel_out = parallel
     return parallel_out, my_func, n_jobs
+
+
+def _check_wrapper(fun):
+    def run(*args, **kwargs):
+        try:
+            return fun(*args, **kwargs)
+        except RuntimeError as err:
+            msg = str(err.args[0]) if err.args else ''
+            if msg.startswith('The task could not be sent to the workers'):
+                raise RuntimeError(
+                    msg + ' Consider using joblib memmap caching to get '
+                    'around this problem. See mne.set_mmap_min_size, '
+                    'mne.set_cache_dir, and buffer_size parallel function '
+                    'arguments (if applicable).')
+            raise
+    return run
 
 
 def check_n_jobs(n_jobs, allow_cuda=False):
