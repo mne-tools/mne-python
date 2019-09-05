@@ -345,7 +345,7 @@ def test_plot_raw_filtered(filtorder):
         raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder)
     with pytest.raises(ValueError, match='highpass must be > 0'):
         raw.plot(highpass=0, filtorder=filtorder)
-    with pytest.raises(ValueError, match=r'Filter order must be'):
+    with pytest.raises(ValueError, match='Filter order must be'):
         raw.plot(lowpass=1, filtorder=-1)
     with pytest.raises(ValueError, match="Invalid value for the 'clipping'"):
         raw.plot(clipping='foo')
