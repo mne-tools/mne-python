@@ -530,7 +530,7 @@ def test_plot_volume_source_estimates_morph():
     n_time = 2
     data = np.random.RandomState(0).rand(n_verts, n_time)
     stc = VolSourceEstimate(data, vertices, 1, 1)
-    morph = compute_source_morph(sample_src, 'sample', 'fsaverage', zooms=10,
+    morph = compute_source_morph(sample_src, 'sample', 'fsaverage', zooms=5,
                                  subjects_dir=subjects_dir)
     initial_pos = (-0.05, -0.01, -0.006)
     with pytest.warns(None):  # sometimes get scalars/index warning
@@ -539,7 +539,7 @@ def test_plot_volume_source_estimates_morph():
                      initial_pos=initial_pos, verbose=True)
     log = log.getvalue()
     assert 't = 1.000 s' in log
-    assert '(-52.0, -8.0, -2.0) mm' in log
+    assert '(-52.0, -8.0, -7.0) mm' in log
 
     with pytest.raises(ValueError, match='Allowed values are'):
         stc.plot(sample_src, 'sample', subjects_dir, mode='abcd')

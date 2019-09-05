@@ -22,7 +22,7 @@ import numpy as np
 from scipy import linalg, sparse
 
 from ..defaults import DEFAULTS
-from ..fixes import einsum, _crop_colorbar
+from ..fixes import einsum, _crop_colorbar, _get_img_fdata
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
@@ -432,7 +432,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
     # Load the T1 data
     nim = nib.load(mri_fname)
-    data = nim.get_data()
+    data = _get_img_fdata(nim)
     try:
         affine = nim.affine
     except AttributeError:  # old nibabel
@@ -1898,7 +1898,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         cut_coords = np.array((x, y, z))
 
         if params['mode'] == 'glass_brain':  # find idx for MIP
-            img_data = np.abs(params['img_idx'].get_data())
+            img_data = np.abs(_get_img_fdata(params['img_idx']))
             ijk = _cut_coords_to_ijk(cut_coords, params['img_idx'])
             if ax == 'x':
                 ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
@@ -2720,7 +2720,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                         coord_frame=coord_frame)
 
     zooms = t1.header.get_zooms()
-    data = t1.get_data()
+    data = _get_img_fdata(t1)
     dims = len(data)  # Symmetric size assumed.
     dd = dims / 2.
     dd *= t1.header.get_zooms()[0]

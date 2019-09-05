@@ -22,6 +22,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
 from .bem import read_bem_surfaces, ConductorModel
+from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _normalize_vectors, _triangle_neighbors, mesh_dist,
@@ -354,7 +355,7 @@ class SourceSpaces(list):
                 # get the inuse array
                 if mri_resolution:
                     # read the mri file used to generate volumes
-                    aseg_data = nib.load(vs['mri_file']).get_data()
+                    aseg_data = _get_img_fdata(nib.load(vs['mri_file']))
                     # get the voxel space shape
                     shape3d = (vs['mri_height'], vs['mri_depth'],
                                vs['mri_width'])
@@ -1829,7 +1830,7 @@ def _get_volume_label_mask(mri, volume_label, rr):
 
     # Read the segmentation data using nibabel
     mgz = nib.load(mri)
-    mgz_data = mgz.get_data()
+    mgz_data = _get_img_fdata(mgz)
 
     # Get the numeric index for this volume label
     lut = _get_lut()
@@ -2513,7 +2514,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     import nibabel as nib
 
     # Read the mgz file using nibabel
-    mgz_data = nib.load(mgz_fname).get_data()
+    mgz_data = _get_img_fdata(nib.load(mgz_fname))
 
     # Get the unique label names
     lut = _get_lut()

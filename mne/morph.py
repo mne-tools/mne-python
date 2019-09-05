@@ -10,6 +10,7 @@ import copy
 import numpy as np
 from scipy import sparse
 
+from .fixes import _get_img_fdata
 from .parallel import parallel_func
 from .source_estimate import (VolSourceEstimate, SourceEstimate,
                               VolVectorSourceEstimate, VectorSourceEstimate,
@@ -524,7 +525,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
     if new_zooms is not None:
         from dipy.align.reslice import reslice
         new_zooms = new_zooms[:3]
-        img, affine = reslice(img.get_data(),
+        img, affine = reslice(_get_img_fdata(img),
                               img.affine,  # MRI to world registration
                               zooms,  # old voxel size in mm
                               new_zooms)  # new voxel size in mm
@@ -677,7 +678,8 @@ def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
     if voxel_size_defined:
         # reslice mri
         img, img_affine = reslice(
-            img.get_data(), img.affine, _get_zooms_orig(morph), voxel_size)
+            _get_img_fdata(img), img.affine, _get_zooms_orig(morph),
+            voxel_size)
         with warnings.catch_warnings():  # nibabel<->numpy warning
             img = NiftiImage(img, img_affine, header=header)
 
@@ -710,25 +712,25 @@ def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
 
     # reslice mri_from
     mri_from_res, mri_from_res_affine = reslice(
-        mri_from.get_data(), mri_from.affine, mri_from.header.get_zooms()[:3],
-        zooms)
+        _get_img_fdata(mri_from), mri_from.affine,
+        mri_from.header.get_zooms()[:3], zooms)
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
         mri_from = nib.Nifti1Image(mri_from_res, mri_from_res_affine)
 
     # reslice mri_to
     mri_to_res, mri_to_res_affine = reslice(
-        mri_to.get_data(), mri_to.affine, mri_to.header.get_zooms()[:3],
+        _get_img_fdata(mri_to), mri_to.affine, mri_to.header.get_zooms()[:3],
         zooms)
 
     with warnings.catch_warnings():  # nibabel<->numpy warning
         mri_to = nib.Nifti1Image(mri_to_res, mri_to_res_affine)
 
     affine = mri_to.affine
-    mri_to = np.array(mri_to.dataobj, float)  # to ndarray
+    mri_to = _get_img_fdata(mri_to)  # to ndarray
     mri_to /= mri_to.max()
     mri_from_affine = mri_from.affine  # get mri_from to world transform
-    mri_from = np.array(mri_from.dataobj, float)  # to ndarray
+    mri_from = _get_img_fdata(mri_from)  # to ndarray
     mri_from /= mri_from.max()  # normalize
 
     # compute center of mass
@@ -1148,7 +1150,7 @@ def _apply_morph_data(morph, stc_from):
 
             # reslice to match morph
             img_to, img_to_affine = reslice(
-                img_to.get_data(), morph.affine, _get_zooms_orig(morph),
+                _get_img_fdata(img_to), morph.affine, _get_zooms_orig(morph),
                 morph.zooms)
 
             # morph data

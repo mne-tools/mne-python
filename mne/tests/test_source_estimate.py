@@ -17,7 +17,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatial_src_connectivity, spatial_tris_connectivity,
                  SourceSpaces, VolVectorSourceEstimate)
 from mne.datasets import testing
-from mne.fixes import fft
+from mne.fixes import fft, _get_img_fdata
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs)
@@ -948,7 +948,7 @@ def test_vol_mask():
     data = (1 + np.arange(n_vertices))[:, np.newaxis]
     stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
     img = stc_tmp.as_volume(src, mri_resolution=False)
-    img_data = img.get_data()[:, :, :, 0].T
+    img_data = _get_img_fdata(img)[:, :, :, 0].T
     mask_nib = (img_data != 0)
     assert_array_equal(img_data[mask_nib], data[:, 0])
     assert_array_equal(np.where(mask_nib.ravel())[0], src[0]['vertno'])
