@@ -24,9 +24,9 @@ from .io.write import (start_block, end_block, write_int,
 from .bem import read_bem_surfaces, ConductorModel
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
-                      _normalize_vectors, _get_solids, _triangle_neighbors,
+                      _normalize_vectors, _triangle_neighbors, mesh_dist,
                       complete_surface_info, _compute_nearest, fast_cross_3d,
-                      mesh_dist)
+                      _CheckInside)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose, _ensure_int,
                     check_version, _get_call_line, warn, _check_fname,
@@ -2242,7 +2242,6 @@ def _pts_in_hull(pts, hull, tolerance=1e-12):
 def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
                           verbose=None):
     """Remove all source space points closer than a given limit (in mm)."""
-    from scipy.spatial import Delaunay
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
         raise RuntimeError('Source spaces are in head coordinates and no '
                            'coordinate transform was provided!')
@@ -2263,51 +2262,18 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
     logger.info(out_str + ' (will take a few...)')
 
     # fit a sphere to a surf quickly
-    cm = surf['rr'].mean(0)
-    inner_r = None
-    if not _points_outside_surface(cm[np.newaxis], surf)[0]:  # actually inside
-        # Immediately cull some points from the checks
-        inner_r = np.linalg.norm(surf['rr'] - cm, axis=-1).min()
-    # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
-    # to construct but faster to evaluate
-    # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
-    del_tri = Delaunay(surf['rr'])
+    check_inside = _CheckInside(surf)
+
+    # Check that the source is inside surface (often the inner skull)
     for s in src:
         vertno = np.where(s['inuse'])[0]  # can't trust s['vertno'] this deep
         # Convert all points here first to save time
         r1s = s['rr'][vertno]
         if s['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
             r1s = apply_trans(inv_trans['trans'], r1s)
-        inside = np.ones(len(vertno), bool)  # innocent until proven guilty
 
-        # Check that the source is inside surface (often the inner skull)
-        idx = np.where(inside)[0]
-        check_r1s = r1s[idx]
-
-        # Limit to indices that can plausibly be outside the surf
-        if inner_r is not None:
-            mask = np.linalg.norm(check_r1s - cm, axis=-1) >= inner_r
-            idx = idx[mask]
-            check_r1s = check_r1s[mask]
-            logger.info('    Skipping interior check for %d sources that fit '
-                        'inside a sphere of radius %6.1f mm'
-                        % ((~mask).sum(), inner_r * 1000))
-
-        # Use qhull as our first pass (*much* faster than our check)
-        del_outside = del_tri.find_simplex(check_r1s) < 0
-        omit_outside = sum(del_outside)
-        inside[idx[del_outside]] = False
-        idx = idx[~del_outside]
-        check_r1s = check_r1s[~del_outside]
-        logger.info('    Skipping solid angle check for %d points using Qhull'
-                    % (omit_outside,))
-        del del_outside
-
-        # use our more accurate check
-        solid_outside = _points_outside_surface(check_r1s, surf, n_jobs)
-        omit_outside += np.sum(solid_outside)
-        inside[idx[solid_outside]] = False
-        del solid_outside, idx
+        inside = check_inside(r1s, n_jobs)
+        omit_outside = (~inside).sum()
 
         # vectorized nearest using BallTree (or cdist)
         omit_limit = 0
@@ -2315,10 +2281,10 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
             # only check "inside" points
             idx = np.where(inside)[0]
             check_r1s = r1s[idx]
-            if inner_r is not None:
+            if check_inside.inner_r is not None:
                 # ... and those that are at least inner_sphere + limit away
-                mask = (np.linalg.norm(check_r1s - cm, axis=-1) >=
-                        inner_r - limit / 1000.)
+                mask = (np.linalg.norm(check_r1s - check_inside.cm, axis=-1) >=
+                        check_inside.inner_r - limit / 1000.)
                 idx = idx[mask]
                 check_r1s = check_r1s[mask]
             dists = _compute_nearest(
@@ -2357,31 +2323,6 @@ def _adjust_patch_info(s, verbose=None):
             raise RuntimeError('Cannot adjust patch information properly, '
                                'please contact the mne-python developers')
         _add_patch_info(s)
-
-
-@verbose
-def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
-    """Check whether points are outside a surface.
-
-    Parameters
-    ----------
-    rr : ndarray
-        Nx3 array of points to check.
-    surf : dict
-        Surface with entries "rr" and "tris".
-
-    Returns
-    -------
-    outside : ndarray
-        1D logical array of size N for which points are outside the surface.
-    """
-    rr = np.atleast_2d(rr)
-    assert rr.shape[1] == 3
-    assert n_jobs > 0
-    parallel, p_fun, _ = parallel_func(_get_solids, n_jobs)
-    tot_angles = parallel(p_fun(surf['rr'][tris], rr)
-                          for tris in np.array_split(surf['tris'], n_jobs))
-    return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
 @verbose
