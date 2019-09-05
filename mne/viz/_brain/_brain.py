@@ -249,7 +249,8 @@ class _Brain(object):
         else:
             raise ValueError('"size" parameter must be int or tuple.')
 
-        geo_kwargs, geo_reverse, geo_curv = self._get_geo_params(cortex, alpha)
+        # XXX: use the geo_ variables
+        # geo_kwargs, geo_reverse, geo_curv = self._get_geo_params(cortex, alpha)
         for h in self._hemis:
             # Initialize a Surface object as the geometry
             geo = Surface(subject_id, h, surf, subjects_dir, offset,
