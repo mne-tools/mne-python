@@ -1292,7 +1292,8 @@ def _plot_traces(params):
                                   set(_DATA_CH_TYPES_SPLIT),
                                   key=params['order'].index)
         ylim = ax.get_ylim()[0]
-        ticks = np.arange(0, ylim + 1, ylim / (4 * len(chan_types_split)))
+        ticks = np.arange(
+            0, ylim + 1, ylim / (4 * max(len(chan_types_split), 1)))
         offset_pos = np.arange(2, (len(chan_types_split) * 4) + 1, 4)
         ax.set_yticks(ticks)
         labels = [''] * 20
