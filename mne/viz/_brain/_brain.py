@@ -12,6 +12,7 @@ import numpy as np
 from .colormap import _calculate_lut
 from .view import views_dict
 from .surface import Surface
+from .utils import mesh_edges, smoothing_matrix
 from ..utils import _check_option, logger
 
 
@@ -397,8 +398,6 @@ class _Brain(object):
         _check_option('time_label_size', time_label_size, [None])
         _check_option('scale_factor', scale_factor, [None])
         _check_option('vector_alpha', vector_alpha, [None])
-
-        from surfer.utils import mesh_edges, smoothing_matrix
 
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)
