@@ -1136,7 +1136,9 @@ class _RegCovariance(BaseEstimator):
     """Aux class."""
 
     def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
-                 hbo=0.1, hbr=0.1, store_precision=False,
+                 hbo=0.1, hbr=0.1, fnirs_raw=0.1, fnirs_od=0.1,
+                 fnirs_chroma=0.1,
+                 store_precision=False,
                  assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
@@ -1148,6 +1150,9 @@ class _RegCovariance(BaseEstimator):
         self.ecog = ecog
         self.hbo = hbo
         self.hbr = hbr
+        self.fnirs_raw = fnirs_raw
+        self.fnirs_od = fnirs_od
+        self.fnirs_chroma = fnirs_chroma
         self.store_precision = store_precision
         self.assume_centered = assume_centered
 
@@ -1430,6 +1435,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
+               fnirs_raw=0.1, fnirs_od=0.1, fnirs_chroma=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1470,6 +1476,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for HBO signals.
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
+    fnirs_raw : float (default 0.1)
+        Regularization factor for fNIRS raw signals.
+    fnirs_od : float (default 0.1)
+        Regularization factor for fNIRS optical density signals.
+    fnirs_chroma : float (default 0.1)
+        Regularization factor for fNIRS chromophore signals.
     %(rank_None)s
 
         .. versionadded:: 0.17
