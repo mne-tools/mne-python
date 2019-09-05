@@ -866,7 +866,7 @@ _PICK_TYPES_DATA_DICT = dict(
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr', 'fnirs_raw')
+_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr', 'fnirs_raw', 'fnirs_od', 'fnirs_chroma')
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
                                 'ref_meg', 'misc', 'stim', 'resp',
                                 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
