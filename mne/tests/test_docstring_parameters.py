@@ -69,6 +69,7 @@ docstring_length_ignores = [
     'mne.filter.construct_iir_filter::iir_params',
 ]
 tab_ignores = [
+    'mne.channels.tests.test_montage',
 ]
 
 

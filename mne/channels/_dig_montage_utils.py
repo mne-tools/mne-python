@@ -188,27 +188,27 @@ def _foo_get_data_from_dig(dig):
 
 
 def _get_fid_coords(dig):
-    fid_coords = dict()
-    fid_coord_frames = []
+    fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
+    fid_coord_frames = dict()
 
     for d in dig:
         if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            fid_coords[_cardinal_ident_mapping[d['ident']]] = d['r']
-            fid_coord_frames.append(d['coord_frame'])
+            key = _cardinal_ident_mapping[d['ident']]
+            fid_coords[key] = d['r']
+            fid_coord_frames[key] = d['coord_frame']
 
-    fid_coord_frames = set(fid_coord_frames)
+    if len(fid_coord_frames) > 0:
+        if set(fid_coord_frames.keys()) != set(['nasion', 'lpa', 'rpa']):
+            raise ValueError("Some fiducial points are missing (got %s)." %
+                             fid_coords.keys())
 
-    if len(fid_coord_frames) != 1:
-        raise ValueError(
-            'All fiducial points must be in the same coordinate system '
-            '(got %s)' % len(fid_coord_frames)
-        )
+        if len(set(fid_coord_frames.values())) > 1:
+            raise ValueError(
+                'All fiducial points must be in the same coordinate system '
+                '(got %s)' % len(fid_coord_frames)
+            )
 
-    coord_frame = fid_coord_frames.pop()
-
-    if set(fid_coords.keys()) != set(_cardinal_ident_mapping.values()):
-        raise ValueError("Some fiducial points are missing (got %s)." %
-                         fid_coords.keys())
+    coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
 
     return fid_coords, coord_frame
 
