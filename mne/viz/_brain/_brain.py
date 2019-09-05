@@ -222,6 +222,7 @@ class _Brain(object):
         self._title = title
         self._subject_id = subject_id
         self._views = views
+        self._n_times = None
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -402,10 +403,46 @@ class _Brain(object):
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)
 
-        if initial_time is None:
+        # Create time array and add label if > 1D
+        if array.ndim <= 1:
             time_idx = 0
         else:
-            time_idx = np.argmin(abs(time - initial_time))
+            # check time array
+            if time is None:
+                time = np.arange(array.shape[-1])
+            else:
+                time = np.asarray(time)
+                if time.shape != (array.shape[-1],):
+                    raise ValueError('time has shape %s, but need shape %s '
+                                     '(array.shape[-1])' %
+                                     (time.shape, (array.shape[-1],)))
+
+            if self._n_times is None:
+                self._n_times = len(time)
+                self._times = time
+            elif len(time) != self._n_times:
+                raise ValueError("New n_times is different from previous "
+                                 "n_times")
+            elif not np.array_equal(time, self._times):
+                raise ValueError("Not all time values are consistent with "
+                                 "previously set times.")
+
+            # initial time
+            if initial_time is None:
+                time_idx = 0
+            else:
+                time_idx = self.index_for_time(initial_time)
+
+            # time label
+            if isinstance(time_label, str):
+                time_label_fmt = time_label
+
+                def time_label(x):
+                    return time_label_fmt % x
+            self._data["time_label"] = time_label
+            self._data["time"] = time
+            self._data["time_idx"] = 0
+            y_txt = 0.05 + 0.05 * bool(colorbar)
 
         if time is not None and len(array.shape) == 2:
             # we have scalar_data with time dimension
@@ -473,11 +510,51 @@ class _Brain(object):
                                  color=act_color,
                                  colormap=colormap,
                                  scalars=act_data)
-            if array.ndim >= 2:
-                renderer.text2d(x=0.95, y=0.05, text='time={}'.format(time[0]),
-                                width=time_label_size)
+            if array.ndim >= 2 and time_label is not None:
+                renderer.text2d(x=0.95, y=y_txt, width=time_label_size,
+                                text=time_label(time[time_idx]))
             renderer.scalarbar(source=mesh, n_labels=8)
             self._overlays[hemi + '_' + v] = mesh
+
+    def index_for_time(self, time, rounding='closest'):
+        """Find the data time index closest to a specific time point.
+
+        Parameters
+        ----------
+        time : scalar
+            Time.
+        rounding : 'closest' | 'up' | 'down'
+            How to round if the exact time point is not an index.
+
+        Returns
+        -------
+        index : int
+            Data time index closest to time.
+        """
+        if self._n_times is None:
+            raise RuntimeError("Brain has no time axis")
+        times = self._times
+
+        # Check that time is in range
+        tmin = np.min(times)
+        tmax = np.max(times)
+        max_diff = (tmax - tmin) / (len(times) - 1) / 2
+        if time < tmin - max_diff or time > tmax + max_diff:
+            err = ("time = %s lies outside of the time axis "
+                   "[%s, %s]" % (time, tmin, tmax))
+            raise ValueError(err)
+
+        if rounding == 'closest':
+            idx = np.argmin(np.abs(times - time))
+        elif rounding == 'up':
+            idx = np.nonzero(times >= time)[0][0]
+        elif rounding == 'down':
+            idx = np.nonzero(times <= time)[0][-1]
+        else:
+            err = "Invalid rounding parameter: %s" % repr(rounding)
+            raise ValueError(err)
+
+        return idx
 
     def show(self):
         u"""Display widget."""
