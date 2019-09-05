@@ -684,8 +684,9 @@ def _cart_to_sph(cart):
     cart = np.atleast_2d(cart)
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
+    norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
     out[:, 1] = np.arctan2(cart[:, 1], cart[:, 0])
-    out[:, 2] = np.arccos(cart[:, 2] / out[:, 0])
+    out[:, 2] = np.arccos(cart[:, 2] / norm)
     out = np.nan_to_num(out)
     return out
 
