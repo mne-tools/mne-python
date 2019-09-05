@@ -621,8 +621,7 @@ class _Brain(object):
         return hemi
 
     def _get_geo_params(self, cortex, alpha=1.0):
-        """Return keyword arguments and other parameters for surface
-        rendering.
+        """Return kwargs and other parameters for surface rendering.
 
         Parameters
         ----------

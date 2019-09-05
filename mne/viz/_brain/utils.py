@@ -4,7 +4,7 @@ from scipy import sparse
 
 
 def mesh_edges(faces):
-    """Returns sparse matrix with edges as an adjacency matrix
+    """Return sparse matrix with edges as an adjacency matrix.
 
     Parameters
     ----------
@@ -31,7 +31,9 @@ def mesh_edges(faces):
 
 
 def smoothing_matrix(vertices, adj_mat, smoothing_steps=20, verbose=None):
-    """Create a smoothing matrix which can be used to interpolate data defined
+    """Create a smoothing matrix.
+
+       This smoothing matrix can be used to interpolate data defined
        for a subset of vertices onto mesh with an adjancency matrix given by
        adj_mat.
 
