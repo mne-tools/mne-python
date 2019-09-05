@@ -13,7 +13,6 @@ import numpy as np
 
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter
-from ..fixes import get_sosfiltfilt
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels)
 from ..utils import verbose, _ensure_int, _validate_type, _check_option
@@ -68,7 +67,7 @@ def _update_raw_data(params):
                 data[data_picks, start_:stop_] = _overlap_add_filter(
                     data[data_picks, start_:stop_], params['ba'], copy=False)
             else:  # IIR
-                sosfiltfilt = get_sosfiltfilt()
+                from scipy.signal import sosfiltfilt
                 data[data_picks, start_:stop_] = sosfiltfilt(
                     params['ba']['sos'], data[data_picks, start_:stop_],
                     axis=1, padlen=0)
