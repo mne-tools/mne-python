@@ -26,8 +26,11 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
-_tag_ignore_names = (  # for fiff-constants pending updates
-)
+_tag_ignore_names = ('FIFFV_COIL_FNIRS_RAW',
+                     'FIFFV_COIL_FNIRS_OD',
+                     'FIFFV_COIL_FNIRS_CHROMA',
+                     # for fiff-constants pending updates
+                     )
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
     'dacq_system', 'diffusion_param', 'gantry_type', 'map_surf',

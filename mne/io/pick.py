@@ -50,11 +50,11 @@ def get_channel_types():
                 gof=dict(kind=FIFF.FIFFV_GOODNESS_FIT),
                 ecog=dict(kind=FIFF.FIFFV_ECOG_CH),
                 fnirs_raw=dict(kind=FIFF.FIFFV_FNIRS_CH,
-                         coil_type=FIFF.FIFFV_COIL_FNIRS_RAW),
+                               coil_type=FIFF.FIFFV_COIL_FNIRS_RAW),
                 fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH,
-                         coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
+                              coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
                 fnirs_chroma=dict(kind=FIFF.FIFFV_FNIRS_CH,
-                         coil_type=FIFF.FIFFV_COIL_FNIRS_CHROMA),
+                                  coil_type=FIFF.FIFFV_COIL_FNIRS_CHROMA),
                 hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBO),
                 hbr=dict(kind=FIFF.FIFFV_FNIRS_CH,
@@ -268,7 +268,8 @@ def _triage_fnirs_pick(ch, fnirs):
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
         return True
-    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CHROMA and fnirs == 'fnirs_chroma':
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_CHROMA and \
+            fnirs == 'fnirs_chroma':
         return True
     return False
 
@@ -405,7 +406,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
-            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg', 'fnirs_raw', 'fnirs_od', 'fnirs_chroma')
+            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg',
+                               'fnirs_raw', 'fnirs_od', 'fnirs_chroma')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
@@ -695,7 +697,8 @@ def channel_indices_by_type(info, picks=None):
     """
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
                    key not in ('meg', 'fnirs')}
-    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list(), fnirs_raw=list())
+    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list(),
+                       fnirs_raw=list())
     picks = _picks_to_idx(info, picks,
                           none='all', exclude=(), allow_empty=True)
     for k in picks:
@@ -866,7 +869,8 @@ _PICK_TYPES_DATA_DICT = dict(
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr', 'fnirs_raw', 'fnirs_od', 'fnirs_chroma')
+_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr',
+                        'fnirs_raw', 'fnirs_od', 'fnirs_chroma')
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
                                 'ref_meg', 'misc', 'stim', 'resp',
                                 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
@@ -874,8 +878,8 @@ _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
-                        'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr', 'fnirs_raw',
-                        'misc')
+                        'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
+                        'fnirs_raw', 'misc')
 
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_raw')
