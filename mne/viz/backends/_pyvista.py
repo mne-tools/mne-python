@@ -123,7 +123,8 @@ class _Renderer(_BaseRenderer):
         self.plotter.enable_terrain_style()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, scalars=None, colormap=None, **kwargs):
+             backface_culling=False, scalars=None, colormap=None,
+             vmin=None, vmax=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             from pyvista import PolyData
@@ -132,9 +133,8 @@ class _Renderer(_BaseRenderer):
             n_vertices = len(vertices)
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             pd = PolyData(vertices, triangles)
-            if scalars is not None:
-                pd.point_arrays['scalars'] = scalars
-            if len(color) == n_vertices:
+            rgba = False
+            if color is not None and len(color) == n_vertices:
                 if color.shape[1] == 3:
                     scalars = np.c_[color, np.ones(n_vertices)]
                 else:
@@ -146,13 +146,11 @@ class _Renderer(_BaseRenderer):
                 # https://github.com/pyvista/pyvista-support/issues/15
                 smooth_shading = False
                 rgba = True
-            else:
-                scalars = None
-                rgba = False
 
             self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
                                   rgba=rgba, opacity=opacity, cmap=colormap,
                                   backface_culling=backface_culling,
+                                  rng=[vmin, vmax], show_scalar_bar=False,
                                   smooth_shading=smooth_shading)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,

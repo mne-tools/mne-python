@@ -499,6 +499,19 @@ class _Brain(object):
         self._data['k'] = k
         self._data['b'] = b
 
+        scalars = array[:, time_idx]
+        scalars = smooth_mat.dot(scalars)
+
+        # rework of colormap
+        from matplotlib.colors import ListedColormap
+        table = self.table * 255
+        bgcolor = (127, 127, 127, 0) # XXX: get bgcolor
+        alphas = table[:, -1][:, np.newaxis] / 255.
+        use_table = table.copy()
+        use_table[:, -1] = 255.
+        vals = (use_table * alphas) + bgcolor * (1 - alphas)
+        table = ListedColormap(vals / 255.)
+
         for ri, v in enumerate(self._views):
             if self._hemi != 'split':
                 ci = 0
@@ -510,7 +523,9 @@ class _Brain(object):
                                  z=self.geo[hemi].coords[:, 2],
                                  triangles=self.geo[hemi].faces,
                                  color=act_color,
-                                 colormap=colormap,
+                                 colormap=table,
+                                 vmin=dt_min,
+                                 vmax=dt_max,
                                  scalars=act_data)
             if array.ndim >= 2 and time_label is not None:
                 renderer.text2d(x=0.95, y=y_txt, width=time_label_size,
@@ -585,9 +600,9 @@ class _Brain(object):
         fmid = self._data['fmid'] if fmid is None else fmid
         fmax = self._data['fmax'] if fmax is None else fmax
 
-        self._data['lut'] = _calculate_lut(colormap, alpha=alpha,
-                                           fmin=fmin, fmid=fmid,
-                                           fmax=fmax, center=center)
+        self._data['lut'], self.table = _calculate_lut(colormap, alpha=alpha,
+                                                       fmin=fmin, fmid=fmid,
+                                                       fmax=fmax, center=center)
 
         return self._data['lut']
 
