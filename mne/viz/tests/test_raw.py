@@ -61,8 +61,7 @@ def _annotation_helper(raw, events=False):
     fig = raw.plot(events=events)
     assert len(plt.get_fignums()) == 1
     data_ax = fig.axes[0]
-    with pytest.warns(None):  # on old mpl we warns about no modifications
-        fig.canvas.key_press_event('a')  # annotation mode
+    fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
     # +2 from the scale bars
     n_scale = 2
@@ -71,8 +70,7 @@ def _annotation_helper(raw, events=False):
     ann_fig = plt.gcf()
     for key in ' test':
         ann_fig.canvas.key_press_event(key)
-    with pytest.warns(None):  # old mpl
-        ann_fig.canvas.key_press_event('enter')
+    ann_fig.canvas.key_press_event('enter')
 
     ann_fig = plt.gcf()
     # XXX: _fake_click raises an error on Agg backend
@@ -136,17 +134,14 @@ def _annotation_helper(raw, events=False):
         assert_allclose(raw.annotations.duration[n_anns], 5.0)
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
-    with pytest.warns(None):  # old mpl
-        _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
-                    kind='press')
-        fig.canvas.key_press_event('a')  # exit annotation mode
+    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
+                kind='press')
+    fig.canvas.key_press_event('a')  # exit annotation mode
     assert len(raw.annotations.onset) == n_anns
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
-    with pytest.warns(None):  # old mpl
-        fig.canvas.key_press_event('shift+right')
+    fig.canvas.key_press_event('shift+right')
     assert len(fig.axes[0].texts) == n_scale
-    with pytest.warns(None):  # old mpl
-        fig.canvas.key_press_event('shift+left')
+    fig.canvas.key_press_event('shift+left')
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     plt.close('all')
 
@@ -260,7 +255,8 @@ def test_plot_raw():
             fig = raw.plot(group_by=group_by, order=order)
         x = fig.get_axes()[0].lines[1].get_xdata()[10]
         y = fig.get_axes()[0].lines[1].get_ydata()[10]
-        _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
+        with pytest.warns(None):  # old mpl (at least 2.0) can warn
+            _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
         fig.canvas.key_press_event('down')  # change selection
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
         sel_fig = plt.figure(1)

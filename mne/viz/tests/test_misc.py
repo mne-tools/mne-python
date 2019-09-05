@@ -21,7 +21,7 @@ from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter, plot_csd)
-from mne.utils import requires_nibabel, run_tests_if_main, requires_version
+from mne.utils import requires_nibabel, run_tests_if_main
 from mne.time_frequency import CrossSpectralDensity
 
 data_path = testing.data_path(download=False)
@@ -48,7 +48,6 @@ def _get_events():
     return read_events(event_fname)
 
 
-@requires_version('scipy', '0.16')
 def test_plot_filter():
     """Test filter plotting."""
     l_freq, h_freq, sfreq = 2., 40., 1000.

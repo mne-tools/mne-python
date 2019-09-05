@@ -141,6 +141,14 @@ Bug
 API
 ~~~
 
+- Minimum dependency versions for the following libraries have been bumped up (by `Eric Larson`_):
+
+  - NumPy: 1.12.1
+  - SciPy: 0.18.1
+  - matplotlib: 2.0.2
+  - scikit-learn: 0.18.2
+  - pandas 0.19.2
+
 - New boolean parameter ``show_scrollbars`` for :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, and :meth:`mne.preprocessing.ICA.plot_sources` (and associated functions) that allows hiding the scrollbars and buttons for a "zen mode" data browsing experience. When the plot window has focus, zen mode can be toggled by pressing :kbd:`z`, by `Daniel McCloy`_.
 
 - Deprecate passing ``np.arrays`` as ``hsp``, ``hpi`` or ``elp`` parameters to ``mne.channels.read_dig_montage`` by `Joan Massich`_.

@@ -153,9 +153,6 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                        -trans) * 1000
     use_rot = rot.transpose([0, 2, 1])
     use_quats = -pos[:, 1:4]  # inverse (like doing rot.T)
-    if cmap == 'viridis' and not check_version('matplotlib', '1.5'):
-        warn('viridis is unavailable on matplotlib < 1.4, using "YlGnBu_r"')
-        cmap = 'YlGnBu_r'
     surf = rrs = lims = None
     if info is not None:
         meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=())
@@ -242,9 +239,6 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                 ax.axhline(val, color='r', ls=':', zorder=2, lw=1.)
 
     else:  # mode == 'field':
-        if not check_version('matplotlib', '1.4'):
-            raise RuntimeError('The "field" mode requires matplotlib version '
-                               '1.4+')
         from matplotlib.colors import Normalize
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
         from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
@@ -260,7 +254,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         ax.add_collection(lc)
         # now plot the head directions as a quiver
         dir_idx = dict(x=0, y=1, z=2)
-        kwargs = _pivot_kwargs()
+        kwargs = dict(pivot='tail')
         for d, length in zip(direction, [5., 2.5, 1.]):
             use_dir = use_rot[:, :, dir_idx[d]]
             # draws stems, then heads
@@ -302,18 +296,6 @@ def _set_aspect_equal(ax):
         ax.set_aspect('equal')
     except NotImplementedError:
         pass
-
-
-def _pivot_kwargs():
-    """Get kwargs for quiver."""
-    kwargs = dict()
-    if check_version('matplotlib', '1.5'):
-        kwargs['pivot'] = 'tail'
-    else:
-        from matplotlib import __version__
-        warn('pivot cannot be set in matplotlib %s (need version 1.5+), '
-             'locations are approximate' % (__version__,))
-    return kwargs
 
 
 @fill_doc
@@ -2843,9 +2825,9 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     ax.plot(np.repeat(xyz[idx, 0], len(zz)),
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
             linestyle='-', color=highlight_color)
-    kwargs = _pivot_kwargs()
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=50, color=highlight_color, **kwargs)
+              ori[2], length=50, color=highlight_color,
+              pivot='tail')
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
     ax.set_ylim(-1 * dims * zooms[:2])

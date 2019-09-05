@@ -842,12 +842,10 @@ def _radio_clicked(label, params):
     params['plot_fun']()
 
 
-def _get_active_radiobutton(radio):
+def _get_active_radio_idx(radio):
     """Find out active radio button."""
-    # XXX: In mpl 1.5 you can do: fig.radio.value_selected
-    colors = np.array([np.sum(circle.get_facecolor()) for circle
-                       in radio.circles])
-    return np.where(colors < 4.0)[0][0]  # return idx where color != white
+    labels = [label.get_text() for label in radio.labels]
+    return labels.index(radio.value_selected)
 
 
 def _set_annotation_radio_button(idx, params):
@@ -1009,7 +1007,6 @@ def _plot_raw_onkey(event, params):
 
 def _setup_annotation_fig(params):
     """Initialize the annotation figure."""
-    from matplotlib import __version__
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
@@ -1069,11 +1066,6 @@ def _setup_annotation_fig(params):
     if len(labels) == 0:
         selector.active = False
     params['ax'].selector = selector
-    if LooseVersion(__version__) < LooseVersion('1.5'):
-        # XXX: Hover event messes up callback ids in old mpl.
-        warn('Modifying existing annotations is not possible for '
-             'matplotlib versions < 1.4. Upgrade matplotlib.')
-        return
     hover_callback = partial(_on_hover, params=params)
     params['hover_callback'] = params['fig'].canvas.mpl_connect(
         'motion_notify_event', hover_callback)
@@ -1390,10 +1382,7 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
                        button=button)
     elif kind == 'motion':
         func = partial(fig.canvas.motion_notify_event, x=x, y=y)
-    try:
-        func(guiEvent=None)
-    except Exception:  # for old MPL
-        func()
+    func(guiEvent=None)
 
 
 def add_background_image(fig, im, set_ratios=None):
@@ -2085,7 +2074,7 @@ def _annotate_select(vmin, vmax, params):
     raw = params['raw']
     onset = _sync_onset(raw, vmin, True) - params['first_time']
     duration = vmax - vmin
-    active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
+    active_idx = _get_active_radio_idx(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
     _merge_annotations(onset, onset + duration, description,
                        raw.annotations)
@@ -2167,7 +2156,6 @@ def _setup_annotation_colors(params):
 
 def _annotations_closed(event, params):
     """Clean up on annotation dialog close."""
-    from matplotlib import __version__
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
     if params['ax'].selector is not None:
@@ -2177,8 +2165,7 @@ def _annotations_closed(event, params):
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
-    if LooseVersion(__version__) >= LooseVersion('1.5'):
-        params['fig'].canvas.mpl_disconnect(params['hover_callback'])
+    params['fig'].canvas.mpl_disconnect(params['hover_callback'])
     params['fig_annotation'] = None
     params['fig'].canvas.draw()
 
@@ -2302,7 +2289,7 @@ def _change_annotation_description(event, params):
 
 def _annotation_radio_clicked(label, radio, selector):
     """Handle annotation radio buttons."""
-    idx = _get_active_radiobutton(radio)
+    idx = _get_active_radio_idx(radio)
     color = radio.circles[idx].get_edgecolor()
     selector.rect.set_color(color)
     selector.rectprops.update(dict(facecolor=color))
@@ -2379,7 +2366,7 @@ def _setup_butterfly(params):
         _setup_browser_offsets(params, max([params['n_channels'], 1]))
         if 'fig_selection' in params:
             radio = params['fig_selection'].radio
-            active_idx = _get_active_radiobutton(radio)
+            active_idx = _get_active_radio_idx(radio)
             _radio_clicked(radio.labels[active_idx]._text, params)
     # For now, italics only work in non-grouped mode
     _set_ax_label_style(ax, params, italicize=not butterfly)
@@ -2473,14 +2460,6 @@ class DraggableLine(object):
         self.line.figure.canvas.mpl_disconnect(self.cidrelease)
         self.line.figure.canvas.mpl_disconnect(self.cidmotion)
         self.line.figure.axes[0].lines.remove(self.line)
-
-
-def _set_ax_facecolor(ax, face_color):
-    """Fix call for old MPL."""
-    try:
-        ax.set_facecolor(face_color)
-    except AttributeError:
-        ax.set_axis_bgcolor(face_color)
 
 
 def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
@@ -2763,7 +2742,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
                        yscale="linear"):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
-    from matplotlib import ticker, __version__ as v
+    from matplotlib import ticker, __version__ as mpl_version
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
@@ -2820,7 +2799,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             yscale = 'linear'
 
     # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and v == "2.1.0":
+    if yscale == "log" and mpl_version == "2.1.0":
         warn("With matplotlib version 2.1.0, lines may not show up in "
              "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
 
