@@ -533,7 +533,7 @@ numpydoc_xref_aliases = {
     # nibabel
     'Nifti1Image': 'nibabel.nifti1.Nifti1Image',
     'Nifti2Image': 'nibabel.nifti2.Nifti2Image',
-    'SpatialImage': '~nibabel.spatialimages.SpatialImage',
+    'SpatialImage': 'nibabel.spatialimages.SpatialImage',
     # MNE
     'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',

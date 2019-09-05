@@ -27,8 +27,7 @@ from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
-from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
-                            SourceSpaces)
+from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
 
 from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
@@ -1847,7 +1846,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         raise RuntimeError('This function requires nilearn >= 0.4')
 
     from nilearn.plotting import plot_stat_map, plot_glass_brain
-    from nilearn.image import index_img, resample_to_img
+    from nilearn.image import index_img
 
     _check_option('mode', mode, ('stat_map', 'glass_brain'))
     plot_func = dict(stat_map=plot_stat_map,
