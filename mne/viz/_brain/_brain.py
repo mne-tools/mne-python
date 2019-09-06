@@ -286,12 +286,12 @@ class _Brain(object):
                 self._hemi_meshes[h + '_' + v] = mesh
 
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
-                 thresh=None, center=None, transparent=None, colormap="auto",
+                 thresh=None, center=None, transparent=False, colormap="auto",
                  alpha=1, vertices=None, smoothing_steps=None, time=None,
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 verbose=None):
+                 verbose=False):
         u"""Display data from a numpy array on the surface.
 
         This provides a similar interface to
@@ -373,9 +373,8 @@ class _Brain(object):
             Not supported yet.
             alpha level to control opacity of the arrows. Only used for
             vector-valued data. If None (default), ``alpha`` is used.
-        verbose : bool, str, int, or None
-            Not supported yet.
-            If not None, override default verbose level (see surfer.verbose).
+        verbose : bool
+            Set the default verbose level.
 
         Notes
         -----
@@ -471,8 +470,6 @@ class _Brain(object):
         self._data['fmid'] = fmid
         self._data['fmax'] = fmax
 
-        lut = self.update_lut()
-
         # Create smoothing matrix if necessary
         if len(act_data) < self.geo[hemi].x.shape[0]:
             if vertices is None:
@@ -488,6 +485,7 @@ class _Brain(object):
 
         dt_max = fmax
         dt_min = fmin if center is None else -1 * fmax
+        ctable = self.update_lut()
 
         for ri, v in enumerate(self._views):
             if self._hemi != 'split':
@@ -500,7 +498,7 @@ class _Brain(object):
                                  z=self.geo[hemi].coords[:, 2],
                                  triangles=self.geo[hemi].faces,
                                  color=None,
-                                 colormap=lut,
+                                 colormap=ctable,
                                  vmin=dt_min,
                                  vmax=dt_max,
                                  scalars=act_data)
@@ -578,11 +576,11 @@ class _Brain(object):
         fmid = self._data['fmid'] if fmid is None else fmid
         fmax = self._data['fmax'] if fmax is None else fmax
 
-        self._data['lut'], self._ctable = \
+        self._data['ctable'] = \
             _calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
                            fmax=fmax, center=center)
 
-        return self._data['lut']
+        return self._data['ctable']
 
     @property
     def overlays(self):

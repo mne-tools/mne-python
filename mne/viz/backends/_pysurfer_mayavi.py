@@ -77,8 +77,10 @@ class _Renderer(_BaseRenderer):
                 tvtk.InteractorStyleTerrain()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
-        if isinstance(color, np.ndarray) and color.ndim > 1:
+             backface_culling=False, scalars=None, colormap=None,
+             vmin=None, vmax=None, **kwargs):
+        if color is not None and isinstance(color, np.ndarray) \
+           and color.ndim > 1:
             if color.shape[1] == 3:
                 vertex_color = np.c_[color, np.ones(len(color))] * 255.0
             else:
@@ -87,7 +89,6 @@ class _Renderer(_BaseRenderer):
             scalars = np.arange(len(color))
             color = None
         else:
-            scalars = None
             vertex_color = None
         with warnings.catch_warnings(record=True):  # traits
             surface = self.mlab.triangular_mesh(x, y, z, triangles,
@@ -95,7 +96,13 @@ class _Renderer(_BaseRenderer):
                                                 scalars=scalars,
                                                 opacity=opacity,
                                                 figure=self.fig,
+                                                vmin=vmin,
+                                                vmax=vmax,
                                                 **kwargs)
+            lut = colormap
+            if lut is not None:
+                l_m = surface.module_manager.scalar_lut_manager
+                l_m.load_lut_from_list(lut)
             if vertex_color is not None:
                 surface.module_manager.scalar_lut_manager.lut.table = \
                     vertex_color
@@ -203,7 +210,7 @@ class _Renderer(_BaseRenderer):
             self.mlab.text3d(x, y, z, text, scale=scale, color=color,
                              figure=self.fig)
 
-    def scalarbar(self, source, title=None, n_labels=4):
+    def scalarbar(self, source, title=None, n_labels=4, bgcolor=None):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.scalarbar(source, title=title, nb_labels=n_labels)
 

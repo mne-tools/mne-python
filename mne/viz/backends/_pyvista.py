@@ -146,6 +146,9 @@ class _Renderer(_BaseRenderer):
                 # https://github.com/pyvista/pyvista-support/issues/15
                 smooth_shading = False
                 rgba = True
+            if colormap is not None and isinstance(colormap, np.ndarray):
+                from matplotlib.colors import ListedColormap
+                colormap = ListedColormap(colormap)
 
             self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
                                   rgba=rgba, opacity=opacity, cmap=colormap,
