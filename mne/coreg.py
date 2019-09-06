@@ -1227,10 +1227,22 @@ def get_mni_fiducials(subject, subjects_dir=None):
 
     Notes
     -----
+    This takes the ``fsaverage-fiducials.fif`` file included with MNE—which
+    contain the LPA, nasion, and RPA for the ``fsaverage`` subject—and
+    transforms them to the given FreeSurfer subject's MRI space.
+    The MRI of ``fsaverage`` is already in MNI Talarach space, so applying
+    the inverse of the given subject's MNI Talairach affine transformation
+    (``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talarach.xfm``) is used
+    to estimate the subject's fiducial locations.
+
     For more details about the coordinate systems and transformations involved,
     see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
-    :ref:`plot_source_alignment`
+    :ref:`plot_source_alignment`.
     """
+    # Eventually we might want to allow using the MNI Talarach with-skull
+    # transformation rather than the standard brain-based MNI Talaranch
+    # transformation, and/or project the points onto the head surface
+    # (if available).
     fname_fids_fs = os.path.join(os.path.dirname(__file__), 'data',
                                  'fsaverage', 'fsaverage-fiducials.fif')
 
