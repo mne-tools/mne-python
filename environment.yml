@@ -34,7 +34,7 @@ dependencies:
 - pip:
   - mne
   - vtk
-  - pyvista>=0.21.3
+  - https://github.com/pyvista/pyvista/zipball/master
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
