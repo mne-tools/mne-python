@@ -486,31 +486,8 @@ class _Brain(object):
             act_data = smooth_mat.dot(act_data)
             self._data[hemi + '_smooth_mat'] = smooth_mat
 
-        # data mapping into [0, 1] interval
         dt_max = fmax
         dt_min = fmin if center is None else -1 * fmax
-        k = 1 / (dt_max - dt_min)
-        b = 1 - k * dt_max
-        act_data = k * act_data + b
-        act_data = np.clip(act_data, 0, 1)
-
-        act_color = lut(act_data)
-
-        self._data['k'] = k
-        self._data['b'] = b
-
-        scalars = array[:, time_idx]
-        scalars = smooth_mat.dot(scalars)
-
-        # rework of colormap
-        from matplotlib.colors import ListedColormap
-        table = self.table * 255
-        bgcolor = (127, 127, 127, 0) # XXX: get bgcolor
-        alphas = table[:, -1][:, np.newaxis] / 255.
-        use_table = table.copy()
-        use_table[:, -1] = 255.
-        vals = (use_table * alphas) + bgcolor * (1 - alphas)
-        table = ListedColormap(vals / 255.)
 
         for ri, v in enumerate(self._views):
             if self._hemi != 'split':
@@ -522,15 +499,16 @@ class _Brain(object):
                                  y=self.geo[hemi].coords[:, 1],
                                  z=self.geo[hemi].coords[:, 2],
                                  triangles=self.geo[hemi].faces,
-                                 color=act_color,
-                                 colormap=table,
+                                 color=None,
+                                 colormap=lut,
                                  vmin=dt_min,
                                  vmax=dt_max,
                                  scalars=act_data)
             if array.ndim >= 2 and time_label is not None:
                 renderer.text2d(x=0.95, y=y_txt, width=time_label_size,
                                 text=time_label(time[time_idx]))
-            renderer.scalarbar(source=mesh, n_labels=8)
+            renderer.scalarbar(source=mesh, n_labels=8,
+                               bgcolor=(0.5, 0.5, 0.5))
             self._overlays[hemi + '_' + v] = mesh
 
     def index_for_time(self, time, rounding='closest'):
@@ -600,9 +578,9 @@ class _Brain(object):
         fmid = self._data['fmid'] if fmid is None else fmid
         fmax = self._data['fmax'] if fmax is None else fmax
 
-        self._data['lut'], self.table = _calculate_lut(colormap, alpha=alpha,
-                                                       fmin=fmin, fmid=fmid,
-                                                       fmax=fmax, center=center)
+        self._data['lut'], self._ctable = \
+            _calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
+                           fmax=fmax, center=center)
 
         return self._data['lut']
 
