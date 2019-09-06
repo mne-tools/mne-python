@@ -3,26 +3,27 @@
 # License: BSD (3-clause)
 
 import os
+import os.path as op
 
 from numpy.testing import assert_array_equal
 
-from mne.datasets import testing
-from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, traits_test
-
-sample_path = testing.data_path(download=False)
-subjects_dir = os.path.join(sample_path, 'subjects')
+from mne.utils import requires_mayavi, run_tests_if_main, traits_test
 
 
-@testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_mri_model():
+def test_mri_model(subjects_dir_tmp):
     """Test MRIHeadWithFiducialsModel Traits Model."""
     from mne.gui._fiducials_gui import MRIHeadWithFiducialsModel
-    tempdir = _TempDir()
-    tgt_fname = os.path.join(tempdir, 'test-fiducials.fif')
+    tgt_fname = op.join(subjects_dir_tmp, 'test-fiducials.fif')
 
-    model = MRIHeadWithFiducialsModel(subjects_dir=subjects_dir)
+    # Remove the two files that will make the fiducials okay via MNI estimation
+    os.remove(op.join(subjects_dir_tmp, 'sample', 'bem',
+                      'sample-fiducials.fif'))
+    os.remove(op.join(subjects_dir_tmp, 'sample', 'mri', 'transforms',
+                      'talairach.xfm'))
+
+    model = MRIHeadWithFiducialsModel(subjects_dir=subjects_dir_tmp)
     model.subject = 'sample'
     assert model.default_fid_fname[-20:] == "sample-fiducials.fif"
     assert not model.can_reset
@@ -33,7 +34,7 @@ def test_mri_model():
     assert not model.can_reset
     assert model.can_save
 
-    bem_fname = os.path.basename(model.bem_high_res.file)
+    bem_fname = op.basename(model.bem_high_res.file)
     assert not model.can_reset
     assert bem_fname == 'sample-head-dense.fif'
 

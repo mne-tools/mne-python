@@ -10,8 +10,7 @@ import sys
 from unittest import SkipTest
 
 import numpy as np
-from numpy.testing import (assert_allclose, assert_equal,
-                           assert_array_almost_equal)
+from numpy.testing import assert_allclose, assert_array_almost_equal
 import pytest
 
 import mne
@@ -32,13 +31,11 @@ subjects_dir = op.join(data_path, 'subjects')
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_coreg_model_decimation(tmpdir):
+def test_coreg_model_decimation(subjects_dir_tmp):
     """Test CoregModel decimation of high-res to low-res head."""
     from mne.gui._coreg_gui import CoregModel
-    tempdir = str(tmpdir)
-    subject_dir = op.join(tempdir, 'sample')
-    shutil.copytree(op.join(subjects_dir, 'sample'), subject_dir)
     # This makes the test much faster
+    subject_dir = op.join(subjects_dir_tmp, 'sample')
     shutil.move(op.join(subject_dir, 'bem', 'outer_skin.surf'),
                 op.join(subject_dir, 'surf', 'lh.seghead'))
     for fname in ('sample-head.fif', 'sample-head-dense.fif'):
@@ -46,34 +43,31 @@ def test_coreg_model_decimation(tmpdir):
 
     model = CoregModel(guess_mri_subject=False)
     with pytest.warns(RuntimeWarning, match='No low-resolution'):
-        model.mri.subjects_dir = tempdir
+        model.mri.subjects_dir = op.dirname(subject_dir)
     assert model.mri.subject == 'sample'  # already set by setting subjects_dir
     assert model.mri.bem_low_res.file == ''
     assert len(model.mri.bem_low_res.surf.rr) == 2562
     assert len(model.mri.bem_high_res.surf.rr) == 2562  # because we moved it
 
 
-@testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_coreg_model(tmpdir):
+def test_coreg_model(subjects_dir_tmp):
     """Test CoregModel."""
     from mne.gui._coreg_gui import CoregModel
-    tempdir = str(tmpdir)
-    trans_dst = op.join(tempdir, 'test-trans.fif')
+    trans_dst = op.join(subjects_dir_tmp, 'test-trans.fif')
+    # make it use MNI fiducials
+    os.remove(op.join(subjects_dir_tmp, 'sample', 'bem',
+                      'sample-fiducials.fif'))
 
     model = CoregModel()
     with pytest.raises(RuntimeError, match='Not enough information for savin'):
         model.save_trans('blah.fif')
 
-    model.mri.subjects_dir = subjects_dir
+    model.mri.subjects_dir = subjects_dir_tmp
     model.mri.subject = 'sample'
 
-    assert not model.mri.fid_ok
-    model.mri.lpa = [[-0.06, 0, 0]]
-    model.mri.nasion = [[0, 0.05, 0]]
-    model.mri.rpa = [[0.08, 0, 0]]
-    assert (model.mri.fid_ok)
+    assert model.mri.fid_ok  # automated using MNI fiducials
 
     model.hsp.file = raw_path
     assert_allclose(model.hsp.lpa, [[-7.137e-2, 0, 5.122e-9]], 1e-4)
@@ -119,7 +113,7 @@ def test_coreg_model(tmpdir):
     trans = model.mri_head_t
     model.reset_traits(["trans_x", "trans_y", "trans_z", "rot_x", "rot_y",
                         "rot_z"])
-    assert_equal(model.trans_x, 0)
+    assert model.trans_x == 0
     model.set_trans(trans)
     assert_array_almost_equal(model.trans_x, x)
     assert_array_almost_equal(model.trans_y, y)
@@ -129,32 +123,32 @@ def test_coreg_model(tmpdir):
     assert_array_almost_equal(model.rot_z, rot_z)
 
     # info
-    assert (isinstance(model.fid_eval_str, str))
-    assert (isinstance(model.points_eval_str, str))
+    assert isinstance(model.fid_eval_str, str)
+    assert isinstance(model.points_eval_str, str)
 
     # scaling job
     assert not model.can_prepare_bem_model
     model.n_scale_params = 1
-    assert (model.can_prepare_bem_model)
+    assert model.can_prepare_bem_model
     model.prepare_bem_model = True
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('sample2', False)
-    assert_equal(sdir, subjects_dir)
-    assert_equal(sfrom, 'sample')
-    assert_equal(sto, 'sample2')
+    assert sdir == subjects_dir_tmp
+    assert sfrom == 'sample'
+    assert sto == 'sample2'
     assert_allclose(scale, model.parameters[6:9])
-    assert_equal(skip_fiducials, False)
+    assert skip_fiducials is False
     # find BEM files
     bems = set()
     for fname in os.listdir(op.join(subjects_dir, 'sample', 'bem')):
         match = re.match(r'sample-(.+-bem)\.fif', fname)
         if match:
             bems.add(match.group(1))
-    assert_equal(set(bemsol), bems)
+    assert set(bemsol) == bems
     model.prepare_bem_model = False
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('sample2', True)
-    assert_equal(bemsol, [])
+    assert bemsol == []
     assert (skip_fiducials)
 
     model.load_trans(fname_trans)
@@ -171,19 +165,24 @@ def _check_ci():
         raise SkipTest('Skipping GUI tests on Travis OSX')
 
 
-@testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_coreg_gui_display(tmpdir):
+def test_coreg_gui_display(subjects_dir_tmp):
     """Test CoregFrame."""
     _check_ci()
     from mayavi import mlab
     from tvtk.api import tvtk
-    home_dir = str(tmpdir)
+    home_dir = subjects_dir_tmp
+    # Remove the two files that will make the fiducials okay via MNI estimation
+    os.remove(op.join(subjects_dir_tmp, 'sample', 'bem',
+                      'sample-fiducials.fif'))
+    os.remove(op.join(subjects_dir_tmp, 'sample', 'mri', 'transforms',
+                      'talairach.xfm'))
     with modified_env(**{'_MNE_GUI_TESTING_MODE': 'true',
                          '_MNE_FAKE_HOME_DIR': home_dir}):
         with pytest.raises(ValueError, match='not a valid subject'):
-            mne.gui.coregistration(subject='Elvis', subjects_dir=subjects_dir)
+            mne.gui.coregistration(
+                subject='Elvis', subjects_dir=subjects_dir_tmp)
 
         # avoid modal dialog if SUBJECTS_DIR is set to a directory that
         # does not contain valid subjects
@@ -192,7 +191,7 @@ def test_coreg_gui_display(tmpdir):
         ui.dispose()
         mlab.process_ui_events()
 
-        ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir,
+        ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir_tmp,
                                            subject='sample')
         mlab.process_ui_events()
 
@@ -200,7 +199,7 @@ def test_coreg_gui_display(tmpdir):
         frame.model.mri.lpa = [[-0.06, 0, 0]]
         frame.model.mri.nasion = [[0, 0.05, 0]]
         frame.model.mri.rpa = [[0.08, 0, 0]]
-        assert (frame.model.mri.fid_ok)
+        assert frame.model.mri.fid_ok
         frame.data_panel.raw_src.file = raw_path
         assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
                           tvtk.SphereSource)
@@ -223,7 +222,7 @@ def test_coreg_gui_display(tmpdir):
 
         # reset parameters
         frame.coreg_panel.reset_params = True
-        assert_equal(frame.model.grow_hair, 0)
+        assert frame.model.grow_hair == 0
         assert not frame.data_panel.view_options_panel.head_high_res
 
         # configuration persistence
@@ -233,7 +232,7 @@ def test_coreg_gui_display(tmpdir):
         ui.dispose()
         mlab.process_ui_events()
 
-        ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
+        ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir_tmp)
         assert not frame.model.prepare_bem_model
         assert not frame.data_panel.view_options_panel.head_high_res
         ui.dispose()
@@ -254,7 +253,7 @@ def test_coreg_model_with_fsaverage(tmpdir):
     model = CoregModel()
     model.mri.subjects_dir = tempdir
     model.mri.subject = 'fsaverage'
-    assert (model.mri.fid_ok)
+    assert model.mri.fid_ok
 
     model.hsp.file = raw_path
     lpa_distance = model.lpa_distance
@@ -296,15 +295,15 @@ def test_coreg_model_with_fsaverage(tmpdir):
     # scaling job
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('scaled', False)
-    assert_equal(sdir, tempdir)
-    assert_equal(sfrom, 'fsaverage')
-    assert_equal(sto, 'scaled')
+    assert sdir == tempdir
+    assert sfrom == 'fsaverage'
+    assert sto == 'scaled'
     assert_allclose(scale, model.parameters[6:9])
-    assert_equal(set(bemsol), {'inner_skull-bem'})
+    assert set(bemsol) == {'inner_skull-bem'}
     model.prepare_bem_model = False
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
         model.get_scaling_job('scaled', False)
-    assert_equal(bemsol, [])
+    assert bemsol == []
 
     # scale with 3 parameters
     model.n_scale_params = 3
@@ -312,9 +311,9 @@ def test_coreg_model_with_fsaverage(tmpdir):
     assert (np.mean(model.point_distance) < avg_point_distance_1param)
 
     # test switching raw disables point omission
-    assert_equal(model.hsp.n_omitted, 1)
+    assert model.hsp.n_omitted == 1
     model.hsp.file = kit_raw_path
-    assert_equal(model.hsp.n_omitted, 0)
+    assert model.hsp.n_omitted == 0
 
 
 run_tests_if_main()

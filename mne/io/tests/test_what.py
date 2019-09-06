@@ -40,7 +40,8 @@ def test_what(tmpdir):
                      fwd='forward', trans='transform', proj='proj',
                      raw='raw', meg='raw', sol='bem solution',
                      bem='bem surfaces', src='src', dense='bem surfaces',
-                     sparse='bem surfaces', head='bem surfaces')
+                     sparse='bem surfaces', head='bem surfaces',
+                     fiducials='fiducials')
     for fname in fnames:
         kind = op.splitext(fname)[0].split('-')[-1]
         if len(kind) > 5:

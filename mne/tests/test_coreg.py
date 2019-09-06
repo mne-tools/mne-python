@@ -15,10 +15,13 @@ from mne.transforms import (Transform, apply_trans, rotation, translation,
                             scaling)
 from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
-                       coregister_fiducials)
+                       coregister_fiducials, get_mni_fiducials)
+from mne.io import read_fiducials
 from mne.io.constants import FIFF
 from mne.utils import run_tests_if_main, requires_nibabel, modified_env
 from mne.source_space import write_source_spaces
+
+data_path = testing.data_path(download=False)
 
 
 @pytest.yield_fixture
@@ -240,6 +243,23 @@ def test_fit_matched_points():
     # test exceeding tolerance
     tgt_pts[0, :] += 20
     pytest.raises(RuntimeError, fit_matched_points, tgt_pts, src_pts, tol=10)
+
+
+@testing.requires_testing_data
+@requires_nibabel()
+def test_get_mni_fiducials():
+    """Test get_mni_fiducials."""
+    subjects_dir = op.join(data_path, 'subjects')
+    fid_fname = op.join(subjects_dir, 'sample', 'bem',
+                        'sample-fiducials.fif')
+    fids, coord_frame = read_fiducials(fid_fname)
+    assert coord_frame == FIFF.FIFFV_COORD_MRI
+    assert [f['ident'] for f in fids] == list(range(1, 4))
+    fids = np.array([f['r'] for f in fids])
+    fids_est = get_mni_fiducials('sample', subjects_dir)
+    fids_est = np.array([f['r'] for f in fids_est])
+    dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000
+    assert (dists < 8).all(), dists
 
 
 run_tests_if_main()

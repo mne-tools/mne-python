@@ -13,7 +13,7 @@ import numpy as np
 from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                         on_trait_change, Array, Bool, Button, DelegatesTo,
                         Directory, Enum, Event, File, Instance, Int, List,
-                        Property, Str)
+                        Property, Str, ArrayOrNone)
 from traitsui.api import View, Item, VGroup
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
@@ -210,23 +210,18 @@ class FiducialsSource(HasTraits):
 
     file = File(filter=[fid_wildcard])
     fname = Property(depends_on='file')
-    points = Property(depends_on='file')
+    points = Property(ArrayOrNone, depends_on='file')
+    mni_points = ArrayOrNone(float, shape=(3, 3))
 
-    @cached_property
     def _get_fname(self):
-        fname = op.basename(self.file)
-        return fname
+        return op.basename(self.file)
 
     @cached_property
     def _get_points(self):
         if not op.exists(self.file):
-            return None
-
+            return self.mni_points  # can be None
         try:
-            fids, coord_frame = read_fiducials(self.file)
-            points = _fiducial_coords(fids, coord_frame)
-            assert points.shape == (3, 3)
-            return points
+            return _fiducial_coords(*read_fiducials(self.file))
         except Exception as err:
             error(None, "Error reading fiducials from %s: %s (See terminal "
                   "for more information)" % (self.fname, str(err)),
