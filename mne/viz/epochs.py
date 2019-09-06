@@ -22,7 +22,7 @@ from ..utils import verbose, logger, warn, fill_doc, check_version
 from ..io.meas_info import create_info
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+                       _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _prepare_mne_browse, _setup_vmin_vmax, _channels_changed,
@@ -364,7 +364,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 top_tick = func(yticks)
                 ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
-    return [this_group_dict['fig'] for this_group_dict in group_by.values()]
+
+    # impose deterministic order of returned objects
+    return_order = np.array(sorted(group_by))
+    are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
+    if any(are_ch_types):
+        return_order = np.concatenate((return_order[are_ch_types],
+                                       return_order[~are_ch_types]))
+    return [group_by[group]['fig'] for group in return_order]
 
 
 def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
