@@ -493,3 +493,8 @@ def _set_3d_title(figure, title, size=40):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         figure.plotter.add_text(title, font_size=32, color=(1.0, 1.0, 1.0))
+
+
+def _check_figure(figure):
+    if not isinstance(figure, _Figure):
+        raise TypeError('figure must be an instance of _Figure')

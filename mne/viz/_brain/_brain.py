@@ -55,7 +55,6 @@ class _Brain(object):
         None (default) will use black or white depending on the value
         of ``background``.
     figure : list of Figure | None | int
-        Not supported yet.
         If None (default), a new window will be created with the appropriate
         views. For single view plots, the figure can be specified as int to
         retrieve the corresponding Mayavi window.
@@ -200,14 +199,14 @@ class _Brain(object):
         if hemi == 'split':
             raise ValueError('Option hemi="split" is not supported yet.')
 
-        if figure is not None:
-            raise ValueError('figure parameter is not supported yet.')
-
         if interaction is not None:
             raise ValueError('"interaction" parameter is not supported.')
 
-        from ..backends.renderer import _Renderer
+        from ..backends.renderer import _Renderer, _check_figure
         from matplotlib.colors import colorConverter
+
+        if figure is not None:
+            _check_figure(figure)
 
         if isinstance(background, str):
             background = colorConverter.to_rgb(background)
@@ -262,7 +261,7 @@ class _Brain(object):
             self.geo[h] = geo
 
         for ri, v in enumerate(views):
-            renderer = _Renderer(size=fig_size, bgcolor=background)
+            renderer = _Renderer(size=fig_size, bgcolor=background, fig=figure)
             self._renderers[ri].append(renderer)
             renderer.set_camera(azimuth=views_dict[v].azim,
                                 elevation=views_dict[v].elev,
@@ -271,7 +270,8 @@ class _Brain(object):
             for ci, h in enumerate(self._hemis):
                 if ci == 1 and hemi == 'split':
                     # create a separate figure for right hemisphere
-                    renderer = _Renderer(size=fig_size, bgcolor=background)
+                    renderer = _Renderer(size=fig_size, bgcolor=background,
+                                         fig=figure)
                     self._renderers[ri].append(renderer)
                     renderer.set_camera(azimuth=views_dict[v].azim,
                                         elevation=views_dict[v].elev,

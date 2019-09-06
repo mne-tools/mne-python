@@ -368,3 +368,9 @@ def _set_3d_title(figure, title, size=40):
     text.property.vertical_justification = 'top'
     text.property.font_size = size
     mlab.draw(figure)
+
+
+def _check_figure(figure):
+    from mayavi.core.scene import Scene
+    if not all(isinstance(f, Scene) for f in figure):
+        raise TypeError('figure must be a mayavi scene or list of scenes')

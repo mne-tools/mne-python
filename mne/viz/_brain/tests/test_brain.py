@@ -33,8 +33,8 @@ def test_brain_init(renderer):
 
     with pytest.raises(ValueError, match='hemi'):
         _Brain(subject_id=subject_id, hemi="split", surf=surf)
-    with pytest.raises(ValueError, match='figure'):
-        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, figure=0)
+    with pytest.raises(TypeError, match='figure'):
+        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, figure='foo')
     with pytest.raises(ValueError, match='interaction'):
         _Brain(subject_id=subject_id, hemi=hemi, surf=surf, interaction=0)
     with pytest.raises(KeyError):
