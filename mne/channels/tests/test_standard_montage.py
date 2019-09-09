@@ -130,7 +130,7 @@ def _compare_dig_montage_and_standard_montage_(self, other):
 # @pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
 # @pytest.mark.parametrize('kind', [_BUILT_IN_MONTAGES[0]])
 # @pytest.mark.parametrize('kind', MONTAGES_WITHOUT_FIDUCIALS)
-@pytest.mark.parametrize('kind', [MONTAGES_WITHOUT_FIDUCIALS[0]])
+@pytest.mark.parametrize('kind', [MONTAGES_WITHOUT_FIDUCIALS[1]])
 @patch("mne.channels.DigMontage.__eq__",
        _compare_dig_montage_and_standard_montage)
 def test_no_fid_read_montage(kind):
@@ -189,3 +189,51 @@ def test_read_standard_montage_egi_256():
     assert_allclose(distance_to_center.mean(), 0.085, atol=1e-4)
     assert_allclose(distance_to_center.std(), 0.00418, atol=1e-4)
     # assert_allclose(eeg_loc[:9], EXPECTED_FIRST_9_LOC, atol=1e-1)  # XXX ?
+
+
+@pytest.mark.parametrize('kind', [
+    # 'EGI_256',
+    'easycap-M1',
+    # 'easycap-M10'
+])
+def test_foo(kind):
+    """Test difference between old and new standard montages."""
+    # import pdb; pdb.set_trace()
+    old_montage = read_montage(kind)
+    new_montage = read_standard_montage(kind)
+    # assert new_montage == old_montage
+
+
+def test_easycaps_are_indeed_different():
+    """Test something fishy with easycaps."""
+    m1 = read_montage('easycap-M1')
+    m10 = read_montage('easycap-M10')
+
+    assert m1.__repr__() == (
+        "<Montage | easycap-M1 - 74 channels: Fp1, Fp2, F3 ...>"
+    )
+    assert m10.__repr__() == (
+        "<Montage | easycap-M10 - 61 channels: 1, 2, 3 ...>"
+    )
+
+
+def test_easycap_M1():
+    """Test easycap_M1."""
+    EXPECTED_HEAD_SIZE = 1.  # 0.085
+
+    montage = read_standard_montage('easycap_M1')
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
+
+    ## XXX Thats what I thought it was right. But substracting the center fails
+    #
+    # eeg_center = eeg_loc.mean(axis=0)
+    # distance_to_center = np.linalg.norm(eeg_loc - eeg_center, axis=1)
+    # assert_allclose(eeg_center, [0, 0, 0], atol=1e-8)
+    # assert_allclose(distance_to_center.mean(), EXPECTED_HEAD_SIZE, atol=1e-4)
+
+    assert_allclose(
+        actual=np.linalg.norm(eeg_loc, axis=1),
+        desired=np.ones((eeg_loc.shape[0], ))
+    )
+
+
