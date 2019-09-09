@@ -73,12 +73,35 @@ def get_easycap_M1():
     )
 
 
+def get_easycap_M10():
+    """ Load easycap M10.
+
+    """
+    fname = op.join(MONTAGE_PATH, 'easycap-M10.txt')
+    options = dict(
+        skiprows=1,
+        unpack=True,
+        dtype={'names': ('Site', 'Theta', 'Phi'),
+               'formats': (object, 'i4', 'i4')},
+    )
+
+    ch_names, theta, phi = np.loadtxt(fname, **options)
+    pos = _sph_to_cart(np.array([np.ones_like(phi), phi, theta]).T)
+
+    return make_dig_montage(
+        ch_pos=dict(zip(ch_names, pos)),
+        coord_frame='unknown',
+    )
+
+
 def read_standard_montage(kind):
     if kind == 'EGI_256':
         dig_montage_A = get_egi_256()
 
     elif kind == 'easycap_M1':
         dig_montage_A = get_easycap_M1()
+    elif kind == 'easycap_M10':
+        dig_montage_A = get_easycap_M10()
     else:
         montage = read_montage(kind)  # XXX: reader needs to go out!
         dig_montage_A = make_dig_montage(

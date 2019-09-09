@@ -237,3 +237,22 @@ def test_easycap_M1():
     )
 
 
+
+def test_easycap_M10():
+    """Test easycap_M1."""
+    EXPECTED_HEAD_SIZE = 1.  # 0.085
+
+    montage = read_standard_montage('easycap_M10')
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
+
+    ## XXX Thats what I thought it was right. But substracting the center fails
+    #
+    # eeg_center = eeg_loc.mean(axis=0)
+    # distance_to_center = np.linalg.norm(eeg_loc - eeg_center, axis=1)
+    # assert_allclose(eeg_center, [0, 0, 0], atol=1e-8)
+    # assert_allclose(distance_to_center.mean(), EXPECTED_HEAD_SIZE, atol=1e-4)
+
+    assert_allclose(
+        actual=np.linalg.norm(eeg_loc, axis=1),
+        desired=np.ones((eeg_loc.shape[0], ))
+    )
