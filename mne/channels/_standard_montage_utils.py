@@ -17,7 +17,6 @@ MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
 
 
 def get_egi_256():
-    _SCALE = 1e-2
     fname = op.join(MONTAGE_PATH, 'EGI_256.csd')
     options = dict(
         comments='//',
@@ -31,7 +30,11 @@ def get_egi_256():
 
     labels, _, _, _, x, y, z, _ = np.loadtxt(fname, **options)
     ch_names = [str(l, encoding='utf-8') for l in labels]
-    pos = np.stack([x, y, z], axis=-1) * _SCALE
+    pos = np.stack([x, y, z], axis=-1)
+
+    # Fix pos to match Montage code
+    pos -= np.mean(pos, axis=0)
+    pos = 0.085 * (pos / np.linalg.norm(pos, axis=1).mean())
 
     return make_dig_montage(
         ch_pos=dict(zip(ch_names, pos)),

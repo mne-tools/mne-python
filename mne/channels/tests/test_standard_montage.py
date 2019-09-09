@@ -13,7 +13,7 @@ import numpy as np
 # from copy import deepcopy
 # from functools import partial
 
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 
 # from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 # from mne.channels import (Montage, read_montage, read_dig_montage,
@@ -162,13 +162,30 @@ def test_read_montage(kind):
 
 from pytest import approx
 
-def test_read_standard_montage_egi_256():
 
-    EXPECTED_HEAD_SIZE = 0.85
-    new_montage = read_standard_montage('EGI_256')
-    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(new_montage.dig)])
+
+def test_read_standard_montage_egi_256():
+    """Test egi_256."""
+    EXPECTED_HEAD_SIZE = 0.085
+    EXPECTED_HEAD_VARIANCE = 0.00418
+    EXPECTED_FIRST_9_LOC = np.array(
+        [[ 6.55992516e-02,  5.64176352e-02, -2.57662946e-02],  # noqa
+         [ 6.08331388e-02,  6.57063949e-02, -6.40717015e-03],  # noqa
+         [ 5.19851171e-02,  7.15413471e-02,  1.12091555e-02],  # noqa
+         [ 4.18066179e-02,  7.31439438e-02,  2.66373224e-02],  # noqa
+         [ 3.09755787e-02,  6.97928339e-02,  4.21906579e-02],  # noqa
+         [ 1.96959622e-02,  6.22758709e-02,  5.58500821e-02],  # noqa
+         [ 1.03933314e-02,  5.14631908e-02,  6.63221724e-02],  # noqa
+         [ 8.76671630e-18,  3.81400691e-02,  7.39613137e-02],  # noqa
+         [-1.05002738e-02,  1.95003515e-02,  7.85765571e-02]]  # noqa
+    )
+
+    montage = read_standard_montage('EGI_256')
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
     eeg_center = eeg_loc.mean(axis=0)
     distance_to_center = np.linalg.norm(eeg_loc - eeg_center, axis=1)
 
-    assert distance_to_center.mean() == approx(EXPECTED_HEAD_SIZE, atol=1e-2)
-    assert distance_to_center.std() == approx(EXPECTED_HEAD_SIZE, atol=1e-2)
+    assert_allclose(eeg_center, [0, 0, 0], atol=1e-8)
+    assert_allclose(distance_to_center.mean(), 0.085, atol=1e-4)
+    assert_allclose(distance_to_center.std(), 0.00418, atol=1e-4)
+    # assert_allclose(eeg_loc[:9], EXPECTED_FIRST_9_LOC, atol=1e-1)  # XXX ?
