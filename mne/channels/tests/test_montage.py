@@ -35,9 +35,9 @@ from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
 from mne.bem import _fit_sphere
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
-from mne._digitization import Digitization
-from mne._digitization._utils import _read_dig_points, _format_dig_points
-from mne._digitization.base import _get_dig_eeg, _count_points_by_type
+from mne.channels._digitization import Digitization
+from mne.channels._digitization._utils import _read_dig_points, _format_dig_points
+from mne.channels._digitization.base import _get_dig_eeg, _count_points_by_type
 
 from mne.viz._3d import _fiducial_coords
 

@@ -2,7 +2,7 @@ import numpy as np
 import os.path as op
 from ...utils import logger
 from ...transforms import rotation3d_align_z_axis
-from ..._digitization._utils import _artemis123_read_pos
+from ...channels._digitization._utils import _artemis123_read_pos
 
 
 def _load_mne_locs(fname=None):

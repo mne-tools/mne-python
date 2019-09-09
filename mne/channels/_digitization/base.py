@@ -8,8 +8,8 @@ import numpy as np
 from copy import deepcopy
 from collections import Counter
 
-from ..transforms import _coord_frame_name
-from ..io.constants import FIFF
+from ...transforms import _coord_frame_name
+from ...io.constants import FIFF
 
 _dig_kind_dict = {
     'cardinal': FIFF.FIFFV_POINT_CARDINAL,

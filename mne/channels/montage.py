@@ -26,11 +26,11 @@ from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, _str_to_frame,
                           Transform)
-from .._digitization import Digitization
-from .._digitization.base import _count_points_by_type
-from .._digitization._utils import (_make_dig_points, _read_dig_points,
-                                    write_dig, _read_dig_fif,
-                                    _format_dig_points)
+from ._digitization import Digitization
+from ._digitization.base import _count_points_by_type
+from ._digitization._utils import (_make_dig_points, _read_dig_points,
+                                   write_dig, _read_dig_fif,
+                                   _format_dig_points)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF

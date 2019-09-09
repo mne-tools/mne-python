@@ -29,13 +29,13 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff, _validate_type
-from .._digitization.base import _format_dig_points
+from ..channels._digitization.base import _format_dig_points
 from .compensator import get_current_comp
 
 # XXX: most probably the functions needing this, should go somewhere else
-from .._digitization.base import _dig_kind_proper, _dig_kind_rev
-from .._digitization.base import _dig_kind_ints
-from .._digitization._utils import _read_dig_fif
+from ..channels._digitization.base import _dig_kind_proper, _dig_kind_rev
+from ..channels._digitization.base import _dig_kind_ints
+from ..channels._digitization._utils import _read_dig_fif
 
 b = bytes  # alias
 
