@@ -32,7 +32,7 @@ from mne.io.constants import FIFF
 from mne._digitization import Digitization
 from mne._digitization._utils import _format_dig_points
 from mne._digitization._utils import _get_fid_coords
-from mne._digitization.base import _get_dig_eeg, _count_points_by_type
+from mne.channels._digitization.base import _get_dig_eeg, _count_points_by_type
 
 from mne.viz._3d import _fiducial_coords
 

@@ -14,28 +14,28 @@ import re
 
 import numpy as np
 
-from ..utils import logger
-from ..utils import warn
+from ...utils import logger
+from ...utils import warn
+from ...utils import Bunch
 
-from ..io.constants import FIFF
-from ..io.tree import dir_tree_find
-from ..io.tag import read_tag
-from ..io.write import start_file
-from ..io.write import end_file
-from ..io.write import write_dig_points
+from ...io.constants import FIFF
+from ...io.tree import dir_tree_find
+from ...io.tag import read_tag
+from ...io.write import start_file
+from ...io.write import end_file
+from ...io.write import write_dig_points
 
-from ..transforms import apply_trans
-from ..transforms import als_ras_trans
-from ..transforms import get_ras_to_neuromag_trans
-from ..transforms import Transform
-from ..transforms import combine_transforms
-from ..transforms import invert_transform
-from ..transforms import _to_const
-from ..transforms import _str_to_frame
+from ...transforms import apply_trans
+from ...transforms import als_ras_trans
+from ...transforms import get_ras_to_neuromag_trans
+from ...transforms import Transform
+from ...transforms import combine_transforms
+from ...transforms import invert_transform
+from ...transforms import _to_const
+from ...transforms import _str_to_frame
 
-from ..utils.check import _check_option
-from ..utils import Bunch
-from .. import __version__
+from ...utils.check import _check_option
+from ... import __version__
 
 from .base import _format_dig_points
 

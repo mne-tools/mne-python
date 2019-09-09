@@ -20,7 +20,7 @@ from mne.io import read_raw_fif, RawArray, BaseRaw
 from mne.utils import _TempDir, catch_logging, _raw_annot
 from mne.io.meas_info import _get_valid_units
 
-from mne._digitization import Digitization
+from mne.channels._digitization import Digitization
 
 
 def test_orig_units():

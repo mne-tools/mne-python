@@ -22,7 +22,7 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  VolVectorSourceEstimate, convert_forward_solution,
                  compute_source_morph)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
-from mne._digitization._utils import write_dig
+from mne.channels._digitization._utils import write_dig
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,

@@ -16,7 +16,8 @@ import numpy as np
 from scipy import linalg
 
 from .io.constants import FIFF, FWD
-from ._digitization.base import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
+from .channels._digitization.base import (_dig_kind_dict, _dig_kind_rev,
+                                          _dig_kind_ints)
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
                        end_file)

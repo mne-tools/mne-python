@@ -24,8 +24,9 @@ from mne.io.write import DATE_NONE, _generate_meas_id
 from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
                               _bad_chans_comp, _get_valid_units)
-from mne._digitization._utils import (_write_dig_points, _read_dig_points,
-                                      _make_dig_points,)
+from mne.channels._digitization._utils import (
+    _write_dig_points, _read_dig_points, _make_dig_points
+)
 from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 from mne.channels import make_standard_montage

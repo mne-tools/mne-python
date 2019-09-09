@@ -5,8 +5,8 @@
 # License: BSD (3-clause)
 import pytest
 import numpy as np
-from mne._digitization import Digitization
-from mne._digitization.base import _format_dig_points
+from mne.channels._digitization import Digitization
+from mne.channels._digitization.base import _format_dig_points
 
 dig_dict_list = [
     dict(kind=_, ident=_, r=np.empty((3,)), coord_frame=_)
