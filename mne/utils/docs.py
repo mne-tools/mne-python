@@ -257,20 +257,20 @@ n_jobs : int
 
 # Random state
 docdict['random_state'] = """
-random_state : None | int | instance of ~numpy.random.mtrand.RandomState
+random_state : None | int | instance of ~numpy.random.RandomState
     If ``random_state`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.mtrand.RandomState`. If ``None``, the seed will be
+    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
     obtained from the operating system (see
-    :class:`~numpy.random.mtrand.RandomState` for details). Default is
+    :class:`~numpy.random.RandomState` for details). Default is
     ``None``.
 """
 
 docdict['seed'] = """
-seed : None | int | instance of ~numpy.random.mtrand.RandomState
+seed : None | int | instance of ~numpy.random.RandomState
     If ``seed`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.mtrand.RandomState`. If ``None``, the seed will be
+    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
     obtained from the operating system (see
-    :class:`~numpy.random.mtrand.RandomState` for details). Default is
+    :class:`~numpy.random.RandomState` for details). Default is
     ``None``.
 """
 
