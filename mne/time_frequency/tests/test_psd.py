@@ -160,6 +160,116 @@ def test_psd():
         assert (psds_ev.shape == (len(kws['picks']), len(freqs)))
 
 
+def test_psd_welch_average_kwarg_raw():
+    """Test `average` kwarg of psd_welch() with Raw input data."""
+    raw = read_raw_fif(raw_fname)
+    picks_psd = [0, 1]
+
+    # Populate raw with sinusoids
+    rng = np.random.RandomState(40)
+    data = 0.1 * rng.randn(len(raw.ch_names), raw.n_times)
+    freqs_sig = [8., 50.]
+    for ix, freq in zip(picks_psd, freqs_sig):
+        data[ix, :] += 2 * np.sin(np.pi * 2. * freq * raw.times)
+
+    raw = RawArray(data, raw.info)
+
+    tmin, tmax = 0, 20  # use a few seconds of data
+    fmin, fmax = 0, np.inf
+    n_fft = 256
+    n_per_seg = 128
+    n_overlap = 0
+
+    kws = dict(fmin=fmin,
+               fmax=fmax,
+               tmin=tmin,
+               tmax=tmax,
+               n_fft=n_fft,
+               n_per_seg=n_per_seg,
+               n_overlap=n_overlap,
+               picks=picks_psd)
+
+    psds_mean, freqs_mean = psd_welch(inst=raw, average='mean', **kws)
+    psds_median, freqs_median = psd_welch(inst=raw, average='median', **kws)
+    psds_unagg, freqs_unagg = psd_welch(inst=raw, average=None, **kws)
+
+    # Frequencies should be equal across all "average" types, as we feed in
+    # the exact same data.
+    assert_allclose(freqs_mean, freqs_median)
+    assert_allclose(freqs_mean, freqs_unagg)
+
+    # For `average=None`, the last dimension contains the un-aggregated
+    # segments.
+    assert psds_mean.shape == psds_median.shape
+    assert psds_mean.shape == psds_unagg.shape[:2]
+
+    assert_allclose(psds_mean, psds_unagg.mean(axis=-1))
+
+    # SciPy's welch() function corrects the median PSD for its bias relative to
+    # the mean.
+    from scipy.signal.spectral import _median_bias
+    median_bias = _median_bias(psds_unagg.shape[-1])
+    assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / median_bias)
+
+
+def test_psd_welch_average_kwarg_epo():
+    """Test `average` kwarg of psd_welch() with Epochs input data."""
+    raw = read_raw_fif(raw_fname)
+    picks_psd = [0, 1]
+
+    # Populate raw with sinusoids
+    rng = np.random.RandomState(40)
+    data = 0.1 * rng.randn(len(raw.ch_names), raw.n_times)
+    freqs_sig = [8., 50.]
+    for ix, freq in zip(picks_psd, freqs_sig):
+        data[ix, :] += 2 * np.sin(np.pi * 2. * freq * raw.times)
+    first_samp = raw._first_samps[0]
+    raw = RawArray(data, raw.info)
+
+    events = read_events(event_fname)
+    events[:, 0] -= first_samp
+    tmin, tmax = -0.5, 0.5
+    fmin, fmax = 0, np.inf
+    n_fft = 256
+    n_per_seg = 128
+    n_overlap = 0
+    event_id = 2
+
+    kws = dict(fmin=fmin,
+               fmax=fmax,
+               tmin=tmin,
+               tmax=tmax,
+               n_fft=n_fft,
+               n_per_seg=n_per_seg,
+               n_overlap=n_overlap,
+               picks=picks_psd)
+
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks_psd,
+                    proj=False, preload=True, baseline=None)
+
+    psds_mean, freqs_mean = psd_welch(inst=epochs, average='mean', **kws)
+    psds_median, freqs_median = psd_welch(inst=epochs, average='median', **kws)
+    psds_unagg, freqs_unagg = psd_welch(inst=epochs, average=None, **kws)
+
+    # Frequencies should be equal across all "average" types, as we feed in
+    # the exact same data.
+    assert_allclose(freqs_mean, freqs_median)
+    assert_allclose(freqs_mean, freqs_unagg)
+
+    # For `average=None`, the last dimension contains the un-aggregated
+    # segments.
+    assert psds_mean.shape == psds_median.shape
+    assert psds_mean.shape == psds_unagg.shape[:3]
+
+    assert_allclose(psds_mean, psds_unagg.mean(axis=-1))
+
+    # SciPy's welch() function corrects the median PSD for its bias relative to
+    # the mean.
+    from scipy.signal.spectral import _median_bias
+    median_bias = _median_bias(psds_unagg.shape[-1])
+    assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / median_bias)
+
+
 @pytest.mark.slowtest
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
@@ -203,5 +313,6 @@ def test_compares_psd():
 
     assert (np.sum(psds_welch < 0) == 0)
     assert (np.sum(psds_mpl < 0) == 0)
+
 
 run_tests_if_main()
