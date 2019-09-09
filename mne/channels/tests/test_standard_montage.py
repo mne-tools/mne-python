@@ -33,6 +33,7 @@ from mne.utils import Bunch
 # from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 # from mne.io.constants import FIFF
 from mne._digitization import Digitization
+from mne._digitization.base import _get_dig_eeg
 # from mne._digitization._utils import _read_dig_points
 # from mne.viz._3d import _fiducial_coords
 
@@ -159,7 +160,15 @@ def test_read_montage(kind):
     print(dig)
     # pass
 
+from pytest import approx
 
 def test_read_standard_montage_egi_256():
-    new_montage = read_standard_montage('EGI_256')
 
+    EXPECTED_HEAD_SIZE = 0.85
+    new_montage = read_standard_montage('EGI_256')
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(new_montage.dig)])
+    eeg_center = eeg_loc.mean(axis=0)
+    distance_to_center = np.linalg.norm(eeg_loc - eeg_center, axis=1)
+
+    assert distance_to_center.mean() == approx(EXPECTED_HEAD_SIZE, atol=1e-2)
+    assert distance_to_center.std() == approx(EXPECTED_HEAD_SIZE, atol=1e-2)
