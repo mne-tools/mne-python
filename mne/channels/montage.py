@@ -297,10 +297,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = np.array(pos) * scale_factor
     elif ext == '.txt':
         # easycap
-        try:  # newer version
-            data = np.genfromtxt(fname, dtype='str', skip_header=1)
-        except TypeError:
-            data = np.genfromtxt(fname, dtype='str', skiprows=1)
+        data = np.genfromtxt(fname, dtype='str', skip_header=1)
         ch_names_ = data[:, 0].tolist()
         az = np.deg2rad(data[:, 2].astype(float))
         pol = np.deg2rad(data[:, 1].astype(float))
@@ -309,11 +306,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = _sph_to_cart(np.array([rad, az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
-        try:  # newer version
-            data = np.genfromtxt(fname, dtype='str', skip_header=2)
-        except TypeError:
-            data = np.genfromtxt(fname, dtype='str', skiprows=2)
-
+        data = np.genfromtxt(fname, dtype='str', skip_header=2)
         ch_names_ = data[:, 0].tolist()
         az = np.deg2rad(data[:, 1].astype(float))
         pol = np.deg2rad(90. - data[:, 2].astype(float))
