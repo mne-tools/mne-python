@@ -32,10 +32,11 @@ from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
 from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        mesh_edges, _reorder_ccw, _compute_nearest,
-                       _complete_sphere_surf)
+                       _complete_sphere_surf, _DistanceQuery)
 from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
-                          invert_transform, Transform)
+                          invert_transform, Transform,
+                          _read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl,
                      _ensure_int, _validate_type, _check_option)
@@ -1826,6 +1827,10 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     .. versionadded:: 0.17
 
+    In ``'glass_brain'`` mode, values are transformed to the standard MNI brain
+    using the FreeSurfer Talairach transformation
+    ``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``.
+
     Examples
     --------
     Passing a :class:`mne.SourceMorph` as the ``src``
@@ -1853,12 +1858,23 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                      glass_brain=plot_glass_brain)[mode]
     _validate_type(stc, VolSourceEstimate, 'stc')
     if isinstance(src, SourceMorph):
-        img = src.apply(stc, 'nifti1')
-        stc = src.apply(stc)
+        img = src.apply(stc, 'nifti1', mri_resolution=False, mri_space=True)
+        stc = src.apply(stc, mri_resolution=False, mri_space=True)
+        kind, src_subject = 'morph.subject_to', src.subject_to
     else:
         src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
         img = stc.as_volume(src, mri_resolution=False)
-    del src
+        kind, src_subject = 'src subject', src[0].get('subject_his_id', None)
+    _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
+                       prefix='Image affine ', units='mm')
+    subject = _check_subject(src_subject, subject, True, kind=kind)
+    stc_ijk = np.array(
+        np.unravel_index(stc.vertices, img.shape[:3], order='F')).T
+    assert stc_ijk.shape == (len(stc.vertices), 3)
+    del src, kind
+
+    # XXX this assumes zooms are uniform, should probably mult by zooms...
+    dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
 
     def _cut_coords_to_idx(cut_coords, img):
         """Convert voxel coordinates to index in stc.data."""
@@ -1866,12 +1882,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         del cut_coords
         logger.debug('    Affine remapped cut coords to [%d, %d, %d] idx'
                      % tuple(ijk))
-        dist_vertices = np.array(
-            np.unravel_index(stc.vertices, img.shape[:3], order='F')).T
-        # XXX this assumes zooms are uniform, should probably mult by zooms...
-        loc_idx, dist = _compute_nearest(dist_vertices, ijk[np.newaxis],
-                                         return_dists=True)
-        loc_idx, dist = loc_idx[0], dist[0]
+        dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
+        dist, loc_idx = dist[0], loc_idx[0]
         logger.debug('    Using vertex %d at a distance of %d voxels'
                      % (stc.vertices[loc_idx], dist))
         return loc_idx
@@ -1896,6 +1908,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             logger.debug('    Click outside axes')
             return None
         cut_coords = np.array((x, y, z))
+        logger.debug('')
 
         if params['mode'] == 'glass_brain':  # find idx for MIP
             img_data = np.abs(_get_img_fdata(params['img_idx']))
@@ -1927,19 +1940,21 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             idx = min(params['stc'].shape[1] - 1, idx + 2)
         elif event.key == 'shift+right':
             idx = min(params['stc'].shape[1] - 1, idx + 10)
-        params['lx'].set_xdata(idx / params['stc'].sfreq +
-                               params['stc'].tmin)
         _update_timeslice(idx, params)
         params['fig'].canvas.draw()
 
     def _update_timeslice(idx, params):
-        cut_coords = (0, 0, 0)  # XXX WHY?
+        params['lx'].set_xdata(idx / params['stc'].sfreq +
+                               params['stc'].tmin)
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_func']
-        if mode == 'stat_map':
-            cut_coords = (ax_y.lines[0].get_xdata()[0],
-                          ax_x.lines[0].get_xdata()[0],
-                          ax_x.lines[1].get_ydata()[0])
+        # Crosshairs are the first thing plotted in stat_map, and the last
+        # in glass_brain
+        idxs = [0, 0, 1] if mode == 'stat_map' else [-2, -2, -1]
+        cut_coords = (
+            ax_y.lines[idxs[0]].get_xdata()[0],
+            ax_x.lines[idxs[1]].get_xdata()[0],
+            ax_x.lines[idxs[2]].get_ydata()[0])
         ax_x.clear()
         ax_y.clear()
         ax_z.clear()
@@ -1947,8 +1962,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         params.update({'title': 'Activation (t=%.3f s.)'
                        % params['stc'].times[idx]})
         plot_map_callback(
-            params['img_idx'], title='',
-            cut_coords=cut_coords)
+            params['img_idx'], title='', cut_coords=cut_coords)
 
     @verbose_dec
     def _onclick(event, params, verbose=None):
@@ -1956,8 +1970,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_func']
         if event.inaxes is params['ax_time']:
-            idx = params['stc'].time_as_index(event.xdata)[0]
-            params['lx'].set_xdata(event.xdata)
+            idx = params['stc'].time_as_index(
+                event.xdata, use_rounding=True)[0]
             _update_timeslice(idx, params)
 
         cut_coords = _click_to_cut_coords(event, params)
@@ -1974,20 +1988,37 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
         else:
             ax_time.lines[0].set_ydata(0.)
+        ax_time.relim()
+        ax_time.autoscale_view()
         params['fig'].canvas.draw()
 
-    if bg_img is None:
-        subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                        raise_error=True)
+    if mode == 'glass_brain':
         subject = _check_subject(stc.subject, subject, True)
-        t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-        bg_img = nib.load(t1_fname)
+        ras_mni_t = _read_ras_mni_t(subject, subjects_dir)
+        if not np.allclose(ras_mni_t['trans'], np.eye(4)):
+            _print_coord_trans(
+                ras_mni_t, prefix='Transforming subject ', units='mm')
+            logger.info('')
+            # To get from voxel coords to world coords (i.e., define affine)
+            # we would apply img.affine, then also apply ras_mni_t, which
+            # transforms from the subject's RAS to MNI RAS. So we left-multiply
+            # these.
+            img = nib.Nifti1Image(
+                img.dataobj, np.dot(ras_mni_t['trans'], img.affine))
+        bg_img = None  # not used
+    else:  # stat_map
+        if bg_img is None:
+            subject = _check_subject(stc.subject, subject, True)
+            subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                            raise_error=True)
+            t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+            bg_img = nib.load(t1_fname)
 
-    bg_img_param = None if mode == 'glass_brain' else bg_img
     if initial_time is None:
         time_sl = slice(0, None)
     else:
         initial_time = float(initial_time)
+        logger.info('Fixing initial time: %s sec' % (initial_time,))
         initial_time = np.argmin(np.abs(stc.times - initial_time))
         time_sl = slice(initial_time, initial_time + 1)
     if initial_pos is None:  # find max pos and (maybe) time
@@ -2000,6 +2031,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             raise ValueError('initial_pos must be float ndarray with shape '
                              '(3,), got shape %s' % (initial_pos.shape,))
         initial_pos *= 1000
+        logger.info('Fixing initial position: %s mm'
+                    % (initial_pos.tolist(),))
         loc_idx = _cut_coords_to_idx(initial_pos, img)
         if initial_time is not None:  # time also specified
             time_idx = time_sl.start
@@ -2008,7 +2041,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     img_idx = index_img(img, time_idx)
     assert img_idx.shape == img.shape[:3]
     del initial_time, initial_pos
-    ijk = np.unravel_index(stc.vertices[loc_idx], img_idx.shape, order='F')
+    ijk = stc_ijk[loc_idx]
     cut_coords = _ijk_to_cut_coords(ijk, img_idx)
     np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
     logger.info('Showing t = %0.3f s (%0.1f, %0.1f, %0.1f) mm [%d, %d, %d] idx'
@@ -2019,7 +2052,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     # Plot initial figure
     fig, (axes, ax_time) = plt.subplots(2)
-    ax_time.plot(stc.times, stc.data[loc_idx].T, color='k')
+    marker = 'o' if len(stc.times) == 1 else None
+    ax_time.plot(stc.times, stc.data[loc_idx].T, color='k', marker=marker)
     if len(stc.times) > 1:
         ax_time.set(xlim=stc.times[[0, -1]])
     ax_time.set(xlabel='Time (s)', ylabel='Activation')
@@ -2059,7 +2093,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     plot_kwargs = dict(
         threshold=None, axes=axes,
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
-        colorbar=colorbar, bg_img=bg_img_param, cmap=colormap, black_bg=True,
+        colorbar=colorbar, bg_img=bg_img, cmap=colormap, black_bg=True,
         symmetric_cbar=True)
 
     def plot_and_correct(*args, **kwargs):
@@ -2070,6 +2104,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             warnings.simplefilter('ignore', mplDeprecation)
             params['fig_anat'] = partial(
                 plot_func, **plot_kwargs)(*args, **kwargs)
+        params['fig_anat']._cbar.outline.set_visible(False)
         for key in 'xyz':
             params.update({'ax_' + key: params['fig_anat'].axes[key].ax})
         # Fix nilearn bug w/cbar background being white

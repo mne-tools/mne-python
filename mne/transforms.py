@@ -19,7 +19,8 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger, verbose, _ensure_int, _check_path_like
+from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
+                    _check_path_like, get_subjects_dir, _check_subject)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -173,11 +174,12 @@ def _coord_frame_name(cframe):
     return _verbose_frames.get(int(cframe), 'unknown')
 
 
-def _print_coord_trans(t, prefix='Coordinate transformation: '):
+def _print_coord_trans(t, prefix='Coordinate transformation: ', units='m'):
+    # Units gives the units of the transformation. This always prints in mm.
     logger.info(prefix + '%s -> %s'
                 % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
     for ti, tt in enumerate(t['trans']):
-        scale = 1000. if ti != 3 else 1.
+        scale = 1000. if (ti != 3 and units != 'mm') else 1.
         text = ' mm' if ti != 3 else ''
         logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
                     (tt[0], tt[1], tt[2], scale * tt[3], text))
@@ -1293,6 +1295,19 @@ def _average_quats(quats, weights=None):
     return avg_quat
 
 
+def _read_ras_mni_t(subject, subjects_dir=None):
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    _validate_type(subject, 'str', 'subject')
+    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
+                    'talairach.xfm')
+    if not op.isfile(fname):
+        raise FileNotFoundError(
+            'FreeSurfer Talairach transformation file not found: %s'
+            % (fname,))
+    return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
+
+
 def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith('.xfm')
@@ -1305,6 +1320,7 @@ def _read_fs_xfm(fname):
         for li, line in enumerate(fid):
             if li == 0:
                 kind = line.strip()
+                logger.debug('Found: %r' % (kind,))
             if line[:len(comp)] == comp:
                 # we have the right line, so don't read any more
                 break

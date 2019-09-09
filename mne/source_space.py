@@ -36,7 +36,7 @@ from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
-                         _ensure_trans, _read_fs_xfm)
+                         _ensure_trans, _read_ras_mni_t)
 
 
 def _get_lut():
@@ -1273,18 +1273,15 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
 
 @verbose
 def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
-    """Read MNI transform from FreeSurfer talairach.xfm file.
+    """Compute MNI transform from FreeSurfer talairach.xfm file.
 
     Adapted from freesurfer m-files. Altered to deal with Norig
     and Torig correctly.
     """
     if mode is not None and mode not in ['nibabel', 'freesurfer']:
         raise ValueError('mode must be "nibabel" or "freesurfer"')
-    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
-                    'talairach.xfm')
-
     # Setup the RAS to MNI transform
-    ras_mni_t = Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
+    ras_mni_t = _read_ras_mni_t(subject, subjects_dir)
 
     # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
     # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').

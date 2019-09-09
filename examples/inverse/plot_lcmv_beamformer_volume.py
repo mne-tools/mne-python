@@ -24,7 +24,6 @@ print(__doc__)
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
 
 # Get epochs
@@ -49,7 +48,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
 evoked = epochs.average()
 
 # Visualize sensor space data
-evoked.plot_joint()
+# evoked.plot_joint()
 
 ###############################################################################
 # Compute covariance matrices, fit and apply  spatial filter.
@@ -84,10 +83,9 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
 # You can save result in stc files with:
 # stc.save('lcmv-vol')
-
 clim = dict(kind='value', pos_lims=[0.3, 0.6, 0.9])
-stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
-         clim=clim)
+#stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
+#         clim=clim, mode='stat_map', verbose='debug')
 
 ###############################################################################
 # Now let's:
@@ -95,15 +93,28 @@ stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
 # - show absolute values, and
 # - morph data to ``'fsaverage'`` instead of `sample`
 
-# XXX The morph is still wrong. And even without morph it's wrong because it's
-# not in MNI space.
+morph = mne.compute_source_morph(
+    forward['src'], 'sample', 'fsaverage', subjects_dir=subjects_dir,
+    verbose='debug', zooms=7)
+stc = abs(stc.crop(0.08, 0.12))
 
-# morph = mne.compute_source_morph(
-#     forward['src'], 'sample', 'fsaverage', subjects_dir=subjects_dir,
-#     verbose='debug')
 clim = dict(kind='value', lims=[0.3, 0.6, 0.9])
-abs(stc).crop(0.08, 0.12).plot(
-    # src=morph,
+"""
+print('*' * 80)
+stc.plot(
     src=forward['src'],
     subject='sample', subjects_dir=subjects_dir,
-    mode='glass_brain', clim=clim)
+    mode='stat_map', clim=clim, verbose='debug')
+"""
+initial_pos = (-56.7, -44.1, -0.3)
+print('*' * 80)
+stc.plot(
+    src=forward['src'], initial_pos=initial_pos,
+    subject='sample', subjects_dir=subjects_dir,
+    mode='glass_brain', clim=clim, verbose='debug')
+print('*' * 80)
+stc.plot(
+    src=morph, initial_pos=initial_pos,
+    subject='fsaverage', subjects_dir=subjects_dir,
+    mode='glass_brain', clim=clim, verbose='debug')
+print('*' * 80)

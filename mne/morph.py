@@ -143,7 +143,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     shape = affine = pre_affine = sdr_morph = None
     morph_mat = vertices_to = None
     if kind == 'volume':
-        _check_dep(nibabel='2.1.0', dipy=False)
+        _check_dep(nibabel='2.1.0', dipy='0.10.1')
 
         logger.info('volume source space inferred...')
         import nibabel as nib
@@ -692,7 +692,6 @@ def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
 def _compute_morph_sdr(mri_from, mri_to, niter_affine=(100, 100, 10),
                        niter_sdr=(5, 5, 3), zooms=(5., 5., 5.)):
     """Get a matrix that morphs data from one subject to another."""
-    _check_dep(nibabel='2.1.0', dipy='0.10.1')
     import nibabel as nib
     with np.testing.suppress_warnings():
         from dipy.align import imaffine, imwarp, metrics, transforms

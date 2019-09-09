@@ -149,20 +149,26 @@ def _check_fname(fname, overwrite=False, must_exist=False):
     return str(fname)
 
 
-def _check_subject(class_subject, input_subject, raise_error=True):
+def _check_subject(class_subject, input_subject, raise_error=True,
+                   kind='class subject attribute'):
     """Get subject name from class."""
+    mismatch_err = ('%s (%r) did not match input subject (%r)'
+                    % (kind, class_subject, input_subject))
     if input_subject is not None:
         _validate_type(input_subject, 'str', "subject input")
+        if class_subject is not None and input_subject != class_subject:
+            raise ValueError(mismatch_err)
         return input_subject
     elif class_subject is not None:
         _validate_type(class_subject, 'str',
-                       "Either subject input or class subject attribute")
+                       "Either subject input or %s" % (kind,))
+        if input_subject is not None and input_subject != class_subject:
+            raise ValueError(mismatch_err)
         return class_subject
-    else:
-        if raise_error is True:
-            raise ValueError('Neither subject input nor class subject '
-                             'attribute was a string')
-        return None
+    elif raise_error is True:
+        raise ValueError('Neither subject input nor %s '
+                            'was a string' % (kind,))
+    return None
 
 
 def _check_preload(inst, msg):
