@@ -128,7 +128,8 @@ def _compare_dig_montage_and_standard_montage_(self, other):
 
 # @pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
 # @pytest.mark.parametrize('kind', [_BUILT_IN_MONTAGES[0]])
-@pytest.mark.parametrize('kind', MONTAGES_WITHOUT_FIDUCIALS)
+# @pytest.mark.parametrize('kind', MONTAGES_WITHOUT_FIDUCIALS)
+@pytest.mark.parametrize('kind', [MONTAGES_WITHOUT_FIDUCIALS[0]])
 @patch("mne.channels.DigMontage.__eq__",
        _compare_dig_montage_and_standard_montage)
 def test_no_fid_read_montage(kind):
@@ -136,6 +137,7 @@ def test_no_fid_read_montage(kind):
     old_montage = read_montage(kind)
     new_montage = read_standard_montage(kind)
     assert new_montage == old_montage
+
 
 @pytest.mark.parametrize('kind', MONTAGES_WITH_FIDUCIALS)
 @patch("mne.channels.DigMontage.__eq__",
@@ -145,7 +147,7 @@ def test_read_montage(kind):
     old_montage = read_montage(kind)
     new_montage = read_standard_montage(kind)
     assert new_montage == old_montage
-    
+
     raw = RawArray(
         data=np.empty((len(old_montage.ch_names), 1), dtype=np.float64),
         info=create_info(
@@ -155,11 +157,9 @@ def test_read_montage(kind):
 
     dig = raw.info['dig']
     print(dig)
-    # import pdb; pdb.set_trace()
     # pass
 
 
-
-
-
+def test_read_standard_montage_egi_256():
+    new_montage = read_standard_montage('EGI_256')
 
