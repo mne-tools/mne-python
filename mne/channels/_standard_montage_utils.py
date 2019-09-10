@@ -71,39 +71,8 @@ def get_easycap(basename):
     )
 
 
-
-def get_hydrocel_128():
-    fname = op.join(MONTAGE_PATH, 'GSN-HydroCel-128.sfp')
-
-    LPA_CH_NAME = 'FidT9'
-    NASION_CH_NAME = 'FidNz'
-    RPA_CH_NAME = 'FidT10'
-    with open(fname, 'r') as f:
-        lines = f.read().replace('\t', ' ').splitlines()
-
-    ch_names_, pos = [], []
-    for ii, line in enumerate(lines):
-        line = line.strip().split()
-        if len(line) > 0:  # skip empty lines
-            if len(line) != 4:  # name, x, y, z
-                raise ValueError("Malformed .sfp file in line " + str(ii))
-            this_name, x, y, z = line
-            ch_names_.append(this_name)
-            pos.append([float(cord) for cord in (x, y, z)])
-    pos = np.asarray(pos)
-
-    ch_pos = dict(zip(ch_names_, pos))
-    nasion = ch_pos.pop(NASION_CH_NAME).reshape(3, )
-    lpa = ch_pos.pop(LPA_CH_NAME).reshape(3, )
-    rpa = ch_pos.pop(RPA_CH_NAME).reshape(3, )
-
-    return make_dig_montage(
-        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
-    )
-
-
-def get_hydrocel_129():
-    fname = op.join(MONTAGE_PATH, 'GSN-HydroCel-129.sfp')
+def get_hydrocel(basename):
+    fname = op.join(MONTAGE_PATH, basename)
 
     LPA_CH_NAME = 'FidT9'
     NASION_CH_NAME = 'FidNz'
@@ -132,8 +101,8 @@ def get_hydrocel_129():
     )
 
 
-def get_biosemi128():
-    fname = op.join(MONTAGE_PATH, 'biosemi128.txt')
+def get_biosemi(basename):
+    fname = op.join(MONTAGE_PATH, basename)
     data = np.genfromtxt(fname, dtype='str', skip_header=1)
     ch_names_ = data[:, 0].tolist()
     az = np.deg2rad(data[:, 2].astype(float))
@@ -151,8 +120,8 @@ def get_biosemi128():
     )
 
 
-def get_mgh60():
-    fname = op.join(MONTAGE_PATH, 'mgh60.elc')
+def get_mgh_or_standard(basename):
+    fname = op.join(MONTAGE_PATH, basename)
 
     # 10-5 system
     ch_names_, pos = [], []
@@ -223,41 +192,7 @@ def get_standard_1005():
         ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
     )
 
-
-
-def read_standard_montage(kind):
-    if kind == 'EGI_256':
-        dig_montage_A = get_egi_256()
-
-    elif kind == 'easycap_M1':
-        dig_montage_A = get_easycap_M1()
-    elif kind == 'easycap_M10':
-        dig_montage_A = get_easycap_M10()
-    elif kind == 'GSN-HydroCel-128':
-        dig_montage_A = get_hydrocel_128()
-    elif kind == 'GSN-HydroCel-129':
-        dig_montage_A = get_hydrocel_129()
-    elif kind == 'biosemi128':
-        dig_montage_A = get_biosemi128()
-    elif kind == 'mgh60':
-        dig_montage_A = get_mgh60()
-    elif kind == 'standard_1005':
-        dig_montage_A = get_standard_1005()
-
-    else:
-        montage = read_montage(kind)  # XXX: reader needs to go out!
-        dig_montage_A = make_dig_montage(
-            ch_pos=dict(zip(montage.ch_names, montage.pos)),
-            nasion=montage.nasion,
-            lpa=montage.lpa,
-            rpa=montage.rpa,
-        )
-        # dig_montage_B is to create RawArray(.., montage=montage)
-
-    return dig_montage_A
-
-standard_montage_look_up_table={
-
+standard_montage_look_up_table = {
     'easycap-M1': {
         'reader': get_easycap,
         'params': dict(basename='easycap-M1.txt')
@@ -267,28 +202,174 @@ standard_montage_look_up_table={
         'params': dict(basename='easycap-M1.txt')
     },
 
+    'GSN-HydroCel-128': {
+        'reader': get_hydrocel,
+        'params': dict(basename='GSN-HydroCel-128.sfp')
+    },
+    'GSN-HydroCel-129': {
+        'reader': get_hydrocel,
+        'params': dict(basename='GSN-HydroCel-129.sfp')
+    },
+    'GSN-HydroCel-256': {
+        'reader': get_hydrocel,
+        'params': dict(basename='GSN-HydroCel-256.sfp')
+    },
+    'GSN-HydroCel-257': {
+        'reader': get_hydrocel,
+        'params': dict(basename='GSN-HydroCel-257.sfp')
+    },
+    'GSN-HydroCel-32': {
+        'reader': get_hydrocel,
+        'params': dict(basename='GSN-HydroCel-32.sfp')
+    },
+    'GSN-HydroCel-64_1.0': {
+        'reader': get_hydrocel,
+        'params': dict(basename='GSN-HydroCel-64_1.0.sfp')
+    },
+    'GSN-HydroCel-65_1.0': {
+        'reader': get_hydrocel,
+        'params': dict(basename='GSN-HydroCel-65_1.0.sfp')
+    },
+
+    'biosemi128': {
+        'reader': get_biosemi,
+        'params': dict(basename='biosemi128.txt')
+    },
+    'biosemi16': {
+        'reader': get_biosemi,
+        'params': dict(basename='biosemi16.txt')
+    },
+    'biosemi160': {
+        'reader': get_biosemi,
+        'params': dict(basename='biosemi160.txt')
+    },
+    'biosemi256': {
+        'reader': get_biosemi,
+        'params': dict(basename='biosemi256.txt')
+    },
+    'biosemi32': {
+        'reader': get_biosemi,
+        'params': dict(basename='biosemi32.txt')
+    },
+    'biosemi64': {
+        'reader': get_biosemi,
+        'params': dict(basename='biosemi64.txt')
+    },
+
+    'mgh60': {
+        'reader': get_mgh_or_standard,
+        'params': dict(basename='mgh60.elc')
+    },
+    'mgh70': {
+        'reader': get_mgh_or_standard,
+        'params': dict(basename='mgh70.elc')
+    },
+    'standard_1005': {
+        'reader': get_mgh_or_standard,
+        'params': dict(basename='standard_1005.elc')
+    },
+    'standard_1020': {
+        'reader': get_mgh_or_standard,
+        'params': dict(basename='standard_1020.elc')
+    },
+    'standard_alphabetic': {
+        'reader': get_mgh_or_standard,
+        'params': dict(basename='standard_alphabetic.elc')
+    },
+    'standard_postfixed': {
+        'reader': get_mgh_or_standard,
+        'params': dict(basename='standard_postfixed.elc')
+    },
+    'standard_prefixed': {
+        'reader': get_mgh_or_standard,
+        'params': dict(basename='standard_prefixed.elc')
+    },
+    'standard_primed': {
+        'reader': get_mgh_or_standard,
+        'params': dict(basename='standard_primed.elc')
+    },
+
 }
 
 
 def read_standard_montage(kind):
-    if kind.startswith('easycap'):
+    """Read a generic (built-in) montage.
+
+    Individualized (digitized) electrode positions should be read in using
+    :func:`read_dig_montage`.  # XXXX
+
+    Parameters
+    ----------
+    kind : str
+        The name of the montage file without the file extension (e.g.
+        kind='easycap-M10' for 'easycap-M10.txt'). See notes for valid kinds.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+
+    Notes
+    -----
+    Valid ``kind`` arguments are:
+
+    ===================   =====================================================
+    Kind                  Description
+    ===================   =====================================================
+    standard_1005         Electrodes are named and positioned according to the
+                          international 10-05 system (343+3 locations)
+    standard_1020         Electrodes are named and positioned according to the
+                          international 10-20 system (94+3 locations)
+    standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
+                          (A1, B2, F4, ...) (65+3 locations)
+    standard_postfixed    Electrodes are named according to the international
+                          10-20 system using postfixes for intermediate
+                          positions (100+3 locations)
+    standard_prefixed     Electrodes are named according to the international
+                          10-20 system using prefixes for intermediate
+                          positions (74+3 locations)
+    standard_primed       Electrodes are named according to the international
+                          10-20 system using prime marks (' and '') for
+                          intermediate positions (100+3 locations)
+
+    biosemi16             BioSemi cap with 16 electrodes (16+3 locations)
+    biosemi32             BioSemi cap with 32 electrodes (32+3 locations)
+    biosemi64             BioSemi cap with 64 electrodes (64+3 locations)
+    biosemi128            BioSemi cap with 128 electrodes (128+3 locations)
+    biosemi160            BioSemi cap with 160 electrodes (160+3 locations)
+    biosemi256            BioSemi cap with 256 electrodes (256+3 locations)
+
+    easycap-M1            EasyCap with 10-05 electrode names (74 locations)
+    easycap-M10           EasyCap with numbered electrodes (61 locations)
+
+    EGI_256               Geodesic Sensor Net (256 locations)
+
+    GSN-HydroCel-32       HydroCel Geodesic Sensor Net and Cz (33+3 locations)
+    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (64+3 locations)
+    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net and Cz (65+3 locations)
+    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (128+3 locations)
+    GSN-HydroCel-129      HydroCel Geodesic Sensor Net and Cz (129+3 locations)
+    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
+    GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
+
+    mgh60                 The (older) 60-channel cap used at
+                          MGH (60+3 locations)
+    mgh70                 The (newer) 70-channel BrainVision cap used at
+                          MGH (70+3 locations)
+    ===================   =====================================================
+
+    .. versionadded:: 0.9.0
+    """
+    if kind not in standard_montage_look_up_table:
+        # XXX: this is the old message needs update
+        raise ValueError('Could not find the montage. Please provide the '
+                         'full path.')
+    else:
         reader = standard_montage_look_up_table[kind]['reader']
         params = standard_montage_look_up_table[kind]['params']
         montage = reader(**params)
-
-    elif kind == 'EGI_256':
-        montage = get_egi_256()
-    elif kind == 'GSN-HydroCel-128':
-        montage = get_hydrocel_128()
-    elif kind == 'GSN-HydroCel-129':
-        montage = get_hydrocel_129()
-    elif kind == 'biosemi128':
-        montage = get_biosemi128()
-    elif kind == 'mgh60':
-        montage = get_mgh60()
-    elif kind == 'standard_1005':
-        montage = get_standard_1005()
-    else:
-        raise NotImplementedError
-
-    return montage
+        return montage
