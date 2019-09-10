@@ -552,8 +552,14 @@ def has_dataset(name):
 @verbose
 def _download_all_example_data(verbose=True):
     """Download all datasets used in examples and tutorials."""
-    # This function is designed primarily to be used by CircleCI. It has
-    # verbose=True by default so we get nice status messages
+    # This function is designed primarily to be used by CircleCI, to:
+    #
+    # 1. Streamline data downloading
+    # 2. Make CircleCI fail early (rather than later) if some necessary data
+    #    cannot be retrieved.
+    # 3. Avoid download statuses and timing biases in rendered examples.
+    #
+    # verbose=True by default so we get nice status messages.
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
@@ -580,6 +586,8 @@ def _download_all_example_data(verbose=True):
     finally:
         sys.argv.pop(-1)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    for subj in range(4):
+        eegbci.load_data(subj + 1, runs=[3], update_path=True)
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1],
                                    update_path=True)
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
