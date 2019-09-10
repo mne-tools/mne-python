@@ -443,7 +443,7 @@ class _Brain(object):
             self._data["time_label"] = time_label
             self._data["time"] = time
             self._data["time_idx"] = 0
-            y_txt = 0.05 + 0.05 * bool(colorbar)
+            y_txt = 0.05 + 0.1 * bool(colorbar)
 
         if time is not None and len(array.shape) == 2:
             # we have scalar_data with time dimension
