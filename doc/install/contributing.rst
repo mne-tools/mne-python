@@ -140,7 +140,7 @@ followed the :ref:`installation instructions <install-python>` for the stable
 version of MNE-Python, MNE-Python will be installed in the environment ``base``
 (unless you provided a custom environment name during installation). Before
 continuing, you should create a new, separate environment for MNE-Python
-development (here we'll call it ``mnedev``):
+development (here we'll call it ``mnedev``)::
 
     $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
     $ conda env create --file environment.yml --name mnedev
@@ -180,11 +180,11 @@ Finally, set up a link between your local clone and the official repository
     $ git remote add upstream git://github.com/mne-tools/mne-python.git
     $ git fetch --all
 
-Next, set up your local development environment using the
-:ref:`standard instructions <standard_instructions>`. This will install all
-of the dependencies needed for running MNE-Python. The environment file installs the
-*stable* version of MNE-Python, so next we'll remove that and replace it with the *development*
-version (the clone we just created with git)::
+When you created the ``mnedev`` environment using the environment file, it
+installed the *stable* version of MNE-Python, so next we'll remove that and
+replace it with the *development* version (the clone we just created with git).
+Make sure you're in the correct environment first (:samp:`conda activate
+mnedev`), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
     $ pip uninstall -y mne
