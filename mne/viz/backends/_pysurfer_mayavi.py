@@ -213,6 +213,21 @@ class _Renderer(_BaseRenderer):
     def scalarbar(self, source, title=None, n_labels=4, bgcolor=None):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.scalarbar(source, title=title, nb_labels=n_labels)
+        if bgcolor is not None:
+            from tvtk.api import tvtk
+            bgcolor = np.asarray(bgcolor)
+            bgcolor = np.append(bgcolor, 1.0) * 255.
+            cmap = source.module_manager.scalar_lut_manager
+            lut = cmap.lut
+            ctable = lut.table.to_array()
+            cbar_lut = tvtk.LookupTable()
+            cbar_lut.deep_copy(lut)
+            alphas = ctable[:, -1][:, np.newaxis] / 255.
+            use_lut = ctable.copy()
+            use_lut[:, -1] = 255.
+            vals = (use_lut * alphas) + bgcolor * (1 - alphas)
+            cbar_lut.table.from_array(vals)
+            cmap.scalar_bar.lookup_table = cbar_lut
 
     def show(self):
         if self.fig is not None:
