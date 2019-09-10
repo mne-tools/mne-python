@@ -36,15 +36,19 @@ def get_egi_256():
     pos = np.stack([x, y, z], axis=-1)
 
     # Fix pos to match Montage code
-    pos -= np.mean(pos, axis=0)
+    # pos -= np.mean(pos, axis=0)
     pos = 0.085 * (pos / np.linalg.norm(pos, axis=1).mean())
 
     return make_dig_montage(
         ch_pos=dict(zip(ch_names, pos)),
-        coord_frame='unknown',
+        coord_frame='head',
     )
 
 
+# HEAD_SIZE_ESTIMATION = 0.085  # in [m]
+
+# HEAD_SIZE_ESTIMATION = 0.085  # in [m]
+HEAD_SIZE_ESTIMATION = 1  # in [m]
 def get_easycap_M1():
     """ Load easycap M1.
 
@@ -63,13 +67,15 @@ def get_easycap_M1():
         dtype={'names': ('Site', 'Theta', 'Phi'),
                'formats': (object, 'i4', 'i4')},
     )
-
     ch_names, theta, phi = np.loadtxt(fname, **options)
-    pos = _sph_to_cart(np.array([np.ones_like(phi), phi, theta]).T)
+    radious = np.full_like(phi, HEAD_SIZE_ESTIMATION)
+    pos = _sph_to_cart(np.stack([radious, phi, theta], axis=-1,))
+
+    pos *= 0.085  # XXX this should work out of the box with HEAD_SIZE
 
     return make_dig_montage(
         ch_pos=dict(zip(ch_names, pos)),
-        coord_frame='unknown',
+        coord_frame='head',
     )
 
 
@@ -86,11 +92,14 @@ def get_easycap_M10():
     )
 
     ch_names, theta, phi = np.loadtxt(fname, **options)
-    pos = _sph_to_cart(np.array([np.ones_like(phi), phi, theta]).T)
+    radious = np.full_like(phi, HEAD_SIZE_ESTIMATION)
+    pos = _sph_to_cart(np.stack([radious, phi, theta], axis=-1,))
+
+    pos *= 0.085  # XXX this should work out of the box with HEAD_SIZE
 
     return make_dig_montage(
         ch_pos=dict(zip(ch_names, pos)),
-        coord_frame='unknown',
+        coord_frame='head',
     )
 
 
