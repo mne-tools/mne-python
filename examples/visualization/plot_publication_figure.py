@@ -18,7 +18,7 @@ import os.path as op
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1 import make_axes_locatable, ImageGrid
 
 import mne
 
@@ -75,12 +75,12 @@ nonwhite_col = nonwhite_pix.any(0)
 cropped_screenshot = screenshot[nonwhite_row][:, nonwhite_col]
 
 # before/after results
-fig, axs = plt.subplots(2, 1)
-for ax, image, title in zip(axs, [screenshot, cropped_screenshot],
+fig = plt.figure(figsize=(4, 4))
+axes = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0.5)
+for ax, image, title in zip(axes, [screenshot, cropped_screenshot],
                             ['Before', 'After']):
     ax.imshow(image)
     ax.set_title('{} cropping'.format(title))
-fig.tight_layout()
 
 ###############################################################################
 # A lot of figure settings can be adjusted after the figure is created, but
@@ -102,8 +102,10 @@ plt.rcParams.update({
 # Now let's create our custom figure. There are lots of ways to do this step.
 # Here we'll create the figure and the subplot axes in one step, specifying
 # overall figure size, number and arrangement of subplots, and the ratio of
-# subplot heights for each row. Other approaches are shown commented out, for
-# reference.
+# subplot heights for each row using :mod:`GridSpec keywords
+# <matplotlib.gridspec>`. Other approaches (using
+# :func:`~matplotlib.pyplot.subplot2grid`, or adding each axes manually) are
+# shown commented out, for reference.
 
 # sphinx_gallery_thumbnail_number = 5
 # figsize unit is inches
