@@ -1286,19 +1286,23 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         perc_data = np.abs(stc_data) if diverging_lims else stc_data
         ctrl_pts = np.percentile(perc_data, ctrl_pts)
         logger.info('Using control points %s' % (ctrl_pts,))
-    if len(set(ctrl_pts)) != 3:
-        if len(set(ctrl_pts)) == 1:  # three points match
-            if ctrl_pts[0] == 0:  # all are zero
-                warn('All data were zero')
-                ctrl_pts = np.arange(3, dtype=float)
-            else:
-                ctrl_pts *= [0., 0.5, 1]  # all nonzero pts == max
-        else:  # two points match
-            # if points one and two are identical, add a tiny bit to the
-            # control point two; if points two and three are identical,
-            # subtract a tiny bit from point two.
-            bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
-            ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
+    if len(set(ctrl_pts)) == 1:  # three points match
+        if ctrl_pts[0] == 0:  # all are zero
+            warn('All data were zero')
+            ctrl_pts = np.arange(3, dtype=float)
+            ticks = [0]
+        else:
+            ctrl_pts *= [0., 0.5, 1]  # all nonzero pts == max
+            ticks = ctrl_pts[-1:]
+    elif len(set(ctrl_pts)) == 2:  # two points match
+        # if points one and two are identical, add a tiny bit to the
+        # control point two; if points two and three are identical,
+        # subtract a tiny bit from point two.
+        bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
+        ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
+        ticks = ctrl_pts[::2]
+    else:
+        ticks = ctrl_pts
 
     if colormap in ('mne', 'mne_analyze'):
         colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
@@ -1311,6 +1315,8 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         linear_norm = [0, 0.25, 0.5, 0.5, 0.5, 0.75, 1]
         trans_norm = [1, 1, 0, 0, 0, 1, 1]
         scale_pts = [-ctrl_pts[2], ctrl_pts[2]]
+        idx = int(ticks[0] == 0)
+        ticks = list(-np.array(ticks[idx:])[::-1]) + [0] + list(ticks[idx:])
     else:
         # remap ctrl_norm[0]->ctrl_norm[2] to 0->1
         ctrl_norm = [
@@ -1330,7 +1336,7 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
         colormap = ListedColormap(colormap)
     else:  # mayavi / PySurfer will do the transformation for us
         scale_pts = ctrl_pts
-    return colormap, scale_pts, diverging_lims, transparent
+    return colormap, scale_pts, diverging_lims, transparent, ticks
 
 
 def _handle_time(time_label, time_unit, times):
@@ -1448,7 +1454,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                  'par': {'elev': 30, 'azim': -60}}
     kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
     _check_option('views', views, sorted(lh_kwargs.keys()))
-    colormap, scale_pts, _, _ = _limits_to_control_points(
+    colormap, scale_pts, _, _, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent, linearize=True)
     del transparent
 
@@ -1565,10 +1571,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         The type of surface (inflated, white etc.).
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display.
-    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-        Name of colormap to use or a custom look up table. If array, must
-        be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. The default ('auto') uses 'hot' for one-sided data and
+    %(colormap)s
+        The default ('auto') uses 'hot' for one-sided data and
         'mne' for two-sided data.
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
@@ -1576,8 +1580,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         default is ``time=%%0.2f ms``.
     smoothing_steps : int
         The amount of smoothing
-    transparent : bool
-        If True, use a linear transparency between fmin and fmid.
+    %(transparent)s
     alpha : float
         Alpha value to apply globally to the overlay. Has no effect with mpl
         backend.
@@ -1598,21 +1601,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         supported for mpl backend.
     colorbar : bool
         If True, display colorbar on scene.
-    clim : str | dict
-        Colorbar properties specification. If 'auto', set clim automatically
-        based on data percentiles. If dict, should contain:
-
-            ``kind`` : 'value' | 'percent'
-                Flag to specify type of limits.
-            ``lims`` : list | np.ndarray | tuple of float, 3 elements
-                Left, middle, and right bound for colormap.
-            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
-                Left, middle, and right bound for colormap. Positive values
-                will be mirrored directly across zero during colormap
-                construction to obtain negative control points.
-
-        .. note:: Only sequential colormaps should be used with ``lims``, and
-                  only divergent colormaps should be used with ``pos_lims``.
+    %(clim)s
     cortex : str or tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset PySurfer cortex colorscheme (one of
@@ -1692,7 +1681,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
-    colormap, scale_pts, diverging, transparent = _limits_to_control_points(
+    colormap, scale_pts, diverging, transparent, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent)
 
     if hemi in ['both', 'split']:
@@ -1792,29 +1781,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         Not used in "glass brain" plotting.
     colorbar : boolean, optional
         If True, display a colorbar on the right of the plots.
-    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-        Name of colormap to use or a custom look up table. If array, must
-        be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. Default ('auto') uses 'hot' for one-sided data and 'mne'
-        for two-sided data.
-    clim : str | dict
-        Colorbar properties specification. If 'auto', set clim automatically
-        based on data percentiles. If dict, should contain:
-
-            ``kind`` : 'value' | 'percent'
-                Flag to specify type of limits.
-            ``lims`` : list | np.ndarray | tuple of float, 3 elements
-                Left, middle, and right bound for colormap.
-            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
-                Left, middle, and right bound for colormap. Positive values
-                will be mirrored directly across zero during colormap
-                construction to obtain negative control points.
-
-        .. note:: Only sequential colormaps should be used with ``lims``, and
-                  only divergent colormaps should be used with ``pos_lims``.
-    transparent : bool | None
-        If True, use a linear transparency between fmin and fmid.
-        None will choose automatically based on colormap type.
+    %(colormap)s
+    %(clim)s
+    %(transparent)s
     show : bool
         Show figures if True. Defaults to True.
     %(verbose)s
@@ -2003,7 +1972,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     fig.tight_layout()
 
     allow_pos_lims = (mode != 'glass_brain')
-    colormap, scale_pts, diverging, _ = _limits_to_control_points(
+    colormap, scale_pts, diverging, _, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent, allow_pos_lims, linearize=True)
     if not diverging:  # set eq above iff one-sided
         # there is a bug in nilearn where this messes w/transparency
@@ -2077,6 +2046,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     return fig
 
 
+@fill_doc
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
@@ -2104,18 +2074,15 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         is None, the environment will be used.
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display.
-    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-        Name of colormap to use or a custom look up table. If array, must
-        be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. This should be a sequential colormap.
+    %(colormap)s
+        This should be a sequential colormap.
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
         floating point time values to strings, or None for no label). The
-        default is ``time=%0.2f ms``.
+        default is ``time=%%0.2f ms``.
     smoothing_steps : int
         The amount of smoothing
-    transparent : bool
-        If True, use a linear transparency between fmin and fmid.
+    %(transparent)s
     brain_alpha : float
         Alpha value to apply globally to the surface meshes. Defaults to 0.4.
     overlay_alpha : float
@@ -2140,17 +2107,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         View to use. See `surfer.Brain`.
     colorbar : bool
         If True, display colorbar on scene.
-    clim : str | dict
-        Colorbar properties specification. If 'auto', set clim automatically
-        based on data percentiles. If dict, should contain:
-
-            ``kind`` : 'value' | 'percent'
-                Flag to specify type of limits.
-            ``lims`` : list | np.ndarray | tuple of float, 3 elements
-                Left, middle, and right bound for colormap.
-
-        Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
-        ``pos_lims``, as the surface plot must show the magnitude.
+    %(clim_onesided)s
     cortex : str or tuple
         specifies how binarized curvature values are rendered.
         either the name of a preset PySurfer cortex colorscheme (one of
@@ -2195,7 +2152,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
-    colormap, scale_pts, _, transparent = _limits_to_control_points(
+    colormap, scale_pts, _, transparent, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent, allow_pos_lims=False)
 
     if hemi in ['both', 'split']:
@@ -2882,3 +2839,50 @@ def _update_coord_frame(obj, rr, nn, mri_trans, head_trans):
         rr = apply_trans(head_trans, rr)
         nn = apply_trans(head_trans, nn, move=False)
     return rr, nn
+
+
+@fill_doc
+def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
+                        orientation='vertical', label='Activation',
+                        bgcolor='0.5'):
+    """Plot a colorbar that corresponds to a brain activation map.
+
+    Parameters
+    ----------
+    ax : instance of Axes
+        The Axes to plot into.
+    %(clim)s
+    %(colormap)s
+    %(transparent)s
+    orientation : str
+        Orientation of the colorbar, can be "vertical" or "horizontal".
+    label : str
+        The colorbar label.
+    bgcolor : color
+        The color behind the colorbar (for alpha blending).
+
+    Returns
+    -------
+    cbar : instance of ColorbarBase
+        The colorbar.
+
+    Notes
+    -----
+    .. versionadded:: 0.19
+    """
+    from matplotlib.colorbar import ColorbarBase
+    from matplotlib.colors import Normalize
+    cmap, scale_pts, diverging, _, ticks = _limits_to_control_points(
+        clim, 0., colormap, transparent=True, linearize=True)
+    norm = Normalize(vmin=scale_pts[0], vmax=scale_pts[-1])
+    cbar = ColorbarBase(ax, cmap, norm=norm, ticks=ticks,
+                        label=label, orientation=orientation)
+    # make the colorbar background match the brain color
+    cbar.patch.set(facecolor=bgcolor)
+    # remove the colorbar frame except for the line containing the ticks
+    cbar.outline.set_visible(False)
+    cbar.ax.set_frame_on(True)
+    for key in ('left', 'top',
+                'bottom' if orientation == 'vertical' else 'right'):
+        ax.spines[key].set_visible(False)
+    return cbar

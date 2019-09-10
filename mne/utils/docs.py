@@ -369,6 +369,49 @@ montage : str | None | instance of Montage
     Use the `set_montage` method.
 """
 
+# Brain plotting
+docdict["clim"] = """
+clim : str | dict
+    Colorbar properties specification. If 'auto', set clim automatically
+    based on data percentiles. If dict, should contain:
+
+        ``kind`` : 'value' | 'percent'
+            Flag to specify type of limits.
+        ``lims`` : list | np.ndarray | tuple of float, 3 elements
+            Left, middle, and right bound for colormap.
+        ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+            Left, middle, and right bound for colormap. Positive values
+            will be mirrored directly across zero during colormap
+            construction to obtain negative control points.
+
+    .. note:: Only sequential colormaps should be used with ``lims``, and
+                only divergent colormaps should be used with ``pos_lims``.
+"""
+docdict["clim_onesided"] = """
+clim : str | dict
+    Colorbar properties specification. If 'auto', set clim automatically
+    based on data percentiles. If dict, should contain:
+
+        ``kind`` : 'value' | 'percent'
+            Flag to specify type of limits.
+        ``lims`` : list | np.ndarray | tuple of float, 3 elements
+            Left, middle, and right bound for colormap.
+
+    Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+    ``pos_lims``, as the surface plot must show the magnitude.
+"""
+docdict["colormap"] = """
+colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+    Name of colormap to use or a custom look up table. If array, must
+    be (n x 3) or (n x 4) array for with RGB or RGBA values between
+    0 and 255.
+"""
+docdict["transparent"] = """
+transparent : bool | None
+    If True, use a linear transparency between fmin and fmid.
+    None will choose automatically based on colormap type.
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)

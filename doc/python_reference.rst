@@ -223,6 +223,7 @@ Visualization
    circular_layout
    mne_analyze_colormap
    plot_bem
+   plot_brain_colorbar
    plot_connectivity_circle
    plot_cov
    plot_csd

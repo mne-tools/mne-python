@@ -15,9 +15,9 @@ a figure closer to publication-ready.
 # License: BSD (3-clause)
 
 import os.path as op
+
+import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colorbar import ColorbarBase
-from matplotlib.colors import Normalize
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import mne
@@ -53,7 +53,7 @@ stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
 # remove the default colorbar (so we can add a smaller, vertical one later):
 
 colormap = 'viridis'
-clim = dict(kind='value', lims=[3, 6, 9])
+clim = dict(kind='value', lims=[4, 8, 12])
 
 # Plot the STC, get the brain image, crop it
 brain = stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
@@ -75,11 +75,12 @@ nonwhite_col = nonwhite_pix.any(0)
 cropped_screenshot = screenshot[nonwhite_row][:, nonwhite_col]
 
 # before/after results
-fig, axs = plt.subplots(1, 2)
+fig, axs = plt.subplots(2, 1)
 for ax, image, title in zip(axs, [screenshot, cropped_screenshot],
                             ['Before', 'After']):
     ax.imshow(image)
     ax.set_title('{} cropping'.format(title))
+fig.tight_layout()
 
 ###############################################################################
 # A lot of figure settings can be adjusted after the figure is created, but
@@ -125,36 +126,32 @@ brain_idx = 1
 
 # plot the evoked in the desired subplot, and add a line at peak activation
 evoked.plot(axes=axes[evoked_idx])
-peak_line = axes[evoked_idx].axvline(max_t, color=(0., 1., 0.), ls='--')
+peak_line = axes[evoked_idx].axvline(max_t, color='#66CCEE', ls='--')
 # custom legend
 axes[evoked_idx].legend(
     [axes[evoked_idx].lines[0], peak_line], ['MEG data', 'Peak time'],
     frameon=True, columnspacing=0.1, labelspacing=0.1,
-    fontsize=8, fancybox=True, handlelength=2.0)
+    fontsize=8, fancybox=True, handlelength=1.8)
 # remove the "N_ave" annotation
 axes[evoked_idx].texts = []
 # Remove spines and add grid
-axes[evoked_idx].grid(True, zorder=2)
+axes[evoked_idx].grid(True)
+axes[evoked_idx].set_axisbelow(True)
 for key in ('top', 'right'):
     axes[evoked_idx].spines[key].set(visible=False)
+# Tweak the ticks and limits
+axes[evoked_idx].set(
+    yticks=np.arange(-200, 201, 100), xticks=np.arange(-0.2, 0.51, 0.1))
+axes[evoked_idx].set(
+    ylim=[-225, 225], xlim=[-0.2, 0.5])
 
 # now add the brain to the lower axes
 axes[brain_idx].imshow(cropped_screenshot)
 axes[brain_idx].axis('off')
-# add a custom vertical colorbar
+# add a vertical colorbar with the same properties as the 3D one
 divider = make_axes_locatable(axes[brain_idx])
 cax = divider.append_axes('right', size='5%', pad=0.2)
-cmap, scale_pts, diverging, _ = mne.viz._3d._limits_to_control_points(
-    clim, 0, colormap, transparent=True, linearize=True)
-vmin, vmax = scale_pts[0], scale_pts[-1]
-cbar_ticks = clim['lims']
-norm = Normalize(vmin=vmin, vmax=vmax)
-cbar = ColorbarBase(cax, cmap, norm=norm, ticks=cbar_ticks,
-                    label='Activation (F)', orientation='vertical')
-# make the colorbar background match the brain color
-cbar.patch.set(facecolor='0.5')
-# remove the colorbar frame
-cbar.outline.set_visible(False)
+cbar = mne.viz.plot_brain_colorbar(cax, clim, colormap, label='Activation (F)')
 
 # tweak margins and spacing
 fig.subplots_adjust(
