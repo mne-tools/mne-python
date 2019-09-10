@@ -308,7 +308,7 @@ def test_easycap_M1():
     """Test easycap_M1."""
     EXPECTED_HEAD_SIZE = 0.085
 
-    montage = read_standard_montage('easycap_M1')
+    montage = read_standard_montage('easycap-M1')
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
 
     assert_allclose(
@@ -321,7 +321,7 @@ def test_easycap_M10():
     """Test easycap_M1."""
     EXPECTED_HEAD_SIZE = 0.085
 
-    montage = read_standard_montage('easycap_M10')
+    montage = read_standard_montage('easycap-M10')
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
 
     assert_allclose(

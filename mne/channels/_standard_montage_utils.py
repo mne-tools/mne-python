@@ -49,18 +49,10 @@ def get_egi_256():
 
 # HEAD_SIZE_ESTIMATION = 0.085  # in [m]
 HEAD_SIZE_ESTIMATION = 1  # in [m]
-def get_easycap_M1():
-    """ Load easycap M1.
 
-        data = np.genfromtxt(fname, dtype='str', skip_header=1)
-        ch_names_ = data[:, 0].tolist()
-        az = np.deg2rad(data[:, 2].astype(float))
-        pol = np.deg2rad(data[:, 1].astype(float))
-        rad = np.ones(len(az))  # spherical head model
-        rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
-        pos = _sph_to_cart(np.array([rad, az, pol]).T)
-    """
-    fname = op.join(MONTAGE_PATH, 'easycap-M1.txt')
+
+def get_easycap(basename):
+    fname = op.join(MONTAGE_PATH, basename)
     options = dict(
         skiprows=1,
         unpack=True,
@@ -79,28 +71,6 @@ def get_easycap_M1():
     )
 
 
-def get_easycap_M10():
-    """ Load easycap M10.
-
-    """
-    fname = op.join(MONTAGE_PATH, 'easycap-M10.txt')
-    options = dict(
-        skiprows=1,
-        unpack=True,
-        dtype={'names': ('Site', 'Theta', 'Phi'),
-               'formats': (object, 'i4', 'i4')},
-    )
-
-    ch_names, theta, phi = np.loadtxt(fname, **options)
-    radious = np.full_like(phi, HEAD_SIZE_ESTIMATION)
-    pos = _sph_to_cart(np.stack([radious, phi, theta], axis=-1,))
-
-    pos *= 0.085  # XXX this should work out of the box with HEAD_SIZE
-
-    return make_dig_montage(
-        ch_pos=dict(zip(ch_names, pos)),
-        coord_frame='head',
-    )
 
 def get_hydrocel_128():
     fname = op.join(MONTAGE_PATH, 'GSN-HydroCel-128.sfp')
@@ -255,10 +225,6 @@ def get_standard_1005():
 
 
 
-
-
-
-
 def read_standard_montage(kind):
     if kind == 'EGI_256':
         dig_montage_A = get_egi_256()
@@ -290,13 +256,28 @@ def read_standard_montage(kind):
 
     return dig_montage_A
 
+standard_montage_look_up_table={
+
+    'easycap-M1': {
+        'reader': get_easycap,
+        'params': dict(basename='easycap-M1.txt')
+    },
+    'easycap-M10': {
+        'reader': get_easycap,
+        'params': dict(basename='easycap-M1.txt')
+    },
+
+}
+
+
 def read_standard_montage(kind):
-    if kind == 'EGI_256':
+    if kind.startswith('easycap'):
+        reader = standard_montage_look_up_table[kind]['reader']
+        params = standard_montage_look_up_table[kind]['params']
+        montage = reader(**params)
+
+    elif kind == 'EGI_256':
         montage = get_egi_256()
-    elif kind == 'easycap_M1':
-        montage = get_easycap_M1()
-    elif kind == 'easycap_M10':
-        montage = get_easycap_M10()
     elif kind == 'GSN-HydroCel-128':
         montage = get_hydrocel_128()
     elif kind == 'GSN-HydroCel-129':
