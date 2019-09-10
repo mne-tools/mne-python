@@ -195,8 +195,8 @@ def test_read_standard_montage_egi_256():
     # 'EGI_256',
     # 'easycap-M1',
     # 'easycap-M10'
-    'GSN-HydroCel-128',
-    # 'GSN-HydroCel-129',
+    # 'GSN-HydroCel-128',
+    'GSN-HydroCel-129',
     # 'GSN-HydroCel-256',
     # 'GSN-HydroCel-257',
     # 'GSN-HydroCel-32',
@@ -219,7 +219,7 @@ def test_read_standard_montage_egi_256():
 ])
 def test_foo(kind):
     """Test difference between old and new standard montages."""
-    # import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
     mont = read_montage(kind)
     digm = read_standard_montage(kind)
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(digm.dig)])
@@ -246,6 +246,18 @@ def test_hydrocell_128():
     for kk in actual:
         assert_array_equal(actual[kk], expected[kk])
 
+
+def test_hydrocell_129():
+    """Test difference between old and new standard montages."""
+    mont = read_montage('GSN-HydroCel-128')
+    digm = read_standard_montage('GSN-HydroCel-128')
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(digm.dig)])
+
+    # Assert we are reading the same thing. (notice dig reorders chnames)
+    actual = dict(zip(digm.ch_names, eeg_loc))
+    expected = dict(zip(mont.ch_names, mont.pos))
+    for kk in actual:
+        assert_array_equal(actual[kk], expected[kk])
 
 def test_easycaps_are_indeed_different():
     """Test something fishy with easycaps."""

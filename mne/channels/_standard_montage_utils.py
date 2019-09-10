@@ -132,6 +132,36 @@ def get_hydrocel_128():
     )
 
 
+def get_hydrocel_129():
+    fname = op.join(MONTAGE_PATH, 'GSN-HydroCel-129.sfp')
+
+    LPA_CH_NAME = 'FidT9'
+    NASION_CH_NAME = 'FidNz'
+    RPA_CH_NAME = 'FidT10'
+    with open(fname, 'r') as f:
+        lines = f.read().replace('\t', ' ').splitlines()
+
+    ch_names_, pos = [], []
+    for ii, line in enumerate(lines):
+        line = line.strip().split()
+        if len(line) > 0:  # skip empty lines
+            if len(line) != 4:  # name, x, y, z
+                raise ValueError("Malformed .sfp file in line " + str(ii))
+            this_name, x, y, z = line
+            ch_names_.append(this_name)
+            pos.append([float(cord) for cord in (x, y, z)])
+    pos = np.asarray(pos)
+
+    ch_pos = dict(zip(ch_names_, pos))
+    nasion = ch_pos.pop(NASION_CH_NAME).reshape(3, )
+    lpa = ch_pos.pop(LPA_CH_NAME).reshape(3, )
+    rpa = ch_pos.pop(RPA_CH_NAME).reshape(3, )
+
+    return make_dig_montage(
+        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
+    )
+
+
 def read_standard_montage(kind):
     if kind == 'EGI_256':
         dig_montage_A = get_egi_256()
@@ -142,6 +172,8 @@ def read_standard_montage(kind):
         dig_montage_A = get_easycap_M10()
     elif kind == 'GSN-HydroCel-128':
         dig_montage_A = get_hydrocel_128()
+    elif kind == 'GSN-HydroCel-129':
+        dig_montage_A = get_hydrocel_129()
 
     else:
         montage = read_montage(kind)  # XXX: reader needs to go out!
@@ -154,5 +186,3 @@ def read_standard_montage(kind):
         # dig_montage_B is to create RawArray(.., montage=montage)
 
     return dig_montage_A
-
-
