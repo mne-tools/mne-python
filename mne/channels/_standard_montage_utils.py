@@ -162,6 +162,103 @@ def get_hydrocel_129():
     )
 
 
+def get_biosemi128():
+    fname = op.join(MONTAGE_PATH, 'biosemi128.txt')
+    data = np.genfromtxt(fname, dtype='str', skip_header=1)
+    ch_names_ = data[:, 0].tolist()
+    az = np.deg2rad(data[:, 2].astype(float))
+    pol = np.deg2rad(data[:, 1].astype(float))
+    rad = np.ones(len(az))  # spherical head model
+    rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
+    pos = _sph_to_cart(np.array([rad, az, pol]).T)
+
+    ch_pos = dict(zip(ch_names_, pos))
+    nasion = ch_pos.pop('Nz').reshape(3, )
+    lpa = ch_pos.pop('LPA').reshape(3, )
+    rpa = ch_pos.pop('RPA').reshape(3, )
+    return make_dig_montage(
+        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
+    )
+
+
+def get_mgh60():
+    fname = op.join(MONTAGE_PATH, 'mgh60.elc')
+
+    # 10-5 system
+    ch_names_, pos = [], []
+    with open(fname) as fid:
+        # Default units are meters
+        for line in fid:
+            if 'UnitPosition' in line:
+                units = line.split()[1]
+                scale_factor = dict(m=1., mm=1e-3)[units]
+                break
+        else:
+            raise RuntimeError('Could not detect units in file %s' % fname)
+        for line in fid:
+            if 'Positions\n' in line:
+                break
+        pos = []
+        for line in fid:
+            if 'Labels\n' in line:
+                break
+            pos.append(list(map(float, line.split())))
+        for line in fid:
+            if not line or not set(line) - {' '}:
+                break
+            ch_names_.append(line.strip(' ').strip('\n'))
+    pos = np.array(pos) * scale_factor
+
+    ch_pos = dict(zip(ch_names_, pos))
+    nasion = ch_pos.pop('Nz').reshape(3, )
+    lpa = ch_pos.pop('LPA').reshape(3, )
+    rpa = ch_pos.pop('RPA').reshape(3, )
+    return make_dig_montage(
+        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
+    )
+
+
+def get_standard_1005():
+    fname = op.join(MONTAGE_PATH, 'standard_1005.elc')
+
+    ch_names_, pos = [], []
+    with open(fname) as fid:
+        # Default units are meters
+        for line in fid:
+            if 'UnitPosition' in line:
+                units = line.split()[1]
+                scale_factor = dict(m=1., mm=1e-3)[units]
+                break
+        else:
+            raise RuntimeError('Could not detect units in file %s' % fname)
+        for line in fid:
+            if 'Positions\n' in line:
+                break
+        pos = []
+        for line in fid:
+            if 'Labels\n' in line:
+                break
+            pos.append(list(map(float, line.split())))
+        for line in fid:
+            if not line or not set(line) - {' '}:
+                break
+            ch_names_.append(line.strip(' ').strip('\n'))
+    pos = np.array(pos) * scale_factor
+
+    ch_pos = dict(zip(ch_names_, pos))
+    nasion = ch_pos.pop('Nz').reshape(3, )
+    lpa = ch_pos.pop('LPA').reshape(3, )
+    rpa = ch_pos.pop('RPA').reshape(3, )
+    return make_dig_montage(
+        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
+    )
+
+
+
+
+
+
+
 def read_standard_montage(kind):
     if kind == 'EGI_256':
         dig_montage_A = get_egi_256()
@@ -174,6 +271,12 @@ def read_standard_montage(kind):
         dig_montage_A = get_hydrocel_128()
     elif kind == 'GSN-HydroCel-129':
         dig_montage_A = get_hydrocel_129()
+    elif kind == 'biosemi128':
+        dig_montage_A = get_biosemi128()
+    elif kind == 'mgh60':
+        dig_montage_A = get_mgh60()
+    elif kind == 'standard_1005':
+        dig_montage_A = get_standard_1005()
 
     else:
         montage = read_montage(kind)  # XXX: reader needs to go out!

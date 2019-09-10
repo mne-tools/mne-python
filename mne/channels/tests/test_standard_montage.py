@@ -196,7 +196,7 @@ def test_read_standard_montage_egi_256():
     # 'easycap-M1',
     # 'easycap-M10'
     # 'GSN-HydroCel-128',
-    'GSN-HydroCel-129',
+    # 'GSN-HydroCel-129',
     # 'GSN-HydroCel-256',
     # 'GSN-HydroCel-257',
     # 'GSN-HydroCel-32',
@@ -212,7 +212,7 @@ def test_read_standard_montage_egi_256():
     # 'mgh70',
     # 'standard_1005',
     # 'standard_1020',
-    # 'standard_alphabetic',
+    'standard_alphabetic',
     # 'standard_postfixed',
     # 'standard_prefixed',
     # 'standard_primed'
@@ -224,6 +224,12 @@ def test_foo(kind):
     digm = read_standard_montage(kind)
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(digm.dig)])
 
+    # Assert we are reading the same thing. (notice dig reorders chnames)
+    actual = dict(zip(digm.ch_names, eeg_loc))
+    expected = dict(zip(mont.ch_names, mont.pos))
+    for kk in actual:
+        assert_array_equal(actual[kk], expected[kk])
+
     # import pdb; pdb.set_trace()
     # assert new_montage == old_montage
 
@@ -232,6 +238,45 @@ def test_foo(kind):
     #     actual=np.linalg.norm(eeg_loc, axis=1),
     #     desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE)
     # )
+
+
+def test_standard_1005():
+    """Test difference between old and new standard montages."""
+    mont = read_montage('standard_1005')
+    digm = read_standard_montage('standard_1005')
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(digm.dig)])
+
+    # Assert we are reading the same thing. (notice dig reorders chnames)
+    actual = dict(zip(digm.ch_names, eeg_loc))
+    expected = dict(zip(mont.ch_names, mont.pos))
+    for kk in actual:
+        assert_array_equal(actual[kk], expected[kk])
+
+
+def test_mgh60():
+    """Test difference between old and new standard montages."""
+    mont = read_montage('mgh60')
+    digm = read_standard_montage('mgh60')
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(digm.dig)])
+
+    # Assert we are reading the same thing. (notice dig reorders chnames)
+    actual = dict(zip(digm.ch_names, eeg_loc))
+    expected = dict(zip(mont.ch_names, mont.pos))
+    for kk in actual:
+        assert_array_equal(actual[kk], expected[kk])
+
+
+def test_biosemi128():
+    """Test difference between old and new standard montages."""
+    mont = read_montage('biosemi128')
+    digm = read_standard_montage('biosemi128')
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(digm.dig)])
+
+    # Assert we are reading the same thing. (notice dig reorders chnames)
+    actual = dict(zip(digm.ch_names, eeg_loc))
+    expected = dict(zip(mont.ch_names, mont.pos))
+    for kk in actual:
+        assert_array_equal(actual[kk], expected[kk])
 
 
 def test_hydrocell_128():
@@ -258,6 +303,7 @@ def test_hydrocell_129():
     expected = dict(zip(mont.ch_names, mont.pos))
     for kk in actual:
         assert_array_equal(actual[kk], expected[kk])
+
 
 def test_easycaps_are_indeed_different():
     """Test something fishy with easycaps."""

@@ -401,6 +401,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         neuromag_trans = get_ras_to_neuromag_trans(
             fids['nasion'], fids['lpa'], fids['rpa'])
         pos = apply_trans(neuromag_trans, pos)
+    # XXX: This code was duplicated !!
     fids = {key: pos[names_lower.index(fid_names[ii])]
             if fid_names[ii] in names_lower else None
             for ii, key in enumerate(['lpa', 'nasion', 'rpa'])}
