@@ -7,14 +7,15 @@ import glob
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
-from mne import concatenate_raws, read_bem_surfaces, read_surface
+from mne import (concatenate_raws, read_bem_surfaces, read_surface,
+                 read_source_spaces)
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem, mne_watershed_bem,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
-                          mne_show_info, mne_what)
+                          mne_show_info, mne_what, mne_setup_source_space)
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif
 from mne.utils import (run_tests_if_main, requires_mne,
@@ -274,6 +275,20 @@ def test_flash_bem(tmpdir):
     for out_fname in out_fnames:
         _, tris = read_surface(out_fname)
         assert len(tris) == 5120
+
+
+@pytest.mark.slowtest
+@sample.requires_sample_data
+def test_setup_source_space(tmpdir):
+    check_usage(mne_setup_source_space, force_help=True)
+    # Using the sample dataset
+    subjects_dir = op.join(sample.data_path(download=False), 'subjects')
+    use_fname = op.join(tmpdir, "sources-src.fif")
+    with ArgvSetter(('-f', use_fname, '-d', subjects_dir,
+                     '-s', 'sample')):
+        mne_setup_source_space.run()
+    src = read_source_spaces(use_fname)
+    assert len(src) == 2
 
 
 def test_show_info():
