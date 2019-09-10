@@ -5,6 +5,8 @@
 import os.path as op
 import numpy as np
 
+from functools import partial
+
 from .montage import read_montage
 from .montage import make_dig_montage
 from .montage import DigMontage
@@ -193,102 +195,40 @@ def get_standard_1005():
     )
 
 standard_montage_look_up_table = {
-    'easycap-M1': {
-        'reader': get_easycap,
-        'params': dict(basename='easycap-M1.txt')
-    },
-    'easycap-M10': {
-        'reader': get_easycap,
-        'params': dict(basename='easycap-M1.txt')
-    },
+    'easycap-M1': partial(get_easycap, basename='easycap-M1.txt'),
+    'easycap-M10': partial(get_easycap, basename='easycap-M1.txt'),
 
-    'GSN-HydroCel-128': {
-        'reader': get_hydrocel,
-        'params': dict(basename='GSN-HydroCel-128.sfp')
-    },
-    'GSN-HydroCel-129': {
-        'reader': get_hydrocel,
-        'params': dict(basename='GSN-HydroCel-129.sfp')
-    },
-    'GSN-HydroCel-256': {
-        'reader': get_hydrocel,
-        'params': dict(basename='GSN-HydroCel-256.sfp')
-    },
-    'GSN-HydroCel-257': {
-        'reader': get_hydrocel,
-        'params': dict(basename='GSN-HydroCel-257.sfp')
-    },
-    'GSN-HydroCel-32': {
-        'reader': get_hydrocel,
-        'params': dict(basename='GSN-HydroCel-32.sfp')
-    },
-    'GSN-HydroCel-64_1.0': {
-        'reader': get_hydrocel,
-        'params': dict(basename='GSN-HydroCel-64_1.0.sfp')
-    },
-    'GSN-HydroCel-65_1.0': {
-        'reader': get_hydrocel,
-        'params': dict(basename='GSN-HydroCel-65_1.0.sfp')
-    },
+    'GSN-HydroCel-128': partial(get_hydrocel, basename='GSN-HydroCel-128.sfp'),
+    'GSN-HydroCel-129': partial(get_hydrocel, basename='GSN-HydroCel-129.sfp'),
+    'GSN-HydroCel-256': partial(get_hydrocel, basename='GSN-HydroCel-256.sfp'),
+    'GSN-HydroCel-257': partial(get_hydrocel, basename='GSN-HydroCel-257.sfp'),
+    'GSN-HydroCel-32': partial(get_hydrocel, basename='GSN-HydroCel-32.sfp'),
+    'GSN-HydroCel-64_1.0': partial(get_hydrocel,
+                                   basename='GSN-HydroCel-64_1.0.sfp'),
+    'GSN-HydroCel-65_1.0': partial(get_hydrocel,
+                                   basename='GSN-HydroCel-65_1.0.sfp'),
 
-    'biosemi128': {
-        'reader': get_biosemi,
-        'params': dict(basename='biosemi128.txt')
-    },
-    'biosemi16': {
-        'reader': get_biosemi,
-        'params': dict(basename='biosemi16.txt')
-    },
-    'biosemi160': {
-        'reader': get_biosemi,
-        'params': dict(basename='biosemi160.txt')
-    },
-    'biosemi256': {
-        'reader': get_biosemi,
-        'params': dict(basename='biosemi256.txt')
-    },
-    'biosemi32': {
-        'reader': get_biosemi,
-        'params': dict(basename='biosemi32.txt')
-    },
-    'biosemi64': {
-        'reader': get_biosemi,
-        'params': dict(basename='biosemi64.txt')
-    },
+    'biosemi128': partial(get_biosemi, basename='biosemi128.txt'),
+    'biosemi16': partial(get_biosemi, basename='biosemi16.txt'),
+    'biosemi160': partial(get_biosemi, basename='biosemi160.txt'),
+    'biosemi256': partial(get_biosemi, basename='biosemi256.txt'),
+    'biosemi32': partial(get_biosemi, basename='biosemi32.txt'),
+    'biosemi64': partial(get_biosemi, basename='biosemi64.txt'),
 
-    'mgh60': {
-        'reader': get_mgh_or_standard,
-        'params': dict(basename='mgh60.elc')
-    },
-    'mgh70': {
-        'reader': get_mgh_or_standard,
-        'params': dict(basename='mgh70.elc')
-    },
-    'standard_1005': {
-        'reader': get_mgh_or_standard,
-        'params': dict(basename='standard_1005.elc')
-    },
-    'standard_1020': {
-        'reader': get_mgh_or_standard,
-        'params': dict(basename='standard_1020.elc')
-    },
-    'standard_alphabetic': {
-        'reader': get_mgh_or_standard,
-        'params': dict(basename='standard_alphabetic.elc')
-    },
-    'standard_postfixed': {
-        'reader': get_mgh_or_standard,
-        'params': dict(basename='standard_postfixed.elc')
-    },
-    'standard_prefixed': {
-        'reader': get_mgh_or_standard,
-        'params': dict(basename='standard_prefixed.elc')
-    },
-    'standard_primed': {
-        'reader': get_mgh_or_standard,
-        'params': dict(basename='standard_primed.elc')
-    },
-
+    'mgh60': partial(get_mgh_or_standard, basename='mgh60.elc'),
+    'mgh70': partial(get_mgh_or_standard, basename='mgh70.elc'),
+    'standard_1005': partial(get_mgh_or_standard,
+                             basename='standard_1005.elc'),
+    'standard_1020': partial(get_mgh_or_standard,
+                             basename='standard_1020.elc'),
+    'standard_alphabetic': partial(get_mgh_or_standard,
+                                   basename='standard_alphabetic.elc'),
+    'standard_postfixed': partial(get_mgh_or_standard,
+                                  basename='standard_postfixed.elc'),
+    'standard_prefixed': partial(get_mgh_or_standard,
+                                 basename='standard_prefixed.elc'),
+    'standard_primed': partial(get_mgh_or_standard,
+                               basename='standard_primed.elc'),
 }
 
 
@@ -369,7 +309,4 @@ def read_standard_montage(kind):
         raise ValueError('Could not find the montage. Please provide the '
                          'full path.')
     else:
-        reader = standard_montage_look_up_table[kind]['reader']
-        params = standard_montage_look_up_table[kind]['params']
-        montage = reader(**params)
-        return montage
+        return standard_montage_look_up_table[kind]()
