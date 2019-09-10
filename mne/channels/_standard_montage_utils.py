@@ -7,19 +7,21 @@ import numpy as np
 
 from functools import partial
 
-from .montage import read_montage
 from .montage import make_dig_montage
-from .montage import DigMontage
-
-from .._digitization import Digitization
-
-from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _frame_to_str, _str_to_frame,
-                          Transform)
-
+from ..transforms import _sph_to_cart
 from . import __file__ as _CHANNELS_INIT_FILE
 
 MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
+
+# HEAD_SIZE_ESTIMATION = 0.085  # in [m]
+HEAD_SIZE_ESTIMATION = 1  # in [m]
+
+def _split_eeg_fid(ch_pos, nz_str='Nz', lpa_str='LPA', rpa_str='RPA'):
+    nasion = ch_pos.pop(nz_str).reshape(3, ) if nz_str in ch_pos else None
+    lpa = ch_pos.pop(lpa_str).reshape(3, ) if lpa_str in ch_pos else None
+    rpa = ch_pos.pop(rpa_str).reshape(3, ) if rpa_str in ch_pos else None
+
+    return ch_pos, nasion, lpa, rpa
 
 
 def get_egi_256():
@@ -47,12 +49,6 @@ def get_egi_256():
     )
 
 
-# HEAD_SIZE_ESTIMATION = 0.085  # in [m]
-
-# HEAD_SIZE_ESTIMATION = 0.085  # in [m]
-HEAD_SIZE_ESTIMATION = 1  # in [m]
-
-
 def get_easycap(basename):
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(
@@ -76,9 +72,6 @@ def get_easycap(basename):
 def get_hydrocel(basename):
     fname = op.join(MONTAGE_PATH, basename)
 
-    LPA_CH_NAME = 'FidT9'
-    NASION_CH_NAME = 'FidNz'
-    RPA_CH_NAME = 'FidT10'
     with open(fname, 'r') as f:
         lines = f.read().replace('\t', ' ').splitlines()
 
@@ -93,10 +86,10 @@ def get_hydrocel(basename):
             pos.append([float(cord) for cord in (x, y, z)])
     pos = np.asarray(pos)
 
-    ch_pos = dict(zip(ch_names_, pos))
-    nasion = ch_pos.pop(NASION_CH_NAME).reshape(3, )
-    lpa = ch_pos.pop(LPA_CH_NAME).reshape(3, )
-    rpa = ch_pos.pop(RPA_CH_NAME).reshape(3, )
+    ch_pos, nasion, lpa, rpa = _split_eeg_fid(
+        ch_pos=dict(zip(ch_names_, pos)),
+        nz_str='FidNz', lpa_str='FidT9', rpa_str='FidT10'
+    )
 
     return make_dig_montage(
         ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
@@ -113,10 +106,11 @@ def get_biosemi(basename):
     rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
     pos = _sph_to_cart(np.array([rad, az, pol]).T)
 
-    ch_pos = dict(zip(ch_names_, pos))
-    nasion = ch_pos.pop('Nz').reshape(3, )
-    lpa = ch_pos.pop('LPA').reshape(3, )
-    rpa = ch_pos.pop('RPA').reshape(3, )
+    ch_pos, nasion, lpa, rpa = _split_eeg_fid(
+        ch_pos=dict(zip(ch_names_, pos)),
+        nz_str='Nz', lpa_str='LPA', rpa_str='RPA'
+    )
+
     return make_dig_montage(
         ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
     )
@@ -125,7 +119,6 @@ def get_biosemi(basename):
 def get_mgh_or_standard(basename):
     fname = op.join(MONTAGE_PATH, basename)
 
-    # 10-5 system
     ch_names_, pos = [], []
     with open(fname) as fid:
         # Default units are meters
@@ -150,10 +143,10 @@ def get_mgh_or_standard(basename):
             ch_names_.append(line.strip(' ').strip('\n'))
     pos = np.array(pos) * scale_factor
 
-    ch_pos = dict(zip(ch_names_, pos))
-    nasion = ch_pos.pop('Nz').reshape(3, )
-    lpa = ch_pos.pop('LPA').reshape(3, )
-    rpa = ch_pos.pop('RPA').reshape(3, )
+    ch_pos, nasion, lpa, rpa = _split_eeg_fid(
+        ch_pos=dict(zip(ch_names_, pos)),
+        nz_str='Nz', lpa_str='LPA', rpa_str='RPA'
+    )
     return make_dig_montage(
         ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
     )
@@ -186,10 +179,10 @@ def get_standard_1005():
             ch_names_.append(line.strip(' ').strip('\n'))
     pos = np.array(pos) * scale_factor
 
-    ch_pos = dict(zip(ch_names_, pos))
-    nasion = ch_pos.pop('Nz').reshape(3, )
-    lpa = ch_pos.pop('LPA').reshape(3, )
-    rpa = ch_pos.pop('RPA').reshape(3, )
+    ch_pos, nasion, lpa, rpa = _split_eeg_fid(
+        ch_pos=dict(zip(ch_names_, pos)),
+        nz_str='Nz', lpa_str='LPA', rpa_str='RPA'
+    )
     return make_dig_montage(
         ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
     )
