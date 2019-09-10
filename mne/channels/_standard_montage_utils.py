@@ -289,3 +289,25 @@ def read_standard_montage(kind):
         # dig_montage_B is to create RawArray(.., montage=montage)
 
     return dig_montage_A
+
+def read_standard_montage(kind):
+    if kind == 'EGI_256':
+        montage = get_egi_256()
+    elif kind == 'easycap_M1':
+        montage = get_easycap_M1()
+    elif kind == 'easycap_M10':
+        montage = get_easycap_M10()
+    elif kind == 'GSN-HydroCel-128':
+        montage = get_hydrocel_128()
+    elif kind == 'GSN-HydroCel-129':
+        montage = get_hydrocel_129()
+    elif kind == 'biosemi128':
+        montage = get_biosemi128()
+    elif kind == 'mgh60':
+        montage = get_mgh60()
+    elif kind == 'standard_1005':
+        montage = get_standard_1005()
+    else:
+        raise NotImplementedError
+
+    return montage
