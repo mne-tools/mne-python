@@ -378,14 +378,15 @@ clim : str | dict
         ``kind`` : 'value' | 'percent'
             Flag to specify type of limits.
         ``lims`` : list | np.ndarray | tuple of float, 3 elements
-            Left, middle, and right bound for colormap.
+            Lower, middle, and upper bounds for colormap.
         ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
-            Left, middle, and right bound for colormap. Positive values
+            Lower, middle, and upper bound for colormap. Positive values
             will be mirrored directly across zero during colormap
             construction to obtain negative control points.
 
-    .. note:: Only sequential colormaps should be used with ``lims``, and
-                only divergent colormaps should be used with ``pos_lims``.
+    .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+              Only sequential colormaps should be used with ``lims``, and
+              only divergent colormaps should be used with ``pos_lims``.
 """
 docdict["clim_onesided"] = """
 clim : str | dict
@@ -395,7 +396,7 @@ clim : str | dict
         ``kind`` : 'value' | 'percent'
             Flag to specify type of limits.
         ``lims`` : list | np.ndarray | tuple of float, 3 elements
-            Left, middle, and right bound for colormap.
+            Lower, middle, and upper bound for colormap.
 
     Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
     ``pos_lims``, as the surface plot must show the magnitude.
