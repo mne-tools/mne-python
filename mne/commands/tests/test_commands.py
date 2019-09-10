@@ -280,6 +280,7 @@ def test_flash_bem(tmpdir):
 @pytest.mark.slowtest
 @sample.requires_sample_data
 def test_setup_source_space(tmpdir):
+    """Test mne setup_source_space"""
     check_usage(mne_setup_source_space, force_help=True)
     # Using the sample dataset
     subjects_dir = op.join(sample.data_path(download=False), 'subjects')

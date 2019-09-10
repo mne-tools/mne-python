@@ -1,19 +1,19 @@
 #!/usr/bin/env python
-'''Set up bilateral hemisphere surface-based source space with subsampling using
- :func:`mne.setup_source_space`
+# Authors: Victor Ferat  <victor.ferat@live.fr>
+'''Set up bilateral hemisphere surface-based source space with subsampling
+ using :func:`mne.setup_source_space`
 
 Examples
 --------
 .. code-block:: console
 
-    $ mne setup_source_space
+    $ mne setup_source_space -s sample -f sources-src.fif
 
 '''
 
 import sys
 
 import mne
-from mne.utils import _check_option
 
 
 def run():
